@@ -328,14 +328,20 @@ object GuideViews {
                             label(classes = "sr-only") { htmlFor = "guide-q"; +"Search the guide" }
                             input(type = InputType.search) {
                                 id = "guide-q"
-                                placeholder = "Search, e.g. backup, budget, duplicate"
+                                placeholder = "Search the guide: backup, budget, duplicate…"
                                 attributes["autocomplete"] = "off"
+                                attributes["spellcheck"] = "false"
+                                attributes["role"] = "combobox"
+                                attributes["aria-expanded"] = "false"
+                                attributes["aria-controls"] = "guide-hits"
+                                attributes["aria-autocomplete"] = "list"
                             }
                             kbd { +"/" }
-                        }
-                        p(classes = "g-results") {
-                            id = "guide-results"
-                            attributes["aria-live"] = "polite"
+                            ul(classes = "g-hits") {
+                                id = "guide-hits"
+                                attributes["role"] = "listbox"
+                                attributes["hidden"] = ""
+                            }
                         }
                     }
                     walkthroughs()
@@ -356,12 +362,6 @@ object GuideViews {
                                 id = "troubleshooting"
                                 h2 { +"Troubleshooting" }
                                 div(classes = "faq") { troubleshooting() }
-                            }
-                            p(classes = "g-empty") {
-                                attributes["hidden"] = ""
-                                +"Nothing in the guide matches that. Try another word, or ask on "
-                                a(href = "https://discord.gg/H3xWeMWjKQ") { +"Discord" }
-                                +"."
                             }
                             p(classes = "g-foot") {
                                 +"Still stuck? Ask on "
@@ -503,12 +503,15 @@ object GuideViews {
         span(classes = "path") { +text }
     }
 
-    private fun FlowContent.faq(question: String, answer: P.() -> Unit) {
-        details { summary { +question }; p { answer() } }
+    private fun FlowContent.faq(question: String, keywords: String = "", answer: P.() -> Unit) {
+        details {
+            if (keywords.isNotEmpty()) attributes["data-k"] = keywords
+            summary { +question }; p { answer() }
+        }
     }
 
     private fun FlowContent.troubleshooting() {
-        faq("My bank's SMS aren't being picked up.") {
+        faq("My bank's SMS aren't being picked up.", "detect detected not working unsupported bank missing parse") {
             +"Check your bank is on the "
             a(href = "/banks") { +"supported banks" }
             +" list and SMS permission is on. Paste one message into the "
@@ -519,34 +522,34 @@ object GuideViews {
             a(href = "https://github.com/sarim2000/pennywiseai-tracker/issues") { +"GitHub issue" }
             +" with the message (hide your account number)."
         }
-        faq("Older transactions are missing.") {
+        faq("Older transactions are missing.", "old history scan rescan past") {
             +"Set "
             path("Settings → SMS Scan Period")
             +" to All Time, then long-press the sync button for a full rescan. PennyWise can only see SMS still on your phone."
         }
-        faq("A transaction shows up twice.") {
+        faq("A transaction shows up twice.", "duplicate double twice repeated") {
             +"Some banks send two messages for one payment. Most duplicates are skipped; delete any that slip through."
         }
-        faq("A balance is wrong.") {
+        faq("A balance is wrong.", "incorrect balance mismatch fix") {
             +"Balances come from the latest SMS that mentions one. Correct it in "
             path("Settings → Manage Accounts → Update Balance")
             +"."
         }
-        faq("Lots of transactions are in the wrong category.") {
+        faq("Lots of transactions are in the wrong category.", "category wrong recategorise rule") {
             +"Change one, then add a "
             a(href = "#categories-rules") { +"Smart Rule" }
             +" for that merchant so it doesn't happen again."
         }
-        faq("New transactions stop appearing in the background.") {
+        faq("New transactions stop appearing in the background.", "background battery stopped not updating notification") {
             +"Some phones (Xiaomi, Oppo, Vivo, Samsung) stop background apps. Set PennyWise's battery usage to Unrestricted, or tap sync when you open the app."
         }
-        faq("The AI model won't download, or chat is slow.") {
+        faq("The AI model won't download, or chat is slow.", "ai model download slow chat stuck") {
             +"It needs about 1.5 GB free and a steady connection, so try Wi-Fi. Replies take a few seconds, longer on older phones."
         }
-        faq("A backup won't restore.") {
+        faq("A backup won't restore.", "restore import backup failed error") {
             +"Update PennyWise first; new versions always read older backups. If it still fails, ask on Discord with the error."
         }
-        faq("Is my data private?") {
+        faq("Is my data private?", "privacy secure safe data server") {
             +"Yes. SMS and transactions are processed and stored only on your phone, and the AI runs there too. No account, no servers holding your data, and the "
             a(href = "https://github.com/sarim2000/pennywiseai-tracker") { +"code is open source" }
             +"."
@@ -575,6 +578,7 @@ object GuideViews {
               if (e.key === 'ArrowRight') show(i + 1);
               if (e.key === 'ArrowLeft') show(i - 1);
             });
+            panel.showStep = show;
             show(0);
           });
           goals.forEach(function (g) {
@@ -584,38 +588,116 @@ object GuideViews {
             });
           });
         });
-        // Search: filters walkthrough goals, reference topics and FAQ entries in place.
+        // Search: an index built from the page itself (walkthrough steps, topics,
+        // definitions, troubleshooting answers), shown as a dropdown of results.
         (function () {
-          var q = document.getElementById('guide-q'); if (!q) return;
-          var wt = document.querySelector('.wt'), goals = wt.querySelectorAll('.wt-goal');
-          var topics = document.querySelectorAll('.g-topic'), out = document.getElementById('guide-results');
-          var empty = document.querySelector('.g-empty'), side = document.querySelectorAll('.g-side li');
-          function has(el, words) { var t = (el.textContent + ' ' + (el.dataset.k || '')).toLowerCase(); return words.every(function (w) { return t.indexOf(w) >= 0; }); }
-          function run() {
-            var words = q.value.toLowerCase().trim().split(/\s+/).filter(Boolean), on = words.length > 0, n = 0;
-            wt.classList.toggle('searching', on);
-            goals.forEach(function (g) {
-              var hit = !on || has(g, words) || has(document.getElementById(g.getAttribute('aria-controls')), words);
-              g.hidden = !hit; if (on && hit) n++;
+          var q = document.getElementById('guide-q'), box = document.getElementById('guide-hits');
+          if (!q) return;
+          var idx = [], hits = [], active = 0;
+          function txt(el) { return el ? el.textContent.replace(/\s+/g, ' ').trim() : ''; }
+          function add(kind, title, where, text, target, open) { idx.push({ kind: kind, title: title, where: where, text: text, target: target, open: open, k: '' }); return idx[idx.length - 1]; }
+
+          document.querySelectorAll('.wt-goal').forEach(function (g) {
+            var panel = document.getElementById(g.getAttribute('aria-controls')), goal = txt(g);
+            var e = add('Walkthrough', goal, panel.querySelectorAll('.wt-step').length + ' steps', [].map.call(panel.querySelectorAll('.wt-copy p:last-child'), txt).join(' '), panel, function () { g.click(); panel.showStep(0); });
+            e.k = g.dataset.k || '';
+            panel.querySelectorAll('.wt-step').forEach(function (st, n) {
+              add('Step', txt(st.querySelector('h3')), goal, txt(st.querySelector('.wt-copy p:last-child')), panel,
+                function () { g.click(); panel.showStep(n); });
             });
-            topics.forEach(function (t, k) {
-              var faqs = t.querySelectorAll('details'), hit;
-              if (faqs.length) {
-                hit = false;
-                faqs.forEach(function (d) { var m = !on || has(d, words); d.hidden = !m; if (on) d.open = m; if (m && on) { hit = true; n++; } });
-                if (!on) hit = true;
-              } else { hit = !on || has(t, words); if (on && hit) n++; }
-              t.hidden = !hit;
-              if (side[k]) side[k].hidden = !hit;
+          });
+          document.querySelectorAll('.g-topic').forEach(function (t) {
+            var h = txt(t.querySelector('h2'));
+            if (t.id !== 'troubleshooting') add('Section', h, 'Every screen', txt(t.querySelector('.g-intro')), t);
+            t.querySelectorAll('dt').forEach(function (dt) { add('Section', txt(dt), h, txt(dt.nextElementSibling), t); });
+            t.querySelectorAll('.g-text > p:not(.g-intro), .ticks li, .steps li, .type').forEach(function (el) { add('Section', h, 'Every screen', txt(el), t); });
+            t.querySelectorAll('details').forEach(function (d) {
+              add('Answer', txt(d.querySelector('summary')), 'Troubleshooting', txt(d.querySelector('p')), d, function () { d.open = true; }).k = d.dataset.k || '';
             });
-            empty.hidden = !on || n > 0;
-            out.textContent = on ? (n ? n + (n === 1 ? ' match' : ' matches') : '') : '';
+          });
+
+          function esc(s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+          // One regex for all words, applied to raw text, so a short word ("a") can't match inside an inserted <mark>.
+          function mark(s, words) {
+            if (!words.length) return esc(s);
+            var re = new RegExp('(' + words.map(function (w) { return w.replace(/[.*+?^{}()|[\]\\$]/g, '\\$&'); }).join('|') + ')', 'ig');
+            return s.split(re).map(function (part, k) { return k % 2 ? '<mark>' + esc(part) + '</mark>' : esc(part); }).join('');
           }
-          q.addEventListener('input', run);
-          goals.forEach(function (g) { g.addEventListener('click', function () { if (q.value) { q.value = ''; run(); } }); });
-          document.addEventListener('keydown', function (e) {
-            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); q.focus(); }
-            if (e.key === 'Escape' && document.activeElement === q) { q.value = ''; run(); }
+          function snippet(s, words) {
+            var low = s.toLowerCase(), at = -1;
+            words.forEach(function (w) { var p = low.indexOf(w); if (p >= 0 && (at < 0 || p < at)) at = p; });
+            if (at < 0 || s.length <= 110) return s.slice(0, 110) + (s.length > 110 ? '…' : '');
+            var from = Math.max(0, s.lastIndexOf(' ', Math.max(0, at - 30)) + 1);
+            return (from ? '…' : '') + s.slice(from, from + 110) + (from + 110 < s.length ? '…' : '');
+          }
+          // Words people type that carry no meaning here; "a" alone would match everything.
+          var STOP = { a: 1, an: 1, the: 1, to: 1, my: 1, is: 1, i: 1, how: 1, do: 1, of: 1, in: 1, on: 1, for: 1, it: 1, can: 1, what: 1, why: 1, with: 1, and: 1, or: 1, me: 1, are: 1, be: 1 };
+          function terms(v) {
+            return v.toLowerCase().split(/[^a-z0-9₹]+/).filter(function (w) { return w.length > 1 && !STOP[w]; })
+              .map(function (w) { return w.length > 4 ? w.replace(/(ing|ed|es|s)$/, '') : w; });
+          }
+          function search(v) {
+            var words = terms(v), seen = {}, need = Math.max(1, Math.ceil(words.length * 0.6));
+            if (!words.length) return [];
+            return idx.map(function (e, i) {
+              var title = e.title.toLowerCase(), body = (e.text + ' ' + e.k).toLowerCase(), m = 0, score = 0;
+              words.forEach(function (w) {
+                var t = title.indexOf(w);
+                if (t >= 0) { m++; score += t === 0 ? 4 : 3; }
+                else if (body.indexOf(w) >= 0) { m++; score += 1; }
+                if (e.k.indexOf(w) >= 0) score += 2;
+              });
+              if (m < need) return null;
+              if (e.kind === 'Walkthrough') score += 1;
+              return { e: e, m: m, score: score, i: i };
+            }).filter(function (h) {
+              if (!h) return false;
+              var key = h.e.title + '|' + h.e.where; if (seen[key]) return false; seen[key] = 1; return true;
+            }).sort(function (a, b) { return b.m - a.m || b.score - a.score || a.i - b.i; }).slice(0, 8);
+          }
+          function render() {
+            var v = q.value, words = terms(v);
+            hits = search(v); active = 0;
+            if (!v.trim()) { close(); return; }
+            box.innerHTML = hits.length ? hits.map(function (h, n) {
+              var e = h.e;
+              return '<li role="option" id="hit-' + n + '" class="g-hit"' + (n === 0 ? ' aria-selected="true"' : '') + ' data-n="' + n + '">' +
+                '<span class="hit-kind hit-' + e.kind.toLowerCase() + '">' + e.kind + '</span>' +
+                '<span class="hit-body"><span class="hit-title">' + mark(e.title, words) + '</span>' +
+                '<span class="hit-where">' + esc(e.where) + '</span>' +
+                (e.text ? '<span class="hit-text">' + mark(snippet(e.text, words), words) + '</span>' : '') + '</span></li>';
+            }).join('') : '<li class="g-nohit">Nothing matches “' + esc(v.trim()) + '”. Try another word, or ask on <a href="https://discord.gg/H3xWeMWjKQ">Discord</a>.</li>';
+            box.hidden = false; q.setAttribute('aria-expanded', 'true');
+            q.setAttribute('aria-activedescendant', hits.length ? 'hit-0' : '');
+          }
+          function close() { box.hidden = true; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); }
+          function move(d) {
+            if (!hits.length) return;
+            active = (active + d + hits.length) % hits.length;
+            box.querySelectorAll('.g-hit').forEach(function (li, n) { if (n === active) { li.setAttribute('aria-selected', 'true'); li.scrollIntoView({ block: 'nearest' }); } else li.removeAttribute('aria-selected'); });
+            q.setAttribute('aria-activedescendant', 'hit-' + active);
+          }
+          function go(n) {
+            var e = hits[n] && hits[n].e; if (!e) return;
+            close(); q.blur();
+            if (e.open) e.open();
+            e.target.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+            e.target.classList.remove('flash'); void e.target.offsetWidth; e.target.classList.add('flash');
+          }
+          q.addEventListener('input', render);
+          q.addEventListener('focus', function () { if (q.value.trim()) render(); });
+          q.addEventListener('keydown', function (ev) {
+            if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
+            else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
+            else if (ev.key === 'Enter') { ev.preventDefault(); go(active); }
+            else if (ev.key === 'Escape') { if (box.hidden) { q.value = ''; } close(); }
+          });
+          box.addEventListener('mousedown', function (ev) { var li = ev.target.closest('.g-hit'); if (li) { ev.preventDefault(); go(+li.dataset.n); } });
+          box.addEventListener('mousemove', function (ev) { var li = ev.target.closest('.g-hit'); if (li && +li.dataset.n !== active) move(+li.dataset.n - active); });
+          document.addEventListener('click', function (ev) { if (!ev.target.closest('.g-search')) close(); });
+          document.addEventListener('keydown', function (ev) {
+            var tag = document.activeElement.tagName;
+            if (ev.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') { ev.preventDefault(); q.focus(); q.select(); }
           });
         })();
         document.querySelectorAll('.g-shots').forEach(function (fig) {
@@ -684,16 +766,30 @@ object GuideViews {
         .wt-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .2s, width .2s; }
         .wt-dots span.done { background: var(--muted); }
         .wt-dots span.on { background: var(--blue); width: 22px; border-radius: 4px; }
-        .g-search { position: relative; max-width: 520px; margin-top: 22px; }
-        .g-search input { padding: 13px 44px 13px 16px; font-family: var(--body); font-size: 15px; border-radius: 12px; -webkit-appearance: none; }
-        .g-search kbd { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; pointer-events: none; }
-        .g-search input:focus + kbd { display: none; }
-        .g-results { min-height: 20px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+        .g-search { position: relative; max-width: 560px; margin-top: 24px; z-index: 40; }
+        .g-search input { width: 100%; color: var(--text); height: 52px; padding: 0 52px 0 18px; font-family: var(--body); font-size: 15.5px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); -webkit-appearance: none; transition: border-color .15s, box-shadow .15s; }
+        .g-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+        .g-search input:hover { border-color: #2E3843; }
+        .g-search input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(111,178,255,.16); }
+        .g-search input::placeholder { color: var(--muted); }
+        .g-search kbd { position: absolute; right: 14px; top: 26px; transform: translateY(-50%); font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; pointer-events: none; }
+        .g-search input:focus + kbd, .g-search input:not(:placeholder-shown) + kbd { display: none; }
+        .g-hits { position: absolute; top: calc(100% + 8px); left: 0; right: 0; margin: 0; padding: 6px; list-style: none; background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 24px 60px -16px rgba(0,0,0,.75); max-height: min(460px, 62vh); overflow-y: auto; }
+        .g-hit { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+        .g-hit[aria-selected="true"] { background: rgba(111,178,255,.1); }
+        .hit-kind { flex: 0 0 86px; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--muted); }
+        .hit-walkthrough, .hit-step { color: var(--blue); }
+        .hit-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .hit-title { color: var(--text); font-weight: 600; font-size: 14.5px; }
+        .hit-where { color: var(--muted); font-size: 12px; }
+        .hit-text { color: #A9B4C1; font-size: 13px; line-height: 1.5; margin-top: 2px; }
+        .g-hits mark { background: none; color: var(--blue); font-weight: 600; }
+        .g-nohit { padding: 14px 12px; color: var(--muted); font-size: 14px; }
+        .g-nohit a { color: var(--blue); }
         .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-        .wt.searching .wt-panel { display: none; }
-        .g-topic[hidden], .faq details[hidden], .g-side li[hidden], .wt-goal[hidden] { display: none; }
-        .g-empty { color: var(--muted); font-size: 15px; padding: 40px 0; }
-        .g-empty a { color: var(--blue); }
+        .flash { animation: flash 1.4s ease-out; }
+        .faq details.flash { border-radius: 10px; }
+        @keyframes flash { 0%, 30% { box-shadow: 0 0 0 2px var(--blue); background: rgba(111,178,255,.06); } 100% { box-shadow: 0 0 0 2px transparent; } }
         .g-ref-title { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; margin: 0 0 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft); }
 
         .g-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 56px; margin-top: 48px; }
@@ -761,6 +857,8 @@ object GuideViews {
         }
         @media (prefers-reduced-motion: reduce) { .tap::after { animation: none; } }
         @media (max-width: 760px) {
+          .hit-kind { display: none; }
+          .g-hits { max-height: 60vh; }
           .wt-goals { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 20px; padding: 0 16px 4px; scroll-snap-type: x mandatory; }
           .wt-goal { flex: 0 0 auto; scroll-snap-align: start; }
           .wt-panel { padding: 20px 16px; border-radius: 16px; }

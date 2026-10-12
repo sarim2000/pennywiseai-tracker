@@ -34,7 +34,8 @@ object GuideViews {
     /** One screen of a walkthrough. [x]/[y] (percent of the screenshot) place the tap marker. */
     private class Step(val shot: String, val title: String, val text: String, val x: Int? = null, val y: Int? = null)
 
-    private class Walkthrough(val id: String, val goal: String, val steps: List<Step>)
+    /** [keywords] are extra words search should match (synonyms people type). */
+    private class Walkthrough(val id: String, val goal: String, val steps: List<Step>, val keywords: String = "")
 
     // Marker positions were measured on the 540×1145 screenshots; retaking a shot means re-checking them.
     private val walkthroughs = listOf(
@@ -44,33 +45,33 @@ object GuideViews {
             Step("onboarding-scan", "Let it scan", "PennyWise reads the bank SMS already on your phone and turns them into transactions."),
             Step("onboarding-account", "Pick your main account", "This balance shows on Home. Tap Finish.", 83, 92),
             Step("home-sync", "You're done", "New bank SMS are added automatically. Tap the sync button any time to check now.", 89, 86),
-        )),
+        ), "install start onboarding permission begin"),
         Walkthrough("cash", "Add cash spending", listOf(
             Step("home", "Tap +", "From Home or Transactions, the + button opens the add screen.", 90, 78),
             Step("add-transaction", "Enter the amount", "Type the amount, then a merchant like “Chai stall”. Expense is already selected.", 67, 19),
             Step("add-transaction", "Pick a category", "Choose where it belongs so budgets and analytics stay accurate.", 28, 76),
             Step("add-transaction", "Save", "That's it. It now counts toward this month's spending.", 50, 91),
             Step("chat-add", "Or just type it", "In the Chat tab, write “coffee 180 at Starbucks” and tap Add on the card.", 71, 50),
-        )),
+        ), "manual expense add transaction record"),
         Walkthrough("budget", "Set a monthly budget", listOf(
             Step("budgets-setup", "Open Budgets", "From Home tap View All next to Budgets. Tap Use Smart Defaults to start from your own spending.", 50, 64),
             Step("budgets", "See what's left", "Each budget shows what's left this month and how much you can spend per day.", 70, 25),
             Step("budget-edit", "Adjust it", "Tap the pencil to change the limit, colour, period or the day your month starts."),
-        )),
+        ), "limit spending plan"),
         Walkthrough("category", "Fix wrong categories for good", listOf(
             Step("transaction-detail", "Fix one transaction", "Open it and tap the pencil to pick the right category.", 81, 5),
             Step("rules", "Open Smart Rules", "Settings → Smart Rules, then tap + to make a rule.", 89, 92),
             Step("create-rule", "Describe the rule", "Start from a template, or say “merchant contains UBER → Transportation”. Every new match is categorised automatically.", 50, 28),
-        )),
+        ), "rule categorise categorize wrong merchant"),
         Walkthrough("loan", "Track money a friend owes you", listOf(
             Step("transaction-detail", "Open the payment", "Find what you paid for them and tap Mark as loan.", 50, 37),
             Step("mark-loan", "Say who", "Type their name and how much they owe, then Confirm.", 50, 55),
             Step("loans", "Keep track", "Settings → Loans lists who owes you and whom you owe."),
-        )),
+        ), "lend lent borrow split owe"),
         Walkthrough("phone", "Move to a new phone", listOf(
             Step("settings-data", "Back up the old phone", "Settings → Export Data saves one file with everything. Put it on Drive, email it, or copy it to a computer.", 40, 23),
             Step("settings-data", "Restore on the new phone", "Install PennyWise, finish setup, then Settings → Import Data and pick the file. Pro comes with it.", 40, 51),
-        )),
+        ), "backup restore export import transfer switch device"),
     )
 
     private val topics: List<Topic> = listOf(
@@ -323,6 +324,19 @@ object GuideViews {
                     header(classes = "g-hero") {
                         h1 { +"How to use PennyWise" }
                         p(classes = "g-sub") { +"Pick what you want to do and follow it step by step, or browse every screen below." }
+                        div(classes = "g-search") {
+                            label(classes = "sr-only") { htmlFor = "guide-q"; +"Search the guide" }
+                            input(type = InputType.search) {
+                                id = "guide-q"
+                                placeholder = "Search, e.g. backup, budget, duplicate"
+                                attributes["autocomplete"] = "off"
+                            }
+                            kbd { +"/" }
+                        }
+                        p(classes = "g-results") {
+                            id = "guide-results"
+                            attributes["aria-live"] = "polite"
+                        }
                     }
                     walkthroughs()
                     h2(classes = "g-ref-title") { +"Every screen, explained" }
@@ -342,6 +356,12 @@ object GuideViews {
                                 id = "troubleshooting"
                                 h2 { +"Troubleshooting" }
                                 div(classes = "faq") { troubleshooting() }
+                            }
+                            p(classes = "g-empty") {
+                                attributes["hidden"] = ""
+                                +"Nothing in the guide matches that. Try another word, or ask on "
+                                a(href = "https://discord.gg/H3xWeMWjKQ") { +"Discord" }
+                                +"."
                             }
                             p(classes = "g-foot") {
                                 +"Still stuck? Ask on "
@@ -409,6 +429,7 @@ object GuideViews {
                         attributes["role"] = "tab"
                         attributes["aria-selected"] = (i == 0).toString()
                         attributes["aria-controls"] = "wt-${w.id}"
+                        attributes["data-k"] = w.keywords
                         +w.goal
                     }
                 }
@@ -563,6 +584,40 @@ object GuideViews {
             });
           });
         });
+        // Search: filters walkthrough goals, reference topics and FAQ entries in place.
+        (function () {
+          var q = document.getElementById('guide-q'); if (!q) return;
+          var wt = document.querySelector('.wt'), goals = wt.querySelectorAll('.wt-goal');
+          var topics = document.querySelectorAll('.g-topic'), out = document.getElementById('guide-results');
+          var empty = document.querySelector('.g-empty'), side = document.querySelectorAll('.g-side li');
+          function has(el, words) { var t = (el.textContent + ' ' + (el.dataset.k || '')).toLowerCase(); return words.every(function (w) { return t.indexOf(w) >= 0; }); }
+          function run() {
+            var words = q.value.toLowerCase().trim().split(/\s+/).filter(Boolean), on = words.length > 0, n = 0;
+            wt.classList.toggle('searching', on);
+            goals.forEach(function (g) {
+              var hit = !on || has(g, words) || has(document.getElementById(g.getAttribute('aria-controls')), words);
+              g.hidden = !hit; if (on && hit) n++;
+            });
+            topics.forEach(function (t, k) {
+              var faqs = t.querySelectorAll('details'), hit;
+              if (faqs.length) {
+                hit = false;
+                faqs.forEach(function (d) { var m = !on || has(d, words); d.hidden = !m; if (on) d.open = m; if (m && on) { hit = true; n++; } });
+                if (!on) hit = true;
+              } else { hit = !on || has(t, words); if (on && hit) n++; }
+              t.hidden = !hit;
+              if (side[k]) side[k].hidden = !hit;
+            });
+            empty.hidden = !on || n > 0;
+            out.textContent = on ? (n ? n + (n === 1 ? ' match' : ' matches') : '') : '';
+          }
+          q.addEventListener('input', run);
+          goals.forEach(function (g) { g.addEventListener('click', function () { if (q.value) { q.value = ''; run(); } }); });
+          document.addEventListener('keydown', function (e) {
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') { e.preventDefault(); q.focus(); }
+            if (e.key === 'Escape' && document.activeElement === q) { q.value = ''; run(); }
+          });
+        })();
         document.querySelectorAll('.g-shots').forEach(function (fig) {
           var main = fig.querySelector('.phone img');
           fig.querySelectorAll('.thumb').forEach(function (btn) {
@@ -629,6 +684,16 @@ object GuideViews {
         .wt-dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--line); transition: background .2s, width .2s; }
         .wt-dots span.done { background: var(--muted); }
         .wt-dots span.on { background: var(--blue); width: 22px; border-radius: 4px; }
+        .g-search { position: relative; max-width: 520px; margin-top: 22px; }
+        .g-search input { padding: 13px 44px 13px 16px; font-family: var(--body); font-size: 15px; border-radius: 12px; -webkit-appearance: none; }
+        .g-search kbd { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 7px; pointer-events: none; }
+        .g-search input:focus + kbd { display: none; }
+        .g-results { min-height: 20px; margin: 8px 0 0; font-size: 13px; color: var(--muted); }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .wt.searching .wt-panel { display: none; }
+        .g-topic[hidden], .faq details[hidden], .g-side li[hidden], .wt-goal[hidden] { display: none; }
+        .g-empty { color: var(--muted); font-size: 15px; padding: 40px 0; }
+        .g-empty a { color: var(--blue); }
         .g-ref-title { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; margin: 0 0 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft); }
 
         .g-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 56px; margin-top: 48px; }

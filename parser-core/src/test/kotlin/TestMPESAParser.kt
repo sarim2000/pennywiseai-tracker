@@ -58,6 +58,19 @@ class MPESAParserTest {
                 )
             ),
 
+            // Guard: a paybill account number that looks like a phone
+            ParserTestCase(
+                name = "Paybill with a phone-like account number",
+                message = """UJB3S06XN1 Confirmed. Ksh500.00 sent to Equity Paybill Account for account 0712345678 on 11/10/26 at 12:28 PM. New M-PESA balance is Ksh3,704.29. Transaction cost, Ksh0.00.""",
+                sender = "MPESA",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500.00"),
+                    currency = "KES",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "Equity Paybill Account"
+                )
+            ),
+
             // Paybill payment
             ParserTestCase(
                 name = "Paybill Payment to Equity",

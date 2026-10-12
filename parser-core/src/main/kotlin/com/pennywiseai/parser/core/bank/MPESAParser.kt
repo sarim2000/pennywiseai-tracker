@@ -115,7 +115,22 @@ class MPESAParser : BankParser() {
             }
         }
 
-        // Pattern 2: "sent to Person 2 0711 111 111" or "sent to JANE  DOE 0712345678"
+        // Pattern 2: "sent to PAYBILL_NAME for account NUMBER" or "sent to Equity Paybill Account for account".
+        // Checked before the phone pattern: an account number can look like a phone
+        // ("for account 0712345678"), which would pull "for account" into the name.
+        val sentToAccountPattern = Regex(
+            """sent to\s+(.+?)\s+for account""",
+            RegexOption.IGNORE_CASE
+        )
+        sentToAccountPattern.find(message)?.let { match ->
+            var merchant = match.groupValues[1].trim()
+            merchant = cleanMerchantName(merchant)
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 3: "sent to Person 2 0711 111 111" or "sent to JANE  DOE 0712345678"
         // — the phone may be spaced or not (#895), and in 254… form. Name runs of
         // spaces are collapsed.
         val sentToPhonePattern = Regex(
@@ -124,19 +139,6 @@ class MPESAParser : BankParser() {
         )
         sentToPhonePattern.find(message)?.let { match ->
             var merchant = match.groupValues[1].trim().replace(Regex("""\s+"""), " ")
-            merchant = cleanMerchantName(merchant)
-            if (isValidMerchantName(merchant)) {
-                return merchant
-            }
-        }
-
-        // Pattern 3: "sent to PAYBILL_NAME for account NUMBER" or "sent to Equity Paybill Account for account"
-        val sentToAccountPattern = Regex(
-            """sent to\s+(.+?)\s+for account""",
-            RegexOption.IGNORE_CASE
-        )
-        sentToAccountPattern.find(message)?.let { match ->
-            var merchant = match.groupValues[1].trim()
             merchant = cleanMerchantName(merchant)
             if (isValidMerchantName(merchant)) {
                 return merchant

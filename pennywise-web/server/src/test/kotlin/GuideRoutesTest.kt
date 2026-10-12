@@ -31,6 +31,8 @@ class GuideRoutesTest {
         GuideViews.paths.forEach { path ->
             val body = client.get("$path?app=1").bodyAsText()
             assertFalse(body.contains("Get Pro"), "$path shows Get Pro in app mode")
+            // The embedded search index counts too, not just the visible page.
+            assertFalse(body.contains("Buy a key"), "$path offers a purchase in app mode (page or search index)")
             assertFalse(Regex("""<a\b[^>]*href="/(?!guide)""").containsMatchIn(body), "$path links outside the guide in app mode")
             Regex("""href="(/guide[^"]*)"""").findAll(body).forEach { m ->
                 assertTrue(m.groupValues[1].contains("?app=1"), "$path has a guide link without app mode: ${m.groupValues[1]}")

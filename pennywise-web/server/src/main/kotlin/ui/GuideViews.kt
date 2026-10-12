@@ -524,7 +524,7 @@ object GuideViews {
         body {
             if (app) appHeader() else siteHeader(currentPage = "guide")
             div(classes = "guide") { content() }
-            script(type = "application/json") { id = "guide-index"; unsafe { +searchIndex } }
+            script(type = "application/json") { id = "guide-index"; unsafe { +(if (app) appSearchIndex else searchIndex) } }
             script { unsafe { +guideScript } }
         }
     }
@@ -656,12 +656,16 @@ object GuideViews {
     private fun plain(block: DIV.() -> Unit): String =
         createHTML().div { block() }.replace(Regex("<[^>]+>"), " ").replace("&amp;", "&").replace(Regex("\\s+"), " ").trim()
 
-    private val searchIndex: String by lazy {
+    // Built per mode so app-mode search can't surface text the app-mode page leaves out.
+    private val searchIndex: String by lazy { buildIndex(app = false) }
+    private val appSearchIndex: String by lazy { buildIndex(app = true) }
+
+    private fun buildIndex(app: Boolean): String =
         buildJsonArray {
             guides.forEach { g ->
                 addJsonObject {
                     put("kind", "Guide"); put("title", g.title); put("where", g.group); put("url", url(g))
-                    put("text", g.intro + " " + plain { g.details(this, false) }); put("k", g.keywords)
+                    put("text", g.intro + " " + plain { g.details(this, app) }); put("k", g.keywords)
                 }
                 g.steps.forEachIndexed { n, st ->
                     addJsonObject {
@@ -677,7 +681,6 @@ object GuideViews {
                 }
             }
         }.toString().replace("</", "<\\/")
-    }
 
     private val guideScript = """
         // Step player: one step at a time, deep-linkable as #step-N.
@@ -692,7 +695,7 @@ object GuideViews {
             dots.forEach(function (d, k) { d.className = k === i ? 'on' : (k < i ? 'done' : ''); });
             back.disabled = i === 0;
             next.textContent = i === steps.length - 1 ? 'Start over' : 'Next';
-            if (!fromHash) history.replaceState(null, '', i ? '#step-' + (i + 1) : location.pathname);
+            if (!fromHash) history.replaceState(null, '', i ? '#step-' + (i + 1) : location.pathname + location.search);
           }
           back.addEventListener('click', function () { show(i - 1); });
           next.addEventListener('click', function () { show(i === steps.length - 1 ? 0 : i + 1); });

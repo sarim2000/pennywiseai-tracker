@@ -46,24 +46,27 @@ fun TransactionEntity.forTotals(): TransactionEntity? {
 fun Iterable<TransactionEntity>.forTotals(): List<TransactionEntity> = mapNotNull { it.forTotals() }
 
 /**
- * [forTotals] for a row with category splits: the splits shrink in proportion,
- * with the last one absorbing rounding so they still sum to the counted amount.
+ * [forTotals] for a row with category splits: the splits shrink in proportion.
+ * Each split's share is taken from rounded running totals, so no split can go
+ * negative and they still sum exactly to the counted amount.
  */
 @JvmName("forTotalsWithSplits")
 fun TransactionWithSplits.forTotals(): TransactionWithSplits? {
     val counted = transaction.forTotals() ?: return null
     if (counted === transaction) return this
     if (splits.isEmpty()) return copy(transaction = counted)
-    val ratio = counted.amount.divide(transaction.amount, 10, RoundingMode.HALF_EVEN)
+    var running = BigDecimal.ZERO
     var assigned = BigDecimal.ZERO
     val scaled = splits.mapIndexed { i, split ->
-        val amount = if (i == splits.lastIndex) {
-            counted.amount - assigned
+        running += split.amount
+        val upTo = if (i == splits.lastIndex) {
+            counted.amount
         } else {
-            split.amount.multiply(ratio).setScale(2, RoundingMode.HALF_EVEN)
+            running.multiply(counted.amount).divide(transaction.amount, 2, RoundingMode.HALF_EVEN)
         }
-        assigned += amount
-        split.copy(amount = amount)
+        val share = upTo - assigned
+        assigned = upTo
+        split.copy(amount = share)
     }
     return TransactionWithSplits(counted, scaled)
 }

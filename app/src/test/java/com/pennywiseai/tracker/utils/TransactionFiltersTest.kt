@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -85,6 +86,20 @@ class TransactionFiltersTest {
         assertEquals(BigDecimal("60"), counted.transaction.amount)
         assertEquals(listOf("20.00", "20.00", "20.00"), counted.splits.map { it.amount.setScale(2).toPlainString() })
         assertEquals(0, counted.getSplitsTotal().compareTo(BigDecimal("60")))
+    }
+
+    @Test
+    fun `tiny counted part never makes a split negative`() {
+        // ₹1,000 with ₹999.97 lent: ₹0.03 spread over 167/167/167/167/332.
+        val row = TransactionWithSplits(
+            tx(amount = "1000", loanId = 1L, loanContribution = "999.97"),
+            listOf("167", "167", "167", "167", "332").map {
+                TransactionSplitEntity(transactionId = 7, category = "C$it", amount = BigDecimal(it))
+            }
+        )
+        val splits = row.forTotals()!!.splits
+        splits.forEach { assertTrue("negative split ${it.amount}", it.amount.signum() >= 0) }
+        assertEquals(0, splits.fold(BigDecimal.ZERO) { a, s -> a + s.amount }.compareTo(BigDecimal("0.03")))
     }
 
     @Test

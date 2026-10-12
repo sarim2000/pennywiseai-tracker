@@ -66,6 +66,30 @@ class LoanRepaymentCapTest {
     }
 
     @Test
+    fun `a payment on a loan with nothing left owed counts nothing toward it`() {
+        // Reopened after being fully repaid: the whole payment stays ordinary income.
+        assertEquals(0, BigDecimal.ZERO.compareTo(savedContribution("0", txn("100"), null)))
+    }
+
+    @Test
+    fun `a manual repayment above what is owed is capped`() {
+        coEvery { loanDao.getLoanById(2) } returns loan("130")
+        val inserted = slot<TransactionEntity>()
+        coEvery { transactionDao.insertTransaction(capture(inserted)) } returns 11L
+        runBlocking { repo.recordManualRepayment(2, BigDecimal("500"), "Pal", "INR") }
+        assertEquals(BigDecimal("130"), inserted.captured.loanContribution)
+    }
+
+    @Test
+    fun `a manual repayment within what is owed keeps the full amount`() {
+        coEvery { loanDao.getLoanById(2) } returns loan("130")
+        val inserted = slot<TransactionEntity>()
+        coEvery { transactionDao.insertTransaction(capture(inserted)) } returns 11L
+        runBlocking { repo.recordManualRepayment(2, BigDecimal("100"), "Pal", "INR") }
+        assertNull(inserted.captured.loanContribution)
+    }
+
+    @Test
     fun `relinking a row already on the loan counts its own share as still owed`() {
         // ₹50 left after this row's ₹80; re-recording it may repay up to ₹130.
         assertEquals(BigDecimal("130"), savedContribution("50", txn("200", loanId = 2, contribution = "80"), null))

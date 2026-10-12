@@ -9,6 +9,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -19,6 +21,11 @@ class LoanRepository @Inject constructor(
     private val loanDao: LoanDao,
     private val transactionDao: TransactionDao
 ) {
+    // Repayments read what's owed, then write the capped share: serialized so two
+    // quick taps can't both see the same balance and over-repay (#831). All loan
+    // writers are in this process, so a lock is enough.
+    private val repaymentLock = Mutex()
+
     fun getActiveLoans(): Flow<List<LoanEntity>> = loanDao.getActiveLoans()
 
     fun getAllLoans(): Flow<List<LoanEntity>> = loanDao.getAllLoans()
@@ -144,14 +151,16 @@ class LoanRepository @Inject constructor(
         loanId: Long,
         transactionId: Long,
         contribution: BigDecimal? = null
-    ) {
+    ) = repaymentLock.withLock {
         val loan = loanDao.getLoanById(loanId)
         val txn = transactionDao.getTransactionById(transactionId)
         val wanted = contribution ?: txn?.amount
         // A row already linked here is already counted as repaid, so add it back to what is owed.
         val alreadyRepaid = if (txn?.loanId == loanId) txn.loanContribution ?: txn.amount else BigDecimal.ZERO
         val owed = loan?.remainingAmount?.plus(alreadyRepaid)
-        val capped = if (wanted != null && owed != null && owed.signum() > 0 && wanted > owed) owed else contribution
+        // Capped even at zero (a reopened, fully repaid loan): the payment then
+        // counts in full as ordinary income/spend rather than vanishing.
+        val capped = if (wanted != null && owed != null && wanted > owed) owed else contribution
         loanDao.linkTransaction(transactionId, loanId)
         if (capped != null) {
             persistContributionOverride(transactionId, capped)
@@ -164,8 +173,8 @@ class LoanRepository @Inject constructor(
         amount: BigDecimal,
         personName: String,
         currency: String
-    ): Long {
-        val loan = loanDao.getLoanById(loanId) ?: return -1
+    ): Long = repaymentLock.withLock {
+        val loan = loanDao.getLoanById(loanId) ?: return@withLock -1L
         val txType = if (loan.direction == LoanDirection.LENT)
             TransactionType.INCOME else TransactionType.EXPENSE
         val transaction = TransactionEntity(
@@ -177,11 +186,14 @@ class LoanRepository @Inject constructor(
             description = "Loan repayment – $personName",
             transactionHash = "loan_repayment_${loanId}_${System.currentTimeMillis()}",
             currency = currency,
-            loanId = loanId
+            loanId = loanId,
+            // Same cap as [recordRepayment]: anything beyond what's owed counts
+            // as ordinary income/spend instead of vanishing (#831).
+            loanContribution = loan.remainingAmount.takeIf { amount > it }
         )
         val txId = transactionDao.insertTransaction(transaction)
         recalculateRemaining(loanId)
-        return txId
+        txId
     }
 
     suspend fun unlinkTransaction(transactionId: Long, loanId: Long) {

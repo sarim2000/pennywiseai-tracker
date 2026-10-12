@@ -34,45 +34,103 @@ object GuideViews {
     /** One screen of a walkthrough. [x]/[y] (percent of the screenshot) place the tap marker. */
     private class Step(val shot: String, val title: String, val text: String, val x: Int? = null, val y: Int? = null)
 
-    /** [keywords] are extra words search should match (synonyms people type). */
-    private class Walkthrough(val id: String, val goal: String, val steps: List<Step>, val keywords: String = "")
+    /** [group] is the heading the goal sits under; [keywords] are synonyms search should match. */
+    private class Walkthrough(val id: String, val group: String, val goal: String, val steps: List<Step>, val keywords: String = "")
 
     // Marker positions were measured on the 540×1145 screenshots; retaking a shot means re-checking them.
     private val walkthroughs = listOf(
-        Walkthrough("setup", "Set up PennyWise", listOf(
+        Walkthrough("setup", "Start", "Set up PennyWise", listOf(
             Step("onboarding-welcome", "Open the app", "Tap Get Started. Setup takes about a minute and has four steps."),
             Step("onboarding-permissions", "Allow SMS access", "Tap Enable Permissions, then Allow. Only bank messages are read; your chats are never touched.", 50, 67),
             Step("onboarding-scan", "Let it scan", "PennyWise reads the bank SMS already on your phone and turns them into transactions."),
             Step("onboarding-account", "Pick your main account", "This balance shows on Home. Tap Finish.", 83, 92),
             Step("home-sync", "You're done", "New bank SMS are added automatically. Tap the sync button any time to check now.", 89, 86),
         ), "install start onboarding permission begin"),
-        Walkthrough("cash", "Add cash spending", listOf(
+        Walkthrough("phone", "Start", "Move to a new phone", listOf(
+            Step("settings-data", "Back up the old phone", "Settings → Export Data saves one file with everything. Put it on Drive, email it, or copy it to a computer.", 40, 23),
+            Step("settings-data", "Restore on the new phone", "Install PennyWise, finish setup, then Settings → Import Data and pick the file. Pro comes with it.", 40, 51),
+        ), "backup restore export import transfer switch device"),
+        Walkthrough("pro", "Start", "Unlock Pro with a key", listOf(
+            Step("pro-sheet", "Open PennyWise Pro", "Settings → Upgrade to PennyWise Pro, then tap Enter license key. Buy a key at pennywise.zynth.dev/pro.", 50, 75),
+            Step("license-key", "Paste your key", "Paste the key from your purchase email and tap Activate. Pro turns on right away.", 50, 51),
+        ), "license key upgrade premium buy activate"),
+
+        Walkthrough("cash", "Everyday", "Add cash spending", listOf(
             Step("home", "Tap +", "From Home or Transactions, the + button opens the add screen.", 90, 78),
             Step("add-transaction", "Enter the amount", "Type the amount, then a merchant like “Chai stall”. Expense is already selected.", 67, 19),
             Step("add-transaction", "Pick a category", "Choose where it belongs so budgets and analytics stay accurate.", 28, 76),
             Step("add-transaction", "Save", "That's it. It now counts toward this month's spending.", 50, 91),
             Step("chat-add", "Or just type it", "In the Chat tab, write “coffee 180 at Starbucks” and tap Add on the card.", 71, 50),
         ), "manual expense add transaction record"),
-        Walkthrough("budget", "Set a monthly budget", listOf(
+        Walkthrough("bulk", "Everyday", "Edit many transactions at once", listOf(
+            Step("transactions", "Long-press one", "On the Transactions tab, press and hold a transaction until it highlights.", 40, 58),
+            Step("transactions-select", "Tap the rest", "Tap every other one you want. The totals card shows just your selection.", 40, 77),
+            Step("transactions-select", "Pick an action", "Use the top bar to mark them as a transfer, change their category, add them to a group or delete them.", 70, 5),
+        ), "select multiple bulk batch recategorise delete"),
+        Walkthrough("analytics", "Everyday", "See where your money goes", listOf(
+            Step("analytics", "Choose a period", "Open the Analytics tab and pick a period, an account or a type from the chips at the top.", 76, 18),
+            Step("analytics-categories", "Tap a category", "Scroll to Top Categories and tap one to see exactly which transactions make it up.", 68, 24),
+        ), "chart report spending breakdown merchant category stats"),
+        Walkthrough("chat", "Everyday", "Ask the AI about your spending", listOf(
+            Step("chat-download", "Download the model", "The first time you open the Chat tab it downloads about 1.5 GB. Use Wi-Fi; it only happens once."),
+            Step("chat-ask", "Ask in plain words", "Type a question like “how much on groceries this month?” and send it. Everything stays on your phone.", 40, 83),
+        ), "ai assistant question chat model"),
+        Walkthrough("recap", "Everyday", "Share your monthly recap", listOf(
+            Step("home", "Open the menu", "On Home, tap ⋯ at the top right and choose Monthly recap.", 88, 13),
+            Step("monthly-recap", "Share it", "The card shows counts, never amounts. Tap Share to send it anywhere.", 50, 84),
+        ), "share card month summary"),
+
+        Walkthrough("budget", "Plan", "Set a monthly budget", listOf(
             Step("budgets-setup", "Open Budgets", "From Home tap View All next to Budgets. Tap Use Smart Defaults to start from your own spending.", 50, 64),
             Step("budgets", "See what's left", "Each budget shows what's left this month and how much you can spend per day.", 70, 25),
             Step("budget-edit", "Adjust it", "Tap the pencil to change the limit, colour, period or the day your month starts."),
         ), "limit spending plan"),
-        Walkthrough("category", "Fix wrong categories for good", listOf(
-            Step("transaction-detail", "Fix one transaction", "Open it and tap the pencil to pick the right category.", 81, 5),
-            Step("rules", "Open Smart Rules", "Settings → Smart Rules, then tap + to make a rule.", 89, 92),
-            Step("create-rule", "Describe the rule", "Start from a template, or say “merchant contains UBER → Transportation”. Every new match is categorised automatically.", 50, 28),
-        ), "rule categorise categorize wrong merchant"),
-        Walkthrough("loan", "Track money a friend owes you", listOf(
+        Walkthrough("subscriptions", "Plan", "Track subscriptions", listOf(
+            Step("add-subscription", "Add one", "Tap +, switch to the Subscription tab, then enter the service, amount and billing cycle.", 75, 11),
+            Step("add-subscription", "Save it", "Save, and it shows on Home with the next due date.", 50, 91),
+            Step("subscriptions", "See them all", "Open Subscriptions from Home for the monthly total. Use ⋮ on one to edit or end it.", 86, 43),
+        ), "netflix spotify recurring bill renew due"),
+        Walkthrough("recurring", "Plan", "Auto-add a regular cash payment", listOf(
+            Step("recurring", "Open Recurring", "Settings → Recurring, then tap +.", 89, 92),
+            Step("recurring-new", "Set the schedule", "Name it, enter the amount and pick the day of the month. Tap Save.", 76, 84),
+            Step("recurring", "It adds itself", "On that day each month the transaction is added for you, no SMS needed."),
+        ), "schedule rent maid allowance automatic repeat"),
+        Walkthrough("loan", "Plan", "Track money a friend owes you", listOf(
             Step("transaction-detail", "Open the payment", "Find what you paid for them and tap Mark as loan.", 50, 37),
             Step("mark-loan", "Say who", "Type their name and how much they owe, then Confirm.", 50, 55),
             Step("loans", "Keep track", "Settings → Loans lists who owes you and whom you owe."),
         ), "lend lent borrow split owe"),
-        Walkthrough("phone", "Move to a new phone", listOf(
-            Step("settings-data", "Back up the old phone", "Settings → Export Data saves one file with everything. Put it on Drive, email it, or copy it to a computer.", 40, 23),
-            Step("settings-data", "Restore on the new phone", "Install PennyWise, finish setup, then Settings → Import Data and pick the file. Pro comes with it.", 40, 51),
-        ), "backup restore export import transfer switch device"),
+        Walkthrough("group", "Plan", "Total up a trip or event", listOf(
+            Step("transactions-select", "Select its transactions", "Long-press one on the Transactions tab, tap the rest, then tap the group icon.", 81, 5),
+            Step("groups", "See the total", "Name the group once. Settings → Transaction Groups shows each group's total.", null, null),
+        ), "group trip wedding event project total"),
+
+        Walkthrough("category", "Fix", "Fix wrong categories for good", listOf(
+            Step("transaction-detail", "Fix one transaction", "Open it and tap the pencil to pick the right category.", 81, 5),
+            Step("rules", "Open Smart Rules", "Settings → Smart Rules, then tap + to make a rule.", 89, 92),
+            Step("create-rule", "Describe the rule", "Start from a template, or say “merchant contains UBER → Transportation”. Every new match is categorised automatically.", 50, 28),
+        ), "rule categorise categorize wrong merchant"),
+        Walkthrough("balance", "Fix", "Correct a balance or add cash", listOf(
+            Step("accounts", "Open Manage Accounts", "Settings → Manage Accounts. Tap Update Balance if a balance is off.", 30, 32),
+            Step("accounts", "Add a cash or wallet account", "Tap + to add an account that doesn't send SMS, like cash in hand.", 89, 92),
+            Step("account-detail", "Check its history", "Tap an account on Home to see its balance trend and transactions.", 75, 36),
+        ), "balance wrong cash wallet manual account"),
+        Walkthrough("currency", "Fix", "Use more than one currency", listOf(
+            Step("settings-currency", "Turn on Unified Currency Mode", "Settings → Currency. It converts everything into one display currency for combined totals.", 86, 12),
+            Step("exchange-rates", "Set your own rate", "Exchange Rates updates on its own. Tap a rate to override it.", 86, 22),
+        ), "currency usd dollar exchange rate foreign travel"),
+
+        Walkthrough("statement", "Data", "Import a PDF statement", listOf(
+            Step("settings-data", "Open Import Statement", "Settings → Import Statement.", 40, 67),
+            Step("import-statement", "Pick the PDF", "Tap Select PDF Statement and choose a Google Pay, PhonePe, Paytm, slice or ICICI Bank statement. Duplicates are skipped.", 50, 56),
+        ), "pdf gpay phonepe paytm upi history import"),
+        Walkthrough("export", "Data", "Export to Excel", listOf(
+            Step("transactions", "Filter, then tap download", "On the Transactions tab, filter to what you want, then tap the download button.", 90, 77),
+            Step("export-csv", "Export", "Tap Export and share the CSV to Sheets, Excel or email.", 65, 62),
+        ), "csv excel sheets spreadsheet download export"),
     )
+
+    private val walkthroughGroups = listOf("Start", "Everyday", "Plan", "Fix", "Data")
 
     private val topics: List<Topic> = listOf(
         Topic(
@@ -423,14 +481,19 @@ object GuideViews {
             div(classes = "wt-goals") {
                 attributes["role"] = "tablist"
                 attributes["aria-label"] = "What do you want to do?"
-                walkthroughs.forEachIndexed { i, w ->
-                    button(classes = "wt-goal") {
-                        type = ButtonType.button
-                        attributes["role"] = "tab"
-                        attributes["aria-selected"] = (i == 0).toString()
-                        attributes["aria-controls"] = "wt-${w.id}"
-                        attributes["data-k"] = w.keywords
-                        +w.goal
+                walkthroughGroups.forEach { g ->
+                    div(classes = "wt-group") {
+                        span(classes = "wt-group-name") { +g }
+                        walkthroughs.filter { it.group == g }.forEach { w ->
+                            button(classes = "wt-goal") {
+                                type = ButtonType.button
+                                attributes["role"] = "tab"
+                                attributes["aria-selected"] = (w == walkthroughs.first()).toString()
+                                attributes["aria-controls"] = "wt-${w.id}"
+                                attributes["data-k"] = w.keywords
+                                +w.goal
+                            }
+                        }
                     }
                 }
             }
@@ -732,7 +795,15 @@ object GuideViews {
 
         /* Walkthroughs: goal tabs, then one step at a time with a tap marker on the screenshot. */
         .wt { margin-bottom: 72px; }
-        .wt-goals { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+        .wt-goals { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; margin-bottom: 28px; }
+        .wt-group { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+        .wt-group-name { font-size: 13px; font-weight: 600; color: var(--muted); margin: 0 0 4px 2px; }
+        .wt-goals { padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; gap: 12px 20px; }
+        .wt-group { gap: 2px; }
+        .wt-group .wt-goal { width: 100%; text-align: left; line-height: 1.35; border: 0; border-radius: 10px; background: transparent; color: #B9C3CF; font-weight: 500; padding: 8px 10px; }
+        .wt-group .wt-goal:hover { background: var(--surface-2); color: var(--text); }
+        .wt-group .wt-goal[aria-selected="true"] { background: rgba(111,178,255,.14); color: var(--text); font-weight: 600; }
+        .wt-group-name { padding-left: 10px; }
         .wt-goal { background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-weight: 600; font-size: 14px; }
         .wt-goal:hover { background: var(--surface-2); color: var(--text); }
         .wt-goal[aria-selected="true"] { background: var(--text); color: var(--ink); border-color: var(--text); }
@@ -851,6 +922,7 @@ object GuideViews {
         .faq details p { color: #B9C3CF; font-size: 15px; line-height: 1.65; }
         .g-foot { color: var(--muted); font-size: 14px; margin-top: 40px; max-width: 70ch; }
 
+        @media (max-width: 1100px) and (min-width: 761px) { .wt-goals { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (max-width: 1024px) {
           .g-layout { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 24px; }
           .g-side { display: none; }
@@ -859,8 +931,13 @@ object GuideViews {
         @media (max-width: 760px) {
           .hit-kind { display: none; }
           .g-hits { max-height: 60vh; }
-          .wt-goals { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 20px; padding: 0 16px 4px; scroll-snap-type: x mandatory; }
-          .wt-goal { flex: 0 0 auto; scroll-snap-align: start; }
+          .wt-goals { display: flex; gap: 18px; overflow-x: auto; margin: 0 -16px 20px; padding: 0 16px 6px; scroll-snap-type: x proximity; }
+          .wt-group { flex: 0 0 auto; display: grid; grid-auto-flow: column; grid-template-rows: auto auto; grid-template-columns: none; column-gap: 8px; row-gap: 6px; align-items: start; scroll-snap-align: start; }
+          .wt-group-name { grid-row: 1; margin: 0 0 0 2px; }
+          .wt-goals { padding: 0 16px 6px; background: none; border: 0; border-radius: 0; }
+          .wt-group-name { padding-left: 2px; }
+          .wt-group .wt-goal { grid-row: 2; white-space: nowrap; width: auto; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); padding: 8px 14px; }
+          .wt-group .wt-goal[aria-selected="true"] { background: var(--text); color: var(--ink); border-color: var(--text); }
           .wt-panel { padding: 20px 16px; border-radius: 16px; }
           .wt-step { grid-template-columns: minmax(0, 1fr); gap: 20px; }
           .wt-step .phone { width: min(230px, 64vw); margin: 0 auto; }

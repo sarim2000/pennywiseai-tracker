@@ -8,7 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.*
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
@@ -64,7 +64,7 @@ class AiContextRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsBetweenDatesList(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        ).filter { it.countsInTotals() }  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
+        ).forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
 
         var totalIncome = BigDecimal.ZERO
         var totalExpense = BigDecimal.ZERO
@@ -171,7 +171,7 @@ class AiContextRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsBetweenDatesList(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        ).filter { it.countsInTotals() }  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
+        ).forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
 
         // Group by category and calculate spending
         val categoryMap = mutableMapOf<String, MutableList<BigDecimal>>()
@@ -217,7 +217,7 @@ class AiContextRepository @Inject constructor(
         val transactions = transactionDao.getTransactionsBetweenDatesList(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        ).filter { it.countsInTotals() }  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
+        ).forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
 
         val expenses = transactions.filter { it.transactionType == TransactionType.EXPENSE }
         

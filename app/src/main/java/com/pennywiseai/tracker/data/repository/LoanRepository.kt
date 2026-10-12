@@ -135,15 +135,26 @@ class LoanRepository @Inject constructor(
      * and differs from the transaction's own amount, only that portion counts
      * toward the loan's repaid total (via `loan_contribution`); a null
      * contribution preserves the legacy "full transaction amount" behaviour.
+     *
+     * The repayment is capped at what's still owed: ₹500 back on a ₹130 loan
+     * repays ₹130, and the other ₹370 stays ordinary income in every total
+     * (see `countedAmount`) instead of vanishing into a settled loan (#831).
      */
     suspend fun recordRepayment(
         loanId: Long,
         transactionId: Long,
         contribution: BigDecimal? = null
     ) {
+        val loan = loanDao.getLoanById(loanId)
+        val txn = transactionDao.getTransactionById(transactionId)
+        val wanted = contribution ?: txn?.amount
+        // A row already linked here is already counted as repaid, so add it back to what is owed.
+        val alreadyRepaid = if (txn?.loanId == loanId) txn.loanContribution ?: txn.amount else BigDecimal.ZERO
+        val owed = loan?.remainingAmount?.plus(alreadyRepaid)
+        val capped = if (wanted != null && owed != null && owed.signum() > 0 && wanted > owed) owed else contribution
         loanDao.linkTransaction(transactionId, loanId)
-        if (contribution != null) {
-            persistContributionOverride(transactionId, contribution)
+        if (capped != null) {
+            persistContributionOverride(transactionId, capped)
         }
         recalculateRemaining(loanId)
     }

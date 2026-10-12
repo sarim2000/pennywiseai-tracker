@@ -11,7 +11,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -369,7 +369,7 @@ open class TransactionRepository @Inject constructor(
             val endDate = cycleEnd.atTime(LocalTime.MAX)
             transactionDao.getTransactionsBetweenDates(startDate, endDate)
                 // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.filter { it.countsInTotals() } }
+                .map { txns -> txns.forTotals() }
         }
     }
 
@@ -382,7 +382,7 @@ open class TransactionRepository @Inject constructor(
             val endDate = prevEnd.atTime(LocalTime.MAX)
             transactionDao.getTransactionsBetweenDates(startDate, endDate)
                 // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.filter { it.countsInTotals() } }
+                .map { txns -> txns.forTotals() }
         }
     }
 
@@ -397,13 +397,13 @@ open class TransactionRepository @Inject constructor(
     }
 
     private fun List<TransactionEntity>.toMonthlyBreakdownByCurrency(): Map<String, MonthlyBreakdown> {
-        return filter { it.countsInTotals() }
+        return forTotals()
             .groupBy { it.currency }
             .mapValues { (_, transactions) -> transactions.toMonthlyBreakdown() }
     }
 
     private fun List<TransactionEntity>.sumTransactionType(type: TransactionType): BigDecimal {
-        return filter { it.countsInTotals() && it.transactionType == type }
+        return forTotals().filter { it.transactionType == type }
             .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
     }
     

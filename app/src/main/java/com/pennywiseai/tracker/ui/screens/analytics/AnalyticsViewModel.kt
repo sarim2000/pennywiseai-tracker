@@ -24,7 +24,7 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -304,7 +304,7 @@ class AnalyticsViewModel @Inject constructor(
                     // Drop loan-linked and analytics-excluded transactions (#451, #800). They
                     // stay in history and count toward balance — only these breakdowns,
                     // totals, averages and the spending trend ignore them.
-                    .filter { it.transaction.countsInTotals() }
+                    .forTotals()
                     // On the Income view, drop refunds (INCOME + DEDUCT_SPENT): they
                     // offset spending and are already netted out of the Expense view
                     // below, so counting them as income too would double-count them
@@ -395,8 +395,7 @@ class AnalyticsViewModel @Inject constructor(
                 var refundNettedTotal = BigDecimal.ZERO
                 if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
                     for (tw in allTransactionsWithSplits) {
-                        val tx = tw.transaction
-                        if (!tx.countsInTotals()) continue
+                        val tx = tw.transaction.forTotals() ?: continue
                         if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
                             tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
                         ) continue

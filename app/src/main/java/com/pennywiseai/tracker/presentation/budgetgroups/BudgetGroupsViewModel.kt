@@ -22,7 +22,7 @@ import com.pennywiseai.tracker.data.repository.overlaps
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.data.repository.windowsForMonth
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.utils.countsInTotals
+import com.pennywiseai.tracker.utils.forTotals
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -215,7 +215,7 @@ class BudgetGroupsViewModel @Inject constructor(
 
         // Compute totalIncome from raw.allTransactions bounded by the page window
         val totalIncome = raw.allTransactions
-            .filter { it.transaction.countsInTotals() }
+            .forTotals()
             .fold(BigDecimal.ZERO) { acc, txWithSplits ->
                 val tx = txWithSplits.transaction
                 val d = tx.dateTime.toLocalDate()
@@ -295,8 +295,7 @@ class BudgetGroupsViewModel @Inject constructor(
     ): BigDecimal {
         if (group.categories.isEmpty()) {
             return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-                val tx = txWithSplits.transaction
-                if (!tx.countsInTotals()) return@fold acc
+                val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
                 // Skip unconvertible amounts rather than counting them at face value (#670).
                 currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
@@ -467,11 +466,11 @@ class BudgetGroupsViewModel @Inject constructor(
             val effectiveDays = daysElapsed
             val dailyAmounts = DoubleArray(displayedWindow.days)
             
-            for (txWithSplits in txsInDisplay) {
+            for (rawWithSplits in txsInDisplay) {
+                val txWithSplits = rawWithSplits.forTotals() ?: continue
                 val tx = txWithSplits.transaction
                 if (tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
-                    tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER ||
-                    !tx.countsInTotals()
+                    tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER
                 ) continue
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)

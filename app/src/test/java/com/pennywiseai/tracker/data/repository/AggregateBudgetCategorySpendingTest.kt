@@ -13,8 +13,8 @@ import java.time.LocalDateTime
  * Regression coverage for [aggregateBudgetCategorySpending] — the single
  * shared function behind the Budgets screen, Home's budget card, and the
  * Budget home-screen widget for any budget with categories assigned.
- * Covers both universal exclusions from [countsInTotals] (#800): loan-linked
- * and analytics-excluded transactions.
+ * Covers the shared counting rule from `forTotals()` (#800, #831): the loan
+ * portion of loan-linked transactions and analytics-excluded transactions.
  */
 class AggregateBudgetCategorySpendingTest {
 
@@ -53,7 +53,7 @@ class AggregateBudgetCategorySpendingTest {
 
     @Test
     fun `excludes analytics-excluded transactions from category spending`() = runBlocking {
-        // #800: countsInTotals() is now checked directly inside the aggregator,
+        // #800: forTotals() is applied directly inside the aggregator,
         // not just by callers pre-filtering the input list.
         val transactions = listOf(
             transaction(amount = BigDecimal("100.00"), category = "Food"),
@@ -85,11 +85,28 @@ class AggregateBudgetCategorySpendingTest {
         assertEquals(BigDecimal("200.00"), typeAmounts[TransactionType.INVESTMENT.name])
     }
 
+    @Test
+    fun `split bill counts only your own share toward the budget`() = runBlocking {
+        // #831: ₹1,000 dinner with ₹400 lent — ₹600 is your Food spend.
+        val transactions = listOf(
+            transaction(amount = BigDecimal("1000.00"), category = "Food", loanId = 1L, loanContribution = BigDecimal("400.00"))
+        )
+
+        val (categoryAmounts, _, _) = aggregateBudgetCategorySpending(
+            transactions = transactions,
+            convertSplit = { _, amount -> amount },
+            convertIncome = { tx -> tx.amount }
+        )
+
+        assertEquals(0, BigDecimal("600.00").compareTo(categoryAmounts["Food"]))
+    }
+
     private fun transaction(
         amount: BigDecimal,
         category: String = "Food",
         type: TransactionType = TransactionType.EXPENSE,
         loanId: Long? = null,
+        loanContribution: BigDecimal? = null,
         excludedFromAnalytics: Boolean = false
     ): TransactionWithSplits {
         val entity = TransactionEntity(
@@ -101,6 +118,7 @@ class AggregateBudgetCategorySpendingTest {
             currency = "INR",
             transactionHash = "hash_" + (1..100000).random(),
             loanId = loanId,
+            loanContribution = loanContribution,
             excludedFromAnalytics = excludedFromAnalytics
         )
         return TransactionWithSplits(transaction = entity, splits = emptyList())

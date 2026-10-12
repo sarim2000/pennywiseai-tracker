@@ -135,7 +135,7 @@ object GuideViews {
                 Step("transaction-detail", "Fix one", "Tap a transaction to see the original SMS. The pencil edits it; ⋮ duplicates, groups or deletes it.", 81, 5),
                 Step("transactions", "Change many at once", "Press and hold one transaction until it highlights.", 40, 58),
                 Step("transactions-select", "Tap the rest", "Tap every other one you want. The totals card shows just your selection.", 40, 77),
-                Step("transactions-select", "Pick an action", "The top bar marks them as a transfer, changes their category, groups or deletes them.", 70, 5),
+                Step("transactions-select", "Pick an action", "The top bar changes their category, groups or deletes them. To mark a transfer, select exactly two (the money out and the money in); the transfer button then appears.", 70, 5),
             ),
             "search filter bulk select multiple edit delete recategorise duplicate tag tags note receipt photo split",
         ) {
@@ -162,7 +162,7 @@ object GuideViews {
             "ai-chat", "Everyday", "Ask the AI about your spending",
             "An assistant that runs entirely on your phone. Nothing you ask leaves it.",
             listOf(
-                Step("chat-download", "Download the model", "The first time you open the Chat tab it downloads about 1.5 GB. Use Wi-Fi; it only happens once."),
+                Step("chat-download", "Download the model", "The first time you open the Chat tab it downloads about 1.5 GB. You need about 3 GB free while it downloads. Use Wi-Fi; it only happens once."),
                 Step("chat-add", "Add by typing", "Write “got 50000 salary” or “coffee 180”. A confirm card appears; nothing is saved until you tap Add.", 71, 50),
                 Step("chat-ask", "Ask questions", "“How much on groceries this month?” “What did I spend at Swiggy?”", 40, 83),
             ),
@@ -380,7 +380,7 @@ object GuideViews {
             +"Some phones (Xiaomi, Oppo, Vivo, Samsung) stop background apps. Set PennyWise's battery usage to Unrestricted, or tap sync when you open the app."
         },
         Faq("The AI model won't download, or chat is slow.", "ai model download slow chat stuck") {
-            +"It needs about 1.5 GB free and a steady connection, so try Wi-Fi. Replies take a few seconds, longer on older phones."
+            +"The download is about 1.5 GB, but it needs about 3 GB of free space while downloading, and a steady connection, so try Wi-Fi. Replies take a few seconds, longer on older phones."
         },
         Faq("A backup won't restore.", "restore import backup failed error") {
             +"Update PennyWise first; new versions always read older backups. If it still fails, ask on Discord with the error."
@@ -680,6 +680,14 @@ object GuideViews {
         }
         window.addEventListener('hashchange', openFaq); openFaq();
 
+        // Save as PDF: print every answer, then put them back as they were.
+        var closedForPrint = [];
+        window.addEventListener('beforeprint', function () {
+          closedForPrint = [].filter.call(document.querySelectorAll('details'), function (d) { return !d.open; });
+          closedForPrint.forEach(function (d) { d.open = true; });
+        });
+        window.addEventListener('afterprint', function () { closedForPrint.forEach(function (d) { d.open = false; }); });
+
         // Search: a dropdown over an index of every guide, step and answer.
         (function () {
           var idx = JSON.parse(document.getElementById('guide-index').textContent);
@@ -716,10 +724,10 @@ object GuideViews {
               if (m < need) return null;
               if (e.kind === 'Guide') score += 1;
               return { e: e, m: m, score: score, i: i };
-            }).filter(function (h) {
-              if (!h) return false;
+            }).filter(Boolean).sort(function (a, b) { return b.m - a.m || b.score - a.score || a.i - b.i; }).filter(function (h) {
+              // Dedupe after sorting so the best entry for a title survives.
               var key = h.e.title + '|' + h.e.where; if (seen[key]) return false; seen[key] = 1; return true;
-            }).sort(function (a, b) { return b.m - a.m || b.score - a.score || a.i - b.i; }).slice(0, 8);
+            }).slice(0, 8);
           }
           document.querySelectorAll('[data-search]').forEach(function (q) {
             var box = q.parentNode.querySelector('.g-hits'), hits = [], active = 0;
@@ -727,8 +735,9 @@ object GuideViews {
             function close() { box.hidden = true; q.setAttribute('aria-expanded', 'false'); q.removeAttribute('aria-activedescendant'); }
             function render() {
               var v = q.value, words = terms(v);
+              hits = []; active = 0;
               if (!v.trim()) { close(); return; }
-              hits = search(v); active = 0;
+              hits = search(v);
               box.innerHTML = hits.length ? hits.map(function (h, n) {
                 var e = h.e;
                 return '<li role="option" id="' + box.id + '-' + n + '"' + (n === 0 ? ' aria-selected="true"' : '') + '>' +
@@ -754,7 +763,7 @@ object GuideViews {
             q.addEventListener('keydown', function (ev) {
               if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1); }
               else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1); }
-              else if (ev.key === 'Enter' && hits[active]) { ev.preventDefault(); close(); location.href = hits[active].e.url; }
+              else if (ev.key === 'Enter' && !box.hidden && hits[active]) { ev.preventDefault(); close(); location.href = hits[active].e.url; }
               else if (ev.key === 'Escape') { if (box.hidden) q.value = ''; close(); }
             });
             box.addEventListener('mousemove', function (ev) {
@@ -958,7 +967,9 @@ object GuideViews {
           .step, .step[hidden] { display: grid !important; break-inside: avoid; grid-template-columns: 160px 1fr; gap: 24px; margin-bottom: 24px; }
           .step-copy { padding: 0 !important; }
           .player { border: 0; padding: 0; }
-          .know-body p, .know-body dd, .step-copy p, .faq details p { color: #222 !important; }
+          .guide, .guide * { color: #111 !important; box-shadow: none !important; }
+          .guide a { color: #0B57D0 !important; }
+          .type, .compare, .compare-head, .compare-row, .player { background: none !important; border-color: #ccc !important; }
           .path { background: #f2f2f2; color: #111; border-color: #ccc; }
         }
     """

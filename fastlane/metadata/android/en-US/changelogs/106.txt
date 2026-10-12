@@ -1,0 +1,6 @@
+• Receipt photos are now included in backups
+• Import ICICI Bank PDF statements, including password-protected ones
+• Added support for Equity Bank (Kenya, KES)
+• Share any text or notification to PennyWise to open Add Transaction pre-filled
+• Configurable webhook sync lets you push transactions to external services
+• App notifications from Slice, Chase UK, and Trading 212 are now parsed

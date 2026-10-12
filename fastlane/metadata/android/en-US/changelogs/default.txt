@@ -1,5 +1,6 @@
-• App is now fully translatable — per-app language switching and Crowdin integration are live, with fresh translations already applied
-• Loans are now listed by person, showing the net balance owed and a Settle up action
-• Ignoring an account now correctly hides all its transactions everywhere in the app
-• Budget cards show how much you can spend per day to stay within the limit
-• Fixed UCO Bank SMS parsing — the account balance was being recorded as the debit amount
+• Receipt photos are now included in backups
+• Import ICICI Bank PDF statements, including password-protected ones
+• Added support for Equity Bank (Kenya, KES)
+• Share any text or notification to PennyWise to open Add Transaction pre-filled
+• Configurable webhook sync lets you push transactions to external services
+• App notifications from Slice, Chase UK, and Trading 212 are now parsed

@@ -80,6 +80,9 @@ object SharedComponents {
                     a(href = "/banks", classes = if (currentPage == "banks") "active" else "") {
                         +"Supported banks"
                     }
+                    a(href = "/guide", classes = if (currentPage == "guide") "active" else "") {
+                        +"Guide"
+                    }
                     a(href = "/pro", classes = if (currentPage == "pro") "nav-pro active" else "nav-pro") {
                         +"Get Pro"
                     }
@@ -231,6 +234,7 @@ object SharedComponents {
         .faq details summary::before { content: "+"; color: var(--blue); font-family: var(--mono); font-weight: 500; }
         .faq details[open] summary::before { content: "−"; }
         .faq details p { margin: 10px 0 2px 20px; }
+        .path { font-family: var(--mono); font-size: 13px; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; }
         .footnote { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 13px; }
         .footnote a { color: var(--text); }
 

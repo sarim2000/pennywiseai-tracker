@@ -615,6 +615,7 @@ object BankViews {
             // listed, otherwise the two compete with each other for the same query.
             add("/" to "1.0")
             add("/pro" to "1.0")
+            add("/guide" to "0.9")
             add("/banks" to "0.9")
             SupportedBanks.countries.forEach {
                 add("/banks/country/${SupportedBanks.countrySlug(it.country)}" to "0.7")

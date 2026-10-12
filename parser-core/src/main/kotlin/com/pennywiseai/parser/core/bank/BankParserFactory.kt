@@ -105,6 +105,7 @@ object BankParserFactory {
         MixxByYasParser(),  // Mixx by Yas (Tanzania) — must precede TigoPesaParser (shares MIXXBYYAS sender; claims newer Mixx-specific formats)
         TigoPesaParser(),  // Tigo Pesa / Mixx by Yas (Tanzania)
         DiamondTrustBankParser(),  // Diamond Trust Bank (DTB) Tanzania
+        EquityBankKenyaParser(),  // Equity Bank (Kenya) (#894)
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
         ArabBankParser(),  // Arab Bank (Egypt) — multi-currency card, English + Arabic SMS
         NationalBankOfEgyptParser(),  // National Bank of Egypt / NBE (Egypt) — Arabic SMS (#762)

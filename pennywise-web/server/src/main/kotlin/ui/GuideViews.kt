@@ -137,9 +137,15 @@ object GuideViews {
                 Step("transactions-select", "Tap the rest", "Tap every other one you want. The totals card shows just your selection.", 40, 77),
                 Step("transactions-select", "Pick an action", "The top bar marks them as a transfer, changes their category, groups or deletes them.", 70, 5),
             ),
-            "search filter bulk select multiple edit delete recategorise duplicate",
+            "search filter bulk select multiple edit delete recategorise duplicate tag tags note receipt photo split",
         ) {
-            p { +"Excluding a transaction from analytics keeps it in your history and balance but leaves it out of spending totals. Find the switch on its detail page." }
+            dl(classes = "defs") {
+                def("Tags and notes", "The pencil adds tags, a description and a display name. Tags can apply to every future transaction from the same merchant.")
+                def("Receipt photos", "Attach one from the gallery or camera when adding or editing.")
+                def("Split into categories", "Spread one expense across several categories from its detail page.")
+                def("Same merchant, every time", "When changing a category, apply it to all transactions from that merchant.")
+                def("Exclude from analytics", "Keeps it in your history and balance but out of spending totals.")
+            }
         },
         Guide(
             "analytics", "Everyday", "See where your money goes",
@@ -204,16 +210,23 @@ object GuideViews {
             p { +"Free accounts get one recurring transaction; Pro is unlimited." }
         },
         Guide(
-            "loans", "Plan ahead", "Track money friends owe you",
-            "Paid for someone? Keep track of who owes whom.",
+            "loans", "Plan ahead", "Lent and borrowed money",
+            "Track money you lend to friends and money you borrow, including partial repayments.",
             listOf(
-                Step("transaction-detail", "Open the payment", "Find what you paid for them and tap Mark as loan.", 50, 37),
-                Step("mark-loan", "Say who", "Type their name and how much they owe, then Confirm.", 50, 55),
-                Step("loans", "Keep track", "Settings → Loans lists who owes you and whom you owe."),
+                Step("loan-income", "Start from the payment", "Open the payment you made for them, or the money they sent you, and tap Mark as loan. No transaction yet? Add one first.", 50, 37),
+                Step("loan-lent", "Lent: say who", "On money you paid out, it asks who you paid for. Enter their name and how much they owe; it can be less than the full amount.", 50, 91),
+                Step("loan-borrowed", "Borrowed: say who", "On money you received, it becomes a loan you owe: “Who paid for you?” Enter the name and Confirm.", 50, 91),
+                Step("loans", "See who owes whom", "Settings → Loans totals what you're owed and what you owe, person by person. Settle up clears everything with one person.", 83, 59),
+                Step("loan-repay", "Record a repayment", "Open a loan and tap +. Link the transaction they paid you back with, or type the amount under Or enter manually.", 50, 57),
+                Step("loan-detail", "Watch it go down", "History lists every payment. Partial repayments are fine, and the loan settles itself when it reaches zero. ⋮ settles early, changes the amount expected back, or deletes it.", 93, 5),
             ),
-            "lend lent borrow split owe friend",
+            "lend lent lending borrow borrowed loan split owe owes owed owing friend repay repaid repayment debt iou money back",
+            cover = "loans",
         ) {
-            p { +"Only lent part of it? Enter just the amount they owe instead of the full payment." }
+            p { +"Loans stay out of your totals: lent money isn't spending, borrowed money isn't income, and repayments aren't either, so your monthly numbers stay honest." }
+            p { +"Paid back by UPI? Marking that incoming payment as a loan with the same person's name records it as a repayment automatically." }
+            p { +"Settle a loan you lent for less than you're owed and the unpaid part counts as spending in the month you settle it." }
+            p { +"Each loan is in one currency. There are no due dates or interest yet. Active loans also show on Home, which you can hide with Edit home screen." }
         },
         Guide(
             "groups", "Plan ahead", "Total up a trip or event",
@@ -249,10 +262,14 @@ object GuideViews {
                 Step("accounts", "Add cash or a wallet", "Tap + to add an account that doesn't send SMS, like cash in hand.", 89, 92),
                 Step("account-detail", "Check its history", "Tap an account on Home to see its balance trend and transactions.", 75, 36),
             ),
-            "balance wrong cash wallet manual account credit card merge",
+            "balance wrong cash wallet manual account credit card merge low alert business personal profile",
         ) {
             p { +"Accounts are created from your SMS, one per bank account or card. Balances update whenever a message includes one. Credit cards show their limit, outstanding and available amount." }
             p { +"Same card showing up twice under different numbers? Merge them from Manage Accounts (Pro)." }
+            dl(classes = "defs") {
+                def("Low-balance alert", "An account's ⋮ menu sets a threshold; the account is flagged when it drops below it.")
+                def("Personal and Business", "Mark an account as Business from its ⋮ menu, then use the profile filter on Home and Transactions to see one side at a time.")
+            }
         },
         Guide(
             "currencies", "Organise", "Use more than one currency",
@@ -277,7 +294,7 @@ object GuideViews {
             "theme dark light lock fingerprint widget notification webhook language contacts",
         ) {
             dl(classes = "defs") {
-                def("App Lock", "Fingerprint or face unlock. Set up biometrics in Android first.")
+                def("App Lock", "Fingerprint or face unlock, with a lock timeout. Set up biometrics in Android first.")
                 def("Widgets", "Long-press your home screen → Widgets → PennyWise: Add Transaction, Budget Overview, Spending Pie, Recent Transactions.")
                 def("Notifications", "Each new transaction can notify you, with buttons to change its category right there.")
                 def("Bank Notification Access", "Also read bank app notifications, for banks that notify instead of texting.")

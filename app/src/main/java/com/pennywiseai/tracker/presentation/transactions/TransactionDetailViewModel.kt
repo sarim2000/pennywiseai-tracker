@@ -620,6 +620,12 @@ class TransactionDetailViewModel @Inject constructor(
                     onResult(false)
                     return@launch
                 }
+                if (existing != null && parentId != null && existing.parentId != parentId) {
+                    // Reusing it would silently drop the parent the user picked.
+                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_category_exists_other_parent, listOf(trimmed))
+                    onResult(false)
+                    return@launch
+                }
                 when {
                     existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon, parentId)
                     // Re-adding a hidden category brings it back, so the selection

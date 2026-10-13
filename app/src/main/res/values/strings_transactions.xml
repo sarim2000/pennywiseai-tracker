@@ -34,6 +34,7 @@
     <string name="txn_detail_error_amount_positive_number">Amount must be a positive number</string>
     <string name="txn_detail_error_category_exists_income">A category named \"%1$s\" already exists as income</string>
     <string name="txn_detail_error_category_exists_expense">A category named \"%1$s\" already exists as expense</string>
+    <string name="txn_detail_error_category_exists_other_parent">A category named \"%1$s\" already exists under a different parent</string>
     <string name="txn_detail_error_create_category">Couldn\'t create category: %1$s</string>
     <string name="txn_detail_error_splits_unavailable">Splits are only available for expenses and card purchases</string>
     <string name="txn_detail_error_splits_min">At least 2 splits are required</string>

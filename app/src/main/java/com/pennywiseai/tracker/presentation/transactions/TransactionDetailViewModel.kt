@@ -600,7 +600,7 @@ class TransactionDetailViewModel @Inject constructor(
      * uses this to keep the add-category dialog open on failure so the user's typed
      * name/color aren't lost and they can correct them in place.
      */
-    fun createAndSelectCategory(name: String, color: String, icon: String? = null, onResult: (Boolean) -> Unit = {}) {
+    fun createAndSelectCategory(name: String, color: String, icon: String? = null, parentId: Long? = null, onResult: (Boolean) -> Unit = {}) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) { onResult(false); return }
         val isIncome = (_editableTransaction.value ?: _transaction.value)
@@ -620,8 +620,14 @@ class TransactionDetailViewModel @Inject constructor(
                     onResult(false)
                     return@launch
                 }
+                if (existing != null && parentId != null && existing.parentId != parentId) {
+                    // Reusing it would silently drop the parent the user picked.
+                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_category_exists_other_parent, listOf(trimmed))
+                    onResult(false)
+                    return@launch
+                }
                 when {
-                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon, parentId)
                     // Re-adding a hidden category brings it back, so the selection
                     // is one the picker actually offers. The cascading toggle also
                     // restores its sub-categories / parent, like Settings does (#374).

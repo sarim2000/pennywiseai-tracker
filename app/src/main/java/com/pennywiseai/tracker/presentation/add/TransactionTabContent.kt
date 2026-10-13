@@ -534,11 +534,12 @@ fun TransactionTabContent(
                 CategoryEditDialog(
                     defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
                     lockType = true,
+                    parentOptions = categories,
                     onDismiss = { showAddCategoryDialog = false },
-                    onSave = { name, color, _, icon, _ ->
+                    onSave = { name, color, _, icon, parentId ->
                         // Close only once the category is created and selected, so the
                         // modal dialog blocks Save / type changes until it lands.
-                        viewModel.createAndSelectCategory(name, color, icon) { showAddCategoryDialog = false }
+                        viewModel.createAndSelectCategory(name, color, icon, parentId) { showAddCategoryDialog = false }
                     }
                 )
             }

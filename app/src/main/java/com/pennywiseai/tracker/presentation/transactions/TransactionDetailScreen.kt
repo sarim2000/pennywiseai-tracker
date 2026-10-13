@@ -1434,7 +1434,10 @@ private fun EditableExtractedInfoCard(
                     accountNumber = transaction.accountNumber,
                     onAccountNumberChange = { viewModel.updateAccountNumber(it) },
                     onBankNameChange = { viewModel.updateBankName(it) },
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    // Without the bank, two accounts sharing a number (HDFC ••1155
+                    // and a wallet ••1155) were indistinguishable (#876).
+                    bankName = transaction.bankName
                 )
             }
 
@@ -1779,12 +1782,14 @@ private fun CategoryDropdown(
         CategoryEditDialog(
             defaultIsIncome = isIncomeTransaction,
             lockType = true,
+            // Same parent picker as Settings → Categories (#876).
+            parentOptions = categories,
             onDismiss = { showAddDialog = false },
-            onSave = { name, color, _, icon, _ ->
+            onSave = { name, color, _, icon, parentId ->
                 // Dismiss only once the category is actually created/selected, so a
                 // failure (e.g. same-name type conflict) keeps the dialog open with
                 // the user's input intact.
-                viewModel.createAndSelectCategory(name, color, icon) { success ->
+                viewModel.createAndSelectCategory(name, color, icon, parentId) { success ->
                     if (success) showAddDialog = false
                 }
             }
@@ -2059,11 +2064,7 @@ private fun AccountNumberField(
     }
     var expanded by remember { mutableStateOf(false) }
     var selectedAccount by remember(accountNumber, bankName, availableAccounts) {
-        mutableStateOf(
-            availableAccounts.find { 
-                accountNumber?.endsWith(it.accountLast4) == true && (bankName == null || it.bankName == bankName)
-            }?.displayName ?: accountNumber ?: ""
-        )
+        mutableStateOf(availableAccounts.matchFor(accountNumber, bankName)?.displayName ?: accountNumber ?: "")
     }
     
     ExposedDropdownMenuBox(
@@ -2492,4 +2493,22 @@ internal fun transactionTypeLabel(type: TransactionType): Int = when (type) {
     TransactionType.CREDIT -> R.string.txn_type_credit
     TransactionType.TRANSFER -> R.string.txn_type_transfer
     TransactionType.INVESTMENT -> R.string.txn_type_investment
+}
+
+/**
+ * The account an edit field's [accountNumber] (and [bankName]) refers to (#876).
+ * Same bank and number first; failing that, the one account with that number.
+ * The number must match whole — a short or empty last-4 used to suffix-match
+ * every account, so picking HDFC ••1155 could show some other account.
+ */
+internal fun List<TransactionDetailViewModel.AccountInfo>.matchFor(
+    accountNumber: String?,
+    bankName: String?
+): TransactionDetailViewModel.AccountInfo? {
+    if (accountNumber.isNullOrBlank()) return null
+    val sameNumber = filter {
+        it.accountLast4 == accountNumber ||
+            (it.accountLast4.length >= 4 && accountNumber.endsWith(it.accountLast4))
+    }
+    return bankName?.let { bank -> sameNumber.find { it.bankName == bank } } ?: sameNumber.singleOrNull()
 }

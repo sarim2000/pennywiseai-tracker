@@ -304,7 +304,7 @@ class AddViewModel @Inject constructor(
      * type and selects it. A same-name category of the other type is reported
      * on the field rather than selected, since the picker would filter it out.
      */
-    fun createAndSelectCategory(name: String, color: String, icon: String?, onDone: () -> Unit = {}) {
+    fun createAndSelectCategory(name: String, color: String, icon: String?, parentId: Long? = null, onDone: () -> Unit = {}) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) { onDone(); return }
         val isIncome = _transactionUiState.value.transactionType == TransactionType.INCOME
@@ -324,7 +324,7 @@ class AddViewModel @Inject constructor(
                     return@launch
                 }
                 when {
-                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon)
+                    existing == null -> categoryRepository.createCategory(trimmed, color, isIncome, icon, parentId)
                     // Re-adding a hidden category brings it back, so the selection
                     // is one the picker actually offers. The cascading toggle also
                     // restores its sub-categories / parent, like Settings does (#374).

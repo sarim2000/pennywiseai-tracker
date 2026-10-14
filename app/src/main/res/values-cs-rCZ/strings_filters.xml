@@ -12,6 +12,7 @@
     <string name="filter_type_income">Výnosy</string>
     <string name="filter_type_expense">Výdaje</string>
     <string name="filter_type_credit">Kredit</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">Převod</string>
     <string name="filter_type_investment">Investice</string>
     <!-- Account types -->

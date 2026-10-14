@@ -12,6 +12,7 @@
     <string name="filter_type_income">Доход</string>
     <string name="filter_type_expense">Расход</string>
     <string name="filter_type_credit">Кредит</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">Перевод</string>
     <string name="filter_type_investment">Инвестиция</string>
     <!-- Account types -->

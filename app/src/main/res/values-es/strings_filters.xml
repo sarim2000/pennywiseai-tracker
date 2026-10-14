@@ -3,5 +3,6 @@
     <!-- Time period filter chips (Transactions, Analytics) -->
     <!-- FY = financial year (India: April to March) -->
     <!-- Transaction type filter -->
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <!-- Account types -->
 </resources>

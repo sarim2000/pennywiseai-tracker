@@ -12,6 +12,7 @@
     <string name="filter_type_income">आय</string>
     <string name="filter_type_expense">व्यय</string>
     <string name="filter_type_credit">क्रेडिट</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">स्थानांतरण</string>
     <string name="filter_type_investment">निवेश</string>
     <!-- Account types -->

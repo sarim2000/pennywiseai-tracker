@@ -12,6 +12,7 @@
     <string name="filter_type_income">आम्दानी</string>
     <string name="filter_type_expense">खर्च</string>
     <string name="filter_type_credit">क्रेडिट</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">स्थानान्तरण</string>
     <string name="filter_type_investment">लगानी</string>
     <!-- Account types -->

@@ -16,8 +16,6 @@
     <string name="home_empty_headline">ยังไม่มีรายการธุรกรรม</string>
     <!-- FABs + full resync -->
     <string name="home_fab_add">เพิ่มธุรกรรมหรือการสมัครสมาชิก</string>
-    <string name="home_resync_title">ซิงค์ใหม่ทั้งหมด</string>
-    <string name="home_resync_confirm">ซิงค์ทั้งหมด</string>
     <!-- More options sheet -->
     <string name="home_menu_settings">การตั้งค่า</string>
     <!-- Edit home screen sheet -->

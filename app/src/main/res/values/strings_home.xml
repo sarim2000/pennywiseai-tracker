@@ -31,9 +31,11 @@
     <string name="home_fab_add">Add Transaction or Subscription</string>
     <string name="home_fab_sync">Sync SMS (long press for full resync)</string>
     <string name="home_fab_sync_hint">Hold for full resync</string>
-    <string name="home_resync_title">Full Resync</string>
-    <string name="home_resync_message">This will reprocess all SMS messages from scratch. Use this to fix issues caused by updated bank parsers.\n\nYour loans, grouped transactions, and merchant mappings are preserved.\n\nThis may take a few seconds depending on your message history.</string>
-    <string name="home_resync_confirm">Resync All</string>
+    <string name="home_resync_title">Read messages again</string>
+    <string name="home_resync_scan_again">Scan all messages again</string>
+    <string name="home_resync_scan_again_desc">Adds anything that was missed. Your edits and all existing transactions stay as they are.</string>
+    <string name="home_resync_rebuild">Rebuild from scratch</string>
+    <string name="home_resync_rebuild_desc">Re-reads SMS transactions to pick up parser fixes. Edits to SMS transactions are reset. Manual, imported, loan and grouped transactions are kept.</string>
 
     <!-- More options sheet -->
     <string name="home_menu_title">More Options</string>

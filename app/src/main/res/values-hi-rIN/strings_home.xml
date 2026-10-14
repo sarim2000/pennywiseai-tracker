@@ -16,8 +16,6 @@
     <string name="home_empty_headline">अभी तक कोई लेनदेन नहीं</string>
     <!-- FABs + full resync -->
     <string name="home_fab_add">लेनदेन या सदस्यता जोड़ें</string>
-    <string name="home_resync_title">पूर्ण पुनर्सिंक्रनाइज़ेशन</string>
-    <string name="home_resync_confirm">सभी को पुन: सिंक करें</string>
     <!-- More options sheet -->
     <string name="home_menu_settings">सेटिंग्स</string>
     <!-- Edit home screen sheet -->

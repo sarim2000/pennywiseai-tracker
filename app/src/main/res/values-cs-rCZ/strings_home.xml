@@ -28,9 +28,6 @@
     <string name="home_fab_add">Přidat transakci nebo předplatné</string>
     <string name="home_fab_sync">Synchronizovat SMS (dlouhý stisk pro kompletní opětovné uložení)</string>
     <string name="home_fab_sync_hint">Podržte pro kompletní resynchronizaci</string>
-    <string name="home_resync_title">Plná resynchronizace</string>
-    <string name="home_resync_message">Toto znovu zpracuje všechny SMS zprávy od nuly. Použijte pro opravu problémů způsobených aktualizovanými bankovními parsery.\n\nVaše půjčky, seskupené transakce a mapování obchodníků jsou zachovány.\n\nMůže to trvat několik sekund v závislosti na historii zpráv.</string>
-    <string name="home_resync_confirm">Resynchronizovat vše</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Další možnosti</string>
     <string name="home_menu_monthly_recap">Měsíční repatriace</string>

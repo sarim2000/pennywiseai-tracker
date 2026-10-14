@@ -28,9 +28,6 @@
     <string name="home_fab_add">Transaktion oder Abonnement hinzufügen</string>
     <string name="home_fab_sync">SMS synchronisieren (lange drücken für vollständige Wiedersynchronisierung)</string>
     <string name="home_fab_sync_hint">Halten für vollständige Resynchronisierung</string>
-    <string name="home_resync_title">Vollständige Synchronisierung</string>
-    <string name="home_resync_message">Dies wird alle SMS-Nachrichten von Grund auf neu verarbeiten. Verwenden Sie dies, um Probleme zu beheben, die durch aktualisierte Bank-Parser verursacht wurden.\n\nIhre Kredite, Gruppierte Transaktionen und Händlerzuordnungen werden beibehalten.\n\nDies kann je nach Nachrichtenverlauf ein paar Sekunden dauern.</string>
-    <string name="home_resync_confirm">Alle neu synchronisieren</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Weitere Optionen</string>
     <string name="home_menu_monthly_recap">Monatliche Rücknahme</string>

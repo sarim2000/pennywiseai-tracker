@@ -1074,19 +1074,28 @@ fun HomeScreen(
                     Text(stringResource(R.string.home_resync_title))
                 },
                 text = {
-                    Text(stringResource(R.string.home_resync_message))
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showFullResyncDialog = false
-                            viewModel.scanSmsMessages(forceResync = true)
-                        }
-                    ) {
-                        Text(stringResource(R.string.home_resync_confirm))
+                    // Two ways to re-read: the gentle one first, since a full rebuild
+                    // resets edits to SMS transactions.
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        ResyncOption(
+                            title = stringResource(R.string.home_resync_scan_again),
+                            description = stringResource(R.string.home_resync_scan_again_desc),
+                            onClick = {
+                                showFullResyncDialog = false
+                                viewModel.scanSmsMessages(rescanAll = true)
+                            }
+                        )
+                        ResyncOption(
+                            title = stringResource(R.string.home_resync_rebuild),
+                            description = stringResource(R.string.home_resync_rebuild_desc),
+                            onClick = {
+                                showFullResyncDialog = false
+                                viewModel.scanSmsMessages(forceResync = true)
+                            }
+                        )
                     }
                 },
-                dismissButton = {
+                confirmButton = {
                     TextButton(
                         onClick = { showFullResyncDialog = false }
                     ) {
@@ -1707,4 +1716,29 @@ private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.ACCOUNTS -> R.string.home_section_accounts
     HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
     HomeSection.ACTIVITY -> R.string.home_section_activity
+}
+
+/** One choice in the "Read messages again" dialog: a tappable title + what it does. */
+@Composable
+private fun ResyncOption(title: String, description: String, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        // The dialog itself is surfaceContainerHigh, so a step up keeps each
+        // option reading as a tappable card.
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }

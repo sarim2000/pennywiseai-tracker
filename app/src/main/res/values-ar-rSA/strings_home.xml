@@ -28,9 +28,6 @@
     <string name="home_fab_add">إضافة معاملة أو اشتراك</string>
     <string name="home_fab_sync">مزامنة الرسائل القصيرة (ضغطة طويلة للحصول على ريسينك كامل)</string>
     <string name="home_fab_sync_hint">اضغط للريسينك الكامل</string>
-    <string name="home_resync_title">إعادة المزامنة بالكامل</string>
-    <string name="home_resync_message">سيؤدي هذا إلى إعادة معالجة جميع الرسائل القصيرة من الصفر. استخدم هذا لإصلاح المشكلات التي تسببها الحدائق المصرفية المحدثة.\n\nيتم الحفاظ على قروضك ومعاملاتك المجمعة ورسومات التجار.\n\nقد يستغرق هذا بضع ثوان اعتماداً على تاريخ رسالتك.</string>
-    <string name="home_resync_confirm">إعادة مزامنة الكل</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
     <string name="home_menu_monthly_recap">موجز شهري</string>

@@ -28,8 +28,6 @@
     <string name="home_fab_add">Adicionar Transação ou Assinatura</string>
     <string name="home_fab_sync">Sincronizar SMS (toque longo para resync completo)</string>
     <string name="home_fab_sync_hint">Segure para obter resync completo</string>
-    <string name="home_resync_title">Resincronizar Completamente</string>
-    <string name="home_resync_confirm">Ressincronizar Tudo</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Mais opções</string>
     <string name="home_menu_monthly_recap">Resumo mensal</string>

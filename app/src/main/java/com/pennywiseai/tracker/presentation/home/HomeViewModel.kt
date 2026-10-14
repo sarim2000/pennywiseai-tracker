@@ -1010,10 +1010,13 @@ class HomeViewModel @Inject constructor(
      * @param forceResync If true, performs a full resync from scratch, reprocessing all SMS messages.
      *                    This is useful when bank parsers have been updated and old transactions need to be re-parsed.
      *                    If false (default), performs an incremental scan for new messages only.
+     * @param rescanAll If true, re-reads the whole scan window without deleting
+     *                  anything: adds missed messages and keeps every edit.
      */
-    fun scanSmsMessages(forceResync: Boolean = false) {
+    fun scanSmsMessages(forceResync: Boolean = false, rescanAll: Boolean = false) {
         val inputData = workDataOf(
-            OptimizedSmsReaderWorker.INPUT_FORCE_RESYNC to forceResync
+            OptimizedSmsReaderWorker.INPUT_FORCE_RESYNC to forceResync,
+            OptimizedSmsReaderWorker.INPUT_RESCAN_ALL to rescanAll
         )
 
         val workRequest = OneTimeWorkRequestBuilder<OptimizedSmsReaderWorker>()

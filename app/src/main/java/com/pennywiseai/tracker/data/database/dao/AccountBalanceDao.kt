@@ -98,7 +98,7 @@ interface AccountBalanceDao {
     suspend fun deleteAllBalances()
 
     /**
-     * Resync companion to [TransactionDao.deleteUncuratedTransactions].
+     * Resync companion to [TransactionDao.deleteRebuildableSmsTransactions].
      * Wipes balance entries the SMS re-parse will regenerate, while
      * preserving:
      *

@@ -48,31 +48,31 @@ object TransactionFinder {
 
     private val STOP = setOf("the", "one", "from", "for", "and", "that", "this", "delete", "remove", "update", "change", "yesterday", "today", "transaction", "entry")
 
+    /** A [findBest] result; [loosened] when the model's day or amount had to be dropped to find it. */
+    data class Match(val transaction: TransactionEntity, val loosened: Boolean)
+
     /**
-     * The day to search, only if the user's own [userText] names one. A small
-     * model fills `days_ago` even when no day was said (often 0 = "today"),
-     * and a day is a hard filter, so a guessed one hides every older row.
-     * Today / yesterday / "N days ago" are read from the text itself; any
-     * other time phrase (a weekday, a date) keeps the model's value.
+     * [findBest] with the model's day and amount first, then without the day,
+     * then without the amount, then without both. A small model fills those
+     * fields even when the user never said them (often days_ago = 0, "today"),
+     * and as hard filters a guess hides the row the user meant. A loosened
+     * match is flagged so the reply says it's the closest one; the confirm
+     * card shows its date and amount, and nothing changes until the user taps.
      */
-    fun statedDaysAgo(modelDaysAgo: Int?, userText: String): Int? {
-        val text = userText.lowercase()
-        Regex("""\b(\d{1,3})\s+days?\s+ago\b""").find(text)?.let { return it.groupValues[1].toInt() }
-        if (Regex("""\byesterday\b""").containsMatchIn(text)) return 1
-        if (Regex("""\b(today|tonight|this morning|this afternoon|this evening)\b""").containsMatchIn(text)) return 0
-        return modelDaysAgo?.takeIf { it >= 0 && OTHER_DAY_WORDS.containsMatchIn(text) }
+    fun findWithFallback(
+        candidates: List<TransactionEntity>,
+        words: String,
+        amount: BigDecimal?,
+        daysAgo: Int?,
+        today: LocalDate = LocalDate.now()
+    ): Match? {
+        findBest(candidates, words, amount, daysAgo, today)?.let { return Match(it, false) }
+        val attempts = listOf(amount to null, null to daysAgo, null to null)
+            .filter { (a, d) -> a != amount || d != daysAgo }
+            .distinct()
+        for ((a, d) in attempts) {
+            findBest(candidates, words, a, d, today)?.let { return Match(it, true) }
+        }
+        return null
     }
-
-    /** The amount to search, only if that number appears in the user's own [userText]. */
-    fun statedAmount(modelAmount: BigDecimal?, userText: String): BigDecimal? {
-        val wanted = modelAmount?.takeIf { it.signum() > 0 } ?: return null
-        val said = Regex("""\d[\d,]*(?:\.\d+)?""").findAll(userText)
-            .mapNotNull { it.value.replace(",", "").toBigDecimalOrNull() }
-        return wanted.takeIf { w -> said.any { it.compareTo(w) == 0 } }
-    }
-
-    private val OTHER_DAY_WORDS = Regex(
-        """\b(ago|last|monday|tuesday|wednesday|thursday|friday|saturday|sunday|""" +
-            """jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|\d{1,2}(st|nd|rd|th)|\d{1,2}[/-]\d{1,2})"""
-    )
 }

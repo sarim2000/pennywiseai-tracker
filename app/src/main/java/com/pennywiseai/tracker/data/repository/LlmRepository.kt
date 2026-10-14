@@ -276,12 +276,15 @@ class LlmRepository @Inject constructor(
             }
         }
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
-            val target = findTransaction(call.arguments, userMessage)
+            val match = findTransaction(call.arguments)
+            val target = match?.transaction
+            // Say so when the day or amount had to be dropped to find it.
+            val closest = if (match?.loosened == true) "I couldn't find an exact match — this is the closest one. " else ""
             if (target == null) {
                 "I couldn't find a matching transaction in the last 30 days. Try the merchant name and amount."
             } else if (call.name == PennyWiseTools.DELETE_TRANSACTION) {
                 _pendingAction.value = PendingChatAction.Delete(target)
-                "Delete this one? Confirm below:\n${describe(target)}"
+                "${closest}Delete this one? Confirm below:\n${describe(target)}"
             } else {
                 val newCategory = (call.arguments.arg("newCategory") as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { wanted ->
                     matchCategory(wanted, categoryRepository.getVisibleCategories().first())
@@ -292,7 +295,7 @@ class LlmRepository @Inject constructor(
                     "What should I change it to? Say a category from your list or a new merchant name."
                 } else {
                     _pendingAction.value = PendingChatAction.Update(target, newCategory, newMerchant)
-                    "Update this one? Confirm below:\n${describe(target)} → " +
+                    "${closest}Update this one? Confirm below:\n${describe(target)} → " +
                         listOfNotNull(newMerchant?.let { "merchant $it" }, newCategory?.let { "category $it" }).joinToString(", ")
                 }
             }
@@ -313,17 +316,13 @@ class LlmRepository @Inject constructor(
         else -> null
     }
 
-    private suspend fun findTransaction(args: Map<String, Any?>, userMessage: String): TransactionEntity? {
+    private suspend fun findTransaction(args: Map<String, Any?>): TransactionFinder.Match? {
         val words = (args["merchant"] as? String).orEmpty()
-        // Day and amount are hard filters, so only ones the user actually said
-        // count — the model fills both even when they weren't mentioned.
-        val amount = TransactionFinder.statedAmount(
-            (args["amount"] as? Number)?.toDouble()?.let { BigDecimal.valueOf(it) }, userMessage
-        )
-        val daysAgo = TransactionFinder.statedDaysAgo((args.arg("daysAgo") as? Number)?.toInt(), userMessage)
+        val amount = (args["amount"] as? Number)?.toDouble()?.takeIf { it > 0 }?.let { BigDecimal.valueOf(it) }
+        val daysAgo = (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
         val now = java.time.LocalDateTime.now()
         val recent = transactionRepository.getTransactionsBetweenDates(now.minusDays(30), now).first()
-        return TransactionFinder.findBest(recent, words, amount, daysAgo)
+        return TransactionFinder.findWithFallback(recent, words, amount, daysAgo)
     }
 
     /** An existing row is shown in ITS currency, never relabelled with the base one. */

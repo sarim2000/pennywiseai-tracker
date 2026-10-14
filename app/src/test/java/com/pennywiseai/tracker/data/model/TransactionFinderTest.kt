@@ -49,38 +49,39 @@ class TransactionFinderTest {
         assertNull(TransactionFinder.findBest(txs, "netflix", null, null, today))
     }
 
-    // #876 follow-up: the on-device model sent days_ago=0 for "change the Swiggy
-    // transaction category to Groceries", which hid the 26 Sep row.
+    // User report: the on-device model sent days_ago=0 (and an amount from
+    // history) for "change the Swiggy transaction category to Groceries",
+    // which hid the older row.
     @Test
-    fun `a day the user never said is ignored`() {
-        assertNull(TransactionFinder.statedDaysAgo(0, "change the Swiggy transaction category to Groceries"))
-        assertNull(TransactionFinder.statedDaysAgo(-18, "Swiggy 450 should be Groceries"))
+    fun `a guessed day that matches nothing falls back and says so`() {
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", null, daysAgo = 0, today = today)
+        assertEquals(1L, m?.transaction?.id)
+        assertEquals(true, m?.loosened)
     }
 
     @Test
-    fun `today, yesterday and N days ago come from the user's words`() {
-        assertEquals(0, TransactionFinder.statedDaysAgo(5, "delete the tea from today"))
-        assertEquals(1, TransactionFinder.statedDaysAgo(0, "the starbucks one from yesterday"))
-        assertEquals(18, TransactionFinder.statedDaysAgo(0, "swiggy from 18 days ago"))
+    fun `a guessed amount that matches nothing falls back`() {
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", BigDecimal("999"), daysAgo = null, today = today)
+        assertEquals(1L, m?.transaction?.id)
+        assertEquals(true, m?.loosened)
     }
 
     @Test
-    fun `other day phrases keep the model's value`() {
-        assertEquals(3, TransactionFinder.statedDaysAgo(3, "the uber on monday"))
-        assertEquals(19, TransactionFinder.statedDaysAgo(19, "swiggy on 26 sep"))
+    fun `an exact match is not flagged and keeps the stated filters`() {
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", BigDecimal("340"), daysAgo = 5, today = today)
+        assertEquals(2L, m?.transaction?.id)
+        assertEquals(false, m?.loosened)
     }
 
     @Test
-    fun `an amount counts only if the user said it`() {
-        assertEquals(BigDecimal("450.0"), TransactionFinder.statedAmount(BigDecimal("450.0"), "Swiggy 450 should be Groceries"))
-        assertEquals(BigDecimal("1250.0"), TransactionFinder.statedAmount(BigDecimal("1250.0"), "the 1,250 one"))
-        assertNull(TransactionFinder.statedAmount(BigDecimal("450.0"), "change the Swiggy transaction category to Groceries"))
-        assertNull(TransactionFinder.statedAmount(BigDecimal.ZERO, "swiggy 0"))
+    fun `the right amount is kept when only the day was wrong`() {
+        // Day dropped first: amount 340 still picks the 5-days-ago row, not the newest.
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", BigDecimal("340"), daysAgo = 0, today = today)
+        assertEquals(2L, m?.transaction?.id)
     }
 
     @Test
-    fun `with the guessed day dropped the older row is found`() {
-        val day = TransactionFinder.statedDaysAgo(0, "change the starbucks transaction to groceries")
-        assertEquals(1L, TransactionFinder.findBest(txs, "Starbucks", null, day, today)?.id)
+    fun `no merchant match still finds nothing`() {
+        assertNull(TransactionFinder.findWithFallback(txs, "Nonexistent", null, daysAgo = 0, today = today))
     }
 }

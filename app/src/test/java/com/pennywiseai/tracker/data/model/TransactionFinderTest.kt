@@ -53,10 +53,10 @@ class TransactionFinderTest {
     // history) for "change the Swiggy transaction category to Groceries",
     // which hid the older row.
     @Test
-    fun `a guessed day that matches nothing falls back and says so`() {
+    fun `a guessed day that matches nothing falls back without a warning`() {
         val m = TransactionFinder.findWithFallback(txs, "Starbucks", null, daysAgo = 0, today = today)
         assertEquals(1L, m?.transaction?.id)
-        assertEquals(true, m?.loosened)
+        assertEquals(false, m?.loosened)
     }
 
     @Test

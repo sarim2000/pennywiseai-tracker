@@ -13,6 +13,8 @@
     <string name="filter_type_income">Income</string>
     <string name="filter_type_expense">Expense</string>
     <string name="filter_type_credit">Credit</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
+    <string name="filter_type_spending">Spending (Expense + Card)</string>
     <string name="filter_type_transfer">Transfer</string>
     <string name="filter_type_investment">Investment</string>
 

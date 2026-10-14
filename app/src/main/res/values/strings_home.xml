@@ -111,6 +111,7 @@
     <string name="type_filter_income">Income</string>
     <string name="type_filter_expense">Expense</string>
     <string name="type_filter_credit">Credit</string>
+    <string name="type_filter_spending">Spending</string>
     <string name="type_filter_transfer">Transfer</string>
     <string name="type_filter_investment">Invest</string>
 

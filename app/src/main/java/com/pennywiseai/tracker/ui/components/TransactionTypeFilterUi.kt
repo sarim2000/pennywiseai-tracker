@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
@@ -20,6 +21,7 @@ fun TransactionTypeFilter.shortLabel(): String = stringResource(
         TransactionTypeFilter.INCOME -> R.string.type_filter_income
         TransactionTypeFilter.EXPENSE -> R.string.type_filter_expense
         TransactionTypeFilter.CREDIT -> R.string.type_filter_credit
+        TransactionTypeFilter.SPENDING -> R.string.type_filter_spending
         TransactionTypeFilter.TRANSFER -> R.string.type_filter_transfer
         TransactionTypeFilter.INVESTMENT -> R.string.type_filter_investment
     }
@@ -30,6 +32,7 @@ fun TransactionTypeFilter.filterIcon(): ImageVector = when (this) {
     TransactionTypeFilter.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
     TransactionTypeFilter.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
     TransactionTypeFilter.CREDIT -> Icons.Default.CreditCard
+    TransactionTypeFilter.SPENDING -> Icons.Default.ShoppingCart
     TransactionTypeFilter.TRANSFER -> Icons.Default.SwapHoriz
     TransactionTypeFilter.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
 }

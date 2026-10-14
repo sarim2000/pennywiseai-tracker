@@ -37,6 +37,28 @@ import com.pennywiseai.tracker.ui.components.BalancePoint
 
 enum class ChartType { LINE, BAR, HEATMAP }
 
+/**
+ * The rows an Analytics type view totals: those of [filter]'s types (Spending =
+ * expense + card spend, #898), cut to what counts toward totals — loan-linked and
+ * analytics-excluded parts drop out (#451, #800); they stay in history and balance.
+ *
+ * The Income view also drops refunds (INCOME + DEDUCT_SPENT): they offset spending
+ * and are netted out of the spend views instead, so counting them as income too
+ * would double-count them. Mirrors the Home card (#629).
+ */
+internal fun analyticsRowsFor(
+    rows: List<TransactionWithSplits>,
+    filter: TransactionTypeFilter
+): List<TransactionWithSplits> {
+    val types = filter.transactionTypes
+    return (if (types == null) rows else rows.filter { it.transaction.transactionType in types })
+        .forTotals()
+        .filter {
+            !(filter == TransactionTypeFilter.INCOME &&
+                it.transaction.budgetImpactType == com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT)
+        }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
@@ -246,17 +268,6 @@ class AnalyticsViewModel @Inject constructor(
                     _selectedCurrency.value = if (allCurrencies.contains(baseCurrency)) baseCurrency else allCurrencies.first()
                 }
 
-                // Use database-level filtering for better performance
-                // Convert TransactionTypeFilter to TransactionType for database query
-                val dbTransactionType = when (filterState.typeFilter) {
-                    TransactionTypeFilter.ALL -> null // null means no type filter at DB level
-                    TransactionTypeFilter.INCOME -> com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
-                    TransactionTypeFilter.EXPENSE -> com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE
-                    TransactionTypeFilter.CREDIT -> com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT
-                    TransactionTypeFilter.TRANSFER -> com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER
-                    TransactionTypeFilter.INVESTMENT -> com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT
-                }
-
                 // Scope a loaded transaction list to the selected profile and exclude
                 // hidden accounts (mirrors the Home screen's account scoping).
                 fun scopeTransactions(
@@ -286,35 +297,17 @@ class AnalyticsViewModel @Inject constructor(
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second
-                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, true) }
+                    ).map { txs -> scopeTransactions(txs) to true }
                 } else {
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second,
                         currency = filterState.currency
-                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, false) }
+                    ).map { txs -> scopeTransactions(txs) to false }
                 }
-            }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
-                // Filter by transaction type in memory (splits are already loaded)
-                val filteredTransactionsWithSplits = (if (transactionTypeFilter != null) {
-                    allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
-                } else {
-                    allTransactionsWithSplits
-                })
-                    // Drop loan-linked and analytics-excluded transactions (#451, #800). They
-                    // stay in history and count toward balance — only these breakdowns,
-                    // totals, averages and the spending trend ignore them.
-                    .forTotals()
-                    // On the Income view, drop refunds (INCOME + DEDUCT_SPENT): they
-                    // offset spending and are already netted out of the Expense view
-                    // below, so counting them as income too would double-count them
-                    // (and inflate net savings). Mirrors the Home card, which excludes
-                    // DEDUCT_SPENT from its income figure. Other views are unaffected —
-                    // the Expense view pulls these refunds back in separately. (#629)
-                    .filter {
-                        !(transactionTypeFilter == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME &&
-                            it.transaction.budgetImpactType == com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT)
-                    }
+            }.mapLatest { (allTransactionsWithSplits, isUnified) ->
+                val filteredTransactionsWithSplits =
+                    analyticsRowsFor(allTransactionsWithSplits, filterState.typeFilter)
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits
@@ -385,15 +378,15 @@ class AnalyticsViewModel @Inject constructor(
                 // the refund carries the same merchant) and the trend on its day. All
                 // spend surfaces are floored at zero. Refunds live in
                 // allTransactionsWithSplits (loaded untyped) but were dropped by the
-                // EXPENSE type filter above, so pull them back in here. Only the Expense
-                // view is adjusted; Income/other views are untouched.
+                // type filter above, so pull them back in here. Only the Expense and
+                // Spending (#898) views are adjusted; Income/other views are untouched.
                 val refundByAccount = mutableMapOf<String, BigDecimal>()
                 val refundByMerchant = mutableMapOf<String, BigDecimal>()
                 val refundByDay = mutableMapOf<LocalDate, BigDecimal>()
                 // Total refund value netted off the headline total. Used to explain the
                 // gap when the per-category floor leaves the bars summing above the total (#704).
                 var refundNettedTotal = BigDecimal.ZERO
-                if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
+                if (filterState.typeFilter.netsRefunds) {
                     for (tw in allTransactionsWithSplits) {
                         val tx = tw.transaction.forTotals() ?: continue
                         if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||

@@ -48,4 +48,39 @@ class TransactionFinderTest {
     fun `no overlap means nothing`() {
         assertNull(TransactionFinder.findBest(txs, "netflix", null, null, today))
     }
+
+    // #876 follow-up: the on-device model sent days_ago=0 for "change the Swiggy
+    // transaction category to Groceries", which hid the 26 Sep row.
+    @Test
+    fun `a day the user never said is ignored`() {
+        assertNull(TransactionFinder.statedDaysAgo(0, "change the Swiggy transaction category to Groceries"))
+        assertNull(TransactionFinder.statedDaysAgo(-18, "Swiggy 450 should be Groceries"))
+    }
+
+    @Test
+    fun `today, yesterday and N days ago come from the user's words`() {
+        assertEquals(0, TransactionFinder.statedDaysAgo(5, "delete the tea from today"))
+        assertEquals(1, TransactionFinder.statedDaysAgo(0, "the starbucks one from yesterday"))
+        assertEquals(18, TransactionFinder.statedDaysAgo(0, "swiggy from 18 days ago"))
+    }
+
+    @Test
+    fun `other day phrases keep the model's value`() {
+        assertEquals(3, TransactionFinder.statedDaysAgo(3, "the uber on monday"))
+        assertEquals(19, TransactionFinder.statedDaysAgo(19, "swiggy on 26 sep"))
+    }
+
+    @Test
+    fun `an amount counts only if the user said it`() {
+        assertEquals(BigDecimal("450.0"), TransactionFinder.statedAmount(BigDecimal("450.0"), "Swiggy 450 should be Groceries"))
+        assertEquals(BigDecimal("1250.0"), TransactionFinder.statedAmount(BigDecimal("1250.0"), "the 1,250 one"))
+        assertNull(TransactionFinder.statedAmount(BigDecimal("450.0"), "change the Swiggy transaction category to Groceries"))
+        assertNull(TransactionFinder.statedAmount(BigDecimal.ZERO, "swiggy 0"))
+    }
+
+    @Test
+    fun `with the guessed day dropped the older row is found`() {
+        val day = TransactionFinder.statedDaysAgo(0, "change the starbucks transaction to groceries")
+        assertEquals(1L, TransactionFinder.findBest(txs, "Starbucks", null, day, today)?.id)
+    }
 }

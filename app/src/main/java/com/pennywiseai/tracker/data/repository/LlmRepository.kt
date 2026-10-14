@@ -276,7 +276,7 @@ class LlmRepository @Inject constructor(
             }
         }
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
-            val target = findTransaction(call.arguments)
+            val target = findTransaction(call.arguments, userMessage)
             if (target == null) {
                 "I couldn't find a matching transaction in the last 30 days. Try the merchant name and amount."
             } else if (call.name == PennyWiseTools.DELETE_TRANSACTION) {
@@ -313,10 +313,14 @@ class LlmRepository @Inject constructor(
         else -> null
     }
 
-    private suspend fun findTransaction(args: Map<String, Any?>): TransactionEntity? {
+    private suspend fun findTransaction(args: Map<String, Any?>, userMessage: String): TransactionEntity? {
         val words = (args["merchant"] as? String).orEmpty()
-        val amount = (args["amount"] as? Number)?.toDouble()?.takeIf { it > 0 }?.let { BigDecimal.valueOf(it) }
-        val daysAgo = (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
+        // Day and amount are hard filters, so only ones the user actually said
+        // count — the model fills both even when they weren't mentioned.
+        val amount = TransactionFinder.statedAmount(
+            (args["amount"] as? Number)?.toDouble()?.let { BigDecimal.valueOf(it) }, userMessage
+        )
+        val daysAgo = TransactionFinder.statedDaysAgo((args.arg("daysAgo") as? Number)?.toInt(), userMessage)
         val now = java.time.LocalDateTime.now()
         val recent = transactionRepository.getTransactionsBetweenDates(now.minusDays(30), now).first()
         return TransactionFinder.findBest(recent, words, amount, daysAgo)

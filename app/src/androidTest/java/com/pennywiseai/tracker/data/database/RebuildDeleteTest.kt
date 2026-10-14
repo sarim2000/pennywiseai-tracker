@@ -23,9 +23,9 @@ class RebuildDeleteTest {
 
     @After fun close() = db.close()
 
-    private fun row(id: Long, sender: String?, deleted: Boolean = false) = TransactionEntity(
+    private fun row(id: Long, sender: String?, deleted: Boolean = false, date: LocalDateTime = LocalDateTime.of(2026, 10, 1, 12, 0)) = TransactionEntity(
         id = id, amount = BigDecimal("100"), merchantName = "M$id", category = "Others",
-        transactionType = TransactionType.EXPENSE, dateTime = LocalDateTime.of(2026, 10, 1, 12, 0),
+        transactionType = TransactionType.EXPENSE, dateTime = date,
         transactionHash = "h$id", smsSender = sender, smsBody = sender?.let { "body $id" }, isDeleted = deleted
     )
 
@@ -37,14 +37,18 @@ class RebuildDeleteTest {
             row(2, null),                    // manual / chat / CSV -> kept
             row(3, "ICICI PDF"),             // PDF import -> kept
             row(4, notification),            // bank-app notification -> kept
-            row(5, "AD-KOTAKB", deleted = true) // user deleted it -> kept, so it isn't resurrected
+            row(5, "AD-KOTAKB", deleted = true), // user deleted it -> kept, so it isn't resurrected
+            row(6, "AD-KOTAKB", date = LocalDateTime.of(2025, 1, 1, 12, 0)) // older than the re-read window -> kept
         ).forEach { dao.insertTransaction(it) }
 
-        dao.deleteRebuildableSmsTransactions(BankNotificationConfig.notificationAliases.toList())
+        dao.deleteRebuildableSmsTransactions(
+            BankNotificationConfig.notificationAliases.toList(),
+            from = LocalDateTime.of(2026, 7, 1, 0, 0)
+        )
 
         val left = db.openHelper.readableDatabase.query("SELECT id FROM transactions ORDER BY id").use { c ->
             buildList { while (c.moveToNext()) add(c.getLong(0)) }
         }
-        assertEquals(listOf(2L, 3L, 4L, 5L), left)
+        assertEquals(listOf(2L, 3L, 4L, 5L, 6L), left)
     }
 }

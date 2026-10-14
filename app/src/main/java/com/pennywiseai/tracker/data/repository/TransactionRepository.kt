@@ -174,10 +174,19 @@ open class TransactionRepository @Inject constructor(
         transactionDao.countAllTransactions()
 
     /** See [TransactionDao.deleteRebuildableSmsTransactions]. */
-    suspend fun deleteRebuildableSmsTransactions() =
+    suspend fun deleteRebuildableSmsTransactions(from: LocalDateTime) =
         transactionDao.deleteRebuildableSmsTransactions(
-            com.pennywiseai.tracker.receiver.BankNotificationConfig.notificationAliases.toList()
+            com.pennywiseai.tracker.receiver.BankNotificationConfig.notificationAliases.toList(),
+            from
         )
+
+    /** See [TransactionDao.getTransactionByAmountAndDateIncludingDeleted]. */
+    suspend fun getTransactionByAmountAndDateIncludingDeleted(
+        amount: BigDecimal,
+        dateStart: LocalDateTime,
+        dateEnd: LocalDateTime
+    ): List<TransactionEntity> =
+        transactionDao.getTransactionByAmountAndDateIncludingDeleted(amount, dateStart, dateEnd)
 
     // Helper method to check if transaction exists by hash
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =

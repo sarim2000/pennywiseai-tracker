@@ -168,6 +168,8 @@ interface TransactionDao {
      * manual / chat / CSV / recurring rows (no sender), PDF imports ("… PDF"
      * sender), bank-app notification rows ([notificationAliases]), and rows
      * the user deleted (kept so the rescan doesn't resurrect them, #703).
+     * Only rows dated at/after [from] go: the rebuild re-reads the inbox from
+     * there, so an older SMS row would never come back.
      *
      * Re-parse uses `transaction_hash` UNIQUE + `OnConflictStrategy.IGNORE`,
      * so the surviving rows are not duplicated when SMS is re-read.
@@ -178,8 +180,9 @@ interface TransactionDao {
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)
+          AND date_time >= :from
     """)
-    suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>)
+    suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
     
     @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
@@ -536,6 +539,22 @@ interface TransactionDao {
         ORDER BY reference ASC, date_time ASC
     """)
     suspend fun findPotentialDuplicatesByReference(): List<TransactionEntity>
+
+    /**
+     * [getTransactionByAmountAndDate] including rows the user deleted: a charge
+     * deleted after a notification booked it must still block the matching SMS
+     * on a rescan, or it comes back.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE amount = :amount
+        AND date_time BETWEEN :dateStart AND :dateEnd
+    """)
+    suspend fun getTransactionByAmountAndDateIncludingDeleted(
+        amount: BigDecimal,
+        dateStart: LocalDateTime,
+        dateEnd: LocalDateTime
+    ): List<TransactionEntity>
 
     @Query("""
         SELECT * FROM transactions

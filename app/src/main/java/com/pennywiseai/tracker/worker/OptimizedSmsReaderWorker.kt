@@ -331,6 +331,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
             Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")
 
+            // The window is computed before any delete: a rebuild may only drop
+            // rows it will re-read.
+            val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
+
             if (forceResync) {
                 Trace.beginSection("clearDatabase")
                 try {
@@ -348,7 +352,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    transactionRepository.deleteRebuildableSmsTransactions()
+                    transactionRepository.deleteRebuildableSmsTransactions(
+                        java.time.LocalDateTime.ofInstant(
+                            java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                        )
+                    )
                     accountBalanceRepository.deleteRebuildableBalances()
                 } finally {
                     Trace.endSection()
@@ -356,7 +364,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
             }
 
-            val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
             val now = System.currentTimeMillis()
 
             Trace.beginSection("preloadCaches")
@@ -756,7 +763,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 // Same charge already booked from the bank's app notification. Only
                 // banks that can arrive by notification pay for the lookup.
                 if (entity.bankName in BankNotificationConfig.notificationBankNames) {
-                    val nearby = transactionRepository.getTransactionByAmountAndDate(
+                    // Deleted rows count too: a charge the user deleted after
+                    // its notification booked it must not return via the SMS.
+                    val nearby = transactionRepository.getTransactionByAmountAndDateIncludingDeleted(
                         entity.amount,
                         entity.dateTime.minusMinutes(2),
                         entity.dateTime.plusMinutes(2)

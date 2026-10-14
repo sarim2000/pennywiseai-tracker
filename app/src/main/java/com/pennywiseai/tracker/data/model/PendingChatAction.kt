@@ -47,4 +47,30 @@ object TransactionFinder {
     }
 
     private val STOP = setOf("the", "one", "from", "for", "and", "that", "this", "delete", "remove", "update", "change", "yesterday", "today", "transaction", "entry")
+
+    /** A [findBest] result; [loosened] when the model's amount had to be dropped to find it. */
+    data class Match(val transaction: TransactionEntity, val loosened: Boolean)
+
+    /**
+     * [findBest] with the model's day and amount first, then without the day,
+     * then without the amount, then without both. A small model fills those
+     * fields even when the user never said them (often days_ago = 0, "today"),
+     * and as hard filters a guess hides the row the user meant. Dropping the
+     * day isn't flagged: it's almost always the model's own guess, and the card
+     * shows the date. Dropping the amount is, so the reply says it's the
+     * closest one. Nothing changes until the user taps the card.
+     */
+    fun findWithFallback(
+        candidates: List<TransactionEntity>,
+        words: String,
+        amount: BigDecimal?,
+        daysAgo: Int?,
+        today: LocalDate = LocalDate.now()
+    ): Match? {
+        findBest(candidates, words, amount, daysAgo, today)?.let { return Match(it, false) }
+        if (daysAgo != null) findBest(candidates, words, amount, null, today)?.let { return Match(it, false) }
+        if (amount == null) return null
+        return (findBest(candidates, words, null, daysAgo, today) ?: findBest(candidates, words, null, null, today))
+            ?.let { Match(it, true) }
+    }
 }

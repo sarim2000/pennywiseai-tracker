@@ -48,4 +48,40 @@ class TransactionFinderTest {
     fun `no overlap means nothing`() {
         assertNull(TransactionFinder.findBest(txs, "netflix", null, null, today))
     }
+
+    // User report: the on-device model sent days_ago=0 (and an amount from
+    // history) for "change the Swiggy transaction category to Groceries",
+    // which hid the older row.
+    @Test
+    fun `a guessed day that matches nothing falls back without a warning`() {
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", null, daysAgo = 0, today = today)
+        assertEquals(1L, m?.transaction?.id)
+        assertEquals(false, m?.loosened)
+    }
+
+    @Test
+    fun `a guessed amount that matches nothing falls back`() {
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", BigDecimal("999"), daysAgo = null, today = today)
+        assertEquals(1L, m?.transaction?.id)
+        assertEquals(true, m?.loosened)
+    }
+
+    @Test
+    fun `an exact match is not flagged and keeps the stated filters`() {
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", BigDecimal("340"), daysAgo = 5, today = today)
+        assertEquals(2L, m?.transaction?.id)
+        assertEquals(false, m?.loosened)
+    }
+
+    @Test
+    fun `the right amount is kept when only the day was wrong`() {
+        // Day dropped first: amount 340 still picks the 5-days-ago row, not the newest.
+        val m = TransactionFinder.findWithFallback(txs, "Starbucks", BigDecimal("340"), daysAgo = 0, today = today)
+        assertEquals(2L, m?.transaction?.id)
+    }
+
+    @Test
+    fun `no merchant match still finds nothing`() {
+        assertNull(TransactionFinder.findWithFallback(txs, "Nonexistent", null, daysAgo = 0, today = today))
+    }
 }

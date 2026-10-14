@@ -94,6 +94,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         const val TAG                               = "OptimizedSmsReaderWorker"
         const val WORK_NAME                         = "optimized_sms_reader_work"
         const val INPUT_FORCE_RESYNC                = "input_force_resync"
+        // Re-read the whole scan window without deleting anything: adds what an
+        // earlier scan missed and keeps every edit (the gentle "scan again").
+        const val INPUT_RESCAN_ALL                  = "input_rescan_all"
         const val PROGRESS_TOTAL                    = "progress_total"
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"
@@ -325,13 +328,19 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         Trace.beginSection("SmsWorker.doWork")
         try {
             val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
-            Log.i(TAG, "Starting SMS worker (forceResync=$forceResync)")
+            val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
+            Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")
+
+            // The window is computed before any delete: a rebuild may only drop
+            // rows it will re-read.
+            val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
 
             if (forceResync) {
                 Trace.beginSection("clearDatabase")
                 try {
-                    // Preserve user-curated rows (loan-linked + grouped) so
-                    // months of curation work survive a rescan. Re-parse uses
+                    // Delete only what the inbox can rebuild (active SMS rows
+                    // outside loans/groups); manual, imported, notification and
+                    // deleted rows survive — nothing would bring them back. Re-parse uses
                     // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
                     // surviving rows are not duplicated. Fixes #401.
                     //
@@ -343,15 +352,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    transactionRepository.deleteUncuratedTransactions()
+                    transactionRepository.deleteRebuildableSmsTransactions(
+                        java.time.LocalDateTime.ofInstant(
+                            java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                        )
+                    )
                     accountBalanceRepository.deleteRebuildableBalances()
                 } finally {
                     Trace.endSection()
                 }
-                Log.i(TAG, "Force resync: uncurated rows cleared (loans + groups preserved)")
+                Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
             }
 
-            val (scanStartTime, needsFullScan) = computeScanParams(forceResync)
             val now = System.currentTimeMillis()
 
             Trace.beginSection("preloadCaches")
@@ -751,7 +763,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 // Same charge already booked from the bank's app notification. Only
                 // banks that can arrive by notification pay for the lookup.
                 if (entity.bankName in BankNotificationConfig.notificationBankNames) {
-                    val nearby = transactionRepository.getTransactionByAmountAndDate(
+                    // Deleted rows count too: a charge the user deleted after
+                    // its notification booked it must not return via the SMS.
+                    val nearby = transactionRepository.getTransactionByAmountAndDateIncludingDeleted(
                         entity.amount,
                         entity.dateTime.minusMinutes(2),
                         entity.dateTime.plusMinutes(2)

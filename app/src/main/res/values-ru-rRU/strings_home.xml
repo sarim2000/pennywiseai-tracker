@@ -28,8 +28,6 @@
     <string name="home_fab_add">Добавить транзакцию или подписку</string>
     <string name="home_fab_sync">Синхронизация SMS (долгое нажатие для полной синхронизации)</string>
     <string name="home_fab_sync_hint">Удерживайте для полной синхронизации</string>
-    <string name="home_resync_title">Полная повторная синхронизация</string>
-    <string name="home_resync_confirm">Синхронизировать все</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Больше опций</string>
     <string name="home_menu_monthly_recap">Ежемесячный расчет</string>

@@ -16,8 +16,6 @@
     <string name="home_empty_headline">अझै कुनै लेनदेन छैन</string>
     <!-- FABs + full resync -->
     <string name="home_fab_add">लेनदेन वा सदस्यता थप्नुहोस्</string>
-    <string name="home_resync_title">पूर्ण पुन:सम्वन्ध</string>
-    <string name="home_resync_confirm">सबै पुन:सम्वन्ध गर्नुहोस्</string>
     <!-- More options sheet -->
     <string name="home_menu_settings">सेटिङ्स</string>
     <!-- Edit home screen sheet -->

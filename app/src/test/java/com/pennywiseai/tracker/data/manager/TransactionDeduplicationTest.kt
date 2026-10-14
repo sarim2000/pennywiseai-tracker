@@ -189,6 +189,17 @@ class TransactionDeduplicationTest {
     }
 
     @Test
+    fun `a notification charge the user deleted still blocks its sms on a rescan`() {
+        // The worker now passes deleted rows in too; the rule itself must not
+        // ignore them, or the deleted charge comes back from the SMS.
+        val aliases = setOf("Huntington")
+        val deletedNotification = transaction(id = 1, smsSender = "Huntington").copy(isDeleted = true)
+        val sms = transaction(id = 2, smsSender = "446622")
+
+        assertTrue(TransactionDeduplication.isBookedByOtherChannel(sms, listOf(deletedNotification), aliases))
+    }
+
+    @Test
     fun `sms arriving after the app notification is the same charge`() {
         val aliases = setOf("Huntington")
         val fromNotification = transaction(id = 1, smsSender = "Huntington")

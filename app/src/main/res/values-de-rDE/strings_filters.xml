@@ -12,6 +12,7 @@
     <string name="filter_type_income">Einkommen</string>
     <string name="filter_type_expense">Kosten</string>
     <string name="filter_type_credit">Gutschrift</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">Überweisung</string>
     <string name="filter_type_investment">Investition</string>
     <!-- Account types -->

@@ -12,6 +12,7 @@
     <string name="filter_type_income">Revenu</string>
     <string name="filter_type_expense">Dépenses</string>
     <string name="filter_type_credit">Crédit</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">Transférer</string>
     <string name="filter_type_investment">Investissement</string>
     <!-- Account types -->

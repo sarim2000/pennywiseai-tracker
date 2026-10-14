@@ -12,6 +12,7 @@
     <string name="filter_type_income">รายได้</string>
     <string name="filter_type_expense">ค่าใช้จ่าย</string>
     <string name="filter_type_credit">เครดิต</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">โอน</string>
     <string name="filter_type_investment">การลงทุน</string>
     <!-- Account types -->

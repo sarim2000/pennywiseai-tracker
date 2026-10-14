@@ -12,6 +12,7 @@
     <string name="filter_type_income">دخل</string>
     <string name="filter_type_expense">مصروف</string>
     <string name="filter_type_credit">رصيد</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_transfer">تحويل</string>
     <string name="filter_type_investment">استثمار</string>
     <!-- Account types -->

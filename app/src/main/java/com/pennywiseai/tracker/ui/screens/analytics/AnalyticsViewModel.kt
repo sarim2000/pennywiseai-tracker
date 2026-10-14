@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -36,6 +39,88 @@ import javax.inject.Inject
 import com.pennywiseai.tracker.ui.components.BalancePoint
 
 enum class ChartType { LINE, BAR, HEATMAP }
+
+/**
+ * The rows an Analytics type view totals: those of [filter]'s types (Spending =
+ * expense + card spend, #898), cut to what counts toward totals — loan-linked and
+ * analytics-excluded parts drop out (#451, #800); they stay in history and balance.
+ *
+ * The Income view also drops refunds (INCOME + DEDUCT_SPENT): they offset spending
+ * and are netted out of the spend views instead, so counting them as income too
+ * would double-count them. Mirrors the Home card (#629).
+ */
+internal fun analyticsRowsFor(
+    rows: List<TransactionWithSplits>,
+    filter: TransactionTypeFilter
+): List<TransactionWithSplits> {
+    val types = filter.transactionTypes
+    return (if (types == null) rows else rows.filter { it.transaction.transactionType in types })
+        .forTotals()
+        .filter {
+            !(filter == TransactionTypeFilter.INCOME &&
+                it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT)
+        }
+}
+
+/** [gross] less [refund], floored at zero: a spend bucket never shows negative spend. */
+internal fun netOf(gross: BigDecimal, refund: BigDecimal?): BigDecimal =
+    (gross - (refund ?: BigDecimal.ZERO)).coerceAtLeast(BigDecimal.ZERO)
+
+/** Refund value to net off each spend surface, keyed like that surface's rows. */
+internal class RefundNetting(
+    val total: BigDecimal = BigDecimal.ZERO,
+    val byCategory: Map<String, BigDecimal> = emptyMap(),
+    /** Keyed "bankName_accountNumber". */
+    val byAccount: Map<String, BigDecimal> = emptyMap(),
+    val byMerchant: Map<String, BigDecimal> = emptyMap(),
+    val byDay: Map<LocalDate, BigDecimal> = emptyMap()
+)
+
+/**
+ * Refunds (INCOME + DEDUCT_SPENT) to net out of a spend view ([TransactionTypeFilter.netsRefunds]:
+ * Expense and Spending), so every spend surface (total, category, account, merchant
+ * and the trend) agrees with the Home card and the Transactions page, which are net
+ * of refunds. Other views get nothing to net.
+ *
+ * [rows] is the untyped, scoped list: the type filter dropped these refunds, so they're
+ * pulled back in here. A refund comes off its budgetCategory (rolled up via [parentOf];
+ * skipped when outside [categoryFilter]), its account, its merchant (when it carries the
+ * same merchant name) and its day. The FULL refund always comes off the headline total,
+ * while each bucket floors at zero ([netOf]); so an over-refund or orphaned refund can
+ * leave the total below the sum of the visible rows, exactly as on the Home card (#704).
+ *
+ * [amountOf] gives the refund in the view's currency, or null to skip it (unified mode,
+ * never-rated pair: never face-value a foreign amount, #670).
+ */
+internal suspend fun refundNetting(
+    rows: List<TransactionWithSplits>,
+    filter: TransactionTypeFilter,
+    categoryFilter: Set<String>?,
+    parentOf: Map<String, String>,
+    amountOf: suspend (TransactionEntity) -> BigDecimal?
+): RefundNetting {
+    if (!filter.netsRefunds) return RefundNetting()
+    var total = BigDecimal.ZERO
+    val byCategory = mutableMapOf<String, BigDecimal>()
+    val byAccount = mutableMapOf<String, BigDecimal>()
+    val byMerchant = mutableMapOf<String, BigDecimal>()
+    val byDay = mutableMapOf<LocalDate, BigDecimal>()
+    fun <K> MutableMap<K, BigDecimal>.add(key: K, amount: BigDecimal) { this[key] = (this[key] ?: BigDecimal.ZERO) + amount }
+    for (tw in rows) {
+        val tx = tw.transaction.forTotals() ?: continue
+        if (tx.transactionType != TransactionType.INCOME || tx.budgetImpactType != BudgetImpactType.DEDUCT_SPENT) continue
+        val rawCategory = (tx.budgetCategory ?: "").ifEmpty { "Others" }
+        if (categoryFilter != null && rawCategory !in categoryFilter) continue
+        val amount = amountOf(tx) ?: continue
+        if (amount <= BigDecimal.ZERO) continue
+        total += amount
+        byCategory.add(parentOf[rawCategory] ?: rawCategory, amount)
+        byAccount.add("${tx.bankName}_${tx.accountNumber}", amount)
+        byMerchant.add(tx.merchantName, amount)
+        byDay.add(tx.dateTime.toLocalDate(), amount)
+    }
+    return RefundNetting(total, byCategory, byAccount, byMerchant, byDay)
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -246,17 +331,6 @@ class AnalyticsViewModel @Inject constructor(
                     _selectedCurrency.value = if (allCurrencies.contains(baseCurrency)) baseCurrency else allCurrencies.first()
                 }
 
-                // Use database-level filtering for better performance
-                // Convert TransactionTypeFilter to TransactionType for database query
-                val dbTransactionType = when (filterState.typeFilter) {
-                    TransactionTypeFilter.ALL -> null // null means no type filter at DB level
-                    TransactionTypeFilter.INCOME -> com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
-                    TransactionTypeFilter.EXPENSE -> com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE
-                    TransactionTypeFilter.CREDIT -> com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT
-                    TransactionTypeFilter.TRANSFER -> com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER
-                    TransactionTypeFilter.INVESTMENT -> com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT
-                }
-
                 // Scope a loaded transaction list to the selected profile and exclude
                 // hidden accounts (mirrors the Home screen's account scoping).
                 fun scopeTransactions(
@@ -286,35 +360,17 @@ class AnalyticsViewModel @Inject constructor(
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second
-                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, true) }
+                    ).map { txs -> scopeTransactions(txs) to true }
                 } else {
                     transactionRepository.getTransactionsWithSplitsFiltered(
                         startDate = dateRange.first,
                         endDate = dateRange.second,
                         currency = filterState.currency
-                    ).map { txs -> Triple(scopeTransactions(txs), dbTransactionType, false) }
+                    ).map { txs -> scopeTransactions(txs) to false }
                 }
-            }.mapLatest { (allTransactionsWithSplits, transactionTypeFilter, isUnified) ->
-                // Filter by transaction type in memory (splits are already loaded)
-                val filteredTransactionsWithSplits = (if (transactionTypeFilter != null) {
-                    allTransactionsWithSplits.filter { it.transaction.transactionType == transactionTypeFilter }
-                } else {
-                    allTransactionsWithSplits
-                })
-                    // Drop loan-linked and analytics-excluded transactions (#451, #800). They
-                    // stay in history and count toward balance — only these breakdowns,
-                    // totals, averages and the spending trend ignore them.
-                    .forTotals()
-                    // On the Income view, drop refunds (INCOME + DEDUCT_SPENT): they
-                    // offset spending and are already netted out of the Expense view
-                    // below, so counting them as income too would double-count them
-                    // (and inflate net savings). Mirrors the Home card, which excludes
-                    // DEDUCT_SPENT from its income figure. Other views are unaffected —
-                    // the Expense view pulls these refunds back in separately. (#629)
-                    .filter {
-                        !(transactionTypeFilter == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME &&
-                            it.transaction.budgetImpactType == com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT)
-                    }
+            }.mapLatest { (allTransactionsWithSplits, isUnified) ->
+                val filteredTransactionsWithSplits =
+                    analyticsRowsFor(allTransactionsWithSplits, filterState.typeFilter)
 
                 // Compute available categories BEFORE applying category filter
                 val allCategoryNames = filteredTransactionsWithSplits
@@ -377,57 +433,22 @@ class AnalyticsViewModel @Inject constructor(
                     }
                 }
 
-                // Net "Refund" income (INCOME + DEDUCT_SPENT) out of Expenses so EVERY
-                // spend surface — total, category, account, merchant and the trend —
-                // agrees with the Home card and the Transactions page (both already net
-                // of refunds). A categorised refund subtracts from its budgetCategory;
-                // it also shrinks the headline total, its account, its merchant (when
-                // the refund carries the same merchant) and the trend on its day. All
-                // spend surfaces are floored at zero. Refunds live in
-                // allTransactionsWithSplits (loaded untyped) but were dropped by the
-                // EXPENSE type filter above, so pull them back in here. Only the Expense
-                // view is adjusted; Income/other views are untouched.
-                val refundByAccount = mutableMapOf<String, BigDecimal>()
-                val refundByMerchant = mutableMapOf<String, BigDecimal>()
-                val refundByDay = mutableMapOf<LocalDate, BigDecimal>()
+                // Net refunds out of the spend views (Expense, Spending) — see [refundNetting].
+                val refunds = refundNetting(
+                    allTransactionsWithSplits, filterState.typeFilter, categoryFilterSet, parentOf
+                ) { tx ->
+                    if (isUnified) {
+                        // never-rated pair → null: skip, don't face-value (#670)
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    } else tx.amount
+                }
+                refunds.byCategory.forEach { (category, refund) ->
+                    categoryAmounts[category] = netOf(categoryAmounts[category] ?: BigDecimal.ZERO, refund)
+                }
+                if (filterState.typeFilter.netsRefunds) totalSpending = netOf(totalSpending, refunds.total)
                 // Total refund value netted off the headline total. Used to explain the
                 // gap when the per-category floor leaves the bars summing above the total (#704).
-                var refundNettedTotal = BigDecimal.ZERO
-                if (filterState.typeFilter == TransactionTypeFilter.EXPENSE) {
-                    for (tw in allTransactionsWithSplits) {
-                        val tx = tw.transaction.forTotals() ?: continue
-                        if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
-                            tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT
-                        ) continue
-                        val rawCategory = (tx.budgetCategory ?: "").ifEmpty { "Others" }
-                        // Respect an active category filter.
-                        if (categoryFilterSet != null && rawCategory !in categoryFilterSet) continue
-                        val category = parentOf[rawCategory] ?: rawCategory
-                        val converted = if (isUnified) {
-                            currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                                ?: continue // never-rated pair — skip, don't face-value (#670)
-                        } else tx.amount
-                        if (converted <= BigDecimal.ZERO) continue
-                        // A refund (INCOME + DEDUCT_SPENT) reverses a prior expense, so the
-                        // FULL amount always comes off the headline total — keeping Analytics
-                        // consistent with the Home card, widget and Transactions page, which
-                        // are all net of refunds. The per-category / account / merchant / trend
-                        // buckets floor at zero (a bucket can't show negative spend), so an
-                        // over-refund or an orphaned refund (whose category has no expense
-                        // here) can leave the total below the sum of the visible rows — exactly
-                        // as it does on the Home card.
-                        val existing = categoryAmounts[category] ?: BigDecimal.ZERO
-                        categoryAmounts[category] = (existing - converted).coerceAtLeast(BigDecimal.ZERO)
-                        totalSpending -= converted
-                        refundNettedTotal += converted
-                        val accountKey = "${tx.bankName}_${tx.accountNumber}"
-                        refundByAccount[accountKey] = (refundByAccount[accountKey] ?: BigDecimal.ZERO) + converted
-                        refundByMerchant[tx.merchantName] = (refundByMerchant[tx.merchantName] ?: BigDecimal.ZERO) + converted
-                        val day = tx.dateTime.toLocalDate()
-                        refundByDay[day] = (refundByDay[day] ?: BigDecimal.ZERO) + converted
-                    }
-                    totalSpending = totalSpending.coerceAtLeast(BigDecimal.ZERO)
-                }
+                val refundNettedTotal = refunds.total
 
                 val categoryBreakdown = categoryAmounts.map { (categoryName, categoryTotal) ->
                     CategoryData(
@@ -509,8 +530,7 @@ class AnalyticsViewModel @Inject constructor(
                             txns.map { it.amount.toDouble() }.sum().toBigDecimal()
                         }
                         // Net any refund that carries this merchant's name (floored at zero).
-                        val merchantAmount = (gross - (refundByMerchant[merchant] ?: BigDecimal.ZERO))
-                            .coerceAtLeast(BigDecimal.ZERO)
+                        val merchantAmount = netOf(gross, refunds.byMerchant[merchant])
                         MerchantData(
                             name = merchant,
                             amount = merchantAmount,
@@ -544,8 +564,7 @@ class AnalyticsViewModel @Inject constructor(
                         }
                         // Net refunds credited back to this account (floored at zero) so
                         // the account total — and its % of the net grand total — stay sane.
-                        val accountAmount = (gross - (refundByAccount[accountKey] ?: BigDecimal.ZERO))
-                            .coerceAtLeast(BigDecimal.ZERO)
+                        val accountAmount = netOf(gross, refunds.byAccount[accountKey])
                         AccountBreakdownData(
                             key = accountKey,
                             label = accountLabels[accountKey] ?: run {
@@ -585,7 +604,7 @@ class AnalyticsViewModel @Inject constructor(
                     currency = displayCurrency,
                     isLoading = false,
                     spendingTrend = calculateSpendingTrend(
-                        filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency, refundByDay
+                        filteredTransactions, dateRange.first, dateRange.second, isUnified, displayCurrency, refunds.byDay
                     ),
                     availableCategories = allCategoryNames,
                     refundNettedFromTotal = refundNettedFromTotal,

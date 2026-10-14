@@ -1429,14 +1429,8 @@ class TransactionsViewModel @Inject constructor(
         
         // Apply transaction type filter
         val typeFilteredFlow = periodFilteredFlow.map { transactions ->
-            when (typeFilter) {
-                TransactionTypeFilter.ALL -> transactions
-                TransactionTypeFilter.INCOME -> transactions.filter { it.transactionType == TransactionType.INCOME }
-                TransactionTypeFilter.EXPENSE -> transactions.filter { it.transactionType == TransactionType.EXPENSE }
-                TransactionTypeFilter.CREDIT -> transactions.filter { it.transactionType == TransactionType.CREDIT }
-                TransactionTypeFilter.TRANSFER -> transactions.filter { it.transactionType == TransactionType.TRANSFER }
-                TransactionTypeFilter.INVESTMENT -> transactions.filter { it.transactionType == TransactionType.INVESTMENT }
-            }
+            val types = typeFilter.transactionTypes
+            if (types == null) transactions else transactions.filter { it.transactionType in types }
         }
         
         // Apply search filter

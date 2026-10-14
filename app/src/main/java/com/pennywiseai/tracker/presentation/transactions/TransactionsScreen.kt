@@ -1215,7 +1215,7 @@ private fun TransactionFilterHeader(
                             onDismissRequest = onTypeDismiss,
                             shape = MaterialTheme.shapes.large
                         ) {
-                            TransactionTypeFilter.values().forEach { typeFilter ->
+                            TransactionTypeFilter.entries.filter { it.inTransactionsList }.forEach { typeFilter ->
                                 DropdownMenuItem(
                                     text = { Text(typeFilter.label) },
                                     leadingIcon = {

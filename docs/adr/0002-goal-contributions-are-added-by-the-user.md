@@ -1,0 +1,3 @@
+# Goal contributions are added by the user, never automatically
+
+We considered counting every transfer into a linked savings account toward a Goal automatically, but that breaks when one account holds money for several Goals, and it would also count interest, salary credits and other unrelated movements. Instead a Contribution only exists when the user adds it, either by typing an amount or by tapping "Add to goal" on a transaction, which fills in the amount and date. A Contribution in another currency is converted into the Goal's currency on the day it is added, and the original amount is kept alongside, so a Goal's totals stay in one currency.

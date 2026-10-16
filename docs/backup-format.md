@@ -121,6 +121,9 @@ keys and decode to empty lists; older apps ignore them.
   the local goal; `transactionId` goes through the same old→local map as tag
   cross-refs (new rows and hash duplicates), and an unmapped link is cleared.
   Each touched transaction's linked shares are then capped to its amount.
+  If a uid-matched local goal now has a different currency (an empty goal can
+  change currency), that goal's backup contributions are skipped and counted —
+  amounts are never converted implicitly.
 
 ## Resilience
 

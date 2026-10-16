@@ -215,6 +215,9 @@ class GoalRepository @Inject constructor(
      * transaction share and checks it fits. Caller is inside a DB transaction.
      */
     private suspend fun validated(c: GoalContributionEntity, goal: GoalEntity): GoalContributionEntity {
+        require(c.originalAmount == null || c.originalAmount.signum() == c.amount.signum()) {
+            "The original amount has the amount's sign"
+        }
         val transactionId = c.transactionId ?: run {
             require((c.originalAmount == null) == (c.originalCurrency == null)) { "Original amount and currency go together" }
             return c

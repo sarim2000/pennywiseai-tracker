@@ -736,8 +736,13 @@ class BackupImporter @Inject constructor(
      * an unmapped link is cleared so the money stays on the goal. Finally each
      * touched transaction's shares are capped to its amount, since local and
      * backup contributions could now both claim it.
+     *
+     * A uid match whose currency differs (an empty goal may change currency on
+     * one device) keeps the local goal, and that goal's backup contributions
+     * are skipped and counted: amounts are never converted implicitly.
      */
-    private suspend fun importGoalsWithMerge(
+    @androidx.annotation.VisibleForTesting
+    internal suspend fun importGoalsWithMerge(
         goals: List<GoalEntity>,
         contributions: List<GoalContributionEntity>,
         transactionIdMap: Map<Long, Long>,
@@ -745,18 +750,27 @@ class BackupImporter @Inject constructor(
     ) {
         if (goals.isEmpty() && contributions.isEmpty()) return
         val dao = database.goalDao()
-        val localGoalIdByUid = dao.getAllGoals().associate { it.uid to it.id }.toMutableMap()
+        val localGoalByUid = dao.getAllGoals().associateBy { it.uid }.toMutableMap()
         val goalIdMap = HashMap<Long, Long>()
+        val otherCurrencyGoalIds = HashSet<Long>()
         goals.insertEachCounting(onSkip) { goal ->
             val uid = goal.uid.ifBlank { java.util.UUID.randomUUID().toString() }
-            val localId = localGoalIdByUid[uid]
-                ?: dao.insertGoal(goal.copy(id = 0, uid = uid)).also { localGoalIdByUid[uid] = it }
-            goalIdMap[goal.id] = localId
+            val local = localGoalByUid[uid]
+            when {
+                local == null -> {
+                    val newId = dao.insertGoal(goal.copy(id = 0, uid = uid))
+                    localGoalByUid[uid] = goal.copy(id = newId, uid = uid)
+                    goalIdMap[goal.id] = newId
+                }
+                local.currency == goal.currency -> goalIdMap[goal.id] = local.id
+                else -> otherCurrencyGoalIds += goal.id
+            }
         }
 
         val seenUids = dao.getAllContributions().mapTo(HashSet()) { it.uid }
         val touchedTransactions = HashSet<Long>()
         contributions.insertEachCounting(onSkip) { c ->
+            check(c.goalId !in otherCurrencyGoalIds) { "Goal ${c.goalId} is in another currency on this device" }
             val goalId = checkNotNull(goalIdMap[c.goalId]) { "Goal ${c.goalId} not in backup" }
             val uid = c.uid.ifBlank { java.util.UUID.randomUUID().toString() }
             if (seenUids.add(uid)) {

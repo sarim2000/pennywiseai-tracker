@@ -152,4 +152,22 @@ class GoalRepositoryTest {
             assertTrue(createdAt.isAfter(goal.createdAt))
         }
     }
+
+    @Test
+    fun editedAmountAndOriginalAmountMustShareASign() = runBlocking {
+        val converted = GoalContributionEntity(
+            id = 6, uid = "c-uid", goalId = 1, amount = BigDecimal("4100"),
+            originalAmount = BigDecimal("50"), originalCurrency = "USD"
+        )
+        coEvery { goalDao.getContribution(6) } returns converted
+
+        // Turned into a withdrawal but the original amount left positive → rejected.
+        val mismatch = runCatching { repo.updateContribution(converted.copy(amount = BigDecimal("-4100"))) }
+        assertTrue(mismatch.exceptionOrNull() is IllegalArgumentException)
+        coVerify(exactly = 0) { goalDao.updateContribution(any()) }
+
+        // Both flipped → saved.
+        repo.updateContribution(converted.copy(amount = BigDecimal("-4100"), originalAmount = BigDecimal("-50")))
+        coVerify { goalDao.updateContribution(match { it.amount.signum() < 0 && it.originalAmount!!.signum() < 0 }) }
+    }
 }

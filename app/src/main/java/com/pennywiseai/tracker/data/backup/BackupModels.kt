@@ -161,6 +161,12 @@ data class BackupStatistics(
     @SerialName("total_receipts")
     val totalReceipts: Int = 0,
 
+    @SerialName("total_goals")
+    val totalGoals: Int = 0,
+
+    @SerialName("total_goal_contributions")
+    val totalGoalContributions: Int = 0,
+
     @SerialName("date_range")
     val dateRange: DateRange? = null
 )
@@ -256,7 +262,15 @@ data class DatabaseSnapshot(
     val transactionTagCrossRefs: List<TransactionTagCrossRef> = emptyList(),
 
     @SerialName("recurring_transactions")
-    val recurringTransactions: List<RecurringTransactionEntity> = emptyList()
+    val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
+
+    // Savings goals (#914). Contributions reference goals by id and,
+    // optionally, transactions by id; the importer remaps both.
+    @SerialName("goals")
+    val goals: List<GoalEntity> = emptyList(),
+
+    @SerialName("goal_contributions")
+    val goalContributions: List<GoalContributionEntity> = emptyList()
 )
 
 /**

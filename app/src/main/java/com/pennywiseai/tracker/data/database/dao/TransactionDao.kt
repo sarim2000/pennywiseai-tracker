@@ -163,8 +163,9 @@ interface TransactionDao {
 
     /**
      * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
-     * rebuild — active, parsed from an SMS, and not loan-linked or grouped
-     * (#401). Everything else is kept, since nothing would bring it back:
+     * rebuild — active, parsed from an SMS, and not loan-linked, grouped
+     * (#401) or put toward a goal (#914: the hard delete would cascade the
+     * contribution away). Everything else is kept, since nothing would bring it back:
      * manual / chat / CSV / recurring rows (no sender), PDF imports ("… PDF"
      * sender), bank-app notification rows ([notificationAliases]), and rows
      * the user deleted (kept so the rescan doesn't resurrect them, #703).
@@ -177,6 +178,7 @@ interface TransactionDao {
     @Query("""
         DELETE FROM transactions
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
+          AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)

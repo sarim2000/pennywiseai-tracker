@@ -152,6 +152,7 @@ class BackupImporter @Inject constructor(
                 database.tagDao().deleteAllCrossRefs()
                 database.tagDao().deleteAllTags()
                 database.recurringTransactionDao().deleteAll()
+                database.goalDao().deleteAllGoals() // cascades goal_contributions
                 // Note: budget categories and transaction splits are deleted via cascade (budget categories via budget deletion, transaction splits via transaction deletion)
                 // Profiles deliberately preserved — defaults (Personal=1, Business=2)
                 // are seeded on first launch and we don't want to wipe them.
@@ -206,8 +207,12 @@ class BackupImporter @Inject constructor(
                     importedCategories++
                 }
 
+                // Backup id → inserted id, so goal contributions only keep a
+                // link to a transaction that actually restored.
+                val restoredTransactionIds = HashMap<Long, Long>()
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
-                    database.transactionDao().insertTransaction(cleanTransaction(transaction))
+                    val newId = database.transactionDao().insertTransaction(cleanTransaction(transaction))
+                    if (transaction.id != 0L && newId > 0L) restoredTransactionIds[transaction.id] = newId
                     importedTransactions++
                 }
 
@@ -292,6 +297,21 @@ class BackupImporter @Inject constructor(
                         recurring.copy(
                             uid = stableUid(recurring),
                             profileId = resolveProfileId(recurring.profileId) ?: 1L
+                        )
+                    )
+                }
+
+                // Goals (#914): ids preserved like every cleared table; goals go
+                // before their contributions (FK). A link to a transaction that
+                // didn't restore is cleared, keeping the money on the goal.
+                backup.database.goals.insertEachCounting({ skippedRows++ }) { goal ->
+                    database.goalDao().insertGoal(goal.copy(uid = goal.uid.ifBlank { java.util.UUID.randomUUID().toString() }))
+                }
+                backup.database.goalContributions.insertEachCounting({ skippedRows++ }) { c ->
+                    database.goalDao().insertContribution(
+                        c.copy(
+                            uid = c.uid.ifBlank { java.util.UUID.randomUUID().toString() },
+                            transactionId = c.transactionId?.let { restoredTransactionIds[it] }
                         )
                     )
                 }
@@ -466,6 +486,9 @@ class BackupImporter @Inject constructor(
                 importRecurringTransactionsWithMerge(backup.database.recurringTransactions, { resolveProfileId(it) }) { skippedRows++ }
                 importMerchantMappingsWithMerge(backup.database.merchantMappings) { skippedRows++ }
                 importMerchantAliasesWithMerge(backup.database.merchantAliases) { skippedRows++ }
+                importGoalsWithMerge(
+                    backup.database.goals, backup.database.goalContributions, oldToNewTransactionIdMap
+                ) { skippedRows++ }
 
                 // Import new entities with correct ID mapping for splits and applications
                 // Rules and budgets: skip if exists locally (merge semantics - don't overwrite local changes)
@@ -701,6 +724,67 @@ class BackupImporter @Inject constructor(
                     )
                 )
             }
+        }
+    }
+
+    /**
+     * Goals + contributions (#914). Goals dedup on their stable uid (a local
+     * goal with the same uid wins, like other merges); contributions dedup on
+     * theirs, so a repeat MERGE is idempotent while new contributions made on
+     * another device still come in. goal_id is remapped to the local goal, and
+     * transaction_id through [transactionIdMap] (new + duplicate-by-hash rows);
+     * an unmapped link is cleared so the money stays on the goal. Finally each
+     * touched transaction's shares are capped to its amount, since local and
+     * backup contributions could now both claim it.
+     *
+     * A uid match whose currency differs (an empty goal may change currency on
+     * one device) keeps the local goal, and that goal's backup contributions
+     * are skipped and counted: amounts are never converted implicitly.
+     */
+    @androidx.annotation.VisibleForTesting
+    internal suspend fun importGoalsWithMerge(
+        goals: List<GoalEntity>,
+        contributions: List<GoalContributionEntity>,
+        transactionIdMap: Map<Long, Long>,
+        onSkip: () -> Unit
+    ) {
+        if (goals.isEmpty() && contributions.isEmpty()) return
+        val dao = database.goalDao()
+        val localGoalByUid = dao.getAllGoals().associateBy { it.uid }.toMutableMap()
+        val goalIdMap = HashMap<Long, Long>()
+        val otherCurrencyGoalIds = HashSet<Long>()
+        goals.insertEachCounting(onSkip) { goal ->
+            val uid = goal.uid.ifBlank { java.util.UUID.randomUUID().toString() }
+            val local = localGoalByUid[uid]
+            when {
+                local == null -> {
+                    val newId = dao.insertGoal(goal.copy(id = 0, uid = uid))
+                    localGoalByUid[uid] = goal.copy(id = newId, uid = uid)
+                    goalIdMap[goal.id] = newId
+                }
+                local.currency == goal.currency -> goalIdMap[goal.id] = local.id
+                else -> otherCurrencyGoalIds += goal.id
+            }
+        }
+
+        val seenUids = dao.getAllContributions().mapTo(HashSet()) { it.uid }
+        val touchedTransactions = HashSet<Long>()
+        contributions.insertEachCounting(onSkip) { c ->
+            check(c.goalId !in otherCurrencyGoalIds) { "Goal ${c.goalId} is in another currency on this device" }
+            val goalId = checkNotNull(goalIdMap[c.goalId]) { "Goal ${c.goalId} not in backup" }
+            val uid = c.uid.ifBlank { java.util.UUID.randomUUID().toString() }
+            if (seenUids.add(uid)) {
+                val transactionId = c.transactionId?.let { transactionIdMap[it] }
+                dao.insertContribution(c.copy(id = 0, uid = uid, goalId = goalId, transactionId = transactionId))
+                transactionId?.let(touchedTransactions::add)
+            }
+        }
+        touchedTransactions.forEach { id ->
+            val amount = database.transactionDao().getTransactionById(id)?.amount ?: return@forEach
+            val capped = com.pennywiseai.tracker.data.repository.GoalRules.capContributions(
+                dao.getContributionsForTransaction(id), amount, LocalDateTime.now()
+            )
+            if (capped.isNotEmpty()) dao.updateContributions(capped)
         }
     }
 

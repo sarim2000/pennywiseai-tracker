@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
+
+    <!-- Budgets screen section -->
+    <string name="goals_section_title">Goals</string>
+    <string name="upgrade_feature_goals">Unlimited goals</string>
+    <string name="goals_new">New goal</string>
+    <string name="goals_empty_title">Save for something</string>
+    <string name="goals_empty_body">Pick a target amount and a due date, and see how much to set aside each month.</string>
+    <string name="goals_empty_action">Create goal</string>
+    <string name="goals_archived_row">Archived (%1$d)</string>
+    <string name="goals_archived_title">Archived goals</string>
+    <string name="goals_unarchive">Unarchive</string>
+    <string name="goals_amount_of">%1$s of %2$s</string>
+    <string name="goals_per_month">%1$s/mo</string>
+    <string name="goals_behind">Behind %1$s</string>
+    <string name="goals_reached">Reached</string>
+    <string name="goals_missed_by">Missed by %1$s</string>
+    <string name="goals_archived">Archived</string>
+    <string name="goals_due_on">Due %1$s</string>
+    <string name="goals_ring_description">%1$d%% saved</string>
+    <plurals name="goals_months_left">
+        <item quantity="one">%d month left</item>
+        <item quantity="other">%d months left</item>
+    </plurals>
+
+    <!-- Create / edit -->
+    <string name="goal_edit_title_new">New goal</string>
+    <string name="goal_edit_title_edit">Edit goal</string>
+    <string name="goal_back">Back</string>
+    <string name="goal_edit_name">Name</string>
+    <string name="goal_edit_name_hint">For example, car insurance</string>
+    <string name="goal_edit_target">Target amount</string>
+    <string name="goal_edit_due">Due date</string>
+    <string name="goal_edit_currency">Currency</string>
+    <string name="goal_edit_currency_locked">The currency can\'t change once money has been added</string>
+    <string name="goal_edit_already_saved">Already saved</string>
+    <string name="goal_edit_already_saved_hint">Optional. Money you\'ve set aside already.</string>
+    <string name="goal_edit_color">Color</string>
+    <string name="goal_edit_helper">Save %1$s a month to make it</string>
+    <string name="goal_edit_error_name">Give the goal a name</string>
+    <string name="goal_edit_error_target">Enter a target amount above zero</string>
+    <string name="goal_edit_error_due">Pick a date after today</string>
+    <string name="goal_edit_error_already_saved">Enter zero or more</string>
+    <string name="goal_edit_failed">Couldn\'t save the goal. Check the details and try again.</string>
+    <string name="goal_edit_create">Create goal</string>
+    <string name="goal_edit_save">Save</string>
+    <string name="goal_action_ok">OK</string>
+    <string name="goal_action_cancel">Cancel</string>
+
+    <!-- Detail -->
+    <string name="goal_detail_left">Left</string>
+    <string name="goal_detail_per_month">Per month</string>
+    <string name="goal_detail_over">%1$s over</string>
+    <string name="goal_detail_history">Money in and out</string>
+    <string name="goal_detail_history_empty">Nothing added yet. Use Add money when you set some aside.</string>
+    <string name="goal_add_money">Add money</string>
+    <string name="goal_take_out">Take out</string>
+    <string name="goal_more">More options</string>
+    <string name="goal_menu_edit">Edit</string>
+    <string name="goal_menu_repeat">Repeat for next year</string>
+    <string name="goal_menu_archive">Archive</string>
+    <string name="goal_menu_unarchive">Unarchive</string>
+    <string name="goal_menu_delete">Delete</string>
+    <string name="goal_delete_title">Delete %1$s?</string>
+    <string name="goal_delete_message">Its contributions are removed. Your transactions aren\'t affected.</string>
+    <string name="goal_converted_from">From %1$s</string>
+    <string name="goal_withdrawal">Withdrawal</string>
+    <string name="goal_contribution">Contribution</string>
+
+    <!-- Add money / Take out / edit sheet -->
+    <string name="goal_money_amount">Amount</string>
+    <string name="goal_money_date">Date</string>
+    <string name="goal_money_note">Note (optional)</string>
+    <string name="goal_money_saved_so_far">Saved so far: %1$s</string>
+    <string name="goal_money_converted">Amount in %1$s</string>
+    <string name="goal_money_no_rate">No exchange rate for %1$s yet. Enter the amount in %2$s.</string>
+    <string name="goal_money_error_amount">Enter an amount above zero</string>
+    <string name="goal_money_error_more_than_saved">You can take out up to %1$s</string>
+    <string name="goal_money_error_failed">Couldn\'t save. Try again.</string>
+    <string name="goal_money_save">Save</string>
+    <string name="goal_edit_contribution">Edit contribution</string>
+    <string name="goal_edit_withdrawal">Edit withdrawal</string>
+    <string name="goal_contribution_delete">Delete</string>
+</resources>

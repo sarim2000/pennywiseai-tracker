@@ -347,7 +347,42 @@ fun PennyWiseNavHost(
                     navController.navigate(TransactionsWithFilter(category, yearMonth, currency)) {
                         launchSingleTop = true
                     }
+                },
+                onNavigateToGoal = { goalId ->
+                    navController.navigate(GoalDetail(goalId)) { launchSingleTop = true }
+                },
+                onNavigateToGoalEdit = { goalId ->
+                    navController.navigate(GoalEdit(goalId)) { launchSingleTop = true }
                 }
+            )
+        }
+
+        composable<GoalDetail>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
+                onNavigateBack = { navController.safePopBackStack() },
+                onEdit = { goalId -> navController.navigate(GoalEdit(goalId)) { launchSingleTop = true } },
+                // Repeat for next year opens the new copy in place of this one.
+                onOpenGoal = { goalId ->
+                    navController.navigate(GoalDetail(goalId)) {
+                        popUpTo<GoalDetail> { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable<GoalEdit>(
+            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            exitTransition = { fadeOut(tween(200)) },
+            popEnterTransition = { fadeIn(tween(300)) },
+            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        ) {
+            com.pennywiseai.tracker.presentation.goals.GoalEditScreen(
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 

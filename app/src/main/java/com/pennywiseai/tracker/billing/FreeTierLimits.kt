@@ -22,4 +22,10 @@ object FreeTierLimits {
 
     /** Max recurring transaction templates a free user can create. Pro = unlimited. (#706) */
     const val MAX_RECURRING_TEMPLATES = 1
+
+    /**
+     * Max active goals (not Archived, not Reached) a free user can have when
+     * creating a new one. Pro = unlimited; a lapse never hides or locks goals. (#914)
+     */
+    const val MAX_ACTIVE_GOALS = 1
 }

@@ -94,6 +94,34 @@ one file format and every v1.x app can read it (older apps ignore the key):
 - A transaction whose `receiptPath` file is missing shows "Receipt photo not
   included in this backup" on its detail screen.
 
+## Savings goals (#914)
+
+Two tables, both in `DatabaseSnapshot` with defaulted lists, plus defaulted
+`total_goals` / `total_goal_contributions` counters. Older backups lack the
+keys and decode to empty lists; older apps ignore them.
+
+```json
+"goals": [ { "id": 4, "uid": "…", "name": "Insurance", "targetAmount": "24000.00",
+             "currency": "INR", "dueDate": "2027-03-31", "alreadySaved": "5000", … } ],
+"goal_contributions": [ { "id": 8, "uid": "…", "goalId": 4, "amount": "-41.50",
+             "originalAmount": "-0.50", "originalCurrency": "USD", "transactionId": 3, … } ]
+```
+
+- `amount` is signed, in the goal's currency (negative = Withdrawal).
+  `originalAmount`/`originalCurrency` keep the pre-conversion amount; for a
+  transaction-linked row it is the share of that transaction.
+- **Export:** `FULL` only, like loans and recurring templates (names/notes are
+  user text; contributions point at transaction ids).
+- **REPLACE_ALL:** goals are cleared (cascading contributions) and re-inserted
+  with their ids, goals before contributions. A contribution whose
+  `transactionId` didn't restore keeps its money but loses the link.
+- **MERGE:** goals dedup on `uid` (a local goal with the same uid wins);
+  contributions dedup on their `uid`, so a repeat merge is idempotent while
+  contributions made on another device still arrive. `goalId` is remapped to
+  the local goal; `transactionId` goes through the same old→local map as tag
+  cross-refs (new rows and hash duplicates), and an unmapped link is cleared.
+  Each touched transaction's linked shares are then capped to its amount.
+
 ## Resilience
 
 Beyond schema tolerance, the importer skips and **counts** any single row that
@@ -147,7 +175,8 @@ Always give it a default. `BackupSchemaGuardTest` fails the build otherwise.
 
 `BackupModelsTest` covers round-trip, the loans/groups regression (#386), the
 #414 backward-compat regression (`oldBackupMissingNewerFields_*`), forward-compat
-(`newerBackupWithUnknownKeys_isIgnored`), missing sections, and null coercion.
+(`newerBackupWithUnknownKeys_isIgnored`), missing sections, null coercion, and
+savings goals (`oldBackupMissingGoals_*`, `goals_roundTrip*`).
 
 `BackupSchemaGuardTest` enforces the compatibility invariant on two layers:
 - **wrapper models** — every field must have a default; and

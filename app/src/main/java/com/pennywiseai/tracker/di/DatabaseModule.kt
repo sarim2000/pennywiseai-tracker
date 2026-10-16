@@ -30,6 +30,7 @@ import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
 import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
 import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
 import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
+import com.pennywiseai.tracker.data.database.dao.GoalDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -294,6 +295,7 @@ object DatabaseModule {
     @Provides @Singleton fun provideWebhookProfileDao(database: PennyWiseDatabase): WebhookProfileDao = database.webhookProfileDao()
     @Provides @Singleton fun provideWebhookLogDao(database: PennyWiseDatabase): WebhookLogDao = database.webhookLogDao()
     @Provides @Singleton fun provideWebhookCursorDao(database: PennyWiseDatabase): WebhookCursorDao = database.webhookCursorDao()
+    @Provides @Singleton fun provideGoalDao(database: PennyWiseDatabase): GoalDao = database.goalDao()
 }
 
 /**

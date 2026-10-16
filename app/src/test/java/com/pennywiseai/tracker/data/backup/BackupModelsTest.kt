@@ -975,4 +975,78 @@ class BackupModelsTest {
         assertEquals("", receipts[0].dataBase64)
         assertEquals("", receipts[1].path)
     }
+
+    /**
+     * #914 regression. Backups written before savings goals have no `goals` /
+     * `goal_contributions` keys (nor the stat counters): they must decode with
+     * empty lists and zero counts, not crash.
+     */
+    @Test
+    fun oldBackupMissingGoals_defaultsToEmptyLists() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.3",
+          "metadata": { "statistics": { "total_transactions": 1, "total_recurring_transactions": 0 } },
+          "database": {
+            "transactions": [
+              { "id": 3, "amount": "250.00", "merchantName": "Shop", "category": "Others",
+                "transactionType": "EXPENSE", "dateTime": "2026-09-01T10:00:00", "transactionHash": "h3" }
+            ],
+            "recurring_transactions": []
+          }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        assertTrue(backup.database.goals.isEmpty())
+        assertTrue(backup.database.goalContributions.isEmpty())
+        assertEquals(0, backup.metadata.statistics.totalGoals)
+        assertEquals(0, backup.metadata.statistics.totalGoalContributions)
+        assertEquals(1, backup.database.transactions.size)
+    }
+
+    /** #914. Goals and contributions keep every field, and a row missing keys falls back to defaults. */
+    @Test
+    fun goals_roundTripAndTolerateMissingFields() {
+        val goal = GoalEntity(
+            id = 4, uid = "g-uid", name = "Insurance", targetAmount = BigDecimal("24000.00"), currency = "INR",
+            dueDate = LocalDate.of(2027, 3, 31), color = "#2E7D32", alreadySaved = BigDecimal("5000"),
+            isArchived = true, createdAt = LocalDateTime.of(2026, 4, 1, 9, 30), updatedAt = LocalDateTime.of(2026, 5, 1, 9, 30)
+        )
+        val contribution = GoalContributionEntity(
+            id = 8, uid = "c-uid", goalId = 4, amount = BigDecimal("-41.50"), date = LocalDate.of(2026, 6, 2),
+            note = "Took some out", originalAmount = BigDecimal("-0.50"), originalCurrency = "USD", transactionId = 3,
+            createdAt = LocalDateTime.of(2026, 6, 2, 8, 0), updatedAt = LocalDateTime.of(2026, 6, 2, 8, 0)
+        )
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalGoals = 1, totalGoalContributions = 1)),
+            database = DatabaseSnapshot(goals = listOf(goal), goalContributions = listOf(contribution))
+        )
+
+        val json = backupJson.encodeToString(backup)
+        assertTrue(json.contains("\"goals\""))
+        assertTrue(json.contains("\"goal_contributions\""))
+        assertTrue(json.contains("\"-41.50\"")) // BigDecimal stays a plain string
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertEquals(listOf(goal), restored.database.goals)
+        assertEquals(listOf(contribution), restored.database.goalContributions)
+        assertEquals(1, restored.metadata.statistics.totalGoals)
+        assertEquals(1, restored.metadata.statistics.totalGoalContributions)
+
+        val minimal = backupJson.decodeFromString<PennyWiseBackup>(
+            """{ "database": { "goals": [ { "name": "Trip" } ], "goal_contributions": [ { "goalId": 1, "amount": "10" } ] } }"""
+        ).database
+        with(minimal.goals.single()) {
+            assertEquals("INR", currency)
+            assertEquals(0, BigDecimal.ZERO.compareTo(alreadySaved))
+            assertFalse(isArchived)
+            assertTrue(uid.isNotBlank())
+        }
+        with(minimal.goalContributions.single()) {
+            assertNull(transactionId)
+            assertNull(originalAmount)
+            assertTrue(uid.isNotBlank())
+        }
+    }
 }

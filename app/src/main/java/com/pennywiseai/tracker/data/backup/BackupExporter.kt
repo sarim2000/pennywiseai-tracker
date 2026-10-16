@@ -101,6 +101,8 @@ class BackupExporter @Inject constructor(
         val tags = database.tagDao().getAllTagsSync()
         val transactionTagCrossRefs = database.tagDao().getAllCrossRefs()
         val recurringTransactions = database.recurringTransactionDao().getAll().first()
+        val goals = database.goalDao().getAllGoals()
+        val goalContributions = database.goalDao().getAllContributions()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -173,6 +175,10 @@ class BackupExporter @Inject constructor(
         // Recurring templates carry raw merchant names + notes, so they're kept
         // on FULL only — same treatment as loans / other relational tables.
         val exportedRecurringTransactions = if (privacy == ExportPrivacy.FULL) recurringTransactions else emptyList()
+        // Goals carry user-written names and notes, and contributions point at
+        // transaction ids: FULL only, like loans / recurring templates (#914).
+        val exportedGoals = if (privacy == ExportPrivacy.FULL) goals else emptyList()
+        val exportedGoalContributions = if (privacy == ExportPrivacy.FULL) goalContributions else emptyList()
         // Receipt photos (#839): only when the caller opts in, and only in FULL
         // exports — a photo of a bill is exactly what masking is meant to hide.
         val exportedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {
@@ -208,6 +214,8 @@ class BackupExporter @Inject constructor(
                     totalMerchantAliases = merchantAliases.size,
                     totalRecurringTransactions = exportedRecurringTransactions.size,
                     totalReceipts = exportedReceipts.size,
+                    totalGoals = exportedGoals.size,
+                    totalGoalContributions = exportedGoalContributions.size,
                     dateRange = dateRange
                 )
             ),
@@ -235,7 +243,9 @@ class BackupExporter @Inject constructor(
                 budgetCategoryMonthSnapshots = exportedBudgetCategoryMonthSnapshots,
                 tags = exportedTags,
                 transactionTagCrossRefs = exportedTransactionTagCrossRefs,
-                recurringTransactions = exportedRecurringTransactions
+                recurringTransactions = exportedRecurringTransactions,
+                goals = exportedGoals,
+                goalContributions = exportedGoalContributions
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(

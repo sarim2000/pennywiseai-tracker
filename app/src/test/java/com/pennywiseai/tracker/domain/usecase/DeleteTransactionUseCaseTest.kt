@@ -70,6 +70,7 @@ class DeleteTransactionUseCaseTest {
         override fun webhookLogDao(): WebhookLogDao = error("unused")
         override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
         override fun webhookCursorDao(): WebhookCursorDao = error("unused")
+        override fun goalDao(): com.pennywiseai.tracker.data.database.dao.GoalDao = error("unused")
         override fun createOpenHelper(config: DatabaseConfiguration): SupportSQLiteOpenHelper = error("unused")
         override fun createInvalidationTracker(): InvalidationTracker = error("unused")
         override fun clearAllTables() {}

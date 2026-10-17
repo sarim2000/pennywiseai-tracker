@@ -19,6 +19,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavDestination.Companion.hasRoute
 import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
@@ -93,17 +94,20 @@ fun PennyWiseApp(
 
     // Observe lock state changes and navigate to lock screen if needed
     // But don't navigate when user is actively in Settings configuring app lock
+    val showLockScreen = {
+        navController.navigate(AppLock) {
+            // Don't add to back stack, force lock screen
+            popUpTo(navController.graph.startDestinationId) { inclusive = false }
+            launchSingleTop = true
+        }
+    }
     LaunchedEffect(appLockUiState.isLocked, appLockUiState.isLockEnabled) {
         if (appLockUiState.isLocked && appLockUiState.isLockEnabled) {
             val currentRoute = navController.currentDestination?.route
             // Don't navigate if already on lock screen or in Settings (user is configuring)
             if (currentRoute != AppLock::class.qualifiedName &&
                 currentRoute != com.pennywiseai.tracker.navigation.Settings::class.qualifiedName) {
-                navController.navigate(AppLock) {
-                    // Don't add to back stack, force lock screen
-                    popUpTo(navController.graph.startDestinationId) { inclusive = false }
-                    launchSingleTop = true
-                }
+                showLockScreen()
             }
         }
     }
@@ -134,6 +138,7 @@ fun PennyWiseApp(
         lock = appLockUiState,
         currentRoute = currentRoute,
         refreshLock = actualAppLockViewModel::refreshLockState,
+        showLockScreen = showLockScreen,
     ) { text ->
         navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
         onSharedTextHandled?.invoke()
@@ -144,9 +149,14 @@ fun PennyWiseApp(
         lock = appLockUiState,
         currentRoute = currentRoute,
         refreshLock = actualAppLockViewModel::refreshLockState,
+        showLockScreen = showLockScreen,
     ) { destination ->
-        // Replaces the same screen if it's open, so a repeated "+" starts New goal again.
-        navController.navigate(destination) { popUpTo(destination) { inclusive = true } }
+        // Replace the same kind of screen only when it's on top, so a repeated "+"
+        // starts New goal again; anything under it (an unsaved edit) stays.
+        val top = navController.currentBackStackEntry?.destination
+        navController.navigate(destination) {
+            if (top != null && top.hasRoute(destination::class)) popUpTo(top.id) { inclusive = true }
+        }
         onWidgetDestinationHandled?.invoke()
     }
 
@@ -183,7 +193,9 @@ fun PennyWiseApp(
  *
  * Passing through the lock screen also counts as unlocked: it can only be left by
  * authenticating (back is blocked), while [lock] (the activity's view model, not
- * the lock screen's) can keep `isLocked` after an unlock with the "Immediately" timeout.
+ * the lock screen's) can keep `isLocked` after an unlock with the "Immediately"
+ * timeout. So when a fresh check says locked and the lock screen isn't showing,
+ * this shows it ([showLockScreen]) rather than waiting for one that never comes.
  */
 @Composable
 private fun <T : Any> NavigateWhenUnlocked(
@@ -192,6 +204,7 @@ private fun <T : Any> NavigateWhenUnlocked(
     lock: com.pennywiseai.tracker.ui.viewmodel.AppLockUiState,
     currentRoute: String?,
     refreshLock: () -> Unit,
+    showLockScreen: () -> Unit,
     navigate: (T) -> Unit,
 ) {
     val checksAtRequest = remember(request) { lock.checks }
@@ -204,12 +217,10 @@ private fun <T : Any> NavigateWhenUnlocked(
     }
     LaunchedEffect(request, onboarded, lock.checks, lock.isLocked, currentRoute) {
         val pending = request ?: return@LaunchedEffect
-        if (currentRoute == AppLock::class.qualifiedName) passedLockScreen = true
-        val ready = onboarded &&
-            lock.checks > checksAtRequest &&
-            (!lock.isLocked || passedLockScreen) &&
-            currentRoute != null &&
-            currentRoute != AppLock::class.qualifiedName
-        if (ready) navigate(pending)
+        val onLockScreen = currentRoute == AppLock::class.qualifiedName
+        if (onLockScreen) passedLockScreen = true
+        if (!onboarded || lock.checks <= checksAtRequest || currentRoute == null || onLockScreen) return@LaunchedEffect
+        val ready = !lock.isLocked || passedLockScreen
+        if (ready) navigate(pending) else showLockScreen()
     }
 }

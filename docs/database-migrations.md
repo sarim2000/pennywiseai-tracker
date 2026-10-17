@@ -48,6 +48,25 @@ Two quirks worth knowing:
 4. Build once. KSP exports `app/schemas/com.pennywiseai.tracker.data.database.PennyWiseDatabase/<version>.json` automatically (the `room.schemaLocation` arg lives in `app/build.gradle.kts`). Commit the JSON.
 5. Test the upgrade against a real pre-change database if you touched existing rows.
 6. Verify a fresh install still works — migrations only run on existing database files.
+7. Run the update path on old Android (below). Not optional: the JVM tests can't catch it.
+
+## Old Android runs old SQLite
+
+Migrations run on the phone's own SQLite, not the app's. minSdk 26 (Android 8) ships SQLite 3.18, Android 13 ships 3.32.2, and only Android 14+ has 3.39+. The JVM's SQLite and our usual emulators (API 36+) are newer, so syntax that works in every test can still crash old phones. 2.22.0 shipped `HAVING` without `GROUP BY` (needs 3.39) in `MIGRATION_63_64`: every launch on Android ≤13 crashed, and Room rolled the migration back so it crashed again next launch (#922).
+
+Avoid features newer than 3.18 in migration SQL — e.g. `HAVING` without `GROUP BY` (3.39), `RENAME COLUMN` (3.25), `DROP COLUMN` (3.35), `UPSERT` (3.24), window functions (3.25), `RETURNING` (3.35). `MigrationSqlCompatibilityTest` guards the `HAVING` case only.
+
+**Check before merging/releasing a migration**, on the `Api33_Migration` AVD (Android 13, SQLite 3.32.2):
+
+```bash
+~/Library/Android/sdk/emulator/emulator -avd Api33_Migration -port 5558 -no-snapshot-save -no-boot-anim
+```
+
+1. Quick SQL check: `adb -s emulator-5558 shell "sqlite3 :memory: '<your SQL>'"` (create the tables it touches first).
+2. Real upgrade: install the last released build (`git worktree add` at its tag, `:app:assembleFdroidDebug`), open it once, then `adb install -r` the new build and launch it.
+3. Pass = no `FATAL` in `adb -s emulator-5558 logcat -b crash`, and `run-as com.pennywiseai.tracker.debug sqlite3 databases/pennywise_database "PRAGMA user_version"` shows the new `SCHEMA_VERSION`.
+
+If the AVD is missing: `sdkmanager "system-images;android-33;google_apis;arm64-v8a"` then `avdmanager create avd -n Api33_Migration -k "system-images;android-33;google_apis;arm64-v8a" -d pixel_6`.
 
 ## No destructive fallback
 

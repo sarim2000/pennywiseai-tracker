@@ -123,45 +123,29 @@ fun PennyWiseApp(
         }
     }
 
-    // A goal widget tap (#914): open the goal or the Budgets screen, like the add widget does.
-    LaunchedEffect(widgetDestination) {
-        widgetDestination?.let { destination ->
-            navController.navigate(destination) { launchSingleTop = true }
-            onWidgetDestinationHandled?.invoke()
-        }
-    }
-
-    // "Share to PennyWise": open Add Transaction pre-filled from the shared text.
-    // Held until onboarding is done and the app is unlocked, so the form (and the
-    // shared text) never shows above the lock screen or skips setup. "Unlocked"
-    // must come from a lock check that ran *after* the share arrived (the resume
-    // re-check can still be pending), and the lock screen must have navigated
-    // away — otherwise its unlock/lock navigation would pop the form and drop
-    // the draft. The effect re-runs as each of these settles.
+    // "Share to PennyWise" and goal widget taps (#914) open a screen with private
+    // data, so they wait for onboarding and an unlocked app (see NavigateWhenUnlocked).
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val lockChecksAtShare = remember(sharedText) { appLockUiState.checks }
-    // Guarantee a lock check after that baseline: on a cold start the startup
-    // checks can finish before this composes (themeUiState loads first), and no
-    // other check would follow, leaving the draft pending forever.
-    LaunchedEffect(sharedText) {
-        if (sharedText != null) actualAppLockViewModel.refreshLockState()
-    }
-    LaunchedEffect(
-        sharedText,
-        themeUiState.hasCompletedOnboarding,
-        appLockUiState.checks,
-        appLockUiState.isLocked,
-        currentRoute
-    ) {
-        val text = sharedText ?: return@LaunchedEffect
-        val ready = themeUiState.hasCompletedOnboarding &&
-            appLockUiState.checks > lockChecksAtShare &&
-            !appLockUiState.isLocked &&
-            currentRoute != null &&
-            currentRoute != AppLock::class.qualifiedName
-        if (!ready) return@LaunchedEffect
+    NavigateWhenUnlocked(
+        request = sharedText,
+        onboarded = themeUiState.hasCompletedOnboarding,
+        lock = appLockUiState,
+        currentRoute = currentRoute,
+        refreshLock = actualAppLockViewModel::refreshLockState,
+    ) { text ->
         navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
         onSharedTextHandled?.invoke()
+    }
+    NavigateWhenUnlocked(
+        request = widgetDestination,
+        onboarded = themeUiState.hasCompletedOnboarding,
+        lock = appLockUiState,
+        currentRoute = currentRoute,
+        refreshLock = actualAppLockViewModel::refreshLockState,
+    ) { destination ->
+        // Replaces the same screen if it's open, so a repeated "+" starts New goal again.
+        navController.navigate(destination) { popUpTo(destination) { inclusive = true } }
+        onWidgetDestinationHandled?.invoke()
     }
 
     // Keep widgets current when app launches (covers upgrades/installs with existing widgets)
@@ -184,5 +168,40 @@ fun PennyWiseApp(
             startDestination = startDestination,
             onEditComplete = onEditComplete ?: {}
         )
+    }
+}
+
+/**
+ * Runs [navigate] for [request] once onboarding is done and the app is unlocked,
+ * so the screen never shows above the lock screen or skips setup. "Unlocked"
+ * must come from a lock check that ran *after* the request arrived (the resume
+ * re-check can still be pending), and the lock screen must have navigated away,
+ * otherwise its unlock/lock navigation would pop the new screen. The effect
+ * re-runs as each of these settles.
+ */
+@Composable
+private fun <T : Any> NavigateWhenUnlocked(
+    request: T?,
+    onboarded: Boolean,
+    lock: com.pennywiseai.tracker.ui.viewmodel.AppLockUiState,
+    currentRoute: String?,
+    refreshLock: () -> Unit,
+    navigate: (T) -> Unit,
+) {
+    val checksAtRequest = remember(request) { lock.checks }
+    // Guarantee a lock check after that baseline: on a cold start the startup
+    // checks can finish before this composes (themeUiState loads first), and no
+    // other check would follow, leaving the request pending forever.
+    LaunchedEffect(request) {
+        if (request != null) refreshLock()
+    }
+    LaunchedEffect(request, onboarded, lock.checks, lock.isLocked, currentRoute) {
+        val pending = request ?: return@LaunchedEffect
+        val ready = onboarded &&
+            lock.checks > checksAtRequest &&
+            !lock.isLocked &&
+            currentRoute != null &&
+            currentRoute != AppLock::class.qualifiedName
+        if (ready) navigate(pending)
     }
 }

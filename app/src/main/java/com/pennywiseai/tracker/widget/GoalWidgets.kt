@@ -276,27 +276,34 @@ class GoalsListWidget : GlanceAppWidget() {
                     style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium),
                     modifier = GlanceModifier.defaultWeight(),
                 )
+                // A 48dp touch target around the smaller visible button.
                 Box(
                     modifier = GlanceModifier
-                        .size(ADD_BUTTON)
-                        .cornerRadius(ADD_BUTTON / 2)
-                        .background(GlanceTheme.colors.primary)
+                        .size(Dimensions.Component.minTouchTarget)
                         .clickable(openBudgets(context, createGoal = true)),
-                    contentAlignment = Alignment.Center,
+                    contentAlignment = Alignment.CenterEnd,
                 ) {
-                    Image(
-                        provider = ImageProvider(R.drawable.ic_widget_add),
-                        contentDescription = context.getString(R.string.goals_new),
-                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
-                        modifier = GlanceModifier.size(Dimensions.Icon.inline),
-                    )
+                    Box(
+                        modifier = GlanceModifier
+                            .size(ADD_BUTTON)
+                            .cornerRadius(ADD_BUTTON / 2)
+                            .background(GlanceTheme.colors.primary),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            provider = ImageProvider(R.drawable.ic_widget_add),
+                            contentDescription = context.getString(R.string.goals_new),
+                            colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
+                            modifier = GlanceModifier.size(Dimensions.Icon.inline),
+                        )
+                    }
                 }
             }
             if (items.isEmpty()) {
                 TwoLineMessage(context.getString(R.string.widget_goals_empty), context.getString(R.string.widget_goals_empty_hint))
             } else {
                 // Only as many rows as fit, so a short widget never cuts one in half.
-                val room = LocalSize.current.height - ADD_BUTTON - Spacing.smd * 2
+                val room = LocalSize.current.height - Dimensions.Component.minTouchTarget - Spacing.smd * 2
                 val rows = (room.value / (ROW_HEIGHT + Spacing.sm).value).toInt().coerceIn(1, GOALS_WIDGET_MAX)
                 items.take(rows).forEach { item ->
                     Spacer(GlanceModifier.height(Spacing.sm))

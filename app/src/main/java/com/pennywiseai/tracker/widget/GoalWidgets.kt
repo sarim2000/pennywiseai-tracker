@@ -267,7 +267,7 @@ class GoalsListWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
-                .padding(horizontal = Spacing.md, vertical = Spacing.smd)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm)
                 .clickable(openBudgets(context)),
         ) {
             Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -303,7 +303,7 @@ class GoalsListWidget : GlanceAppWidget() {
                 TwoLineMessage(context.getString(R.string.widget_goals_empty), context.getString(R.string.widget_goals_empty_hint))
             } else {
                 // Only as many rows as fit, so a short widget never cuts one in half.
-                val room = LocalSize.current.height - Dimensions.Component.minTouchTarget - Spacing.smd * 2
+                val room = LocalSize.current.height - Dimensions.Component.minTouchTarget - Spacing.sm * 2
                 val rows = (room.value / (ROW_HEIGHT + Spacing.sm).value).toInt().coerceIn(1, GOALS_WIDGET_MAX)
                 items.take(rows).forEach { item ->
                     Spacer(GlanceModifier.height(Spacing.sm))
@@ -346,8 +346,8 @@ class GoalsListWidget : GlanceAppWidget() {
         val ADD_BUTTON = Dimensions.Icon.large
         val ROW_RING = Dimensions.Icon.large
         val ROW_RING_STROKE = Dimensions.Component.goalRingSmallStroke
-        /** About a row's height: name + status line, taller than its ring. */
-        val ROW_HEIGHT = Dimensions.Component.iconButton
+        /** About a row's height: name + status line, a little taller than its ring. */
+        val ROW_HEIGHT = Dimensions.Icon.large + Spacing.xs
     }
 }
 

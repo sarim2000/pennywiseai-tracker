@@ -8,6 +8,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -173,11 +175,15 @@ fun PennyWiseApp(
 
 /**
  * Runs [navigate] for [request] once onboarding is done and the app is unlocked,
- * so the screen never shows above the lock screen or skips setup. "Unlocked"
- * must come from a lock check that ran *after* the request arrived (the resume
- * re-check can still be pending), and the lock screen must have navigated away,
- * otherwise its unlock/lock navigation would pop the new screen. The effect
- * re-runs as each of these settles.
+ * so the screen never shows above the lock screen or skips setup. The lock state
+ * must come from a check that ran *after* the request arrived (the resume re-check
+ * can still be pending), and the lock screen must have navigated away, otherwise
+ * its unlock/lock navigation would pop the new screen. The effect re-runs as each
+ * of these settles.
+ *
+ * Passing through the lock screen also counts as unlocked: it can only be left by
+ * authenticating (back is blocked), while [lock] (the activity's view model, not
+ * the lock screen's) can keep `isLocked` after an unlock with the "Immediately" timeout.
  */
 @Composable
 private fun <T : Any> NavigateWhenUnlocked(
@@ -189,6 +195,7 @@ private fun <T : Any> NavigateWhenUnlocked(
     navigate: (T) -> Unit,
 ) {
     val checksAtRequest = remember(request) { lock.checks }
+    var passedLockScreen by remember(request) { mutableStateOf(false) }
     // Guarantee a lock check after that baseline: on a cold start the startup
     // checks can finish before this composes (themeUiState loads first), and no
     // other check would follow, leaving the request pending forever.
@@ -197,9 +204,10 @@ private fun <T : Any> NavigateWhenUnlocked(
     }
     LaunchedEffect(request, onboarded, lock.checks, lock.isLocked, currentRoute) {
         val pending = request ?: return@LaunchedEffect
+        if (currentRoute == AppLock::class.qualifiedName) passedLockScreen = true
         val ready = onboarded &&
             lock.checks > checksAtRequest &&
-            !lock.isLocked &&
+            (!lock.isLocked || passedLockScreen) &&
             currentRoute != null &&
             currentRoute != AppLock::class.qualifiedName
         if (ready) navigate(pending)

@@ -5,7 +5,10 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
@@ -75,4 +78,13 @@ class TamilnadMercantileBankParserTest {
             ),
             "TMB factory routing"
         )
+
+    @Test
+    fun `factory keeps Thai TMB senders on TTB`() {
+        listOf("TTB", "TMB", "TMBThanachart").forEach { sender ->
+            assertEquals("TTB", BankParserFactory.getParser(sender)?.getBankName(), sender)
+        }
+        assertEquals("Tamilnad Mercantile Bank", BankParserFactory.getParser("VA-TMBANK-S")?.getBankName())
+        assertFalse(TTBBankParser().canHandle("VA-TMBANK-S"))
+    }
 }

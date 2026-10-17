@@ -12,7 +12,8 @@
         android:layout_width="36dp"
         android:layout_height="36dp"
         android:padding="8dp"
-        android:src="@drawable/ic_widget_add" />
+        android:src="@drawable/ic_widget_add"
+        android:tint="?android:attr/textColorPrimary" />
 
     <LinearLayout
         android:layout_width="wrap_content"

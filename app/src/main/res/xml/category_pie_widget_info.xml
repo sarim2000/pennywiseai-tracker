@@ -10,7 +10,7 @@
     android:minResizeWidth="220dp"
     android:minResizeHeight="120dp"
     android:resizeMode="horizontal|vertical"
-    android:previewLayout="@layout/widget_preview"
+    android:previewLayout="@layout/widget_pie_preview"
     android:description="@string/widget_description_category_pie"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen" />

@@ -5,9 +5,13 @@ import android.content.Context
 import android.os.Build
 import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -16,6 +20,8 @@ import androidx.glance.ImageProvider
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
+import androidx.glance.appwidget.action.actionStartActivity
+import androidx.glance.action.Action
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
@@ -43,6 +49,7 @@ import androidx.glance.text.TextStyle
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
@@ -57,7 +64,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = try {
+        val initial = try {
             withTimeoutOrNull(5000L) {
                 RecentTransactionsWidgetDataStore.getData(context).first()
             } ?: RecentTransactionsWidgetData()
@@ -67,6 +74,9 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         }
 
         provideContent {
+            // A session still alive when the worker writes recomposes from
+            // here; provideGlance doesn't run again for it.
+            val data by remember { RecentTransactionsWidgetDataStore.getData(context) }.collectAsState(initial)
             GlanceTheme(
                 colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                     GlanceTheme.colors
@@ -139,7 +149,8 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                     Image(
                         provider = ImageProvider(R.drawable.ic_widget_add),
                         contentDescription = LocalContext.current.getString(R.string.widget_recent_add),
-                        modifier = GlanceModifier.size(20.dp)
+                        modifier = GlanceModifier.size(20.dp),
+                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary)
                     )
                 }
             }
@@ -172,21 +183,44 @@ class RecentTransactionsWidget : GlanceAppWidget() {
 
     @Composable
     private fun TransactionList(items: List<RecentTransactionItem>) {
+        val context = LocalContext.current
         LazyColumn(
             modifier = GlanceModifier.fillMaxWidth()
         ) {
+            // A lazy item lays its children out in a Box, and the widget-level
+            // clickable doesn't reach into the list — hence the Column and the
+            // per-row action.
             items(items) { item ->
-                TransactionRow(item)
-                Box(
+                Column(
                     modifier = GlanceModifier
                         .fillMaxWidth()
-                        .height(1.dp)
-                        .background(GlanceTheme.colors.surfaceVariant)
-                ) {}
-                Spacer(modifier = GlanceModifier.height(4.dp))
+                        .clickable(openTransaction(context, item.transactionId))
+                ) {
+                    TransactionRow(item)
+                    Box(
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(GlanceTheme.colors.surfaceVariant)
+                    ) {}
+                    Spacer(modifier = GlanceModifier.height(4.dp))
+                }
             }
         }
     }
+
+    private fun openTransaction(context: Context, transactionId: Long?): Action =
+        if (transactionId == null) {
+            actionStartActivity<MainActivity>()
+        } else {
+            actionStartActivity(
+                Intent(context, MainActivity::class.java).apply {
+                    action = SmsBroadcastReceiver.ACTION_EDIT_TRANSACTION
+                    putExtra(SmsBroadcastReceiver.EXTRA_TRANSACTION_ID, transactionId)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            )
+        }
 
     @Composable
     private fun TransactionRow(item: RecentTransactionItem) {

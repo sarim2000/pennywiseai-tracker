@@ -14,17 +14,19 @@ import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.utils.forTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
@@ -34,7 +36,9 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val transactionRepository: TransactionRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -79,12 +83,19 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             val now = LocalDate.now()
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             val (cycleStart, _) = BudgetCycle.currentCycle(now, startDay)
-            val start = cycleStart.atStartOfDay()
-            val end = LocalDateTime.now()
 
-            val allTransactions = transactionRepository
-                .getTransactionsBetweenDates(start, end)
-                .first()
+            // Scope to the selected profile and drop ignored accounts, like
+            // the pie widget and the Transactions list.
+            val ignored = ignoredAccountsStore.keys()
+            val allTransactions = filterTransactionsByProfile(
+                // Through end of today, like Home: an SMS can carry a timestamp a
+                // few seconds ahead of the device clock, and a `now` cutoff would
+                // drop it from the widget right after it arrives.
+                transactionRepository.getTransactionsBetweenDates(cycleStart, now).first()
+                    .filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
+                userPreferencesRepository.selectedProfileId.first(),
+                buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+            )
 
             // Loan disbursements/repayments are tracked in the Loans feature, not
             // spending — exclude them, matching Home/Analytics. Analytics-excluded
@@ -100,8 +111,14 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                     tx.amount
                 }
 
+            // Same spend definition as Home: card purchases only when the user
+            // opted in (#705), investments never.
+            val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
             val grossSpent = nonLoan
-                .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT || it.transactionType == TransactionType.INVESTMENT }
+                .filter {
+                    it.transactionType == TransactionType.EXPENSE ||
+                        (creditAsExpense && it.transactionType == TransactionType.CREDIT)
+                }
                 .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
             // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
@@ -141,7 +158,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                         subtitle = subtitle,
                         amount = amount,
                         currency = itemCurrency,
-                        transactionType = tx.transactionType
+                        transactionType = tx.transactionType,
+                        transactionId = tx.id
                     )
                 }
 

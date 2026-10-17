@@ -168,14 +168,17 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     }
             }
 
+            // The "Others" category folds into the aggregated "Other" slice so
+            // the pie never shows two grey catch-alls.
+            val othersCategory = byCategory.remove("Others") ?: BigDecimal.ZERO
             val ranked = byCategory.entries.sortedByDescending { it.value }
-            val total = ranked.fold(BigDecimal.ZERO) { acc, e -> acc + e.value }
+            val total = ranked.fold(othersCategory) { acc, e -> acc + e.value }
             val colorOverrides = categoryRepository.getAllCategories().first()
                 .associate { it.name to it.color }
 
             val top = ranked.take(MAX_SLICES)
             val otherTotal = ranked.drop(MAX_SLICES)
-                .fold(BigDecimal.ZERO) { acc, e -> acc + e.value }
+                .fold(othersCategory) { acc, e -> acc + e.value }
 
             fun percentOf(amount: BigDecimal): Float =
                 if (total.signum() == 0) 0f

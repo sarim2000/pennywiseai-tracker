@@ -9,6 +9,9 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,7 +55,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 class CategoryPieWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = try {
+        val initial = try {
             withTimeoutOrNull(5000L) {
                 CategoryPieWidgetDataStore.getData(context).first()
             } ?: CategoryPieWidgetData()
@@ -62,6 +65,9 @@ class CategoryPieWidget : GlanceAppWidget() {
         }
 
         provideContent {
+            // A session still alive when the worker writes recomposes from
+            // here; provideGlance doesn't run again for it.
+            val data by remember { CategoryPieWidgetDataStore.getData(context) }.collectAsState(initial)
             GlanceTheme(
                 colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                     GlanceTheme.colors

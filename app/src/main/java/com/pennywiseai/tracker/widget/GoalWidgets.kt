@@ -9,8 +9,13 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
+import androidx.core.graphics.createBitmap
 import androidx.core.net.toUri
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -68,6 +73,14 @@ private suspend fun loadGoals(context: Context): List<GoalWidgetItem> = try {
     emptyList()
 }
 
+/**
+ * The snapshot as state: a Glance session that is still alive when the worker
+ * writes a new one recomposes from here; provideGlance doesn't run again for it.
+ */
+@Composable
+private fun observeGoals(context: Context, initial: List<GoalWidgetItem>): State<List<GoalWidgetItem>> =
+    remember { GoalWidgetDataStore.getData(context) }.collectAsState(initial)
+
 @Composable
 private fun WidgetTheme(content: @Composable () -> Unit) = GlanceTheme(
     colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else PennyWiseWidgetTheme.colors,
@@ -96,35 +109,45 @@ private fun openBudgets(context: Context, createGoal: Boolean = false) =
         putExtra(MainActivity.EXTRA_CREATE_GOAL, createGoal)
     }
 
-/** The goal's ring as a bitmap (Glance can't draw arcs), track first, like the in-app [com.pennywiseai.tracker.presentation.goals.GoalRing]. */
+/**
+ * The goal's ring, like the in-app [com.pennywiseai.tracker.presentation.goals.GoalRing].
+ * Glance can't draw arcs, so both layers are bitmaps; the track is drawn white and
+ * tinted by the launcher, so it follows day/night even when this process hasn't.
+ */
 @Composable
 private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
     val context = LocalContext.current
     val color = item.color.toColorOr(GlanceTheme.colors.primary.getColor(context)).toArgb()
-    val track = GlanceTheme.colors.surfaceVariant.getColor(context).toArgb()
-    Image(
-        provider = ImageProvider(renderRing(context, item.fraction, color, track, size, stroke)),
-        contentDescription = context.getString(R.string.goals_ring_description, item.percent),
-        modifier = GlanceModifier.size(size),
-    )
+    Box(modifier = GlanceModifier.size(size)) {
+        Image(
+            provider = ImageProvider(renderArc(context, 1f, android.graphics.Color.WHITE, size, stroke)),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(GlanceTheme.colors.surfaceVariant),
+            modifier = GlanceModifier.size(size),
+        )
+        Image(
+            provider = ImageProvider(renderArc(context, item.fraction, color, size, stroke)),
+            contentDescription = context.getString(R.string.goals_ring_description, item.percent),
+            modifier = GlanceModifier.size(size),
+        )
+    }
 }
 
-private fun renderRing(context: Context, fraction: Float, color: Int, track: Int, size: Dp, stroke: Dp): Bitmap {
+/** An arc from 12 o'clock covering [fraction] of a ring, on a transparent bitmap. */
+private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, stroke: Dp): Bitmap {
     val density = context.resources.displayMetrics.density
     val px = (size.value * density).roundToInt().coerceAtLeast(1)
     val strokePx = stroke.value * density
-    val bitmap = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeWidth = strokePx }
-    val inset = strokePx / 2f
-    val rect = RectF(inset, inset, px - inset, px - inset)
-    paint.color = track
-    canvas.drawArc(rect, 0f, 360f, false, paint)
-    if (fraction > 0f) {
-        paint.color = color
-        paint.strokeCap = Paint.Cap.ROUND
-        canvas.drawArc(rect, -90f, 360f * fraction.coerceAtMost(1f), false, paint)
+    val bitmap = createBitmap(px, px)
+    if (fraction <= 0f) return bitmap
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = strokePx
+        strokeCap = Paint.Cap.ROUND
+        this.color = color
     }
+    val inset = strokePx / 2f
+    Canvas(bitmap).drawArc(RectF(inset, inset, px - inset, px - inset), -90f, 360f * fraction.coerceAtMost(1f), false, paint)
     return bitmap
 }
 
@@ -151,9 +174,10 @@ private fun TwoLineMessage(title: String, hint: String) {
 class GoalWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val items = loadGoals(context)
+        val initial = loadGoals(context)
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
         provideContent {
+            val items by observeGoals(context, initial)
             val chosenId = currentState<Preferences>()[GOAL_WIDGET_GOAL_ID]
             WidgetTheme { Content(singleGoalState(items, chosenId), appWidgetId) }
         }
@@ -229,8 +253,11 @@ class GoalsListWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val items = loadGoals(context)
-        provideContent { WidgetTheme { Content(items) } }
+        val initial = loadGoals(context)
+        provideContent {
+            val items by observeGoals(context, initial)
+            WidgetTheme { Content(items) }
+        }
     }
 
     @Composable

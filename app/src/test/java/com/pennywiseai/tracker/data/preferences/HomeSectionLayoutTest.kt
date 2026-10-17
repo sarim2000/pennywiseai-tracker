@@ -11,13 +11,14 @@ class HomeSectionLayoutTest {
             HomeSection.ACTIVITY to true,
             HomeSection.GROUPS to false,
             HomeSection.BUDGETS to true,
+            HomeSection.GOALS to false,
             HomeSection.LOANS to true,
             HomeSection.RECENT_TRANSACTIONS to false,
             HomeSection.ACCOUNTS to true,
             HomeSection.SUBSCRIPTIONS to true,
         )
         val encoded = HomeSectionLayout.encode(layout)
-        assertEquals("ACTIVITY,!GROUPS,BUDGETS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS", encoded)
+        assertEquals("ACTIVITY,!GROUPS,BUDGETS,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS", encoded)
         assertEquals(layout, HomeSectionLayout.decode(encoded))
     }
 
@@ -35,7 +36,7 @@ class HomeSectionLayoutTest {
         assertEquals(
             listOf(HomeSection.ACTIVITY to false, HomeSection.ACCOUNTS to true) +
                 listOf(
-                    HomeSection.BUDGETS, HomeSection.LOANS, HomeSection.GROUPS,
+                    HomeSection.BUDGETS, HomeSection.GOALS, HomeSection.LOANS, HomeSection.GROUPS,
                     HomeSection.RECENT_TRANSACTIONS, HomeSection.SUBSCRIPTIONS,
                 ).map { it to true },
             decoded,

@@ -33,6 +33,17 @@ class GoalsViewModel @Inject constructor(
         }
     }
 
+    // Lives in the ViewModel (scoped to the Budgets back-stack entry), so coming
+    // back from the new goal or rotating doesn't start another one.
+    private var createOnOpenHandled = false
+
+    /** [requestCreate] the first time only: the goals widget's "+" opening Budgets. */
+    fun createOnOpenOnce(onAllowed: () -> Unit, onBlocked: () -> Unit) {
+        if (createOnOpenHandled) return
+        createOnOpenHandled = true
+        requestCreate(onAllowed, onBlocked)
+    }
+
     fun unarchive(goalId: Long) {
         viewModelScope.launch { goalRepository.setArchived(goalId, false) }
     }

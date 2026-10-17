@@ -17,6 +17,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -43,6 +45,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     @Inject
     lateinit var webhookSyncScheduler: WebhookSyncScheduler
+
+    @Inject
+    lateinit var goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var activityReferences = 0
@@ -92,6 +97,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
         applicationScope.launch { webhookSyncScheduler.observeSchedule() }
+
+        // Goal widgets (#914): one hook for every goal write (screens, Add to goal,
+        // restore, a linked transaction edited or deleted) instead of one per call site.
+        // ponytail: re-queries goals on any transactions-table write; cheap at goal-list sizes.
+        applicationScope.launch {
+            goalRepository.observeGoals().distinctUntilChanged().drop(1).collect {
+                com.pennywiseai.tracker.widget.GoalWidgetUpdateWorker.enqueueOneShot(this@PennyWiseApplication)
+            }
+        }
 
         // Keep CurrencyFormatter's number-format style in sync with the user's
         // preference. CurrencyFormatter is a stateless object used from non-Compose

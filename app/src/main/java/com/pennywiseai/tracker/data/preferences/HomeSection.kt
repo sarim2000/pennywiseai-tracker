@@ -7,6 +7,7 @@ package com.pennywiseai.tracker.data.preferences
  */
 enum class HomeSection(val label: String) {
     BUDGETS("Budgets"),
+    GOALS("Goals"),
     LOANS("Loans"),
     GROUPS("Groups"),
     RECENT_TRANSACTIONS("Recent Transactions"),

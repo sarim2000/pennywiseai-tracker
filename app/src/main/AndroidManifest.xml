@@ -186,6 +186,41 @@
                 android:resource="@xml/recent_transactions_widget_info" />
         </receiver>
 
+        <!-- Goal widgets (#914): one chosen goal (2x2) and up to three goals (4x2) -->
+        <receiver
+            android:name=".widget.GoalWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_goal">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/goal_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.GoalsListWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_goals">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/goals_list_widget_info" />
+        </receiver>
+
+        <!-- Picks the goal a 2x2 goal widget shows; the launcher opens it on add. -->
+        <activity
+            android:name=".widget.GoalWidgetConfigActivity"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- Add Transaction Quick Widget -->
         <receiver
             android:name=".widget.AddTransactionWidgetReceiver"

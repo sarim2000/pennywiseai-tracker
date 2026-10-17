@@ -2,10 +2,13 @@ package com.pennywiseai.tracker.widget
 
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
+import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
+import androidx.glance.color.ColorProvider as DayNightColorProvider
 import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.goals.GoalTone
 import com.pennywiseai.tracker.ui.theme.*
 
 object PennyWiseWidgetTheme {
@@ -45,6 +48,18 @@ object PennyWiseWidgetTheme {
             else ->
                 ColorProvider(if (isDark) expense_dark else expense_light)
         }
+    }
+
+    /**
+     * A goal's status line colour (#914), matching the in-app pill roles. Day/night
+     * providers resolve on the launcher's side, so they follow a theme switch at once.
+     */
+    @Composable
+    fun goalToneColor(tone: GoalTone): ColorProvider = when (tone) {
+        GoalTone.SUCCESS -> DayNightColorProvider(day = budget_safe_light, night = budget_safe_dark)
+        GoalTone.WARNING -> DayNightColorProvider(day = budget_warning_light, night = budget_warning_dark)
+        GoalTone.ERROR -> DayNightColorProvider(day = budget_danger_light, night = budget_danger_dark)
+        GoalTone.NEUTRAL -> GlanceTheme.colors.onSurfaceVariant
     }
 
     @Composable

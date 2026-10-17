@@ -90,6 +90,17 @@ fun GoalProgress.pill(): GoalPill = when (status) {
         if (behind.signum() > 0 && behind >= perMonth) GoalPill.Behind(behind) else GoalPill.PerMonth(monthlyDisplay())
 }
 
+/** The colour role a goal's one-line status takes in compact rows (Home card, widgets). */
+@kotlinx.serialization.Serializable
+enum class GoalTone { NEUTRAL, SUCCESS, WARNING, ERROR }
+
+fun GoalProgress.tone(): GoalTone = when (pill()) {
+    GoalPill.Reached -> GoalTone.SUCCESS
+    is GoalPill.MissedBy -> GoalTone.ERROR
+    is GoalPill.Behind -> GoalTone.WARNING
+    is GoalPill.PerMonth, GoalPill.Archived -> GoalTone.NEUTRAL
+}
+
 /** Per month rounded up to a whole unit for display: "₹1,412/mo", and paying it still reaches the target. */
 fun GoalProgress.monthlyDisplay(): BigDecimal = perMonth.setScale(0, RoundingMode.CEILING)
 

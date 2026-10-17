@@ -5,10 +5,7 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
@@ -58,6 +55,8 @@ class TamilnadMercantileBankParserTest {
     }
 
     // TTB (Thailand, formerly TMB Bank) used to claim any sender containing "TMB".
+    private val ttbPayment = "ttb: Payment 1,500.00 THB via PromptPay A/C x9012 Bal 7,200.00 THB"
+
     @TestFactory
     fun `factory routes TMB senders to the right bank`(): List<DynamicTest> =
         ParserTestUtils.runFactoryTestSuite(
@@ -75,16 +74,22 @@ class TamilnadMercantileBankParserTest {
                     ),
                     shouldHandle = true
                 )
-            ),
+            ) + listOf("TTB", "TMB", "TMBThanachart").map { sender ->
+                SimpleTestCase(
+                    bankName = "TTB",
+                    sender = sender,
+                    currency = "THB",
+                    message = ttbPayment,
+                    expected = ExpectedTransaction(
+                        amount = BigDecimal("1500.00"),
+                        currency = "THB",
+                        type = TransactionType.EXPENSE
+                    ),
+                    shouldHandle = true,
+                    description = "Thai sender $sender stays on TTB"
+                )
+            },
             "TMB factory routing"
         )
 
-    @Test
-    fun `factory keeps Thai TMB senders on TTB`() {
-        listOf("TTB", "TMB", "TMBThanachart").forEach { sender ->
-            assertEquals("TTB", BankParserFactory.getParser(sender)?.getBankName(), sender)
-        }
-        assertEquals("Tamilnad Mercantile Bank", BankParserFactory.getParser("VA-TMBANK-S")?.getBankName())
-        assertFalse(TTBBankParser().canHandle("VA-TMBANK-S"))
-    }
 }

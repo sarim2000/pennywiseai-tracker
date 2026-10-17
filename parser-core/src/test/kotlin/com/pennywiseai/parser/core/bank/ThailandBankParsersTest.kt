@@ -313,6 +313,9 @@ class ThailandBankParsersTest {
 
         val handleCases = listOf(
             Pair("TTB", true),
+            Pair("TMB", true),
+            Pair("TMBThanachart", true),
+            Pair("VA-TMBANK-S", false),
             Pair("OTHER", false)
         )
 

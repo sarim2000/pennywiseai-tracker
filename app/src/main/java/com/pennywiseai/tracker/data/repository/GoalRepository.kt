@@ -91,8 +91,11 @@ class GoalRepository @Inject constructor(
         require(goal.name.isNotBlank()) { "Goal name is blank" }
         require(goal.targetAmount.signum() > 0) { "Target amount must be positive" }
         require(goal.alreadySaved.signum() >= 0) { "Already saved can't be negative" }
-        check(goal.currency == existing.currency || goalDao.countContributions(goal.id) == 0) {
-            "A goal's currency can't change once it has contributions"
+        check(
+            goal.currency == existing.currency ||
+                (goalDao.countContributions(goal.id) == 0 && existing.alreadySaved.signum() == 0)
+        ) {
+            "A goal's currency can't change once it holds money (contributions or already saved)"
         }
         goalDao.updateGoal(
             goal.copy(name = goal.name.trim(), uid = existing.uid, createdAt = existing.createdAt, updatedAt = LocalDateTime.now())

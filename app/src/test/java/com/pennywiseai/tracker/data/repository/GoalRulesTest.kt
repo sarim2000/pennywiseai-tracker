@@ -77,10 +77,10 @@ class GoalRulesTest {
     fun perMonthSplitsLeftOverMonthsRoundedUp() {
         // 12 whole months left.
         assertMoney("100", GoalRules.progress(goal(), emptyList(), today).perMonth)
-        // 12 months + 4 days rounds up to 13 → 1200 / 13 = 92.307… → 92.31 (rounded up).
+        // 12 months + 4 days rounds up to 13 → 1200 / 13 = 92.307… → 93 (whole units, rounded up).
         val p = GoalRules.progress(goal(due = LocalDate.of(2027, 10, 20)), emptyList(), today)
         assertEquals(13, p.monthsLeft)
-        assertMoney("92.31", p.perMonth)
+        assertMoney("93", p.perMonth)
     }
 
     @Test

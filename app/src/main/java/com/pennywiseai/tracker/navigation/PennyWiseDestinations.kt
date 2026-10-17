@@ -72,6 +72,14 @@ data class BudgetHistory(
     val month: Int
 )
 
+/** A savings Goal's own screen (#914). */
+@Serializable
+data class GoalDetail(val goalId: Long)
+
+/** Create (goalId = -1) or edit a Goal. */
+@Serializable
+data class GoalEdit(val goalId: Long = -1L)
+
 @Serializable
 object Loans
 

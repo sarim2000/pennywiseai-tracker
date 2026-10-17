@@ -19,6 +19,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -76,8 +78,16 @@ fun BudgetGroupsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToGroupEdit: (Long) -> Unit = {},
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
-    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> }
+    onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
+    onNavigateToGoal: (Long) -> Unit = {},
+    onNavigateToGoalEdit: (Long) -> Unit = {}
 ) {
+    val goalsSection: @Composable () -> Unit = {
+        com.pennywiseai.tracker.presentation.goals.GoalsSection(
+            onOpenGoal = onNavigateToGoal,
+            onCreateGoal = { onNavigateToGoalEdit(-1L) }
+        )
+    }
     val uiState by viewModel.uiState.collectAsState()
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -130,7 +140,9 @@ fun BudgetGroupsScreen(
                     .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues)
+                    .verticalScroll(rememberScrollState())
             ) {
+                Box(Modifier.padding(Dimensions.Padding.content)) { goalsSection() }
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -150,6 +162,7 @@ fun BudgetGroupsScreen(
                 modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
                 topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
+                goalsSection = goalsSection,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
                 onGroupClick = { groupId -> onNavigateToGroupEdit(groupId) },
@@ -234,6 +247,7 @@ private fun BudgetGroupsContent(
     modifier: Modifier = Modifier,
     topPadding: Dp = 0.dp,
     uiState: BudgetGroupsUiState,
+    goalsSection: @Composable () -> Unit = {},
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGroupClick: (Long) -> Unit,
@@ -273,6 +287,9 @@ private fun BudgetGroupsContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
+        // Goals (#914) sit above the spending budgets; they aren't month-based.
+        item(key = "goals") { goalsSection() }
+
         // Month Selector
         item {
             val visible = remember { mutableStateOf(hasAnimated) }

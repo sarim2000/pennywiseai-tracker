@@ -55,8 +55,9 @@ object GoalRules {
             over = (saved - target).max(BigDecimal.ZERO),
             status = status,
             monthsLeft = months,
-            // Rounded up so paying perMonth every month reaches the target.
-            perMonth = left.divide(BigDecimal(months), 2, RoundingMode.UP),
+            // Whole units, rounded up: a suggestion to save, so "₹1,412/mo" not
+            // "₹1,411.77/mo", and paying it every month still reaches the target.
+            perMonth = left.divide(BigDecimal(months), 0, RoundingMode.UP),
             behind = (expectedByNow(goal, today) - saved).max(BigDecimal.ZERO),
         )
     }

@@ -56,17 +56,20 @@ Migrations run on the phone's own SQLite, not the app's. minSdk 26 (Android 8) s
 
 Avoid features newer than 3.18 in migration SQL — e.g. `HAVING` without `GROUP BY` (3.39), `RENAME COLUMN` (3.25), `DROP COLUMN` (3.35), `UPSERT` (3.24), window functions (3.25), `RETURNING` (3.35). `MigrationSqlCompatibilityTest` guards the `HAVING` case only.
 
-**Check before merging/releasing a migration**, on the `Api33_Migration` AVD (Android 13, SQLite 3.32.2):
+**Check before merging/releasing a migration**, on the `Api26_Migration` AVD (Android 8.0, SQLite 3.18.2 — our minSdk, so the oldest SQLite we run on). `Api33_Migration` (Android 13, 3.32.2) is an optional extra.
 
 ```bash
-~/Library/Android/sdk/emulator/emulator -avd Api33_Migration -port 5558 -no-snapshot-save -no-boot-anim
+~/Library/Android/sdk/emulator/emulator -avd Api26_Migration -port 5562 -no-snapshot-save -no-boot-anim
 ```
 
-1. Quick SQL check: `adb -s emulator-5558 shell "sqlite3 :memory: '<your SQL>'"` (create the tables it touches first).
-2. Real upgrade: install the last released build (`git worktree add` at its tag, `:app:assembleFdroidDebug`), open it once, then `adb install -r` the new build and launch it.
-3. Pass = no `FATAL` in `adb -s emulator-5558 logcat -b crash`, and `run-as com.pennywiseai.tracker.debug sqlite3 databases/pennywise_database "PRAGMA user_version"` shows the new `SCHEMA_VERSION`.
+1. Quick SQL check: `adb -s emulator-5562 shell "sqlite3 :memory: '<your SQL>'"` (create the tables it touches first).
+2. Real upgrade: install the last released build (`git worktree add` at its tag, `:app:assembleFdroidDebug`) with `adb -s emulator-5562 install -r <apk>`, open it once, then `adb -s emulator-5562 install -r` the new build and launch it.
+3. Pass = no `FATAL` in `adb -s emulator-5562 logcat -b crash`, and this prints the new `SCHEMA_VERSION`:
+   ```bash
+   adb -s emulator-5562 shell "run-as com.pennywiseai.tracker.debug sqlite3 databases/pennywise_database 'PRAGMA user_version'"
+   ```
 
-If the AVD is missing: `sdkmanager "system-images;android-33;google_apis;arm64-v8a"` then `avdmanager create avd -n Api33_Migration -k "system-images;android-33;google_apis;arm64-v8a" -d pixel_6`.
+If the AVD is missing: `sdkmanager "system-images;android-26;google_apis;arm64-v8a"` then `avdmanager create avd -n Api26_Migration -k "system-images;android-26;google_apis;arm64-v8a" -d pixel_2`.
 
 ## No destructive fallback
 

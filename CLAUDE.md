@@ -46,7 +46,7 @@ complaint.
    SQLite 3.18; Android 13 ships 3.32. The JVM and our new-Android emulators
    are newer and accept syntax old phones reject: 2.22.0's `HAVING` without
    `GROUP BY` (3.39+) crashed every launch on Android ≤13. Before merging or
-   releasing a migration, run the update path on the `Api33_Migration` AVD —
+   releasing a migration, run the update path on the `Api26_Migration` AVD —
    see `docs/database-migrations.md`.
 
 ## Verification — Definition of Done

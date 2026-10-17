@@ -124,7 +124,7 @@ fun PennyWiseNavHost(
                     navController.navigate(Faq) { launchSingleTop = true }
                 },
                 onNavigateToBudgets = {
-                    navController.navigate(BudgetGroups) { launchSingleTop = true }
+                    navController.navigate(BudgetGroups()) { launchSingleTop = true }
                 },
                 onNavigateToExchangeRates = {
                     navController.navigate(ExchangeRates) { launchSingleTop = true }
@@ -334,8 +334,9 @@ fun PennyWiseNavHost(
             exitTransition = { fadeOut(tween(200)) },
             popEnterTransition = { fadeIn(tween(300)) },
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        ) { backStackEntry ->
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
+                createGoalOnOpen = backStackEntry.toRoute<BudgetGroups>().createGoal,
                 onNavigateBack = {
                     navController.safePopBackStack()
                 },

@@ -35,7 +35,9 @@ fun PennyWiseApp(
     onEditComplete: (() -> Unit)? = null,
     onAddTransactionShortcutHandled: (() -> Unit)? = null,
     sharedText: String? = null,
-    onSharedTextHandled: (() -> Unit)? = null
+    onSharedTextHandled: (() -> Unit)? = null,
+    widgetDestination: Any? = null,
+    onWidgetDestinationHandled: (() -> Unit)? = null
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
     val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
@@ -118,6 +120,14 @@ fun PennyWiseApp(
                 launchSingleTop = true
             }
             onAddTransactionShortcutHandled?.invoke()
+        }
+    }
+
+    // A goal widget tap (#914): open the goal or the Budgets screen, like the add widget does.
+    LaunchedEffect(widgetDestination) {
+        widgetDestination?.let { destination ->
+            navController.navigate(destination) { launchSingleTop = true }
+            onWidgetDestinationHandled?.invoke()
         }
     }
 

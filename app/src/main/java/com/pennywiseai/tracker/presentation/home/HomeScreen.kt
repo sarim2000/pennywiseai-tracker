@@ -150,6 +150,7 @@ fun HomeScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
+    onGoalClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
 ) {
@@ -160,6 +161,7 @@ fun HomeScreen(
     val deletedTransaction by viewModel.deletedTransaction.collectAsState()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
     val groupSummaries by viewModel.groupSummaries.collectAsState()
+    val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val activity = LocalActivity.current
@@ -591,6 +593,48 @@ fun HomeScreen(
                                             summary = summary,
                                             onClick = onNavigateToBudgets,
                                             onCreateBudget = onNavigateToBudgets,
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    HomeSection.GOALS -> {
+                        // 2.25. Goals (#914) — only when there's a non-archived goal.
+                        if (goals.isNotEmpty()) {
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        SectionHeaderV2(
+                                            title = stringResource(R.string.home_section_goals),
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            action = {
+                                                TextButton(onClick = onNavigateToBudgets) {
+                                                    Text(stringResource(R.string.home_view_all))
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                                    )
+                                                }
+                                            }
+                                        )
+                                        com.pennywiseai.tracker.presentation.goals.GoalsHomeCard(
+                                            goals = goals,
+                                            onOpenGoal = onGoalClick,
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                         )
                                     }
@@ -1710,6 +1754,7 @@ private fun MenuListItem(
 @StringRes
 private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.BUDGETS -> R.string.home_section_budgets
+    HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups
     HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions

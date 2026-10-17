@@ -79,6 +79,7 @@ class HomeViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val loanRepository: LoanRepository,
+    goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -115,6 +116,11 @@ class HomeViewModel @Inject constructor(
      */
     val groupSummaries: StateFlow<List<com.pennywiseai.tracker.data.repository.GroupSummary>> =
         transactionGroupRepository.observeGroupSummaries()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    /** Active goals for the Home "Goals" card (#914): soonest due first, Reached last; empty hides the card. */
+    val goals: StateFlow<List<com.pennywiseai.tracker.data.repository.GoalProgress>> =
+        goalRepository.observeActiveGoals()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     /** Home section order + visibility (#770); default until DataStore emits. */

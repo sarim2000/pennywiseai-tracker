@@ -2,10 +2,12 @@ package com.pennywiseai.tracker.widget
 
 import android.content.res.Configuration
 import androidx.compose.runtime.Composable
+import androidx.glance.GlanceTheme
 import androidx.glance.LocalContext
 import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.goals.GoalTone
 import com.pennywiseai.tracker.ui.theme.*
 
 object PennyWiseWidgetTheme {
@@ -44,6 +46,18 @@ object PennyWiseWidgetTheme {
                 ColorProvider(if (isDark) transfer_dark else transfer_light)
             else ->
                 ColorProvider(if (isDark) expense_dark else expense_light)
+        }
+    }
+
+    /** A goal's status line colour (#914), matching the in-app pill roles. */
+    @Composable
+    fun goalToneColor(tone: GoalTone): ColorProvider {
+        val isDark = isWidgetDarkMode()
+        return when (tone) {
+            GoalTone.SUCCESS -> ColorProvider(if (isDark) budget_safe_dark else budget_safe_light)
+            GoalTone.WARNING -> ColorProvider(if (isDark) budget_warning_dark else budget_warning_light)
+            GoalTone.ERROR -> ColorProvider(if (isDark) budget_danger_dark else budget_danger_light)
+            GoalTone.NEUTRAL -> GlanceTheme.colors.onSurfaceVariant
         }
     }
 

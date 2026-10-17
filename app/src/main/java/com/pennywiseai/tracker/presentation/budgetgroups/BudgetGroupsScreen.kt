@@ -80,12 +80,14 @@ fun BudgetGroupsScreen(
     onNavigateToHistory: (Long, Int, Int) -> Unit = { _, _, _ -> },
     onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
     onNavigateToGoal: (Long) -> Unit = {},
-    onNavigateToGoalEdit: (Long) -> Unit = {}
+    onNavigateToGoalEdit: (Long) -> Unit = {},
+    createGoalOnOpen: Boolean = false
 ) {
     val goalsSection: @Composable () -> Unit = {
         com.pennywiseai.tracker.presentation.goals.GoalsSection(
             onOpenGoal = onNavigateToGoal,
-            onCreateGoal = { onNavigateToGoalEdit(-1L) }
+            onCreateGoal = { onNavigateToGoalEdit(-1L) },
+            createOnOpen = createGoalOnOpen
         )
     }
     val uiState by viewModel.uiState.collectAsState()

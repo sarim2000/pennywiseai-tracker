@@ -724,14 +724,16 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 // The owning row identifies a leg directly. For the other leg, only
                 // backfill when one bank is evidenced by balances in the same currency.
                 // Shared suffixes at different banks must remain unknown.
+                // No HAVING without GROUP BY: SQLite only allows that from 3.39
+                // (Android 14), and older phones crashed on every launch (2.22.0).
                 for (leg in listOf("from", "to")) {
                     db.execSQL("""
                         UPDATE transactions SET ${leg}_bank_name = CASE
                             WHEN account_number = ${leg}_account AND from_account IS NOT to_account THEN bank_name
-                            ELSE (SELECT MIN(bank_name) FROM account_balances b
+                            ELSE (SELECT CASE WHEN COUNT(DISTINCT bank_name) = 1 THEN MIN(bank_name) END
+                                  FROM account_balances b
                                   WHERE b.account_last4 = transactions.${leg}_account
-                                    AND b.currency = transactions.currency
-                                  HAVING COUNT(DISTINCT bank_name) = 1)
+                                    AND b.currency = transactions.currency)
                         END
                         WHERE transaction_type = 'TRANSFER' AND ${leg}_account IS NOT NULL
                     """.trimIndent())

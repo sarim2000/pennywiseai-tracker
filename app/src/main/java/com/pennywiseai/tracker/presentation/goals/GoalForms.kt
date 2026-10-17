@@ -104,7 +104,7 @@ fun GoalProgress.percent(): Int =
     else saved.multiply(BigDecimal(100)).divide(goal.targetAmount, 0, RoundingMode.DOWN).toInt()
 
 /** Why an Add money / Take out / contribution edit didn't save. */
-enum class MoneyError { AMOUNT_INVALID, MORE_THAN_SAVED, NO_RATE, FAILED }
+enum class MoneyError { AMOUNT_INVALID, MORE_THAN_SAVED, MORE_THAN_LEFT, NO_RATE, FAILED }
 
 /**
  * Checks an Add money / Take out amount, already in the goal's currency.
@@ -147,3 +147,29 @@ fun editContribution(
 }
 
 class MoneyException(val error: MoneyError) : IllegalArgumentException(error.name)
+
+/** A transaction share to put toward a goal: [amount] in the goal's currency, plus the share itself when converted. */
+data class GoalShare(val amount: BigDecimal, val originalAmount: BigDecimal?, val originalCurrency: String?)
+
+/**
+ * Add to goal: [share] is typed in the transaction's currency and must fit in
+ * what's [left] of it. Another goal currency is converted with [convert]; with
+ * no rate the user's [manual] amount (in the goal's currency) is used, and
+ * without that it fails with [MoneyError.NO_RATE] so the sheet can ask.
+ */
+suspend fun shareForGoal(
+    share: BigDecimal?,
+    left: BigDecimal,
+    transactionCurrency: String,
+    goalCurrency: String,
+    manual: BigDecimal?,
+    convert: suspend (BigDecimal) -> BigDecimal?,
+): Result<GoalShare> {
+    if (share == null || share.signum() <= 0) return Result.failure(MoneyException(MoneyError.AMOUNT_INVALID))
+    if (share > left) return Result.failure(MoneyException(MoneyError.MORE_THAN_LEFT))
+    // Exact match, as GoalRepository compares: a share is only stored when the currencies differ.
+    if (transactionCurrency == goalCurrency) return Result.success(GoalShare(share, null, null))
+    val converted = manual ?: convert(share) ?: return Result.failure(MoneyException(MoneyError.NO_RATE))
+    if (converted.signum() <= 0) return Result.failure(MoneyException(MoneyError.AMOUNT_INVALID))
+    return Result.success(GoalShare(converted, share, transactionCurrency))
+}

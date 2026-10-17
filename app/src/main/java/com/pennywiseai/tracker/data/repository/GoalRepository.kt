@@ -191,14 +191,40 @@ class GoalRepository @Inject constructor(
 
     /**
      * When a linked transaction's amount drops to [newAmount], scales its
-     * contributions down so their shares sum to it (no-op if they fit).
-     * Phase 3 calls this from the transaction edit paths.
+     * contributions down so their shares sum to it (no-op if they fit, so an
+     * increase changes nothing). [TransactionRepository] calls this after every
+     * amount write; a transaction with no contributions costs one indexed read.
      */
-    suspend fun capContributionsToTransaction(transactionId: Long, newAmount: BigDecimal) = database.withTransaction {
-        val changed = GoalRules.capContributions(
-            goalDao.getContributionsForTransaction(transactionId), newAmount, LocalDateTime.now()
-        )
-        if (changed.isNotEmpty()) goalDao.updateContributions(changed)
+    suspend fun capContributionsToTransaction(transactionId: Long, newAmount: BigDecimal) {
+        if (goalDao.getContributionsForTransaction(transactionId).isEmpty()) return
+        database.withTransaction {
+            val changed = GoalRules.capContributions(
+                goalDao.getContributionsForTransaction(transactionId), newAmount, LocalDateTime.now()
+            )
+            if (changed.isNotEmpty()) goalDao.updateContributions(changed)
+        }
+    }
+
+    /**
+     * Before a duplicate transaction is removed, moves its contributions to the
+     * row that survives (capped to its amount) so the money stays in the goal.
+     * See [GoalRules.repoint].
+     */
+    suspend fun moveContributions(fromTransactionId: Long, toTransactionId: Long) {
+        if (fromTransactionId == toTransactionId) return
+        if (goalDao.getContributionsForTransaction(fromTransactionId).isEmpty()) return
+        database.withTransaction {
+            val survivor = transactionDao.getTransactionById(toTransactionId) ?: return@withTransaction
+            val changed = GoalRules.repoint(
+                moving = goalDao.getContributionsForTransaction(fromTransactionId),
+                survivorLinked = goalDao.getContributionsForTransaction(toTransactionId),
+                survivorId = survivor.id,
+                survivorAmount = survivor.amount,
+                survivorCurrency = survivor.currency,
+                now = LocalDateTime.now(),
+            )
+            if (changed.isNotEmpty()) goalDao.updateContributions(changed)
+        }
     }
 
     /** A fresh copy due a year later, starting today at 0 with no contributions. */

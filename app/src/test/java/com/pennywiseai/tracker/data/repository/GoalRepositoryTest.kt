@@ -180,4 +180,41 @@ class GoalRepositoryTest {
         repo.updateContribution(converted.copy(amount = BigDecimal("-4100"), originalAmount = BigDecimal("-50")))
         coVerify { goalDao.updateContribution(match { it.amount.signum() < 0 && it.originalAmount!!.signum() < 0 }) }
     }
+
+    private fun linked(id: Long, share: String, goalId: Long = 1) = GoalContributionEntity(
+        id = id, goalId = goalId, amount = BigDecimal(share), originalAmount = BigDecimal(share),
+        originalCurrency = "INR", transactionId = 9
+    )
+
+    @Test
+    fun capOnTransactionEditOnlyWritesWhenTheAmountDropsBelowTheShares() = runBlocking {
+        coEvery { goalDao.getContributionsForTransaction(9) } returns listOf(linked(1, "300"), linked(2, "200", goalId = 2))
+
+        repo.capContributionsToTransaction(9, BigDecimal("800")) // raised: shares still fit
+        coVerify(exactly = 0) { goalDao.updateContributions(any()) }
+
+        val written = slot<List<GoalContributionEntity>>()
+        coEvery { goalDao.updateContributions(capture(written)) } returns Unit
+        repo.capContributionsToTransaction(9, BigDecimal("250")) // lowered: scaled to fit
+        assertEquals(0, BigDecimal("250").compareTo(written.captured.sumOf { it.originalAmount!! }))
+    }
+
+    @Test
+    fun capWithNoContributionsSkipsTheTransaction() = runBlocking {
+        coEvery { goalDao.getContributionsForTransaction(9) } returns emptyList()
+        repo.capContributionsToTransaction(9, BigDecimal("1"))
+        coVerify(exactly = 0) { database.withTransaction(any<suspend () -> Any?>()) }
+    }
+
+    @Test
+    fun moveContributionsRepointsADuplicatesContributionsToTheSurvivor() = runBlocking {
+        coEvery { goalDao.getContributionsForTransaction(8) } returns listOf(linked(1, "400").copy(transactionId = 8))
+        coEvery { goalDao.getContributionsForTransaction(9) } returns emptyList()
+        coEvery { transactionDao.getTransactionById(9) } returns txn("500")
+        val written = slot<List<GoalContributionEntity>>()
+        coEvery { goalDao.updateContributions(capture(written)) } returns Unit
+
+        repo.moveContributions(fromTransactionId = 8, toTransactionId = 9)
+        assertEquals(listOf(9L), written.captured.map { it.transactionId })
+    }
 }

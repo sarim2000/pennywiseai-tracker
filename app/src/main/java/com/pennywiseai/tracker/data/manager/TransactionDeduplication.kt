@@ -110,7 +110,11 @@ object TransactionDeduplication {
         return existing.balanceAfter == null && incoming.balanceAfter != null
     }
 
-    fun duplicateIdsToDelete(transactions: List<TransactionEntity>): List<Long> {
+    fun duplicateIdsToDelete(transactions: List<TransactionEntity>): List<Long> =
+        duplicatesToKeepers(transactions).keys.toList()
+
+    /** Each duplicate's id → the id of the row kept in its place, in deletion order. */
+    fun duplicatesToKeepers(transactions: List<TransactionEntity>): Map<Long, Long> {
         return transactions
             .filter { !it.isDeleted && hasUpiReference(it) }
             .groupBy {
@@ -125,9 +129,10 @@ object TransactionDeduplication {
             .values
             .map { group -> duplicateIdsFromGroup(group) }
             .flatten()
+            .toMap()
     }
 
-    private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Long> {
+    private fun duplicateIdsFromGroup(group: List<TransactionEntity>): List<Pair<Long, Long>> {
         val duplicateClusters = mutableListOf<MutableList<TransactionEntity>>()
 
         group.sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
@@ -148,7 +153,7 @@ object TransactionDeduplication {
             cluster
                 .filter { it.id != keeper.id }
                 .sortedWith(compareBy<TransactionEntity> { it.dateTime }.thenBy { it.id })
-                .map { it.id }
+                .map { it.id to keeper.id }
         }.flatten()
     }
 

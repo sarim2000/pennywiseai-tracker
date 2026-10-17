@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
+import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
+import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
@@ -39,6 +42,8 @@ import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -120,7 +125,10 @@ fun TransactionDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToLoanDetail: (Long) -> Unit = {},
     onDuplicateTransaction: (Long) -> Unit = {},
-    viewModel: TransactionDetailViewModel = hiltViewModel()
+    onNavigateToGoal: (Long) -> Unit = {},
+    onCreateGoal: () -> Unit = {},
+    viewModel: TransactionDetailViewModel = hiltViewModel(),
+    goalsViewModel: TransactionGoalsViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -159,6 +167,14 @@ fun TransactionDetailScreen(
     val currentGroup by viewModel.currentGroup.collectAsStateWithLifecycle()
     val availableGroups by viewModel.availableGroups.collectAsStateWithLifecycle()
     val showGroupSheet by viewModel.showGroupSheet.collectAsStateWithLifecycle()
+
+    // Goals (#914)
+    val linkedGoals by goalsViewModel.linked.collectAsStateWithLifecycle()
+    val goals by goalsViewModel.goals.collectAsStateWithLifecycle()
+    val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
+    var showAddToGoal by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
+    LaunchedEffect(addToGoal.done) { if (addToGoal.done) showAddToGoal = false }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -262,6 +278,17 @@ fun TransactionDetailScreen(
                                     }
                                 )
                                 DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.goal_add_to_goal)) },
+                                    leadingIcon = {
+                                        Icon(Icons.Outlined.Savings, contentDescription = null)
+                                    },
+                                    onClick = {
+                                        showActionsMenu = false
+                                        goalsViewModel.openSheet()
+                                        showAddToGoal = true
+                                    }
+                                )
+                                DropdownMenuItem(
                                     text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
                                     leadingIcon = {
                                         Icon(Icons.Default.ContentCopy, contentDescription = null)
@@ -345,7 +372,24 @@ fun TransactionDetailScreen(
                 onUnmarkLoanClick = { showUnmarkLoanConfirm = true },
                 accountProfileId = accountProfileId,
                 hazeState = hazeState,
+                towardGoals = {
+                    TowardGoalsSection(linkedGoals, onOpenGoal = onNavigateToGoal, onRemove = goalsViewModel::remove)
+                },
                 modifier = Modifier.padding(paddingValues)
+            )
+        }
+    }
+
+    if (showAddToGoal) {
+        transaction?.let { txn ->
+            AddToGoalSheet(
+                transaction = txn,
+                goals = goals,
+                state = addToGoal,
+                onDismiss = { showAddToGoal = false },
+                onSave = goalsViewModel::add,
+                onCreateGoal = { showAddToGoal = false; onCreateGoal() },
+                onEdited = goalsViewModel::clearError,
             )
         }
     }
@@ -488,6 +532,7 @@ private fun TransactionDetailContent(
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long?,
     hazeState: HazeState,
+    towardGoals: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -533,7 +578,8 @@ private fun TransactionDetailContent(
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
                 onUnmarkLoanClick = onUnmarkLoanClick,
-                accountProfileId = accountProfileId
+                accountProfileId = accountProfileId,
+                towardGoals = towardGoals
             )
         }
     }
@@ -552,7 +598,8 @@ private fun TransactionReceipt(
     loan: LoanEntity?,
     onNavigateToLoanDetail: (Long) -> Unit,
     onUnmarkLoanClick: () -> Unit,
-    accountProfileId: Long? = null
+    accountProfileId: Long? = null,
+    towardGoals: @Composable () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
@@ -798,6 +845,8 @@ private fun TransactionReceipt(
                 )
             }
         }
+
+        towardGoals()
 
         // ── Details Section ──
         Column(modifier = Modifier.fillMaxWidth()) {

@@ -183,6 +183,12 @@ fun PennyWiseNavHost(
                         navController.navigate(AddTransaction(sourceTransactionId = sourceId)) {
                             launchSingleTop = true
                         }
+                    },
+                    onNavigateToGoal = { goalId ->
+                        navController.navigate(GoalDetail(goalId)) { launchSingleTop = true }
+                    },
+                    onCreateGoal = {
+                        navController.navigate(GoalEdit()) { launchSingleTop = true }
                     }
                 )
             }
@@ -366,6 +372,9 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
                 onNavigateBack = { navController.safePopBackStack() },
                 onEdit = { goalId -> navController.navigate(GoalEdit(goalId)) { launchSingleTop = true } },
+                onOpenTransaction = { transactionId ->
+                    navController.navigate(TransactionDetail(transactionId)) { launchSingleTop = true }
+                },
                 // Repeat for next year opens the new copy in place of this one.
                 onOpenGoal = { goalId ->
                     navController.navigate(GoalDetail(goalId)) {

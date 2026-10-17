@@ -96,4 +96,39 @@ class GoalFormsTest {
         val missed = GoalRules.progress(goal.copy(dueDate = today.minusDays(1)), emptyList(), today).pill()
         assertEquals(GoalPill.MissedBy(bd("1200")), missed)
     }
+
+    private fun share(
+        share: String?, left: String = "500", txn: String = "INR", goal: String = "INR",
+        manual: String? = null, rate: BigDecimal? = bd("80"),
+    ) = kotlinx.coroutines.runBlocking {
+        shareForGoal(share?.let(::bd), bd(left), txn, goal, manual?.let(::bd)) { amount -> rate?.let { amount * it } }
+    }
+
+    private fun Result<GoalShare>.error() = (exceptionOrNull() as? MoneyException)?.error
+
+    @Test
+    fun `add to goal takes up to what is left of the transaction`() {
+        assertEquals(bd("500"), share("500").getOrThrow().amount) // the prefilled unallocated amount fits
+        assertEquals(MoneyError.MORE_THAN_LEFT, share("500.01").error())
+        assertEquals(MoneyError.AMOUNT_INVALID, share("0").error())
+        assertEquals(MoneyError.AMOUNT_INVALID, share(null).error())
+        // Same currency: no original amount is stored.
+        assertNull(share("200").getOrThrow().originalAmount)
+    }
+
+    @Test
+    fun `add to goal converts into the goal currency and keeps the transaction share`() {
+        val converted = share("50", txn = "USD", goal = "INR").getOrThrow()
+        assertEquals(0, bd("4000").compareTo(converted.amount))
+        assertEquals(bd("50"), converted.originalAmount)
+        assertEquals("USD", converted.originalCurrency)
+    }
+
+    @Test
+    fun `with no rate add to goal asks for the amount in the goal currency`() {
+        assertEquals(MoneyError.NO_RATE, share("50", txn = "USD", rate = null).error())
+        val manual = share("50", txn = "USD", rate = null, manual = "4150").getOrThrow()
+        assertEquals(bd("4150"), manual.amount)
+        assertEquals(bd("50"), manual.originalAmount)
+    }
 }

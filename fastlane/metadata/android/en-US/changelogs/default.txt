@@ -1,6 +1,4 @@
-• Receipt photos are now included in backups
-• Import ICICI Bank PDF statements, including password-protected ones
-• Added support for Equity Bank (Kenya, KES)
-• Share any text or notification to PennyWise to open Add Transaction pre-filled
-• Configurable webhook sync lets you push transactions to external services
-• App notifications from Slice, Chase UK, and Trading 212 are now parsed
+• Goals and Budgets — set spending goals, track progress, and add transactions to a goal directly from the transaction detail screen
+• Fixed a crash that prevented launch on Android 13 and older devices after the last database migration
+• New Spending filter in Analytics combines Expense and Card transactions into a single view
+• Fixed Tamilnad Mercantile Bank SMS messages being incorrectly captured by Thailand's TTB parser

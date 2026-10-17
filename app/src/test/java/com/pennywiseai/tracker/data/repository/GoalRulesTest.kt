@@ -185,4 +185,45 @@ class GoalRulesTest {
         assertMoney("800", GoalRules.unallocated(BigDecimal("1000"), linked, excludingId = 1))
         assertMoney("0", GoalRules.unallocated(BigDecimal("400"), linked))
     }
+
+    private fun linked(id: Long, share: String, txn: Long, currency: String = "INR", amount: String = share) = GoalContributionEntity(
+        id = id, goalId = 1, amount = BigDecimal(amount), originalAmount = BigDecimal(share),
+        originalCurrency = currency, transactionId = txn
+    )
+
+    @Test
+    fun repointMovesSameCurrencySharesToTheSurvivorAndCapsThem() {
+        val now = LocalDateTime.of(2026, 10, 16, 12, 0)
+        val changed = GoalRules.repoint(
+            moving = listOf(linked(1, "300", txn = 8)),
+            survivorLinked = listOf(linked(2, "300", txn = 9)),
+            survivorId = 9, survivorAmount = BigDecimal("400"), survivorCurrency = "INR", now = now,
+        ).associateBy { it.id }
+        // Both now point at 9 and their shares sum to the survivor's 400.
+        assertEquals(setOf(1L, 2L), changed.keys)
+        assertTrue(changed.values.all { it.transactionId == 9L })
+        assertMoney("400", changed.values.sumOf { it.originalAmount!! })
+    }
+
+    @Test
+    fun repointKeepsAShareInAnotherCurrencyInTheGoalButUnlinked() {
+        val changed = GoalRules.repoint(
+            moving = listOf(linked(1, "50", txn = 8, currency = "USD", amount = "4100")),
+            survivorLinked = emptyList(),
+            survivorId = 9, survivorAmount = BigDecimal("4000"), survivorCurrency = "INR", now = LocalDateTime.now(),
+        ).single()
+        assertEquals(null, changed.transactionId)
+        assertMoney("4100", changed.amount)
+    }
+
+    @Test
+    fun repointWithRoomToSpareLeavesAmountsAlone() {
+        val changed = GoalRules.repoint(
+            moving = listOf(linked(1, "100", txn = 8)),
+            survivorLinked = emptyList(),
+            survivorId = 9, survivorAmount = BigDecimal("500"), survivorCurrency = "INR", now = LocalDateTime.now(),
+        ).single()
+        assertEquals(9L, changed.transactionId)
+        assertMoney("100", changed.amount)
+    }
 }

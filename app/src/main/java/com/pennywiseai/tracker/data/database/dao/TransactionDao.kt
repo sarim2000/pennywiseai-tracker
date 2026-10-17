@@ -286,6 +286,8 @@ interface TransactionDao {
      *  - it has no splits (they were sized to the old amount)
      *  - it isn't linked to a loan, unless the currency stays the same (loan
      *    totals sum their linked rows as one currency)
+     *  - it holds no goal contributions, unless the currency stays the same (their
+     *    shares are in the transaction's currency, #914)
      * @return rows changed: 0 when any of these no longer holds.
      */
     @Query(
@@ -295,6 +297,7 @@ interface TransactionDao {
         WHERE id = :id AND amount = :expectedAmount AND currency = :expectedCurrency
           AND NOT EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id = :id)
           AND (loan_id IS NULL OR currency = :currency)
+          AND (currency = :currency OR NOT EXISTS (SELECT 1 FROM goal_contributions WHERE transaction_id = :id))
         """
     )
     suspend fun repairParsedAmount(

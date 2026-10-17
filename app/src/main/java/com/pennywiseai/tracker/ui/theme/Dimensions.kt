@@ -159,6 +159,10 @@ object Dimensions {
         val goalRing = 56.dp
         val goalRingStroke = 6.dp
 
+        /** A goal ring in a list row (the Add to goal picker), and its stroke. */
+        val goalRingSmall = 40.dp
+        val goalRingSmallStroke = 4.dp
+
         /** The big goal ring on the goal's own screen, and its stroke. */
         val goalRingLarge = 168.dp
         val goalRingLargeStroke = 12.dp

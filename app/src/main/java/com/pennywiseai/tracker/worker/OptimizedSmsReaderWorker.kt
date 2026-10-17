@@ -1085,7 +1085,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         transactionRepository.correctParsedAmount(keep, newest)
                     }
                     group.filter { it.id != keep.id }.forEach { dup ->
-                        transactionRepository.deleteTransactionById(dup.id)
+                        // Goal contributions on the duplicate move to [keep] (#914).
+                        transactionRepository.deleteDuplicate(dup.id, keep.id)
                         accountBalanceRepository.deleteBalancesForTransaction(dup.id)
                         ruleRepository.deleteRuleApplicationsForTransaction(dup.id.toString())
                         removed++
@@ -1096,15 +1097,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     }
 
     private suspend fun cleanupExistingGPayDuplicates(): Int {
-        val duplicateIds = transactionRepository.findGPayDuplicateIdsForCleanup()
-        duplicateIds.forEach { id ->
-            transactionRepository.deleteTransactionById(id)
+        val duplicates = transactionRepository.findGPayDuplicatesForCleanup()
+        duplicates.forEach { (id, keeperId) ->
+            transactionRepository.deleteDuplicate(id, keeperId)
             accountBalanceRepository.deleteBalancesForTransaction(id)
             ruleRepository.deleteRuleApplicationsForTransaction(id.toString())
         }
 
         prunePhantomGPayAccounts()
-        return duplicateIds.size
+        return duplicates.size
     }
 
     /**

@@ -67,6 +67,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,
     private val detectBalanceDiscrepancy: com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase,
+    private val goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
     
@@ -872,6 +873,13 @@ class TransactionDetailViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            // Goal contributions keep their share in the transaction's currency (#914).
+            if (original != null && original.currency != toSave.currency &&
+                goalRepository.observeContributionsForTransaction(original.id).first().isNotEmpty()
+            ) {
+                _errorMessage.value = UiText.Res(R.string.goal_currency_locked_by_goal)
+                return@launch
+            }
             _isSaving.value = true
             try {
                 // Handle receipt changes

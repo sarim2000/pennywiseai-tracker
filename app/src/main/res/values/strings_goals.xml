@@ -83,4 +83,14 @@
     <string name="goal_edit_contribution">Edit contribution</string>
     <string name="goal_edit_withdrawal">Edit withdrawal</string>
     <string name="goal_contribution_delete">Delete</string>
+    <!-- Add to goal from a transaction (#914) -->
+    <string name="goal_add_to_goal">Add to goal</string>
+    <string name="goal_add_to_goal_left">%1$s of this transaction can go toward goals</string>
+    <string name="goal_add_to_goal_none_left">All of this transaction already goes toward goals</string>
+    <string name="goal_add_to_goal_no_goals">You don\'t have any goals yet.</string>
+    <string name="goal_add_to_goal_date_hint">The transaction\'s date</string>
+    <string name="goal_money_error_more_than_left">Only %1$s of this transaction is left for goals</string>
+    <string name="goal_toward_goals">Toward goals</string>
+    <string name="goal_toward_remove">Remove from %1$s</string>
+    <string name="goal_currency_locked_by_goal">Remove this transaction from its goals before changing its currency</string>
 </resources>

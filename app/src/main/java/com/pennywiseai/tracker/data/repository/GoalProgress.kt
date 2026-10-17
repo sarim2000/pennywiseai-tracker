@@ -145,4 +145,27 @@ object GoalRules {
             )
         }
     }
+
+    /**
+     * When a duplicate transaction is removed, its [moving] contributions go to
+     * the surviving transaction ([survivorId], [survivorAmount] in [survivorCurrency])
+     * instead of vanishing with it. Shares in another currency can't be a share of
+     * the survivor, so those stay in the goal unlinked. Everything linked to the
+     * survivor ([survivorLinked] + moved) is then capped to its amount.
+     * Returns every row to update.
+     */
+    fun repoint(
+        moving: List<GoalContributionEntity>,
+        survivorLinked: List<GoalContributionEntity>,
+        survivorId: Long,
+        survivorAmount: BigDecimal,
+        survivorCurrency: String,
+        now: LocalDateTime,
+    ): List<GoalContributionEntity> {
+        val (sameCurrency, otherCurrency) = moving.partition { (it.originalCurrency ?: survivorCurrency) == survivorCurrency }
+        val moved = sameCurrency.map { it.copy(transactionId = survivorId, updatedAt = now) }
+        val unlinked = otherCurrency.map { it.copy(transactionId = null, updatedAt = now) }
+        val capped = capContributions(survivorLinked + moved, survivorAmount, now).associateBy { it.id }
+        return (moved + unlinked).map { capped[it.id] ?: it } + capped.values.filter { c -> moved.none { it.id == c.id } }
+    }
 }

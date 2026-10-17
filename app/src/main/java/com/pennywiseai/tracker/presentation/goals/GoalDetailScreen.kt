@@ -91,9 +91,11 @@ fun GoalDetailScreen(
     onNavigateBack: () -> Unit,
     onEdit: (Long) -> Unit,
     onOpenGoal: (Long) -> Unit,
+    onOpenTransaction: (Long) -> Unit = {},
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val merchants by viewModel.merchants.collectAsStateWithLifecycle()
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
     var mode by remember { mutableStateOf<MoneySheetMode?>(null) }
     var showDelete by rememberSaveable { mutableStateOf(false) }
@@ -134,7 +136,9 @@ fun GoalDetailScreen(
             padding = padding,
             onAdd = { open(MoneySheetMode.Add) },
             onTakeOut = { open(MoneySheetMode.TakeOut) },
-            onContribution = { open(MoneySheetMode.Edit(it)) },
+            merchants = merchants,
+            // A row taken from a transaction opens it; the rest open the edit sheet.
+            onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
         )
     }
 
@@ -223,6 +227,7 @@ private fun GoalDetailContent(
     padding: PaddingValues,
     onAdd: () -> Unit,
     onTakeOut: () -> Unit,
+    merchants: Map<Long, String>,
     onContribution: (GoalContributionEntity) -> Unit,
 ) {
     val progress = detail.progress
@@ -324,7 +329,9 @@ private fun GoalDetailContent(
             item {
                 val total = rows.size + if (hasAlreadySaved) 1 else 0
                 GroupedList {
-                    rows.forEachIndexed { i, c -> ContributionRow(c, currency, ListItemPosition.from(i, total)) { onContribution(c) } }
+                    rows.forEachIndexed { i, c ->
+                        ContributionRow(c, currency, c.transactionId?.let(merchants::get), ListItemPosition.from(i, total)) { onContribution(c) }
+                    }
                     if (hasAlreadySaved) {
                         GroupedRow(position = ListItemPosition.from(total - 1, total)) {
                             RowLabels(
@@ -352,7 +359,7 @@ private fun StatTile(label: String, value: String, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun ContributionRow(c: GoalContributionEntity, currency: String, position: ListItemPosition, onClick: () -> Unit) {
+private fun ContributionRow(c: GoalContributionEntity, currency: String, merchant: String?, position: ListItemPosition, onClick: () -> Unit) {
     val withdrawal = c.amount.signum() < 0
     val subtitle = buildList {
         add(c.date.format(goalDateFormat))
@@ -363,7 +370,7 @@ private fun ContributionRow(c: GoalContributionEntity, currency: String, positio
     }.joinToString(" · ")
     GroupedRow(position = position, onClick = onClick) {
         RowLabels(
-            title = stringResource(if (withdrawal) R.string.goal_withdrawal else R.string.goal_contribution),
+            title = merchant ?: stringResource(if (withdrawal) R.string.goal_withdrawal else R.string.goal_contribution),
             subtitle = subtitle,
         )
         Text(

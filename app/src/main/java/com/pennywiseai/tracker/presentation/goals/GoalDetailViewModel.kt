@@ -44,6 +44,10 @@ class GoalDetailViewModel @Inject constructor(
         .map { detail -> detail?.let { GoalDetailState.Loaded(it) } ?: GoalDetailState.Gone }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GoalDetailState.Loading)
 
+    /** Merchant of each linked transaction, by transaction id, for the money list; follows renames. */
+    val merchants: StateFlow<Map<Long, String>> = goalRepository.observeLinkedMerchants(goalId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     private val _sheet = MutableStateFlow(MoneySheetState())
     val sheet: StateFlow<MoneySheetState> = _sheet.asStateFlow()
 

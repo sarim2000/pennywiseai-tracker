@@ -327,4 +327,14 @@ class TransactionDeduplicationTest {
         currency = currency,
         reference = reference
     )
+
+    @Test
+    fun `each duplicate maps to the row kept in its place`() {
+        val transactions = listOf(
+            transaction(id = 3, dateTime = baseTime.plusMinutes(2)),
+            transaction(id = 1, dateTime = baseTime),
+            transaction(id = 2, dateTime = baseTime.plusMinutes(1)),
+        )
+        assertEquals(mapOf(2L to 1L, 3L to 1L), TransactionDeduplication.duplicatesToKeepers(transactions))
+    }
 }

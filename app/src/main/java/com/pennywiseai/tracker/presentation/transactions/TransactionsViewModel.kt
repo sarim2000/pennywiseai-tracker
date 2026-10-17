@@ -530,7 +530,9 @@ class TransactionsViewModel @Inject constructor(
                 message = UiText.Plural(R.plurals.txn_list_bulk_deleted, snapshot.size),
                 undo = {
                     viewModelScope.launch {
-                        restoreTransactionUseCase(snapshot)
+                        // The snapshot predates the delete, and restore skips rows it
+                        // sees as not deleted; it re-reads each row before restoring.
+                        restoreTransactionUseCase(snapshot.map { it.copy(isDeleted = true) })
                         refreshWidgets()
                     }
                 }

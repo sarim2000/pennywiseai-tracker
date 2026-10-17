@@ -29,7 +29,8 @@ open class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao,
+    private val goalRepository: GoalRepository
 ) {
     suspend fun getWebhookChanges(start: LocalDateTime, end: LocalDateTime, currency: String, profileId: String) =
         transactionDao.getWebhookChanges(start, end, currency, profileId)
@@ -142,8 +143,13 @@ open class TransactionRepository @Inject constructor(
         }
     }
     
-    suspend fun updateTransaction(transaction: TransactionEntity) = 
+    /**
+     * Every edit goes through here, so a lowered amount also caps the goal
+     * contributions taken from this transaction (#914).
+     */
+    suspend fun updateTransaction(transaction: TransactionEntity) = goalRepository.writeAndCap(transaction.id) {
         transactionDao.updateTransaction(transaction.copy(updatedAt = LocalDateTime.now()))
+    }
     
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
         if (hardDelete) {
@@ -223,16 +229,18 @@ open class TransactionRepository @Inject constructor(
      * @return whether the row was repaired.
      */
     suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean =
-        // The split and loan guards live in the UPDATE itself, so they see the row
-        // as it is at write time, not as it was when [stored] was read.
-        transactionDao.repairParsedAmount(
-            id = stored.id,
-            amount = fresh.amount,
-            currency = fresh.currency,
-            now = LocalDateTime.now(),
-            expectedAmount = stored.amount,
-            expectedCurrency = stored.currency
-        ) > 0
+        // The split, loan and goal guards live in the UPDATE itself, so they see
+        // the row as it is at write time, not as it was when [stored] was read.
+        goalRepository.writeAndCap(stored.id) {
+            transactionDao.repairParsedAmount(
+                id = stored.id,
+                amount = fresh.amount,
+                currency = fresh.currency,
+                now = LocalDateTime.now(),
+                expectedAmount = stored.amount,
+                expectedCurrency = stored.currency
+            ) > 0
+        }
 
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999
@@ -286,9 +294,19 @@ open class TransactionRepository @Inject constructor(
     ): List<TransactionEntity> =
         transactionDao.getTransactionByAmountAndDate(amount, dateStart, dateEnd)
 
-    suspend fun findGPayDuplicateIdsForCleanup(): List<Long> {
+    /** Duplicate id → the id of the row that stays. */
+    suspend fun findGPayDuplicatesForCleanup(): Map<Long, Long> {
         val candidates = transactionDao.findPotentialDuplicatesByReference()
-        return TransactionDeduplication.duplicateIdsToDelete(candidates)
+        return TransactionDeduplication.duplicatesToKeepers(candidates)
+    }
+
+    /**
+     * Soft-deletes an automatically found duplicate, first moving any goal
+     * contributions on it to [keeperId] so they aren't lost with it (#914).
+     */
+    suspend fun deleteDuplicate(duplicateId: Long, keeperId: Long) {
+        goalRepository.moveContributions(duplicateId, keeperId)
+        deleteTransactionById(duplicateId)
     }
 
     open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {

@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -25,7 +26,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class IgnoredAccountsStore @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext private val context: Context
 ) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -48,6 +49,8 @@ class IgnoredAccountsStore @Inject constructor(
 
     fun replaceAll(keys: Set<String>) {
         prefs.edit().putStringSet(KEY, keys).apply()
+        // The spend widgets drop ignored accounts.
+        WidgetRefresher.refreshTransactionWidgets(context)
     }
 
     /**

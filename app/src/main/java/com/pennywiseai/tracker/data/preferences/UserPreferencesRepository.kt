@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -798,6 +799,8 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
         }
+        // Every widget computes "this cycle" from this day.
+        WidgetRefresher.refreshTransactionWidgets(context)
     }
 
     /**
@@ -867,6 +870,8 @@ open class UserPreferencesRepository @Inject constructor(
                 preferences[PreferencesKeys.SELECTED_PROFILE_ID] = profileId
             }
         }
+        // The spend widgets are scoped to the selected profile.
+        WidgetRefresher.refreshTransactionWidgets(context)
     }
 
     // Blur Effects

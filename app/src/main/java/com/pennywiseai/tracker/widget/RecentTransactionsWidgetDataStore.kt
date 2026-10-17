@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 
@@ -54,6 +55,9 @@ object RecentTransactionsWidgetDataStore {
                 transactions = items
             )
         }
+            // A failed read (corrupt file, unknown enum) shows the empty widget
+            // instead of killing the Glance session.
+            .catch { emit(RecentTransactionsWidgetData()) }
     }
 
     suspend fun update(context: Context, data: RecentTransactionsWidgetData) {

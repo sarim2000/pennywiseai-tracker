@@ -78,7 +78,7 @@ fun AddToGoalSheet(
     var note by rememberSaveable { mutableStateOf("") }
     var manual by rememberSaveable { mutableStateOf("") }
     // Prefill once the unallocated amount has loaded.
-    LaunchedEffect(left != null) { if (left != null && amount.isEmpty()) amount = left.stripTrailingZeros().toPlainString() }
+    LaunchedEffect(left != null) { if (left != null && left.signum() > 0 && amount.isEmpty()) amount = left.stripTrailingZeros().toPlainString() }
     val goalCurrency = selected?.goal?.currency
     val askManual = goalCurrency != null && goalCurrency != currency && (state.error == MoneyError.NO_RATE || manual.isNotEmpty())
 
@@ -225,6 +225,7 @@ fun TowardGoalsSection(linked: List<LinkedGoal>, onOpenGoal: (Long) -> Unit, onR
             stringResource(R.string.goal_toward_goals),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface,
         )
         GroupedList {
             rows.forEachIndexed { i, (c, goal) ->

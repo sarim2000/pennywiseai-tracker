@@ -15,5 +15,7 @@ object WidgetRefresher {
         RecentTransactionsWidgetUpdateWorker.enqueueOneShot(context)
         CategoryPieWidgetUpdateWorker.enqueueOneShot(context)
         BudgetWidgetUpdateWorker.enqueueOneShot(context)
+        // Goals: a transaction edit or delete can change a linked contribution.
+        GoalWidgetUpdateWorker.enqueueOneShot(context)
     }
 }

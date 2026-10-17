@@ -93,4 +93,31 @@
     <string name="goal_toward_goals">Toward goals</string>
     <string name="goal_toward_remove">Remove from %1$s</string>
     <string name="goal_currency_locked_by_goal">Remove this transaction from its goals before changing its currency</string>
+    <!-- Compact goal rows: Home card and widgets -->
+    <string name="goals_line_join">%1$s · %2$s</string>
+    <string name="goals_left">%1$s left</string>
+    <plurals name="goals_months_short">
+        <item quantity="one">%d mo</item>
+        <item quantity="other">%d mo</item>
+    </plurals>
+
+    <!-- Home-screen widgets -->
+    <string name="widget_name_goal">Goal</string>
+    <string name="widget_name_goals">Goals</string>
+    <string name="widget_description_goal">One goal with its progress ring and what\'s left to save</string>
+    <string name="widget_description_goals">Up to three goals, soonest due first</string>
+    <string name="widget_goal_removed">Goal removed</string>
+    <string name="widget_goal_removed_hint">Tap to choose another</string>
+    <string name="widget_goals_empty">No goals yet</string>
+    <string name="widget_goals_empty_hint">Tap to create one</string>
+    <string name="widget_goal_config_title">Choose a goal</string>
+    <string name="widget_goal_config_close">Close</string>
+    <!-- Sample content for the widget picker previews only -->
+    <string name="widget_goal_preview_name" translatable="false">Car insurance</string>
+    <string name="widget_goal_preview_percent" translatable="false" formatted="false">60%</string>
+    <string name="widget_goal_preview_short" translatable="false">₹9,600 left · 5 mo</string>
+    <string name="widget_goal_preview_line" translatable="false">₹1,920/mo · 5 months left</string>
+    <string name="widget_goal_preview_name_2" translatable="false">Trip</string>
+    <string name="widget_goal_preview_percent_2" translatable="false" formatted="false">25%</string>
+    <string name="widget_goal_preview_line_2" translatable="false">₹4,500/mo · 8 months left</string>
 </resources>

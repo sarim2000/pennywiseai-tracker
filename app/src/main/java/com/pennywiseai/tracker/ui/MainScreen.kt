@@ -181,7 +181,7 @@ fun MainScreen(
                             },
                             onNavigateToBudgets = {
                                 rootNavController?.navigate(
-                                    com.pennywiseai.tracker.navigation.BudgetGroups
+                                    com.pennywiseai.tracker.navigation.BudgetGroups()
                                 ) { launchSingleTop = true }
                             },
                             onNavigateToLoans = {
@@ -217,6 +217,11 @@ fun MainScreen(
                             onGroupClick = { groupId ->
                                 rootNavController?.navigate(
                                     com.pennywiseai.tracker.navigation.TransactionGroupDetail(groupId)
+                                ) { launchSingleTop = true }
+                            },
+                            onGoalClick = { goalId ->
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.GoalDetail(goalId)
                                 ) { launchSingleTop = true }
                             },
                             onTransactionTypeClick = { type ->
@@ -458,7 +463,7 @@ fun MainScreen(
                             },
                             onNavigateToBudgets = {
                                 rootNavController?.navigate(
-                                    com.pennywiseai.tracker.navigation.BudgetGroups
+                                    com.pennywiseai.tracker.navigation.BudgetGroups()
                                 ) { launchSingleTop = true }
                             },
                             onNavigateToLoans = {

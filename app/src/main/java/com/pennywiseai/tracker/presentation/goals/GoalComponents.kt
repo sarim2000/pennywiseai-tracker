@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import android.content.Context
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -146,6 +149,75 @@ fun goalTimeLabel(progress: GoalProgress): String =
         stringResource(R.string.goals_due_on, progress.goal.dueDate.format(goalDateFormat))
     }
 
+/**
+ * One-line status for compact rows (Home card, goals widget):
+ * "₹1,920/mo · 5 months left", "Behind ₹2,000", "Reached" or "Missed by ₹X".
+ * Takes a [Context] so the widget worker builds the same text the Home card shows.
+ */
+fun GoalProgress.statusLine(context: Context): String {
+    val res = context.resources
+    val currency = goal.currency
+    return when (val pill = pill()) {
+        GoalPill.Reached -> res.getString(R.string.goals_reached)
+        is GoalPill.MissedBy -> res.getString(R.string.goals_missed_by, CurrencyFormatter.formatCurrency(pill.amount, currency))
+        is GoalPill.Behind -> res.getString(R.string.goals_behind, CurrencyFormatter.formatCurrency(pill.amount, currency))
+        is GoalPill.PerMonth -> res.getString(
+            R.string.goals_line_join,
+            res.getString(R.string.goals_per_month, CurrencyFormatter.formatCurrency(pill.amount, currency)),
+            res.getQuantityString(R.plurals.goals_months_left, monthsLeft, monthsLeft),
+        )
+        GoalPill.Archived -> res.getString(R.string.goals_archived)
+    }
+}
+
+/** The 2×2 widget's line: "₹9,600 left · 5 mo" while in progress, else the same as [statusLine]. */
+fun GoalProgress.shortLine(context: Context): String {
+    if (status != GoalStatus.IN_PROGRESS) return statusLine(context)
+    val res = context.resources
+    return res.getString(
+        R.string.goals_line_join,
+        res.getString(R.string.goals_left, CurrencyFormatter.formatCurrency(left, goal.currency)),
+        res.getQuantityString(R.plurals.goals_months_short, monthsLeft, monthsLeft),
+    )
+}
+
+@Composable
+private fun GoalTone.color(): Color = when (this) {
+    GoalTone.SUCCESS -> MaterialTheme.colorScheme.success
+    GoalTone.WARNING -> MaterialTheme.colorScheme.warning
+    GoalTone.ERROR -> MaterialTheme.colorScheme.error
+    GoalTone.NEUTRAL -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+/**
+ * The Home "Goals" card (#914): up to [maxGoals] goals in the order given
+ * (soonest due first, Reached last), each a row that opens the goal.
+ */
+@Composable
+fun GoalsHomeCard(goals: List<GoalProgress>, onOpenGoal: (Long) -> Unit, modifier: Modifier = Modifier, maxGoals: Int = 3) {
+    val context = LocalContext.current
+    val shown = goals.take(maxGoals)
+    GroupedList(modifier) {
+        shown.forEachIndexed { i, progress ->
+            GroupedRow(position = ListItemPosition.from(i, shown.size), onClick = { onOpenGoal(progress.goal.id) }) {
+                GoalRing(progress, Dimensions.Component.goalRingSmall, Dimensions.Component.goalRingSmallStroke) {}
+                RowLabels(
+                    title = progress.goal.name,
+                    subtitle = progress.statusLine(context),
+                    subtitleColor = progress.tone().color(),
+                    subtitleMaxLines = 1,
+                )
+                Text(
+                    text = stringResource(R.string.budgets_percent, progress.percent()),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val goal = progress.goal
@@ -206,6 +278,7 @@ fun GoalsSection(
     onOpenGoal: (Long) -> Unit,
     onCreateGoal: () -> Unit,
     modifier: Modifier = Modifier,
+    createOnOpen: Boolean = false,
     viewModel: GoalsViewModel = hiltViewModel(),
 ) {
     val goals by viewModel.activeGoals.collectAsStateWithLifecycle()
@@ -214,6 +287,10 @@ fun GoalsSection(
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val active = goals ?: return
     val create = { viewModel.requestCreate(onAllowed = onCreateGoal, onBlocked = { showUpgrade = true }) }
+    // The goals widget's "+": start "New goal" once, through the same Pro gate.
+    LaunchedEffect(createOnOpen) {
+        if (createOnOpen) viewModel.createOnOpenOnce(onAllowed = onCreateGoal, onBlocked = { showUpgrade = true })
+    }
 
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
         SectionHeaderV2(

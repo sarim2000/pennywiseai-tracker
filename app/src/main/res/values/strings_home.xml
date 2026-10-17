@@ -15,6 +15,7 @@
 
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budgets</string>
+    <string name="home_section_goals">Goals</string>
     <string name="home_section_loans">Loans</string>
     <string name="home_section_groups">Groups</string>
     <string name="home_section_recent_transactions">Recent Transactions</string>

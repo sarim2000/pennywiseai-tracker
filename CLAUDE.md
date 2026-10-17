@@ -42,6 +42,12 @@ complaint.
 7. **New bank parsers** extend the correct base class (`BaseIndianBankParser` /
    `UAEBankParser` / `BankParser`) and are registered in `BankParserFactory` —
    see `docs/adding-bank-parsers.md`.
+8. **Migration SQL must run on the oldest SQLite we support.** minSdk 26 ships
+   SQLite 3.18; Android 13 ships 3.32. The JVM and our new-Android emulators
+   are newer and accept syntax old phones reject: 2.22.0's `HAVING` without
+   `GROUP BY` (3.39+) crashed every launch on Android ≤13. Before merging or
+   releasing a migration, run the update path on the `Api26_Migration` AVD —
+   see `docs/database-migrations.md`.
 
 ## Verification — Definition of Done
 Run **`./init.sh`** before claiming a change is done — it runs the same
@@ -55,6 +61,7 @@ there). Scope it to what you touched:
 | App (Kotlin) | `./init.sh app` |
 | Everything | `./init.sh` (default) |
 | Runtime / UI | plus an on-device check (use the **emulator-verify** skill) |
+| DB migration | plus the old-Android update check in `docs/database-migrations.md` |
 
 `init.sh` sets `JAVA_HOME` to a JDK 21 (it tries `JAVA_HOME`, macOS `java_home`,
 Android Studio's JBR, then SDKMAN). Run the raw `./gradlew` tasks it wraps only
@@ -100,3 +107,5 @@ branch state matters.
 generates changelogs + release notes, builds the APKs (standard flavor signed;
 the F-Droid APK stays unsigned for IzzyOnDroid), tags, pushes, and cuts the
 GitHub release. Full flag reference in `docs/RELEASE.md`.
+`--web` needs Docker (OrbStack) running and `bun install` done in
+`pennywise-web/` — a fresh worktree has no `node_modules`.

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.database.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -18,6 +19,12 @@ private const val EFFECTIVE_CONTRIBUTIONS = """
     LEFT JOIN transactions t ON t.id = c.transaction_id
     WHERE (c.transaction_id IS NULL OR t.is_deleted = 0)
 """
+
+/** A transaction's id and merchant, for naming the goal contributions taken from it. */
+data class LinkedMerchant(
+    @ColumnInfo(name = "id") val id: Long,
+    @ColumnInfo(name = "merchant_name") val merchantName: String,
+)
 
 @Dao
 interface GoalDao {
@@ -59,6 +66,13 @@ interface GoalDao {
     /** Every row linked to a transaction, whether or not that transaction is soft-deleted. */
     @Query("SELECT * FROM goal_contributions WHERE transaction_id = :transactionId")
     fun observeContributionsForTransaction(transactionId: Long): Flow<List<GoalContributionEntity>>
+
+    /** Merchants of the transactions [goalId]'s contributions came from; re-emits when one is renamed. */
+    @Query(
+        "SELECT id, merchant_name FROM transactions " +
+            "WHERE id IN (SELECT transaction_id FROM goal_contributions WHERE goal_id = :goalId)"
+    )
+    fun observeLinkedMerchants(goalId: Long): Flow<List<LinkedMerchant>>
 
     @Query("SELECT * FROM goal_contributions WHERE transaction_id = :transactionId")
     suspend fun getContributionsForTransaction(transactionId: Long): List<GoalContributionEntity>

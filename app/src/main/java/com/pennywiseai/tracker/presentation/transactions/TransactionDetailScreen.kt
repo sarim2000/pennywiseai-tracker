@@ -174,7 +174,14 @@ fun TransactionDetailScreen(
     val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
     var showAddToGoal by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
-    LaunchedEffect(addToGoal.done) { if (addToGoal.done) showAddToGoal = false }
+    fun closeAddToGoal() { showAddToGoal = false; goalsViewModel.closeSheet() }
+    LaunchedEffect(addToGoal.done) { if (addToGoal.done) closeAddToGoal() }
+    // Loads what's left of the transaction whenever the sheet is open without it:
+    // on open, and after process recreation restores an open sheet (its typed
+    // fields are rememberSaveable and survive; the ViewModel's state doesn't).
+    LaunchedEffect(showAddToGoal, transaction?.id) {
+        if (showAddToGoal && transaction != null && goalsViewModel.sheet.value.left == null) goalsViewModel.openSheet()
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -284,7 +291,6 @@ fun TransactionDetailScreen(
                                     },
                                     onClick = {
                                         showActionsMenu = false
-                                        goalsViewModel.openSheet()
                                         showAddToGoal = true
                                     }
                                 )
@@ -386,9 +392,9 @@ fun TransactionDetailScreen(
                 transaction = txn,
                 goals = goals,
                 state = addToGoal,
-                onDismiss = { showAddToGoal = false },
+                onDismiss = ::closeAddToGoal,
                 onSave = goalsViewModel::add,
-                onCreateGoal = { showAddToGoal = false; onCreateGoal() },
+                onCreateGoal = { closeAddToGoal(); onCreateGoal() },
                 onEdited = goalsViewModel::clearError,
             )
         }

@@ -147,9 +147,8 @@ open class TransactionRepository @Inject constructor(
      * Every edit goes through here, so a lowered amount also caps the goal
      * contributions taken from this transaction (#914).
      */
-    suspend fun updateTransaction(transaction: TransactionEntity) {
+    suspend fun updateTransaction(transaction: TransactionEntity) = goalRepository.writeAndCap(transaction.id) {
         transactionDao.updateTransaction(transaction.copy(updatedAt = LocalDateTime.now()))
-        goalRepository.capContributionsToTransaction(transaction.id, transaction.amount)
     }
     
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
@@ -229,20 +228,19 @@ open class TransactionRepository @Inject constructor(
      *
      * @return whether the row was repaired.
      */
-    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean {
+    suspend fun correctParsedAmount(stored: TransactionEntity, fresh: TransactionEntity): Boolean =
         // The split, loan and goal guards live in the UPDATE itself, so they see
         // the row as it is at write time, not as it was when [stored] was read.
-        val repaired = transactionDao.repairParsedAmount(
-            id = stored.id,
-            amount = fresh.amount,
-            currency = fresh.currency,
-            now = LocalDateTime.now(),
-            expectedAmount = stored.amount,
-            expectedCurrency = stored.currency
-        ) > 0
-        if (repaired) goalRepository.capContributionsToTransaction(stored.id, fresh.amount)
-        return repaired
-    }
+        goalRepository.writeAndCap(stored.id) {
+            transactionDao.repairParsedAmount(
+                id = stored.id,
+                amount = fresh.amount,
+                currency = fresh.currency,
+                now = LocalDateTime.now(),
+                expectedAmount = stored.amount,
+                expectedCurrency = stored.currency
+            ) > 0
+        }
 
     /**
      * The subset of [hashes] already present. Chunked under SQLite's 999

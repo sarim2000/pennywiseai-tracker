@@ -67,14 +67,16 @@ class TransactionGoalsViewModel @Inject constructor(
 
     fun setTransaction(txn: TransactionEntity?) { transaction.value = txn }
 
-    /** Opens the sheet with what's left of the transaction to put toward goals. */
+    /** Loads what's left of the transaction to put toward goals into the open sheet. */
     fun openSheet() {
         val id = transaction.value?.id ?: return
-        _sheet.value = AddToGoalState()
         viewModelScope.launch {
             _sheet.value = AddToGoalState(left = runCatching { goalRepository.unallocatedAmount(id) }.getOrDefault(BigDecimal.ZERO))
         }
     }
+
+    /** Forgets the closed sheet, so the next open loads a fresh amount left. */
+    fun closeSheet() { _sheet.value = AddToGoalState() }
 
     fun clearError() { _sheet.value = _sheet.value.copy(error = null) }
 

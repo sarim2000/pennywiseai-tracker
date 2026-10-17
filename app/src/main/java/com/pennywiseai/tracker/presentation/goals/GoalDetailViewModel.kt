@@ -8,9 +8,6 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.mapLatest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,7 +35,6 @@ class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val conversionService: CurrencyConversionService,
     private val entitlementGate: EntitlementGate,
-    private val transactionRepository: TransactionRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -48,11 +44,8 @@ class GoalDetailViewModel @Inject constructor(
         .map { detail -> detail?.let { GoalDetailState.Loaded(it) } ?: GoalDetailState.Gone }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GoalDetailState.Loading)
 
-    /** Merchant of each linked transaction, by transaction id, for the money list. */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val merchants: StateFlow<Map<Long, String>> = state
-        .map { s -> (s as? GoalDetailState.Loaded)?.detail?.contributions?.mapNotNull { it.transactionId }?.toSet().orEmpty() }
-        .mapLatest { ids -> ids.mapNotNull { id -> transactionRepository.getTransactionById(id)?.let { id to it.merchantName } }.toMap() }
+    /** Merchant of each linked transaction, by transaction id, for the money list; follows renames. */
+    val merchants: StateFlow<Map<Long, String>> = goalRepository.observeLinkedMerchants(goalId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     private val _sheet = MutableStateFlow(MoneySheetState())

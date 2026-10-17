@@ -187,23 +187,44 @@ class GoalRepositoryTest {
     )
 
     @Test
-    fun capOnTransactionEditOnlyWritesWhenTheAmountDropsBelowTheShares() = runBlocking {
+    fun writeAndCapCapsToTheStoredAmountInsideTheSameTransaction() = runBlocking {
         coEvery { goalDao.getContributionsForTransaction(9) } returns listOf(linked(1, "300"), linked(2, "200", goalId = 2))
+        var stored = txn("500")
+        var inTransaction = false
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            inTransaction = true
+            try { secondArg<suspend () -> Any?>().invoke() } finally { inTransaction = false }
+        }
+        coEvery { transactionDao.getTransactionById(9) } answers { stored }
+        val written = mutableListOf<List<GoalContributionEntity>>()
+        coEvery { goalDao.updateContributions(any()) } answers {
+            assertTrue("cap must run in the write's DB transaction", inTransaction)
+            written += firstArg<List<GoalContributionEntity>>()
+        }
 
-        repo.capContributionsToTransaction(9, BigDecimal("800")) // raised: shares still fit
-        coVerify(exactly = 0) { goalDao.updateContributions(any()) }
+        repo.writeAndCap(9) { stored = txn("800") } // raised: shares still fit
+        assertTrue(written.isEmpty())
 
-        val written = slot<List<GoalContributionEntity>>()
-        coEvery { goalDao.updateContributions(capture(written)) } returns Unit
-        repo.capContributionsToTransaction(9, BigDecimal("250")) // lowered: scaled to fit
-        assertEquals(0, BigDecimal("250").compareTo(written.captured.sumOf { it.originalAmount!! }))
+        repo.writeAndCap(9) { stored = txn("250") } // lowered: scaled to what's stored now
+        assertEquals(0, BigDecimal("250").compareTo(written.single().sumOf { it.originalAmount!! }))
     }
 
     @Test
-    fun capWithNoContributionsSkipsTheTransaction() = runBlocking {
+    fun writeAndCapUsesTheStoredAmountNotTheOneTheCallerMeant() = runBlocking {
+        // A repair whose guard didn't match writes nothing: the stored ₹500 still holds both shares.
+        coEvery { goalDao.getContributionsForTransaction(9) } returns listOf(linked(1, "300"), linked(2, "200", goalId = 2))
+        coEvery { transactionDao.getTransactionById(9) } returns txn("500")
+        val result = repo.writeAndCap(9) { false }
+        assertFalse(result)
+        coVerify(exactly = 0) { goalDao.updateContributions(any()) }
+    }
+
+    @Test
+    fun writeAndCapWithNoContributionsDoesNotReadTheTransaction() = runBlocking {
         coEvery { goalDao.getContributionsForTransaction(9) } returns emptyList()
-        repo.capContributionsToTransaction(9, BigDecimal("1"))
-        coVerify(exactly = 0) { database.withTransaction(any<suspend () -> Any?>()) }
+        repo.writeAndCap(9) { }
+        coVerify(exactly = 0) { transactionDao.getTransactionById(any()) }
+        coVerify(exactly = 0) { goalDao.updateContributions(any()) }
     }
 
     @Test

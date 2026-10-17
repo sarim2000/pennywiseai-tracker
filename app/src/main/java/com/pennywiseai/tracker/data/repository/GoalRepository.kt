@@ -53,6 +53,10 @@ class GoalRepository @Inject constructor(
             goal?.let { GoalDetail(GoalRules.progress(it, contributions, today), contributions) }
         }
 
+    /** Merchant of each transaction [goalId]'s contributions came from, by transaction id; follows renames. */
+    fun observeLinkedMerchants(goalId: Long): Flow<Map<Long, String>> =
+        goalDao.observeLinkedMerchants(goalId).map { rows -> rows.associate { it.id to it.merchantName } }
+
     /** All contributions linked to [transactionId], across goals (soft-deleted transaction or not). */
     fun observeContributionsForTransaction(transactionId: Long): Flow<List<GoalContributionEntity>> =
         goalDao.observeContributionsForTransaction(transactionId)
@@ -190,19 +194,22 @@ class GoalRepository @Inject constructor(
     }
 
     /**
-     * When a linked transaction's amount drops to [newAmount], scales its
-     * contributions down so their shares sum to it (no-op if they fit, so an
-     * increase changes nothing). [TransactionRepository] calls this after every
-     * amount write; a transaction with no contributions costs one indexed read.
+     * Runs [write], which may change transaction [transactionId]'s amount, and
+     * then caps its contributions to the amount stored at that moment, in one
+     * DB transaction, so a cap can never act on an amount a later write replaced.
+     * Shares that still fit (an increase) are left alone; a transaction with no
+     * contributions costs one indexed read. [TransactionRepository] wraps every
+     * amount write in this.
      */
-    suspend fun capContributionsToTransaction(transactionId: Long, newAmount: BigDecimal) {
-        if (goalDao.getContributionsForTransaction(transactionId).isEmpty()) return
-        database.withTransaction {
-            val changed = GoalRules.capContributions(
-                goalDao.getContributionsForTransaction(transactionId), newAmount, LocalDateTime.now()
-            )
+    suspend fun <T> writeAndCap(transactionId: Long, write: suspend () -> T): T = database.withTransaction {
+        val result = write()
+        val linked = goalDao.getContributionsForTransaction(transactionId)
+        val stored = if (linked.isEmpty()) null else transactionDao.getTransactionById(transactionId)
+        if (stored != null) {
+            val changed = GoalRules.capContributions(linked, stored.amount, LocalDateTime.now())
             if (changed.isNotEmpty()) goalDao.updateContributions(changed)
         }
+        result
     }
 
     /**

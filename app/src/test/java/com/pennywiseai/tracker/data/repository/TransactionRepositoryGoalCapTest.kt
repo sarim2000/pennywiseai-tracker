@@ -8,6 +8,8 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -24,24 +26,24 @@ class TransactionRepositoryGoalCapTest {
         transactionHash = "h9", currency = "INR"
     )
 
-    @Test
-    fun editingATransactionCapsItsContributionsToTheNewAmount() = runBlocking {
-        repo.updateTransaction(txn("250"))
-        coVerifyOrder {
-            dao.updateTransaction(any())
-            goals.capContributionsToTransaction(9, BigDecimal("250"))
-        }
+    @Before
+    fun runWriteAndCapBlocks() {
+        coEvery { goals.writeAndCap<Any?>(any(), any()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
     }
 
     @Test
-    fun parserRepairCapsOnlyWhenTheRowWasRepaired() = runBlocking {
-        coEvery { dao.repairParsedAmount(any(), any(), any(), any(), any(), any()) } returns 0
-        repo.correctParsedAmount(txn("5000"), txn("50"))
-        coVerify(exactly = 0) { goals.capContributionsToTransaction(any(), any()) }
+    fun editingATransactionWritesInsideWriteAndCap() = runBlocking {
+        repo.updateTransaction(txn("250"))
+        coVerify { goals.writeAndCap<Any?>(9, any()) }
+        coVerify { dao.updateTransaction(match { it.amount.compareTo(BigDecimal("250")) == 0 }) }
+    }
 
+    @Test
+    fun parserRepairWritesInsideWriteAndCap() = runBlocking {
         coEvery { dao.repairParsedAmount(any(), any(), any(), any(), any(), any()) } returns 1
-        repo.correctParsedAmount(txn("5000"), txn("50"))
-        coVerify { goals.capContributionsToTransaction(9, BigDecimal("50")) }
+        assertTrue(repo.correctParsedAmount(txn("5000"), txn("50")))
+        coVerify { goals.writeAndCap<Any?>(9, any()) }
+        coVerify { dao.repairParsedAmount(9, BigDecimal("50"), "INR", any(), BigDecimal("5000"), "INR") }
     }
 
     @Test

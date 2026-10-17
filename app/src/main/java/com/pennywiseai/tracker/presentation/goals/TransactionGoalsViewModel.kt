@@ -70,13 +70,24 @@ class TransactionGoalsViewModel @Inject constructor(
     /** Loads what's left of the transaction to put toward goals into the open sheet. */
     fun openSheet() {
         val id = transaction.value?.id ?: return
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _sheet.value = AddToGoalState(left = runCatching { goalRepository.unallocatedAmount(id) }.getOrDefault(BigDecimal.ZERO))
         }
     }
 
-    /** Forgets the closed sheet, so the next open loads a fresh amount left. */
-    fun closeSheet() { _sheet.value = AddToGoalState() }
+    /**
+     * Forgets the closed sheet, so the next open loads a fresh amount left. A
+     * load still running is cancelled, or it could refill the closed sheet with
+     * a stale amount that the next open would then reuse.
+     */
+    fun closeSheet() {
+        loadJob?.cancel()
+        loadJob = null
+        _sheet.value = AddToGoalState()
+    }
+
+    private var loadJob: kotlinx.coroutines.Job? = null
 
     fun clearError() { _sheet.value = _sheet.value.copy(error = null) }
 

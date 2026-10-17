@@ -1100,6 +1100,17 @@
       "reference": null,
       "balance": "7200.00"
     },
+    "Tamilnad Mercantile Bank": {
+      "sender": "VA-TMBANK-S",
+      "message": "Your A/c No.XXXX1111 is debited with Rs.487.21 on 09-10-2026 06:19 PM and UTIB A/c linked to testshop.offline@axl is credited (UPI Ref No.628200000001).Current AVBL bal is Rs.1234.73 - TMB",
+      "currency": "INR",
+      "amount": "487.21",
+      "type": "EXPENSE",
+      "merchant": "testshop.offline",
+      "accountLast4": "1111",
+      "reference": "628200000001",
+      "balance": "1234.73"
+    },
     "Tigo Pesa": {
       "sender": "TIGOPESA(smsfp)",
       "message": "Cash-In of TSh 100,000 from Agent - PERSON FIVE is successful. New balance is TSh 100,000. TxnId: 13411949026.",

@@ -25,6 +25,7 @@ object BankParserFactory {
         UtkarshBankParser(),
         ICICIBankParser(),
         KarnatakaBankParser(),
+        TamilnadMercantileBankParser(),  // Tamilnad Mercantile Bank (India) (#917) — ahead of TTB, which used to claim any "TMB" sender
         KeralaGraminBankParser(),
         KeralaBankParser(),  // Kerala State Co-operative Bank (India) — KELBNK; distinct from Kerala Gramin (KGBANK)
         IDBIBankParser(),

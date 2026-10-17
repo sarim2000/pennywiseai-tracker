@@ -9,8 +9,10 @@ class TTBBankParser : BaseThailandBankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
+        // Not contains("TMB"): that also captured India's Tamilnad Mercantile Bank
+        // ("VA-TMBANK-S") and dropped every one of its SMS (#917).
         return upperSender == "TTB" ||
                 upperSender.contains("TMBTHANACHART") ||
-                upperSender.contains("TMB")
+                upperSender == "TMB"
     }
 }

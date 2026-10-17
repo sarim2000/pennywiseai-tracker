@@ -112,26 +112,34 @@ fun PennyWiseApp(
         }
     }
     
-    // Navigate to transaction detail when editTransactionId changes
-    LaunchedEffect(editTransactionId) {
-        editTransactionId?.let { transactionId ->
-            navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)) { launchSingleTop = true }
-        }
-    }
-
-    // Navigate directly to Add Transaction when requested (e.g., from widget shortcut)
-    LaunchedEffect(openAddTransaction) {
-        if (openAddTransaction) {
-            navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction()) {
-                launchSingleTop = true
-            }
-            onAddTransactionShortcutHandled?.invoke()
-        }
-    }
-
-    // "Share to PennyWise" and goal widget taps (#914) open a screen with private
-    // data, so they wait for onboarding and an unlocked app (see NavigateWhenUnlocked).
+    // Every outside entry point — notification and Recent-widget transaction taps,
+    // the Add widget/shortcut, "Share to PennyWise" and goal widget taps (#914) —
+    // opens a screen with private data, so they all wait for onboarding and an
+    // unlocked app (see NavigateWhenUnlocked).
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    NavigateWhenUnlocked(
+        request = editTransactionId,
+        onboarded = themeUiState.hasCompletedOnboarding,
+        lock = appLockUiState,
+        currentRoute = currentRoute,
+        refreshLock = actualAppLockViewModel::refreshLockState,
+        showLockScreen = showLockScreen,
+    ) { transactionId ->
+        navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)) { launchSingleTop = true }
+        // Consume now, or leaving the detail screen would re-run this and reopen it.
+        onEditComplete?.invoke()
+    }
+    NavigateWhenUnlocked(
+        request = openAddTransaction.takeIf { it },
+        onboarded = themeUiState.hasCompletedOnboarding,
+        lock = appLockUiState,
+        currentRoute = currentRoute,
+        refreshLock = actualAppLockViewModel::refreshLockState,
+        showLockScreen = showLockScreen,
+    ) {
+        navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction()) { launchSingleTop = true }
+        onAddTransactionShortcutHandled?.invoke()
+    }
     NavigateWhenUnlocked(
         request = sharedText,
         onboarded = themeUiState.hasCompletedOnboarding,

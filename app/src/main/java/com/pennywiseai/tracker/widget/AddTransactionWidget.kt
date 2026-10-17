@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -87,7 +88,8 @@ class AddTransactionWidget : GlanceAppWidget() {
                         Image(
                             provider = ImageProvider(R.drawable.ic_widget_add),
                             contentDescription = LocalContext.current.getString(R.string.widget_add_content_description),
-                            modifier = GlanceModifier.size(20.dp)
+                            modifier = GlanceModifier.size(20.dp),
+                            colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary)
                         )
                     }
                     Spacer(modifier = GlanceModifier.width(10.dp))

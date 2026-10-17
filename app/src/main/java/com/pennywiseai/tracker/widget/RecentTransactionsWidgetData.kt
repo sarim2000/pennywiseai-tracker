@@ -8,7 +8,9 @@ data class RecentTransactionItem(
     val subtitle: String,
     val amount: BigDecimal,
     val currency: String,
-    val transactionType: TransactionType
+    val transactionType: TransactionType,
+    /** Null for a snapshot written before rows carried ids; the row then opens the app. */
+    val transactionId: Long? = null
 )
 
 data class RecentTransactionsWidgetData(

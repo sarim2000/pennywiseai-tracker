@@ -5,6 +5,9 @@ import androidx.glance.LocalContext
 import android.content.Context
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -15,12 +18,12 @@ import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -28,7 +31,6 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -48,7 +50,7 @@ class BudgetWidget : GlanceAppWidget() {
     )
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val data = try {
+        val initial = try {
             withTimeoutOrNull(5000L) {
                 BudgetWidgetDataStore.getData(context).first()
             } ?: BudgetWidgetData()
@@ -58,6 +60,9 @@ class BudgetWidget : GlanceAppWidget() {
         }
 
         provideContent {
+            // A session still alive when the worker writes recomposes from
+            // here; provideGlance doesn't run again for it.
+            val data by remember { BudgetWidgetDataStore.getData(context) }.collectAsState(initial)
             GlanceTheme(
                 colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
                     GlanceTheme.colors
@@ -159,27 +164,12 @@ class BudgetWidget : GlanceAppWidget() {
 
         Spacer(modifier = GlanceModifier.height(8.dp))
 
-        // Progress bar
-        val progressWidth = (data.percentageUsed / 100f * 300f).coerceIn(4f, 300f)
-
-        Box(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .cornerRadius(4.dp)
-                .background(GlanceTheme.colors.surfaceVariant),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            if (data.percentageUsed > 0f) {
-                Spacer(
-                    modifier = GlanceModifier
-                        .width(progressWidth.dp)
-                        .height(8.dp)
-                        .cornerRadius(4.dp)
-                        .background(statusColor)
-                )
-            }
-        }
+        LinearProgressIndicator(
+            progress = (data.percentageUsed / 100f).coerceIn(0f, 1f),
+            modifier = GlanceModifier.fillMaxWidth().height(8.dp).cornerRadius(4.dp),
+            color = statusColor,
+            backgroundColor = GlanceTheme.colors.surfaceVariant
+        )
 
         // Show details and savings only in large layout
         if (!isSmall) {

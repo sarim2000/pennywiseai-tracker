@@ -31,8 +31,12 @@ data class GoalEditUiState(
     val saved: Boolean = false,
 ) {
     val isEditing: Boolean get() = original != null
-    /** Currency is locked once the goal has money in or out (the repository enforces it too). */
-    val currencyLocked: Boolean get() = contributions.isNotEmpty()
+    /**
+     * Currency is locked once the goal holds any money — contributions or an
+     * Already saved amount — or ₹5,000 would silently become $5,000. The
+     * repository enforces it too.
+     */
+    val currencyLocked: Boolean get() = contributions.isNotEmpty() || (original?.alreadySaved?.signum() ?: 0) > 0
 }
 
 @HiltViewModel

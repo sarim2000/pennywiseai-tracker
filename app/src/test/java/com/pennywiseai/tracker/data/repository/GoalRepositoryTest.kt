@@ -80,6 +80,16 @@ class GoalRepositoryTest {
     }
 
     @Test
+    fun currencyIsImmutableOnceTheGoalHasAlreadySavedMoney() = runBlocking {
+        // No contributions, but ₹5,000 already saved: switching to USD would turn it into $5,000.
+        coEvery { goalDao.getGoal(1) } returns goal.copy(alreadySaved = BigDecimal("5000"))
+        coEvery { goalDao.countContributions(1) } returns 0
+        val result = runCatching { repo.updateGoal(goal.copy(currency = "USD", alreadySaved = BigDecimal("5000"))) }
+        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        coVerify(exactly = 0) { goalDao.updateGoal(any()) }
+    }
+
+    @Test
     fun linkedContributionMustFitWhatTheTransactionHasLeft() = runBlocking {
         coEvery { transactionDao.getTransactionById(9) } returns txn("500")
         coEvery { goalDao.getContributionsForTransaction(9) } returns listOf(

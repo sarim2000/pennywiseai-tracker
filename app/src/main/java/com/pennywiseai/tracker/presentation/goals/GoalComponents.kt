@@ -4,6 +4,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -255,8 +257,13 @@ fun GoalsSection(
             onDismissRequest = { showArchived = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         ) {
+            // Scrolls, so a long archive stays reachable.
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = Dimensions.Padding.content).padding(bottom = Spacing.lg),
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 Text(stringResource(R.string.goals_archived_title), style = MaterialTheme.typography.titleMedium)

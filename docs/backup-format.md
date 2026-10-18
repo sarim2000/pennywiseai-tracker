@@ -142,14 +142,16 @@ decode to no shares; older apps ignore them.
 - **Import (both strategies):** every transaction is inserted with
   `lentSharesTotal = null`; shares are inserted with `loanId` and
   `transactionId` remapped, and each touched bill's total is then rebuilt
-  from its rows. A share is skipped and counted when its bill or loan didn't
-  restore, the bill isn't an unlinked expense in the loan's currency, or it
-  would take the shares past the bill's amount.
-- **MERGE** restores a share only onto a bill *and* a loan that this merge
-  inserted, so it arrives with the principal and amount it was sized for. A
-  local bill or loan wins as it is (the split may have been edited or removed
-  since the backup). The unique `(transaction_id, loan_id)` index makes a
-  repeat merge a no-op.
+  from its rows. A share goes only onto a loan this import inserted (its
+  principal was sized with the share), and only onto a bill (new, or an
+  existing one with the same hash) that is still an unlinked expense in the
+  loan's currency with room left in its amount.
+- A share that can't come back is skipped and counted, and its amount comes
+  off its restored loan; a loan left with nothing behind it is removed. So a
+  debt never returns without its bill.
+- **MERGE:** a matched local loan wins as it is, like a local goal with the
+  same uid, which makes a repeat merge a no-op (the unique
+  `(transaction_id, loan_id)` index backs this up).
 - `upi_id` fills in a missing one and never replaces one set on this device.
 
 ## Resilience

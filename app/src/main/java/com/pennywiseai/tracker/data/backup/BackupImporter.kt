@@ -461,7 +461,6 @@ class BackupImporter @Inject constructor(
                 // Import transactions (skip duplicates by hash)
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
-                val insertedTransactionIds = HashSet<Long>()
 
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
@@ -475,7 +474,6 @@ class BackupImporter @Inject constructor(
                             profileId = resolveProfileId(transaction.profileId)
                         )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
-                        if (newId > 0L) insertedTransactionIds += newId
                         // Track old ID -> new ID mapping directly from insert result
                         if (oldId != 0L) {
                             oldToNewTransactionIdMap[oldId] = newId
@@ -501,15 +499,16 @@ class BackupImporter @Inject constructor(
                 importGoalsWithMerge(
                     backup.database.goals, backup.database.goalContributions, oldToNewTransactionIdMap
                 ) { skippedRows++ }
-                // Split-bill shares (#346): only onto a bill AND a loan this merge
-                // inserted, so they arrive together with the principal and amount
-                // they were sized for. A local bill or loan wins as it is (the
-                // user may have removed or edited the split since the backup),
-                // like a local goal with the same uid; a repeat merge is a no-op.
+                // Split-bill shares (#346): only onto a loan this merge inserted,
+                // whose principal was sized with them; a matched local loan wins
+                // as it is, like a local goal with the same uid, so a repeat
+                // merge is a no-op. The bill may be new or local, as long as it
+                // can still take the share; otherwise the share comes off its
+                // restored loan instead of leaving a debt with no bill.
                 importLoanShares(
                     backup.database.loanShares,
                     { old -> oldToNewLoanIdMap[old]?.takeIf { it in insertedLoanIds } },
-                    oldToNewTransactionIdMap.filterValues { it in insertedTransactionIds }
+                    oldToNewTransactionIdMap
                 ) { skippedRows++ }
 
                 // Import new entities with correct ID mapping for splits and applications
@@ -936,22 +935,64 @@ class BackupImporter @Inject constructor(
         if (shares.isEmpty()) return
         val dao = database.loanDao()
         val touched = HashSet<Long>()
-        shares.insertEachCounting(onSkip) { share ->
+        // A restored loan's principal includes its shares; one that can't come
+        // back is taken off again so the debt never outlives its bill.
+        val orphaned = HashMap<Long, java.math.BigDecimal>()
+        shares.insertEachCounting({ onSkip() }) { share ->
             val loanId = checkNotNull(loanIdFor(share.loanId)) { "Loan ${share.loanId} not restored" }
-            val transactionId = checkNotNull(transactionIdMap[share.transactionId]) { "Transaction ${share.transactionId} not restored" }
-            val bill = checkNotNull(database.transactionDao().getTransactionById(transactionId)) { "Transaction $transactionId missing" }
-            val loan = checkNotNull(dao.getLoanById(loanId)) { "Loan $loanId missing" }
-            check(bill.transactionType == TransactionType.EXPENSE && bill.loanId == null) { "Bill $transactionId can't be split" }
-            check(bill.currency.equals(loan.currency, ignoreCase = true)) { "Share currency differs from its bill" }
-            val taken = dao.getSharesForTransaction(transactionId).fold(java.math.BigDecimal.ZERO) { a, s -> a + s.amount }
-            check(share.amount.signum() > 0 && taken + share.amount <= bill.amount) { "Shares would exceed bill $transactionId" }
-            dao.insertShare(share.copy(id = 0, loanId = loanId, transactionId = transactionId))
-            touched += transactionId
+            try {
+                touched += restoreShare(share, loanId, transactionIdMap)
+            } catch (e: Exception) {
+                orphaned.merge(loanId, share.amount, java.math.BigDecimal::add)
+                throw e
+            }
         }
         touched.forEach { id ->
             val amounts = dao.getSharesForTransaction(id).map { it.amount }
             dao.setLentSharesTotal(id, amounts.takeIf { it.isNotEmpty() }?.fold(java.math.BigDecimal.ZERO, java.math.BigDecimal::add))
         }
+        orphaned.forEach { (loanId, amount) -> dropOrphanedShares(loanId, amount) }
+    }
+
+    /** Inserts [share] onto restored loan [loanId] if its bill can take it; returns the bill's id. */
+    private suspend fun restoreShare(share: LoanShareEntity, loanId: Long, transactionIdMap: Map<Long, Long>): Long {
+        val dao = database.loanDao()
+        val transactionId = checkNotNull(transactionIdMap[share.transactionId]) { "Transaction ${share.transactionId} not restored" }
+        val bill = checkNotNull(database.transactionDao().getTransactionById(transactionId)) { "Transaction $transactionId missing" }
+        val loan = checkNotNull(dao.getLoanById(loanId)) { "Loan $loanId missing" }
+        check(bill.transactionType == TransactionType.EXPENSE && bill.loanId == null) { "Bill $transactionId can't be split" }
+        check(bill.currency.equals(loan.currency, ignoreCase = true)) { "Share currency differs from its bill" }
+        val taken = dao.getSharesForTransaction(transactionId).fold(java.math.BigDecimal.ZERO) { a, s -> a + s.amount }
+        check(share.amount.signum() > 0 && taken + share.amount <= bill.amount) { "Shares would exceed bill $transactionId" }
+        dao.insertShare(share.copy(id = 0, loanId = loanId, transactionId = transactionId))
+        return transactionId
+    }
+
+    /**
+     * Takes [amount] of shares that didn't restore off restored loan [loanId].
+     * A loan left with nothing behind it (no principal, no shares, no linked
+     * lent/borrowed transaction) is removed, its repayment links cleared.
+     */
+    private suspend fun dropOrphanedShares(loanId: Long, amount: java.math.BigDecimal) {
+        val dao = database.loanDao()
+        val loan = dao.getLoanById(loanId) ?: return
+        val original = (loan.originalAmount - amount).coerceAtLeast(java.math.BigDecimal.ZERO)
+        val contributionType = if (loan.direction == LoanDirection.LENT) "EXPENSE" else "INCOME"
+        val backed = dao.getSharesForLoan(loanId).isNotEmpty() || dao.getTotalRepaidByType(loanId, contributionType).signum() > 0
+        if (original.signum() == 0 || !backed) {
+            dao.unlinkAllTransactions(loanId)
+            dao.deleteLoan(loan)
+            return
+        }
+        val remaining = (loan.remainingAmount - amount).coerceAtLeast(java.math.BigDecimal.ZERO)
+        dao.updateLoan(
+            loan.copy(
+                originalAmount = original,
+                remainingAmount = remaining,
+                status = if (remaining.signum() == 0) LoanStatus.SETTLED else loan.status,
+                settledAt = if (remaining.signum() == 0) loan.settledAt ?: LocalDateTime.now() else loan.settledAt
+            )
+        )
     }
 
     /**

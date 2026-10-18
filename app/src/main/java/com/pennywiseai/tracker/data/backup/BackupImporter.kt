@@ -907,6 +907,9 @@ class BackupImporter @Inject constructor(
             userPreferencesRepository.updateDarkTheme(it)
         }
         userPreferencesRepository.updateDynamicColor(preferences.theme.isDynamicColorEnabled)
+        preferences.theme.hiddenNavTabs?.let {
+            userPreferencesRepository.updateHiddenNavTabs(it.toSet())
+        }
         
         // SMS preferences
         userPreferencesRepository.updateHasSkippedSmsPermission(preferences.sms.hasSkippedSmsPermission)

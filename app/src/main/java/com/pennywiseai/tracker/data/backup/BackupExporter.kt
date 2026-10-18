@@ -250,7 +250,8 @@ class BackupExporter @Inject constructor(
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(
                     isDarkThemeEnabled = prefs.isDarkThemeEnabled,
-                    isDynamicColorEnabled = prefs.isDynamicColorEnabled
+                    isDynamicColorEnabled = prefs.isDynamicColorEnabled,
+                    hiddenNavTabs = prefs.hiddenNavTabs.toList()
                 ),
                 sms = SmsPreferences(
                     hasSkippedSmsPermission = prefs.hasSkippedSmsPermission,

@@ -34,6 +34,7 @@ class ThemeViewModel @Inject constructor(
                 hasSkippedSmsPermission = preferences.hasSkippedSmsPermission,
                 blurEffectsEnabled = preferences.blurEffectsEnabled,
                 navBarStyle = preferences.navBarStyle,
+                hiddenNavTabs = preferences.hiddenNavTabs,
                 coverStyle = preferences.coverStyle,
                 hasCompletedOnboarding = preferences.hasCompletedOnboarding,
                 userName = preferences.userName,
@@ -95,6 +96,12 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
+    fun setNavTabVisible(route: String, visible: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setNavTabHidden(route, hidden = !visible)
+        }
+    }
+
     fun updateCoverStyle(style: CoverStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateCoverStyle(style)
@@ -119,6 +126,7 @@ data class ThemeUiState(
     val hasSkippedSmsPermission: Boolean = false,
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,
+    val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,
     val hasCompletedOnboarding: Boolean = false,
     val userName: String = "User",

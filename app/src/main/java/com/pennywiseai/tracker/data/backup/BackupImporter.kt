@@ -422,11 +422,12 @@ class BackupImporter @Inject constructor(
                     Triple(it.personName, it.direction, it.createdAt) to it.id
                 }
                 val oldToNewLoanIdMap = mutableMapOf<Long, Long>()
+                val insertedLoanIds = HashSet<Long>()
                 backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
                     val key = Triple(loan.personName, loan.direction, loan.createdAt)
                     val existingId = existingLoanKeyToId[key]
                     val newId = existingId
-                        ?: database.loanDao().insertLoan(loan.copy(id = 0))
+                        ?: database.loanDao().insertLoan(loan.copy(id = 0)).also { insertedLoanIds += it }
                     if (loan.id != 0L) oldToNewLoanIdMap[loan.id] = newId
                 }
 
@@ -460,6 +461,7 @@ class BackupImporter @Inject constructor(
                 // Import transactions (skip duplicates by hash)
                 // Build mapping from old transaction IDs to new IDs for split/application imports
                 val oldToNewTransactionIdMap = mutableMapOf<Long, Long>()
+                val insertedTransactionIds = HashSet<Long>()
 
                 backup.database.transactions.insertEachCounting({ skippedRows++ }) { transaction ->
                     if (!existingTransactionHashes.contains(transaction.transactionHash)) {
@@ -473,6 +475,7 @@ class BackupImporter @Inject constructor(
                             profileId = resolveProfileId(transaction.profileId)
                         )
                         val newId = database.transactionDao().insertTransaction(newTransaction)
+                        if (newId > 0L) insertedTransactionIds += newId
                         // Track old ID -> new ID mapping directly from insert result
                         if (oldId != 0L) {
                             oldToNewTransactionIdMap[oldId] = newId
@@ -498,9 +501,16 @@ class BackupImporter @Inject constructor(
                 importGoalsWithMerge(
                     backup.database.goals, backup.database.goalContributions, oldToNewTransactionIdMap
                 ) { skippedRows++ }
-                // Split-bill shares (#346): remapped like tag cross-refs; the unique
-                // (transaction, loan) index makes a repeat merge a no-op.
-                importLoanShares(backup.database.loanShares, { oldToNewLoanIdMap[it] }, oldToNewTransactionIdMap) { skippedRows++ }
+                // Split-bill shares (#346): only onto a bill AND a loan this merge
+                // inserted, so they arrive together with the principal and amount
+                // they were sized for. A local bill or loan wins as it is (the
+                // user may have removed or edited the split since the backup),
+                // like a local goal with the same uid; a repeat merge is a no-op.
+                importLoanShares(
+                    backup.database.loanShares,
+                    { old -> oldToNewLoanIdMap[old]?.takeIf { it in insertedLoanIds } },
+                    oldToNewTransactionIdMap.filterValues { it in insertedTransactionIds }
+                ) { skippedRows++ }
 
                 // Import new entities with correct ID mapping for splits and applications
                 // Rules and budgets: skip if exists locally (merge semantics - don't overwrite local changes)
@@ -912,9 +922,10 @@ class BackupImporter @Inject constructor(
 
     /**
      * Split-bill shares (#346). Each needs both its loan ([loanIdFor]) and its
-     * transaction ([transactionIdMap]) restored, or it's skipped and counted.
-     * Afterwards every touched bill's `lent_shares_total` is rebuilt from its
-     * rows, so a bill never claims shares that didn't come back.
+     * transaction ([transactionIdMap]) restored, an expense bill in the loan's
+     * currency, and room left in the bill's amount, or it's skipped and
+     * counted. Afterwards every touched bill's `lent_shares_total` is rebuilt
+     * from its rows, so a bill never claims shares that didn't come back.
      */
     private suspend fun importLoanShares(
         shares: List<LoanShareEntity>,
@@ -928,6 +939,12 @@ class BackupImporter @Inject constructor(
         shares.insertEachCounting(onSkip) { share ->
             val loanId = checkNotNull(loanIdFor(share.loanId)) { "Loan ${share.loanId} not restored" }
             val transactionId = checkNotNull(transactionIdMap[share.transactionId]) { "Transaction ${share.transactionId} not restored" }
+            val bill = checkNotNull(database.transactionDao().getTransactionById(transactionId)) { "Transaction $transactionId missing" }
+            val loan = checkNotNull(dao.getLoanById(loanId)) { "Loan $loanId missing" }
+            check(bill.transactionType == TransactionType.EXPENSE && bill.loanId == null) { "Bill $transactionId can't be split" }
+            check(bill.currency.equals(loan.currency, ignoreCase = true)) { "Share currency differs from its bill" }
+            val taken = dao.getSharesForTransaction(transactionId).fold(java.math.BigDecimal.ZERO) { a, s -> a + s.amount }
+            check(share.amount.signum() > 0 && taken + share.amount <= bill.amount) { "Shares would exceed bill $transactionId" }
             dao.insertShare(share.copy(id = 0, loanId = loanId, transactionId = transactionId))
             touched += transactionId
         }

@@ -889,6 +889,11 @@ class TransactionDetailViewModel @Inject constructor(
                     _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
                     return@launch
                 }
+                // Only an expense can be split: as income the shares would be debt with no outlay behind it.
+                if (toSave.transactionType != TransactionType.EXPENSE) {
+                    _errorMessage.value = UiText.Res(R.string.split_error_type_locked)
+                    return@launch
+                }
                 if (toSave.amount < sharesTotal) {
                     _errorMessage.value = UiText.Res(R.string.split_error_amount_below_shares)
                     return@launch

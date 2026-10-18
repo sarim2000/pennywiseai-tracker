@@ -86,6 +86,16 @@ import java.math.BigDecimal
 /** Can [txn] be split? Expenses only, and not one already marked as a loan. */
 fun canSplit(txn: TransactionEntity): Boolean = txn.transactionType == TransactionType.EXPENSE && txn.loanId == null
 
+/**
+ * What to ask [person] for: their share, but never more than their loan still
+ * has open, so a part already repaid isn't requested again.
+ * ponytail: a loan that merges several bills doesn't say which bill a
+ * repayment was for, so this caps at the loan's total; per-bill tracking
+ * would need repayments linked to shares.
+ */
+internal fun owedFor(person: SplitPerson): BigDecimal =
+    person.loan?.remainingAmount?.let { minOf(it, person.share.amount) }?.coerceAtLeast(BigDecimal.ZERO) ?: person.share.amount
+
 /** UPI requests are INR only (#346). */
 private fun TransactionEntity.isInr() = currency.equals("INR", ignoreCase = true)
 
@@ -110,8 +120,9 @@ fun SplitSection(
     val currency = transaction.currency
 
     fun request(person: SplitPerson, id: String) {
-        val amount = CurrencyFormatter.formatCurrency(person.share.amount, currency)
-        val uri = UpiRequest.payUri(id, payeeName, person.share.amount, transaction.merchantName)
+        val owed = owedFor(person)
+        val amount = CurrencyFormatter.formatCurrency(owed, currency)
+        val uri = UpiRequest.payUri(id, payeeName, owed, transaction.merchantName)
         val text = context.getString(R.string.split_request_text, amount, id, transaction.merchantName) + "\n" + uri
         val title = context.getString(R.string.split_request, amount)
         scope.launch {
@@ -135,7 +146,8 @@ fun SplitSection(
         GroupedList {
             people.forEachIndexed { i, person ->
                 val loan = person.loan
-                val settled = loan?.status == LoanStatus.SETTLED
+                val owed = owedFor(person)
+                val settled = loan?.status == LoanStatus.SETTLED || owed.signum() == 0
                 val amount = CurrencyFormatter.formatCurrency(person.share.amount, currency)
                 GroupedRow(position = ListItemPosition.from(i, rows), onClick = loan?.let { { onOpenLoan(it.id) } }) {
                     RowLabels(
@@ -146,7 +158,7 @@ fun SplitSection(
                         FilledTonalButton(onClick = { upiId?.let { request(person, it) } ?: run { askUpiFor = person } }) {
                             Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(Modifier.width(Spacing.xs))
-                            Text(stringResource(R.string.split_request, amount))
+                            Text(stringResource(R.string.split_request, CurrencyFormatter.formatCurrency(owed, currency)))
                         }
                     } else {
                         Text(amount, style = PennyWiseText.amountRow, color = MaterialTheme.colorScheme.onSurface)

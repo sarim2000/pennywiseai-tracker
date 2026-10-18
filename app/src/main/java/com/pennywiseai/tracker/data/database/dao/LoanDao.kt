@@ -168,14 +168,6 @@ interface LoanDao {
     @Query("DELETE FROM loan_shares WHERE loan_id = :loanId")
     suspend fun deleteSharesForLoan(loanId: Long)
 
-    /** Share amounts of [loanId] on transactions that aren't deleted — part of its principal. */
-    @Query("""
-        SELECT s.amount FROM loan_shares s
-        INNER JOIN transactions t ON t.id = s.transaction_id
-        WHERE s.loan_id = :loanId AND t.is_deleted = 0
-    """)
-    suspend fun getLiveShareAmounts(loanId: Long): List<BigDecimal>
-
     @Query("UPDATE transactions SET lent_shares_total = :total, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
     suspend fun setLentSharesTotal(transactionId: Long, total: BigDecimal?)
 

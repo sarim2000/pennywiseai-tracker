@@ -85,9 +85,6 @@ class LoanSplitTest {
         coEvery { loanDao.getSharesForTransaction(any()) } answers { shares.filter { it.transactionId == firstArg<Long>() } }
         coEvery { loanDao.getSharesForLoan(any()) } answers { shares.filter { it.loanId == firstArg<Long>() } }
         coEvery { loanDao.deleteSharesForLoan(any()) } answers { shares.removeAll { it.loanId == firstArg<Long>() } }
-        coEvery { loanDao.getLiveShareAmounts(any()) } answers {
-            shares.filter { it.loanId == firstArg<Long>() && txns[it.transactionId]?.isDeleted == false }.map { it.amount }
-        }
         coEvery { loanDao.getTotalRepaidByType(any(), any()) } answers {
             txns.values.filter { it.loanId == firstArg<Long>() && !it.isDeleted && it.transactionType.name == secondArg<String>() }
                 .fold(BigDecimal.ZERO) { a, t -> a + (t.loanContribution ?: t.amount) }
@@ -199,6 +196,20 @@ class LoanSplitTest {
         repo.unlinkTransaction(2, existing)
 
         // Before #346 the recount saw no linked transactions and deleted the loan.
+        assertEquals(d("300"), loanOf("Alex").originalAmount)
+        assertEquals(1, shares.size)
+    }
+
+    @Test
+    fun `a deleted bill's share still holds the loan up when another split is removed`() = runBlocking {
+        txn(1, "1000")
+        txn(2, "500")
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("300"))))
+        repo.saveSplit(2, listOf(SplitShare("Alex", d("200"))))
+        txns[1] = txns.getValue(1).copy(isDeleted = true) // soft delete keeps the debt, as for loans
+
+        repo.saveSplit(2, emptyList())
+
         assertEquals(d("300"), loanOf("Alex").originalAmount)
         assertEquals(1, shares.size)
     }

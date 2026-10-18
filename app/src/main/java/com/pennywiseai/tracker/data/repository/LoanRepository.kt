@@ -229,7 +229,7 @@ class LoanRepository @Inject constructor(
         // are the opposite type and don't count toward principal.
         val contributionType = if (loan.direction == LoanDirection.LENT) "EXPENSE" else "INCOME"
         // Split-bill shares (#346) are principal too.
-        val remainingPrincipal = loanDao.getTotalRepaidByType(loanId, contributionType) + liveShareTotal(loanId)
+        val remainingPrincipal = loanDao.getTotalRepaidByType(loanId, contributionType) + shareTotal(loanId)
         if (remainingPrincipal.compareTo(BigDecimal.ZERO) == 0) {
             // No principal left — the loan is meaningless. Delete it; deleteLoan's
             // unlinkAllTransactions also detaches any leftover repayment rows so
@@ -374,7 +374,7 @@ class LoanRepository @Inject constructor(
     private suspend fun removeShare(share: LoanShareEntity, loan: LoanEntity?) {
         loanDao.deleteShare(share)
         if (loan == null) return
-        val otherPrincipal = loanDao.getTotalRepaidByType(loan.id, "EXPENSE") + liveShareTotal(loan.id)
+        val otherPrincipal = loanDao.getTotalRepaidByType(loan.id, "EXPENSE") + shareTotal(loan.id)
         if (otherPrincipal.signum() == 0) {
             deleteLoan(loan.id)
         } else {
@@ -388,8 +388,10 @@ class LoanRepository @Inject constructor(
         }
     }
 
-    private suspend fun liveShareTotal(loanId: Long): BigDecimal =
-        loanDao.getLiveShareAmounts(loanId).fold(BigDecimal.ZERO, BigDecimal::add)
+    // Every share, a soft-deleted bill's too: deleting a bill leaves its debt
+    // standing (like a loan-linked bill), so the debt still holds the loan up.
+    private suspend fun shareTotal(loanId: Long): BigDecimal =
+        loanDao.getSharesForLoan(loanId).fold(BigDecimal.ZERO) { sum, s -> sum + s.amount }
 
     /** Recomputes [TransactionEntity.lentSharesTotal] from the transaction's share rows. */
     suspend fun syncLentSharesTotal(transactionId: Long) {

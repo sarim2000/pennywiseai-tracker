@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.domain.loan
 
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.presentation.split.FormPerson
+import com.pennywiseai.tracker.presentation.split.owedFor
 import com.pennywiseai.tracker.presentation.split.SplitForm
 import com.pennywiseai.tracker.presentation.split.SplitMode
 import com.pennywiseai.tracker.presentation.split.preview
@@ -85,6 +88,22 @@ class SplitRulesTest {
 
         val blank = SplitForm(people = listOf(FormPerson("Alex", "")), mode = SplitMode.CUSTOM, yourPart = "1000").preview(d("1000"), "INR")
         assertEquals(SplitError.SHARE_NOT_POSITIVE, blank.error)
+    }
+
+    @Test
+    fun `request asks only for what is still owed`() {
+        fun person(share: String, remaining: String?) = SplitPerson(
+            LoanShareEntity(transactionId = 1, loanId = 2, amount = d(share)),
+            remaining?.let {
+                LoanEntity(id = 2, personName = "Alex", direction = com.pennywiseai.tracker.data.database.entity.LoanDirection.LENT,
+                    originalAmount = d("500"), remainingAmount = d(it))
+            }
+        )
+        assertEquals(d("500"), owedFor(person("500", "500")))
+        assertEquals(d("100"), owedFor(person("500", "100"))) // ₹400 repaid
+        assertEquals(d("500"), owedFor(person("500", "900"))) // loan also holds other bills
+        assertEquals(d("0"), owedFor(person("500", "0")))
+        assertEquals(d("500"), owedFor(person("500", null)))
     }
 
     @Test

@@ -611,6 +611,11 @@ class HomeViewModel @Inject constructor(
                     settledLoans to profileId
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (settledLoans, profileId), balances ->
+                    Triple(settledLoans, profileId, balances)
+                }
+                // A collect, not a trailing combine: a flow with no collector never runs,
+                // so settlement losses silently stopped reaching "Spent" after #571.
+                .collect { (settledLoans, profileId, balances) ->
                     val keys = buildProfileAccountKeys(balances)
                     val byCurrency = mutableMapOf<String, BigDecimal>()
                     for (loan in settledLoans) {

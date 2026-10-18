@@ -17,6 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,15 +109,16 @@ fun MainScreen(
 
     // Hiding the tab you're on (or the one under Settings) sends you Home, once,
     // on the next tab you land on. Other ways into a hidden tab's screen (e.g.
-    // Home cards) keep working afterwards. (#912)
+    // Home cards) keep working afterwards. Saveable so a rotation between
+    // hiding and going back doesn't drop the redirect. (#912)
     val hiddenTabs = themeState.hiddenNavTabs
     val chatHidden = BottomNavItem.Chat.route in hiddenTabs
-    var lastHiddenTabs by remember { mutableStateOf<Set<String>?>(null) }
-    var fallBackPending by remember { mutableStateOf(false) }
+    var lastHiddenTabs by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
+    var fallBackPending by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(themeState.isLoading, hiddenTabs) {
         if (themeState.isLoading) return@LaunchedEffect
         if (lastHiddenTabs?.containsAll(hiddenTabs) == false) fallBackPending = true
-        lastHiddenTabs = hiddenTabs
+        lastHiddenTabs = ArrayList(hiddenTabs)
     }
     LaunchedEffect(fallBackPending, baseRoute) {
         if (!fallBackPending || BottomNavItem.all.none { it.route == baseRoute }) return@LaunchedEffect

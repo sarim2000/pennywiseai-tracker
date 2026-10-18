@@ -66,14 +66,10 @@ fun PennyWiseBottomNavigation(
     hidePill: Boolean = false,
     blurEffects: Boolean = true,
     visible: Boolean = true,
+    hiddenTabs: Set<String> = emptySet(),
     hazeState: HazeState = remember { HazeState() },
 ) {
-    val navigationItems = listOf(
-        BottomNavItem.Home,
-        BottomNavItem.Transactions,
-        BottomNavItem.Analytics,
-        BottomNavItem.Chat
-    )
+    val navigationItems = BottomNavItem.visible(hiddenTabs)
     val containerColor = MaterialTheme.colorScheme.surface
 
     Box(modifier = modifier) {

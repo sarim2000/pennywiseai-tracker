@@ -298,7 +298,12 @@ data class ThemePreferences(
     val isDarkThemeEnabled: Boolean? = null,
 
     @SerialName("is_dynamic_color_enabled")
-    val isDynamicColorEnabled: Boolean = false
+    val isDynamicColorEnabled: Boolean = false,
+
+    // Routes of hidden bottom-bar tabs (#912). Null in older backups, so a
+    // restore of one leaves the current choice alone.
+    @SerialName("hidden_nav_tabs")
+    val hiddenNavTabs: List<String>? = null
 )
 
 @Serializable

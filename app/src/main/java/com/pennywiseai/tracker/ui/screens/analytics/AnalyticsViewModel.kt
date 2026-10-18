@@ -77,6 +77,15 @@ internal class RefundNetting(
 )
 
 /**
+ * The type view Analytics opens on. With "count credit card as expense" on, Home's
+ * "Spent" is Expense + Card, so open on Spending to show the same figure. Off, open
+ * on Expense: those users count the card bill payment instead, and adding card
+ * spends would count the same money twice.
+ */
+internal fun defaultTypeFilter(countCreditCardAsExpense: Boolean): TransactionTypeFilter =
+    if (countCreditCardAsExpense) TransactionTypeFilter.SPENDING else TransactionTypeFilter.EXPENSE
+
+/**
  * Refunds (INCOME + DEDUCT_SPENT) to net out of a spend view ([TransactionTypeFilter.netsRefunds]:
  * Expense and Spending), so every spend surface (total, category, account, merchant
  * and the trend) agrees with the Home card and the Transactions page, which are net
@@ -178,6 +187,12 @@ class AnalyticsViewModel @Inject constructor(
     
     private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
+    private var typeFilterChosen = false
+
+    /** The type view Analytics opens on and resets to; follows the card-spend setting. */
+    val defaultTypeFilter: StateFlow<TransactionTypeFilter> = userPreferencesRepository.countCreditCardAsExpense
+        .map { defaultTypeFilter(it) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TransactionTypeFilter.EXPENSE)
 
     private val _selectedCurrency = MutableStateFlow("")
     val selectedCurrency: StateFlow<String> = _selectedCurrency.asStateFlow()
@@ -202,6 +217,14 @@ class AnalyticsViewModel @Inject constructor(
     val selectedChartType: StateFlow<ChartType> = _selectedChartType.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            // Follows the setting live (the screen outlives a trip to Settings)
+            // until the user picks a filter themselves.
+            userPreferencesRepository.countCreditCardAsExpense.collect { on ->
+                if (!typeFilterChosen) _transactionTypeFilter.value = defaultTypeFilter(on)
+            }
+        }
+
         viewModelScope.launch {
             userPreferencesRepository.getAnalyticsChartType().collect { saved ->
                 if (saved != null) {
@@ -623,7 +646,14 @@ class AnalyticsViewModel @Inject constructor(
         _selectedPeriod.value = period
     }
 
+    /** Back to the default view, which then follows the card-spend setting again. */
+    fun resetTransactionTypeFilter() {
+        typeFilterChosen = false
+        _transactionTypeFilter.value = defaultTypeFilter.value
+    }
+
     fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
+        typeFilterChosen = true
         _transactionTypeFilter.value = filter
     }
 

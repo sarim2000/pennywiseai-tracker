@@ -169,4 +169,10 @@ class AnalyticsRowsForTest {
         assertTrue(r.byCategory.isEmpty())
         assertEquals(BigDecimal.ZERO, netOf(BigDecimal("50"), BigDecimal("200")))
     }
+
+    @Test
+    fun `Analytics opens on Spending only when card spend counts as expense`() {
+        assertEquals(TransactionTypeFilter.SPENDING, defaultTypeFilter(countCreditCardAsExpense = true))
+        assertEquals(TransactionTypeFilter.EXPENSE, defaultTypeFilter(countCreditCardAsExpense = false))
+    }
 }

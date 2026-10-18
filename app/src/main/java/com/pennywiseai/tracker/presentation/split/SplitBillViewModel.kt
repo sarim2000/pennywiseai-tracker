@@ -173,11 +173,19 @@ class SplitBillViewModel @Inject constructor(
         }
     }
 
+    /** Undoes the whole split from the open sheet; on failure the sheet stays open with the error. */
     fun removeSplit() {
         val txn = transaction.value ?: return
+        val form = _form.value ?: return
+        if (form.saving) return
+        _form.value = form.copy(saving = true, failure = null)
         viewModelScope.launch {
             runCatching { loanRepository.saveSplit(txn.id, emptyList()) }
-            _changed.tryEmit(Unit)
+                .onSuccess {
+                    _form.value = null
+                    _changed.tryEmit(Unit)
+                }
+                .onFailure { e -> _form.update { it?.copy(saving = false, failure = e.message.orEmpty()) } }
         }
     }
 

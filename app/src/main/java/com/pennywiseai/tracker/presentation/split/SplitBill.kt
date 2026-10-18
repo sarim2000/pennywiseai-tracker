@@ -230,6 +230,8 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
     var name by rememberSaveable { mutableStateOf("") }
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val full = f.people.size >= SplitRules.MAX_PEOPLE
+    // Rows sit one tonal step above the sheet, or they vanish into it.
+    val sheetRow = MaterialTheme.colorScheme.surfaceContainerHigh
 
     val pickContact = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
         uri?.let { contactName(context, it) }?.let { viewModel.addPerson(it) }
@@ -273,13 +275,13 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                 val rows = f.people.size + 1
                 GroupedList {
                     f.people.forEachIndexed { i, person ->
-                        GroupedRow(position = ListItemPosition.from(i, rows)) {
+                        GroupedRow(position = ListItemPosition.from(i, rows), containerColor = sheetRow) {
                             RowLabels(title = person.name)
                             Text(CurrencyFormatter.formatCurrency(preview.shares[i], currency), style = PennyWiseText.amountRow)
                             RemoveButton(person.name) { viewModel.removePerson(i) }
                         }
                     }
-                    GroupedRow(position = ListItemPosition.from(f.people.size, rows)) {
+                    GroupedRow(position = ListItemPosition.from(f.people.size, rows), containerColor = sheetRow) {
                         RowLabels(title = stringResource(R.string.split_you), subtitle = stringResource(R.string.split_your_part))
                         Text(CurrencyFormatter.formatCurrency(preview.yours, currency), style = PennyWiseText.amountRow)
                     }
@@ -362,7 +364,8 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
 
             val error = when (preview.error) {
                 null -> null
-                SplitError.NO_PEOPLE -> stringResource(R.string.split_error_no_people)
+                // Save is disabled and the people field is right there; no need to shout.
+                SplitError.NO_PEOPLE -> null
                 SplitError.SHARE_NOT_POSITIVE -> stringResource(R.string.split_error_share_positive)
                 SplitError.OVER_AMOUNT -> stringResource(R.string.split_error_over)
                 SplitError.YOUR_PART_NEGATIVE -> stringResource(R.string.split_error_your_part_negative)
@@ -396,7 +399,6 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
             confirmButton = {
                 TextButton(onClick = {
                     confirmRemove = false
-                    viewModel.closeSheet()
                     viewModel.removeSplit()
                 }) { Text(stringResource(R.string.split_remove_confirm), color = MaterialTheme.colorScheme.error) }
             },

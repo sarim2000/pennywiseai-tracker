@@ -6,7 +6,6 @@
 
     <string name="split_sheet_title">Split %1$s</string>
     <string name="split_sheet_hint">Each share is added under Loans as money you lent. Only your part counts as spending.</string>
-    <string name="split_people_header">People</string>
     <string name="split_people_count">%1$d of %2$d people</string>
     <string name="split_person_name">Person\'s name</string>
     <string name="split_add_person">Add</string>
@@ -17,17 +16,14 @@
     <string name="split_mode_custom">Custom amounts</string>
     <string name="split_you">You</string>
     <string name="split_your_part">Your part</string>
-    <string name="split_share_amount">Share</string>
     <string name="split_left_to_assign">%1$s left to assign</string>
     <string name="split_over_total">%1$s more than the total</string>
     <string name="split_adds_up">Adds up to %1$s</string>
     <string name="split_save">Save split</string>
 
-    <string name="split_error_no_people">Add at least one person</string>
     <string name="split_error_share_positive">Every share must be more than zero</string>
     <string name="split_error_over">The shares are more than the total</string>
     <string name="split_error_your_part_negative">Your part can\'t be less than zero</string>
-    <string name="split_error_not_balanced">The shares and your part must add up to %1$s</string>
     <string name="split_error_failed">Couldn\'t save the split: %1$s</string>
     <string name="split_error_amount_below_shares">This bill is split. Its amount can\'t be less than the shares you lent.</string>
 

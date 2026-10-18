@@ -39,10 +39,7 @@
 		}
 	],
 	"vars": {
-		"KTOR_ENV": "production",
-		// Cloudflare Web Analytics beacon token (public: it ships in every page).
-		// Empty = no beacon injected.
-		"CF_BEACON_TOKEN": ""
+		"KTOR_ENV": "production"
 	},
 	"workers_dev": true,
 	"preview_urls": true

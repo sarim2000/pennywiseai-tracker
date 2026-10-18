@@ -683,18 +683,15 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     /**
-     * Set the transaction's bank when the user picks an account from the
-     * dropdown. The account is keyed by (bankName, accountLast4), so selecting
-     * "HDFC ••1234" must update BOTH fields — otherwise a transaction that
-     * started on a different bank (e.g. a subscription-created row, or a
-     * "Manual Entry" row) keeps its stale bankName, saveChanges() looks up
-     * getLatestBalance(staleBank, newLast4), misses, and the account balance
-     * silently never updates (issues #566, #570).
+     * The user picked an account from the dropdown. The account is keyed by
+     * (bankName, accountLast4), so selecting "HDFC ••1234" must update BOTH
+     * fields — otherwise a transaction that started on a different bank keeps
+     * its stale bankName and the balance lookup misses (#566, #570). The suffix
+     * is kept even when blank: a Cash account added without a number is
+     * ("Cash", ""), and treating "" as "no account" dropped it on save (#913).
      */
-    fun updateBankName(bankName: String?) {
-        _editableTransaction.update { current ->
-            current?.copy(bankName = if (bankName.isNullOrEmpty()) null else bankName)
-        }
+    fun selectAccount(account: String, bankName: String) {
+        _editableTransaction.update { it?.copy(accountNumber = account, bankName = bankName) }
     }
 
     fun updateFromAccount(account: String?, bankName: String? = null) =
@@ -904,7 +901,7 @@ class TransactionDetailViewModel @Inject constructor(
                 // the same last-4 exists on multiple banks, or when it's a
                 // novel/unknown number. Clearing (accountNumber == null) keeps
                 // the existing bank untouched. Belt-and-braces with the picker's
-                // onBankNameChange so no edit path can desync (#566, #570).
+                // selectAccount so no edit path can desync (#566, #570).
                 val resolvedBankName = toSave.accountNumber
                     ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
                     ?.singleOrNull()
@@ -929,14 +926,13 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Pin opening anchors from the PRE-update snapshot for the affected
                 // manual accounts, so the recompute after the edit reflects the change
-                // (amount/date/account). No-op for SMS accounts.
-                _transaction.value?.let { pre ->
-                    val pb = pre.bankName; val pa = pre.accountNumber
-                    if (pb != null && pa != null) accountBalanceRepository.ensureManualOpening(pb, pa)
-                }
-                normalizedTransaction.bankName?.let { nb ->
-                    normalizedTransaction.accountNumber?.let { na ->
-                        accountBalanceRepository.ensureManualOpening(nb, na)
+                // (amount/date/account). No-op for SMS accounts. Transfer legs too:
+                // pinned after the update, a leg's opening would absorb the edit and
+                // its balance would never move (#913).
+                listOfNotNull(_transaction.value, normalizedTransaction).forEach { t ->
+                    for ((bank, acct) in listOf(t.bankName to t.accountNumber,
+                        t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)) {
+                        if (bank != null && acct != null) accountBalanceRepository.ensureManualOpening(bank, acct)
                     }
                 }
 

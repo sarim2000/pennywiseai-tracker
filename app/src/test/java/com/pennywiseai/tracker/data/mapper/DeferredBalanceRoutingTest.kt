@@ -119,6 +119,26 @@ class DeferredBalanceRoutingTest {
         assertEquals("Replacement Bank", reselected.bankName)
     }
 
+    /** #913: a Cash account added without a number is ("Cash", ""); picking it as To was dropped. */
+    @Test fun pickedAccountWithBlankSuffixIsKeptAsTransferLeg() {
+        val tx = parsed.toEntity().copy(accountNumber = "3000", bankName = "Source Bank",
+            fromAccount = "3000", fromBankName = "Source Bank", toAccount = null, toBankName = null)
+        val picked = tx.withTransferAccount("", "Cash", incoming = true)
+        assertEquals("", picked.toAccount)
+        assertEquals("Cash", picked.toBankName)
+        assertEquals("3000", picked.accountNumber)
+        assertEquals("Source Bank", picked.bankName)
+        // Typed text emptied (no bank) still clears the leg.
+        val typedEmpty = picked.withTransferAccount("", null, incoming = true)
+        assertNull(typedEmpty.toAccount)
+        assertNull(typedEmpty.toBankName)
+        // A blank-suffix source leg moves the owning account with it, like any other pick.
+        val fromCash = tx.withTransferAccount("", "Cash", incoming = false)
+        assertEquals("", fromCash.fromAccount)
+        assertEquals("", fromCash.accountNumber)
+        assertEquals("Cash", fromCash.bankName)
+    }
+
     @Test fun cardSuffixRemainsAvailableForCardBinding() {
         val card = parsed.copy(isFromCard = true)
         assertEquals(card, card.forDeferredBalance(card.toEntity().copy(accountNumber = "1999")))

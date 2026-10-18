@@ -15,6 +15,9 @@ data class SplitShare(val personName: String, val amount: BigDecimal)
 /** A saved share with the loan it sits on (null if that loan was deleted). */
 data class SplitPerson(val share: LoanShareEntity, val loan: LoanEntity?)
 
+/** A share on a settled loan can't change amount; [personName]'s loan must be reopened first. */
+class SettledShareException(val personName: String) : IllegalStateException("$personName's loan is settled")
+
 enum class SplitError { NO_PEOPLE, TOO_MANY_PEOPLE, BLANK_NAME, DUPLICATE_PERSON, SHARE_NOT_POSITIVE, OVER_AMOUNT, YOUR_PART_NEGATIVE, NOT_BALANCED }
 
 /**

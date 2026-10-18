@@ -117,19 +117,17 @@ class LoanSplitDatabaseTest {
     }
 
     @Test
-    fun aSettledLoanStaysSettledWhenItsShareIsEditedOrRemoved() = runBlocking {
+    fun aSettledLoansShareCantChangeAndRemovingItKeepsTheLoanSettled() = runBlocking {
         val one = bill("1000", "b1")
         val two = bill("500", "b2")
         repo.saveSplit(one, listOf(SplitShare("Alex", d("300"))))
         repo.saveSplit(two, listOf(SplitShare("Alex", d("200"))))
         repo.settleLoans(listOf(loanOf("Alex").id))
 
-        repo.saveSplit(one, listOf(SplitShare("Alex", d("301"))))
-        with(loanOf("Alex")) {
-            assertEquals(LoanStatus.SETTLED, status)
-            assertEquals(0, d("501").compareTo(originalAmount))
-            assertEquals(0, BigDecimal.ZERO.compareTo(remainingAmount))
-        }
+        // Refused, and the Room transaction rolls the attempt back.
+        assertTrue(runCatching { repo.saveSplit(one, listOf(SplitShare("Alex", d("301")))) }.isFailure)
+        assertEquals(0, d("500").compareTo(loanOf("Alex").originalAmount))
+        assertEquals(0, d("300").compareTo(db.transactionDao().getTransactionById(one)!!.lentSharesTotal))
 
         repo.saveSplit(one, emptyList())
         with(loanOf("Alex")) {

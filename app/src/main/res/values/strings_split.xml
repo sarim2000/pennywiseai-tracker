@@ -24,6 +24,7 @@
     <string name="split_error_over">The shares are more than the total</string>
     <string name="split_error_your_part_negative">Your part can\'t be less than zero</string>
     <string name="split_error_failed">Couldn\'t save the split: %1$s</string>
+    <string name="split_error_settled">%1$s\'s loan is settled. Reopen it under Loans to change their share.</string>
     <string name="split_error_transfer">A split bill can\'t be a transfer. Remove the split first.</string>
     <string name="split_error_type_locked">This bill is split. Remove the split before changing its type.</string>
     <string name="split_error_amount_below_shares">This bill is split. Its amount can\'t be less than the shares you lent.</string>

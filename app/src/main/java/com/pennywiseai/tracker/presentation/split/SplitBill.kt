@@ -378,7 +378,8 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                 // The sheet never lets these through.
                 SplitError.TOO_MANY_PEOPLE, SplitError.BLANK_NAME, SplitError.DUPLICATE_PERSON -> null
             }
-            (f.failure?.let { stringResource(R.string.split_error_failed, it) } ?: error)?.let {
+            (f.settledPerson?.let { stringResource(R.string.split_error_settled, it) }
+                ?: f.failure?.let { stringResource(R.string.split_error_failed, it) } ?: error)?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
             }
 

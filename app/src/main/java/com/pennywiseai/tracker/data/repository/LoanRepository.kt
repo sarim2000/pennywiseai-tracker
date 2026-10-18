@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.loan.SettledShareException
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.SplitShare
@@ -344,6 +345,10 @@ class LoanRepository @Inject constructor(
             if (loan == null || next == null) {
                 removeShare(share, loan)
             } else if (next.amount.compareTo(share.amount) != 0) {
+                // A settled loan's share is closed: Settle up and a full repayment
+                // look the same afterwards, so a new amount can't be told apart
+                // from reopening forgiven debt. Reopen the loan first.
+                if (loan.status == LoanStatus.SETTLED) throw SettledShareException(loan.personName)
                 loanDao.updateShare(share.copy(amount = next.amount))
                 setPrincipal(loan, loan.originalAmount + next.amount - share.amount)
             }
@@ -394,19 +399,14 @@ class LoanRepository @Inject constructor(
     }
 
     /**
-     * Sets a loan's principal after a share changed. A loan closed with Settle
-     * up (settled while repayments covered less than its principal) stays
-     * settled with only its principal moved: Settle up records no repayment, so
-     * recomputing what's left would reopen it for everything forgiven. Any
-     * other loan, including one settled by being repaid in full, is
-     * recalculated, so a raised share is owed again.
+     * Sets a loan's principal after a share changed. A settled loan stays
+     * settled with only its principal moved (that only happens when a share
+     * is removed; edits are refused): Settle up records no repayment, so
+     * recomputing what's left would reopen it for everything forgiven.
      */
     private suspend fun setPrincipal(loan: LoanEntity, principal: BigDecimal) {
-        val repaymentType = if (loan.direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
-        val forgiven = loan.status == LoanStatus.SETTLED &&
-            loanDao.getTotalRepaidByType(loan.id, repaymentType) < loan.originalAmount
         loanDao.updateLoan(loan.copy(originalAmount = principal, updatedAt = LocalDateTime.now()))
-        if (!forgiven) recalculateRemaining(loan.id)
+        if (loan.status != LoanStatus.SETTLED) recalculateRemaining(loan.id)
     }
 
     // Every share, a soft-deleted bill's too: deleting a bill leaves its debt

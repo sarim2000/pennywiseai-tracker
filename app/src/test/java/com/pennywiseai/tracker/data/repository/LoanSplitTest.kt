@@ -252,36 +252,21 @@ class LoanSplitTest {
     }
 
     @Test
-    fun `editing a share on a settled loan keeps it settled`() = runBlocking {
+    fun `a share on a settled loan can't change amount`() = runBlocking {
+        // Settle up or repaid in full: either way the share is closed until the loan is reopened.
         txn(1, "1000"); txn(2, "500")
         repo.saveSplit(1, listOf(SplitShare("Alex", d("300"))))
         repo.saveSplit(2, listOf(SplitShare("Alex", d("200"))))
         settle("Alex")
 
-        repo.saveSplit(1, listOf(SplitShare("Alex", d("301"))))
+        val error = runCatching { repo.saveSplit(1, listOf(SplitShare("Alex", d("301")))) }.exceptionOrNull()
 
+        assertTrue(error is com.pennywiseai.tracker.domain.loan.SettledShareException)
         with(loanOf("Alex")) {
             assertEquals(LoanStatus.SETTLED, status)
-            assertEquals(d("501"), originalAmount)
-            assertEquals(BigDecimal.ZERO, remainingAmount)
+            assertEquals(d("500"), originalAmount)
         }
-    }
-
-    @Test
-    fun `raising a share on a loan repaid in full makes the extra owed again`() = runBlocking {
-        txn(1, "1000")
-        repo.saveSplit(1, listOf(SplitShare("Alex", d("500"))))
-        val alex = loanOf("Alex").id
-        txn(3, "500", TransactionType.INCOME, loanId = alex) // repaid in full
-        settle("Alex")
-
-        repo.saveSplit(1, listOf(SplitShare("Alex", d("600"))))
-
-        with(loanOf("Alex")) {
-            assertEquals(LoanStatus.ACTIVE, status)
-            assertEquals(d("600"), originalAmount)
-            assertEquals(d("100"), remainingAmount)
-        }
+        assertEquals(d("300"), shares.single { it.transactionId == 1L }.amount)
     }
 
     @Test

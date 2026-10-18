@@ -41,6 +41,8 @@ data class SplitForm(
     val yourPart: String = "",
     val saving: Boolean = false,
     val failure: String? = null,
+    /** Set when a save tried to change the share of someone whose loan is settled. */
+    val settledPerson: String? = null,
 )
 
 /** The sheet's figures: each person's share, your part, what's unassigned, and why it can't save yet. */
@@ -126,11 +128,11 @@ class SplitBillViewModel @Inject constructor(
         if (name.isEmpty() || form.people.size >= SplitRules.MAX_PEOPLE ||
             form.people.any { it.name.equals(name, ignoreCase = true) }
         ) return false
-        _form.value = form.copy(people = form.people + FormPerson(name), failure = null)
+        _form.value = form.copy(people = form.people + FormPerson(name), failure = null, settledPerson = null)
         return true
     }
 
-    fun removePerson(index: Int) = _form.update { f -> f?.copy(people = f.people.filterIndexed { i, _ -> i != index }, failure = null) }
+    fun removePerson(index: Int) = _form.update { f -> f?.copy(people = f.people.filterIndexed { i, _ -> i != index }, failure = null, settledPerson = null) }
 
     /** Switching to custom amounts starts from the equal split, so only the changes need typing. */
     fun setMode(mode: SplitMode) {
@@ -149,10 +151,10 @@ class SplitBillViewModel @Inject constructor(
     }
 
     fun setShare(index: Int, input: String) = _form.update { f ->
-        f?.copy(people = f.people.mapIndexed { i, p -> if (i == index) p.copy(amount = input) else p }, failure = null)
+        f?.copy(people = f.people.mapIndexed { i, p -> if (i == index) p.copy(amount = input) else p }, failure = null, settledPerson = null)
     }
 
-    fun setYourPart(input: String) = _form.update { it?.copy(yourPart = input, failure = null) }
+    fun setYourPart(input: String) = _form.update { it?.copy(yourPart = input, failure = null, settledPerson = null) }
 
     fun save() {
         val txn = transaction.value ?: return
@@ -160,7 +162,7 @@ class SplitBillViewModel @Inject constructor(
         if (form.saving) return
         val preview = form.preview(txn.amount, txn.currency)
         if (preview.error != null) return
-        _form.value = form.copy(saving = true, failure = null)
+        _form.value = form.copy(saving = true, failure = null, settledPerson = null)
         viewModelScope.launch {
             runCatching {
                 loanRepository.saveSplit(txn.id, form.people.zip(preview.shares) { p, a -> SplitShare(p.name, a) })
@@ -168,7 +170,10 @@ class SplitBillViewModel @Inject constructor(
                 _form.value = null
                 _changed.tryEmit(Unit)
             }.onFailure { e ->
-                _form.update { it?.copy(saving = false, failure = e.message.orEmpty()) }
+                _form.update {
+                    if (e is com.pennywiseai.tracker.domain.loan.SettledShareException) it?.copy(saving = false, settledPerson = e.personName)
+                    else it?.copy(saving = false, failure = e.message.orEmpty())
+                }
             }
         }
     }
@@ -178,7 +183,7 @@ class SplitBillViewModel @Inject constructor(
         val txn = transaction.value ?: return
         val form = _form.value ?: return
         if (form.saving) return
-        _form.value = form.copy(saving = true, failure = null)
+        _form.value = form.copy(saving = true, failure = null, settledPerson = null)
         viewModelScope.launch {
             runCatching { loanRepository.saveSplit(txn.id, emptyList()) }
                 .onSuccess {

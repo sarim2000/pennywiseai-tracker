@@ -300,13 +300,16 @@ class FederalBankParser : BaseIndianBankParser() {
         if (detectIsCard(message)) {
             // Credit card transactions - "at <merchant> on date" or "at <merchant> on your"
             if (message.contains(" at ", ignoreCase = true)) {
-                // Pattern 1: "at <merchant> on your" (Scapia format)
+                // Pattern 1: "at <merchant> on your" (Scapia format). Merchants can contain dots
+                // ("ZOMATO.COM", "paytm.s1abc@pty"), so don't stop at one — a miss fell through
+                // to "Go to Scapia support on the app" and named the merchant "Scapia support".
                 val scapiaPattern = Regex(
-                    """at\s+([^.\n]+?)\s+on\s+your""",
+                    """\bat\s+([^\n]+?)\s+on\s+your\b""",
                     RegexOption.IGNORE_CASE
                 )
                 scapiaPattern.find(message)?.let { match ->
-                    val merchant = cleanMerchantName(match.groupValues[1].trim())
+                    // RuPay-on-UPI can name a VPA ("testshop@ybl"); show its handle.
+                    val merchant = cleanMerchantName(match.groupValues[1].trim().substringBefore('@'))
                     if (isValidMerchantName(merchant)) {
                         val cleanedMerchant = merchant
                             .replace(

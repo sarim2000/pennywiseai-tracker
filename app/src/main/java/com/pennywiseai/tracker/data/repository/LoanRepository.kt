@@ -394,13 +394,19 @@ class LoanRepository @Inject constructor(
     }
 
     /**
-     * Sets a loan's principal after a share changed. A settled loan stays
-     * settled: Settle up records no repayment, so recomputing what's left would
-     * reopen it for everything forgiven. Only its principal moves.
+     * Sets a loan's principal after a share changed. A loan closed with Settle
+     * up (settled while repayments covered less than its principal) stays
+     * settled with only its principal moved: Settle up records no repayment, so
+     * recomputing what's left would reopen it for everything forgiven. Any
+     * other loan, including one settled by being repaid in full, is
+     * recalculated, so a raised share is owed again.
      */
     private suspend fun setPrincipal(loan: LoanEntity, principal: BigDecimal) {
+        val repaymentType = if (loan.direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
+        val forgiven = loan.status == LoanStatus.SETTLED &&
+            loanDao.getTotalRepaidByType(loan.id, repaymentType) < loan.originalAmount
         loanDao.updateLoan(loan.copy(originalAmount = principal, updatedAt = LocalDateTime.now()))
-        if (loan.status != LoanStatus.SETTLED) recalculateRemaining(loan.id)
+        if (!forgiven) recalculateRemaining(loan.id)
     }
 
     // Every share, a soft-deleted bill's too: deleting a bill leaves its debt

@@ -268,6 +268,23 @@ class LoanSplitTest {
     }
 
     @Test
+    fun `raising a share on a loan repaid in full makes the extra owed again`() = runBlocking {
+        txn(1, "1000")
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("500"))))
+        val alex = loanOf("Alex").id
+        txn(3, "500", TransactionType.INCOME, loanId = alex) // repaid in full
+        settle("Alex")
+
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("600"))))
+
+        with(loanOf("Alex")) {
+            assertEquals(LoanStatus.ACTIVE, status)
+            assertEquals(d("600"), originalAmount)
+            assertEquals(d("100"), remainingAmount)
+        }
+    }
+
+    @Test
     fun `a split bill can't also be marked as a loan or a repayment`() = runBlocking {
         txn(1, "1000")
         repo.saveSplit(1, listOf(SplitShare("Alex", d("300"))))

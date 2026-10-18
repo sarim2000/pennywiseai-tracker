@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Split with…</string>
+    <string name="split_menu_edit">Edit split</string>
+
+    <string name="split_sheet_title">Split %1$s</string>
+    <string name="split_sheet_hint">Each share is added under Loans as money you lent. Only your part counts as spending.</string>
+    <string name="split_people_count">%1$d of %2$d people</string>
+    <string name="split_person_name">Person\'s name</string>
+    <string name="split_add_person">Add</string>
+    <string name="split_pick_contact">Pick from contacts</string>
+    <string name="split_remove_person">Remove %1$s</string>
+    <string name="split_mode_equal">Split equally</string>
+    <string name="split_mode_custom">Custom amounts</string>
+    <string name="split_you">You</string>
+    <string name="split_your_part">Your part</string>
+    <string name="split_left_to_assign">%1$s left to assign</string>
+    <string name="split_over_total">%1$s more than the total</string>
+    <string name="split_adds_up">Adds up to %1$s</string>
+    <string name="split_save">Save split</string>
+
+    <string name="split_error_share_positive">Every share must be more than zero</string>
+    <string name="split_error_over">The shares are more than the total</string>
+    <string name="split_error_your_part_negative">Your part can\'t be less than zero</string>
+    <string name="split_error_failed">Couldn\'t save the split: %1$s</string>
+    <string name="split_error_settled">%1$s\'s loan is settled. Reopen it under Loans to change their share.</string>
+    <string name="split_error_transfer">A split bill can\'t be a transfer. Remove the split first.</string>
+    <string name="split_error_type_locked">This bill is split. Remove the split before changing its type.</string>
+    <string name="split_error_amount_below_shares">This bill is split. Its amount can\'t be less than the shares you lent.</string>
+
+    <string name="split_section_title">Split with</string>
+    <string name="split_settled">Settled</string>
+    <string name="split_request">Request %1$s</string>
+    <string name="split_remove">Remove split</string>
+    <string name="split_remove_title">Remove split?</string>
+    <string name="split_remove_message">Each person\'s share comes off their loan. A loan with nothing else in it is deleted.</string>
+    <string name="split_remove_confirm">Remove</string>
+
+    <string name="split_upi_title">Your UPI ID</string>
+    <string name="split_upi_message">People pay their share to this UPI ID. You can change it in Settings.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">Enter a UPI ID like name@bank</string>
+    <string name="split_upi_save">Save</string>
+    <string name="split_request_text">Pay %1$s to %2$s for %3$s</string>
+    <string name="split_request_failed">Couldn\'t create the QR code</string>
+
+    <string name="settings_upi_title">Your UPI ID</string>
+    <string name="settings_upi_subtitle">Used to ask people to pay their share of a split bill</string>
+    <string name="settings_upi_not_set">Not set</string>
+</resources>

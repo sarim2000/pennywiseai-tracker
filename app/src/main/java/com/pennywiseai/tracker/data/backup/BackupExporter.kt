@@ -103,6 +103,7 @@ class BackupExporter @Inject constructor(
         val recurringTransactions = database.recurringTransactionDao().getAll().first()
         val goals = database.goalDao().getAllGoals()
         val goalContributions = database.goalDao().getAllContributions()
+        val loanShares = database.loanDao().getAllShares()
         
         // Get preferences from repository
         val prefs = userPreferencesRepository.userPreferences.first()
@@ -179,6 +180,13 @@ class BackupExporter @Inject constructor(
         // transaction ids: FULL only, like loans / recurring templates (#914).
         val exportedGoals = if (privacy == ExportPrivacy.FULL) goals else emptyList()
         val exportedGoalContributions = if (privacy == ExportPrivacy.FULL) goalContributions else emptyList()
+        // Split-bill shares (#346) point at loans and transaction ids: FULL only, like loans.
+        // Only shares whose bill is in the backup: a soft-deleted bill isn't, and
+        // its debt stays on the exported loan's principal, as for loan-linked bills.
+        val exportedLoanShares = if (privacy == ExportPrivacy.FULL) {
+            val billIds = finalTransactions.mapTo(HashSet()) { it.id }
+            loanShares.filter { it.transactionId in billIds }
+        } else emptyList()
         // Receipt photos (#839): only when the caller opts in, and only in FULL
         // exports — a photo of a bill is exactly what masking is meant to hide.
         val exportedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {
@@ -216,6 +224,7 @@ class BackupExporter @Inject constructor(
                     totalReceipts = exportedReceipts.size,
                     totalGoals = exportedGoals.size,
                     totalGoalContributions = exportedGoalContributions.size,
+                    totalLoanShares = exportedLoanShares.size,
                     dateRange = dateRange
                 )
             ),
@@ -245,7 +254,8 @@ class BackupExporter @Inject constructor(
                 transactionTagCrossRefs = exportedTransactionTagCrossRefs,
                 recurringTransactions = exportedRecurringTransactions,
                 goals = exportedGoals,
-                goalContributions = exportedGoalContributions
+                goalContributions = exportedGoalContributions,
+                loanShares = exportedLoanShares
             ),
             preferences = PreferencesSnapshot(
                 theme = ThemePreferences(
@@ -282,7 +292,8 @@ class BackupExporter @Inject constructor(
                     },
                     bankAccountMerges = if (privacy == ExportPrivacy.FULL) {
                         BankAccountMergeStore(context).mappings()
-                    } else emptyMap()
+                    } else emptyMap(),
+                    upiId = if (privacy == ExportPrivacy.FULL) userPreferencesRepository.upiId.first() else null
                 )
             ),
             receipts = exportedReceipts

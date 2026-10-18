@@ -125,6 +125,38 @@ keys and decode to empty lists; older apps ignore them.
   change currency), that goal's backup contributions are skipped and counted —
   amounts are never converted implicitly.
 
+## Split bills (#346)
+
+One table, `loan_shares`, in `DatabaseSnapshot` as a defaulted list, plus a
+defaulted `total_loan_shares` counter, the nullable `lentSharesTotal` on each
+transaction, and `preferences.app.upi_id`. Older backups lack the keys and
+decode to no shares; older apps ignore them.
+
+```json
+"loan_shares": [ { "id": 7, "transactionId": 3, "loanId": 5, "amount": "333.33", "createdAt": "…" } ]
+```
+
+- A share is one person's part of a bill: money owed to you on loan `loanId`,
+  in the bill's currency. `lentSharesTotal` is the sum of a bill's shares.
+- **Export:** `FULL` only, like loans. `upi_id` too.
+- **Export** includes only shares whose bill is exported. A soft-deleted
+  bill isn't exported, and its debt stays on the loan's principal, as it does
+  for a loan-linked bill.
+- **Import (both strategies):** every transaction is inserted with
+  `lentSharesTotal = null`. A share is restored only onto a loan that this
+  import inserted, because that loan's principal was sized with the share.
+  Its bill can be new or an existing one with the same hash, but the bill
+  must still be an unlinked expense in the loan's currency, have room left in
+  its amount, not already be split with that person, and be under the
+  five-person limit. Any other share is skipped and counted. Loans are never
+  changed on import, so a skipped share's debt stays on its restored loan
+  and a restore can't erase money someone owes. Each touched bill's total is
+  rebuilt from its rows afterwards.
+- **MERGE:** a matched local loan wins as it is, like a local goal with the
+  same uid. That makes a repeat merge a no-op, and the unique
+  `(transaction_id, loan_id)` index backs this up.
+- `upi_id` fills in a missing one and never replaces one set on this device.
+
 ## Resilience
 
 Beyond schema tolerance, the importer skips and **counts** any single row that

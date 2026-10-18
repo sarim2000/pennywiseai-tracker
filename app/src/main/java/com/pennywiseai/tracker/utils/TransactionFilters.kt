@@ -15,14 +15,18 @@ import java.math.RoundingMode
  *   counts nothing, but a ₹1,000 dinner where ₹400 was lent counts your ₹600,
  *   and ₹500 back on a ₹130 loan counts the extra ₹370 (#831). Before, any
  *   loan-linked row dropped out whole and that remainder vanished.
+ * - Split with other people (#346): only your part. Their shares
+ *   ([TransactionEntity.lentSharesTotal], the sum of its loan shares) are
+ *   money owed to you under Loans, not your spend.
  *
  * Screen-specific conditions (expense-only, date range, category, ...) are
  * layered on by the caller; this only covers the universal rules (#800).
  */
-fun TransactionEntity.countedAmount(): BigDecimal = when {
-    excludedFromAnalytics -> BigDecimal.ZERO
-    loanId == null -> amount
-    else -> (amount - (loanContribution ?: amount)).coerceAtLeast(BigDecimal.ZERO)
+fun TransactionEntity.countedAmount(): BigDecimal {
+    if (excludedFromAnalytics) return BigDecimal.ZERO
+    val loanPart = if (loanId == null) BigDecimal.ZERO else loanContribution ?: amount
+    val sharesPart = lentSharesTotal ?: BigDecimal.ZERO
+    return (amount - loanPart - sharesPart).coerceAtLeast(BigDecimal.ZERO)
 }
 
 /**
@@ -30,16 +34,16 @@ fun TransactionEntity.countedAmount(): BigDecimal = when {
  * [countedAmount], or null when nothing of it counts. Only for computing
  * totals — never display the result, its amount isn't what the user paid.
  *
- * The cut copy drops its loan link (the counted part isn't the loan), which
- * also makes this idempotent: callers that re-check rows already passed
- * through here don't subtract the loan part twice.
+ * The cut copy drops its loan link and split shares (the counted part is
+ * neither), which also makes this idempotent: callers that re-check rows
+ * already passed through here don't subtract those parts twice.
  */
 fun TransactionEntity.forTotals(): TransactionEntity? {
     val counted = countedAmount()
     return when {
         counted.signum() == 0 -> null
         counted.compareTo(amount) == 0 -> this
-        else -> copy(amount = counted, loanId = null, loanContribution = null)
+        else -> copy(amount = counted, loanId = null, loanContribution = null, lentSharesTotal = null)
     }
 }
 

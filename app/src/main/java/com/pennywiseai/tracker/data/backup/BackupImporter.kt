@@ -197,6 +197,8 @@ class BackupImporter @Inject constructor(
                 }
                 fun cleanTransaction(tx: TransactionEntity): TransactionEntity = tx.copy(
                     loanId = tx.loanId?.takeIf { it in backupLoanIds },
+                    // Rebuilt from the shares that restore (#346), below.
+                    lentSharesTotal = null,
                     groupId = tx.groupId?.takeIf { it in backupGroupIds },
                     profileId = resolveProfileId(tx.profileId)
                 )
@@ -316,6 +318,11 @@ class BackupImporter @Inject constructor(
                     )
                 }
 
+                // Split-bill shares (#346): loan ids are preserved here, transaction
+                // ids go through the restored map; a share whose loan or bill
+                // didn't restore is skipped. Then each bill's total is rebuilt.
+                importLoanShares(backup.database.loanShares, { it.takeIf { id -> id in backupLoanIds } }, restoredTransactionIds) { skippedRows++ }
+
                 // Profiles were already imported earlier (before transactions /
                 // account balances) so foreign-key remapping could happen.
 
@@ -415,11 +422,12 @@ class BackupImporter @Inject constructor(
                     Triple(it.personName, it.direction, it.createdAt) to it.id
                 }
                 val oldToNewLoanIdMap = mutableMapOf<Long, Long>()
+                val insertedLoanIds = HashSet<Long>()
                 backup.database.loans.insertEachCounting({ skippedRows++ }) { loan ->
                     val key = Triple(loan.personName, loan.direction, loan.createdAt)
                     val existingId = existingLoanKeyToId[key]
                     val newId = existingId
-                        ?: database.loanDao().insertLoan(loan.copy(id = 0))
+                        ?: database.loanDao().insertLoan(loan.copy(id = 0)).also { insertedLoanIds += it }
                     if (loan.id != 0L) oldToNewLoanIdMap[loan.id] = newId
                 }
 
@@ -460,6 +468,8 @@ class BackupImporter @Inject constructor(
                         val newTransaction = transaction.copy(
                             id = 0,
                             loanId = transaction.loanId?.let { oldToNewLoanIdMap[it] },
+                            // Rebuilt from the shares that restore (#346).
+                            lentSharesTotal = null,
                             groupId = transaction.groupId?.let { oldToNewGroupIdMap[it] },
                             profileId = resolveProfileId(transaction.profileId)
                         )
@@ -488,6 +498,15 @@ class BackupImporter @Inject constructor(
                 importMerchantAliasesWithMerge(backup.database.merchantAliases) { skippedRows++ }
                 importGoalsWithMerge(
                     backup.database.goals, backup.database.goalContributions, oldToNewTransactionIdMap
+                ) { skippedRows++ }
+                // Split-bill shares (#346): only onto a loan this merge inserted,
+                // whose principal was sized with them; a matched local loan wins
+                // as it is, like a local goal with the same uid, so a repeat
+                // merge is a no-op. The bill may be new or local; see importLoanShares.
+                importLoanShares(
+                    backup.database.loanShares,
+                    { old -> oldToNewLoanIdMap[old]?.takeIf { it in insertedLoanIds } },
+                    oldToNewTransactionIdMap
                 ) { skippedRows++ }
 
                 // Import new entities with correct ID mapping for splits and applications
@@ -899,6 +918,45 @@ class BackupImporter @Inject constructor(
     }
 
     /**
+     * Split-bill shares (#346). A share is restored only onto a loan this
+     * import inserted ([loanIdFor]; its principal was sized with the share)
+     * and onto its bill ([transactionIdMap]: new, or an existing one with the
+     * same hash) while that bill can still take it: an unlinked expense in the
+     * loan's currency, room left in its amount, not already split with that
+     * person, under the people limit. Otherwise it is skipped and counted.
+     *
+     * Loans are never changed here: a skipped share's debt stays on its
+     * restored loan, as a loan-linked bill's does, so a restore can't erase
+     * money someone owes. Every touched bill's total is then rebuilt.
+     */
+    private suspend fun importLoanShares(
+        shares: List<LoanShareEntity>,
+        loanIdFor: (Long) -> Long?,
+        transactionIdMap: Map<Long, Long>,
+        onSkip: () -> Unit
+    ) {
+        if (shares.isEmpty()) return
+        val dao = database.loanDao()
+        val touched = HashSet<Long>()
+        shares.insertEachCounting(onSkip) { share ->
+            val loanId = checkNotNull(loanIdFor(share.loanId)) { "Loan ${share.loanId} not restored" }
+            val transactionId = checkNotNull(transactionIdMap[share.transactionId]) { "Transaction ${share.transactionId} not restored" }
+            val bill = checkNotNull(database.transactionDao().getTransactionById(transactionId)) { "Transaction $transactionId missing" }
+            val loan = checkNotNull(dao.getLoanById(loanId)) { "Loan $loanId missing" }
+            check(bill.transactionType == TransactionType.EXPENSE && bill.loanId == null) { "Bill $transactionId can't be split" }
+            check(bill.currency.equals(loan.currency, ignoreCase = true)) { "Share currency differs from its bill" }
+            val existing = dao.getSharesForTransaction(transactionId)
+            check(existing.size < com.pennywiseai.tracker.domain.loan.SplitRules.MAX_PEOPLE) { "Bill $transactionId is full" }
+            check(existing.none { dao.getLoanById(it.loanId)?.personName == loan.personName }) { "Bill $transactionId is already split with that person" }
+            val taken = existing.fold(java.math.BigDecimal.ZERO) { sum, s -> sum + s.amount }
+            check(share.amount.signum() > 0 && taken + share.amount <= bill.amount) { "Shares would exceed bill $transactionId" }
+            dao.insertShare(share.copy(id = 0, loanId = loanId, transactionId = transactionId))
+            touched += transactionId
+        }
+        touched.forEach { database.transactionDao().syncLentSharesTotal(it) }
+    }
+
+    /**
      * Import user preferences
      */
     @androidx.annotation.VisibleForTesting
@@ -955,6 +1013,11 @@ class BackupImporter @Inject constructor(
         }
         preferences.app.lastReviewPromptTime?.let {
             userPreferencesRepository.updateLastReviewPromptTime(it)
+        }
+
+        // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
+        preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->
+            if (userPreferencesRepository.upiId.first() == null) userPreferencesRepository.setUpiId(id)
         }
 
         // A license in the backup only overrides when this install has none —

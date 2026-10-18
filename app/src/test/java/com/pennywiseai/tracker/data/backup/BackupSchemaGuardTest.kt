@@ -75,6 +75,7 @@ class BackupSchemaGuardTest {
         serializer<RecurringTransactionEntity>().descriptor,
         serializer<GoalEntity>().descriptor,
         serializer<GoalContributionEntity>().descriptor,
+        serializer<LoanShareEntity>().descriptor,
     )
 
     private fun SerialDescriptor.requiredFields(): List<String> =

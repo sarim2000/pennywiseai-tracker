@@ -877,6 +877,25 @@ class TransactionDetailViewModel @Inject constructor(
                 _errorMessage.value = UiText.Res(R.string.goal_currency_locked_by_goal)
                 return@launch
             }
+            // A split bill's shares (#346) are in its currency and sized to its
+            // amount. Read fresh: the split may have changed since this loaded.
+            val persisted = original?.let { transactionRepository.getTransactionById(it.id) }
+            val sharesTotal = persisted?.lentSharesTotal
+            if (persisted != null && sharesTotal != null) {
+                if (!persisted.currency.equals(toSave.currency, ignoreCase = true)) {
+                    _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_currency_locked)
+                    return@launch
+                }
+                // Only an expense can be split: as income the shares would be debt with no outlay behind it.
+                if (toSave.transactionType != TransactionType.EXPENSE) {
+                    _errorMessage.value = UiText.Res(R.string.split_error_type_locked)
+                    return@launch
+                }
+                if (toSave.amount < sharesTotal) {
+                    _errorMessage.value = UiText.Res(R.string.split_error_amount_below_shares)
+                    return@launch
+                }
+            }
             _isSaving.value = true
             try {
                 // Handle receipt changes
@@ -921,7 +940,9 @@ class TransactionDetailViewModel @Inject constructor(
                     bankName = resolvedBankName,
                     receiptPath = newReceiptPath,
                     loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
-                    loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution
+                    loanContribution = if (currentPersisted != null) currentPersisted.loanContribution else toSave.loanContribution,
+                    // Owned by the split sheet (#346), same reasoning.
+                    lentSharesTotal = if (persisted != null) persisted.lentSharesTotal else toSave.lentSharesTotal
                 )
 
                 // Pin opening anchors from the PRE-update snapshot for the affected

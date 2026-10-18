@@ -172,6 +172,9 @@ open class UserPreferencesRepository @Inject constructor(
         // UPI VPA → contact name lookup (opt-in; gated by READ_CONTACTS).
         val USE_CONTACTS_FOR_VPA = booleanPreferencesKey("use_contacts_for_vpa")
 
+        // The user's own UPI ID, for asking people to pay their share of a split bill (#346).
+        val UPI_ID = stringPreferencesKey("upi_id")
+
         // Scheduled folder backup (SAF tree URI; shared by standard and F-Droid).
         val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
         val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
@@ -860,6 +863,18 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun setUseContactsForVpa(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_CONTACTS_FOR_VPA] = enabled
+        }
+    }
+
+    /** The user's own UPI ID (#346), or null until they enter one. */
+    val upiId: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.UPI_ID]?.takeIf { it.isNotBlank() } }
+
+    /** Blank or null clears it. */
+    suspend fun setUpiId(id: String?) {
+        context.dataStore.edit { preferences ->
+            val trimmed = id?.trim().orEmpty()
+            if (trimmed.isEmpty()) preferences.remove(PreferencesKeys.UPI_ID) else preferences[PreferencesKeys.UPI_ID] = trimmed
         }
     }
 

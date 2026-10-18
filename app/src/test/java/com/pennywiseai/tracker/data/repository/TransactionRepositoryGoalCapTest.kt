@@ -8,6 +8,7 @@ import io.mockk.coVerify
 import io.mockk.coVerifyOrder
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -48,10 +49,55 @@ class TransactionRepositoryGoalCapTest {
 
     @Test
     fun removingADuplicateMovesItsContributionsFirst() = runBlocking {
-        repo.deleteDuplicate(duplicateId = 8, keeperId = 9)
+        assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
         coVerifyOrder {
             goals.moveContributions(8, 9)
             dao.softDeleteTransaction(8)
         }
+    }
+
+    @Test
+    fun aDuplicateWithSplitSharesMovesThemToTheKeeper() = runBlocking {
+        coEvery { dao.getShareAmounts(8) } returns listOf(BigDecimal("300"))
+        coEvery { dao.moveSharesToKeeper(8, 9) } returns true
+        assertTrue(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
+        coVerifyOrder {
+            dao.moveSharesToKeeper(8, 9)
+            dao.softDeleteTransaction(8)
+        }
+    }
+
+    @Test
+    fun aDuplicateWhoseSplitSharesCantMoveIsKept() = runBlocking {
+        // #346: the keeper is loan-linked, split, another currency or smaller.
+        coEvery { dao.getShareAmounts(8) } returns listOf(BigDecimal("300"))
+        coEvery { dao.moveSharesToKeeper(8, 9) } returns false
+        assertFalse(repo.deleteDuplicate(duplicateId = 8, keeperId = 9))
+        coVerify(exactly = 0) { dao.softDeleteTransaction(8) }
+        coVerify(exactly = 0) { goals.moveContributions(any(), any()) }
+    }
+
+    @Test
+    fun aStaleWriteCantDropOrBreakASplitBill() = runBlocking {
+        // #346: the share rows say split even though the stored total is stale (null);
+        // a stale copy (e.g. an SMS re-parse) arrives as a transfer in another currency.
+        coEvery { dao.getShareAmounts(9) } returns listOf(BigDecimal("400"), BigDecimal("200"))
+        coEvery { dao.getTransactionById(9) } returns txn("1000")
+        repo.updateTransaction(txn("1000").copy(transactionType = TransactionType.TRANSFER, currency = "USD"))
+        coVerify {
+            dao.updateTransaction(match {
+                it.transactionType == TransactionType.EXPENSE && it.currency == "INR" &&
+                    it.lentSharesTotal?.compareTo(BigDecimal("600")) == 0
+            })
+        }
+    }
+
+    @Test
+    fun undoingADeleteRewritesTheSplitTotalFromTheShares() = runBlocking {
+        // #346: the snapshot claims ₹600 shared, but the shares were removed while it was deleted.
+        val snapshot = txn("1000").copy(isDeleted = true, lentSharesTotal = BigDecimal("600"))
+        coEvery { dao.getShareAmounts(9) } returns emptyList()
+        repo.undoDeleteTransaction(snapshot)
+        coVerify { dao.updateTransaction(match { !it.isDeleted && it.lentSharesTotal == null }) }
     }
 }

@@ -9,6 +9,53 @@ import java.time.LocalDateTime
 
 @Dao
 interface TransactionDao {
+
+    // ── Split-bill shares (#346): transactions.lent_shares_total mirrors loan_shares ──
+
+    @Query("SELECT amount FROM loan_shares WHERE transaction_id = :transactionId")
+    suspend fun getShareAmounts(transactionId: Long): List<BigDecimal>
+
+    @Query("UPDATE transactions SET lent_shares_total = :total, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
+    suspend fun setLentSharesTotal(transactionId: Long, total: BigDecimal?)
+
+    @Query("UPDATE loan_shares SET transaction_id = :toId WHERE transaction_id = :fromId")
+    suspend fun repointShares(fromId: Long, toId: Long)
+
+    /**
+     * Re-derives `lent_shares_total` from the transaction's `loan_shares` rows,
+     * the one source of truth; a no-op (no `updated_at` bump) when it already agrees.
+     */
+    @androidx.room.Transaction
+    suspend fun syncLentSharesTotal(transactionId: Long) {
+        val current = getTransactionById(transactionId) ?: return
+        val amounts = getShareAmounts(transactionId)
+        val total = if (amounts.isEmpty()) null else amounts.fold(BigDecimal.ZERO, BigDecimal::add)
+        val same = if (total == null || current.lentSharesTotal == null) total == current.lentSharesTotal
+        else total.compareTo(current.lentSharesTotal) == 0
+        if (!same) setLentSharesTotal(transactionId, total)
+    }
+
+    /**
+     * Moves a duplicate's split shares to the row that survives it, when that
+     * row can take them: an expense in the same currency, not marked as a loan,
+     * not split itself, and at least as large. Returns whether they moved.
+     */
+    @androidx.room.Transaction
+    suspend fun moveSharesToKeeper(fromId: Long, toId: Long): Boolean {
+        if (fromId == toId) return false
+        val moving = getShareAmounts(fromId)
+        if (moving.isEmpty()) return false
+        val from = getTransactionById(fromId) ?: return false
+        val keeper = getTransactionById(toId) ?: return false
+        val fits = keeper.transactionType == TransactionType.EXPENSE && keeper.loanId == null &&
+            getShareAmounts(toId).isEmpty() && keeper.currency.equals(from.currency, ignoreCase = true) &&
+            moving.fold(BigDecimal.ZERO, BigDecimal::add) <= keeper.amount
+        if (!fits) return false
+        repointShares(fromId, toId)
+        syncLentSharesTotal(fromId)
+        syncLentSharesTotal(toId)
+        return true
+    }
     @Query("""
         SELECT * FROM transactions
         WHERE (currency = :currency AND updated_at >= :start AND updated_at <= :end)
@@ -164,7 +211,7 @@ interface TransactionDao {
     /**
      * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
      * rebuild — active, parsed from an SMS, and not loan-linked, grouped
-     * (#401) or put toward a goal (#914: the hard delete would cascade the
+     * (#401), split with people (#346) or put toward a goal (#914: the hard delete would cascade the
      * contribution away). Everything else is kept, since nothing would bring it back:
      * manual / chat / CSV / recurring rows (no sender), PDF imports ("… PDF"
      * sender), bank-app notification rows ([notificationAliases]), and rows
@@ -179,6 +226,7 @@ interface TransactionDao {
         DELETE FROM transactions
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
           AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
+          AND id NOT IN (SELECT transaction_id FROM loan_shares)
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)
@@ -283,7 +331,7 @@ interface TransactionDao {
      * repair — checked here, at write time, not from an earlier read (#886):
      *  - it still holds the amount being repaired (anything the user saved since
      *    — category, note — is untouched, and a changed amount isn't overwritten)
-     *  - it has no splits (they were sized to the old amount)
+     *  - it has no category splits or split-bill shares (#346) (they were sized to the old amount)
      *  - it isn't linked to a loan, unless the currency stays the same (loan
      *    totals sum their linked rows as one currency)
      *  - it holds no goal contributions, unless the currency stays the same (their
@@ -296,6 +344,7 @@ interface TransactionDao {
         SET amount = :amount, currency = :currency, updated_at = :now
         WHERE id = :id AND amount = :expectedAmount AND currency = :expectedCurrency
           AND NOT EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id = :id)
+          AND NOT EXISTS (SELECT 1 FROM loan_shares WHERE transaction_id = :id)
           AND (loan_id IS NULL OR currency = :currency)
           AND (currency = :currency OR NOT EXISTS (SELECT 1 FROM goal_contributions WHERE transaction_id = :id))
         """

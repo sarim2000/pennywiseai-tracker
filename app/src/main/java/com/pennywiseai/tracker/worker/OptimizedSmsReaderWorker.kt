@@ -816,7 +816,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             id = duplicate.id,
                             transactionHash = duplicate.transactionHash,
                             isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
-                            createdAt = duplicate.createdAt
+                            createdAt = duplicate.createdAt,
+                            // Loan and split-bill (#346) links belong to the row, not the SMS.
+                            loanId = duplicate.loanId,
+                            loanContribution = duplicate.loanContribution,
+                            lentSharesTotal = duplicate.lentSharesTotal
                         )
                         transactionRepository.updateTransaction(replacement)
                         accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
@@ -1085,8 +1089,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                         transactionRepository.correctParsedAmount(keep, newest)
                     }
                     group.filter { it.id != keep.id }.forEach { dup ->
-                        // Goal contributions on the duplicate move to [keep] (#914).
-                        transactionRepository.deleteDuplicate(dup.id, keep.id)
+                        // Goal contributions on the duplicate move to [keep] (#914); a
+                        // duplicate whose split shares can't move is kept (#346).
+                        if (!transactionRepository.deleteDuplicate(dup.id, keep.id)) return@forEach
                         accountBalanceRepository.deleteBalancesForTransaction(dup.id)
                         ruleRepository.deleteRuleApplicationsForTransaction(dup.id.toString())
                         removed++
@@ -1098,14 +1103,16 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     private suspend fun cleanupExistingGPayDuplicates(): Int {
         val duplicates = transactionRepository.findGPayDuplicatesForCleanup()
+        var removed = 0
         duplicates.forEach { (id, keeperId) ->
-            transactionRepository.deleteDuplicate(id, keeperId)
+            if (!transactionRepository.deleteDuplicate(id, keeperId)) return@forEach
             accountBalanceRepository.deleteBalancesForTransaction(id)
             ruleRepository.deleteRuleApplicationsForTransaction(id.toString())
+            removed++
         }
 
         prunePhantomGPayAccounts()
-        return duplicates.size
+        return removed
     }
 
     /**

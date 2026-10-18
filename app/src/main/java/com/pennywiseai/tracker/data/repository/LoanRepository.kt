@@ -370,22 +370,23 @@ class LoanRepository @Inject constructor(
         syncLentSharesTotal(transactionId)
     }
 
-    /** Undoes one share: it comes off its loan's principal, and the loan goes if nothing else is in it. */
+    /**
+     * Undoes one share: it comes off its loan's principal. The loan goes only
+     * when that leaves nothing: principal kept without a bill (a deleted bill's
+     * debt, a restored loan, an edited amount) or other linked money keeps it.
+     */
     private suspend fun removeShare(share: LoanShareEntity, loan: LoanEntity?) {
         loanDao.deleteShare(share)
         if (loan == null) return
+        val left = loan.originalAmount - share.amount
         val otherPrincipal = loanDao.getTotalRepaidByType(loan.id, "EXPENSE") + shareTotal(loan.id)
-        if (otherPrincipal.signum() == 0) {
-            deleteLoan(loan.id)
-        } else {
-            loanDao.updateLoan(
-                loan.copy(
-                    originalAmount = (loan.originalAmount - share.amount).coerceAtLeast(BigDecimal.ZERO),
-                    updatedAt = LocalDateTime.now()
-                )
-            )
-            recalculateRemaining(loan.id)
+        val principal = when {
+            left.signum() > 0 -> left
+            otherPrincipal.signum() > 0 -> otherPrincipal
+            else -> return deleteLoan(loan.id)
         }
+        loanDao.updateLoan(loan.copy(originalAmount = principal, updatedAt = LocalDateTime.now()))
+        recalculateRemaining(loan.id)
     }
 
     // Every share, a soft-deleted bill's too: deleting a bill leaves its debt

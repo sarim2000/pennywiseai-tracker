@@ -215,6 +215,20 @@ class LoanSplitTest {
     }
 
     @Test
+    fun `debt kept without a bill survives removing the last split`() = runBlocking {
+        // A restored loan: ₹500 owed, but only the ₹200 bill came back (the ₹300 one was deleted).
+        txn(2, "500")
+        repo.saveSplit(2, listOf(SplitShare("Alex", d("200"))))
+        val alex = loanOf("Alex")
+        loans[alex.id] = alex.copy(originalAmount = d("500"), remainingAmount = d("500"))
+
+        repo.saveSplit(2, emptyList())
+
+        assertEquals(d("300"), loanOf("Alex").originalAmount)
+        assertEquals(d("300"), loanOf("Alex").remainingAmount)
+    }
+
+    @Test
     fun `deleting a loan takes its share off the bill`() = runBlocking {
         txn(1, "1000")
         repo.saveSplit(1, listOf(SplitShare("Alex", d("300")), SplitShare("Sam", d("200"))))

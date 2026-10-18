@@ -266,6 +266,19 @@ class FederalBankParserTest {
             ),
 
             ParserTestCase(
+                name = "Scapia RuPay - numeric UPI VPA handle is kept",
+                message = scapiaRuPay("000111@ybl"),
+                sender = "VM-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("450.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "000111",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
                 name = "Scapia Federal Credit Card Transaction - earned you rewards variant",
                 message = "Your txn of ₹2,351.00 at Amazon on your Scapia Federal Visa credit card earned you 10% rewards! Not you? Call 18002961199. - Federal Bank",
                 sender = "TX-FEDSCP-S",

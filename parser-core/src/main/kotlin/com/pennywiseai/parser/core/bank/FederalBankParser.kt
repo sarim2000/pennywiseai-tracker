@@ -308,8 +308,13 @@ class FederalBankParser : BaseIndianBankParser() {
                     RegexOption.IGNORE_CASE
                 )
                 scapiaPattern.find(message)?.let { match ->
-                    // RuPay-on-UPI can name a VPA ("testshop@ybl"); show its handle.
-                    val merchant = cleanMerchantName(match.groupValues[1].trim().substringBefore('@'))
+                    val captured = match.groupValues[1].trim()
+                    // RuPay-on-UPI can name a VPA ("testshop@ybl", "000111@ybl"); show its handle.
+                    // Numeric handles fail isValidMerchantName (needs a letter), so return it directly.
+                    if ('@' in captured) {
+                        captured.substringBefore('@').trim().takeIf { it.isNotEmpty() }?.let { return it }
+                    }
+                    val merchant = cleanMerchantName(captured)
                     if (isValidMerchantName(merchant)) {
                         val cleanedMerchant = merchant
                             .replace(

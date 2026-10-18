@@ -74,8 +74,13 @@ object SplitRules {
      * bulk edit, rule or re-parse can leave shares on a bill that can't hold
      * them. Anything else passes through.
      */
-    fun keepSplitBill(persisted: TransactionEntity?, updated: TransactionEntity): TransactionEntity {
-        val shares = persisted?.lentSharesTotal ?: return updated
+    fun keepSplitBill(
+        persisted: TransactionEntity?,
+        updated: TransactionEntity,
+        // The bill's shares; the stored total by default, the share rows where they've been read.
+        shares: BigDecimal? = persisted?.lentSharesTotal,
+    ): TransactionEntity {
+        if (persisted == null || shares == null) return updated
         return updated.copy(
             transactionType = TransactionType.EXPENSE,
             currency = persisted.currency,

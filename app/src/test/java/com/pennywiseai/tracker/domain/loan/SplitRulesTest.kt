@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.domain.loan
 
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
+import com.pennywiseai.tracker.domain.usecase.landedOn
 import com.pennywiseai.tracker.presentation.split.FormPerson
 import com.pennywiseai.tracker.presentation.split.owedFor
 import com.pennywiseai.tracker.presentation.split.SplitForm
@@ -127,6 +128,33 @@ class SplitRulesTest {
         // Not split: untouched.
         val plain = bill.copy(lentSharesTotal = null)
         assertEquals(edited, SplitRules.keepSplitBill(plain, edited))
+    }
+
+    @Test
+    fun `a rule's type change on a split bill isn't recorded as applied`() {
+        val bill = com.pennywiseai.tracker.data.database.entity.TransactionEntity(
+            id = 1, amount = d("1000"), merchantName = "Dinner", category = "Food",
+            transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE,
+            dateTime = java.time.LocalDateTime.of(2026, 10, 1, 20, 0), transactionHash = "h", currency = "INR",
+            lentSharesTotal = d("600")
+        )
+        val raw = bill.copy(transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME, category = "Gifts")
+        fun mod(field: com.pennywiseai.tracker.domain.model.rule.TransactionField) =
+            com.pennywiseai.tracker.domain.model.rule.FieldModification(field, "a", "b", com.pennywiseai.tracker.domain.model.rule.ActionType.SET)
+        val apps = listOf(
+            com.pennywiseai.tracker.domain.model.rule.RuleApplication(ruleId = "r1", ruleName = "Type", transactionId = "1",
+                fieldsModified = listOf(mod(com.pennywiseai.tracker.domain.model.rule.TransactionField.TYPE))),
+            com.pennywiseai.tracker.domain.model.rule.RuleApplication(ruleId = "r2", ruleName = "Both", transactionId = "1",
+                fieldsModified = listOf(mod(com.pennywiseai.tracker.domain.model.rule.TransactionField.TYPE), mod(com.pennywiseai.tracker.domain.model.rule.TransactionField.CATEGORY))),
+        )
+        val kept = SplitRules.keepSplitBill(bill, raw)
+        assertEquals(com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE, kept.transactionType)
+        assertEquals("Gifts", kept.category)
+        val landed = apps.landedOn(kept, raw)
+        assertEquals(listOf("r2"), landed.map { it.ruleId })
+        assertEquals(listOf(com.pennywiseai.tracker.domain.model.rule.TransactionField.CATEGORY), landed.single().fieldsModified.map { it.field })
+        // Not split: everything is recorded.
+        assertEquals(apps, apps.landedOn(raw, raw))
     }
 
     @Test

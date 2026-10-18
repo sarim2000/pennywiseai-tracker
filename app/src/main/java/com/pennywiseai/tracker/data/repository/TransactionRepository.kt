@@ -148,13 +148,21 @@ open class TransactionRepository @Inject constructor(
      * contributions taken from this transaction (#914).
      */
     suspend fun updateTransaction(transaction: TransactionEntity) = goalRepository.writeAndCap(transaction.id) {
-        // A split bill (#346) stays an expense in its currency, at least its
-        // shares; the shared total is re-derived from loan_shares after the
-        // write, so a stale copy of the row can't null or inflate it.
-        val persisted = transactionDao.getTransactionById(transaction.id)
-        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted, transaction)
-        transactionDao.updateTransaction(safe.copy(updatedAt = LocalDateTime.now()))
-        transactionDao.syncLentSharesTotal(transaction.id)
+        writeKeepingSplit(transaction)
+    }
+
+    /**
+     * Writes [transaction] so a split bill (#346) survives a stale copy of the
+     * row: whether it's split comes from its loan_shares rows, not the stored
+     * total; it stays an expense in its currency, at least its shares; and
+     * `lent_shares_total` is written from those same rows.
+     */
+    private suspend fun writeKeepingSplit(transaction: TransactionEntity) {
+        val amounts = transactionDao.getShareAmounts(transaction.id)
+        val shares = if (amounts.isEmpty()) null else amounts.fold(java.math.BigDecimal.ZERO, java.math.BigDecimal::add)
+        val persisted = if (shares == null) null else transactionDao.getTransactionById(transaction.id)
+        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted, transaction, shares)
+        transactionDao.updateTransaction(safe.copy(lentSharesTotal = shares, updatedAt = LocalDateTime.now()))
     }
     
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
@@ -309,16 +317,22 @@ open class TransactionRepository @Inject constructor(
     /**
      * Soft-deletes an automatically found duplicate, first moving any goal
      * contributions on it to [keeperId] so they aren't lost with it (#914).
+     * A duplicate whose split shares (#346) can't move to [keeperId] is kept:
+     * deleting it would hide the bill those debts came from.
+     * @return whether the duplicate was deleted.
      */
-    suspend fun deleteDuplicate(duplicateId: Long, keeperId: Long) {
+    suspend fun deleteDuplicate(duplicateId: Long, keeperId: Long): Boolean {
+        if (transactionDao.getShareAmounts(duplicateId).isNotEmpty() &&
+            !transactionDao.moveSharesToKeeper(duplicateId, keeperId)
+        ) return false
         goalRepository.moveContributions(duplicateId, keeperId)
-        // Split shares (#346) follow too, when the kept row can take them.
-        transactionDao.moveSharesToKeeper(duplicateId, keeperId)
         deleteTransactionById(duplicateId)
+        return true
     }
 
+    /** Restores a deleted row from its snapshot, through the split-bill guard (#346). */
     open suspend fun undoDeleteTransaction(transaction: TransactionEntity) {
-        transactionDao.updateTransaction(transaction.copy(isDeleted = false, updatedAt = LocalDateTime.now()))
+        writeKeepingSplit(transaction.copy(isDeleted = false))
     }
     
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String) {

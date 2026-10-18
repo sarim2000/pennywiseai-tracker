@@ -368,7 +368,7 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
 
 @Composable
 private fun ProAvailableLine() {
-    val domain = remember { Constants.Links.WEB_PARSER_URL.removePrefix("https://") }
+    val address = remember { Constants.Links.PRO_PAGE_URL.removePrefix("https://") }
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
 
@@ -389,7 +389,7 @@ private fun ProAvailableLine() {
     ) {
         SelectionContainer {
             Text(
-                text = stringResource(R.string.upgrade_available_at, domain),
+                text = stringResource(R.string.upgrade_available_at, address),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -398,7 +398,7 @@ private fun ProAvailableLine() {
         TextButton(
             onClick = {
                 // Exactly the text shown above — the user pastes it themselves.
-                clipboard.setText(AnnotatedString(domain))
+                clipboard.setText(AnnotatedString(address))
                 copied = true
             },
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),

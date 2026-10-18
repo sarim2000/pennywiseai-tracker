@@ -1,5 +1,6 @@
 import { Container } from "@cloudflare/containers";
 import { Hono } from "hono";
+import { withBeacon } from "./beacon.js";
 
 export class PennyWiseContainer extends Container {
   // Port the container listens on (default: 8080)
@@ -41,7 +42,7 @@ app.all("*", async (c) => {
     },
   });
 
-  return await container.fetch(c.req.raw);
+  return withBeacon(await container.fetch(c.req.raw), c.env.CF_BEACON_TOKEN);
 });
 
 export default app;

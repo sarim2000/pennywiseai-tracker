@@ -181,7 +181,12 @@ class BackupExporter @Inject constructor(
         val exportedGoals = if (privacy == ExportPrivacy.FULL) goals else emptyList()
         val exportedGoalContributions = if (privacy == ExportPrivacy.FULL) goalContributions else emptyList()
         // Split-bill shares (#346) point at loans and transaction ids: FULL only, like loans.
-        val exportedLoanShares = if (privacy == ExportPrivacy.FULL) loanShares else emptyList()
+        // Only shares whose bill is in the backup: a soft-deleted bill isn't, and
+        // its debt stays on the exported loan's principal, as for loan-linked bills.
+        val exportedLoanShares = if (privacy == ExportPrivacy.FULL) {
+            val billIds = finalTransactions.mapTo(HashSet()) { it.id }
+            loanShares.filter { it.transactionId in billIds }
+        } else emptyList()
         // Receipt photos (#839): only when the caller opts in, and only in FULL
         // exports — a photo of a bill is exactly what masking is meant to hide.
         val exportedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {

@@ -139,19 +139,22 @@ decode to no shares; older apps ignore them.
 - A share is one person's part of a bill: money owed to you on loan `loanId`,
   in the bill's currency. `lentSharesTotal` is the sum of a bill's shares.
 - **Export:** `FULL` only, like loans. `upi_id` too.
+- **Export** includes only shares whose bill is exported. A soft-deleted
+  bill isn't exported, and its debt stays on the loan's principal, as it does
+  for a loan-linked bill.
 - **Import (both strategies):** every transaction is inserted with
-  `lentSharesTotal = null`; shares are inserted with `loanId` and
-  `transactionId` remapped, and each touched bill's total is then rebuilt
-  from its rows. A share goes only onto a loan this import inserted (its
-  principal was sized with the share), and only onto a bill (new, or an
-  existing one with the same hash) that is still an unlinked expense in the
-  loan's currency with room left in its amount.
-- A share that can't come back is skipped and counted, and its amount comes
-  off its restored loan; a loan left with nothing behind it is removed. So a
-  debt never returns without its bill.
+  `lentSharesTotal = null`. A share is restored only onto a loan that this
+  import inserted, because that loan's principal was sized with the share.
+  Its bill can be new or an existing one with the same hash, but the bill
+  must still be an unlinked expense in the loan's currency, have room left in
+  its amount, not already be split with that person, and be under the
+  five-person limit. Any other share is skipped and counted. Loans are never
+  changed on import, so a skipped share's debt stays on its restored loan
+  and a restore can't erase money someone owes. Each touched bill's total is
+  rebuilt from its rows afterwards.
 - **MERGE:** a matched local loan wins as it is, like a local goal with the
-  same uid, which makes a repeat merge a no-op (the unique
-  `(transaction_id, loan_id)` index backs this up).
+  same uid. That makes a repeat merge a no-op, and the unique
+  `(transaction_id, loan_id)` index backs this up.
 - `upi_id` fills in a missing one and never replaces one set on this device.
 
 ## Resilience

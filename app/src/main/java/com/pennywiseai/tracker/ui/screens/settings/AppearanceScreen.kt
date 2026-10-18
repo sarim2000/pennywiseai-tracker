@@ -67,6 +67,7 @@ import com.pennywiseai.tracker.data.preferences.AppFont
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
+import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
@@ -292,6 +293,36 @@ fun AppearanceScreen(
                     currentStyle = themeUiState.navBarStyle,
                     onStyleSelected = { themeViewModel.updateNavBarStyle(it) }
                 )
+
+                // Bottom bar tabs (#912). Home always stays, so it isn't listed.
+                SectionHeaderV2(
+                    title = stringResource(R.string.appearance_bottom_bar_section),
+                    subtitle = stringResource(R.string.appearance_bottom_bar_subtitle),
+                    modifier = Modifier.padding(start = Dimensions.Padding.content)
+                )
+                val hideableTabs = BottomNavItem.hideable
+                GroupedList {
+                    hideableTabs.forEachIndexed { index, tab ->
+                        val shown = tab.route !in themeUiState.hiddenNavTabs
+                        PreferenceSwitch(
+                            title = stringResource(tab.titleRes),
+                            checked = shown,
+                            onCheckedChange = { themeViewModel.setNavTabVisible(tab.route, it) },
+                            leadingIcon = {
+                                IconTile(
+                                    icon = tab.icon,
+                                    containerColor = if (shown) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    contentColor = if (shown) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            position = ListItemPosition.from(index, hideableTabs.size)
+                        )
+                    }
+                }
 
                 // Cover Style Section
                 SectionHeaderV2(

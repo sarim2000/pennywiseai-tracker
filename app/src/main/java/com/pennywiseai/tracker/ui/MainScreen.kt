@@ -15,7 +15,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +33,7 @@ import androidx.navigation.navArgument
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.contacts.displayMerchantName
 import com.pennywiseai.tracker.navigation.safePopBackStack
+import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
@@ -100,6 +104,30 @@ fun MainScreen(
             }
             launchSingleTop = true
             restoreState = true
+        }
+    }
+
+    // Hiding the tab you're on (or the one under Settings) sends you Home, once,
+    // on the next tab you land on. Other ways into a hidden tab's screen (e.g.
+    // Home cards) keep working afterwards. Saveable so a rotation between
+    // hiding and going back doesn't drop the redirect. (#912)
+    val hiddenTabs = themeState.hiddenNavTabs
+    val chatHidden = BottomNavItem.Chat.route in hiddenTabs
+    var lastHiddenTabs by rememberSaveable { mutableStateOf<ArrayList<String>?>(null) }
+    var fallBackPending by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(themeState.isLoading, hiddenTabs) {
+        if (themeState.isLoading) return@LaunchedEffect
+        if (lastHiddenTabs?.containsAll(hiddenTabs) == false) fallBackPending = true
+        lastHiddenTabs = ArrayList(hiddenTabs)
+    }
+    LaunchedEffect(fallBackPending, baseRoute) {
+        if (!fallBackPending || BottomNavItem.all.none { it.route == baseRoute }) return@LaunchedEffect
+        fallBackPending = false
+        BottomNavItem.fallbackFor(baseRoute, hiddenTabs)?.let { home ->
+            navController.navigate(home) {
+                popUpTo(navController.graph.startDestinationId)
+                launchSingleTop = true
+            }
         }
     }
 
@@ -364,8 +392,10 @@ fun MainScreen(
                     content = { _: NavBackStackEntry ->
                         com.pennywiseai.tracker.ui.screens.analytics.AnalyticsScreen(
                             onNavigateToChat = {
-                                navController.navigate("chat") {
-                                    launchSingleTop = true
+                                if (!chatHidden) {
+                                    navController.navigate("chat") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             },
                             onNavigateToTransactions = { category, merchant, period, currency, startDateEpochDay, endDateEpochDay ->
@@ -417,14 +447,18 @@ fun MainScreen(
                 composable(
                     route = "chat",
                     content = { _: NavBackStackEntry ->
-                        com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
-                            modifier = Modifier.imePadding(),
-                            onNavigateToSettings = {
-                                navController.navigate("settings") {
-                                    launchSingleTop = true
+                        // Hidden AI tab: don't start the chat (and its model) for
+                        // the frame before the fallback to Home lands.
+                        if (!chatHidden) {
+                            com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
+                                modifier = Modifier.imePadding(),
+                                onNavigateToSettings = {
+                                    navController.navigate("settings") {
+                                        launchSingleTop = true
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 )
 
@@ -618,11 +652,13 @@ fun MainScreen(
             }
 
             // Bottom navigation OVERLAID on content
-            if (baseRoute in listOf("home", "transactions", "analytics", "chat")) {
+            // Wait for prefs so a hidden tab never flashes in on launch.
+            if (!themeState.isLoading && baseRoute in listOf("home", "transactions", "analytics", "chat")) {
                 PennyWiseBottomNavigation(
                     navController = navController,
                     currentDestination = navBackStackEntry?.destination,
                     navBarStyle = themeState.navBarStyle,
+                    hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
                     modifier = Modifier.align(Alignment.BottomCenter)

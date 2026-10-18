@@ -276,6 +276,8 @@
 
     <!-- Navigation -->
     <string name="appearance_navigation_section">Navigation</string>
+    <string name="appearance_bottom_bar_section">Bottom bar</string>
+    <string name="appearance_bottom_bar_subtitle">Choose which tabs to show. Home always stays.</string>
     <string name="appearance_nav_floating">Floating</string>
     <string name="appearance_nav_floating_subtitle">Modern &amp; Sleek</string>
     <string name="appearance_nav_normal">Normal</string>

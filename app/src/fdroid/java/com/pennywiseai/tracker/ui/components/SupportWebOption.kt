@@ -39,7 +39,7 @@ fun SupportWebOption(onOpened: () -> Unit) {
         style = MaterialTheme.typography.bodyMedium
     )
     TextButton(
-        onClick = { if (openUrl(context, PRO_PAGE_URL, noBrowserMsg)) onOpened() },
+        onClick = { if (openUrl(context, Constants.Links.PRO_PAGE_URL, noBrowserMsg)) onOpened() },
         contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
     ) {
         Text(
@@ -48,8 +48,6 @@ fun SupportWebOption(onOpened: () -> Unit) {
         )
     }
 }
-
-private val PRO_PAGE_URL = "${Constants.Links.WEB_PARSER_URL}/pro"
 
 /**
  * Opens [url] in the user's browser.

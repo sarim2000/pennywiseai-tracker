@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
@@ -143,6 +144,9 @@ open class UserPreferencesRepository @Inject constructor(
         // Navigation Bar Style
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
 
+        // Routes of the bottom-bar tabs the user hid (#912)
+        val HIDDEN_NAV_TABS = stringSetPreferencesKey("hidden_nav_tabs")
+
         // Number Format Style (digit grouping: Auto / Indian / International)
         val NUMBER_FORMAT_STYLE = stringPreferencesKey("number_format_style")
 
@@ -215,6 +219,7 @@ open class UserPreferencesRepository @Inject constructor(
                 navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
                     try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
                 } ?: NavBarStyle.FLOATING,
+                hiddenNavTabs = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet(),
                 coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
                     try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
                 } ?: CoverStyle.AURORA,
@@ -908,6 +913,22 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    // Bottom-bar tabs (#912). Read-modify-write inside one edit so quick
+    // toggles of two tabs can't overwrite each other.
+    suspend fun setNavTabHidden(route: String, hidden: Boolean) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet()
+            preferences[PreferencesKeys.HIDDEN_NAV_TABS] =
+                if (hidden) current + route else current - route
+        }
+    }
+
+    suspend fun updateHiddenNavTabs(routes: Set<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.HIDDEN_NAV_TABS] = routes
+        }
+    }
+
     // Analytics Chart Type
     suspend fun saveAnalyticsChartType(chartType: String) {
         context.dataStore.edit { preferences ->
@@ -1051,6 +1072,7 @@ data class UserPreferences(
     val displayCurrency: String = "INR",
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
+    val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,
     val userName: String = "User",
     val profileImageUri: String? = null,

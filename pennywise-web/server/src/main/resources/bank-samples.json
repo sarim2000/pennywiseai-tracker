@@ -946,6 +946,17 @@
       "reference": "000000000004",
       "balance": "9000.00"
     },
+    "SVC Co-operative Bank": {
+      "sender": "SVC",
+      "message": "SVC Bank A/c *1111 DEBITED for Rs.30.00 Clr Bal Rs.696.96. CR UPI/DR/600000000001/TEST PAYEE/. Not You? SMS STOPUPI to 9000000000 /Call 18000000000",
+      "currency": "INR",
+      "amount": "30.00",
+      "type": "EXPENSE",
+      "merchant": "TEST PAYEE",
+      "accountLast4": "1111",
+      "reference": "600000000001",
+      "balance": "696.96"
+    },
     "Saraswat Co-operative Bank": {
       "sender": "BV-SARBNK-S",
       "message": "Dear Customer, Your account no. ending with 1357 is debited with INR 2,500.00 on 23-10-2025 for IMPS. Current Bal is INR 12,345.67CR. - Saraswat Bank",

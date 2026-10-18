@@ -167,6 +167,9 @@ data class BackupStatistics(
     @SerialName("total_goal_contributions")
     val totalGoalContributions: Int = 0,
 
+    @SerialName("total_loan_shares")
+    val totalLoanShares: Int = 0,
+
     @SerialName("date_range")
     val dateRange: DateRange? = null
 )
@@ -270,7 +273,12 @@ data class DatabaseSnapshot(
     val goals: List<GoalEntity> = emptyList(),
 
     @SerialName("goal_contributions")
-    val goalContributions: List<GoalContributionEntity> = emptyList()
+    val goalContributions: List<GoalContributionEntity> = emptyList(),
+
+    // Split-bill shares (#346): each points at a loan and a transaction by id;
+    // the importer remaps both.
+    @SerialName("loan_shares")
+    val loanShares: List<LoanShareEntity> = emptyList()
 )
 
 /**
@@ -361,7 +369,11 @@ data class AppPreferences(
     val ignoredAccounts: List<String> = emptyList(),
 
     @SerialName("bank_account_merges")
-    val bankAccountMerges: Map<String, String> = emptyMap()
+    val bankAccountMerges: Map<String, String> = emptyMap(),
+
+    // The user's own UPI ID for split-bill requests (#346). FULL exports only.
+    @SerialName("upi_id")
+    val upiId: String? = null
 )
 
 /**

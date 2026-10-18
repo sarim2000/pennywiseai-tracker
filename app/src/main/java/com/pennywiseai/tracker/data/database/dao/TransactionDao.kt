@@ -164,7 +164,7 @@ interface TransactionDao {
     /**
      * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
      * rebuild — active, parsed from an SMS, and not loan-linked, grouped
-     * (#401) or put toward a goal (#914: the hard delete would cascade the
+     * (#401), split with people (#346) or put toward a goal (#914: the hard delete would cascade the
      * contribution away). Everything else is kept, since nothing would bring it back:
      * manual / chat / CSV / recurring rows (no sender), PDF imports ("… PDF"
      * sender), bank-app notification rows ([notificationAliases]), and rows
@@ -179,6 +179,7 @@ interface TransactionDao {
         DELETE FROM transactions
         WHERE loan_id IS NULL AND group_id IS NULL AND is_deleted = 0
           AND id NOT IN (SELECT transaction_id FROM goal_contributions WHERE transaction_id IS NOT NULL)
+          AND id NOT IN (SELECT transaction_id FROM loan_shares)
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)
@@ -283,7 +284,7 @@ interface TransactionDao {
      * repair — checked here, at write time, not from an earlier read (#886):
      *  - it still holds the amount being repaired (anything the user saved since
      *    — category, note — is untouched, and a changed amount isn't overwritten)
-     *  - it has no splits (they were sized to the old amount)
+     *  - it has no category splits or split-bill shares (#346) (they were sized to the old amount)
      *  - it isn't linked to a loan, unless the currency stays the same (loan
      *    totals sum their linked rows as one currency)
      *  - it holds no goal contributions, unless the currency stays the same (their
@@ -296,6 +297,7 @@ interface TransactionDao {
         SET amount = :amount, currency = :currency, updated_at = :now
         WHERE id = :id AND amount = :expectedAmount AND currency = :expectedCurrency
           AND NOT EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id = :id)
+          AND NOT EXISTS (SELECT 1 FROM loan_shares WHERE transaction_id = :id)
           AND (loan_id IS NULL OR currency = :currency)
           AND (currency = :currency OR NOT EXISTS (SELECT 1 FROM goal_contributions WHERE transaction_id = :id))
         """

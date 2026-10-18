@@ -315,6 +315,8 @@ dependencies {
     
     // Coil for image loading
     implementation(libs.coil.compose)
+    // On-device QR for split-bill UPI requests (#346): pure-Java encoder, no Play services, no network.
+    implementation(libs.zxing.core)
 
     // Haze blur effects
     implementation(libs.haze)

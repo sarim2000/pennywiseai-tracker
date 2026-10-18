@@ -45,6 +45,7 @@ litertlm = "0.16.1"
 visionInternalVkp = "18.2.3"
 workVersion = "2.11.2"
 coil = "2.7.0"
+zxing = "3.5.3"
 material3 = "1.5.0-alpha12"
 haze = "1.7.1"
 composeCharts = "0.2.5"
@@ -52,6 +53,7 @@ billingKtx = "9.0.0"
 
 [libraries]
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

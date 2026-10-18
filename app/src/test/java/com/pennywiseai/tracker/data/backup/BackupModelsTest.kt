@@ -1049,4 +1049,67 @@ class BackupModelsTest {
             assertTrue(uid.isNotBlank())
         }
     }
+
+    /** #346. A split bill round-trips: its shares, the bill's lent total and your UPI ID. */
+    @Test
+    fun splitBill_roundTrips() {
+        val bill = TransactionEntity(
+            id = 3, amount = BigDecimal("1000.00"), merchantName = "Dinner", category = "Food",
+            transactionType = TransactionType.EXPENSE, dateTime = LocalDateTime.of(2026, 10, 1, 20, 0),
+            transactionHash = "h3", lentSharesTotal = BigDecimal("666.66")
+        )
+        val loan = LoanEntity(
+            id = 5, personName = "Alex", direction = LoanDirection.LENT,
+            originalAmount = BigDecimal("333.33"), remainingAmount = BigDecimal("333.33"),
+            createdAt = LocalDateTime.of(2026, 10, 1, 20, 1), updatedAt = LocalDateTime.of(2026, 10, 1, 20, 1)
+        )
+        val share = LoanShareEntity(id = 7, transactionId = 3, loanId = 5, amount = BigDecimal("333.33"), createdAt = LocalDateTime.of(2026, 10, 1, 20, 1))
+        val backup = PennyWiseBackup(
+            metadata = BackupMetadata(statistics = BackupStatistics(totalLoanShares = 1)),
+            database = DatabaseSnapshot(transactions = listOf(bill), loans = listOf(loan), loanShares = listOf(share)),
+            preferences = PreferencesSnapshot(app = AppPreferences(upiId = "you@okbank"))
+        )
+
+        val json = backupJson.encodeToString(backup)
+        assertTrue(json.contains("\"loan_shares\""))
+        assertTrue(json.contains("\"lentSharesTotal\":\"666.66\""))
+        val restored = backupJson.decodeFromString<PennyWiseBackup>(json)
+        assertEquals(listOf(bill), restored.database.transactions)
+        assertEquals(listOf(loan), restored.database.loans)
+        assertEquals(listOf(share), restored.database.loanShares)
+        assertEquals(1, restored.metadata.statistics.totalLoanShares)
+        assertEquals("you@okbank", restored.preferences.app.upiId)
+    }
+
+    /** #346. A backup from before split bills still restores: no shares, no lent total, no UPI ID. */
+    @Test
+    fun oldBackupMissingSplitBills_defaultsApply() {
+        val json = """
+        {
+          "_format": "PennyWise Backup v1.3",
+          "database": {
+            "transactions": [
+              { "id": 3, "amount": "250.00", "merchantName": "Shop", "category": "Others",
+                "transactionType": "EXPENSE", "dateTime": "2026-09-01T10:00:00", "transactionHash": "h3",
+                "loanId": 5, "loanContribution": "100" }
+            ]
+          },
+          "preferences": { "app": { "has_shown_scan_tutorial": true } }
+        }
+        """.trimIndent()
+
+        val backup = backupJson.decodeFromString<PennyWiseBackup>(json)
+
+        assertTrue(backup.database.loanShares.isEmpty())
+        assertEquals(0, backup.metadata.statistics.totalLoanShares)
+        assertNull(backup.database.transactions.single().lentSharesTotal)
+        assertNull(backup.preferences.app.upiId)
+
+        // A share missing keys falls back to defaults.
+        val minimal = backupJson.decodeFromString<PennyWiseBackup>("""{ "database": { "loan_shares": [ { "loanId": 1 } ] } }""")
+        with(minimal.database.loanShares.single()) {
+            assertEquals(0L, transactionId)
+            assertEquals(0, BigDecimal.ZERO.compareTo(amount))
+        }
+    }
 }

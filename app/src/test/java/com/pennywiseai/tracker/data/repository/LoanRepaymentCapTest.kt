@@ -21,7 +21,7 @@ import java.time.LocalDateTime
 class LoanRepaymentCapTest {
     private val loanDao = mockk<LoanDao>(relaxed = true)
     private val transactionDao = mockk<TransactionDao>(relaxed = true)
-    private val repo = LoanRepository(loanDao, transactionDao)
+    private val repo = LoanRepository(loanDao, transactionDao, mockk(relaxed = true))
 
     private fun loan(remaining: String) = LoanEntity(
         id = 2, personName = "Pal", direction = LoanDirection.LENT,

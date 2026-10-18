@@ -103,6 +103,28 @@ class TransactionFiltersTest {
     }
 
     @Test
+    fun `bill split with several people counts only your part`() {
+        // #346: ₹1,000 between you and two others, ₹333.33 each lent: ₹333.34 is yours.
+        val split = tx(amount = "1000").copy(lentSharesTotal = BigDecimal("666.66"))
+        assertEquals(BigDecimal("333.34"), split.countedAmount())
+        val counted = split.forTotals()!!
+        assertEquals(BigDecimal("333.34"), counted.amount)
+        assertNull(counted.lentSharesTotal)
+        // Idempotent: a row already cut isn't cut again.
+        assertEquals(BigDecimal("333.34"), counted.forTotals()!!.amount)
+    }
+
+    @Test
+    fun `bill paid entirely for others counts nothing`() {
+        assertNull(tx(amount = "900").copy(lentSharesTotal = BigDecimal("900")).forTotals())
+    }
+
+    @Test
+    fun `excluded split bill counts nothing`() {
+        assertNull(tx(amount = "1000", excludedFromAnalytics = true).copy(lentSharesTotal = BigDecimal("500")).forTotals())
+    }
+
+    @Test
     fun `fully loan-linked split row drops out`() {
         val row = TransactionWithSplits(
             tx(loanId = 1L),

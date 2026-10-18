@@ -4,6 +4,10 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
 import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
+import com.pennywiseai.tracker.presentation.split.SplitBillSheet
+import com.pennywiseai.tracker.presentation.split.SplitBillViewModel
+import com.pennywiseai.tracker.presentation.split.SplitSection
+import com.pennywiseai.tracker.presentation.split.canSplit
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import android.content.Intent
@@ -128,7 +132,8 @@ fun TransactionDetailScreen(
     onNavigateToGoal: (Long) -> Unit = {},
     onCreateGoal: () -> Unit = {},
     viewModel: TransactionDetailViewModel = hiltViewModel(),
-    goalsViewModel: TransactionGoalsViewModel = hiltViewModel()
+    goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
+    splitViewModel: SplitBillViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -174,6 +179,9 @@ fun TransactionDetailScreen(
     val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
     var showAddToGoal by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
+    // Split a bill (#346): reload after a save so lent_shares_total is fresh.
+    LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
+    LaunchedEffect(Unit) { splitViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
     fun closeAddToGoal() { showAddToGoal = false; goalsViewModel.closeSheet() }
     LaunchedEffect(addToGoal.done) { if (addToGoal.done) closeAddToGoal() }
     // Loads what's left of the transaction whenever the sheet is open without it:
@@ -294,6 +302,20 @@ fun TransactionDetailScreen(
                                         showAddToGoal = true
                                     }
                                 )
+                                if (transaction?.let(::canSplit) == true) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(stringResource(if (transaction?.lentSharesTotal != null) R.string.split_menu_edit else R.string.split_menu_split))
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.CallSplit, contentDescription = null)
+                                        },
+                                        onClick = {
+                                            showActionsMenu = false
+                                            splitViewModel.openSheet()
+                                        }
+                                    )
+                                }
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
                                     leadingIcon = {
@@ -381,10 +403,15 @@ fun TransactionDetailScreen(
                 towardGoals = {
                     TowardGoalsSection(linkedGoals, onOpenGoal = onNavigateToGoal, onRemove = goalsViewModel::remove)
                 },
+                splitWith = {
+                    transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
+                },
                 modifier = Modifier.padding(paddingValues)
             )
         }
     }
+
+    transaction?.let { SplitBillSheet(splitViewModel, it) }
 
     if (showAddToGoal) {
         transaction?.let { txn ->
@@ -539,6 +566,7 @@ private fun TransactionDetailContent(
     accountProfileId: Long?,
     hazeState: HazeState,
     towardGoals: @Composable () -> Unit,
+    splitWith: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -585,7 +613,8 @@ private fun TransactionDetailContent(
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
                 onUnmarkLoanClick = onUnmarkLoanClick,
                 accountProfileId = accountProfileId,
-                towardGoals = towardGoals
+                towardGoals = towardGoals,
+                splitWith = splitWith
             )
         }
     }
@@ -605,7 +634,8 @@ private fun TransactionReceipt(
     onNavigateToLoanDetail: (Long) -> Unit,
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long? = null,
-    towardGoals: @Composable () -> Unit = {}
+    towardGoals: @Composable () -> Unit = {},
+    splitWith: @Composable () -> Unit = {}
 ) {
     val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
@@ -760,7 +790,8 @@ private fun TransactionReceipt(
                             )
                         }
                     }
-                } else {
+                } else if (transaction.lentSharesTotal == null) {
+                    // A split bill (#346) is already on Loans, one share per person.
                     SuggestionChip(
                         onClick = { viewModel.showMarkAsLoanSheet() },
                         label = {
@@ -853,6 +884,8 @@ private fun TransactionReceipt(
         }
 
         towardGoals()
+
+        splitWith()
 
         // ── Details Section ──
         Column(modifier = Modifier.fillMaxWidth()) {

@@ -125,6 +125,28 @@ keys and decode to empty lists; older apps ignore them.
   change currency), that goal's backup contributions are skipped and counted —
   amounts are never converted implicitly.
 
+## Split bills (#346)
+
+One table, `loan_shares`, in `DatabaseSnapshot` as a defaulted list, plus a
+defaulted `total_loan_shares` counter, the nullable `lentSharesTotal` on each
+transaction, and `preferences.app.upi_id`. Older backups lack the keys and
+decode to no shares; older apps ignore them.
+
+```json
+"loan_shares": [ { "id": 7, "transactionId": 3, "loanId": 5, "amount": "333.33", "createdAt": "…" } ]
+```
+
+- A share is one person's part of a bill: money owed to you on loan `loanId`,
+  in the bill's currency. `lentSharesTotal` is the sum of a bill's shares.
+- **Export:** `FULL` only, like loans. `upi_id` too.
+- **Import (both strategies):** every transaction is inserted with
+  `lentSharesTotal = null`; shares are inserted with `loanId` and
+  `transactionId` remapped (REPLACE_ALL keeps loan ids, MERGE uses the loan
+  map), skipped and counted when either didn't restore, and then each touched
+  bill's total is rebuilt from its rows. The unique `(transaction_id,
+  loan_id)` index makes a repeat MERGE a no-op. `upi_id` fills in a missing
+  one and never replaces one set on this device.
+
 ## Resilience
 
 Beyond schema tolerance, the importer skips and **counts** any single row that

@@ -161,6 +161,14 @@ class SettingsViewModel @Inject constructor(
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 
+    // Your own UPI ID for split-bill requests (#346).
+    val upiId = userPreferencesRepository.upiId
+
+    /** Blank clears it; the dialog only passes a valid UPI ID otherwise. */
+    fun setUpiId(id: String) {
+        viewModelScope.launch { userPreferencesRepository.setUpiId(id) }
+    }
+
     // Derive the selectable set from the user's ACTUAL data (transaction + account
     // currencies) on top of the common seed list. This way any currency the user
     // really holds — e.g. MZN held only in an account — is always selectable, instead

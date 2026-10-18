@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.database.dao
 
 import androidx.room.*
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
@@ -129,6 +130,7 @@ interface LoanDao {
     @Query("""
         SELECT * FROM transactions
         WHERE loan_id IS NULL AND is_deleted = 0
+        AND id NOT IN (SELECT transaction_id FROM loan_shares)
         AND transaction_type = :type
         AND currency = :currency
         ORDER BY date_time DESC
@@ -139,4 +141,81 @@ interface LoanDao {
     // Used by BackupImporter.replaceAllData to clear loans before re-import.
     @Query("DELETE FROM loans")
     suspend fun deleteAllLoans()
+
+    // ── Split-bill shares (#346) ──
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertShare(share: LoanShareEntity): Long
+
+    @Update
+    suspend fun updateShare(share: LoanShareEntity)
+
+    @Delete
+    suspend fun deleteShare(share: LoanShareEntity)
+
+    @Query("SELECT * FROM loan_shares WHERE transaction_id = :transactionId ORDER BY id")
+    suspend fun getSharesForTransaction(transactionId: Long): List<LoanShareEntity>
+
+    @Query("SELECT * FROM loan_shares WHERE transaction_id = :transactionId ORDER BY id")
+    fun observeSharesForTransaction(transactionId: Long): Flow<List<LoanShareEntity>>
+
+    @Query("SELECT * FROM loan_shares WHERE loan_id = :loanId")
+    suspend fun getSharesForLoan(loanId: Long): List<LoanShareEntity>
+
+    @Query("SELECT * FROM loan_shares ORDER BY id")
+    suspend fun getAllShares(): List<LoanShareEntity>
+
+    @Query("DELETE FROM loan_shares WHERE loan_id = :loanId")
+    suspend fun deleteSharesForLoan(loanId: Long)
+
+    /** Share amounts of [loanId] on transactions that aren't deleted — part of its principal. */
+    @Query("""
+        SELECT s.amount FROM loan_shares s
+        INNER JOIN transactions t ON t.id = s.transaction_id
+        WHERE s.loan_id = :loanId AND t.is_deleted = 0
+    """)
+    suspend fun getLiveShareAmounts(loanId: Long): List<BigDecimal>
+
+    @Query("UPDATE transactions SET lent_shares_total = :total, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
+    suspend fun setLentSharesTotal(transactionId: Long, total: BigDecimal?)
+
+    /** Transactions split with [loanId]'s person, each with that person's share. */
+    @Query("""
+        SELECT t.*, s.amount AS share_amount FROM transactions t
+        INNER JOIN loan_shares s ON s.transaction_id = t.id
+        WHERE s.loan_id = :loanId AND t.is_deleted = 0
+        ORDER BY t.date_time ASC
+    """)
+    fun getSharedTransactionsForLoan(loanId: Long): Flow<List<SharedTransaction>>
+
+    @Query("""
+        SELECT t.* FROM transactions t
+        INNER JOIN loan_shares s ON s.transaction_id = t.id
+        WHERE s.loan_id = :loanId AND t.is_deleted = 0
+        ORDER BY t.date_time ASC LIMIT 1
+    """)
+    suspend fun getFirstSharedTransactionForLoan(loanId: Long): TransactionEntity?
+
+    /** [getActiveLentTransactionsInPeriod] for split shares: one row per share. */
+    @Query("""
+        SELECT t.*, s.amount AS share_amount FROM transactions t
+        INNER JOIN loan_shares s ON s.transaction_id = t.id
+        INNER JOIN loans l ON l.id = s.loan_id
+        WHERE l.direction = 'LENT'
+          AND l.status = 'ACTIVE'
+          AND t.transaction_type = 'EXPENSE'
+          AND t.is_deleted = 0
+          AND t.date_time BETWEEN :startDate AND :endDate
+        ORDER BY t.date_time DESC
+    """)
+    fun getActiveLentSharesInPeriod(
+        startDate: LocalDateTime,
+        endDate: LocalDateTime
+    ): Flow<List<SharedTransaction>>
 }
+
+/** A split transaction with one person's share of it. */
+data class SharedTransaction(
+    @Embedded val transaction: TransactionEntity,
+    @ColumnInfo(name = "share_amount") val shareAmount: BigDecimal
+)

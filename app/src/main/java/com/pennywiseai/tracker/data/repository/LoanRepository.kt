@@ -1,13 +1,21 @@
 package com.pennywiseai.tracker.data.repository
 
+import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.LoanDao
+import com.pennywiseai.tracker.data.database.dao.SharedTransaction
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.loan.SplitPerson
+import com.pennywiseai.tracker.domain.loan.SplitRules
+import com.pennywiseai.tracker.domain.loan.SplitShare
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -19,7 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class LoanRepository @Inject constructor(
     private val loanDao: LoanDao,
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val database: PennyWiseDatabase
 ) {
     // Repayments read what's owed, then write the capped share: serialized so two
     // quick taps can't both see the same balance and over-repay (#831). All loan
@@ -36,10 +45,18 @@ class LoanRepository @Inject constructor(
 
     fun getTotalBorrowedRemaining(): Flow<BigDecimal> = loanDao.getTotalBorrowedRemaining()
 
+    /**
+     * Expenses lent on ACTIVE loans in the window. A split bill (#346) appears
+     * once per share, with [TransactionEntity.loanContribution] set to that
+     * share, so callers can sum `loanContribution ?: amount` either way.
+     */
     fun getActiveLentTransactionsInPeriod(
         startDate: LocalDateTime,
         endDate: LocalDateTime
-    ): Flow<List<TransactionEntity>> = loanDao.getActiveLentTransactionsInPeriod(startDate, endDate)
+    ): Flow<List<TransactionEntity>> = combine(
+        loanDao.getActiveLentTransactionsInPeriod(startDate, endDate),
+        loanDao.getActiveLentSharesInPeriod(startDate, endDate)
+    ) { linked, shared -> linked + shared.map { it.asLoanRow() } }
 
     fun getLentLoansSettledInPeriod(
         startDate: LocalDateTime,
@@ -56,8 +73,16 @@ class LoanRepository @Inject constructor(
         return (loan.originalAmount - repaid).coerceAtLeast(BigDecimal.ZERO)
     }
 
-    fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>> =
-        loanDao.getTransactionsForLoan(loanId)
+    /** The loan's history; a split bill shows with this person's share as its loan part. */
+    fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>> = combine(
+        loanDao.getTransactionsForLoan(loanId),
+        loanDao.getSharedTransactionsForLoan(loanId)
+    ) { linked, shared ->
+        (linked + shared.map { it.asLoanRow() }).distinctBy { it.id }.sortedBy { it.dateTime }
+    }
+
+    // Display/summing copy only: never write it back.
+    private fun SharedTransaction.asLoanRow() = transaction.copy(loanContribution = shareAmount)
 
     // Only same-currency transactions can repay a loan (see getActiveLoanByPersonAndDirection).
     fun getRecentUnlinkedRepayments(direction: LoanDirection, currency: String, limit: Int = 20): Flow<List<TransactionEntity>> {
@@ -70,7 +95,7 @@ class LoanRepository @Inject constructor(
     suspend fun getLoanById(loanId: Long): LoanEntity? = loanDao.getLoanById(loanId)
 
     suspend fun getOriginalTransactionForLoan(loanId: Long): TransactionEntity? =
-        loanDao.getOriginalTransactionForLoan(loanId)
+        loanDao.getOriginalTransactionForLoan(loanId) ?: loanDao.getFirstSharedTransactionForLoan(loanId)
 
     suspend fun findActiveLoanForPerson(personName: String, direction: LoanDirection, currency: String): LoanEntity? =
         loanDao.getActiveLoanByPersonAndDirection(personName, direction.name, currency)
@@ -203,7 +228,8 @@ class LoanRepository @Inject constructor(
         // (the loan's own direction: LENT->EXPENSE, BORROWED->INCOME). Repayments
         // are the opposite type and don't count toward principal.
         val contributionType = if (loan.direction == LoanDirection.LENT) "EXPENSE" else "INCOME"
-        val remainingPrincipal = loanDao.getTotalRepaidByType(loanId, contributionType)
+        // Split-bill shares (#346) are principal too.
+        val remainingPrincipal = loanDao.getTotalRepaidByType(loanId, contributionType) + liveShareTotal(loanId)
         if (remainingPrincipal.compareTo(BigDecimal.ZERO) == 0) {
             // No principal left — the loan is meaningless. Delete it; deleteLoan's
             // unlinkAllTransactions also detaches any leftover repayment rows so
@@ -267,7 +293,108 @@ class LoanRepository @Inject constructor(
     suspend fun deleteLoan(loanId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
         loanDao.unlinkAllTransactions(loanId)
+        // Its split shares go with it, so their bills count that part as your spend again.
+        val sharedTransactionIds = loanDao.getSharesForLoan(loanId).map { it.transactionId }
+        loanDao.deleteSharesForLoan(loanId)
+        sharedTransactionIds.forEach { syncLentSharesTotal(it) }
         loanDao.deleteLoan(loan)
+    }
+
+    // ========== Split a bill (#346) ==========
+
+    /** Each person's share of [transactionId], with their loan (null if it's gone). */
+    fun observeSplit(transactionId: Long): Flow<List<SplitPerson>> = combine(
+        loanDao.observeSharesForTransaction(transactionId),
+        loanDao.getAllLoans()
+    ) { shares, loans ->
+        val byId = loans.associateBy { it.id }
+        shares.map { SplitPerson(it, byId[it.loanId]) }
+    }
+
+    /**
+     * Makes [shares] the people [transactionId] is split with. Each share is
+     * money they owe you, on their active LENT loan in the transaction's
+     * currency (a new loan if they have none), like "Mark as loan".
+     *
+     * Saving again edits in place: a changed share moves its loan's principal
+     * by the difference and a dropped person's share is undone, so repayments
+     * already recorded stay on their loan. An empty list removes the split.
+     */
+    suspend fun saveSplit(transactionId: Long, shares: List<SplitShare>) = database.withTransaction {
+        val txn = requireNotNull(transactionDao.getTransactionById(transactionId)) { "Transaction $transactionId not found" }
+        if (shares.isNotEmpty()) {
+            require(txn.transactionType == TransactionType.EXPENSE) { "Only an expense can be split" }
+            require(txn.loanId == null) { "Unmark the loan before splitting" }
+            val error = SplitRules.validate(txn.amount, shares)
+            require(error == null) { "Invalid split: $error" }
+        }
+
+        val wanted = shares.associateBy { it.personName }.toMutableMap()
+        for (share in loanDao.getSharesForTransaction(transactionId)) {
+            val loan = loanDao.getLoanById(share.loanId)
+            val next = loan?.let { wanted.remove(it.personName) }
+            if (loan == null || next == null) {
+                removeShare(share, loan)
+            } else if (next.amount.compareTo(share.amount) != 0) {
+                loanDao.updateShare(share.copy(amount = next.amount))
+                loanDao.updateLoan(
+                    loan.copy(originalAmount = loan.originalAmount + next.amount - share.amount, updatedAt = LocalDateTime.now())
+                )
+                recalculateRemaining(loan.id)
+            }
+        }
+        for (share in wanted.values) {
+            val existing = loanDao.getActiveLoanByPersonAndDirection(share.personName, LoanDirection.LENT.name, txn.currency)
+            val loanId = if (existing != null) {
+                loanDao.updateLoan(
+                    existing.copy(
+                        originalAmount = existing.originalAmount + share.amount,
+                        remainingAmount = existing.remainingAmount + share.amount,
+                        updatedAt = LocalDateTime.now()
+                    )
+                )
+                existing.id
+            } else {
+                loanDao.insertLoan(
+                    LoanEntity(
+                        personName = share.personName,
+                        direction = LoanDirection.LENT,
+                        originalAmount = share.amount,
+                        remainingAmount = share.amount,
+                        currency = txn.currency
+                    )
+                )
+            }
+            loanDao.insertShare(LoanShareEntity(transactionId = transactionId, loanId = loanId, amount = share.amount))
+        }
+        syncLentSharesTotal(transactionId)
+    }
+
+    /** Undoes one share: it comes off its loan's principal, and the loan goes if nothing else is in it. */
+    private suspend fun removeShare(share: LoanShareEntity, loan: LoanEntity?) {
+        loanDao.deleteShare(share)
+        if (loan == null) return
+        val otherPrincipal = loanDao.getTotalRepaidByType(loan.id, "EXPENSE") + liveShareTotal(loan.id)
+        if (otherPrincipal.signum() == 0) {
+            deleteLoan(loan.id)
+        } else {
+            loanDao.updateLoan(
+                loan.copy(
+                    originalAmount = (loan.originalAmount - share.amount).coerceAtLeast(BigDecimal.ZERO),
+                    updatedAt = LocalDateTime.now()
+                )
+            )
+            recalculateRemaining(loan.id)
+        }
+    }
+
+    private suspend fun liveShareTotal(loanId: Long): BigDecimal =
+        loanDao.getLiveShareAmounts(loanId).fold(BigDecimal.ZERO, BigDecimal::add)
+
+    /** Recomputes [TransactionEntity.lentSharesTotal] from the transaction's share rows. */
+    suspend fun syncLentSharesTotal(transactionId: Long) {
+        val amounts = loanDao.getSharesForTransaction(transactionId).map { it.amount }
+        loanDao.setLentSharesTotal(transactionId, amounts.takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO, BigDecimal::add))
     }
 
     private suspend fun recalculateRemaining(loanId: Long) {

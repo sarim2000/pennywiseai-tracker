@@ -108,6 +108,13 @@ data class TransactionEntity(
     @Contextual
     val loanContribution: BigDecimal? = null,
 
+    // Split bill (#346): the sum of this transaction's loan_shares rows, the
+    // part other people owe you. Null when it isn't split. LoanRepository keeps
+    // it in step with the rows so countedAmount() can subtract it without a join.
+    @ColumnInfo(name = "lent_shares_total", defaultValue = "NULL")
+    @Contextual
+    val lentSharesTotal: BigDecimal? = null,
+
     @ColumnInfo(name = "receipt_path", defaultValue = "NULL")
     val receiptPath: String? = null,
 

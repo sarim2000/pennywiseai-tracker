@@ -55,3 +55,25 @@ _Avoid_: Failed, expired, overdue
 **Archived**:
 A Goal the user has put away; it no longer shows with the others.
 _Avoid_: Deleted, closed
+
+## AI access
+
+**AI connection**:
+The lasting link between one PennyWise install and one AI app (for example Claude or ChatGPT), created once by pairing and removed by revoking it in PennyWise.
+_Avoid_: token, MCP, integration
+
+**AI session**:
+A time-limited window, started by the user on the phone, during which connected AI apps can read PennyWise data. Outside an AI session no AI app can reach the data.
+_Avoid_: web access, server on, live mode
+
+**Pairing code**:
+A short-lived 6-digit code shown in PennyWise that the user enters in an AI app's sign-in step to create an AI connection.
+_Avoid_: token, password, API key
+
+**Relay**:
+The PennyWise-run service that carries encrypted traffic between an AI app and the phone. It cannot read what it carries and stores none of it.
+_Avoid_: cloud, backend, proxy
+
+**Phone address**:
+The stable public web address that identifies one PennyWise install to AI apps. A new install, or resetting it, gives a new phone address and cuts off every AI connection.
+_Avoid_: URL, endpoint, device ID

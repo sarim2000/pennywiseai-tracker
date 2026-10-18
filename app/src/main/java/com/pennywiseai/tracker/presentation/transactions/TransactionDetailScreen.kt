@@ -930,18 +930,21 @@ private fun TransactionReceipt(
                 value = if (isEffectivelyBusiness) stringResource(R.string.txn_detail_business) else stringResource(R.string.txn_detail_personal)
             )
 
-            // Account info
+            // Account info. A leg on an account without a number (a Cash account
+            // is ("Cash", "")) shows its name instead of a blank chip (#913).
+            fun maskedLeg(account: String, bank: String?): String = when {
+                account.isBlank() -> bank ?: account
+                account.length > 4 -> "*".repeat(account.length - 4) + account.takeLast(4)
+                else -> account
+            }
             if (transaction.fromAccount != null && transaction.toAccount != null) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                val maskedFrom = transaction.fromAccount.let { from ->
-                    if (from.length > 4) "*".repeat(from.length - 4) + from.takeLast(4) else from
-                }
-                val maskedTo = transaction.toAccount.let { to ->
-                    if (to.length > 4) "*".repeat(to.length - 4) + to.takeLast(4) else to
-                }
-                TransferFlowRow(fromValue = maskedFrom, toValue = maskedTo)
+                TransferFlowRow(
+                    fromValue = maskedLeg(transaction.fromAccount, transaction.fromBankName),
+                    toValue = maskedLeg(transaction.toAccount, transaction.toBankName)
+                )
             } else {
-                transaction.accountNumber?.let {
+                transaction.accountNumber?.takeIf { it.isNotBlank() }?.let {
                     if (transaction.fromAccount == null && transaction.toAccount == null) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         val masked = if (it.length > 4) {
@@ -956,20 +959,15 @@ private fun TransactionReceipt(
                 }
                 transaction.fromAccount?.let { from ->
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    val masked = if (from.length > 4) {
-                        "*".repeat(from.length - 4) + from.takeLast(4)
-                    } else from
                     DetailInfoRow(
                         icon = Icons.Default.Output,
                         label = stringResource(R.string.txn_detail_label_from),
-                        value = masked
+                        value = maskedLeg(from, transaction.fromBankName)
                     )
                 }
                 transaction.toAccount?.let { to ->
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    val masked = if (to.length > 4) {
-                        "*".repeat(to.length - 4) + to.takeLast(4)
-                    } else to
+                    val masked = maskedLeg(to, transaction.toBankName)
                     DetailInfoRow(
                         icon = Icons.Default.Input,
                         label = stringResource(R.string.txn_detail_label_to),
@@ -1488,7 +1486,7 @@ private fun EditableExtractedInfoCard(
                 AccountNumberField(
                     accountNumber = transaction.accountNumber,
                     onAccountNumberChange = { viewModel.updateAccountNumber(it) },
-                    onBankNameChange = { viewModel.updateBankName(it) },
+                    onAccountSelected = { bank, suffix -> viewModel.selectAccount(suffix, bank) },
                     viewModel = viewModel,
                     // Without the bank, two accounts sharing a number (HDFC ••1155
                     // and a wallet ••1155) were indistinguishable (#876).
@@ -2105,11 +2103,9 @@ private fun AccountNumberField(
     label: String = stringResource(R.string.txn_detail_field_account),
     placeholder: String = stringResource(R.string.txn_detail_field_account_placeholder),
     excludeAccount: String? = null,
-    // Fired alongside onAccountNumberChange when a real account is picked from
-    // the dropdown, so the transaction's bankName follows the selected account
-    // (accounts are keyed by bankName+last4). See #566 / #570.
-    onBankNameChange: ((String?) -> Unit)? = null,
-    onAccountSelected: ((String, String) -> Unit)? = null,
+    // A real account picked from the dropdown, as (bankName, last4): accounts are
+    // keyed by both (#566 / #570), and last4 may be blank for a Cash account (#913).
+    onAccountSelected: (String, String) -> Unit,
     bankName: String? = null,
     excludeBankName: String? = null
 ) {
@@ -2200,11 +2196,7 @@ private fun AccountNumberField(
                         },
                         onClick = {
                             selectedAccount = account.displayName
-                            if (onAccountSelected != null) onAccountSelected(account.bankName, account.accountLast4)
-                            else {
-                                onAccountNumberChange(account.accountLast4)
-                                onBankNameChange?.invoke(account.bankName)
-                            }
+                            onAccountSelected(account.bankName, account.accountLast4)
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
@@ -2560,7 +2552,11 @@ internal fun List<TransactionDetailViewModel.AccountInfo>.matchFor(
     accountNumber: String?,
     bankName: String?
 ): TransactionDetailViewModel.AccountInfo? {
-    if (accountNumber.isNullOrBlank()) return null
+    // A blank number names an account only together with its bank: a Cash
+    // account added without a number is ("Cash", "") (#913).
+    if (accountNumber.isNullOrBlank()) {
+        return if (accountNumber != null && bankName != null) find { it.accountLast4 == accountNumber && it.bankName == bankName } else null
+    }
     val sameNumber = filter {
         it.accountLast4 == accountNumber ||
             (it.accountLast4.length >= 4 && accountNumber.endsWith(it.accountLast4))

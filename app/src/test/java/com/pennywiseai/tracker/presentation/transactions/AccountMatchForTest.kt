@@ -44,4 +44,14 @@ class AccountMatchForTest {
     fun `blank number matches nothing`() {
         assertNull(listOf(hdfc).matchFor("", "HDFC Bank"))
     }
+
+    /** #913: a Cash account added without a number is ("Cash", ""). */
+    @Test
+    fun `blank number matches only the account with that bank and no number`() {
+        val cash = acc("Cash", "", "Cash")
+        val pettyCash = acc("Petty Cash", "", "Petty Cash")
+        assertEquals(cash, listOf(hdfc, pettyCash, cash).matchFor("", "Cash"))
+        assertNull(listOf(cash).matchFor("", null))
+        assertNull(listOf(cash).matchFor(null, "Cash"))
+    }
 }

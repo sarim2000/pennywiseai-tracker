@@ -227,6 +227,58 @@ class FederalBankParserTest {
             ),
 
             ParserTestCase(
+                name = "Scapia Federal RuPay Credit Card Transaction",
+                message = "Hi! Your txn of ₹450.00 at Test Store on your Scapia Federal RuPay credit card was successful. Not you? Go to Scapia support on the app.- Federal Bank",
+                sender = "VM-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("450.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "Test Store",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Scapia RuPay - merchant with a dot is not replaced by 'Scapia support'",
+                message = scapiaRuPay("TESTSHOP.COM"),
+                sender = "VM-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("450.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "TESTSHOP.COM",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Scapia RuPay - UPI VPA merchant shows its handle",
+                message = scapiaRuPay("testshop@ybl"),
+                sender = "VM-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("450.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "testshop",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
+                name = "Scapia RuPay - numeric UPI VPA handle is kept",
+                message = scapiaRuPay("000111@ybl"),
+                sender = "VM-FEDSCP-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("450.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "000111",
+                    isFromCard = true
+                )
+            ),
+
+            ParserTestCase(
                 name = "Scapia Federal Credit Card Transaction - earned you rewards variant",
                 message = "Your txn of ₹2,351.00 at Amazon on your Scapia Federal Visa credit card earned you 10% rewards! Not you? Call 18002961199. - Federal Bank",
                 sender = "TX-FEDSCP-S",
@@ -503,4 +555,7 @@ class FederalBankParserTest {
         assertNotNull(parsed, "Scapia rewards txn should parse")
         assertNull(parsed?.reference, "The word after 'txn' must not be captured as a reference")
     }
+
+    private fun scapiaRuPay(merchant: String) =
+        "Hi! Your txn of ₹450.00 at $merchant on your Scapia Federal RuPay credit card was successful. Not you? Go to Scapia support on the app.- Federal Bank"
 }

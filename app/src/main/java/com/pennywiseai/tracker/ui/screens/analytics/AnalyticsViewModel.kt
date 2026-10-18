@@ -86,6 +86,33 @@ internal fun defaultTypeFilter(countCreditCardAsExpense: Boolean): TransactionTy
     if (countCreditCardAsExpense) TransactionTypeFilter.SPENDING else TransactionTypeFilter.EXPENSE
 
 /**
+ * The Analytics type filter: follows the setting-based default (the screen
+ * outlives a trip to Settings) until the user picks a type; Clear hands it back
+ * to the default, which it then follows again.
+ */
+internal class TypeFilterSelection {
+    private var chosen = false
+    private var default = TransactionTypeFilter.EXPENSE
+    private val _value = MutableStateFlow(default)
+    val value: StateFlow<TransactionTypeFilter> = _value.asStateFlow()
+
+    fun onDefaultChanged(newDefault: TransactionTypeFilter) {
+        default = newDefault
+        if (!chosen) _value.value = newDefault
+    }
+
+    fun pick(filter: TransactionTypeFilter) {
+        chosen = true
+        _value.value = filter
+    }
+
+    fun reset() {
+        chosen = false
+        _value.value = default
+    }
+}
+
+/**
  * Refunds (INCOME + DEDUCT_SPENT) to net out of a spend view ([TransactionTypeFilter.netsRefunds]:
  * Expense and Spending), so every spend surface (total, category, account, merchant
  * and the trend) agrees with the Home card and the Transactions page, which are net
@@ -185,9 +212,8 @@ class AnalyticsViewModel @Inject constructor(
     val budgetCycleStartDay: StateFlow<Int> = userPreferencesRepository.budgetCycleStartDay
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
     
-    private val _transactionTypeFilter = MutableStateFlow(TransactionTypeFilter.EXPENSE)
-    val transactionTypeFilter: StateFlow<TransactionTypeFilter> = _transactionTypeFilter.asStateFlow()
-    private var typeFilterChosen = false
+    private val typeFilter = TypeFilterSelection()
+    val transactionTypeFilter: StateFlow<TransactionTypeFilter> = typeFilter.value
 
     /** The type view Analytics opens on and resets to; follows the card-spend setting. */
     val defaultTypeFilter: StateFlow<TransactionTypeFilter> = userPreferencesRepository.countCreditCardAsExpense
@@ -218,11 +244,7 @@ class AnalyticsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Follows the setting live (the screen outlives a trip to Settings)
-            // until the user picks a filter themselves.
-            userPreferencesRepository.countCreditCardAsExpense.collect { on ->
-                if (!typeFilterChosen) _transactionTypeFilter.value = defaultTypeFilter(on)
-            }
+            defaultTypeFilter.collect { typeFilter.onDefaultChanged(it) }
         }
 
         viewModelScope.launch {
@@ -280,7 +302,7 @@ class AnalyticsViewModel @Inject constructor(
         // reloads along with the chip label (#686).
         combine(_selectedPeriod, budgetCycleStartDay) { period, _ -> period },
         customDateRange,
-        _transactionTypeFilter,
+        transactionTypeFilter,
         _selectedCurrency,
         combine(_isUnifiedMode, _categoryFilter, selectedProfileId, _accountFilter) { u, c, p, a ->
             UnifiedCatProfileAccount(u, c, p, a)
@@ -647,15 +669,9 @@ class AnalyticsViewModel @Inject constructor(
     }
 
     /** Back to the default view, which then follows the card-spend setting again. */
-    fun resetTransactionTypeFilter() {
-        typeFilterChosen = false
-        _transactionTypeFilter.value = defaultTypeFilter.value
-    }
+    fun resetTransactionTypeFilter() = typeFilter.reset()
 
-    fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
-        typeFilterChosen = true
-        _transactionTypeFilter.value = filter
-    }
+    fun setTransactionTypeFilter(filter: TransactionTypeFilter) = typeFilter.pick(filter)
 
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency

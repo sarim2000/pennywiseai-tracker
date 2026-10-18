@@ -83,6 +83,7 @@ fun AnalyticsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsStateWithLifecycle()
+    val defaultTypeFilter by viewModel.defaultTypeFilter.collectAsStateWithLifecycle()
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val customDateRange by viewModel.customDateRange.collectAsStateWithLifecycle()
@@ -132,7 +133,7 @@ fun AnalyticsScreen(
             !selectedCurrency.equals(primaryVisibleCurrency, ignoreCase = true)
     val hasActiveAnalyticsFilter = selectedPeriod != TimePeriod.THIS_MONTH ||
             customDateRange != null ||
-            transactionTypeFilter != TransactionTypeFilter.EXPENSE ||
+            transactionTypeFilter != defaultTypeFilter ||
             categoryFilter != null ||
             accountFilter != null ||
             hasCurrencyFilter
@@ -177,6 +178,7 @@ fun AnalyticsScreen(
                 periodChipLabel = periodChipLabel,
                 timePeriods = timePeriods,
                 transactionTypeFilter = transactionTypeFilter,
+                defaultTypeFilter = defaultTypeFilter,
                 selectedCurrency = selectedCurrency,
                 availableCurrencies = availableCurrencies,
                 isUnifiedMode = isUnifiedMode,
@@ -239,7 +241,7 @@ fun AnalyticsScreen(
                 },
                 onResetFilters = {
                     viewModel.selectPeriod(TimePeriod.THIS_MONTH)
-                    viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE)
+                    viewModel.resetTransactionTypeFilter()
                     viewModel.clearCategoryFilter()
                     viewModel.setAccountFilter(null)
                     if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
@@ -665,6 +667,7 @@ private fun AnalyticsFilterBar(
     periodChipLabel: String,
     timePeriods: List<TimePeriod>,
     transactionTypeFilter: TransactionTypeFilter,
+    defaultTypeFilter: TransactionTypeFilter,
     selectedCurrency: String,
     availableCurrencies: List<String>,
     isUnifiedMode: Boolean,
@@ -788,9 +791,9 @@ private fun AnalyticsFilterBar(
                 ExpressiveFilterChip(
                     colors = analyticsFilterChipColors(),
                     border = analyticsFilterChipBorder(
-                        selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE
+                        selected = transactionTypeFilter != defaultTypeFilter
                     ),
-                    selected = transactionTypeFilter != TransactionTypeFilter.EXPENSE,
+                    selected = transactionTypeFilter != defaultTypeFilter,
                     text = transactionTypeFilter.shortLabel(),
                     icon = transactionTypeFilter.filterIcon(),
                     onClick = onTypeClick

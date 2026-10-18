@@ -100,7 +100,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     totalDeleted++
                 } else {
                     // Apply rules to transaction
-                    val (updatedTransaction, ruleApplications) = ruleEngine.evaluateRules(
+                    val (ruleResult, ruleApplications) = ruleEngine.evaluateRules(
                         transaction,
                         smsBody,
                         activeRules
@@ -109,6 +109,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     // A field change is real by construction; a tag action is recorded
                     // even when it changes nothing, so ask the tag write whether it did.
                     // Otherwise the completion count disagrees with the preview.
+                    // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
+                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
                     if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
                     val tagsChanged = persistTagActions(transaction.id, ruleApplications)
@@ -165,7 +167,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     totalDeleted++
                 } else {
                     // Apply regular rule actions
-                    val (updatedTransaction, ruleApplications) = ruleEngine.evaluateRules(
+                    val (ruleResult, ruleApplications) = ruleEngine.evaluateRules(
                         transaction,
                         smsBody,
                         listOf(rule)
@@ -174,6 +176,8 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     // A field change is real by construction; a tag action is recorded
                     // even when it changes nothing, so ask the tag write whether it did.
                     // Otherwise the completion count disagrees with the preview.
+                    // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
+                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
                     if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
                     val tagsChanged = persistTagActions(transaction.id, ruleApplications)

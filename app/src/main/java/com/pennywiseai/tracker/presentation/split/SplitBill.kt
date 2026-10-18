@@ -1,8 +1,6 @@
 package com.pennywiseai.tracker.presentation.split
 
-import android.Manifest
 import android.content.Context
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import android.widget.Toast
@@ -61,7 +59,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
@@ -245,12 +242,10 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
     // Rows sit one tonal step above the sheet, or they vanish into it.
     val sheetRow = MaterialTheme.colorScheme.surfaceContainerHigh
 
+    // The system picker grants a one-off read of the picked contact, so no
+    // READ_CONTACTS request: only its display name is read.
     val pickContact = rememberLauncherForActivityResult(ActivityResultContracts.PickContact()) { uri ->
         uri?.let { contactName(context, it) }?.let { viewModel.addPerson(it) }
-    }
-    val askContacts = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) pickContact.launch(null)
-        else Toast.makeText(context, R.string.split_contacts_denied, Toast.LENGTH_LONG).show()
     }
 
     ModalBottomSheet(onDismissRequest = viewModel::closeSheet, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
@@ -364,10 +359,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                         }
                     }
                 }
-                TextButton(onClick = {
-                    val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED
-                    if (granted) pickContact.launch(null) else askContacts.launch(Manifest.permission.READ_CONTACTS)
-                }) {
+                TextButton(onClick = { runCatching { pickContact.launch(null) } }) {
                     Icon(Icons.Default.Contacts, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.split_pick_contact))

@@ -71,7 +71,8 @@ class LoanDetailViewModel @Inject constructor(
 
     fun linkTransactionAsRepayment(transactionId: Long) {
         viewModelScope.launch {
-            loanRepository.recordRepayment(loanId, transactionId)
+            // Refused for a split bill (#346); the picker already hides those.
+            runCatching { loanRepository.recordRepayment(loanId, transactionId) }
             _uiState.value = _uiState.value.copy(showRecordPaymentSheet = false)
             refreshLoan()
         }

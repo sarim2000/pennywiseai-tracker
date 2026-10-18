@@ -107,6 +107,29 @@ class SplitRulesTest {
     }
 
     @Test
+    fun `a split bill stays an expense in its currency and at least its shares`() {
+        val bill = com.pennywiseai.tracker.data.database.entity.TransactionEntity(
+            id = 1, amount = d("1000"), merchantName = "Dinner", category = "Food",
+            transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE,
+            dateTime = java.time.LocalDateTime.of(2026, 10, 1, 20, 0), transactionHash = "h", currency = "INR",
+            lentSharesTotal = d("600")
+        )
+        val edited = bill.copy(
+            transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER,
+            currency = "USD", amount = d("500"), category = "Travel"
+        )
+        val kept = SplitRules.keepSplitBill(bill, edited)
+        assertEquals(com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE, kept.transactionType)
+        assertEquals("INR", kept.currency)
+        assertEquals(d("1000"), kept.amount)
+        assertEquals("Travel", kept.category) // other edits go through
+        assertEquals(d("700"), SplitRules.keepSplitBill(bill, bill.copy(amount = d("700"))).amount)
+        // Not split: untouched.
+        val plain = bill.copy(lentSharesTotal = null)
+        assertEquals(edited, SplitRules.keepSplitBill(plain, edited))
+    }
+
+    @Test
     fun `upi id format`() {
         assertTrue(UpiRequest.isValidUpiId("you@okbank"))
         assertTrue(UpiRequest.isValidUpiId("first.last-1_x@ybl"))

@@ -454,6 +454,12 @@ class TransactionsViewModel @Inject constructor(
 
             // Source of the money = the EXPENSE row's account.
             // Destination = the INCOME row's account.
+            // A split bill (#346) is money others owe you, not a transfer. Read fresh.
+            if (listOf(aId, bId).any { transactionRepository.getTransactionById(it)?.lentSharesTotal != null }) {
+                _bulkSnack.value = BulkSnack(UiText.Res(R.string.split_error_transfer))
+                return@launch
+            }
+
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
             val fromAcct = expense.accountNumber
             val toAcct = income.accountNumber

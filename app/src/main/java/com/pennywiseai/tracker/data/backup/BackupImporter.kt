@@ -953,10 +953,7 @@ class BackupImporter @Inject constructor(
             dao.insertShare(share.copy(id = 0, loanId = loanId, transactionId = transactionId))
             touched += transactionId
         }
-        touched.forEach { id ->
-            val amounts = dao.getSharesForTransaction(id).map { it.amount }
-            dao.setLentSharesTotal(id, amounts.takeIf { it.isNotEmpty() }?.fold(java.math.BigDecimal.ZERO, java.math.BigDecimal::add))
-        }
+        touched.forEach { database.transactionDao().syncLentSharesTotal(it) }
     }
 
     /**

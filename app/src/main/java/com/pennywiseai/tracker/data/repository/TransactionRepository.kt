@@ -148,7 +148,13 @@ open class TransactionRepository @Inject constructor(
      * contributions taken from this transaction (#914).
      */
     suspend fun updateTransaction(transaction: TransactionEntity) = goalRepository.writeAndCap(transaction.id) {
-        transactionDao.updateTransaction(transaction.copy(updatedAt = LocalDateTime.now()))
+        // A split bill (#346) stays an expense in its currency, at least its
+        // shares; the shared total is re-derived from loan_shares after the
+        // write, so a stale copy of the row can't null or inflate it.
+        val persisted = transactionDao.getTransactionById(transaction.id)
+        val safe = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(persisted, transaction)
+        transactionDao.updateTransaction(safe.copy(updatedAt = LocalDateTime.now()))
+        transactionDao.syncLentSharesTotal(transaction.id)
     }
     
     open suspend fun deleteTransaction(transaction: TransactionEntity, hardDelete: Boolean = false) {
@@ -306,6 +312,8 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun deleteDuplicate(duplicateId: Long, keeperId: Long) {
         goalRepository.moveContributions(duplicateId, keeperId)
+        // Split shares (#346) follow too, when the kept row can take them.
+        transactionDao.moveSharesToKeeper(duplicateId, keeperId)
         deleteTransactionById(duplicateId)
     }
 

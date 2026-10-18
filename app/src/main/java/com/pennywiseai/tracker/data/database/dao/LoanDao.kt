@@ -168,9 +168,6 @@ interface LoanDao {
     @Query("DELETE FROM loan_shares WHERE loan_id = :loanId")
     suspend fun deleteSharesForLoan(loanId: Long)
 
-    @Query("UPDATE transactions SET lent_shares_total = :total, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id = :transactionId")
-    suspend fun setLentSharesTotal(transactionId: Long, total: BigDecimal?)
-
     /** Transactions split with [loanId]'s person, each with that person's share. */
     @Query("""
         SELECT t.*, s.amount AS share_amount FROM transactions t

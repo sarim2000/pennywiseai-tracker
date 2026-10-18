@@ -108,6 +108,7 @@ class LoanRepository @Inject constructor(
      * recomputations.
      */
     suspend fun addToExistingLoan(loanId: Long, contribution: BigDecimal, transactionId: Long) {
+        requireNotSplit(transactionId)
         val loan = loanDao.getLoanById(loanId) ?: return
         loanDao.updateLoan(
             loan.copy(
@@ -133,6 +134,7 @@ class LoanRepository @Inject constructor(
         note: String?,
         sourceTransactionId: Long
     ): Long {
+        requireNotSplit(sourceTransactionId)
         val loan = LoanEntity(
             personName = personName,
             direction = direction,
@@ -145,6 +147,11 @@ class LoanRepository @Inject constructor(
         loanDao.linkTransaction(sourceTransactionId, loanId)
         persistContributionOverride(sourceTransactionId, amount)
         return loanId
+    }
+
+    /** A split bill's shares are already its loans (#346); it can't also be marked as one. */
+    private suspend fun requireNotSplit(transactionId: Long) {
+        check(loanDao.getSharesForTransaction(transactionId).isEmpty()) { "Transaction $transactionId is split; remove the split first" }
     }
 
     /**
@@ -177,6 +184,7 @@ class LoanRepository @Inject constructor(
         transactionId: Long,
         contribution: BigDecimal? = null
     ) = repaymentLock.withLock {
+        requireNotSplit(transactionId)
         val loan = loanDao.getLoanById(loanId)
         val txn = transactionDao.getTransactionById(transactionId)
         val wanted = contribution ?: txn?.amount
@@ -290,8 +298,8 @@ class LoanRepository @Inject constructor(
         )
     }
 
-    suspend fun deleteLoan(loanId: Long) {
-        val loan = loanDao.getLoanById(loanId) ?: return
+    suspend fun deleteLoan(loanId: Long): Unit = database.withTransaction {
+        val loan = loanDao.getLoanById(loanId) ?: return@withTransaction
         loanDao.unlinkAllTransactions(loanId)
         // Its split shares go with it, so their bills count that part as your spend again.
         val sharedTransactionIds = loanDao.getSharesForLoan(loanId).map { it.transactionId }
@@ -337,10 +345,7 @@ class LoanRepository @Inject constructor(
                 removeShare(share, loan)
             } else if (next.amount.compareTo(share.amount) != 0) {
                 loanDao.updateShare(share.copy(amount = next.amount))
-                loanDao.updateLoan(
-                    loan.copy(originalAmount = loan.originalAmount + next.amount - share.amount, updatedAt = LocalDateTime.now())
-                )
-                recalculateRemaining(loan.id)
+                setPrincipal(loan, loan.originalAmount + next.amount - share.amount)
             }
         }
         for (share in wanted.values) {
@@ -385,8 +390,17 @@ class LoanRepository @Inject constructor(
             otherPrincipal.signum() > 0 -> otherPrincipal
             else -> return deleteLoan(loan.id)
         }
+        setPrincipal(loan, principal)
+    }
+
+    /**
+     * Sets a loan's principal after a share changed. A settled loan stays
+     * settled: Settle up records no repayment, so recomputing what's left would
+     * reopen it for everything forgiven. Only its principal moves.
+     */
+    private suspend fun setPrincipal(loan: LoanEntity, principal: BigDecimal) {
         loanDao.updateLoan(loan.copy(originalAmount = principal, updatedAt = LocalDateTime.now()))
-        recalculateRemaining(loan.id)
+        if (loan.status != LoanStatus.SETTLED) recalculateRemaining(loan.id)
     }
 
     // Every share, a soft-deleted bill's too: deleting a bill leaves its debt
@@ -395,10 +409,7 @@ class LoanRepository @Inject constructor(
         loanDao.getSharesForLoan(loanId).fold(BigDecimal.ZERO) { sum, s -> sum + s.amount }
 
     /** Recomputes [TransactionEntity.lentSharesTotal] from the transaction's share rows. */
-    suspend fun syncLentSharesTotal(transactionId: Long) {
-        val amounts = loanDao.getSharesForTransaction(transactionId).map { it.amount }
-        loanDao.setLentSharesTotal(transactionId, amounts.takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO, BigDecimal::add))
-    }
+    suspend fun syncLentSharesTotal(transactionId: Long) = transactionDao.syncLentSharesTotal(transactionId)
 
     private suspend fun recalculateRemaining(loanId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return

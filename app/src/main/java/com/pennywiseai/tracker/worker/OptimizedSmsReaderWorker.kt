@@ -816,7 +816,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             id = duplicate.id,
                             transactionHash = duplicate.transactionHash,
                             isRecurring = duplicate.isRecurring || finalEntity.isRecurring,
-                            createdAt = duplicate.createdAt
+                            createdAt = duplicate.createdAt,
+                            // Loan and split-bill (#346) links belong to the row, not the SMS.
+                            loanId = duplicate.loanId,
+                            loanContribution = duplicate.loanContribution,
+                            lentSharesTotal = duplicate.lentSharesTotal
                         )
                         transactionRepository.updateTransaction(replacement)
                         accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)

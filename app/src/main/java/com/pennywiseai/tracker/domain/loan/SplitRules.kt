@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.domain.loan
 
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.net.URLEncoder
@@ -62,6 +64,21 @@ object SplitRules {
             remainder(total, yours, shares.map { it.amount }).signum() != 0 -> SplitError.NOT_BALANCED
             else -> null
         }
+
+    /**
+     * [updated] as it may be written over [persisted]: a split bill stays an
+     * expense in its own currency and never drops below its shares, so no
+     * bulk edit, rule or re-parse can leave shares on a bill that can't hold
+     * them. Anything else passes through.
+     */
+    fun keepSplitBill(persisted: TransactionEntity?, updated: TransactionEntity): TransactionEntity {
+        val shares = persisted?.lentSharesTotal ?: return updated
+        return updated.copy(
+            transactionType = TransactionType.EXPENSE,
+            currency = persisted.currency,
+            amount = if (updated.amount < shares) persisted.amount else updated.amount,
+        )
+    }
 
     private fun List<BigDecimal>.sum(): BigDecimal = fold(BigDecimal.ZERO, BigDecimal::add)
 }

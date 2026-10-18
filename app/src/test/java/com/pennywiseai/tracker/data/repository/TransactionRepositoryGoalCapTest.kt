@@ -51,7 +51,19 @@ class TransactionRepositoryGoalCapTest {
         repo.deleteDuplicate(duplicateId = 8, keeperId = 9)
         coVerifyOrder {
             goals.moveContributions(8, 9)
+            dao.moveSharesToKeeper(8, 9)
             dao.softDeleteTransaction(8)
+        }
+    }
+
+    @Test
+    fun aStaleWriteCantDropOrBreakASplitBill() = runBlocking {
+        // #346: the persisted row is split; a stale copy (e.g. an SMS re-parse) arrives as a transfer with no total.
+        coEvery { dao.getTransactionById(9) } returns txn("1000").copy(lentSharesTotal = BigDecimal("600"))
+        repo.updateTransaction(txn("1000").copy(transactionType = TransactionType.TRANSFER, currency = "USD"))
+        coVerifyOrder {
+            dao.updateTransaction(match { it.transactionType == TransactionType.EXPENSE && it.currency == "INR" })
+            dao.syncLentSharesTotal(9)
         }
     }
 }

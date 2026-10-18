@@ -89,9 +89,10 @@ class LoanSplitTest {
             txns.values.filter { it.loanId == firstArg<Long>() && !it.isDeleted && it.transactionType.name == secondArg<String>() }
                 .fold(BigDecimal.ZERO) { a, t -> a + (t.loanContribution ?: t.amount) }
         }
-        coEvery { loanDao.setLentSharesTotal(any(), any()) } answers {
+        coEvery { transactionDao.syncLentSharesTotal(any()) } answers {
             val id = firstArg<Long>()
-            txns[id] = txns.getValue(id).copy(lentSharesTotal = secondArg())
+            val amounts = shares.filter { it.transactionId == id }.map { it.amount }
+            txns[id] = txns.getValue(id).copy(lentSharesTotal = amounts.takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO, BigDecimal::add))
         }
         coEvery { loanDao.unlinkTransaction(any()) } answers {
             val id = firstArg<Long>()
@@ -226,6 +227,58 @@ class LoanSplitTest {
 
         assertEquals(d("300"), loanOf("Alex").originalAmount)
         assertEquals(d("300"), loanOf("Alex").remainingAmount)
+    }
+
+    private fun settle(name: String) {
+        val loan = loanOf(name)
+        loans[loan.id] = loan.copy(status = LoanStatus.SETTLED, remainingAmount = BigDecimal.ZERO, settledAt = LocalDateTime.now())
+    }
+
+    @Test
+    fun `removing a share from a settled loan keeps it settled`() = runBlocking {
+        // Alex owes 300 + 200, then Settle up (no repayment recorded).
+        txn(1, "1000"); txn(2, "500")
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("300"))))
+        repo.saveSplit(2, listOf(SplitShare("Alex", d("200"))))
+        settle("Alex")
+
+        repo.saveSplit(1, emptyList())
+
+        with(loanOf("Alex")) {
+            assertEquals(LoanStatus.SETTLED, status)
+            assertEquals(d("200"), originalAmount)
+            assertEquals(BigDecimal.ZERO, remainingAmount)
+        }
+    }
+
+    @Test
+    fun `editing a share on a settled loan keeps it settled`() = runBlocking {
+        txn(1, "1000"); txn(2, "500")
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("300"))))
+        repo.saveSplit(2, listOf(SplitShare("Alex", d("200"))))
+        settle("Alex")
+
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("301"))))
+
+        with(loanOf("Alex")) {
+            assertEquals(LoanStatus.SETTLED, status)
+            assertEquals(d("501"), originalAmount)
+            assertEquals(BigDecimal.ZERO, remainingAmount)
+        }
+    }
+
+    @Test
+    fun `a split bill can't also be marked as a loan or a repayment`() = runBlocking {
+        txn(1, "1000")
+        repo.saveSplit(1, listOf(SplitShare("Alex", d("300"))))
+        val alex = loanOf("Alex").id
+        listOf<suspend () -> Unit>(
+            { repo.createLoan("Kim", LoanDirection.LENT, d("100"), "INR", null, 1) },
+            { repo.addToExistingLoan(alex, d("100"), 1) },
+            { repo.recordRepayment(alex, 1) },
+        ).forEach { call -> assertTrue(runCatching { call() }.exceptionOrNull() is IllegalStateException) }
+        assertEquals(1, loans.size)
+        assertNull(txns.getValue(1).loanId)
     }
 
     @Test

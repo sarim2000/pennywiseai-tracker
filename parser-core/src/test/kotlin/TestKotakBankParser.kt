@@ -20,6 +20,20 @@ class KotakBankParserTest {
 
         val testCases = listOf(
             ParserTestCase(
+                name = "Debit card ATM withdrawal",
+                message = kotakAtm,
+                sender = "JM-KOTAKB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1900.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "ATM Withdrawal",
+                    accountLast4 = "1111",
+                    balance = BigDecimal("5000.27"),
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
                 name = "Paytm QR code transaction",
                 message = "Sent Rs.15.00 from Kotak Bank AC X1234 to paytmqr288005050101t74afkchmxjd@paytm on 14-10-25.UPI Ref 1234567890. Not you, https://kotak.com/KBANKT/Fraud",
                 sender = "JD-KOTAKB-S",
@@ -243,4 +257,7 @@ class KotakBankParserTest {
 
 
     }
+
+    private val kotakAtm =
+        "Rs.1900.00 withdrawn via Kotak Debit Card XX01111 on 15/10/2026 at S1BN000000001. Avl Bal Rs.5000.27 Not you?Tap https://kotak.bank.in/KBANKT/Fraud"
 }

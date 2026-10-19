@@ -71,9 +71,5 @@ A short-lived 6-digit code shown in PennyWise that the user enters in an AI app'
 _Avoid_: token, password, API key
 
 **Relay**:
-The PennyWise-run service that carries encrypted traffic between an AI app and the phone. It cannot read what it carries and stores none of it.
-_Avoid_: cloud, backend, proxy
-
-**Phone address**:
-The stable public web address that identifies one PennyWise install to AI apps. A new install, or resetting it, gives a new phone address and cuts off every AI connection.
-_Avoid_: URL, endpoint, device ID
+The PennyWise-run service that passes an AI app's questions to the phone and the phone's answers back. It stores and logs none of them.
+_Avoid_: cloud, backend, server

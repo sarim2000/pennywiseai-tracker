@@ -50,6 +50,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.util.Currency
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.system.measureTimeMillis
 
@@ -127,6 +128,28 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // the one dedup collapses and the only one that leaves a phantom account (#456).
         // Matches SBIBankParser.getBankName() and the literal in TransactionDeduplication.
         private const val GPAY_PARTNER_BANK         = "State Bank of India"
+
+        private val ISO_CURRENCY_CODES: Set<String> by lazy {
+            Currency.getAvailableCurrencies().mapTo(HashSet()) { it.currencyCode }
+        }
+        private val AMOUNT_NEAR_SYMBOL = Regex("""[€$£₹]\s?\.?\d|\d[\d.,]*\s?[€$£₹]""")
+        private val AMOUNT_NEAR_CODE = Regex("""\b([A-Z]{3})\s?\.?\d|\d[\d.,]*\s?([A-Z]{3})\b""")
+
+        /**
+         * Whether an SMS no parser claims belongs in Unrecognized SMS (the user's way to report a bank).
+         * Indian DLT senders (-T/-S) always do. Senders outside India have no DLT suffix, so for those
+         * keep alphanumeric senders whose body shows an amount in a currency ("12,50 EUR", "€12.50", "EUR .93");
+         * phone-number senders (people) and amount-less SMS (OTPs, promos) stay out.
+         */
+        internal fun isUnrecognizedCandidate(sender: String, body: String): Boolean {
+            val upper = sender.uppercase()
+            if (upper.endsWith("-T") || upper.endsWith("-S")) return true
+            if (upper.none { it.isLetter() }) return false
+            return AMOUNT_NEAR_SYMBOL.containsMatchIn(body) ||
+                AMOUNT_NEAR_CODE.findAll(body).any { m ->
+                    m.groupValues[1].ifEmpty { m.groupValues[2] } in ISO_CURRENCY_CODES
+                }
+        }
 
         private val SMS_PROJECTION = arrayOf(
             Telephony.Sms._ID,
@@ -578,7 +601,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val parsers = cachedParsers(sms.sender)
         val parser = parsers.firstOrNull()
-            ?: return if (upper.endsWith("-T") || upper.endsWith("-S"))
+            ?: return if (isUnrecognizedCandidate(sms.sender, sms.body))
                 ParseResult.StoreUnrecognized(sms)
             else
                 ParseResult.Discard(sms)

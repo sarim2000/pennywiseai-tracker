@@ -132,13 +132,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         private val ISO_CURRENCY_CODES: Set<String> by lazy {
             Currency.getAvailableCurrencies().mapTo(HashSet()) { it.currencyCode }
         }
-        private val AMOUNT_NEAR_SYMBOL = Regex("""[€$£₹]\s?\d|\d[\d.,]*\s?[€$£₹]""")
-        private val AMOUNT_NEAR_CODE = Regex("""\b([A-Z]{3})\s?\d|\d[\d.,]*\s?([A-Z]{3})\b""")
+        private val AMOUNT_NEAR_SYMBOL = Regex("""[€$£₹]\s?\.?\d|\d[\d.,]*\s?[€$£₹]""")
+        private val AMOUNT_NEAR_CODE = Regex("""\b([A-Z]{3})\s?\.?\d|\d[\d.,]*\s?([A-Z]{3})\b""")
 
         /**
          * Whether an SMS no parser claims belongs in Unrecognized SMS (the user's way to report a bank).
          * Indian DLT senders (-T/-S) always do. Senders outside India have no DLT suffix, so for those
-         * keep alphanumeric senders whose body shows an amount in a currency ("12,50 EUR", "€12.50");
+         * keep alphanumeric senders whose body shows an amount in a currency ("12,50 EUR", "€12.50", "EUR .93");
          * phone-number senders (people) and amount-less SMS (OTPs, promos) stay out.
          */
         internal fun isUnrecognizedCandidate(sender: String, body: String): Boolean {

@@ -18,6 +18,9 @@ class UnrecognizedCandidateTest {
         assertTrue(isUnrecognizedCandidate("TestBanka", "Placanje karticom 12,50 EUR. Raspolozivo 100,00 EUR"))
         assertTrue(isUnrecognizedCandidate("TestBanka", "Card payment EUR 12.50 at TEST SHOP"))
         assertTrue(isUnrecognizedCandidate("TestBanka", "Paid €12.50 at TEST SHOP"))
+        // Some banks drop the leading zero on small amounts.
+        assertTrue(isUnrecognizedCandidate("TestBanka", "Card payment EUR .93 at TEST SHOP"))
+        assertTrue(isUnrecognizedCandidate("TestBanka", "Paid € .50 at TEST SHOP"))
     }
 
     @Test

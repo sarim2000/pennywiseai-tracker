@@ -29,6 +29,12 @@ class KotakBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        // ATM: "Rs.1900.00 withdrawn via Kotak Debit Card XX01111 on 15/10/2026 at S1BN000000001." —
+        // "at" names only the terminal ID, so label it like other banks' ATM withdrawals.
+        if (Regex("""\bwithdrawn\s+via\s+Kotak\s+Debit\s+Card\b""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
+            return "ATM Withdrawal"
+        }
+
         // Credit-card refund: "INR <amt> from <Merchant> refunded to your Kotak Credit Card xNNNN".
         // The merchant is the payee that money is coming back from — capture the text between
         // "<amount> from " and " refunded". Without this the base TO_PATTERN would wrongly grab

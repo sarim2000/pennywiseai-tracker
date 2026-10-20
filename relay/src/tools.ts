@@ -27,7 +27,7 @@ export const TOOLS = [
 		name: "spending_summary",
 		title: "Spending summary",
 		description:
-			"Totals for a date range grouped by category, merchant or month. Each total is per currency; the result never mixes currencies.",
+			"Totals for a date range grouped by category, merchant or month. EXPENSE means spending, including card purchases. Each total is per currency; the result never mixes currencies.",
 		inputSchema: {
 			type: "object",
 			properties: {
@@ -63,4 +63,4 @@ export type ToolResult = { content: { type: "text"; text: string }[]; isError?: 
 export const textResult = (text: string, isError = false): ToolResult => ({ content: [{ type: "text", text }], isError });
 
 export const NOT_CONNECTED =
-	"PennyWise isn't connected right now. On your phone, open PennyWise and tap “Let AI read my data” (or use the PennyWise AI tile), then ask again.";
+	"PennyWise isn't connected right now. On your phone, open PennyWise → Settings → Connect Claude / ChatGPT and start an AI session (or tap the PennyWise AI tile in Quick Settings), then ask again.";

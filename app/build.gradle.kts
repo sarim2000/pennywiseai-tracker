@@ -252,6 +252,9 @@ dependencies {
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    // AI access: WebSocket line to the relay (ADR 0002)
+    implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
+    implementation(libs.ktor.client.websockets)
     
     // Gson for backup/restore
     implementation(libs.gson)

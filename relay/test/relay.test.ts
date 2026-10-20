@@ -100,7 +100,7 @@ describe("AI relay", () => {
 		// No AI session yet: the AI is told how to connect.
 		const offline = (await (await mcp(token!, { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "list_accounts" } })).json()) as any;
 		expect(offline.result.isError).toBe(true);
-		expect(offline.result.content[0].text).toContain("Let AI read my data");
+		expect(offline.result.content[0].text).toContain("start an AI session");
 
 		const phone = await connectPhone(auth);
 		const res = (await (await mcp(token!, { jsonrpc: "2.0", id: 4, method: "tools/call", params: { name: "spending_summary", arguments: { from: "2026-09-01", to: "2026-09-30" } } })).json()) as any;

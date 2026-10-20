@@ -137,7 +137,16 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToWebhooks = {
                     navController.navigate(Webhooks) { launchSingleTop = true }
+                },
+                onNavigateToAiAccess = {
+                    navController.navigate(AiAccess) { launchSingleTop = true }
                 }
+            )
+        }
+
+        composable<AiAccess> {
+            com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
+                onNavigateBack = { navController.safePopBackStack() }
             )
         }
 

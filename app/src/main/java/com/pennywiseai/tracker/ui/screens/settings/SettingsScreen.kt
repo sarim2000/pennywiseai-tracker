@@ -111,6 +111,7 @@ fun SettingsScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToWebhooks: () -> Unit = {},
+    onNavigateToAiAccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -802,6 +803,17 @@ fun SettingsScreen(
                     onDownload = { settingsViewModel.startModelDownload() },
                     onCancel = { settingsViewModel.cancelDownload() },
                     onDelete = { settingsViewModel.deleteModel() }
+                )
+            }
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.AutoAwesome,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = "Connect Claude / ChatGPT",
+                    subtitle = if (isProEntitled) "Let AI apps read your data while you allow it" else "Pro · Let AI apps read your data while you allow it",
+                    onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
+                    position = ListItemPosition.Single
                 )
             }
 

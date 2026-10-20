@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.screens.onboarding
 
 import android.content.Context
 import android.net.Uri
+import android.telephony.TelephonyManager
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
@@ -14,7 +15,7 @@ import com.pennywiseai.tracker.data.manager.SmsScanManager
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,6 +29,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.math.BigDecimal
+import java.util.Currency
+import java.util.Locale
 import javax.inject.Inject
 
 enum class OnBoardingStep {
@@ -44,6 +47,7 @@ data class OnBoardingUiState(
     val selectedAvatarIndex: Int = 0,
     val profileImageUri: Uri? = null,
     val selectedBackgroundColor: Int = 0,
+    val selectedCurrency: String = "INR",
     val smsPermissionGranted: Boolean = false,
     val smsPermissionSkipped: Boolean = false,
     val isScanning: Boolean = false,
@@ -67,7 +71,9 @@ class OnBoardingViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(OnBoardingUiState())
+    val currencies = CurrencyUtils.sortCurrencies(CurrencyUtils.getAllSupportedCurrencies())
+
+    private val _uiState = MutableStateFlow(OnBoardingUiState(selectedCurrency = detectCurrency()))
     val uiState: StateFlow<OnBoardingUiState> = _uiState.asStateFlow()
 
     val avatarDrawables = AvatarHelper.avatarDrawables
@@ -119,6 +125,18 @@ class OnBoardingViewModel @Inject constructor(
 
     fun selectBackgroundColor(colorIndex: Int) {
         _uiState.update { it.copy(selectedBackgroundColor = colorIndex) }
+    }
+
+    fun selectCurrency(currency: String) {
+        _uiState.update { it.copy(selectedCurrency = currency) }
+    }
+
+    /** Pre-selects the SIM's country currency (falling back to the device locale), else INR. */
+    private fun detectCurrency(): String {
+        val simCountry = context.getSystemService(TelephonyManager::class.java)?.simCountryIso
+        val country = simCountry?.takeIf { it.isNotBlank() } ?: Locale.getDefault().country
+        val code = runCatching { Currency.getInstance(Locale("", country.uppercase())).currencyCode }.getOrNull()
+        return code?.takeIf { it in currencies } ?: "INR"
     }
 
     fun onSmsPermissionResult(granted: Boolean) {
@@ -264,24 +282,10 @@ class OnBoardingViewModel @Inject constructor(
             if (state.selectedBackgroundColor >= 0 && state.selectedBackgroundColor < backgroundColors.size) {
                 userPreferencesRepository.updateProfileBackgroundColor(backgroundColors[state.selectedBackgroundColor])
             }
+            // An explicit pick — the main account below no longer overrides it.
+            userPreferencesRepository.updateBaseCurrency(state.selectedCurrency)
             if (state.selectedAccountKey != null) {
                 userPreferencesRepository.updateMainAccountKey(state.selectedAccountKey)
-                // The main account defines the user's default currency. Manual accounts
-                // store the currency the user chose; SMS-tracked accounts fall back to the
-                // bank parser's currency (their stored value may be the INR default even
-                // for a non-INR bank).
-                val mainAccount = state.accounts.firstOrNull {
-                    "${it.bankName}_${it.accountLast4}" == state.selectedAccountKey
-                }
-                if (mainAccount != null) {
-                    val currency = CurrencyFormatter.resolveAccountCurrency(
-                        sourceType = mainAccount.sourceType,
-                        storedCurrency = mainAccount.currency,
-                        bankName = mainAccount.bankName
-                    )
-                    // Won't override a currency the user explicitly picked in Settings.
-                    userPreferencesRepository.applyMainAccountCurrency(currency)
-                }
             }
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }

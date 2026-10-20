@@ -44,6 +44,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -55,6 +60,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +85,8 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.util.Currency
 
 @Composable
 fun OnBoardingScreen(
@@ -219,7 +229,7 @@ private fun WelcomeStep() {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun ProfileStep(
     uiState: OnBoardingUiState,
@@ -268,6 +278,57 @@ private fun ProfileStep(
         )
 
         Spacer(modifier = Modifier.height(Spacing.xl))
+
+        Text(
+            text = stringResource(R.string.onboarding_currency_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        var currencyExpanded by rememberSaveable { mutableStateOf(false) }
+        ExposedDropdownMenuBox(
+            expanded = currencyExpanded,
+            onExpandedChange = { currencyExpanded = it }
+        ) {
+            TextField(
+                value = currencyLabel(uiState.selectedCurrency),
+                onValueChange = {},
+                readOnly = true,
+                singleLine = true,
+                supportingText = { Text(stringResource(R.string.onboarding_currency_hint)) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded) },
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                )
+            )
+            ExposedDropdownMenu(
+                expanded = currencyExpanded,
+                onDismissRequest = { currencyExpanded = false }
+            ) {
+                viewModel.currencies.forEach { currency ->
+                    DropdownMenuItem(
+                        text = { Text(currencyLabel(currency)) },
+                        onClick = {
+                            viewModel.selectCurrency(currency)
+                            currencyExpanded = false
+                        },
+                        leadingIcon = if (currency == uiState.selectedCurrency) {
+                            { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                        } else null
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
         Text(
             text = stringResource(R.string.onboarding_avatar_title),
@@ -929,6 +990,14 @@ private fun OnBoardingBottomBar(
         }
     }
     }
+}
+
+/** "₹ INR · Indian Rupee" — the localized name helps pick among similar codes. */
+private fun currencyLabel(code: String): String {
+    val name = runCatching { Currency.getInstance(code).displayName }.getOrNull()
+    val symbol = CurrencyFormatter.getCurrencySymbol(code)
+    val base = if (symbol == code) code else "$symbol $code"
+    return if (name == null || name == code) base else "$base · $name"
 }
 
 // Onboarding-only geometry. These are intentionally larger than any in-app

@@ -87,6 +87,7 @@ internal class StatementImportProcessor(
                 val amountMatches = transactionStore.getTransactionByAmountAndDate(
                     parsed.amount, startOfDay, endOfDay
                 ).map { it.current() }
+                    .filter { StatementTransactionEnricher.isPossibleAmountDateMatch(it, statementEntity) }
                 val fallbackMergeCandidates = amountMatches.filter { candidate ->
                     StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(candidate, statementEntity)
                 }

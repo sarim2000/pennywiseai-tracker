@@ -42,6 +42,14 @@ object StatementTransactionEnricher {
         return hasUsableStatementDetails(existing, statement)
     }
 
+    /**
+     * Whether a same-day, same-amount transaction can be this statement row at
+     * all: same currency, and not on a different account when both name one.
+     * A row from another account is someone else's ₹120 coffee, not this one (#13).
+     */
+    fun isPossibleAmountDateMatch(existing: TransactionEntity, statement: TransactionEntity): Boolean =
+        existing.currency == statement.currency && accountsMatch(existing.accountNumber, statement.accountNumber)
+
     private fun hasUsableStatementDetails(
         existing: TransactionEntity,
         statement: TransactionEntity

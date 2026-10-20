@@ -80,6 +80,18 @@ class StatementPreviewTest {
     }
 
     @Test
+    fun `a same-day same-amount transaction on another account is not a match`() = runBlocking {
+        val store = InMemoryStore().apply {
+            // ₹120 on the same day, but on a different account and in another currency.
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day, merchant = "Elsewhere").copy(accountNumber = "9999"))
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day, merchant = "Abroad").copy(currency = "USD", transactionHash = "usd"))
+        }
+        val plan = StatementImportProcessor(store).plan(statement())
+        val coffee = plan.rows.indexOfFirst { it.parsed.merchant == "COFFEE" }
+        assertTrue(coffee in plan.newIndices)
+    }
+
+    @Test
     fun `balance check compares closing balances and corrects the current one`() {
         val parsed = statement()
         val closing = StatementBalanceCheck.closingRow(parsed)!!

@@ -113,6 +113,16 @@ class StatementTableParserTest {
     }
 
     @Test
+    fun `payee is read out of channel-prefixed narrations`() {
+        val p = StatementTableParser
+        assertEquals("GROCERY MART", p.merchantFrom("UPI/512345678901/GROCERY MART/okaxis"))
+        assertEquals("EXAMPLE CORP", p.merchantFrom("NEFT/HDFC0001234/EXAMPLE CORP"))
+        assertEquals("ATM WDL/SAMPLE ATM", p.merchantFrom("ATM WDL/SAMPLE ATM"))
+        assertEquals("SALARY", p.merchantFrom("SALARY"))
+        assertNull(p.merchantFrom(""))
+    }
+
+    @Test
     fun `dates in the supported formats`() {
         val p = StatementTableParser
         assertEquals(LocalDate.of(2025, 1, 5), p.parseDate("05/01/2025", "dd/MM/yyyy"))

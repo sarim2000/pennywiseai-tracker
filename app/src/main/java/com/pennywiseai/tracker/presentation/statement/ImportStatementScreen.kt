@@ -20,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
@@ -359,7 +360,11 @@ private fun MappingContent(
                 }
             }
             Spacer(Modifier.height(Spacing.sm))
-            TablePreview(rows = state.rows.drop(mapping.headerRow).take(PREVIEW_ROWS + 1), columnCount = columnCount)
+            TablePreview(
+                rows = state.rows.drop(mapping.headerRow).take(PREVIEW_ROWS + 1),
+                columnCount = columnCount,
+                dateColumn = mapping.dateColumn
+            )
         }
 
         ColumnPicker(stringResource(R.string.import_statement_col_date), listOf(none) + columns, mapping.dateColumn) {
@@ -461,7 +466,7 @@ private fun MappingContent(
 
 /** The header row and the first data rows, so the user sees what each column holds. */
 @Composable
-private fun TablePreview(rows: List<List<String>>, columnCount: Int) {
+private fun TablePreview(rows: List<List<String>>, columnCount: Int, dateColumn: Int) {
     Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
         Row {
             (0 until columnCount).forEach { i ->
@@ -476,8 +481,11 @@ private fun TablePreview(rows: List<List<String>>, columnCount: Int) {
         rows.forEachIndexed { r, row ->
             Row(modifier = Modifier.padding(top = Spacing.xxs)) {
                 (0 until columnCount).forEach { i ->
+                    val raw = row.getOrNull(i).orEmpty()
+                    // Excel keeps dates as day numbers; show the Date column as dates.
+                    val serialDate = if (r > 0 && i == dateColumn) StatementTableParser.parseDate(raw, null) else null
                     Text(
-                        text = row.getOrNull(i).orEmpty(),
+                        text = serialDate?.format(ROW_DATE) ?: raw,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = if (r == 0) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (r == 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -607,7 +615,7 @@ private fun PreviewContent(
             shape = RoundedCornerShape(Dimensions.CornerRadius.large)
         ) {
             Text(
-                if (selected > 0) stringResource(R.string.import_statement_confirm, selected)
+                if (selected > 0) pluralStringResource(R.plurals.import_statement_confirm, selected, selected)
                 else stringResource(R.string.import_statement_confirm_nothing)
             )
         }

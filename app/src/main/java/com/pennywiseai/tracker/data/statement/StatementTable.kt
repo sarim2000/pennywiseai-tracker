@@ -77,6 +77,8 @@ object StatementTableParser {
     private const val MAX_MERCHANT = 60
     private val REFERENCE = Regex("""(?<!\d)\d{12}(?!\d)""")
     private val WHITESPACE = Regex("""\s+""")
+    private val CHANNELS = setOf("UPI", "IMPS", "NEFT", "RTGS", "POS", "ACH", "NACH", "BIL", "VIN", "MMT", "CMS", "INF")
+    private val IFSC = Regex("""[A-Z]{4}0[A-Z0-9]{6}""")
     private val LEADING_MINUS = Regex("""^[^\d]*-""")
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -285,7 +287,7 @@ object StatementTableParser {
         return ParsedTransaction(
             amount = amount,
             type = type,
-            merchant = description.take(MAX_MERCHANT).ifBlank { null },
+            merchant = merchantFrom(description),
             reference = REFERENCE.findAll(description).lastOrNull()?.value,
             accountLast4 = account.last4,
             balance = balance,
@@ -295,6 +297,20 @@ object StatementTableParser {
             bankName = account.bankName,
             currency = account.currency
         )
+    }
+
+    /**
+     * The payee in a channel-prefixed narration ("UPI/612345678901/GROCERY MART/okaxis"
+     * → "GROCERY MART"); any other narration is used as it is.
+     */
+    internal fun merchantFrom(description: String): String? {
+        val parts = description.split('/').map { it.trim() }.filter { it.isNotEmpty() }
+        val payee = if (parts.size >= 2 && parts[0].uppercase() in CHANNELS) {
+            parts.drop(1).firstOrNull { p -> p.any(Char::isLetter) && '@' !in p && !IFSC.matches(p) }
+        } else {
+            null
+        }
+        return (payee ?: description).take(MAX_MERCHANT).ifBlank { null }
     }
 
     private fun amountAndType(row: List<String>, mapping: StatementColumnMapping): Pair<BigDecimal, TransactionType>? {

@@ -117,7 +117,10 @@
     <string name="import_statement_preview_new_rows">New transactions</string>
     <string name="import_statement_preview_new_rows_hint">Untick any you don\'t want added.</string>
     <string name="import_statement_preview_all_matched">Every row in this statement is already in PennyWise.</string>
-    <string name="import_statement_confirm">Import %1$d transactions</string>
+    <plurals name="import_statement_confirm">
+        <item quantity="one">Import %1$d transaction</item>
+        <item quantity="other">Import %1$d transactions</item>
+    </plurals>
     <string name="import_statement_confirm_nothing">Continue</string>
     <string name="import_statement_edit_mapping">Edit column mapping</string>
     <string name="import_statement_balance_title">Closing balance check</string>
@@ -141,7 +144,7 @@
     <string name="upgrade_copy_address">Copy address</string>
     <string name="upgrade_includes">Includes</string>
     <string name="upgrade_feature_rules">Unlimited custom rules</string>
-    <string name="upgrade_feature_statements">Unlimited PDF statement imports</string>
+    <string name="upgrade_feature_statements">Unlimited statement imports</string>
     <string name="upgrade_feature_csv">Unlimited CSV export</string>
     <string name="upgrade_feature_merge_accounts">Merge duplicate accounts</string>
     <string name="upgrade_restoring">Restoring…</string>

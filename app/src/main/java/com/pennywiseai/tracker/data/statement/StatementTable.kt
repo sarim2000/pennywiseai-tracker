@@ -80,7 +80,11 @@ object StatementTableParser {
     private val CHANNELS = setOf("UPI", "IMPS", "NEFT", "RTGS", "POS", "ACH", "NACH", "BIL", "VIN", "MMT", "CMS", "INF")
     private val IFSC = Regex("""[A-Z]{4}0[A-Z0-9]{6}""")
     private val LEADING_MINUS = Regex("""^[^\d]*-""")
-    private val PLAIN_NUMBER = Regex("""[+-]?\d+(\.\d+)?([eE][+-]?\d+)?""")
+    // Exponent bounded to two digits: "1e1000000000" must not expand into a billion-digit number.
+    private val PLAIN_NUMBER = Regex("""[+-]?\d{1,20}(\.\d{1,20})?([eE][+-]?\d{1,2})?""")
+    private val EXPONENT = Regex("""\d[eE][+-]?\d""")
+    /** Larger than any statement amount (≈ 10 trillion); anything beyond is a misread cell. */
+    private const val MAX_INTEGER_DIGITS = 13
     private val json = Json { ignoreUnknownKeys = true }
 
     // ── Reading ──────────────────────────────────────────────────────────────
@@ -198,9 +202,12 @@ object StatementTableParser {
         // A bare number, as Excel stores it (possibly "1.5E+3"): read it exactly.
         if (PLAIN_NUMBER.matches(s)) {
             val n = BigDecimal(s)
+            if (n.precision() - n.scale() > MAX_INTEGER_DIGITS) return null
             val plain = if (n.scale() < 0) n.setScale(0) else n
             return CellAmount(plain.abs(), if (n.signum() < 0) true else if (s.startsWith("+")) false else null)
         }
+        // Exponent notation outside those bounds isn't an amount we can trust.
+        if (EXPONENT.containsMatchIn(s)) return null
         var negative: Boolean? = null
         val lower = s.lowercase().trimEnd('.')
         when {
@@ -224,6 +231,7 @@ object StatementTableParser {
             digits.replace(",", "")
         }
         val value = digits.toBigDecimalOrNull() ?: return null
+        if (value.precision() - value.scale() > MAX_INTEGER_DIGITS) return null
         return CellAmount(value, negative)
     }
 

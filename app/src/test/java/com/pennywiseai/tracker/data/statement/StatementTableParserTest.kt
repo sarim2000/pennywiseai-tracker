@@ -237,6 +237,16 @@ class StatementTableParserTest {
     }
 
     @Test
+    fun `absurd amounts are rejected without expanding them`() {
+        // Would otherwise build a billion-digit integer.
+        assertNull(StatementTableParser.parseAmount("1e1000000000"))
+        assertNull(StatementTableParser.parseAmount("1E+99"))
+        assertNull(StatementTableParser.parseAmount("12345678901234567890"))
+        assertNull(StatementTableParser.parseAmount("₹ 1,00,00,00,00,00,00,000.00"))
+        assertEquals(BigDecimal("9999999999999.99"), StatementTableParser.parseAmount("9999999999999.99")!!.value)
+    }
+
+    @Test
     fun `oversized statements are refused, not cut short`() {
         val csv = buildString {
             append("Date,Narration,Amount\n")

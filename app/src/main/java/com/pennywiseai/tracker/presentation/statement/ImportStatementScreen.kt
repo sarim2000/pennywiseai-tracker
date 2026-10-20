@@ -887,8 +887,13 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.success
             )
-            // Null when there's nothing safe to correct (see StatementBalanceCheck.correctionFor).
-            corrected != null -> {
+            // No safe correction (see StatementBalanceCheck.correctionFor): say why.
+            corrected == null -> if (check.difference != null) Text(
+                text = stringResource(R.string.import_statement_balance_newer),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            else -> {
                 FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.import_statement_balance_set, money(corrected)))
                 }

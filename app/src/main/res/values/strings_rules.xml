@@ -133,6 +133,7 @@
     <string name="import_statement_balance_set">Set balance to %1$s</string>
     <string name="import_statement_balance_set_note">Statement balance plus what PennyWise recorded after the statement ended.</string>
     <string name="import_statement_balance_applied">Balance updated to %1$s.</string>
+    <string name="import_statement_balance_newer">Your bank has reported a newer balance since this statement, so PennyWise keeps that one.</string>
     <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_title">PennyWise Pro</string>
     <string name="upgrade_subtitle_member">All Pro capabilities active</string>

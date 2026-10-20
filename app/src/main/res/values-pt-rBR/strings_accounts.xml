@@ -123,6 +123,7 @@
     <string name="manage_accounts_section_bank">Contas Bancárias</string>
     <string name="manage_accounts_section_unlinked_cards">Cartões Desvinculados</string>
     <string name="manage_accounts_section_credit_cards">Cartões de crédito</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">Mover transações existentes?</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="one">A transação %1$d desta conta está definida para um perfil diferente. Mova-a para o novo perfil também?</item>

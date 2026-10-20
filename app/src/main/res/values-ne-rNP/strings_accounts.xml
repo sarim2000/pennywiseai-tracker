@@ -63,6 +63,7 @@
     <string name="manage_accounts_section_bank">बैंक खाता</string>
     <string name="manage_accounts_section_unlinked_cards">असंबद्ध कार्डहरू</string>
     <string name="manage_accounts_section_credit_cards">क्रेडिट कार्ड</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_outstanding">बाँकी</string>
     <string name="manage_accounts_available">उपलब्ध</string>
     <string name="manage_accounts_credit_limit">क्रेडिट सीमा</string>

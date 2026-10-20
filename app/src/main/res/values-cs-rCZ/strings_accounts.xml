@@ -129,6 +129,7 @@
     <string name="manage_accounts_section_bank">Bankovací účty</string>
     <string name="manage_accounts_section_unlinked_cards">Nepropojené karty</string>
     <string name="manage_accounts_section_credit_cards">Kreditní karty</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">Přesunout existující transakce?</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="one">%1$d transakce z tohoto účtu je nastavena na jiný profil. Přesunout ji také do nového profilu?</item>

@@ -2,6 +2,8 @@
 <resources>
     <!-- ══ Analytics screen ══ -->
     <!-- %1$s = formatted refund amount -->
+    <!-- Group by picker (#422); the chip and menu show one of these -->
+    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <!-- List rows -->
     <!-- Whole-number percentage, e.g. "42%" -->

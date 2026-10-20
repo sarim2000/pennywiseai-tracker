@@ -68,6 +68,11 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+        // Create CategoryMapping's snapshot-state map before any composition exists.
+        // Left to its first use, it could be created after a composition's snapshot
+        // was taken, and reading it inside that snapshot crashed with "Reading a
+        // state that was created after the snapshot was taken" (Play vitals, 2.22.0).
+        CategoryMapping.userStyles
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
 

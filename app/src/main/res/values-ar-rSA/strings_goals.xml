@@ -1,12 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
+
     <!-- Budgets screen section -->
+    <string name="goals_section_title">الأهداف</string>
+    <string name="upgrade_feature_goals">أهداف غير محدودة</string>
+    <string name="goals_new">هدف جديد</string>
+    <string name="goals_empty_title">ادّخر لشيء ما</string>
+    <string name="goals_empty_body">اختر مبلغًا مستهدفًا وتاريخ استحقاق، واعرف كم تحتاج أن تدّخر كل شهر.</string>
+    <string name="goals_empty_action">إنشاء هدف</string>
+    <string name="goals_archived_row">المؤرشفة (%1$d)</string>
+    <string name="goals_archived_title">الأهداف المؤرشفة</string>
+    <string name="goals_unarchive">إلغاء الأرشفة</string>
+    <string name="goals_amount_of">%1$s من %2$s</string>
+    <string name="goals_per_month">%1$s/شهر</string>
+    <string name="goals_behind">متأخر بـ %1$s</string>
+    <string name="goals_reached">تم بلوغه</string>
+    <string name="goals_missed_by">فاته بفارق %1$s</string>
+    <string name="goals_archived">مؤرشف</string>
+    <string name="goals_due_on">يستحق في %1$s</string>
+    <string name="goals_ring_description">تم ادّخار %1$d%%</string>
+    <plurals name="goals_months_left">
+        <item quantity="zero">لم يتبقَّ أي شهر</item>
+        <item quantity="one">تبقّى %d شهر</item>
+        <item quantity="two">تبقّى شهران</item>
+        <item quantity="few">تبقّت %d أشهر</item>
+        <item quantity="many">تبقّى %d شهرًا</item>
+        <item quantity="other">تبقّى %d شهر</item>
+    </plurals>
+
     <!-- Create / edit -->
+    <string name="goal_edit_title_new">هدف جديد</string>
+    <string name="goal_edit_title_edit">تعديل الهدف</string>
+    <string name="goal_back">رجوع</string>
+    <string name="goal_edit_name">الاسم</string>
+    <string name="goal_edit_name_hint">مثلًا: تأمين السيارة</string>
+    <string name="goal_edit_target">المبلغ المستهدف</string>
+    <string name="goal_edit_due">تاريخ الاستحقاق</string>
+    <string name="goal_edit_currency">العملة</string>
+    <string name="goal_edit_currency_locked">لا يمكن تغيير العملة بعد إضافة أموال</string>
+    <string name="goal_edit_already_saved">المدّخر مسبقًا</string>
+    <string name="goal_edit_already_saved_hint">اختياري. الأموال التي ادّخرتها بالفعل.</string>
+    <string name="goal_edit_color">اللون</string>
+    <string name="goal_edit_helper">ادّخر %1$s شهريًا لتحقيقه</string>
+    <string name="goal_edit_error_name">أعطِ الهدف اسمًا</string>
+    <string name="goal_edit_error_target">أدخل مبلغًا مستهدفًا أكبر من صفر</string>
+    <string name="goal_edit_error_due">اختر تاريخًا بعد اليوم</string>
+    <string name="goal_edit_error_already_saved">أدخل صفرًا أو أكثر</string>
+    <string name="goal_edit_failed">تعذّر حفظ الهدف. تحقّق من التفاصيل وحاول مرة أخرى.</string>
+    <string name="goal_edit_create">إنشاء هدف</string>
+    <string name="goal_edit_save">حفظ</string>
+    <string name="goal_action_ok">حسنًا</string>
+    <string name="goal_action_cancel">إلغاء</string>
+
     <!-- Detail -->
+    <string name="goal_detail_left">المتبقي</string>
+    <string name="goal_detail_per_month">شهريًا</string>
+    <string name="goal_detail_over">زيادة %1$s</string>
+    <string name="goal_detail_history">الأموال المضافة والمسحوبة</string>
+    <string name="goal_detail_history_empty">لم تُضف أي أموال بعد. استخدم "إضافة أموال" عندما تدّخر مبلغًا.</string>
+    <string name="goal_add_money">إضافة أموال</string>
+    <string name="goal_take_out">سحب</string>
+    <string name="goal_more">خيارات إضافية</string>
+    <string name="goal_menu_edit">تعديل</string>
+    <string name="goal_menu_repeat">تكرار للسنة القادمة</string>
+    <string name="goal_menu_archive">أرشفة</string>
+    <string name="goal_menu_unarchive">إلغاء الأرشفة</string>
+    <string name="goal_menu_delete">حذف</string>
+    <string name="goal_delete_title">حذف %1$s؟</string>
+    <string name="goal_delete_message">ستُحذف مساهماته، ولن تتأثر معاملاتك.</string>
+    <string name="goal_converted_from">من %1$s</string>
+    <string name="goal_withdrawal">سحب</string>
+    <string name="goal_contribution">مساهمة</string>
+
     <!-- Add money / Take out / edit sheet -->
+    <string name="goal_money_amount">المبلغ</string>
+    <string name="goal_money_date">التاريخ</string>
+    <string name="goal_money_note">ملاحظة (اختياري)</string>
+    <string name="goal_money_saved_so_far">المدّخر حتى الآن: %1$s</string>
+    <string name="goal_money_converted">المبلغ بعملة %1$s</string>
+    <string name="goal_money_no_rate">لا يتوفر سعر صرف لـ %1$s بعد. أدخل المبلغ بعملة %2$s.</string>
+    <string name="goal_money_error_amount">أدخل مبلغًا أكبر من صفر</string>
+    <string name="goal_money_error_more_than_saved">يمكنك سحب ما يصل إلى %1$s</string>
+    <string name="goal_money_error_failed">تعذّر الحفظ. حاول مرة أخرى.</string>
+    <string name="goal_money_save">حفظ</string>
+    <string name="goal_edit_contribution">تعديل المساهمة</string>
+    <string name="goal_edit_withdrawal">تعديل السحب</string>
+    <string name="goal_contribution_delete">حذف</string>
     <!-- Add to goal from a transaction (#914) -->
+    <string name="goal_add_to_goal">إضافة إلى هدف</string>
+    <string name="goal_add_to_goal_left">يمكن تخصيص %1$s من هذه المعاملة للأهداف</string>
+    <string name="goal_add_to_goal_none_left">هذه المعاملة مخصّصة بالكامل للأهداف</string>
+    <string name="goal_add_to_goal_no_goals">ليس لديك أي أهداف بعد.</string>
+    <string name="goal_add_to_goal_date_hint">تاريخ المعاملة</string>
+    <string name="goal_money_error_more_than_left">تبقّى %1$s فقط من هذه المعاملة للأهداف</string>
+    <string name="goal_toward_goals">مخصّص للأهداف</string>
+    <string name="goal_toward_remove">إزالة من %1$s</string>
+    <string name="goal_currency_locked_by_goal">أزل هذه المعاملة من أهدافها قبل تغيير عملتها</string>
     <!-- Compact goal rows: Home card and widgets -->
+    <string name="goals_line_join">%1$s · %2$s</string>
+    <string name="goals_left">متبقٍ %1$s</string>
+    <plurals name="goals_months_short">
+        <item quantity="zero">%d شهر</item>
+        <item quantity="one">%d شهر</item>
+        <item quantity="two">شهران</item>
+        <item quantity="few">%d أشهر</item>
+        <item quantity="many">%d شهرًا</item>
+        <item quantity="other">%d شهر</item>
+    </plurals>
+
     <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
+    <string name="widget_name_goal">هدف</string>
+    <string name="widget_name_goals">الأهداف</string>
+    <string name="widget_description_goal">هدف واحد مع حلقة التقدّم والمبلغ المتبقي لادّخاره</string>
+    <string name="widget_description_goals">حتى ثلاثة أهداف، الأقرب استحقاقًا أولًا</string>
+    <string name="widget_goal_removed">تمت إزالة الهدف</string>
+    <string name="widget_goal_removed_hint">اضغط لاختيار هدف آخر</string>
+    <string name="widget_goals_empty">لا توجد أهداف بعد</string>
+    <string name="widget_goals_empty_hint">اضغط لإنشاء هدف</string>
+    <string name="widget_goal_config_title">اختر هدفًا</string>
+    <string name="widget_goal_config_close">إغلاق</string>
 </resources>

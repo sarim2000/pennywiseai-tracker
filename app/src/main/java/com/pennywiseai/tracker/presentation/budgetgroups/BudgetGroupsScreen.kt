@@ -30,6 +30,8 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -400,7 +402,7 @@ private fun MonthSelector(
             modifier = Modifier.size(36.dp)
         ) {
             Icon(
-                Icons.Default.ChevronLeft,
+                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = stringResource(R.string.budgets_previous_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
@@ -429,7 +431,7 @@ private fun MonthSelector(
             modifier = Modifier.size(36.dp)
         ) {
             Icon(
-                Icons.Default.ChevronRight,
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = stringResource(R.string.budgets_next_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )

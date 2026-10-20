@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.*
@@ -1451,7 +1452,7 @@ private fun SettingsNavItem(
     onClick: () -> Unit,
     position: ListItemPosition,
     trailingText: String? = null,
-    trailingIcon: ImageVector = Icons.Default.ChevronRight
+    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight
 ) {
     GroupedRow(position = position, onClick = onClick) {
         IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
@@ -1762,6 +1763,8 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
  */
 private fun ordinalSuffix(day: Int): String {
     val safe = day.coerceIn(1, 31)
+    // ponytail: English-only suffixes; other languages get the bare day number.
+    if (java.util.Locale.getDefault().language != "en") return "$safe"
     val suffix = when {
         safe in 11..13 -> "th"
         safe % 10 == 1 -> "st"

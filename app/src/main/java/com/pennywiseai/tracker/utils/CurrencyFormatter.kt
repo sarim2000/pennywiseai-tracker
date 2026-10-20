@@ -155,7 +155,28 @@ object CurrencyFormatter {
     /**
      * Formats a BigDecimal amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String {
+    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String =
+        ltr(formatCurrencyRaw(amount, currencyCode))
+
+    /**
+     * [formatted] with a leading [signPrefix] ("-" / "+") that stays on the left in
+     * an RTL (Arabic) UI. Plain `"-" + amount` renders as "JD5-" there, because a
+     * sign at the start of an RTL paragraph takes the paragraph's direction.
+     */
+    fun signed(signPrefix: String, formatted: String): String = ltr("$signPrefix$formatted")
+
+    /** RTL app languages we ship (or may ship) translations for. */
+    private val RTL_LANGUAGES = setOf("ar", "fa", "he", "iw", "ur")
+
+    /**
+     * Prefixes a left-to-right mark under an RTL locale so a Latin-script amount
+     * ("-JD5", "₹1,200") reads left to right inside RTL text. No-op otherwise,
+     * so English output (and every exact-string test) is unchanged.
+     */
+    private fun ltr(s: String): String =
+        if (Locale.getDefault().language in RTL_LANGUAGES) "\u200E$s" else s
+
+    private fun formatCurrencyRaw(amount: BigDecimal, currencyCode: String): String {
         if (currencyCode in EXPLICIT_SYMBOL_CURRENCIES) {
             return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode)}"
         }

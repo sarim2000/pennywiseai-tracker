@@ -339,7 +339,7 @@ private fun GoalDetailContent(
                                 subtitle = goal.createdAt.toLocalDate().format(goalDateFormat),
                             )
                             Text(
-                                "+" + CurrencyFormatter.formatCurrency(goal.alreadySaved, currency),
+                                CurrencyFormatter.signed("+", CurrencyFormatter.formatCurrency(goal.alreadySaved, currency)),
                                 style = PennyWiseText.amountRow,
                             )
                         }
@@ -374,7 +374,7 @@ private fun ContributionRow(c: GoalContributionEntity, currency: String, merchan
             subtitle = subtitle,
         )
         Text(
-            (if (withdrawal) "-" else "+") + CurrencyFormatter.formatCurrency(c.amount.abs(), currency),
+            CurrencyFormatter.signed(if (withdrawal) "-" else "+", CurrencyFormatter.formatCurrency(c.amount.abs(), currency)),
             style = PennyWiseText.amountRow,
             color = if (withdrawal) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.success,
         )

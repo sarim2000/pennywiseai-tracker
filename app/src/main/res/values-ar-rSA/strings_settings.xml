@@ -342,4 +342,13 @@
     <string name="faq_still_need_help_section">لا تزال بحاجة إلى مساعدة؟</string>
     <string name="faq_report_issue_title">الإبلاغ عن مشكلة</string>
     <string name="faq_report_issue_subtitle">تقديم تقارير الأخطاء، طلبات البنك، أو تحسينات الميزات على GitHub</string>
+    <string name="settings_export_include_receipts_title">تضمين صور الإيصالات</string>
+    <string name="settings_export_include_receipts_subtitle">إضافة صور الإيصالات المرفقة إلى النسخ الاحتياطية المُصدَّرة (حجم ملف أكبر)</string>
+    <string name="settings_folder_backup_include_receipts_title">تضمين صور الإيصالات في النسخ الاحتياطية التلقائية</string>
+    <string name="settings_folder_backup_include_receipts_subtitle">يزيد حجم كل نسخة احتياطية يومية</string>
+    <string name="settings_user_guide_title">دليل المستخدم</string>
+    <string name="settings_user_guide_subtitle">أدلة خطوة بخطوة مع لقطات شاشة</string>
+    <string name="appearance_bottom_bar_section">الشريط السفلي</string>
+    <string name="appearance_bottom_bar_subtitle">اختر علامات التبويب التي تظهر. تبقى الرئيسية ظاهرة دائمًا.</string>
+    <string name="faq_transaction_types_answer">• مصروف: أموال تخرج من حسابك (خصومات، مشتريات، دفع فواتير)\n• دخل: أموال تدخل إلى حسابك (راتب، مبالغ مستردة، استرداد نقدي)\n• استثمار: صناديق استثمار مشتركة، أسهم، استثمارات دورية (SIP)، حسابات تداول\n• ائتمان: معاملات بطاقات الائتمان ومدفوعات المحافظ (أموال ستدفعها لاحقًا)\n• تحويل: أموال تنتقل بين حساباتك الخاصة (تحويلات ذاتية)</string>
 </resources>

@@ -256,4 +256,18 @@ class CurrencyFormatterTest {
         val uyu = CurrencyFormatter.formatCurrency(BigDecimal("1234.56"), "UYU")
         assertTrue("expected \$U in: $uyu", uyu.contains("\$U"))
     }
+
+    @Test
+    fun `signed amounts keep their sign on the left under an RTL locale`() {
+        val default = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-SA"))
+            // A leading LRM makes "-" resolve left-to-right inside Arabic text.
+            assertEquals("\u200E-\u200E$5", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
+            java.util.Locale.setDefault(java.util.Locale.US)
+            assertEquals("-$5", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
+        } finally {
+            java.util.Locale.setDefault(default)
+        }
+    }
 }

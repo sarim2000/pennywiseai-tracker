@@ -184,7 +184,7 @@
     <string name="onboarding_start_scanning">بدء الفحص</string>
     <string name="onboarding_finish">إنهاء</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">كاشيرو AI</string>
+    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">جاري تحميل الموديل...</string>
     <string name="chat_model_required_title">نموذج AI مطلوب</string>
     <string name="chat_model_required_body">تحميل نموذج الذكاء الاصطناعي لبدء الدردشة</string>
@@ -452,13 +452,13 @@
     <string name="rules_type_investment">استثمار</string>
     <string name="rules_select_transaction_type">حدد نوع المعاملة:</string>
     <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
-    <string name="rules_day_mon">Mon</string>
-    <string name="rules_day_tue">توت</string>
-    <string name="rules_day_wed">اربعاء</string>
-    <string name="rules_day_thu">Thu</string>
+    <string name="rules_day_mon">الاثنين</string>
+    <string name="rules_day_tue">الثلاثاء</string>
+    <string name="rules_day_wed">الأربعاء</string>
+    <string name="rules_day_thu">الخميس</string>
     <string name="rules_day_fri">الجمعة</string>
-    <string name="rules_day_sat">جلس</string>
-    <string name="rules_day_sun">الشمس</string>
+    <string name="rules_day_sat">السبت</string>
+    <string name="rules_day_sun">الأحد</string>
     <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">اليوم (1-31)</string>
     <string name="rules_day_of_month_placeholder">مثلاً: 1</string>
@@ -537,4 +537,16 @@
     <string name="rules_preview_action_clear">مسح %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">تعيين %1$s إلى %2$s</string>
+    <string name="import_statement_description">استورد المعاملات من كشوف حساب PDF من Google Pay وPhonePe وPaytm وslice وICICI Bank. يتم اكتشاف المعاملات المكررة وتخطيها تلقائيًا.</string>
+    <string name="import_statement_password_title">ملف PDF محمي بكلمة مرور</string>
+    <string name="import_statement_password_body">كشف الحساب هذا مقفل. أدخل كلمة المرور التي زوّدك بها البنك. تُستخدم فقط لفتح الملف ولا يتم حفظها.</string>
+    <string name="import_statement_password_label">كلمة مرور PDF</string>
+    <string name="import_statement_password_wrong">كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
+    <string name="import_statement_password_open">فتح</string>
+    <string name="import_statement_password_cancel">إلغاء</string>
+    <string name="chat_error_download_roaming">لن يتم التنزيل أثناء التجوال. اتصل بشبكة Wi-Fi أو أوقف التجوال، ثم حاول مرة أخرى.</string>
+    <string name="rules_summary_upi_cashback">المبلغ &lt; 10 من NPCI</string>
+    <string name="rules_preview_conditions_or">%1$s أو %2$s</string>
+    <string name="rules_preview_op_less_than">أقل من</string>
+    <string name="rules_preview_op_greater_than">أكبر من</string>
 </resources>

@@ -121,7 +121,7 @@ fun TransactionTotalsCard(
                     }
                     val netPrefix = if (netBalance > BigDecimal.ZERO) "+" else ""
                     add(TotalTileData(Icons.Filled.SettingsEthernet, stringResource(R.string.txn_totals_net),
-                        "$netPrefix${CurrencyFormatter.formatCurrency(netBalance, currency)}", netColor, netAlpha))
+                        CurrencyFormatter.signed(netPrefix, CurrencyFormatter.formatCurrency(netBalance, currency)), netColor, netAlpha))
                 }
                 // Four tiles in one row squeezed the amounts into a scrolling
                 // marquee; two rows of two keep every figure whole.

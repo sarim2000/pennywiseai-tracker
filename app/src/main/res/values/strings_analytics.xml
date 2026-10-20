@@ -15,8 +15,18 @@
     <string name="analytics_top_tags">Top Tags</string>
     <string name="analytics_top_merchants">Top Merchants</string>
     <string name="analytics_by_account">By Account</string>
-    <string name="analytics_pro_tags_title">See your Top Tags with Pro</string>
-    <string name="analytics_pro_tags_body">Unlock a spending breakdown across all your tags. Tagging and filtering stay free.</string>
+    <string name="analytics_by_day_of_week">By day of week</string>
+    <string name="analytics_no_tag">No tag</string>
+    <string name="analytics_tag_overlap_note">A transaction with several tags counts under each one, so tag totals can add up to more than the total.</string>
+
+    <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">By category</string>
+    <string name="analytics_group_by_merchant">By merchant</string>
+    <string name="analytics_group_by_account">By account</string>
+    <string name="analytics_group_by_tag">By tag</string>
+    <string name="analytics_group_by_day_of_week">By day of week</string>
+    <!-- Content description of the lock beside a Pro-only grouping -->
+    <string name="analytics_group_by_pro">Pro</string>
 
     <!-- Filters -->
     <string name="analytics_filter_clear">Clear</string>

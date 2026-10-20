@@ -270,7 +270,7 @@ fun MainScreen(
                 )
 
                 composable(
-                    route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}&startDate={startDate}&endDate={endDate}",
+                    route = "transactions?category={category}&merchant={merchant}&period={period}&currency={currency}&focusSearch={focusSearch}&type={type}&startDate={startDate}&endDate={endDate}&account={account}&tag={tag}",
                     arguments = listOf(
                         navArgument("category") {
                             type = NavType.StringType
@@ -310,6 +310,16 @@ fun MainScreen(
                             type = NavType.StringType
                             nullable = true
                             defaultValue = null
+                        },
+                        navArgument("account") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
+                        },
+                        navArgument("tag") {
+                            type = NavType.StringType
+                            nullable = true
+                            defaultValue = null
                         }
                     ),
                     content = { backStackEntry: NavBackStackEntry ->
@@ -321,6 +331,8 @@ fun MainScreen(
                         val transactionType = backStackEntry.arguments?.getString("type")
                         val startDate = backStackEntry.arguments?.getString("startDate")?.toLongOrNull()
                         val endDate = backStackEntry.arguments?.getString("endDate")?.toLongOrNull()
+                        val account = backStackEntry.arguments?.getString("account")
+                        val tag = backStackEntry.arguments?.getString("tag")
 
                         TransactionsScreen(
                             modifier = Modifier.imePadding(),
@@ -330,13 +342,16 @@ fun MainScreen(
                             initialCurrency = currency,
                             initialCustomStartEpochDay = startDate,
                             initialCustomEndEpochDay = endDate,
+                            initialAccount = account,
+                            initialTag = tag,
                             focusSearch = focusSearch,
                             initialTransactionType = transactionType,
                             // No back arrow for a plain tab tap; show it for a filtered
                             // drill-down (Home category/search) so the user can return. (#635)
                             showBackButton = category != null || merchant != null ||
                                 period != null || currency != null || focusSearch ||
-                                transactionType != null || startDate != null || endDate != null,
+                                transactionType != null || startDate != null || endDate != null ||
+                                account != null || tag != null,
                             // The bottom nav is overlaid on this route — always reserve clearance.
                             reserveBottomBarSpace = true,
                             onNavigateBack = {
@@ -398,7 +413,7 @@ fun MainScreen(
                                     }
                                 }
                             },
-                            onNavigateToTransactions = { category, merchant, period, currency, startDateEpochDay, endDateEpochDay ->
+                            onNavigateToTransactions = { category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag ->
                                 val route = buildString {
                                     append("transactions")
                                     val params = mutableListOf<String>()
@@ -421,6 +436,12 @@ fun MainScreen(
                                     }
                                     endDateEpochDay?.let {
                                         params.add("endDate=$it")
+                                    }
+                                    account?.let {
+                                        params.add("account=${android.net.Uri.encode(it)}")
+                                    }
+                                    tag?.let {
+                                        params.add("tag=${android.net.Uri.encode(it)}")
                                     }
                                     if (params.isNotEmpty()) {
                                         append("?")

@@ -152,6 +152,7 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Analytics Chart Type
         val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
+        val ANALYTICS_GROUP_BY = stringPreferencesKey("analytics_group_by")
 
         // Cover Style
         val COVER_STYLE = stringPreferencesKey("cover_style")
@@ -938,6 +939,15 @@ open class UserPreferencesRepository @Inject constructor(
 
     fun getAnalyticsChartType(): Flow<String?> = context.dataStore.data
         .map { preferences -> preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] }
+
+    suspend fun saveAnalyticsGroupBy(groupBy: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ANALYTICS_GROUP_BY] = groupBy
+        }
+    }
+
+    fun getAnalyticsGroupBy(): Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.ANALYTICS_GROUP_BY] }
 
     // Cover Style
     suspend fun updateCoverStyle(style: CoverStyle) {

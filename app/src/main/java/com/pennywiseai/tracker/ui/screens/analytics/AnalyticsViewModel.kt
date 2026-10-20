@@ -27,7 +27,9 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -173,8 +175,8 @@ class AnalyticsViewModel @Inject constructor(
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
 
-    // Top Tags analytics breakdown is a Pro feature — basic tagging (create /
-    // apply / filter-by-tag) stays free; only the aggregated breakdown is gated.
+    // The tag and day-of-week groupings are Pro (#422); basic tagging (create /
+    // apply / filter-by-tag) stays free.
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     // name -> hex color for the user's categories (incl. recolored built-ins), so
@@ -238,6 +240,22 @@ class AnalyticsViewModel @Inject constructor(
 
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
+
+    /**
+     * The breakdown's grouping (#422), remembered like the chart type. A stored Pro
+     * grouping shows as Category while the user isn't Pro (a lapsed subscription).
+     */
+    val groupBy: StateFlow<AnalyticsGroupBy> = combine(
+        userPreferencesRepository.getAnalyticsGroupBy(),
+        isProEntitled
+    ) { saved, isPro -> AnalyticsGroupBy.fromSaved(saved).allowedFor(isPro) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AnalyticsGroupBy.CATEGORY)
+
+    /** Picks a grouping. A Pro one without Pro is ignored; the screen shows the upgrade sheet instead. */
+    fun setGroupBy(groupBy: AnalyticsGroupBy) {
+        if (groupBy.allowedFor(isProEntitled.value) != groupBy) return
+        viewModelScope.launch { userPreferencesRepository.saveAnalyticsGroupBy(groupBy.name) }
+    }
 
     private val _selectedChartType = MutableStateFlow(ChartType.LINE)
     val selectedChartType: StateFlow<ChartType> = _selectedChartType.asStateFlow()
@@ -519,42 +537,35 @@ class AnalyticsViewModel @Inject constructor(
                     if (refundNettedTotal > BigDecimal.ZERO && categorySum > totalSpending) refundNettedTotal
                     else BigDecimal.ZERO
 
-                // Build tag breakdown from the many-to-many tag map. A
-                // transaction can carry several tags, and its full amount
-                // counts toward each of them (tags overlap, unlike categories),
-                // so tag percentages can sum to more than 100%. Untagged
-                // transactions are skipped.
-                val tagAmounts = mutableMapOf<String, BigDecimal>()
-                val tagTransactionCounts = mutableMapOf<String, Int>()
-
-                for (tx in filteredTransactions) {
-                    val tagNames = tagMap[tx.id]?.takeIf { it.isNotEmpty() } ?: continue
-                    val converted = if (isUnified) {
+                // Every counted row with its amount in the view's currency, converted
+                // once for the tag, account and weekday groups (#422). Unified mode
+                // leaves out a never-rated pair rather than face-value it (#670).
+                val counted = filteredTransactions.mapNotNull { tx ->
+                    if (isUnified) {
                         currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                            ?: continue // never-rated pair — skip, don't face-value (#670)
+                            ?.let { CountedRow(tx, Money(it, displayCurrency)) }
                     } else {
-                        tx.amount
-                    }
-                    for (tagName in tagNames) {
-                        tagAmounts[tagName] = (tagAmounts[tagName] ?: BigDecimal.ZERO) + converted
-                        tagTransactionCounts[tagName] = (tagTransactionCounts[tagName] ?: 0) + 1
+                        CountedRow(tx, Money(tx.amount, tx.currency))
                     }
                 }
 
-                val tagBreakdown = tagAmounts.map { (tagName, tagTotal) ->
-                    TagData(
-                        name = tagName,
-                        amount = tagTotal,
-                        // Clamp at 100% like categoryBreakdown: refunds reduce totalSpending
-                        // but not a tag's summed amount, so the raw ratio for a single tag can
-                        // exceed 100%. (Different tags can still each be <100% yet sum to more,
-                        // since a transaction counts toward every tag it carries.)
-                        percentage = if (totalSpending > BigDecimal.ZERO) {
-                            (tagTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
-                        } else 0f,
-                        transactionCount = tagTransactionCounts[tagName] ?: 0
-                    )
-                }.sortedByDescending { it.amount }
+                // Tags overlap, unlike categories: a transaction counts in full under
+                // each of its tags, so tag totals can add up to more than the total.
+                // Untagged rows go under "No tag".
+                val noTagLabel = context.getString(R.string.analytics_no_tag)
+                val tagBreakdown = groupTotals(counted) { tagKeys(tagMap[it.id]) }
+                    .map { (tag, group) ->
+                        val amount = group.amountIn(displayCurrency)
+                        TagData(
+                            name = tag ?: noTagLabel,
+                            amount = amount,
+                            percentage = shareOf(amount, totalSpending),
+                            transactionCount = group.rows.size,
+                            isUntagged = tag == null
+                        )
+                    }
+                    .sortedByDescending { it.amount }
+                val tagsOverlap = counted.any { (tagMap[it.tx.id]?.size ?: 0) > 1 }
 
                 // Group by merchant — convert if unified
                 val merchantBreakdown = filteredTransactions
@@ -587,45 +598,40 @@ class AnalyticsViewModel @Inject constructor(
                     .sortedByDescending { it.amount }
                     .take(10)
 
-                // Group by account — convert if unified. Labels prefer the alias
-                // (via accountOptions) and fall back to "$bankName ••$last4".
+                // Group by account. Labels prefer the alias, as the account filter does.
                 val accountLabels = accountOptions(balances).associate { it.key to it.label }
-                val accountBreakdown = filteredTransactions
-                    .groupBy { "${it.bankName}_${it.accountNumber}" }
-                    .entries
-                    .map { (accountKey, txns) ->
-                        var convertedCount = 0
-                        val gross = if (isUnified) {
-                            var sum = BigDecimal.ZERO
-                            for (tx in txns) {
-                                sum += currencyConversionService
-                                    .convertAmountOrNull(tx.amount, tx.currency, displayCurrency) ?: continue
-                                convertedCount++
-                            }
-                            sum
-                        } else {
-                            convertedCount = txns.size
-                            txns.sumOf { it.amount.toDouble() }.toBigDecimal()
-                        }
+                val accountBreakdown = groupTotals(counted) { listOf(accountKeyOf(it)) }
+                    .map { (accountKey, group) ->
                         // Net refunds credited back to this account (floored at zero) so
                         // the account total — and its % of the net grand total — stay sane.
-                        val accountAmount = netOf(gross, refunds.byAccount[accountKey])
+                        val accountAmount = netOf(group.amountIn(displayCurrency), refunds.byAccount[accountKey])
                         AccountBreakdownData(
                             key = accountKey,
-                            label = accountLabels[accountKey] ?: run {
-                                val first = txns.first()
-                                com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-                                    .accountLabel(first.bankName ?: "Unknown", first.accountNumber ?: "----")
-                            },
+                            label = accountLabelFor(accountKey, group.rows.first().tx, accountLabels),
                             amount = accountAmount,
-                            percentage = if (totalSpending > BigDecimal.ZERO) {
-                                (accountAmount.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
-                            } else 0f,
-                            // Count only converted rows so it matches the amount (#670).
-                            transactionCount = convertedCount
+                            percentage = shareOf(accountAmount, totalSpending),
+                            transactionCount = group.rows.size
                         )
                     }
                     .sortedByDescending { it.amount }
+
+                // Group by day of week, all seven days in the locale's week order.
+                // Refunds net off the weekday they landed on, as the trend nets per day.
+                val locale = java.util.Locale.getDefault()
+                val weekdayRefunds = refunds.byDay.entries
+                    .groupBy({ it.key.dayOfWeek }, { it.value })
+                    .mapValues { (_, amounts) -> amounts.fold(BigDecimal.ZERO, BigDecimal::add) }
+                val byWeekday = groupTotals(counted) { listOf(it.dateTime.dayOfWeek) }
+                val dayOfWeekBreakdown = if (counted.isEmpty()) emptyList() else weekdayOrder(locale).map { day ->
+                    val group = byWeekday[day]
+                    val amount = netOf(group?.amountIn(displayCurrency) ?: BigDecimal.ZERO, weekdayRefunds[day])
+                    TagData(
+                        name = day.getDisplayName(java.time.format.TextStyle.FULL, locale),
+                        amount = amount,
+                        percentage = shareOf(amount, totalSpending),
+                        transactionCount = group?.rows?.size ?: 0
+                    )
+                }
 
                 // Calculate average amount — divide by the converted count so the
                 // average isn't dragged down by rows excluded from totalSpending (#670).
@@ -654,7 +660,9 @@ class AnalyticsViewModel @Inject constructor(
                     availableCategories = allCategoryNames,
                     refundNettedFromTotal = refundNettedFromTotal,
                     accountBreakdown = accountBreakdown,
-                    tagBreakdown = tagBreakdown
+                    tagBreakdown = tagBreakdown,
+                    tagsOverlap = tagsOverlap,
+                    dayOfWeekBreakdown = dayOfWeekBreakdown
                 )
             }
         }
@@ -881,7 +889,12 @@ data class AnalyticsUiState(
     // the bars reconcile; the UI shows an explainer only when this is positive.
     val refundNettedFromTotal: BigDecimal = BigDecimal.ZERO,
     val accountBreakdown: List<AccountBreakdownData> = emptyList(),
-    val tagBreakdown: List<TagData> = emptyList()
+    val tagBreakdown: List<TagData> = emptyList(),
+    // A counted row carries several tags, so the tag totals can add up to more
+    // than the total; the tag view says so in a footnote (#422).
+    val tagsOverlap: Boolean = false,
+    // Mon–Sun in the locale's week order; reuses TagData's name/amount/share shape.
+    val dayOfWeekBreakdown: List<TagData> = emptyList()
 )
 
 data class AccountBreakdownData(
@@ -906,7 +919,9 @@ data class TagData(
     val name: String,
     val amount: BigDecimal,
     val percentage: Float,
-    val transactionCount: Int
+    val transactionCount: Int,
+    // The "No tag" row: there's no Transactions filter for it, so it isn't tappable.
+    val isUntagged: Boolean = false
 )
 
 data class MerchantData(

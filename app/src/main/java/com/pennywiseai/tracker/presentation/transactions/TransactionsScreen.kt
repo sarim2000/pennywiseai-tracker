@@ -96,6 +96,9 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    // Account key / tag carried by an analytics group drill-down (#422)
+    initialAccount: String? = null,
+    initialTag: String? = null,
     focusSearch: Boolean = false,
     // New parameters for budget navigation
     initialStartDateEpochDay: Long? = null,
@@ -221,7 +224,9 @@ fun TransactionsScreen(
             initialPeriod,
             initialCurrency,
             initialCustomStartEpochDay,
-            initialCustomEndEpochDay
+            initialCustomEndEpochDay,
+            initialAccount,
+            initialTag
         )
     }
 
@@ -229,15 +234,17 @@ fun TransactionsScreen(
     var processedNavParams by rememberSaveable { mutableStateOf(false) }
 
     // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay) {
-        if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null)) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag) {
+        if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null || initialAccount != null || initialTag != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
                 initialMerchant,
                 initialPeriod,
                 initialCurrency,
                 initialCustomStartEpochDay,
-                initialCustomEndEpochDay
+                initialCustomEndEpochDay,
+                initialAccount,
+                initialTag
             )
             processedNavParams = true
         }

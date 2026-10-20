@@ -1132,7 +1132,9 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?,
         startDateEpochDay: Long? = null,
-        endDateEpochDay: Long? = null
+        endDateEpochDay: Long? = null,
+        account: String? = null,
+        tag: String? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
@@ -1141,6 +1143,8 @@ class TransactionsViewModel @Inject constructor(
             selectPeriod(TimePeriod.THIS_MONTH)
             setTransactionTypeFilter(TransactionTypeFilter.ALL)
             setSortOption(SortOption.DATE_NEWEST)
+            setAccountFilter(account)
+            setTagFilter(tag)
 
             category?.let {
                 val decoded = decodeUrlParam(it)
@@ -1193,11 +1197,13 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?,
         startDateEpochDay: Long? = null,
-        endDateEpochDay: Long? = null
+        endDateEpochDay: Long? = null,
+        account: String? = null,
+        tag: String? = null
     ) {
         // Create current params to compare
         val currentParams = NavigationParams(
-            category, merchant, period, currency, startDateEpochDay, endDateEpochDay
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag
         )
 
         // Only apply navigation filters if:
@@ -1217,6 +1223,8 @@ class TransactionsViewModel @Inject constructor(
         selectPeriod(TimePeriod.THIS_MONTH)
         setTransactionTypeFilter(TransactionTypeFilter.ALL)
         setSortOption(SortOption.DATE_NEWEST)
+        setAccountFilter(account)
+        setTagFilter(tag)
 
         category?.let {
             val decoded = decodeUrlParam(it)
@@ -1648,7 +1656,9 @@ private data class NavigationParams(
     val period: String?,
     val currency: String?,
     val startDateEpochDay: Long? = null,
-    val endDateEpochDay: Long? = null
+    val endDateEpochDay: Long? = null,
+    val account: String? = null,
+    val tag: String? = null
 )
 
 /**

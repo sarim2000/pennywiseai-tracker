@@ -15,8 +15,6 @@
     <string name="analytics_top_tags">Топ тегов</string>
     <string name="analytics_top_merchants">Лучшие продавцы</string>
     <string name="analytics_by_account">По Аккаунту</string>
-    <string name="analytics_pro_tags_title">Смотрите лучшие теги с Pro</string>
-    <string name="analytics_pro_tags_body">Разблокируйте разброс расходов по всем вашим тегам. Оставайтесь бесплатными метки и фильтры.</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">Очистить</string>
     <string name="analytics_filter_all_profiles">Все счета</string>

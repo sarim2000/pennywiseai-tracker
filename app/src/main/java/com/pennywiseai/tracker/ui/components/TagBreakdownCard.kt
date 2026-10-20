@@ -57,7 +57,12 @@ fun TagBreakdownCard(
     tags: List<TagData>,
     currency: String,
     modifier: Modifier = Modifier,
-    onTagClick: (TagData) -> Unit = {}
+    // Also draws the day-of-week bars (#422): no title, all seven rows, one colour.
+    title: String? = stringResource(R.string.analytics_spending_by_tag),
+    visibleItemCount: Int = 5,
+    barColor: (String) -> Color = ::tagColor,
+    // Null, or the "No tag" row: the row isn't tappable (no Transactions filter for it).
+    onTagClick: ((TagData) -> Unit)? = {}
 ) {
     val maxAmount = tags.map { it.amount }.maxOrNull() ?: BigDecimal.ZERO
 
@@ -67,21 +72,24 @@ fun TagBreakdownCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            Text(
-                text = stringResource(R.string.analytics_spending_by_tag),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium
-            )
+            if (title != null) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
 
             ExpandableList(
                 items = tags,
-                visibleItemCount = 5
+                visibleItemCount = visibleItemCount
             ) { tag ->
                 TagBar(
                     tag = tag,
                     maxAmount = maxAmount,
                     currency = currency,
-                    onClick = { onTagClick(tag) }
+                    barColor = barColor(tag.name),
+                    onClick = if (onTagClick == null || tag.isUntagged) null else ({ onTagClick(tag) })
                 )
             }
         }
@@ -93,7 +101,8 @@ private fun TagBar(
     tag: TagData,
     maxAmount: BigDecimal,
     currency: String,
-    onClick: () -> Unit = {}
+    barColor: Color,
+    onClick: (() -> Unit)?
 ) {
     val targetFraction = if (maxAmount > BigDecimal.ZERO) {
         (tag.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
@@ -108,13 +117,11 @@ private fun TagBar(
         label = "tag_bar_${tag.name}"
     )
 
-    val barColor = tagColor(tag.name)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .clickable { onClick() }
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {

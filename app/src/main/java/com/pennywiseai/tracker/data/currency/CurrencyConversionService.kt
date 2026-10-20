@@ -331,14 +331,20 @@ class CurrencyConversionService @Inject constructor(
     }
 
     private suspend fun fetchAndCacheRateLocked(fromCurrency: String, toCurrency: String): BigDecimal? {
+        // Same cooldown as the bulk refresh. Offline or with the app's internet
+        // blocked (#881), the widget refresh after every SMS would otherwise try
+        // the network again for each foreign-currency row.
+        if (System.currentTimeMillis() - lastFailedRefreshTime < failedRefreshCooldownMs) return null
         println("Lazy per-pair rate fetch for $fromCurrency->$toCurrency (cache + DB miss)")
         try {
             // Use the metadata method to get proper expiry times even for individual rates
             // We'll use USD as base since that's what the API uses and then convert
             val baseCurrency = "USD"
             val response = exchangeRateProvider.fetchAllExchangeRatesWithMetadata(baseCurrency)
+            if (response == null) lastFailedRefreshTime = System.currentTimeMillis()
 
             if (response != null) {
+                lastFailedRefreshTime = 0L
                 val allRates = response.rates
                 val nextUpdateTime = LocalDateTime.ofInstant(
                     Instant.ofEpochSecond(response.nextUpdateTimeUnix),

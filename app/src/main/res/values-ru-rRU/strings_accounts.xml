@@ -208,8 +208,6 @@
     <string name="manage_accounts_account_ending_in">Счет заканчивается на %1$s</string>
     <string name="manage_accounts_delete_warning">Это навсегда удалит всю историю баланса для этого аккаунта. Любые связанные карты будут отвязаны. Это действие нельзя отменить.</string>
     <string name="manage_accounts_edit_account_title">Редактировать аккаунт</string>
-    <string name="manage_accounts_type_credit_card">Кредитная карта</string>
-    <string name="manage_accounts_type_bank_account">Банковский счет</string>
     <string name="manage_accounts_bank_name_label">Название банка</string>
     <string name="manage_accounts_account_number_label">Номер счета</string>
     <string name="manage_accounts_read_only">Только чтение</string>

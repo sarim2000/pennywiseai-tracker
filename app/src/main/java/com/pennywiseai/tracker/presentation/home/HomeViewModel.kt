@@ -70,6 +70,13 @@ import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import javax.inject.Inject
 
+/**
+ * Accounts that make up Home's spendable "bank" total: not credit cards or loan
+ * accounts (their balance is owed, #792), and not zero-balance accounts.
+ */
+internal fun spendableAccounts(balances: List<AccountBalanceEntity>): List<AccountBalanceEntity> =
+    balances.filter { !it.isLiability && it.balance != BigDecimal.ZERO }
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -498,8 +505,9 @@ class HomeViewModel @Inject constructor(
 
                 // Filter out hidden accounts and apply business filter
                 val balances = filterVisibleBalances(allBalances, hiddenAccounts)
-                // Separate credit cards from regular accounts (hide zero balance accounts)
-                val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+                // Separate credit cards from regular accounts (hide zero balance accounts).
+                // Loan accounts land in neither: they are owed, not spendable (#792).
+                val rawRegularAccounts = spendableAccounts(balances)
                 val rawCreditCards = balances.filter { it.isCreditCard }
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
@@ -999,7 +1007,7 @@ class HomeViewModel @Inject constructor(
 
             val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
-            val rawRegularAccounts = visibleBalances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+            val rawRegularAccounts = spendableAccounts(visibleBalances)
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
 
             val selectedCurrency = _uiState.value.selectedCurrency
@@ -1109,7 +1117,7 @@ class HomeViewModel @Inject constructor(
             val hiddenAccounts = sharedPrefs.getStringSet("hidden_accounts", emptySet()) ?: emptySet()
 
             val balances = filterVisibleBalances(allBalances, hiddenAccounts)
-            val rawRegularAccounts = balances.filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+            val rawRegularAccounts = spendableAccounts(balances)
             val rawCreditCards = balances.filter { it.isCreditCard }
 
             val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()

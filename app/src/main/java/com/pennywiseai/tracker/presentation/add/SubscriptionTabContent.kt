@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.domain.model.icon
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -395,12 +396,7 @@ fun SubscriptionTabContent(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        when (uiState.selectedAccount?.getAccountType()) {
-                            AccountType.CASH -> Icons.Default.Money
-                            AccountType.CREDIT -> Icons.Default.CreditCard
-                            AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
-                            null -> Icons.Default.AccountBalance
-                        },
+                        (uiState.selectedAccount?.getAccountType() ?: AccountType.SAVINGS).icon,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -501,11 +497,7 @@ fun SubscriptionTabContent(
                             },
                             leadingIcon = {
                                 Icon(
-                                    when (accountType) {
-                                        AccountType.CASH -> Icons.Default.Money
-                                        AccountType.CREDIT -> Icons.Default.CreditCard
-                                        else -> Icons.Default.AccountBalance
-                                    },
+                                    accountType.icon,
                                     contentDescription = null
                                 )
                             },

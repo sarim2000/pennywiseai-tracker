@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.domain.model.icon
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -167,11 +169,7 @@ fun AddAccountScreen(
                         .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                     leadingIcon = {
                         Icon(
-                            imageVector = when (formState.accountType) {
-                                AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
-                                AccountType.CREDIT -> Icons.Default.CreditCard
-                                AccountType.CASH -> Icons.Default.Money
-                            },
+                            imageVector = formState.accountType.icon,
                             contentDescription = null
                         )
                     },
@@ -196,11 +194,7 @@ fun AddAccountScreen(
                             },
                             leadingIcon = {
                                 Icon(
-                                    imageVector = when (type) {
-                                        AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
-                                        AccountType.CREDIT -> Icons.Default.CreditCard
-                                        AccountType.CASH -> Icons.Default.Money
-                                    },
+                                    imageVector = type.icon,
                                     contentDescription = null
                                 )
                             }
@@ -281,7 +275,13 @@ fun AddAccountScreen(
                 TextField(
                     value = formState.balance,
                     onValueChange = viewModel::updateBalance,
-                    label = { Text(stringResource(R.string.add_account_balance_label), fontWeight = FontWeight.SemiBold) },
+                    label = {
+                        Text(
+                            if (formState.accountType == AccountType.LOAN) stringResource(R.string.manage_accounts_outstanding_balance)
+                            else stringResource(R.string.add_account_balance_label),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    },
                     leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,

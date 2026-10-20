@@ -233,7 +233,7 @@ class OnBoardingViewModel @Inject constructor(
     fun loadAccounts() {
         viewModelScope.launch {
             val accounts = accountBalanceRepository.getAllLatestBalances().first()
-                .filter { !it.isCreditCard && it.balance != BigDecimal.ZERO }
+                .filter { !it.isLiability && it.balance != BigDecimal.ZERO }
             _uiState.update { state ->
                 state.copy(
                     accounts = accounts,

@@ -102,7 +102,6 @@
     <!-- %1$s = last digits of the account -->
     <string name="manage_accounts_delete_warning">การกระทำนี้จะลบประวัติยอดเงินทั้งหมดของบัญชีนี้อย่างถาวร บัตรที่เชื่อมโยงทั้งหมดจะถูกยกเลิก การกระทำนี้ไม่สามารถย้อนกลับได้</string>
     <string name="manage_accounts_edit_account_title">แก้ไขบัญชี</string>
-    <string name="manage_accounts_type_credit_card">บัตรเครดิต</string>
     <string name="manage_accounts_bank_name_label">ชื่อธนาคาร</string>
     <!-- ══ Loans list ══ -->
     <string name="loans_title">เงินกู้</string>

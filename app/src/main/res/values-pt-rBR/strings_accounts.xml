@@ -202,8 +202,6 @@
     <string name="manage_accounts_account_ending_in">Conta terminada em %1$s</string>
     <string name="manage_accounts_delete_warning">Isto irá apagar permanentemente todo o histórico de saldo desta conta. Todos os cartões vinculados serão desvinculados. Esta ação não pode ser desfeita.</string>
     <string name="manage_accounts_edit_account_title">Editar Conta</string>
-    <string name="manage_accounts_type_credit_card">Cartão de Crédito</string>
-    <string name="manage_accounts_type_bank_account">Conta Bancária</string>
     <string name="manage_accounts_bank_name_label">Nome do Banco</string>
     <string name="manage_accounts_account_number_label">Numero da Conta</string>
     <string name="manage_accounts_read_only">Somente leitura</string>

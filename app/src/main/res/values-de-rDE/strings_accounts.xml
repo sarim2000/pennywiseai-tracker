@@ -210,8 +210,6 @@
     <string name="manage_accounts_account_ending_in">Konto endet in %1$s</string>
     <string name="manage_accounts_delete_warning">Dies wird den gesamten Kontostand für dieses Konto dauerhaft löschen. Alle verknüpften Karten werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="manage_accounts_edit_account_title">Konto bearbeiten</string>
-    <string name="manage_accounts_type_credit_card">Kreditkarte</string>
-    <string name="manage_accounts_type_bank_account">Bankkonto</string>
     <string name="manage_accounts_bank_name_label">Bankname</string>
     <string name="manage_accounts_account_number_label">Kundennummer</string>
     <string name="manage_accounts_read_only">Nur lesen</string>

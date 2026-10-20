@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.items
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -47,6 +49,9 @@ import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.domain.model.icon
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,6 +117,39 @@ fun ManageAccountsScreen(
                 viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
             }
         }
+    }
+
+    // Loan accounts (#792) reuse the bank-account card: AccountItem reads isLoan for
+    // the "Outstanding" label and leaves out the low-balance alert.
+    val loanAccountItem: @Composable (AccountBalanceEntity, Boolean) -> Unit = { account, isHidden ->
+        AccountItem(
+            account = account,
+            isHidden = isHidden,
+            onToggleVisibility = {
+                if (isHidden) viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
+                else ignoreAccount(account)
+            },
+            onUpdateBalance = {
+                selectedAccount = account.bankName to account.accountLast4
+                selectedAccountEntity = account
+                showUpdateDialog = true
+            },
+            onViewHistory = { onNavigateToBalanceHistory(account.bankName, account.accountLast4) },
+            onDeleteAccount = {
+                accountToDelete = account.bankName to account.accountLast4
+                showDeleteConfirmDialog = true
+            },
+            onEditAccount = {
+                accountToEdit = account
+                showEditDialog = true
+            },
+            onSetProfile = { profileId ->
+                viewModel.setAccountProfile(account.bankName, account.accountLast4, profileId)
+            },
+            onSetAlias = { alias ->
+                viewModel.setAccountAlias(account.bankName, account.accountLast4, alias)
+            }
+        )
     }
 
     // Editing can rename the account, which moves its ignored key: drop any pending
@@ -263,20 +301,27 @@ fun ManageAccountsScreen(
                     }
                 }
                 
+                // Loan accounts (#792) get their own section; the rest split into
+                // bank accounts and credit cards as before.
+                val (loanAccounts, nonLoanAccounts) = uiState.accounts.partition { it.isLoan }
+                val (hiddenLoanAccounts, visibleLoanAccounts) = loanAccounts.partition {
+                    viewModel.isAccountHidden(it.bankName, it.accountLast4)
+                }
+
                 // Separate visible and hidden accounts
-                val visibleRegularAccounts = uiState.accounts.filter {
+                val visibleRegularAccounts = nonLoanAccounts.filter {
                     !it.isCreditCard && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
                 }
-                val visibleCreditCards = uiState.accounts.filter {
+                val visibleCreditCards = nonLoanAccounts.filter {
                     it.isCreditCard && !viewModel.isAccountHidden(it.bankName, it.accountLast4)
                 }
-                val hiddenRegularAccounts = uiState.accounts.filter {
+                val hiddenRegularAccounts = nonLoanAccounts.filter {
                     !it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
                 }
-                val hiddenCreditCards = uiState.accounts.filter {
+                val hiddenCreditCards = nonLoanAccounts.filter {
                     it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
                 }
-                val allRegularAccounts = uiState.accounts.filter { !it.isCreditCard }
+                val allRegularAccounts = nonLoanAccounts.filter { !it.isCreditCard }
                 
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
@@ -381,8 +426,18 @@ fun ManageAccountsScreen(
                     }
                 }
 
+                // Loan Accounts Section (Visible Only). Bank loans, not the Lent/Borrowed Loans screen.
+                if (visibleLoanAccounts.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(Spacing.md))
+                        SectionHeaderV2(title = stringResource(R.string.manage_accounts_section_loan_accounts))
+                    }
+
+                    items(visibleLoanAccounts) { account -> loanAccountItem(account, false) }
+                }
+
                 // Hidden Accounts Section (Collapsible)
-                if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty()) {
+                if (hiddenRegularAccounts.isNotEmpty() || hiddenCreditCards.isNotEmpty() || hiddenLoanAccounts.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(Spacing.md))
                         Card(
@@ -411,7 +466,7 @@ fun ManageAccountsScreen(
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = stringResource(R.string.manage_accounts_hidden_header, hiddenRegularAccounts.size + hiddenCreditCards.size),
+                                        text = stringResource(R.string.manage_accounts_hidden_header, hiddenRegularAccounts.size + hiddenCreditCards.size + hiddenLoanAccounts.size),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -466,6 +521,8 @@ fun ManageAccountsScreen(
                                 }
                             )
                         }
+
+                        items(hiddenLoanAccounts) { account -> loanAccountItem(account, true) }
 
                         // Hidden Credit Cards
                         items(hiddenCreditCards) { card ->
@@ -577,14 +634,14 @@ fun ManageAccountsScreen(
                 showEditDialog = false
                 accountToEdit = null
             },
-            onConfirm = { newBankName, newBalance, newCreditLimit, newCurrency ->
+            onConfirm = { newBankName, newBalance, newCreditLimit, newCurrency, newType ->
                 viewModel.editAccount(
                     oldBankName = accountToEdit!!.bankName,
                     accountLast4 = accountToEdit!!.accountLast4,
                     newBankName = newBankName,
                     newBalance = newBalance,
                     newCreditLimit = newCreditLimit,
-                    isCreditCard = accountToEdit!!.isCreditCard,
+                    newType = newType,
                     newCurrency = newCurrency
                 )
                 showEditDialog = false
@@ -857,6 +914,18 @@ private fun CreditCardItem(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        // SMS-tracked accounts reach the edit dialog (name, currency,
+                        // type) from here; manual ones have it as the primary button.
+                        if (!isManualAccount) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.manage_accounts_action_edit)) },
+                                onClick = {
+                                    showMenu = false
+                                    onEditAccount()
+                                },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.manage_accounts_menu_history)) },
                             onClick = {
@@ -1019,7 +1088,7 @@ private fun AccountItem(
     // Low-balance alert: only for non-credit accounts with a threshold set, when the
     // current balance has fallen at or below it. (Credit cards invert this — their
     // "low" concept is available limit, not balance — so they're excluded.)
-    val isLowBalance = !account.isCreditCard &&
+    val isLowBalance = !account.isLiability &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
     Card(
@@ -1053,7 +1122,7 @@ private fun AccountItem(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AccountBalance,
+                        imageVector = if (account.isLoan) AccountType.LOAN.icon else Icons.Default.AccountBalance,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -1134,7 +1203,11 @@ private fun AccountItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = if (isLowBalance) stringResource(R.string.manage_accounts_low_balance) else stringResource(R.string.manage_accounts_balance),
+                        text = when {
+                            isLowBalance -> stringResource(R.string.manage_accounts_low_balance)
+                            account.isLoan -> stringResource(R.string.manage_accounts_outstanding)
+                            else -> stringResource(R.string.manage_accounts_balance)
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isLowBalance) FontWeight.Medium else null,
                         color = if (isLowBalance) {
@@ -1259,6 +1332,18 @@ private fun AccountItem(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        // SMS-tracked accounts reach the edit dialog (name, currency,
+                        // type) from here; manual ones have it as the primary button.
+                        if (!isManualAccount) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.manage_accounts_action_edit)) },
+                                onClick = {
+                                    showMenu = false
+                                    onEditAccount()
+                                },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.manage_accounts_menu_history)) },
                             onClick = {
@@ -1315,8 +1400,9 @@ private fun AccountItem(
                         )
                         // Only non-credit accounts — credit cards' "low" concept is
                         // available limit, not balance, so the alert (and this entry)
-                        // don't apply (matches the isLowBalance exclusion above).
-                        if (!account.isCreditCard) {
+                        // don't apply (matches the isLowBalance exclusion above). Same
+                        // for loans, whose balance is owed.
+                        if (!account.isLiability) {
                             DropdownMenuItem(
                                 text = { Text(if (account.lowBalanceThreshold == null) stringResource(R.string.manage_accounts_low_balance_alert) else stringResource(R.string.manage_accounts_menu_edit_low_balance_alert)) },
                                 onClick = {
@@ -2139,7 +2225,7 @@ private fun DeleteAccountConfirmDialog(
 private fun EditAccountDialog(
     account: com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity,
     onDismiss: () -> Unit,
-    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?, currency: String) -> Unit
+    onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?, currency: String, type: AccountType) -> Unit
 ) {
     var bankNameText by remember { mutableStateOf(account.bankName) }
     var balanceText by remember { mutableStateOf(account.balance.toString()) }
@@ -2158,13 +2244,17 @@ private fun EditAccountDialog(
         )
     }
     var showCurrencyMenu by remember { mutableStateOf(false) }
+    // Editable for every account, SMS-created ones included (#792).
+    var selectedType by remember { mutableStateOf(account.getAccountType()) }
+    var showTypeMenu by remember { mutableStateOf(false) }
+    val isCreditForm = selectedType == AccountType.CREDIT
     var isValid by remember { mutableStateOf(false) }
 
-    LaunchedEffect(bankNameText, balanceText, creditLimitText) {
+    LaunchedEffect(bankNameText, balanceText, creditLimitText, isCreditForm) {
         isValid = bankNameText.isNotBlank() &&
                   balanceText.isNotBlank() &&
                   balanceText.toDoubleOrNull() != null &&
-                  (if (account.isCreditCard) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
+                  (if (isCreditForm) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
     }
 
     AlertDialog(
@@ -2173,7 +2263,7 @@ private fun EditAccountDialog(
             Column {
                 Text(stringResource(R.string.manage_accounts_edit_account_title))
                 Text(
-                    text = if (account.isCreditCard) stringResource(R.string.manage_accounts_type_credit_card) else stringResource(R.string.manage_accounts_type_bank_account),
+                    text = selectedType.displayName(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -2181,6 +2271,7 @@ private fun EditAccountDialog(
         },
         text = {
             Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 // Bank Name (Editable)
@@ -2190,7 +2281,7 @@ private fun EditAccountDialog(
                     label = { Text(stringResource(R.string.manage_accounts_bank_name_label)) },
                     leadingIcon = {
                         Icon(
-                            if (account.isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
+                            selectedType.icon,
                             contentDescription = null
                         )
                     },
@@ -2267,7 +2358,72 @@ private fun EditAccountDialog(
                     }
                 }
 
-                if (account.isCreditCard) {
+                // Account type (#792). Changing it only changes how the balance is
+                // counted from now on; past transactions are not rewritten.
+                Column {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showTypeMenu = true },
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(R.string.add_account_type_label),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    selectedType.icon,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                )
+                                Text(
+                                    text = selectedType.displayName(),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = showTypeMenu,
+                        onDismissRequest = { showTypeMenu = false }
+                    ) {
+                        AccountType.entries.forEach { type ->
+                            DropdownMenuItem(
+                                text = { Text(type.displayName()) },
+                                leadingIcon = { Icon(type.icon, contentDescription = null) },
+                                onClick = {
+                                    selectedType = type
+                                    showTypeMenu = false
+                                }
+                            )
+                        }
+                    }
+                    if (selectedType != account.getAccountType()) {
+                        Text(
+                            text = stringResource(R.string.manage_accounts_type_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.xs)
+                        )
+                    }
+                }
+
+                if (isCreditForm) {
                     // Outstanding Balance (Credit Card)
                     TextField(
                         value = balanceText,
@@ -2362,7 +2518,15 @@ private fun EditAccountDialog(
                                 balanceText = text
                             }
                         },
-                        label = { Text(stringResource(R.string.manage_accounts_account_balance_label)) },
+                        label = {
+                            Text(
+                                if (selectedType == AccountType.LOAN) stringResource(R.string.manage_accounts_outstanding_balance)
+                                else stringResource(R.string.manage_accounts_account_balance_label)
+                            )
+                        },
+                        supportingText = if (selectedType == AccountType.LOAN) {
+                            { Text(stringResource(R.string.manage_accounts_loan_outstanding_hint)) }
+                        } else null,
                         placeholder = { Text("0.00") },
                         leadingIcon = {
                             Text(
@@ -2384,10 +2548,10 @@ private fun EditAccountDialog(
             TextButton(
                 onClick = {
                     val balance = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    val creditLimit = if (account.isCreditCard) {
+                    val creditLimit = if (isCreditForm) {
                         creditLimitText.toBigDecimalOrNull()
                     } else null
-                    onConfirm(bankNameText, balance, creditLimit, currencyText)
+                    onConfirm(bankNameText, balance, creditLimit, currencyText, selectedType)
                 },
                 enabled = isValid
             ) {

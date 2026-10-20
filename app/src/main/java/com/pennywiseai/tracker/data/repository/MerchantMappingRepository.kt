@@ -39,15 +39,20 @@ class MerchantMappingRepository @Inject constructor(
     }
 
     /**
-     * Returns all merchant→category mappings as a plain Map for O(1) lookup.
-     * Used by the SMS worker to pre-load the cache once per scan instead of
-     * hitting the DB once per transaction.
-     *
-     * Requires adding this query to MerchantMappingDao:
-     *   @Query("SELECT * FROM merchant_mappings")
-     *   suspend fun getAllMappingsList(): List<MerchantMappingEntity>
+     * Returns all merchant→category mappings for O(1) lookup. Used by the SMS
+     * worker to pre-load the cache once per scan instead of hitting the DB once
+     * per transaction. Keys match case-insensitively, like [getCategoryForMerchant].
      */
-    suspend fun getAllMappingsAsMap(): Map<String, String> {
-        return merchantMappingDao.getAllMappingsList().associate { it.merchantName to it.category }
-    }
+    suspend fun getAllMappingsAsMap(): Map<String, String> =
+        merchantMappingDao.getAllMappingsList().toCategoryLookup()
 }
+
+/**
+ * Case-insensitive merchant→category lookup with the same winner as
+ * [MerchantMappingDao.getCategoryForMerchant]: newest `updatedAt`, then the
+ * smallest merchant name. An exact-case map let the background scan miss a
+ * mapping the live SMS path applied, so a rescan reverted the category (#911).
+ */
+internal fun List<MerchantMappingEntity>.toCategoryLookup(): Map<String, String> =
+    sortedWith(compareBy<MerchantMappingEntity> { it.updatedAt }.thenByDescending { it.merchantName })
+        .associateTo(java.util.TreeMap(String.CASE_INSENSITIVE_ORDER)) { it.merchantName to it.category }

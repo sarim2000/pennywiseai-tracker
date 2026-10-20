@@ -39,7 +39,7 @@ class MerchantMappingRepository @Inject constructor(
     }
 
     /**
-     * Returns all merchant→category mappings for O(1) lookup. Used by the SMS
+     * Returns all merchant→category mappings for in-memory lookup. Used by the SMS
      * worker to pre-load the cache once per scan instead of hitting the DB once
      * per transaction. Keys match case-insensitively, like [getCategoryForMerchant].
      */
@@ -55,4 +55,14 @@ class MerchantMappingRepository @Inject constructor(
  */
 internal fun List<MerchantMappingEntity>.toCategoryLookup(): Map<String, String> =
     sortedWith(compareBy<MerchantMappingEntity> { it.updatedAt }.thenByDescending { it.merchantName })
-        .associateTo(java.util.TreeMap(String.CASE_INSENSITIVE_ORDER)) { it.merchantName to it.category }
+        .associateTo(java.util.TreeMap(SQLITE_NOCASE)) { it.merchantName to it.category }
+
+// SQLite's NOCASE folds ASCII letters only: "CAFÉ" and "Café" stay distinct
+// merchants there, so they must here too (String.CASE_INSENSITIVE_ORDER folds É).
+private fun Char.asciiLower(): Char = if (this in 'A'..'Z') this + 32 else this
+
+private val SQLITE_NOCASE = Comparator<String> { a, b ->
+    (a zip b).firstOrNull { (x, y) -> x.asciiLower() != y.asciiLower() }
+        ?.let { (x, y) -> x.asciiLower().compareTo(y.asciiLower()) }
+        ?: a.length.compareTo(b.length)
+}

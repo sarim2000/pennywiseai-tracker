@@ -28,6 +28,13 @@ class MerchantMappingLookupTest {
     }
 
     @Test
+    fun `non-ASCII letters are not folded, like SQLite NOCASE`() {
+        val lookup = listOf(mapping("CAFÉ", "Travel", 1), mapping("Café", "Food", 5)).toCategoryLookup()
+        assertEquals("Travel", lookup["cafÉ"])
+        assertEquals("Food", lookup["CAFé"])
+    }
+
+    @Test
     fun `timestamp tie goes to the smallest name, like the DAO`() {
         val lookup = listOf(mapping("zomato", "Bills", 3), mapping("ZOMATO", "Travel", 3)).toCategoryLookup()
         assertEquals("Travel", lookup["Zomato"])

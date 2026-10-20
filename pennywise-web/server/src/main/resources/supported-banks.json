@@ -1,5 +1,5 @@
 {
-  "totalBanks": 162,
+  "totalBanks": 163,
   "totalCountries": 25,
   "countries": [
     {
@@ -115,6 +115,14 @@
       "banks": ["Banco Agricola", "Banco Cuscatlan", "Banco Promerica"]
     },
     {
+      "country": "Bangladesh",
+      "flag": "🇧🇩",
+      "currency": "BDT",
+      "symbol": "৳",
+      "bankCount": 2,
+      "banks": ["BRAC Bank", "bKash"]
+    },
+    {
       "country": "Eurozone",
       "flag": "🇪🇺",
       "currency": "EUR",
@@ -137,14 +145,6 @@
       "symbol": "£",
       "bankCount": 2,
       "banks": ["Chase UK", "Trading 212"]
-    },
-    {
-      "country": "Bangladesh",
-      "flag": "🇧🇩",
-      "currency": "BDT",
-      "symbol": "৳",
-      "bankCount": 1,
-      "banks": ["bKash"]
     },
     {
       "country": "Belarus",

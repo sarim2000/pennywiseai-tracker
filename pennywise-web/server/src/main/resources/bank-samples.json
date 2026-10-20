@@ -121,6 +121,17 @@
       "reference": null,
       "balance": null
     },
+    "BRAC Bank": {
+      "sender": "BRAC BANK",
+      "message": "TK 500.00 withdrawn from A/C#11111**1111 on 18-10-26 @12:24 PM from TEST MARKET ATM DHAKA BD. Balance TK 22,639.95. BRAC Bank.",
+      "currency": "BDT",
+      "amount": "500.00",
+      "type": "EXPENSE",
+      "merchant": "ATM Withdrawal",
+      "accountLast4": "1111",
+      "reference": null,
+      "balance": "22639.95"
+    },
     "Banco Agricola": {
       "sender": "Transfer365",
       "message": "B.AGRICOLA-TRANSFER365: ha recibido un Abono a Cuenta de GIVEN NAME SURNAME por USD20.00 desde ANOTHER BANK NAME",

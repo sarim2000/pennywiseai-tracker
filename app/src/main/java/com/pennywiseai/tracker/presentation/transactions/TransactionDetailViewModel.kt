@@ -1024,12 +1024,13 @@ class TransactionDetailViewModel @Inject constructor(
                     _originalSplits.value = emptyList()
                 }
 
+                // The merchant-wide writes below key on the merchant as it was
+                // before this edit: future SMS still arrive under that name.
+                val merchantKey = merchantKeyForApply(original?.merchantName, normalizedTransaction.merchantName)
+
                 // Save merchant mapping if checkbox is checked
                 if (_applyToAllFromMerchant.value) {
-                    merchantMappingRepository.setMapping(
-                        normalizedTransaction.merchantName,
-                        normalizedTransaction.category
-                    )
+                    merchantMappingRepository.setMapping(merchantKey, normalizedTransaction.category)
                 }
 
                 // #752: persist the tags for future transactions from this merchant.
@@ -1038,7 +1039,7 @@ class TransactionDetailViewModel @Inject constructor(
                 var ruleError: UiText? = null
                 if (_applyTagsToAllFromMerchant.value) {
                     try {
-                        upsertMerchantTagRule(normalizedTransaction.merchantName, _editableTags.value)
+                        upsertMerchantTagRule(merchantKey, _editableTags.value)
                     } catch (e: Exception) {
                         ruleError = UiText.Res(R.string.txn_detail_error_tag_rule, listOf(e.message.toString()))
                     }
@@ -1046,10 +1047,7 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Update existing transactions if checkbox is checked
                 if (_updateExistingTransactions.value) {
-                    transactionRepository.updateCategoryForMerchant(
-                        normalizedTransaction.merchantName,
-                        normalizedTransaction.category
-                    )
+                    transactionRepository.updateCategoryForMerchant(merchantKey, normalizedTransaction.category)
                 }
 
                 // Persist the merchant display alias (#583), keyed on the saved
@@ -1295,6 +1293,15 @@ class TransactionDetailViewModel @Inject constructor(
         val SPLITTABLE_TYPES = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
     }
 }
+
+/**
+ * The merchant "apply to all from X" writes key on: the name the transaction
+ * had before this edit, which is what the parser gives future SMS. Renaming
+ * the merchant in the same edit must not move the mapping, the tag rule or
+ * "update existing" to a name no SMS carries.
+ */
+internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: String): String =
+    originalMerchant ?: savedMerchant
 
 internal sealed class AliasWrite {
     data class Set(val merchant: String, val alias: String) : AliasWrite()

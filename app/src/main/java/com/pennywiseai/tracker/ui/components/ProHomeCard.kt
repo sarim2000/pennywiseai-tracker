@@ -77,7 +77,8 @@ fun ProHomeCard(
         ) {
             TextButton(
                 onClick = onSeePro,
-                colors = ButtonDefaults.textButtonColors(contentColor = yellow_dark),
+                // yellow_dark on yellow_light is ~2.5:1 — too faint for a text label (AA 4.5:1).
+                colors = ButtonDefaults.textButtonColors(contentColor = yellow_on_light),
             ) {
                 Text(stringResource(R.string.pro_home_card_action))
             }
@@ -85,7 +86,7 @@ fun ProHomeCard(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.pro_home_card_dismiss),
-                    tint = yellow_dark,
+                    tint = yellow_on_light,
                     modifier = Modifier.size(Dimensions.Icon.small),
                 )
             }

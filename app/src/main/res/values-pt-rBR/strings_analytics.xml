@@ -15,8 +15,6 @@
     <string name="analytics_top_tags">Principais tags</string>
     <string name="analytics_top_merchants">Comerciantes Mais Populares</string>
     <string name="analytics_by_account">Por Conta</string>
-    <string name="analytics_pro_tags_title">Veja suas principais tags com o Pro</string>
-    <string name="analytics_pro_tags_body">Desbloqueie um detalhamento de gastos em todas as suas tags. Etiquetar e filtrar continuam grátis.</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">Limpar</string>
     <string name="analytics_filter_all_profiles">Todas as Contas</string>

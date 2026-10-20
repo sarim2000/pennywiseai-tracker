@@ -54,6 +54,10 @@ fun TagPieChart(
     }
 
     var chartData by remember(pieData) { mutableStateOf(pieData) }
+    // Slices line up with [tags] by position. Match a slice by identity, not label:
+    // a user tag named like the "No tag" row shares its label (#422).
+    fun indexOfPie(pie: Pie): Int =
+        chartData.indexOfFirst { it === pie }.takeIf { it >= 0 } ?: chartData.indexOf(pie)
 
     Row(
         modifier = modifier
@@ -73,12 +77,11 @@ fun TagPieChart(
                 modifier = Modifier.size(160.dp),
                 data = chartData,
                 onPieClick = { clickedPie ->
-                    val pieIndex = chartData.indexOf(clickedPie)
+                    val pieIndex = indexOfPie(clickedPie)
                     chartData = chartData.mapIndexed { index, pie ->
                         pie.copy(selected = index == pieIndex)
                     }
-                    val tagName = clickedPie.label ?: return@PieChart
-                    tags.find { it.name == tagName }?.let(onTagClick)
+                    tags.getOrNull(pieIndex)?.let(onTagClick)
                 },
                 selectedScale = 1.1f,
                 scaleAnimEnterSpec = tween(400),
@@ -105,12 +108,11 @@ fun TagPieChart(
                     currency = currency,
                     totalAmount = total,
                     onClick = {
-                        val pieIndex = chartData.indexOf(pie)
+                        val pieIndex = indexOfPie(pie)
                         chartData = chartData.mapIndexed { index, p ->
                             p.copy(selected = index == pieIndex)
                         }
-                        val tagName = pie.label ?: return@TagLegendItem
-                        tags.find { it.name == tagName }?.let(onTagClick)
+                        tags.getOrNull(pieIndex)?.let(onTagClick)
                     }
                 )
             }

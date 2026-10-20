@@ -15,8 +15,6 @@
     <string name="analytics_top_tags">Top štítky</string>
     <string name="analytics_top_merchants">Top obchodníci</string>
     <string name="analytics_by_account">Podle účtu</string>
-    <string name="analytics_pro_tags_title">Podívejte se na Vaše nejlepší štítky s Pro</string>
-    <string name="analytics_pro_tags_body">Odemkněte rozpis výdajů ve všech vašich značkách. Označování a filtrování zůstávají zdarma.</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">Vyčistit</string>
     <string name="analytics_filter_all_profiles">Všechny účty</string>

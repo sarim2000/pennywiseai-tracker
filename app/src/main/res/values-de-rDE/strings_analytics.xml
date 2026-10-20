@@ -15,8 +15,6 @@
     <string name="analytics_top_tags">Top Tags</string>
     <string name="analytics_top_merchants">Top Händler</string>
     <string name="analytics_by_account">Nach Konto</string>
-    <string name="analytics_pro_tags_title">Sehen Sie Ihre Top Tags mit Pro</string>
-    <string name="analytics_pro_tags_body">Schalte eine Aufschlüsselung über alle deine Tags frei. Markieren und Filtern bleiben kostenlos.</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">Leeren</string>
     <string name="analytics_filter_all_profiles">Alle Konten</string>

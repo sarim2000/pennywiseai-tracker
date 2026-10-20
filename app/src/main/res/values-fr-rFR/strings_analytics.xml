@@ -15,8 +15,6 @@
     <string name="analytics_top_tags">Meilleurs mots-clés</string>
     <string name="analytics_top_merchants">Meilleurs marchands</string>
     <string name="analytics_by_account">Par compte</string>
-    <string name="analytics_pro_tags_title">Voir vos meilleurs tags avec Pro</string>
-    <string name="analytics_pro_tags_body">Débloquez une ventilation des dépenses sur tous vos tags. Le marquage et le filtrage restent gratuits.</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">Nettoyer</string>
     <string name="analytics_filter_all_profiles">Tous les comptes</string>

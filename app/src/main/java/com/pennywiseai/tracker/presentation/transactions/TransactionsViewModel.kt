@@ -1120,6 +1120,11 @@ class TransactionsViewModel @Inject constructor(
         }
     }
     
+    /** A navigated type name, or All when absent, unknown or not listable (Spending). */
+    private fun navigatedType(type: String?): TransactionTypeFilter =
+        TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
+            ?: TransactionTypeFilter.ALL
+
     private fun decodeUrlParam(value: String): String {
         return if (value.contains("+") || value.contains("%")) {
             java.net.URLDecoder.decode(value, "UTF-8")
@@ -1132,15 +1137,20 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?,
         startDateEpochDay: Long? = null,
-        endDateEpochDay: Long? = null
+        endDateEpochDay: Long? = null,
+        account: String? = null,
+        tag: String? = null,
+        type: String? = null
     ) {
         if (!hasAppliedInitialFilters) {
             // Only apply filters once, when first navigating to the screen
             clearCategoryFilter()
             updateSearchQuery("")
             selectPeriod(TimePeriod.THIS_MONTH)
-            setTransactionTypeFilter(TransactionTypeFilter.ALL)
+            setTransactionTypeFilter(navigatedType(type))
             setSortOption(SortOption.DATE_NEWEST)
+            setAccountFilter(account)
+            setTagFilter(tag)
 
             category?.let {
                 val decoded = decodeUrlParam(it)
@@ -1193,11 +1203,14 @@ class TransactionsViewModel @Inject constructor(
         period: String?,
         currency: String?,
         startDateEpochDay: Long? = null,
-        endDateEpochDay: Long? = null
+        endDateEpochDay: Long? = null,
+        account: String? = null,
+        tag: String? = null,
+        type: String? = null
     ) {
         // Create current params to compare
         val currentParams = NavigationParams(
-            category, merchant, period, currency, startDateEpochDay, endDateEpochDay
+            category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag, type
         )
 
         // Only apply navigation filters if:
@@ -1215,8 +1228,10 @@ class TransactionsViewModel @Inject constructor(
         clearCategoryFilter()
         updateSearchQuery("")
         selectPeriod(TimePeriod.THIS_MONTH)
-        setTransactionTypeFilter(TransactionTypeFilter.ALL)
+        setTransactionTypeFilter(navigatedType(type))
         setSortOption(SortOption.DATE_NEWEST)
+        setAccountFilter(account)
+        setTagFilter(tag)
 
         category?.let {
             val decoded = decodeUrlParam(it)
@@ -1648,7 +1663,10 @@ private data class NavigationParams(
     val period: String?,
     val currency: String?,
     val startDateEpochDay: Long? = null,
-    val endDateEpochDay: Long? = null
+    val endDateEpochDay: Long? = null,
+    val account: String? = null,
+    val tag: String? = null,
+    val type: String? = null
 )
 
 /**

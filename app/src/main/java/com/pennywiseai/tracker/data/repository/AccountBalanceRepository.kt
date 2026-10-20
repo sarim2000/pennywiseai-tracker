@@ -243,13 +243,15 @@ open class AccountBalanceRepository @Inject constructor(
         )
 
     /**
-     * Puts [snapshot]'s type and card flag back on every row of its account, e.g.
-     * after a force resync rebuilt the rows without them (#792). No-op for an
-     * untyped snapshot.
+     * Puts [snapshot]'s type and card flag back on the account's rows that lost
+     * them, e.g. rows a force resync rebuilt from balance-only SMS (#792). Only
+     * untyped rows are touched, so a type the user set after the snapshot (an
+     * edit made while the resync ran re-tags every row) is never undone. No-op
+     * for an untyped snapshot.
      */
     suspend fun restoreAccountType(snapshot: AccountBalanceEntity): Int {
         val type = snapshot.accountType ?: return 0
-        return accountBalanceDao.updateAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
+        return accountBalanceDao.fillMissingAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
     }
 
     /**

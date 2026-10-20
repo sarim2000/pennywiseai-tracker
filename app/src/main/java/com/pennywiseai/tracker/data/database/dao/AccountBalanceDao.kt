@@ -235,6 +235,9 @@ interface AccountBalanceDao {
     @Query("UPDATE account_balances SET account_type = :accountType, is_credit_card = :isCreditCard WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun updateAccountType(bankName: String, accountLast4: String, accountType: String, isCreditCard: Boolean): Int
 
+    @Query("UPDATE account_balances SET account_type = :accountType, is_credit_card = :isCreditCard WHERE bank_name = :bankName AND account_last4 = :accountLast4 AND account_type IS NULL")
+    suspend fun fillMissingAccountType(bankName: String, accountLast4: String, accountType: String, isCreditCard: Boolean): Int
+
     /**
      * Sets the per-account low-balance alert threshold across ALL rows of an
      * account (it is an account-level field). null clears the alert. (#509)

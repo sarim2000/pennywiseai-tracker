@@ -93,6 +93,17 @@ class AccountBalanceRepositoryAccountTypeTest {
                     }
                     updated
                 }
+                "fillMissingAccountType" -> {
+                    val (bankName, accountLast4, type, isCredit) = args
+                    var updated = 0
+                    balanceRows.replaceAll { row ->
+                        if (row.bankName == bankName && row.accountLast4 == accountLast4 && row.accountType == null) {
+                            updated++
+                            row.copy(accountType = type as String, isCreditCard = isCredit as Boolean)
+                        } else row
+                    }
+                    updated
+                }
                 else -> null
             }
         } as AccountBalanceDao
@@ -257,6 +268,18 @@ class AccountBalanceRepositoryAccountTypeTest {
         repository.restoreAccountType(beforeRebuild)
         assertTrue(balanceRows.single().isLoan)
         assertEquals("260000.00", balanceRows.single().balance.toPlainString())
+    }
+
+    @Test
+    fun `restoreAccountType keeps a type the user set while the resync ran`() = runBlocking {
+        val beforeRebuild = smsAccountRow("250000.00", hoursAgo = 1).copy(accountType = "LOAN")
+        repository.insertBalance(smsAccountRow("260000.00", hoursAgo = 5))
+
+        // The user switches the account back to Savings mid-scan.
+        repository.setAccountType("Test Bank", "7777", AccountType.SAVINGS)
+        repository.restoreAccountType(beforeRebuild)
+
+        assertEquals(AccountType.SAVINGS, repository.getLatestBalance("Test Bank", "7777")?.getAccountType())
     }
 
     @Test

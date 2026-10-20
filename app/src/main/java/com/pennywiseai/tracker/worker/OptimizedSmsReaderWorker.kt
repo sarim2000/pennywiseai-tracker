@@ -427,7 +427,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             Log.i(TAG, buildSummary(stats, totalTime))
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
-            // so put each typed account's type back on all of its rows (#792).
+            // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
             cleanUpAndFinalize(stats)
             // Materialise any due income-autopay phantoms (#371). Runs after
@@ -964,10 +964,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
-        // A force resync may have wiped this account's rows; its type then comes from
-        // the snapshot taken before the rebuild (#792). Balance math still starts from
-        // the rebuilt history (`existing`), never from the pre-resync balance.
-        val typed = accountsBeforeRebuild[parsed.bankName to targetAccount] ?: existing
+        // A force resync may have wiped this account's rows; until a typed row exists
+        // again, its type comes from the snapshot taken before the rebuild (#792). A
+        // typed row wins, so a type the user sets while the resync runs is kept.
+        // Balance math still starts from the rebuilt history (`existing`), never from
+        // the pre-resync balance.
+        val typed = existing?.takeIf { it.accountType != null }
+            ?: accountsBeforeRebuild[parsed.bankName to targetAccount]
+            ?: existing
         val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, typed)
 
         // The account keeps its own currency; a foreign-currency spend isn't

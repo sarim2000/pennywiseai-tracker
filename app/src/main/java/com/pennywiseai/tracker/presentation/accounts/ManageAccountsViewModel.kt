@@ -844,9 +844,10 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = resolvedCurrency,
                         targetBalance = newBalance
                     )
-                } else if (latestBalance == null || !latestBalance.matches(newBalance, newCreditLimit, resolvedCurrency)) {
-                    // Insert new balance record with updated values. Skipped when only
-                    // the name or type changed, so a type change adds no balance row.
+                } else {
+                    // Insert new balance record with updated values. Being MANUAL, it
+                    // survives a force resync, so a re-typed SMS account keeps its type
+                    // when its SMS rows are rebuilt (they inherit it from this row).
                     accountBalanceRepository.insertBalance(
                         AccountBalanceEntity(
                             bankName = newBankName,
@@ -881,11 +882,5 @@ class ManageAccountsViewModel @Inject constructor(
                 }
             }
         }
-    }
-
-    /** True when [this] row already holds these values, so an edit needs no new balance row. */
-    private fun AccountBalanceEntity.matches(balance: BigDecimal, creditLimit: BigDecimal?, currency: String): Boolean {
-        fun same(a: BigDecimal?, b: BigDecimal?) = if (a == null || b == null) a == b else a.compareTo(b) == 0
-        return same(this.balance, balance) && same(this.creditLimit, creditLimit) && this.currency == currency
     }
 }

@@ -240,6 +240,22 @@ class AccountBalanceRepositoryAccountTypeTest {
     }
 
     @Test
+    fun `SMS rows rebuilt after a force resync inherit the type from the surviving MANUAL edit row`() = runBlocking {
+        // A force resync keeps only the MANUAL row the edit dialog wrote with the type change.
+        repository.insertBalance(smsAccountRow("250000.00", hoursAgo = 1).copy(sourceType = "MANUAL", accountType = "LOAN"))
+
+        repository.insertBalanceUpdate(
+            bankName = "Test Bank",
+            accountLast4 = "7777",
+            balance = BigDecimal("260000.00"),
+            timestamp = LocalDateTime.now().minusHours(5),
+            sourceType = "SMS_BALANCE"
+        )
+
+        assertTrue(balanceRows.all { it.isLoan })
+    }
+
+    @Test
     fun `switching a loan to CREDIT sets the credit-card flag, and back to LOAN clears it`() = runBlocking {
         repository.insertBalance(smsAccountRow("5000.00", hoursAgo = 1))
 

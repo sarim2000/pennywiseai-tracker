@@ -94,9 +94,21 @@ class LoanAccountBalanceTest {
     fun `an SMS on a loan never turns it into a credit card`() {
         assertFalse(BalanceCalculator.resolvedIsCreditCard(smsIsCard = true, existing = loan))
         assertFalse(BalanceCalculator.resolvedIsCreditCard(smsIsCard = false, existing = loan))
-        // Unchanged for everything else.
-        assertTrue(BalanceCalculator.resolvedIsCreditCard(smsIsCard = true, existing = savings))
+    }
+
+    @Test
+    fun `a card SMS does not undo a non-card type the user chose`() {
+        assertFalse(BalanceCalculator.resolvedIsCreditCard(smsIsCard = true, existing = savings))
+        assertFalse(BalanceCalculator.resolvedIsCreditCard(smsIsCard = true, existing = account("5555", "0", accountType = "CASH")))
+    }
+
+    @Test
+    fun `untyped accounts and cards keep today's card detection`() {
+        assertTrue(BalanceCalculator.resolvedIsCreditCard(smsIsCard = true, existing = smsAccount))
+        assertTrue(BalanceCalculator.resolvedIsCreditCard(smsIsCard = true, existing = null))
         assertTrue(BalanceCalculator.resolvedIsCreditCard(smsIsCard = false, existing = card))
+        assertTrue(BalanceCalculator.resolvedIsCreditCard(smsIsCard = false, existing = card.copy(accountType = "CREDIT")))
+        assertFalse(BalanceCalculator.resolvedIsCreditCard(smsIsCard = false, existing = smsAccount))
         assertFalse(BalanceCalculator.resolvedIsCreditCard(smsIsCard = false, existing = null))
     }
 

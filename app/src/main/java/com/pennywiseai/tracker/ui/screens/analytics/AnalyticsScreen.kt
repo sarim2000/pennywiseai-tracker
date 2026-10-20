@@ -65,21 +65,26 @@ import java.math.BigDecimal
 
 private enum class CategoryViewType { CHART, LIST }
 
+/** The Transactions slice an Analytics row drills into: its group plus the view's filters. */
+data class TransactionsDrillDown(
+    val category: String? = null,
+    val merchant: String? = null,
+    val account: String? = null,
+    val tag: String? = null,
+    /** A [TransactionTypeFilter] name; null (all types) for Spending, which Transactions can't show. */
+    val type: String? = null,
+    val period: String? = null,
+    val currency: String? = null,
+    val startDateEpochDay: Long? = null,
+    val endDateEpochDay: Long? = null
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
-    onNavigateToTransactions: (
-        category: String?,
-        merchant: String?,
-        period: String?,
-        currency: String?,
-        startDateEpochDay: Long?,
-        endDateEpochDay: Long?,
-        account: String?,
-        tag: String?
-    ) -> Unit = { _, _, _, _, _, _, _, _ -> },
+    onNavigateToTransactions: (TransactionsDrillDown) -> Unit = {},
     onNavigateToHome: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -130,14 +135,20 @@ fun AnalyticsScreen(
     // screen (and its CSV export) shows exactly the slice being viewed here.
     val navStartEpochDay = if (selectedPeriod == TimePeriod.CUSTOM) customDateRange?.first?.toEpochDay() else null
     val navEndEpochDay = if (selectedPeriod == TimePeriod.CUSTOM) customDateRange?.second?.toEpochDay() else null
-    // Drill into Transactions filtered by one group, over the same period and currency.
-    val drillDown: (category: String?, merchant: String?, account: String?, tag: String?) -> Unit =
-        { category, merchant, account, tag ->
-            onNavigateToTransactions(
-                category, merchant, selectedPeriod.name, selectedCurrency,
-                navStartEpochDay, navEndEpochDay, account, tag
+    // Drill into Transactions for one group, keeping this view's period, currency,
+    // type and category filter so the list matches the figure that was tapped.
+    val drillDown: (TransactionsDrillDown) -> Unit = { group ->
+        onNavigateToTransactions(
+            group.copy(
+                category = group.category ?: categoryFilter,
+                type = transactionTypeFilter.takeIf { it.inTransactionsList }?.name,
+                period = selectedPeriod.name,
+                currency = selectedCurrency,
+                startDateEpochDay = navStartEpochDay,
+                endDateEpochDay = navEndEpochDay
             )
-        }
+        )
+    }
     val primaryVisibleCurrency = availableCurrencies.firstOrNull() ?: selectedCurrency
     val hasCurrencyFilter = !isUnifiedMode &&
             availableCurrencies.size > 1 &&
@@ -469,14 +480,14 @@ fun AnalyticsScreen(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
                                 onCategoryClick = { category ->
-                                    drillDown(category.name, null, null, null)
+                                    drillDown(TransactionsDrillDown(category = category.name))
                                 }
                             )
                             CategoryViewType.LIST -> CategoryBreakdownCard(
                                 categories = uiState.categoryBreakdown,
                                 currency = selectedCurrency,
                                 onCategoryClick = { category ->
-                                    drillDown(category.name, null, null, null)
+                                    drillDown(TransactionsDrillDown(category = category.name))
                                 }
                             )
                         }
@@ -544,14 +555,14 @@ fun AnalyticsScreen(
                                 tags = uiState.tagBreakdown,
                                 currency = selectedCurrency,
                                 onTagClick = { tag ->
-                                    if (!tag.isUntagged) drillDown(null, null, null, tag.name)
+                                    if (!tag.isUntagged) drillDown(TransactionsDrillDown(tag = tag.name))
                                 }
                             )
                             CategoryViewType.LIST -> TagBreakdownCard(
                                 tags = uiState.tagBreakdown,
                                 currency = selectedCurrency,
                                 onTagClick = { tag ->
-                                    drillDown(null, null, null, tag.name)
+                                    drillDown(TransactionsDrillDown(tag = tag.name))
                                 }
                             )
                         }
@@ -606,7 +617,7 @@ fun AnalyticsScreen(
                         merchant = merchant,
                         currency = selectedCurrency,
                         onClick = {
-                            drillDown(null, merchant.name, null, null)
+                            drillDown(TransactionsDrillDown(merchant = merchant.name))
                         }
                     )
                 }
@@ -631,7 +642,7 @@ fun AnalyticsScreen(
                     AccountBreakdownListItem(
                         account = account,
                         currency = selectedCurrency,
-                        onClick = { drillDown(null, null, account.key, null) }
+                        onClick = { drillDown(TransactionsDrillDown(account = account.key)) }
                     )
                 }
             }

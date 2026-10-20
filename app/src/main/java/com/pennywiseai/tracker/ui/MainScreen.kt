@@ -413,35 +413,38 @@ fun MainScreen(
                                     }
                                 }
                             },
-                            onNavigateToTransactions = { category, merchant, period, currency, startDateEpochDay, endDateEpochDay, account, tag ->
+                            onNavigateToTransactions = { drill ->
                                 val route = buildString {
                                     append("transactions")
                                     val params = mutableListOf<String>()
-                                    category?.let {
+                                    drill.category?.let {
                                         val encoded = java.net.URLEncoder.encode(it, "UTF-8")
                                         params.add("category=$encoded")
                                     }
-                                    merchant?.let {
+                                    drill.merchant?.let {
                                         val encoded = java.net.URLEncoder.encode(it, "UTF-8")
                                         params.add("merchant=$encoded")
                                     }
-                                    period?.let {
+                                    drill.period?.let {
                                         params.add("period=$it")
                                     }
-                                    currency?.let {
+                                    drill.currency?.let {
                                         params.add("currency=$it")
                                     }
-                                    startDateEpochDay?.let {
+                                    drill.startDateEpochDay?.let {
                                         params.add("startDate=$it")
                                     }
-                                    endDateEpochDay?.let {
+                                    drill.endDateEpochDay?.let {
                                         params.add("endDate=$it")
                                     }
-                                    account?.let {
+                                    drill.account?.let {
                                         params.add("account=${android.net.Uri.encode(it)}")
                                     }
-                                    tag?.let {
+                                    drill.tag?.let {
                                         params.add("tag=${android.net.Uri.encode(it)}")
+                                    }
+                                    drill.type?.let {
+                                        params.add("type=$it")
                                     }
                                     if (params.isNotEmpty()) {
                                         append("?")

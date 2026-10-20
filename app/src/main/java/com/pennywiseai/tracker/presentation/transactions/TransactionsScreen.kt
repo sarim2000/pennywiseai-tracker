@@ -226,7 +226,8 @@ fun TransactionsScreen(
             initialCustomStartEpochDay,
             initialCustomEndEpochDay,
             initialAccount,
-            initialTag
+            initialTag,
+            initialTransactionType
         )
     }
 
@@ -234,7 +235,7 @@ fun TransactionsScreen(
     var processedNavParams by rememberSaveable { mutableStateOf(false) }
 
     // Apply navigation filters only ONCE when actually navigating (not when returning from detail)
-    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag) {
+    LaunchedEffect(initialCategory, initialMerchant, initialPeriod, initialCurrency, initialCustomStartEpochDay, initialCustomEndEpochDay, initialAccount, initialTag, initialTransactionType) {
         if (!processedNavParams && (initialCategory != null || initialMerchant != null || initialPeriod != null || initialCurrency != null || initialAccount != null || initialTag != null)) {
             viewModel.applyNavigationFilters(
                 initialCategory,
@@ -244,7 +245,8 @@ fun TransactionsScreen(
                 initialCustomStartEpochDay,
                 initialCustomEndEpochDay,
                 initialAccount,
-                initialTag
+                initialTag,
+                initialTransactionType
             )
             processedNavParams = true
         }

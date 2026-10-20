@@ -21,6 +21,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -1411,12 +1413,17 @@ private fun EditableTransactionHeader(
         if (editTags.isNotEmpty()) {
             val applyTagsToAll by viewModel.applyTagsToAllFromMerchant.collectAsStateWithLifecycle()
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().toggleable(
+                    value = applyTagsToAll,
+                    role = Role.Checkbox,
+                    onValueChange = { viewModel.toggleApplyTagsToAllFromMerchant() }
+                ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
                     checked = applyTagsToAll,
-                    onCheckedChange = { viewModel.toggleApplyTagsToAllFromMerchant() }
+                    onCheckedChange = null,
+                    modifier = Modifier.minimumInteractiveComponentSize()
                 )
                 Text(
                     text = stringResource(R.string.txn_detail_apply_tags_to_merchant, transaction.merchantName),
@@ -1555,13 +1562,19 @@ private fun EditableExtractedInfoCard(
 
         // Checkboxes
         if (!showSplitEditor) {
+            // The whole row toggles, so tapping the label ticks the box (#911).
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().toggleable(
+                    value = applyToAllFromMerchant,
+                    role = Role.Checkbox,
+                    onValueChange = { viewModel.toggleApplyToAllFromMerchant() }
+                ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
                     checked = applyToAllFromMerchant,
-                    onCheckedChange = { viewModel.toggleApplyToAllFromMerchant() }
+                    onCheckedChange = null,
+                    modifier = Modifier.minimumInteractiveComponentSize()
                 )
                 Text(
                     text = stringResource(R.string.txn_detail_apply_category_to_merchant, transaction.merchantName),
@@ -1573,12 +1586,17 @@ private fun EditableExtractedInfoCard(
             if (existingTransactionCount > 0) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().toggleable(
+                        value = updateExistingTransactions,
+                        role = Role.Checkbox,
+                        onValueChange = { viewModel.toggleUpdateExistingTransactions() }
+                    ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
                         checked = updateExistingTransactions,
-                        onCheckedChange = { viewModel.toggleUpdateExistingTransactions() }
+                        onCheckedChange = null,
+                        modifier = Modifier.minimumInteractiveComponentSize()
                     )
                     Text(
                         text = pluralStringResource(R.plurals.txn_detail_update_existing, existingTransactionCount, existingTransactionCount),

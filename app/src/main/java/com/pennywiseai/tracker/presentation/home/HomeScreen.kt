@@ -78,6 +78,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
+import com.pennywiseai.tracker.ui.components.ProHomeCard
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
@@ -164,6 +165,7 @@ fun HomeScreen(
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
+    val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -517,6 +519,19 @@ fun HomeScreen(
                             showShareSheet = true
                         },
                         onDismiss = { viewModel.markSharePromptHandled() },
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    )
+                }
+            } else if (showProHomeCard) {
+                // 1.3. One-time Pro card (#945). Shares the share banner's slot and
+                // never stacks with it (the eligibility check also excludes it).
+                item {
+                    ProHomeCard(
+                        onSeePro = {
+                            viewModel.markProHomeCardHandled()
+                            showUpgradeSheet = true
+                        },
+                        onDismiss = { viewModel.markProHomeCardHandled() },
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                     )
                 }

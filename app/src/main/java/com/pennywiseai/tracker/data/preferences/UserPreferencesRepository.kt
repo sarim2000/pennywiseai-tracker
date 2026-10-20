@@ -84,6 +84,8 @@ open class UserPreferencesRepository @Inject constructor(
         // dismissed. A month string rather than a day count: "30 days" drifts off the
         // month boundary this prompt is entirely about.
         val SHARE_PROMPT_HANDLED_MONTH = stringPreferencesKey("share_prompt_handled_month")
+        // Device-local on purpose: kept out of the backup's PreferencesSnapshot (#945).
+        val PRO_HOME_CARD_HANDLED = booleanPreferencesKey("pro_home_card_handled")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -479,6 +481,15 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] = month
         }
+    }
+
+    /** Whether the one-time Home Pro card (#945) has been tapped or dismissed. */
+    val proHomeCardHandled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] ?: false }
+
+    /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
+    suspend fun markProHomeCardHandled() {
+        context.dataStore.edit { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] = true }
     }
 
     suspend fun setShareCardConfig(config: ShareCardConfig) {

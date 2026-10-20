@@ -199,6 +199,10 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions")
     fun observeAllTransactionCount(): Flow<Int>
 
+    /** Live count of transactions the user can see (soft-deleted rows excluded). */
+    @Query("SELECT COUNT(*) FROM transactions WHERE is_deleted = 0")
+    fun observeActiveTransactionCount(): Flow<Int>
+
     /**
      * One-shot row count, read *inside* the delete-all transaction to check that
      * the table still holds exactly what the user confirmed before anything is

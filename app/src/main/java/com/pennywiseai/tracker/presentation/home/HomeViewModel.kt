@@ -192,6 +192,24 @@ class HomeViewModel @Inject constructor(
     private val _showSharePrompt = MutableStateFlow(false)
     val showSharePrompt: StateFlow<Boolean> = _showSharePrompt.asStateFlow()
 
+    /** The one-time Home card pointing engaged free users to Pro (#945). */
+    val showProHomeCard: StateFlow<Boolean> = combine(
+        entitlementGate.resolvedProEntitlement,
+        userPreferencesRepository.proHomeCardHandled,
+        transactionRepository.observeActiveTransactionCount(),
+        _showSharePrompt,
+    ) { isPro, handled, count, sharePromptShowing ->
+        shouldShowProHomeCard(
+            isPro = isPro,
+            handled = handled,
+            installedAtMillis = context.packageManager
+                .getPackageInfo(context.packageName, 0).firstInstallTime,
+            nowMillis = System.currentTimeMillis(),
+            transactionCount = count,
+            sharePromptShowing = sharePromptShowing,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     init {
         loadUnifiedModePreferences()
         loadUserName()
@@ -1237,6 +1255,11 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** "See Pro" or ✕ on the Pro card — either way it never comes back. */
+    fun markProHomeCardHandled() {
+        viewModelScope.launch { userPreferencesRepository.markProHomeCardHandled() }
+    }
+
     fun checkForInAppReview(activity: ComponentActivity) {
         viewModelScope.launch {
             // Get current transaction count as additional eligibility factor
@@ -1658,6 +1681,27 @@ class HomeViewModel @Inject constructor(
     }
 
 }
+
+internal const val PRO_CARD_MIN_INSTALL_DAYS = 14L
+internal const val PRO_CARD_MIN_TRANSACTIONS = 30
+
+/**
+ * Eligibility for the one-time Home Pro card (#945): a free user (a null [isPro] means
+ * entitlement is still loading, so stay hidden) who installed 14+ days ago, has 30+
+ * transactions, hasn't tapped or dismissed it, and isn't looking at the share banner.
+ */
+internal fun shouldShowProHomeCard(
+    isPro: Boolean?,
+    handled: Boolean,
+    installedAtMillis: Long,
+    nowMillis: Long,
+    transactionCount: Int,
+    sharePromptShowing: Boolean,
+): Boolean = isPro == false &&
+    !handled &&
+    !sharePromptShowing &&
+    transactionCount >= PRO_CARD_MIN_TRANSACTIONS &&
+    nowMillis - installedAtMillis >= java.util.concurrent.TimeUnit.DAYS.toMillis(PRO_CARD_MIN_INSTALL_DAYS)
 
 data class HomeUiState(
     val userName: String = "User",

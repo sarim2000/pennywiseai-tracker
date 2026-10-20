@@ -14,6 +14,18 @@ class KarnatakaBankParserTest {
     fun `karnataka bank upi transfers`(): List<DynamicTest> {
         val cases = listOf(
             ParserTestCase(
+                name = "UPI credit names the multi-word payer",
+                message = upiCredit,
+                sender = "AD-KBLBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("20.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "TEST PAYER",
+                    accountLast4 = "1111"
+                )
+            ),
+            ParserTestCase(
                 name = "UPI transfer names the payee, not \"UPI Transaction\" (#868)",
                 message = "Your a/c XX1111 debited for Rs.500.00 on 06-10-26 trf to Test Distributor. UPI:6*********39.For dispute SMS BLOCK 1111 to 1800000000 -KarnatakaBank",
                 sender = "VA-KBLBNK-T",
@@ -58,4 +70,7 @@ class KarnatakaBankParserTest {
         val msg = "Your a/c XX1111 debited for Rs.20.00 on 06-10-26 trf to SK FAST FOOD CORNER. UPI:6*********28.For dispute SMS BLOCK 1111 to 1800000000 -KarnatakaBank"
         org.junit.jupiter.api.Assertions.assertNull(KarnatakaBankParser().parse(msg, "VA-KBLBNK-T", 0L)?.reference)
     }
+
+    private val upiCredit =
+        "Your a/c XX1111 is credited by Rs.20.00 from TEST PAYER on 19-10-26 (UPI Ref no 600000000001)-Karnataka Bank"
 }

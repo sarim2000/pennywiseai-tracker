@@ -243,6 +243,16 @@ open class AccountBalanceRepository @Inject constructor(
         )
 
     /**
+     * Puts [snapshot]'s type and card flag back on every row of its account, e.g.
+     * after a force resync rebuilt the rows without them (#792). No-op for an
+     * untyped snapshot.
+     */
+    suspend fun restoreAccountType(snapshot: AccountBalanceEntity): Int {
+        val type = snapshot.accountType ?: return 0
+        return accountBalanceDao.updateAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
+    }
+
+    /**
      * Sets (or clears, with null) the per-account low-balance alert threshold
      * across all of the account's balance rows. (#509)
      */

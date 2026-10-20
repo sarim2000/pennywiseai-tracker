@@ -206,6 +206,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private var ruleCache: Map<TransactionType, List<TransactionRule>> = emptyMap()
 
+    /**
+     * Typed accounts as they were before a force resync wiped their rebuildable
+     * balance rows, keyed by (bank, last4). A user-chosen type (#792) lives only on
+     * those rows, so the rebuild reads it from here and re-tags the account after.
+     * Empty unless this run is a force resync.
+     */
+    private var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
+
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
     private fun Long.toLocalDateTime(): LocalDateTime =
@@ -375,6 +383,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
+                    accountsBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                        .filter { it.accountType != null }
+                        .associateBy { it.bankName to it.accountLast4 }
                     transactionRepository.deleteRebuildableSmsTransactions(
                         java.time.LocalDateTime.ofInstant(
                             java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
@@ -415,6 +426,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
 
             Log.i(TAG, buildSummary(stats, totalTime))
+            // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
+            // so put each typed account's type back on all of its rows (#792).
+            for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
             cleanUpAndFinalize(stats)
             // Materialise any due income-autopay phantoms (#371). Runs after
             // SMS processing so a real INCOME SMS that landed for the same
@@ -950,7 +964,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
-        val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, existing)
+        // A force resync may have wiped this account's rows; its type then comes from
+        // the snapshot taken before the rebuild (#792). Balance math still starts from
+        // the rebuilt history (`existing`), never from the pre-resync balance.
+        val typed = accountsBeforeRebuild[parsed.bankName to targetAccount] ?: existing
+        val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, typed)
 
         // The account keeps its own currency; a foreign-currency spend isn't
         // added to it (see BalanceCalculator.balanceAfter).
@@ -960,7 +978,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val newBalance = BalanceCalculator.balanceAfter(
             explicitBalance = parsed.balance,
             // A loan account's balance is owed too: a payment lowers it (#792).
-            isCreditCard = resolvedIsCreditCard || existing?.isLoan == true,
+            isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
             transactionType = parsed.type.toEntityType(),
             transactionAmount = parsed.amount,
             transactionCurrency = parsed.currency,
@@ -988,7 +1006,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             isCreditCard  = resolvedIsCreditCard,
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
-            accountType   = BalanceCalculator.preservedAccountType(existing),
+            accountType   = BalanceCalculator.preservedAccountType(typed),
             currency      = accountCurrency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,

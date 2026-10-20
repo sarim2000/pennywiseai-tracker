@@ -240,10 +240,11 @@ class AccountBalanceRepositoryAccountTypeTest {
     }
 
     @Test
-    fun `SMS rows rebuilt after a force resync inherit the type from the surviving MANUAL edit row`() = runBlocking {
-        // A force resync keeps only the MANUAL row the edit dialog wrote with the type change.
-        repository.insertBalance(smsAccountRow("250000.00", hoursAgo = 1).copy(sourceType = "MANUAL", accountType = "LOAN"))
+    fun `restoreAccountType re-tags rows a force resync rebuilt without a type`() = runBlocking {
+        // Snapshot taken before the resync wiped the account's rows.
+        val beforeRebuild = smsAccountRow("250000.00", hoursAgo = 1).copy(accountType = "LOAN")
 
+        // Rebuilt from SMS, with nothing left to inherit the type from.
         repository.insertBalanceUpdate(
             bankName = "Test Bank",
             accountLast4 = "7777",
@@ -251,8 +252,11 @@ class AccountBalanceRepositoryAccountTypeTest {
             timestamp = LocalDateTime.now().minusHours(5),
             sourceType = "SMS_BALANCE"
         )
+        assertFalse(balanceRows.single().isLoan)
 
-        assertTrue(balanceRows.all { it.isLoan })
+        repository.restoreAccountType(beforeRebuild)
+        assertTrue(balanceRows.single().isLoan)
+        assertEquals("260000.00", balanceRows.single().balance.toPlainString())
     }
 
     @Test

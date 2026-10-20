@@ -80,6 +80,25 @@ class StatementPreviewTest {
     }
 
     @Test
+    fun `an SMS saved while the preview is open is matched when the import re-plans`() = runBlocking {
+        val parsed = statement()
+        val store = seededStore()
+        val processor = StatementImportProcessor(store)
+        val preview = processor.plan(parsed)
+        val rent = parsed.indexOfFirst { it.merchant == "RENT" }
+        assertTrue(rent in preview.newIndices)
+
+        // The bank's SMS for the rent lands before the user taps Import.
+        store.seed(sms(BigDecimal("15000"), TransactionType.EXPENSE, day.plusDays(2), merchant = "Landlord"))
+        val keep = preview.newIndices.toSet()
+        val atCommit = processor.plan(parsed)
+        val result = processor.apply(atCommit, excluded = atCommit.rows.indices.toSet() - keep)
+
+        assertEquals(preview.newIndices.size - 1, result.imported)
+        assertEquals(1, store.rows.count { it.amount.compareTo(BigDecimal("15000")) == 0 })
+    }
+
+    @Test
     fun `a same-day same-amount transaction on another account is not a match`() = runBlocking {
         val store = InMemoryStore().apply {
             // ₹120 on the same day, but on a different account and in another currency.
@@ -100,19 +119,34 @@ class StatementPreviewTest {
         // Newest-first statements close on their first row.
         assertEquals(closing, StatementBalanceCheck.closingRow(parsed.reversed()))
 
-        val check = check(statement = "44410.00", app = "44000.00", current = "43000.00")
+        val check = check(statement = "44410.00", app = "44000.00")
         assertEquals(BigDecimal("410.00"), check.difference)
         assertFalse(check.matches)
-        // Activity after the statement (current ≠ as-of) is kept: 43,000 + 410.
-        assertEquals(BigDecimal("43410.00"), check.correctedCurrentBalance)
+        assertTrue(check(statement = "44410.00", app = "44410").matches)
+        assertNull(check(statement = "44410.00", app = null).difference)
+    }
 
-        val same = check(statement = "44410.00", app = "44410", current = "44410")
-        assertTrue(same.matches)
-
-        val unknown = check(statement = "44410.00", app = null, current = "100")
-        assertNull(unknown.difference)
-        // Nothing to correct from: never overwrite today's balance with an old closing figure.
-        assertNull(unknown.correctedCurrentBalance)
+    @Test
+    fun `set balance never overwrites a newer balance and is idempotent`() {
+        fun correction(app: String?, current: String?, manual: Boolean, after: Boolean) =
+            StatementBalanceCheck.correctionFor(
+                statementBalance = BigDecimal("1100"),
+                appBalance = app?.let(::BigDecimal),
+                currentBalance = current?.let(::BigDecimal),
+                isManual = manual,
+                recordedAfterStatement = after
+            )
+        // SMS-tracked, nothing recorded after the statement: the statement's own figure.
+        assertEquals(BigDecimal("1100"), correction(app = "1000", current = "1000", manual = false, after = false))
+        // A newer bank balance exists: an old closing figure must not replace it.
+        assertNull(correction(app = "1000", current = "1500", manual = false, after = true))
+        // Nothing to correct from, or nothing to correct.
+        assertNull(correction(app = null, current = "1500", manual = false, after = false))
+        assertNull(correction(app = "1100", current = "1100", manual = false, after = false))
+        // Manual (derived) account: today's figure shifted by the difference keeps later activity...
+        assertEquals(BigDecimal("1600"), correction(app = "1000", current = "1500", manual = true, after = true))
+        // ...and once applied its as-of balance moves with it, so a repeat check offers nothing.
+        assertNull(correction(app = "1100", current = "1600", manual = true, after = true))
     }
 
     @Test
@@ -135,15 +169,14 @@ class StatementPreviewTest {
         assertEquals(setOf("12.5", "12.50"), ImportStatementUseCase.amountSpellings(BigDecimal("12.5")).map { it.toPlainString() }.toSet())
     }
 
-    private fun check(statement: String, app: String?, current: String) = StatementBalanceCheck(
+    private fun check(statement: String, app: String?) = StatementBalanceCheck(
         bankName = "Sample Bank",
         accountLast4 = "1234",
         accountLabel = "Sample Bank ••1234",
         currency = "INR",
         asOf = LocalDate.of(2025, 1, 4),
         statementBalance = BigDecimal(statement),
-        appBalance = app?.let(::BigDecimal),
-        currentBalance = BigDecimal(current)
+        appBalance = app?.let(::BigDecimal)
     )
 
     private fun sms(

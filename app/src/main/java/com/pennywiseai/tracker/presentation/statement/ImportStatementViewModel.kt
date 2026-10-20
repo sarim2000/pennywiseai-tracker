@@ -25,6 +25,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import java.time.Instant
@@ -87,6 +90,9 @@ class ImportStatementViewModel @Inject constructor(
     /** The statement being previewed: its rows and the account its balance is checked on. */
     private var pending: Pending? = null
 
+    /** The mapping screen's in-flight re-parse; a newer edit cancels it. */
+    private var mappingJob: Job? = null
+
     private data class Pending(
         val parsed: List<ParsedTransaction>,
         val account: AccountBalanceEntity?,
@@ -143,9 +149,9 @@ class ImportStatementViewModel @Inject constructor(
                 val rows = importStatementUseCase.readTable(uri)
                 val accounts = importStatementUseCase.accounts()
                 val saved = StatementTableParser.findSavedMapping(rows, importStatementUseCase.savedMappings())
-                val savedAccountGone = saved?.accountBankName != null &&
-                    accounts.none { it.bankName == saved.accountBankName && it.accountLast4 == saved.accountLast4 }
-                if (saved != null && !savedAccountGone && previewSpreadsheet(rows, saved, accounts)) return@launch
+                if (saved != null && savedAccountIsSure(rows, saved, accounts) && previewSpreadsheet(rows, saved, accounts)) {
+                    return@launch
+                }
                 showMapping(rows, saved ?: StatementTableParser.guessMapping(rows), accounts)
             } catch (e: Exception) {
                 _uiState.value = ImportStatementUiState.Error(e.message ?: "Couldn't read this file.")
@@ -153,9 +159,31 @@ class ImportStatementViewModel @Inject constructor(
         }
     }
 
+    /**
+     * A saved mapping skips straight to the preview only when its account can't
+     * be the wrong one: two accounts at one bank export the same columns, so with
+     * several, the statement itself must name the saved account's digits above
+     * its header ("Account: XXXXXX4321"). Otherwise the user confirms it.
+     */
+    private fun savedAccountIsSure(
+        rows: List<List<String>>,
+        saved: StatementColumnMapping,
+        accounts: List<AccountBalanceEntity>
+    ): Boolean {
+        val bank = saved.accountBankName ?: return true
+        val last4 = saved.accountLast4 ?: return true
+        if (accounts.none { it.bankName == bank && it.accountLast4 == last4 }) return false
+        if (accounts.count { it.bankName == bank } <= 1) return true
+        return rows.take(saved.headerRow).any { row -> row.any { last4 in it } }
+    }
+
     fun updateMapping(mapping: StatementColumnMapping) {
         val state = _uiState.value as? ImportStatementUiState.Mapping ?: return
-        viewModelScope.launch { showMapping(state.rows, mapping, state.accounts) }
+        // The choice shows at once (so a second quick change builds on it); the
+        // sample catches up, and only the newest parse may land.
+        _uiState.value = state.copy(mapping = mapping)
+        mappingJob?.cancel()
+        mappingJob = viewModelScope.launch { showMapping(state.rows, mapping, state.accounts) }
     }
 
     /** Use the header row at [row] and re-guess the columns from its names. */
@@ -167,7 +195,7 @@ class ImportStatementViewModel @Inject constructor(
 
     fun confirmMapping() {
         val state = _uiState.value as? ImportStatementUiState.Mapping ?: return
-        if (state.parsedCount == 0) return
+        mappingJob?.cancel()
         _uiState.value = ImportStatementUiState.Loading
         viewModelScope.launch {
             importStatementUseCase.saveMapping(state.rows, state.mapping)
@@ -197,7 +225,8 @@ class ImportStatementViewModel @Inject constructor(
         _uiState.value = ImportStatementUiState.Loading
         viewModelScope.launch {
             try {
-                val result = importStatementUseCase.commit(state.plan, state.excluded)
+                val keep = state.plan.newIndices.toSet() - state.excluded
+                val result = importStatementUseCase.commit(p.parsed, keep)
                 // Record the import so the next attempt this month is
                 // gated; Pro users will still see canImportThisMonth=true
                 // because the combine() short-circuits on entitlement. A
@@ -223,11 +252,17 @@ class ImportStatementViewModel @Inject constructor(
     /** Sets the account's balance so it agrees with the statement. */
     fun applyStatementBalance() {
         val state = _uiState.value as? ImportStatementUiState.Success ?: return
-        val check = state.balanceCheck ?: return
+        val p = pending ?: return
+        val account = p.account ?: return
         viewModelScope.launch {
-            importStatementUseCase.applyBalance(check)
-            WidgetRefresher.refreshTransactionWidgets(appContext)
-            _uiState.value = state.copy(balanceApplied = true)
+            // Recomputed at tap time: a balance SMS since the screen opened counts.
+            val applied = importStatementUseCase.applyBalance(p.parsed, account)
+            _uiState.value = if (applied != null) {
+                WidgetRefresher.refreshTransactionWidgets(appContext)
+                state.copy(balanceCheck = applied, balanceApplied = true)
+            } else {
+                state.copy(balanceCheck = importStatementUseCase.balanceCheck(p.parsed, account))
+            }
         }
     }
 
@@ -237,6 +272,8 @@ class ImportStatementViewModel @Inject constructor(
             val parsed = if (mapping.isComplete) StatementTableParser.parse(rows, mapping, target) else null
             parsed to if (mapping.dateColumn >= 0) StatementTableParser.effectiveDateFormat(rows, mapping) else null
         }
+        // A superseded parse (newer edit, Continue, Cancel) must not land.
+        currentCoroutineContext().ensureActive()
         _uiState.value = ImportStatementUiState.Mapping(
             rows = rows,
             mapping = mapping,
@@ -285,6 +322,7 @@ class ImportStatementViewModel @Inject constructor(
     }
 
     fun resetState() {
+        mappingJob?.cancel()
         pending = null
         _uiState.value = ImportStatementUiState.Idle
         // Clear the nudge so a subsequent import in the same screen instance

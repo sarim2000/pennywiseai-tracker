@@ -24,12 +24,17 @@ import javax.xml.parsers.SAXParserFactory
  */
 object XlsxReader {
 
-    /** Uncompressed cap per part — a statement is kilobytes; this stops a zip bomb. */
-    private const val MAX_PART_BYTES = 32L * 1024 * 1024
+    /**
+     * Uncompressed budget for every part kept, together — a statement is
+     * kilobytes. One shared budget, so many small highly-compressed sheets
+     * can't add up to a zip bomb either.
+     */
+    private const val MAX_EXPANDED_BYTES = 32L * 1024 * 1024
     const val MAX_ROWS = 20_000
 
     fun readRows(input: InputStream): List<List<String>> {
         val parts = HashMap<String, ByteArray>()
+        var budget = MAX_EXPANDED_BYTES
         ZipInputStream(input).use { zip ->
             while (true) {
                 val entry = zip.nextEntry ?: break
@@ -37,15 +42,33 @@ object XlsxReader {
                 if (name == SHARED_STRINGS || name == WORKBOOK || name == WORKBOOK_RELS ||
                     (name.startsWith("xl/worksheets/") && name.endsWith(".xml"))
                 ) {
-                    parts[name] = zip.readCapped()
+                    val bytes = zip.readCapped(budget)
+                    budget -= bytes.size
+                    parts[name] = bytes
                 }
             }
+        }
+        if (parts[WORKBOOK]?.let(::usesDate1904) == true) {
+            // Its day numbers count from 1904; read as 1900 dates they'd land four years early.
+            throw IllegalArgumentException("This workbook uses the 1904 date system. Save it as .csv and import that.")
         }
         val sheet = parts[firstSheetPath(parts)]
             ?: parts.keys.filter { it.startsWith("xl/worksheets/") }.minOrNull()?.let { parts[it] }
             ?: throw IllegalArgumentException("No worksheet found in this file")
         val shared = parts[SHARED_STRINGS]?.let(::sharedStrings).orEmpty()
         return sheetRows(sheet, shared)
+    }
+
+    private fun usesDate1904(workbook: ByteArray): Boolean {
+        var date1904 = false
+        parse(workbook, object : DefaultHandler() {
+            override fun startElement(uri: String?, localName: String, qName: String?, attributes: Attributes) {
+                if (localName == "workbookPr") {
+                    date1904 = attributes.getValue("date1904").let { it == "1" || it.equals("true", ignoreCase = true) }
+                }
+            }
+        })
+        return date1904
     }
 
     /** The workbook's first sheet, by its order in workbook.xml (not its file name). */
@@ -113,10 +136,7 @@ object XlsxReader {
             override fun startElement(uri: String?, localName: String, qName: String?, attributes: Attributes) {
                 when (localName) {
                     "row" -> {
-                        // Rows can skip numbers (empty rows aren't written); keep positions.
-                        val r = attributes.getValue("r")?.toIntOrNull()?.minus(1) ?: (rowIndex + 1)
-                        while (rows.size < r && rows.size < MAX_ROWS) rows.add(emptyList())
-                        rowIndex = r
+                        rowIndex = attributes.getValue("r")?.toIntOrNull()?.minus(1) ?: (rowIndex + 1)
                         row = ArrayList()
                         column = -1
                     }
@@ -146,7 +166,16 @@ object XlsxReader {
                         }
                     }
                     "row" -> {
-                        if (rows.size < MAX_ROWS) row?.let { rows += it }
+                        // Only rows with content count: Excel also writes styled empty
+                        // rows, sometimes far down the sheet.
+                        val cells = row
+                        if (cells != null && cells.any { it.isNotBlank() }) {
+                            // Refused rather than cut: a partial statement would import as if complete.
+                            if (rowIndex >= MAX_ROWS) throw StatementTableParser.TooManyRowsException()
+                            // Rows can skip numbers (empty rows aren't written); keep positions.
+                            while (rows.size < rowIndex) rows.add(emptyList())
+                            rows.add(cells)
+                        }
                         row = null
                     }
                 }
@@ -184,7 +213,8 @@ object XlsxReader {
         }
     }
 
-    private fun ZipInputStream.readCapped(): ByteArray {
+    /** The current entry, failing once it passes [budget] uncompressed bytes. */
+    private fun ZipInputStream.readCapped(budget: Long): ByteArray {
         val out = ByteArrayOutputStream()
         val buffer = ByteArray(8192)
         var total = 0L
@@ -192,7 +222,7 @@ object XlsxReader {
             val n = read(buffer)
             if (n < 0) break
             total += n
-            if (total > MAX_PART_BYTES) throw IllegalArgumentException("This spreadsheet is too large to import")
+            if (total > budget) throw IllegalArgumentException("This spreadsheet is too large to import")
             out.write(buffer, 0, n)
         }
         return out.toByteArray()

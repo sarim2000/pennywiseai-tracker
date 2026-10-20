@@ -210,6 +210,55 @@ class StatementTableParserTest {
         assertEquals(BigDecimal("749.5"), txns[0].balance)
     }
 
+    @Test
+    fun `separator is counted outside quoted fields`() {
+        val semicolons = "Date;Narration;Amount\n01/03/2025;\"PAY, TO, A, B, C\";\"1,23,456.78\"\n"
+        assertEquals(';', StatementTableParser.detectSeparator(semicolons))
+        assertEquals(listOf("01/03/2025", "PAY, TO, A, B, C", "1,23,456.78"), StatementTableParser.readCsv(semicolons)[1])
+        assertEquals(',', StatementTableParser.detectSeparator("a,b,c\n1,2,3"))
+        assertEquals('\t', StatementTableParser.detectSeparator("a\tb\tc"))
+    }
+
+    @Test
+    fun `signature keeps empty header positions`() {
+        val p = StatementTableParser
+        val plain = p.signature(listOf("Date", "Description", "Debit", "Credit", "Balance"))
+        val gap = p.signature(listOf("Date", "Description", "", "Debit", "Credit", "Balance"))
+        assertNotEquals(plain, gap)
+        // Trailing blanks (a ragged CSV) don't change it.
+        assertEquals(plain, p.signature(listOf("Date", "Description", "Debit", "Credit", "Balance", "", " ")))
+    }
+
+    @Test
+    fun `Excel numbers in exponent notation keep their value`() {
+        assertEquals(BigDecimal("1500"), StatementTableParser.parseAmount("1.5E+3")!!.value)
+        assertEquals(CellAmount(BigDecimal("250.5"), true), StatementTableParser.parseAmount("-250.5"))
+        assertEquals(BigDecimal("0.00012"), StatementTableParser.parseAmount("1.2E-4")!!.value)
+    }
+
+    @Test
+    fun `oversized statements are refused, not cut short`() {
+        val csv = buildString {
+            append("Date,Narration,Amount\n")
+            repeat(XlsxReader.MAX_ROWS) { append("01/03/2025,X,1\n") }
+        }
+        try {
+            StatementTableParser.readCsv(csv)
+            throw AssertionError("expected TooManyRowsException")
+        } catch (_: StatementTableParser.TooManyRowsException) {
+        }
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `1904 date system workbooks are refused`() {
+        StatementTableParser.readTable(
+            zip(
+                "xl/workbook.xml" to """<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><workbookPr date1904="1"/><sheets/></workbook>""",
+                "xl/worksheets/sheet1.xml" to """<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>"""
+            )
+        )
+    }
+
     @Test(expected = StatementTableParser.LegacyXlsException::class)
     fun `legacy xls is refused with a hint`() {
         StatementTableParser.readTable(byteArrayOf(0xD0.toByte(), 0xCF.toByte(), 0x11, 0xE0.toByte(), 0, 0))

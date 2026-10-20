@@ -670,7 +670,13 @@ open class AccountBalanceRepository @Inject constructor(
      * transactions still adjust from there; an SMS-tracked one gets a MANUAL
      * snapshot that a rescan won't purge.
      */
-    suspend fun setCurrentBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
+    suspend fun setCurrentBalance(
+        bankName: String,
+        accountLast4: String,
+        newBalance: BigDecimal,
+        // When the figure was true (a statement's end); a manual account's row is always "now".
+        at: LocalDateTime = LocalDateTime.now()
+    ) {
         if (isManualAccount(bankName, accountLast4)) {
             setManualCurrentBalance(bankName, accountLast4, newBalance)
             return
@@ -698,7 +704,7 @@ open class AccountBalanceRepository @Inject constructor(
                 alias = latestBalance?.alias,
                 lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                 sourceType = SOURCE_MANUAL,
-                timestamp = LocalDateTime.now()
+                timestamp = at
             )
         )
     }

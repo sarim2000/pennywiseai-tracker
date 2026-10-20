@@ -80,6 +80,7 @@ object StatementTableParser {
     private val CHANNELS = setOf("UPI", "IMPS", "NEFT", "RTGS", "POS", "ACH", "NACH", "BIL", "VIN", "MMT", "CMS", "INF")
     private val IFSC = Regex("""[A-Z]{4}0[A-Z0-9]{6}""")
     private val LEADING_MINUS = Regex("""^[^\d]*-""")
+    private val PLAIN_NUMBER = Regex("""[+-]?\d+(\.\d+)?([eE][+-]?\d+)?""")
     private val json = Json { ignoreUnknownKeys = true }
 
     // ── Reading ──────────────────────────────────────────────────────────────
@@ -94,24 +95,49 @@ object StatementTableParser {
     }
 
     fun readCsv(text: String): List<List<String>> {
-        val sample = text.lineSequence().take(20).joinToString("\n")
-        val separator = listOf(',', ';', '\t').maxBy { sep -> sample.count { it == sep } }
+        val separator = detectSeparator(text.lineSequence().take(20).joinToString("\n"))
         val reader = CSVReaderBuilder(StringReader(text))
             .withCSVParser(CSVParserBuilder().withSeparator(separator).build())
             .build()
-        return reader.use { r ->
-            generateSequence { r.readNext() }.take(XlsxReader.MAX_ROWS).map { it.toList() }.toList()
+        val rows = reader.use { r ->
+            generateSequence { r.readNext() }.take(XlsxReader.MAX_ROWS + 1).map { it.toList() }.toList()
         }
+        if (rows.size > XlsxReader.MAX_ROWS) throw TooManyRowsException()
+        return rows
     }
+
+    /** Comma, semicolon or tab: whichever appears most outside quoted fields. */
+    internal fun detectSeparator(sample: String): Char {
+        val counts = IntArray(3)
+        var quoted = false
+        for (ch in sample) {
+            when {
+                ch == '"' -> quoted = !quoted
+                quoted -> Unit
+                ch == ',' -> counts[0]++
+                ch == ';' -> counts[1]++
+                ch == '\t' -> counts[2]++
+            }
+        }
+        return ",;\t"[counts.indices.maxBy { counts[it] }]
+    }
+
+    /** Refused rather than silently cut: a partial statement would import as if complete. */
+    class TooManyRowsException :
+        IllegalArgumentException("This statement has more than ${XlsxReader.MAX_ROWS} rows. Export a shorter period and import that.")
 
     private fun ByteArray.startsWith(vararg magic: Int) =
         size >= magic.size && magic.indices.all { this[it] == magic[it].toByte() }
 
     // ── Header + mapping ────────────────────────────────────────────────────
 
-    /** Normalized header text, the key a saved mapping is found by. */
+    /**
+     * Normalized header text, the key a saved mapping is found by. Empty cells
+     * keep their place: mappings are column positions, so "Date,,Debit" must not
+     * reuse the mapping saved for "Date,Debit".
+     */
     fun signature(row: List<String>): String =
-        row.map { it.trim().lowercase().replace(WHITESPACE, " ") }.filter { it.isNotEmpty() }.joinToString("|")
+        row.map { it.trim().lowercase().replace(WHITESPACE, " ") }.dropLastWhile { it.isEmpty() }.joinToString("|")
 
     /** A saved mapping whose header row appears in [rows] (any position), with that row's index. */
     fun findSavedMapping(rows: List<List<String>>, saved: Map<String, StatementColumnMapping>): StatementColumnMapping? {
@@ -169,6 +195,12 @@ object StatementTableParser {
     fun parseAmount(raw: String?): CellAmount? {
         var s = raw?.trim()?.replace(' ', ' ').orEmpty()
         if (s.isEmpty()) return null
+        // A bare number, as Excel stores it (possibly "1.5E+3"): read it exactly.
+        if (PLAIN_NUMBER.matches(s)) {
+            val n = BigDecimal(s)
+            val plain = if (n.scale() < 0) n.setScale(0) else n
+            return CellAmount(plain.abs(), if (n.signum() < 0) true else if (s.startsWith("+")) false else null)
+        }
         var negative: Boolean? = null
         val lower = s.lowercase().trimEnd('.')
         when {
@@ -195,7 +227,8 @@ object StatementTableParser {
         return CellAmount(value, negative)
     }
 
-    private val formatterCache = HashMap<String, DateTimeFormatter>()
+    // Concurrent: a superseded mapping parse can still be running beside the new one.
+    private val formatterCache = java.util.concurrent.ConcurrentHashMap<String, DateTimeFormatter>()
 
     private fun formatter(pattern: String): DateTimeFormatter = formatterCache.getOrPut(pattern) {
         // Accept 1-digit days/months ("5/1/2025") and any-case month names ("05-JAN-25").

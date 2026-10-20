@@ -26,6 +26,12 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -140,7 +146,29 @@ fun ImportStatementScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        val layoutDirection = LocalLayoutDirection.current
+        val current = uiState
+        // The preview is its own lazy list (it can be thousands of rows long), so
+        // it can't live inside the scrolling column the other states share.
+        if (current is ImportStatementUiState.Preview) {
+            PreviewContent(
+                state = current,
+                onToggle = viewModel::toggleRow,
+                onConfirm = viewModel::confirmImport,
+                onEditMapping = viewModel::editMapping,
+                onCancel = viewModel::resetState,
+                contentPadding = PaddingValues(
+                    start = paddingValues.calculateStartPadding(layoutDirection) + Dimensions.Padding.content,
+                    top = paddingValues.calculateTopPadding() + Dimensions.Padding.content,
+                    end = paddingValues.calculateEndPadding(layoutDirection) + Dimensions.Padding.content,
+                    bottom = paddingValues.calculateBottomPadding() + Dimensions.Padding.content
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .background(MaterialTheme.colorScheme.background)
+            )
+        } else Column(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
@@ -152,7 +180,7 @@ fun ImportStatementScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            when (val state = uiState) {
+            when (val state = current) {
                 is ImportStatementUiState.Idle -> IdleContent(
                     onSelectPdf = onTryLaunchPicker,
                     onSelectSpreadsheet = onTryLaunchSpreadsheet
@@ -165,13 +193,7 @@ fun ImportStatementScreen(
                     onConfirm = viewModel::confirmMapping,
                     onCancel = viewModel::resetState
                 )
-                is ImportStatementUiState.Preview -> PreviewContent(
-                    state = state,
-                    onToggle = viewModel::toggleRow,
-                    onConfirm = viewModel::confirmImport,
-                    onEditMapping = viewModel::editMapping,
-                    onCancel = viewModel::resetState
-                )
+                is ImportStatementUiState.Preview -> Unit // drawn above
                 is ImportStatementUiState.Success -> SuccessContent(
                     result = state.result,
                     balanceCheck = state.balanceCheck,
@@ -539,96 +561,113 @@ private fun PreviewContent(
     onToggle: (Int) -> Unit,
     onConfirm: () -> Unit,
     onEditMapping: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier
 ) {
     val newIndices = state.plan.newIndices
     val selected = newIndices.count { it !in state.excluded }
 
-    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        Text(
-            text = stringResource(R.string.import_statement_preview_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        state.accountLabel?.let {
-            Text(
-                text = stringResource(R.string.import_statement_preview_account, it),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            CountTile(
-                value = newIndices.size,
-                label = stringResource(R.string.import_statement_preview_new),
-                highlight = true,
-                modifier = Modifier.weight(1f)
-            )
-            CountTile(
-                value = state.plan.matchedCount,
-                label = stringResource(R.string.import_statement_preview_matched),
-                highlight = false,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        if (newIndices.isEmpty()) {
-            Text(
-                text = stringResource(R.string.import_statement_preview_all_matched),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Column {
+    // Lazy: a long statement can bring thousands of new rows; only visible ones are built.
+    LazyColumn(modifier = modifier, contentPadding = contentPadding) {
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
                 Text(
-                    text = stringResource(R.string.import_statement_preview_new_rows),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = stringResource(R.string.import_statement_preview_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                Text(
-                    text = stringResource(R.string.import_statement_preview_new_rows_hint),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), contentPadding = Spacing.xs) {
-                newIndices.forEach { index ->
-                    val checked = index !in state.excluded
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
-                            .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle(index) })
-                    ) {
-                        Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.padding(horizontal = Spacing.smd))
-                        TransactionLine(state.plan.rows[index].parsed, modifier = Modifier.weight(1f).padding(end = Spacing.smd))
+                state.accountLabel?.let {
+                    Text(
+                        text = stringResource(R.string.import_statement_preview_account, it),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    CountTile(
+                        value = newIndices.size,
+                        label = stringResource(R.string.import_statement_preview_new),
+                        highlight = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    CountTile(
+                        value = state.plan.matchedCount,
+                        label = stringResource(R.string.import_statement_preview_matched),
+                        highlight = false,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                if (newIndices.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.import_statement_preview_all_matched),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.import_statement_preview_new_rows),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.import_statement_preview_new_rows_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
         }
 
-        Button(
-            onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth().height(Dimensions.Component.buttonHeight),
-            shape = RoundedCornerShape(Dimensions.CornerRadius.large)
-        ) {
-            Text(
-                if (selected > 0) pluralStringResource(R.plurals.import_statement_confirm, selected, selected)
-                else stringResource(R.string.import_statement_confirm_nothing)
-            )
-        }
-        if (state.fromSpreadsheet) {
-            TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.import_statement_edit_mapping))
+        itemsIndexed(newIndices, key = { _, index -> index }) { i, index ->
+            val checked = index !in state.excluded
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = if (i < newIndices.lastIndex) Spacing.Layout.groupedListGap else Spacing.none)
+                    .clip(ListItemPosition.from(i, newIndices.size).toShape())
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+                    .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle(index) })
+            ) {
+                Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.padding(horizontal = Spacing.smd))
+                TransactionLine(state.plan.rows[index].parsed, modifier = Modifier.weight(1f).padding(end = Spacing.smd))
             }
         }
-        OutlinedButton(
-            onClick = onCancel,
-            modifier = Modifier.fillMaxWidth().height(Dimensions.Component.buttonHeight),
-            shape = RoundedCornerShape(Dimensions.CornerRadius.large)
-        ) { Text(stringResource(R.string.import_statement_cancel)) }
+
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                Button(
+                    onClick = onConfirm,
+                    modifier = Modifier.fillMaxWidth().height(Dimensions.Component.buttonHeight),
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.large)
+                ) {
+                    Text(
+                        if (selected > 0) pluralStringResource(R.plurals.import_statement_confirm, selected, selected)
+                        else stringResource(R.string.import_statement_confirm_nothing)
+                    )
+                }
+                if (state.fromSpreadsheet) {
+                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.import_statement_edit_mapping))
+                    }
+                }
+                OutlinedButton(
+                    onClick = onCancel,
+                    modifier = Modifier.fillMaxWidth().height(Dimensions.Component.buttonHeight),
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.large)
+                ) { Text(stringResource(R.string.import_statement_cancel)) }
+            }
+        }
     }
 }
 
@@ -836,7 +875,7 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
             )
         }
         Spacer(Modifier.height(Spacing.sm))
-        val corrected = check.correctedCurrentBalance
+        val corrected = check.correction
         when {
             applied && corrected != null -> Text(
                 text = stringResource(R.string.import_statement_balance_applied, money(corrected)),
@@ -848,7 +887,7 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.success
             )
-            // Null when PennyWise had no balance by the statement's end: nothing safe to correct.
+            // Null when there's nothing safe to correct (see StatementBalanceCheck.correctionFor).
             corrected != null -> {
                 FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.import_statement_balance_set, money(corrected)))

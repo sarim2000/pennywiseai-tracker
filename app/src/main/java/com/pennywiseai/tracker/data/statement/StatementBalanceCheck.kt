@@ -20,28 +20,43 @@ data class StatementBalanceCheck(
     val statementBalance: BigDecimal,
     /** Null when PennyWise has no balance for the account on or before [asOf]. */
     val appBalance: BigDecimal?,
-    /** The account's balance now, which "set balance" corrects. */
-    val currentBalance: BigDecimal?
+    /** What "Set balance" writes, from [correctionFor]; null when it isn't offered. */
+    val correction: BigDecimal? = null
 ) {
     /** Statement minus PennyWise: > 0 means the bank holds more than PennyWise thinks. */
     val difference: BigDecimal? get() = appBalance?.let { statementBalance - it }
 
     val matches: Boolean get() = difference?.signum() == 0
 
-    /**
-     * The balance to set now so the account agrees with the statement: the
-     * current balance shifted by the difference found on [asOf]. For a
-     * statement that ends today this is exactly the statement's figure; for an
-     * older one it keeps whatever PennyWise recorded since. Null when PennyWise
-     * had no balance by [asOf]: an old closing figure must not overwrite today's.
-     */
-    val correctedCurrentBalance: BigDecimal?
-        get() {
-            val diff = difference ?: return null
-            return currentBalance?.plus(diff)
+    companion object {
+        /**
+         * The balance "Set balance" writes so the account agrees with the
+         * statement, or null when there's nothing safe to write:
+         * - no PennyWise balance by the statement's end (nothing to correct from), or none needed;
+         * - a manual account: its current balance shifted by the difference. Its
+         *   balance is derived, so the as-of figure moves with it and a repeat
+         *   check then matches;
+         * - an SMS-tracked account: the statement's figure, dated at the
+         *   statement's end — but only when nothing was recorded after that, so
+         *   a newer balance from the bank is never overwritten by an old one.
+         *   Dated there, a repeat check reads it back and matches.
+         */
+        fun correctionFor(
+            statementBalance: BigDecimal,
+            appBalance: BigDecimal?,
+            currentBalance: BigDecimal?,
+            isManual: Boolean,
+            recordedAfterStatement: Boolean
+        ): BigDecimal? {
+            val diff = appBalance?.let { statementBalance - it } ?: return null
+            if (diff.signum() == 0) return null
+            return when {
+                isManual -> currentBalance?.plus(diff)
+                recordedAfterStatement -> null
+                else -> statementBalance
+            }
         }
 
-    companion object {
         /**
          * The statement's closing row: the last row of an oldest-first statement,
          * the first of a newest-first one. Null when no row carries a balance.

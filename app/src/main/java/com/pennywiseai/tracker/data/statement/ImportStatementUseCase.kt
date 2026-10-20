@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.data.statement
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -29,6 +31,7 @@ class ImportStatementUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val preferences: UserPreferencesRepository,
+    private val database: PennyWiseDatabase,
     @ApplicationContext private val context: Context
 ) {
     sealed interface PdfRead {
@@ -92,19 +95,31 @@ class ImportStatementUseCase @Inject constructor(
         StatementImportProcessor(repositoryStore()).plan(parsed)
     }
 
-    /** Writes [plan] minus the new rows at [excluded]; a manual account's balance follows its new rows. */
-    suspend fun commit(plan: StatementImportPlan, excluded: Set<Int>): StatementImportResult.Success =
+    /**
+     * Imports [parsed], adding only the rows at [keep] (the preview's new rows
+     * the user left ticked). Matching runs again inside one database
+     * transaction — the protection SMS writes use — so an SMS saved or edited
+     * while the preview was open is matched as it is now, never overwritten
+     * with the preview's copy or duplicated. A manual account's balance
+     * follows its new rows.
+     */
+    suspend fun commit(parsed: List<ParsedTransaction>, keep: Set<Int>): StatementImportResult.Success =
         withContext(Dispatchers.IO) {
-            val accounts = plan.newIndices.filter { it !in excluded }
-                .map { plan.rows[it].parsed }
-                .mapNotNull { row -> row.accountLast4?.let { row.bankName to it } }
-                .distinct()
-            // Pin a legacy manual account's opening before the rows land, so the
-            // recompute below adds them instead of absorbing them into the opening.
-            accounts.forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
-            val result = StatementImportProcessor(repositoryStore()).apply(plan, excluded)
-            accounts.forEach { (bank, last4) -> accountBalanceRepository.recomputeManualBalance(bank, last4) }
-            result
+            database.withTransaction {
+                val processor = StatementImportProcessor(repositoryStore())
+                val plan = processor.plan(parsed)
+                val excluded = plan.rows.indices.toSet() - keep
+                val accounts = plan.newIndices.filter { it !in excluded }
+                    .map { plan.rows[it].parsed }
+                    .mapNotNull { row -> row.accountLast4?.let { row.bankName to it } }
+                    .distinct()
+                // Pin a legacy manual account's opening before the rows land, so the
+                // recompute below adds them instead of absorbing them into the opening.
+                accounts.forEach { (bank, last4) -> accountBalanceRepository.ensureManualOpening(bank, last4) }
+                val result = processor.apply(plan, excluded)
+                accounts.forEach { (bank, last4) -> accountBalanceRepository.recomputeManualBalance(bank, last4) }
+                result
+            }
         }
 
     /**
@@ -132,27 +147,49 @@ class ImportStatementUseCase @Inject constructor(
         val currency = currencyOf(account)
         val closing = StatementBalanceCheck.closingRow(parsed.filter { it.currency == currency }) ?: return null
         val asOf = StatementBalanceCheck.dateOf(closing)
+        val end = asOf.atTime(LocalTime.MAX)
         return withContext(Dispatchers.IO) {
+            val bank = account.bankName
+            val last4 = account.accountLast4
+            val statementBalance = closing.balance!!
+            val appBalance = accountBalanceRepository.balanceAsOf(bank, last4, end)
+            val latest = accountBalanceRepository.getLatestBalance(bank, last4)
             StatementBalanceCheck(
-                bankName = account.bankName,
-                accountLast4 = account.accountLast4,
+                bankName = bank,
+                accountLast4 = last4,
                 accountLabel = account.displayLabel,
                 currency = currency,
                 asOf = asOf,
-                statementBalance = closing.balance!!,
-                appBalance = accountBalanceRepository.balanceAsOf(account.bankName, account.accountLast4, asOf.atTime(LocalTime.MAX)),
-                currentBalance = accountBalanceRepository.getLatestBalance(account.bankName, account.accountLast4)?.balance
+                statementBalance = statementBalance,
+                appBalance = appBalance,
+                correction = StatementBalanceCheck.correctionFor(
+                    statementBalance = statementBalance,
+                    appBalance = appBalance,
+                    currentBalance = latest?.balance,
+                    isManual = accountBalanceRepository.isManualAccount(bank, last4),
+                    recordedAfterStatement = latest != null && latest.timestamp > end
+                )
             )
         }
     }
 
-    /** "Set balance" from the check, through the same path as Manage Accounts' Update balance. */
-    suspend fun applyBalance(check: StatementBalanceCheck) {
-        val target = check.correctedCurrentBalance ?: return
+    /**
+     * "Set balance": recomputes the check and writes its correction in one
+     * transaction, so a balance SMS landing after the result screen opened is
+     * read rather than overwritten. Returns the fresh check (null: nothing written).
+     */
+    suspend fun applyBalance(parsed: List<ParsedTransaction>, account: AccountBalanceEntity): StatementBalanceCheck? =
         withContext(Dispatchers.IO) {
-            accountBalanceRepository.setCurrentBalance(check.bankName, check.accountLast4, target)
+            database.withTransaction {
+                val check = balanceCheck(parsed, account) ?: return@withTransaction null
+                val target = check.correction ?: return@withTransaction null
+                // Dated at the statement's end (never in the future) so a later
+                // bank balance still wins; a manual account derives its own.
+                val at = minOf(check.asOf.atTime(LocalTime.MAX), LocalDateTime.now())
+                accountBalanceRepository.setCurrentBalance(check.bankName, check.accountLast4, target, at)
+                check
+            }
         }
-    }
 
     private fun repositoryStore() = object : StatementImportProcessor.TransactionStore {
         override suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =

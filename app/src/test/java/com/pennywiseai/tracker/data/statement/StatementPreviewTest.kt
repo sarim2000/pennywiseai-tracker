@@ -111,7 +111,8 @@ class StatementPreviewTest {
 
         val unknown = check(statement = "44410.00", app = null, current = "100")
         assertNull(unknown.difference)
-        assertEquals(BigDecimal("44410.00"), unknown.correctedCurrentBalance)
+        // Nothing to correct from: never overwrite today's balance with an old closing figure.
+        assertNull(unknown.correctedCurrentBalance)
     }
 
     @Test

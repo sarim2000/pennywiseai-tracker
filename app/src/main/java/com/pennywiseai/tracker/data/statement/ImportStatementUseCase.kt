@@ -147,8 +147,11 @@ class ImportStatementUseCase @Inject constructor(
     }
 
     /** "Set balance" from the check, through the same path as Manage Accounts' Update balance. */
-    suspend fun applyBalance(check: StatementBalanceCheck) = withContext(Dispatchers.IO) {
-        accountBalanceRepository.setCurrentBalance(check.bankName, check.accountLast4, check.correctedCurrentBalance)
+    suspend fun applyBalance(check: StatementBalanceCheck) {
+        val target = check.correctedCurrentBalance ?: return
+        withContext(Dispatchers.IO) {
+            accountBalanceRepository.setCurrentBalance(check.bankName, check.accountLast4, target)
+        }
     }
 
     private fun repositoryStore() = object : StatementImportProcessor.TransactionStore {

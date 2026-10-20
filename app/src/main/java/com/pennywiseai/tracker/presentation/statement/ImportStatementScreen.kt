@@ -836,9 +836,10 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
             )
         }
         Spacer(Modifier.height(Spacing.sm))
+        val corrected = check.correctedCurrentBalance
         when {
-            applied -> Text(
-                text = stringResource(R.string.import_statement_balance_applied, money(check.correctedCurrentBalance)),
+            applied && corrected != null -> Text(
+                text = stringResource(R.string.import_statement_balance_applied, money(corrected)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.success
             )
@@ -847,11 +848,12 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.success
             )
-            else -> {
+            // Null when PennyWise had no balance by the statement's end: nothing safe to correct.
+            corrected != null -> {
                 FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.import_statement_balance_set, money(check.correctedCurrentBalance)))
+                    Text(stringResource(R.string.import_statement_balance_set, money(corrected)))
                 }
-                if (check.correctedCurrentBalance.compareTo(check.statementBalance) != 0) {
+                if (corrected.compareTo(check.statementBalance) != 0) {
                     Text(
                         text = stringResource(R.string.import_statement_balance_set_note),
                         style = MaterialTheme.typography.bodySmall,

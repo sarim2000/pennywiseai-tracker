@@ -32,12 +32,13 @@ data class StatementBalanceCheck(
      * The balance to set now so the account agrees with the statement: the
      * current balance shifted by the difference found on [asOf]. For a
      * statement that ends today this is exactly the statement's figure; for an
-     * older one it keeps whatever PennyWise recorded since.
+     * older one it keeps whatever PennyWise recorded since. Null when PennyWise
+     * had no balance by [asOf]: an old closing figure must not overwrite today's.
      */
-    val correctedCurrentBalance: BigDecimal
+    val correctedCurrentBalance: BigDecimal?
         get() {
-            val diff = difference
-            return if (diff == null || currentBalance == null) statementBalance else currentBalance + diff
+            val diff = difference ?: return null
+            return currentBalance?.plus(diff)
         }
 
     companion object {

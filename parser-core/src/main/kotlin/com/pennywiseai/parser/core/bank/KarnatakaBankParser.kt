@@ -79,9 +79,10 @@ class KarnatakaBankParser : BankParser() {
             }
         }
 
-        // Pattern 2: "from <merchant> on" for UPI
+        // Pattern 2: "from <merchant> on <date>" for UPI. The payer can be several words
+        // ("credited by Rs.20.00 from TEST PAYER NAME on 19-10-26"), so don't stop at a space.
         val fromPattern = Regex(
-            """from\s+([^\s]+)\s+on""",
+            """from\s+(.+?)\s+on\s+\d""",
             RegexOption.IGNORE_CASE
         )
         fromPattern.find(message)?.let { match ->

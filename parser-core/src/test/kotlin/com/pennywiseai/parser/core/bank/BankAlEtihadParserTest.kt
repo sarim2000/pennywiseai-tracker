@@ -83,6 +83,19 @@ class BankAlEtihadParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Foreign-currency refund keeps the JOD account currency for its balance",
+                message = refundUsd,
+                sender = "BankEtihad",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.00"),
+                    currency = "USD",
+                    type = TransactionType.INCOME,
+                    balance = BigDecimal("30.000"),
+                    accountCurrency = "JOD",
+                    isMobileWallet = true
+                )
+            ),
+            ParserTestCase(
                 name = "CliQ payee with a period inside the name",
                 message = cliqDottedName,
                 sender = "BankEtihad",
@@ -150,5 +163,6 @@ class BankAlEtihadParserTest {
 
     private val cliqDottedName = "5.000 JOD CliQ transfer to Dr. Jane Doe.\nAvailable balance: 10.000 JOD."
     private val refundDottedName = "Refund of 2.000 JOD at ACME Co. Ltd.\nAvailable balance: 12.000 JOD."
+    private val refundUsd = "Refund of 12.00 USD at TEST STORE.\nAvailable balance: 30.000 JOD."
     private val cliqOneLine = "1.500 JOD CliQ transfer from Dr. John Smith. Available balance: 3.000 JOD."
 }

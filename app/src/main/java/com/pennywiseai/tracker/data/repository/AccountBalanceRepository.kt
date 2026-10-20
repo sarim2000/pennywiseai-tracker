@@ -136,6 +136,11 @@ open class AccountBalanceRepository @Inject constructor(
             transactionId = null,
             smsSource = smsSource?.take(500),  // Limit to 500 chars
             sourceType = sourceType,
+            // A balance notice says nothing about the account's kind, so it keeps the
+            // card flag and limit like the type; dropping them moved a card's debt
+            // into the bank total whenever its newest row was a balance notice.
+            isCreditCard = existing?.isCreditCard ?: false,
+            creditLimit = existing?.creditLimit,
             accountType = BalanceCalculator.preservedAccountType(existing),
             currency = currency,
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,

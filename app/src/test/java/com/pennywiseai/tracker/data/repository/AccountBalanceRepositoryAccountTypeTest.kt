@@ -271,6 +271,23 @@ class AccountBalanceRepositoryAccountTypeTest {
     }
 
     @Test
+    fun `a balance notice on a credit card keeps it a card with its limit`() = runBlocking {
+        repository.insertBalance(
+            smsAccountRow("3000.00", hoursAgo = 2).copy(accountType = "CREDIT", isCreditCard = true, creditLimit = BigDecimal("50000"))
+        )
+        repository.insertBalanceUpdate(
+            bankName = "Test Bank",
+            accountLast4 = "7777",
+            balance = BigDecimal("3500.00"),
+            timestamp = LocalDateTime.now().minusHours(1)
+        )
+
+        val latest = repository.getLatestBalance("Test Bank", "7777")!!
+        assertTrue(latest.isCreditCard)
+        assertEquals(BigDecimal("50000"), latest.creditLimit)
+    }
+
+    @Test
     fun `restoreAccountType keeps a type the user set while the resync ran`() = runBlocking {
         val beforeRebuild = smsAccountRow("250000.00", hoursAgo = 1).copy(accountType = "LOAN")
         repository.insertBalance(smsAccountRow("260000.00", hoursAgo = 5))

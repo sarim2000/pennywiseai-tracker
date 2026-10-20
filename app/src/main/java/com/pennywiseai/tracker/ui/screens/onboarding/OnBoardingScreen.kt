@@ -77,6 +77,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 @Composable
 fun OnBoardingScreen(
@@ -755,7 +756,7 @@ private fun AccountSetupStep(
                             }
                         }
                         Text(
-                            text = "${account.currency} ${account.balance}",
+                            text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
                             style = PennyWiseText.amountRow
                         )
                         if (isSelected) {

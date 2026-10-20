@@ -1,6 +1,6 @@
 {
-  "totalBanks": 163,
-  "totalCountries": 25,
+  "totalBanks": 167,
+  "totalCountries": 26,
   "countries": [
     {
       "country": "India",
@@ -81,6 +81,14 @@
       "symbol": "د.إ",
       "bankCount": 6,
       "banks": ["Abu Dhabi Commercial Bank", "Emirates Islamic", "Emirates NBD", "First Abu Dhabi Bank", "Liv Bank", "Mashreq Bank"]
+    },
+    {
+      "country": "Jordan",
+      "flag": "🇯🇴",
+      "currency": "JOD",
+      "symbol": "JD",
+      "bankCount": 4,
+      "banks": ["Bank al Etihad", "Islamic International Arab Bank", "Jordan Islamic Bank", "Safwa Islamic Bank"]
     },
     {
       "country": "Mozambique",

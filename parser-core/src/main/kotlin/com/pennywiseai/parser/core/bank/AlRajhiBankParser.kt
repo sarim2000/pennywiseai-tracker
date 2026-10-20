@@ -52,6 +52,8 @@ class AlRajhiBankParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
+        // Al Rajhi Jordan ("AlRajhi JO") quotes JOD; this parser would book it as SAR.
+        if (normalized.endsWith(" JO")) return false
         return normalized.contains("ALRAJHI") ||
                 normalized.contains("RAJHI") ||
                 sender.contains("الراجحي")

@@ -26,8 +26,9 @@ class BankAlEtihadParser : BankParser() {
         sender.uppercase().replace(Regex("""[\s\-_]"""), "") == "BANKETIHAD"
 
     private val purchasePattern = Regex("""^$AMT\s+$CCY\s+at\s+(.+?)\.\s+Card\s+(\d+)""")
-    private val refundPattern = Regex("""^Refund\s+of\s+$AMT\s+$CCY\s+at\s+(.+?)\.\s""")
-    private val cliqPattern = Regex("""^$AMT\s+$CCY\s+CliQ\s+transfer\s+(from|to)\s+(.+?)\.\s""")
+    // The name runs to the "." that ends its line, not the first "." — "Dr. Jane Doe", "ACME Co. Ltd".
+    private val refundPattern = Regex("""^Refund\s+of\s+$AMT\s+$CCY\s+at\s+(.+?)\.$NAME_END""")
+    private val cliqPattern = Regex("""^$AMT\s+$CCY\s+CliQ\s+transfer\s+(from|to)\s+(.+?)\.$NAME_END""")
     private val balancePattern = Regex("""Available\s+balance:\s*(-?[\d,]*\.?\d+)\s*$CCY""")
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -57,6 +58,9 @@ class BankAlEtihadParser : BankParser() {
             timestamp = timestamp,
             bankName = getBankName(),
             isFromCard = card != null,
+            // Refunds and CliQ transfers carry no card/account number: keep their balance on
+            // one bank-level account rather than guessing a card.
+            isMobileWallet = card == null,
             currency = currency,
             accountCurrency = balance?.groupValues?.get(2)?.takeIf { it != currency }
         )
@@ -65,5 +69,6 @@ class BankAlEtihadParser : BankParser() {
     private companion object {
         const val AMT = """([\d,]*\.?\d+)"""
         const val CCY = """([A-Z]{3})"""
+        const val NAME_END = """(?=\s*\n|\s+Available\s+balance|\s*$)"""
     }
 }

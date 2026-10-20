@@ -25,7 +25,9 @@ class SafwaIslamicBankParserTest {
                     type = TransactionType.INCOME,
                     merchant = "Cash Deposit",
                     balance = BigDecimal("175.250"),
-                    expectNullAccountLast4 = true
+                    expectNullAccountLast4 = true,
+                    // Numberless SMS: balance kept on one bank-level account.
+                    isMobileWallet = true
                 )
             ),
             ParserTestCase(
@@ -37,7 +39,8 @@ class SafwaIslamicBankParserTest {
                     currency = "JOD",
                     type = TransactionType.EXPENSE,
                     merchant = "Bank Fees",
-                    balance = BigDecimal("174.750")
+                    balance = BigDecimal("174.750"),
+                    isMobileWallet = true
                 )
             ),
             ParserTestCase(

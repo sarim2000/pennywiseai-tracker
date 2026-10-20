@@ -43,7 +43,10 @@ class SafwaIslamicBankParser : BankParser() {
             sender = sender,
             timestamp = timestamp,
             bankName = getBankName(),
-            currency = getCurrency()
+            currency = getCurrency(),
+            // No account number: track the running balance as one bank-level account
+            // (the app's numberless-account path), or the balance would never be saved.
+            isMobileWallet = true
         )
     }
 }

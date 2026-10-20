@@ -27,6 +27,7 @@ class BankAlEtihadParserTest {
                     accountLast4 = "123",
                     balance = BigDecimal("0.308"),
                     isFromCard = true,
+                    isMobileWallet = false,
                     expectNullAccountCurrency = true
                 )
             ),
@@ -52,7 +53,8 @@ class BankAlEtihadParserTest {
                     type = TransactionType.INCOME,
                     merchant = "CAREEM PLU",
                     balance = BigDecimal("0.100"),
-                    isFromCard = false
+                    isFromCard = false,
+                    isMobileWallet = true
                 )
             ),
             ParserTestCase(
@@ -76,7 +78,44 @@ class BankAlEtihadParserTest {
                     currency = "JOD",
                     type = TransactionType.EXPENSE,
                     merchant = "Jane Doe",
-                    balance = BigDecimal("0.000")
+                    balance = BigDecimal("0.000"),
+                    isMobileWallet = true
+                )
+            ),
+            ParserTestCase(
+                name = "CliQ payee with a period inside the name",
+                message = cliqDottedName,
+                sender = "BankEtihad",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5.000"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Dr. Jane Doe",
+                    balance = BigDecimal("10.000")
+                )
+            ),
+            ParserTestCase(
+                name = "Refund from a merchant with a period inside the name",
+                message = refundDottedName,
+                sender = "BankEtihad",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2.000"),
+                    currency = "JOD",
+                    type = TransactionType.INCOME,
+                    merchant = "ACME Co. Ltd",
+                    balance = BigDecimal("12.000")
+                )
+            ),
+            ParserTestCase(
+                name = "CliQ on one line (no newline before the balance)",
+                message = cliqOneLine,
+                sender = "BankEtihad",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1.500"),
+                    currency = "JOD",
+                    type = TransactionType.INCOME,
+                    merchant = "Dr. John Smith",
+                    balance = BigDecimal("3.000")
                 )
             ),
             ParserTestCase(
@@ -108,4 +147,8 @@ class BankAlEtihadParserTest {
 
         return ParserTestUtils.runTestSuite(parser, cases, handleChecks, "Bank al Etihad Parser")
     }
+
+    private val cliqDottedName = "5.000 JOD CliQ transfer to Dr. Jane Doe.\nAvailable balance: 10.000 JOD."
+    private val refundDottedName = "Refund of 2.000 JOD at ACME Co. Ltd.\nAvailable balance: 12.000 JOD."
+    private val cliqOneLine = "1.500 JOD CliQ transfer from Dr. John Smith. Available balance: 3.000 JOD."
 }

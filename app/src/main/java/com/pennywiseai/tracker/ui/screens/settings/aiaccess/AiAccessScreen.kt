@@ -169,7 +169,9 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                 Text(
                     "Your data stays on your phone. During an AI session, the AI app's questions pass through " +
                         "PennyWise's relay to your phone and the answers go back the same way. The relay never stores " +
-                        "or logs them. The AI app's provider (for example Anthropic or OpenAI) sees the answers it receives.",
+                        "or logs them. The AI app's provider (for example Anthropic or OpenAI) sees the answers it receives.\n\n" +
+                        "Connected apps can search your whole history across all profiles, including payee names on transfers. " +
+                        "They never get SMS text, full account numbers or reference numbers.",
                     style = MaterialTheme.typography.bodySmall
                 )
             }

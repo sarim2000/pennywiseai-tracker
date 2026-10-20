@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
+import com.pennywiseai.tracker.ui.theme.yellow_on_dark
+import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,9 +44,14 @@ fun ProHomeCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Follows the app's theme (which can override the system), not isSystemInDarkTheme().
+    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val container = if (dark) yellow_surface_dark else yellow_light
+    val ink = if (dark) yellow_on_dark else yellow_on_light
+    val accent = if (dark) yellow_accent_dark else yellow_dark
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
-        containerColor = yellow_light,
+        containerColor = container,
         contentPadding = Spacing.none,
     ) {
         Row(
@@ -52,19 +61,19 @@ fun ProHomeCard(
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = null,
-                tint = yellow_dark,
+                tint = accent,
                 modifier = Modifier.size(Dimensions.Icon.medium),
             )
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Text(
                     text = stringResource(R.string.pro_home_card_title),
                     style = MaterialTheme.typography.titleSmall,
-                    color = yellow_on_light,
+                    color = ink,
                 )
                 Text(
                     text = stringResource(R.string.pro_home_card_body),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = yellow_on_light,
+                    color = ink,
                 )
             }
         }
@@ -78,7 +87,7 @@ fun ProHomeCard(
             TextButton(
                 onClick = onSeePro,
                 // yellow_dark on yellow_light is ~2.5:1 — too faint for a text label (AA 4.5:1).
-                colors = ButtonDefaults.textButtonColors(contentColor = yellow_on_light),
+                colors = ButtonDefaults.textButtonColors(contentColor = if (dark) accent else ink),
             ) {
                 Text(stringResource(R.string.pro_home_card_action))
             }
@@ -86,7 +95,7 @@ fun ProHomeCard(
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.pro_home_card_dismiss),
-                    tint = yellow_on_light,
+                    tint = ink,
                     modifier = Modifier.size(Dimensions.Icon.small),
                 )
             }

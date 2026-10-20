@@ -306,4 +306,10 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>
 
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
+    <string name="pro_home_card_title">Enjoying PennyWise?</string>
+    <string name="pro_home_card_body">Pro adds unlimited rules, goals, exports and statement imports.</string>
+    <string name="pro_home_card_action">See Pro</string>
+    <string name="pro_home_card_dismiss">Dismiss</string>
+
 </resources>

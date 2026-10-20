@@ -189,6 +189,10 @@ open class TransactionRepository @Inject constructor(
     fun observeAllTransactionCount(): Flow<Int> =
         transactionDao.observeAllTransactionCount()
 
+    /** See [TransactionDao.observeActiveTransactionCount]. */
+    fun observeActiveTransactionCount(): Flow<Int> =
+        transactionDao.observeActiveTransactionCount()
+
     /** See [TransactionDao.countAllTransactions]. */
     suspend fun countAllTransactions(): Int =
         transactionDao.countAllTransactions()

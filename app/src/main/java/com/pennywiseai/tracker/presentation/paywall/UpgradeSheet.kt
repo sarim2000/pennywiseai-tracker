@@ -60,7 +60,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
@@ -76,6 +75,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
+import com.pennywiseai.tracker.ui.theme.yellow_on_light
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -337,7 +337,7 @@ private fun SupportNote() {
         Text(
             text = stringResource(R.string.upgrade_support_note),
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF3A2B00),
+            color = yellow_on_light,
         )
     }
 }

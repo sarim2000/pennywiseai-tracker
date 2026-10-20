@@ -244,6 +244,8 @@ val cyan_light = Color(0xFFE0F7FA)
 val cyan_dark = Color(0xFF00838F)
 val yellow_light = Color(0xFFFFF8E1)
 val yellow_dark = Color(0xFFF57F17)
+/** Body text on a [yellow_light] surface — readable in both themes since the surface never darkens. */
+val yellow_on_light = Color(0xFF3A2B00)
 val grey_light = Color(0xFFECEFF1)
 val grey_dark = Color(0xFF546E7A)
 

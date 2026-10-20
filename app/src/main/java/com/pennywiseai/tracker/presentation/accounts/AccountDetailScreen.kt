@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.domain.model.icon
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -101,6 +103,7 @@ fun AccountDetailScreen(
                 CurrentBalanceCard(
                     balance = uiState.currentBalance?.balance ?: BigDecimal.ZERO,
                     creditLimit = uiState.currentBalance?.creditLimit,
+                    isLoan = uiState.currentBalance?.isLoan == true,
                     bankName = uiState.bankName,
                     accountLast4 = uiState.accountLast4,
                     primaryCurrency = uiState.primaryCurrency,
@@ -265,13 +268,15 @@ private fun ExpandableBalanceChart(
 private fun CurrentBalanceCard(
     balance: BigDecimal,
     creditLimit: BigDecimal? = null,
+    isLoan: Boolean = false,
     bankName: String,
     accountLast4: String,
     primaryCurrency: String,
     billedOutstanding: BigDecimal? = null,
     unbilledOutstanding: BigDecimal? = null
 ) {
-    val isCreditCard = creditLimit != null
+    // A limit left over from an account re-typed from credit card to loan is ignored (#792).
+    val isCreditCard = creditLimit != null && !isLoan
     
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth()
@@ -343,7 +348,8 @@ private fun CurrentBalanceCard(
             } else {
                 // Regular account layout
                 Text(
-                    text = stringResource(R.string.account_detail_current_balance),
+                    text = if (isLoan) stringResource(R.string.manage_accounts_outstanding)
+                           else stringResource(R.string.account_detail_current_balance),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -362,7 +368,11 @@ private fun CurrentBalanceCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = if (isCreditCard) Icons.Default.CreditCard else Icons.Default.AccountBalance,
+                    imageVector = when {
+                        isCreditCard -> Icons.Default.CreditCard
+                        isLoan -> AccountType.LOAN.icon
+                        else -> Icons.Default.AccountBalance
+                    },
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.small),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant

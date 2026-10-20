@@ -366,7 +366,7 @@ class SmsTransactionProcessor @Inject constructor(
                 targetAccountLast4
             )
 
-            val resolvedIsCreditCard = isCreditCard || (existingAccount?.isCreditCard ?: false)
+            val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, existingAccount)
 
             // The account keeps its own currency; a foreign-currency spend isn't
             // added to it (see BalanceCalculator.balanceAfter).
@@ -375,7 +375,8 @@ class SmsTransactionProcessor @Inject constructor(
                 ?: parsedTransaction.currency
             val newBalance = BalanceCalculator.balanceAfter(
                 explicitBalance = parsedTransaction.balance,
-                isCreditCard = resolvedIsCreditCard,
+                // A loan account's balance is owed too: a payment lowers it (#792).
+                isCreditCard = resolvedIsCreditCard || existingAccount?.isLoan == true,
                 transactionType = parsedTransaction.type.toEntityType(),
                 transactionAmount = parsedTransaction.amount,
                 transactionCurrency = parsedTransaction.currency,
@@ -444,7 +445,8 @@ class SmsTransactionProcessor @Inject constructor(
             smsSource = parsedTransaction.smsBody.take(500),
             sourceType = "TRANSACTION",
             accountType = BalanceCalculator.preservedAccountType(existingAccount),
-            currency = parsedTransaction.currency,
+            // The balance is in the account's currency, which can differ from the spend's.
+            currency = parsedTransaction.accountCurrency ?: parsedTransaction.currency,
             profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existingAccount?.alias,
             lowBalanceThreshold = existingAccount?.lowBalanceThreshold

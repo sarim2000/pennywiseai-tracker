@@ -151,6 +151,7 @@
     <string name="manage_accounts_section_bank">الحسابات البنكية</string>
     <string name="manage_accounts_section_unlinked_cards">البطاقات غير المرتبطة</string>
     <string name="manage_accounts_section_credit_cards">بطاقات الائتمان</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">نقل المعاملات الموجودة؟</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="zero">تم تعيين معاملات %1$d من هذا الحساب إلى ملف تعريف مختلف. نقلها إلى الملف الشخصي الجديد أيضًا؟</item>
@@ -234,8 +235,6 @@
     <string name="manage_accounts_account_ending_in">الحساب الذي ينتهي في %1$s</string>
     <string name="manage_accounts_delete_warning">سيؤدي هذا إلى حذف كل سجل الرصيد لهذا الحساب بشكل دائم. سيتم فصل أي بطاقات مرتبطة. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="manage_accounts_edit_account_title">تعديل الحساب</string>
-    <string name="manage_accounts_type_credit_card">بطاقة ائتمان</string>
-    <string name="manage_accounts_type_bank_account">حساب مصرفي</string>
     <string name="manage_accounts_bank_name_label">اسم البنك</string>
     <string name="manage_accounts_account_number_label">رقم الحساب</string>
     <string name="manage_accounts_read_only">قراءة فقط</string>

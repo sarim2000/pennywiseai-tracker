@@ -129,6 +129,7 @@
     <string name="manage_accounts_section_bank">Bankovací účty</string>
     <string name="manage_accounts_section_unlinked_cards">Nepropojené karty</string>
     <string name="manage_accounts_section_credit_cards">Kreditní karty</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">Přesunout existující transakce?</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="one">%1$d transakce z tohoto účtu je nastavena na jiný profil. Přesunout ji také do nového profilu?</item>
@@ -210,8 +211,6 @@
     <string name="manage_accounts_account_ending_in">Účet končící v %1$s</string>
     <string name="manage_accounts_delete_warning">Toto trvale odstraní celou historii zůstatků pro tento účet. Všechny propojené karty budou odpojeny. Tuto akci nelze vrátit zpět.</string>
     <string name="manage_accounts_edit_account_title">Upravit účet</string>
-    <string name="manage_accounts_type_credit_card">Platební karta</string>
-    <string name="manage_accounts_type_bank_account">Účet banky</string>
     <string name="manage_accounts_bank_name_label">Název banky</string>
     <string name="manage_accounts_account_number_label">Číslo účtu</string>
     <string name="manage_accounts_read_only">Pouze pro čtení</string>

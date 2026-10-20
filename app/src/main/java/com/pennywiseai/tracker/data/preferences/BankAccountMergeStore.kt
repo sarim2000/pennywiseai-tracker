@@ -88,22 +88,22 @@ class BankAccountMergeStore(context: Context) {
                 if (parts[0] != source.bankName || parts[1] != source.currency || full != source.accountLast4) {
                     key to full
                 } else if (source.bankName == target.bankName && source.currency == target.currency &&
-                    !target.isCreditCard && isShortMaskPair(parts[2], target.accountLast4)) {
+                    !target.isLiability && isShortMaskPair(parts[2], target.accountLast4)) {
                     key to target.accountLast4
                 } else null
             }.toMap()
             return if (source.bankName == target.bankName && source.currency == target.currency &&
-                !source.isCreditCard && !target.isCreditCard && isShortMaskPair(source.accountLast4, target.accountLast4)) {
+                !source.isLiability && !target.isLiability && isShortMaskPair(source.accountLast4, target.accountLast4)) {
                 updated + (mappingKey(source.bankName, source.currency, source.accountLast4) to target.accountLast4)
             } else updated
         }
 
         fun duplicatePairs(accounts: List<AccountBalanceEntity>): List<Pair<AccountBalanceEntity, AccountBalanceEntity>> {
             val unique = accounts.distinctBy { Triple(it.bankName, it.currency, it.accountLast4) }
-            return unique.filter { !it.isCreditCard && it.accountLast4.matches(shortSuffixPattern) }
+            return unique.filter { !it.isLiability && it.accountLast4.matches(shortSuffixPattern) }
                 .mapNotNull { source ->
                     val targets = unique.filter { target ->
-                        target.bankName == source.bankName && !target.isCreditCard &&
+                        target.bankName == source.bankName && !target.isLiability &&
                             source.currency == target.currency && source.profileId == target.profileId &&
                             isShortMaskPair(source.accountLast4, target.accountLast4)
                     }

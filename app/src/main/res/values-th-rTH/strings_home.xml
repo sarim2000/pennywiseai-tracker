@@ -129,4 +129,5 @@
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">แนวโน้มยอดเงิน</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
 </resources>

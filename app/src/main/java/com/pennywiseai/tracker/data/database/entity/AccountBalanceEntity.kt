@@ -54,7 +54,7 @@ data class AccountBalanceEntity(
     val sourceType: String? = null,  // TRANSACTION, SMS_BALANCE, MANUAL, CARD_LINK
 
     @ColumnInfo(name = "account_type")
-    val accountType: String? = null,  // SAVINGS, CURRENT, CREDIT, CASH
+    val accountType: String? = null,  // SAVINGS, CURRENT, CREDIT, CASH, LOAN
 
     @ColumnInfo(name = "created_at")
     @Contextual
@@ -89,12 +89,28 @@ data class AccountBalanceEntity(
     val displayLabel: String
         get() = alias?.takeIf { it.isNotBlank() } ?: accountLabel(bankName, accountLast4)
 
+    /** A bank loan account (home, car, personal loan) — not the person-to-person Loans feature. (#792) */
+    val isLoan: Boolean
+        get() = accountType.equals(LOAN_TYPE, ignoreCase = true)
+
+    /**
+     * The balance is an amount owed, not money held: credit cards and loan
+     * accounts. Spending raises it, a credit/payment lowers it, and it stays out
+     * of the spendable bank total. Drives every balance-sign and total decision,
+     * so a loan follows the credit-card rules without its own copy of them. (#792)
+     */
+    val isLiability: Boolean
+        get() = isCreditCard || isLoan
+
     companion object {
         // Sentinel account_last4 for mobile-money wallets (eMola, M-Pesa
         // Mozambique) whose SMS has a running balance but no per-account number —
         // the whole wallet is one account, keyed on bank_name. The UI renders
         // this as the plain service name (no "••1234" suffix).
         const val WALLET_ACCOUNT_MARKER = "WALLET"
+
+        /** Stored `account_type` of a bank loan account; see [isLoan]. */
+        const val LOAN_TYPE = "LOAN"
 
         /**
          * Human-readable label for an account. Mobile-money wallets have no

@@ -137,6 +137,8 @@
     <string name="manage_accounts_section_bank">Bank Accounts</string>
     <string name="manage_accounts_section_unlinked_cards">Unlinked Cards</string>
     <string name="manage_accounts_section_credit_cards">Credit Cards</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
+    <string name="manage_accounts_section_loan_accounts">Loan Accounts</string>
     <string name="manage_accounts_hidden_header">Ignored Accounts (%1$d)</string>
     <string name="manage_accounts_reassign_title">Move existing transactions?</string>
     <plurals name="manage_accounts_reassign_message">
@@ -196,6 +198,7 @@
     <string name="manage_accounts_update_credit_card">Update Credit Card</string>
     <string name="manage_accounts_outstanding_balance">Outstanding Balance</string>
     <string name="manage_accounts_outstanding_balance_hint">Amount currently owed on the card</string>
+    <string name="manage_accounts_loan_outstanding_hint">Amount still owed on the loan</string>
     <string name="manage_accounts_credit_limit_hint">Total credit limit of the card</string>
     <string name="manage_accounts_available_credit_label">Available Credit:</string>
     <string name="manage_accounts_utilization_label">Utilization:</string>
@@ -222,8 +225,7 @@
     <string name="manage_accounts_account_ending_in">Account ending in %1$s</string>
     <string name="manage_accounts_delete_warning">This will permanently delete all balance history for this account. Any linked cards will be unlinked. This action cannot be undone.</string>
     <string name="manage_accounts_edit_account_title">Edit Account</string>
-    <string name="manage_accounts_type_credit_card">Credit Card</string>
-    <string name="manage_accounts_type_bank_account">Bank Account</string>
+    <string name="manage_accounts_type_note">Changing the type only changes how the balance is counted from now on. Past transactions stay as they are.</string>
     <string name="manage_accounts_bank_name_label">Bank Name</string>
     <string name="manage_accounts_account_number_label">Account Number</string>
     <string name="manage_accounts_read_only">Read-only</string>

@@ -255,6 +255,7 @@ class AlRajhiBankParserTest {
             "AlRajhiBank" to true,
             "ALRAJHI" to true,
             "الراجحي" to true,
+            "AlRajhi JO" to false,  // Al Rajhi Jordan quotes JOD, not SAR
             "HDFC" to false,
             "" to false
         )

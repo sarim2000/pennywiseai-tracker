@@ -127,6 +127,7 @@
     <string name="manage_accounts_section_bank">Comptes bancaires</string>
     <string name="manage_accounts_section_unlinked_cards">Cartes non liées</string>
     <string name="manage_accounts_section_credit_cards">Cartes de crédit</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">Déplacer les transactions existantes ?</string>
     <string name="manage_accounts_reassign_move">Déplacer</string>
     <string name="manage_accounts_reassign_keep">Conserver comme étant</string>
@@ -202,8 +203,6 @@
     <string name="manage_accounts_account_ending_in">Compte se terminant par %1$s</string>
     <string name="manage_accounts_delete_warning">Ceci supprimera définitivement tout l\'historique de la balance pour ce compte. Toutes les cartes liées seront dissociées. Cette action ne peut pas être annulée.</string>
     <string name="manage_accounts_edit_account_title">Modifier le compte</string>
-    <string name="manage_accounts_type_credit_card">Carte de Crédit</string>
-    <string name="manage_accounts_type_bank_account">Compte bancaire</string>
     <string name="manage_accounts_bank_name_label">Nom de la banque</string>
     <string name="manage_accounts_account_number_label">Numéro de compte</string>
     <string name="manage_accounts_read_only">Lecture seule</string>

@@ -23,4 +23,5 @@
     <string name="account_type_current">Current</string>
     <string name="account_type_credit_card">Credit Card</string>
     <string name="account_type_cash">Cash</string>
+    <string name="account_type_loan">Loan</string>
 </resources>

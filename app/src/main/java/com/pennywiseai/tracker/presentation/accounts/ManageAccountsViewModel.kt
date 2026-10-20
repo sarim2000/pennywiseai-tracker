@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
+import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -55,7 +56,9 @@ enum class AccountType {
     SAVINGS,
     CURRENT,
     CREDIT,
-    CASH
+    CASH,
+    /** Bank loan account (#792): the balance is the amount still owed, like a credit card. */
+    LOAN
 }
 
 data class PendingProfileReassign(
@@ -243,8 +246,10 @@ class ManageAccountsViewModel @Inject constructor(
                 currency = state.currency,
                 sourceType = "MANUAL"
             )
-            if (isCredit) {
-                // Credit cards aren't recompute-managed — single snapshot as before.
+            if (template.isLiability) {
+                // Credit cards and loans aren't recompute-managed (their balance is
+                // owed, which the income-positive recompute would get backwards) —
+                // single snapshot as before.
                 accountBalanceRepository.insertBalance(template)
             } else {
                 // Cash/regular manual account: seed an OPENING anchor + current row so
@@ -589,7 +594,7 @@ class ManageAccountsViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                if (source.isCreditCard != target.isCreditCard) {
+                if (source.isCreditCard != target.isCreditCard || source.isLoan != target.isLoan) {
                     _uiState.update {
                         it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_merge_card_mismatch))
                     }
@@ -753,7 +758,7 @@ class ManageAccountsViewModel @Inject constructor(
         newBankName: String,
         newBalance: BigDecimal,
         newCreditLimit: BigDecimal?,
-        isCreditCard: Boolean,
+        newType: AccountType,
         newCurrency: String? = null
     ) {
         viewModelScope.launch {
@@ -777,6 +782,14 @@ class ManageAccountsViewModel @Inject constructor(
                     }
                 }
 
+                // Type change (#792): re-tags every row of the account. It takes effect
+                // for totals and future balance math at once; past transactions and
+                // past balance figures are left as they are.
+                val beforeTypeChange = accountBalanceRepository.getLatestBalance(newBankName, accountLast4)
+                if (beforeTypeChange != null && beforeTypeChange.getAccountType() != newType) {
+                    accountBalanceRepository.setAccountType(newBankName, accountLast4, newType)
+                }
+
                 // Get existing balance to preserve profileId and other properties
                 val latestBalance = accountBalanceRepository.getLatestBalance(newBankName, accountLast4)
                 val resolvedCurrency = newCurrency ?: CurrencyFormatter.resolveAccountCurrency(
@@ -785,7 +798,7 @@ class ManageAccountsViewModel @Inject constructor(
                     bankName = newBankName
                 )
 
-                if (!isCreditCard && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
+                if (latestBalance?.isLiability != true && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
                     // Manual/cash account: balance is derived. Atomically update the
                     // currency on its anchor rows and back-solve the opening from the
                     // typed balance (option b) instead of inserting a snapshot the next
@@ -796,8 +809,12 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = resolvedCurrency,
                         targetBalance = newBalance
                     )
-                } else {
-                    // Insert new balance record with updated values
+                } else if (latestBalance == null || !latestBalance.matches(newBalance, newCreditLimit, resolvedCurrency)) {
+                    // Insert new balance record with updated values. Skipped when only the
+                    // name or type changed: a MANUAL row would make an SMS account look
+                    // manual (losing "Update Balance") and, surviving a force resync,
+                    // become the starting balance for every rebuilt SMS. The type itself
+                    // survives a resync through OptimizedSmsReaderWorker's snapshot.
                     accountBalanceRepository.insertBalance(
                         AccountBalanceEntity(
                             bankName = newBankName,
@@ -805,7 +822,7 @@ class ManageAccountsViewModel @Inject constructor(
                             balance = newBalance,
                             creditLimit = newCreditLimit,
                             timestamp = LocalDateTime.now(),
-                            isCreditCard = isCreditCard,
+                            isCreditCard = newType == AccountType.CREDIT,
                             // Honor an explicit currency edit; otherwise resolve so stamping
                             // MANUAL doesn't flip an SMS-tracked non-INR account to stored INR.
                             currency = resolvedCurrency,
@@ -832,5 +849,11 @@ class ManageAccountsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** True when [this] row already holds these values, so an edit needs no new balance row. */
+    private fun AccountBalanceEntity.matches(balance: BigDecimal, creditLimit: BigDecimal?, currency: String): Boolean {
+        fun same(a: BigDecimal?, b: BigDecimal?) = if (a == null || b == null) a == b else a.compareTo(b) == 0
+        return same(this.balance, balance) && same(this.creditLimit, creditLimit) && this.currency == currency
     }
 }

@@ -154,7 +154,7 @@ class WebhookPayloadBuilder @Inject constructor(
         accounts.getAllLatestBalances().first().filter { it.currency.equals(currency, true) }.map {
             WebhookAccountPayload("account_${it.bankName}_${it.accountLast4}", it.bankName, it.accountLast4,
                 it.balance.asPlainStringSafe(), it.currency, it.creditLimit?.asPlainStringSafe(), it.isCreditCard,
-                it.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER, it.timestamp.toString())
+                it.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER, it.timestamp.toString(), isLoan = it.isLoan)
         }
 
     private suspend fun subscriptionPayloads(currency: String): List<WebhookSubscriptionPayload> =

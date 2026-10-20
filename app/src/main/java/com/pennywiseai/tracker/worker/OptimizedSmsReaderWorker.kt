@@ -206,6 +206,14 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private var ruleCache: Map<TransactionType, List<TransactionRule>> = emptyMap()
 
+    /**
+     * Typed accounts as they were before a force resync wiped their rebuildable
+     * balance rows, keyed by (bank, last4). A user-chosen type (#792) lives only on
+     * those rows, so the rebuild reads it from here and re-tags the account after.
+     * Empty unless this run is a force resync.
+     */
+    private var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
+
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
     private fun Long.toLocalDateTime(): LocalDateTime =
@@ -375,6 +383,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
+                    accountsBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                        .filter { it.accountType != null }
+                        .associateBy { it.bankName to it.accountLast4 }
                     transactionRepository.deleteRebuildableSmsTransactions(
                         java.time.LocalDateTime.ofInstant(
                             java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
@@ -415,6 +426,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             }
 
             Log.i(TAG, buildSummary(stats, totalTime))
+            // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
+            // so put each typed account's type back on the rows that lost it (#792).
+            for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
             cleanUpAndFinalize(stats)
             // Materialise any due income-autopay phantoms (#371). Runs after
             // SMS processing so a real INCOME SMS that landed for the same
@@ -950,7 +964,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
-        val resolvedIsCreditCard = isCreditCard || (existing?.isCreditCard ?: false)
+        // A force resync may have wiped this account's rows; until a typed row exists
+        // again, its type comes from the snapshot taken before the rebuild (#792). A
+        // typed row wins, so a type the user sets while the resync runs is kept.
+        // Balance math still starts from the rebuilt history (`existing`), never from
+        // the pre-resync balance.
+        val typed = existing?.takeIf { it.accountType != null }
+            ?: accountsBeforeRebuild[parsed.bankName to targetAccount]
+            ?: existing
+        val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, typed)
 
         // The account keeps its own currency; a foreign-currency spend isn't
         // added to it (see BalanceCalculator.balanceAfter).
@@ -959,7 +981,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             ?: parsed.currency
         val newBalance = BalanceCalculator.balanceAfter(
             explicitBalance = parsed.balance,
-            isCreditCard = resolvedIsCreditCard,
+            // A loan account's balance is owed too: a payment lowers it (#792).
+            isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
             transactionType = parsed.type.toEntityType(),
             transactionAmount = parsed.amount,
             transactionCurrency = parsed.currency,
@@ -987,7 +1010,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             isCreditCard  = resolvedIsCreditCard,
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
-            accountType   = BalanceCalculator.preservedAccountType(existing),
+            accountType   = BalanceCalculator.preservedAccountType(typed),
             currency      = accountCurrency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
@@ -1031,7 +1054,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
             accountType   = BalanceCalculator.preservedAccountType(existing),
-            currency      = parsed.currency,
+            // The balance is in the account's currency, which can differ from the spend's.
+            currency      = parsed.accountCurrency ?: parsed.currency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold

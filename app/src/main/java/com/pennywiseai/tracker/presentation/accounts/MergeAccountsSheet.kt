@@ -47,7 +47,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  *  Step 1 — pick the **source** (account whose transactions will be moved).
  *  Step 2 — pick the **target** (account they'll be moved into). The list
  *           filters to accounts compatible with the source: same currency,
- *           same `isCreditCard` flag, not the source itself.
+ *           same `isCreditCard` and `isLoan` flags, not the source itself.
  *  Step 3 — a confirmation dialog showing the actual transaction count.
  *
  * On confirm the sheet fires [onConfirm] and dismisses; the parent
@@ -294,6 +294,6 @@ private fun compatible(a: AccountBalanceEntity, b: AccountBalanceEntity): Boolea
         a.accountLast4 == b.accountLast4
     if (sameAccount) return false
     if (!a.currency.equals(b.currency, ignoreCase = true)) return false
-    if (a.isCreditCard != b.isCreditCard) return false
+    if (a.isCreditCard != b.isCreditCard || a.isLoan != b.isLoan) return false
     return true
 }

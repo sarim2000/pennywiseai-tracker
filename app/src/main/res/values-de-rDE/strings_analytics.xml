@@ -15,6 +15,8 @@
     <string name="analytics_top_tags">Top Tags</string>
     <string name="analytics_top_merchants">Top Händler</string>
     <string name="analytics_by_account">Nach Konto</string>
+    <!-- Group by picker (#422); the chip and menu show one of these -->
+    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Leeren</string>
     <string name="analytics_filter_all_profiles">Alle Konten</string>

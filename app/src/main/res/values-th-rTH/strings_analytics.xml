@@ -10,6 +10,8 @@
     <string name="analytics_toggle_view">สลับมุมมอง</string>
     <!-- %1$s = formatted refund amount -->
     <string name="analytics_top_merchants">ร้านค้าชั้นนำ</string>
+    <!-- Group by picker (#422); the chip and menu show one of these -->
+    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">ล้าง</string>
     <string name="analytics_filter_all_profiles">บัญชีทั้งหมด</string>

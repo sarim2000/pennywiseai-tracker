@@ -16,6 +16,7 @@
     <!-- %1$s / %2$s = currency codes -->
     <!-- %1$d = transaction count, %2$s = target account -->
     <!-- ══ Manage accounts screen ══ -->
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <!-- %1$d = utilization percentage -->
     <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->

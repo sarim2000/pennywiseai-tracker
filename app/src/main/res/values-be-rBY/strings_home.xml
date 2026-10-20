@@ -44,4 +44,5 @@
     <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <!-- Balance chart legend -->
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
 </resources>

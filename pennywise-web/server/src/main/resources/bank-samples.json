@@ -627,6 +627,17 @@
       "reference": "BR000CAUBYON",
       "balance": null
     },
+    "Jordan Islamic Bank": {
+      "sender": "JIB",
+      "message": "تحويل الكتروني لحسابكم 1234567 - 003 بقيمة 46.0 دينار اردني الرصيد المتوفر 223.069 دينار اردني",
+      "currency": "JOD",
+      "amount": "46.0",
+      "type": "INCOME",
+      "merchant": "Electronic Transfer",
+      "accountLast4": "4567",
+      "reference": null,
+      "balance": "223.069"
+    },
     "Jupiter": {
       "sender": "VK-JTEDGE-S",
       "message": "Rs.25.00 debited to your Edge CSB Bank RuPay Credit Card ending 6788 on 3/18/26, 6:39 PM - (UPI Ref no.702711160776). To dispute, call 8655055086.",
@@ -967,6 +978,17 @@
       "accountLast4": "1111",
       "reference": "600000000001",
       "balance": "696.96"
+    },
+    "Safwa Islamic Bank": {
+      "sender": "Safwa Bank",
+      "message": "تغطية عمولات البنك بمبلغ 0.500 دينار الرصيد المتوفر 174.750 دينار",
+      "currency": "JOD",
+      "amount": "0.500",
+      "type": "EXPENSE",
+      "merchant": "Bank Fees",
+      "accountLast4": null,
+      "reference": null,
+      "balance": "174.750"
     },
     "Saraswat Co-operative Bank": {
       "sender": "BV-SARBNK-S",

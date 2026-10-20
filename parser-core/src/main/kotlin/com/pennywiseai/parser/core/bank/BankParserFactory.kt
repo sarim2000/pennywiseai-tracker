@@ -163,6 +163,7 @@ object BankParserFactory {
         NationsTrustBankParser(),  // Nations Trust Bank (Sri Lanka)
         NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
         NDBBankParser(),  // National Development Bank / NDB (Sri Lanka)
+        BRACBankParser(),  // BRAC Bank (Bangladesh) (#943)
         BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)
         ZenithBankParser(),  // Zenith Bank (Nigeria)

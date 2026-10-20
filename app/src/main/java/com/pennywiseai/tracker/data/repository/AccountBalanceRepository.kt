@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.BalanceCalculator
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -629,17 +630,77 @@ open class AccountBalanceRepository @Inject constructor(
      * destination, out when it's the source) and excluded from the direct sum so they're
      * never double-counted — a transfer *into* a manual account would otherwise be dropped.
      */
-    private suspend fun signedTransactionSum(bankName: String, accountLast4: String): BigDecimal {
+    private suspend fun signedTransactionSum(
+        bankName: String,
+        accountLast4: String,
+        after: LocalDateTime? = null
+    ): BigDecimal {
+        fun inWindow(tx: TransactionEntity) = after == null || tx.dateTime > after
         var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER }
+            .filter { it.transactionType != TransactionType.TRANSFER && inWindow(it) }
             .fold(BigDecimal.ZERO) { acc, tx ->
                 if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
+        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
             if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
             if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
         }
         return sum
+    }
+
+    /**
+     * The account's balance at [end], as well as the ledger knows it (#13). A
+     * manual account's balance is derived, so it's today's figure minus every
+     * transaction after [end]; any other account's is its last recorded balance
+     * at or before [end] (null when it has none that early).
+     */
+    suspend fun balanceAsOf(bankName: String, accountLast4: String, end: LocalDateTime): BigDecimal? {
+        val latest = accountBalanceDao.getLatestBalance(bankName, accountLast4) ?: return null
+        if (isManualAccount(bankName, accountLast4)) {
+            return latest.balance - signedTransactionSum(bankName, accountLast4, after = end)
+        }
+        return accountBalanceDao.getBalanceHistoryForAccount(bankName, accountLast4) // newest first
+            .firstOrNull { it.timestamp <= end && it.sourceType != SOURCE_OPENING }
+            ?.balance
+    }
+
+    /**
+     * "Update balance" for a non-card account: the user's figure becomes the
+     * current balance. A manual account back-solves its opening so later
+     * transactions still adjust from there; an SMS-tracked one gets a MANUAL
+     * snapshot that a rescan won't purge.
+     */
+    suspend fun setCurrentBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
+        if (isManualAccount(bankName, accountLast4)) {
+            setManualCurrentBalance(bankName, accountLast4, newBalance)
+            return
+        }
+        val latestBalance = getLatestBalance(bankName, accountLast4)
+        insertBalance(
+            AccountBalanceEntity(
+                bankName = bankName,
+                accountLast4 = accountLast4,
+                balance = newBalance,
+                creditLimit = latestBalance?.creditLimit,
+                isCreditCard = latestBalance?.isCreditCard ?: false,
+                // Reinserted rows are stamped MANUAL (so a rescan won't purge a
+                // user-edited balance), but that makes resolveAccountCurrency trust
+                // the stored value. Resolve it first so an SMS-tracked non-INR
+                // account keeps its parser currency instead of flipping to the
+                // stored INR default. See [CurrencyFormatter.resolveAccountCurrency].
+                currency = CurrencyFormatter.resolveAccountCurrency(
+                    sourceType = latestBalance?.sourceType,
+                    storedCurrency = latestBalance?.currency ?: "INR",
+                    bankName = bankName
+                ),
+                accountType = latestBalance?.accountType,
+                profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
+                alias = latestBalance?.alias,
+                lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
+                sourceType = SOURCE_MANUAL,
+                timestamp = LocalDateTime.now()
+            )
+        )
     }
 
     /** One-shot account list; see [AccountBalanceDao.getAllLatestBalancesOnce]. */

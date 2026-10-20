@@ -43,7 +43,8 @@ class IciciBankPdfParser : PdfStatementParser {
                 merchant = merchantFrom(description),
                 reference = REFERENCE.findAll(description.joinToString(" ")).lastOrNull()?.value,
                 accountLast4 = null,
-                balance = null,
+                // The running balance: lets the import check the closing figure (#13).
+                balance = row.balance,
                 // Date and running balance lead the text: the import's duplicate hash is
                 // built from it, and recurring rows (monthly FD interest) share the
                 // same amount and particulars. The balance makes every row unique.

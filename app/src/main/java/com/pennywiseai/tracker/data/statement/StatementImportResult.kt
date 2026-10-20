@@ -10,8 +10,4 @@ sealed class StatementImportResult {
         val totalParsed: Int,
         val enriched: Int = 0
     ) : StatementImportResult()
-
-    data class Error(val message: String) : StatementImportResult()
-    /** The statement PDF is locked; ask for its password ([wrongPassword]: the last one failed). */
-    data class PasswordRequired(val wrongPassword: Boolean) : StatementImportResult()
 }

@@ -169,7 +169,10 @@ data class WebhookAccountPayload(
     val isCreditCard: Boolean,
     @SerialName("is_wallet")
     val isWallet: Boolean,
-    val timestamp: String
+    val timestamp: String,
+    // Bank loan account (#792): like a credit card, `balance` is the amount owed.
+    @SerialName("is_loan")
+    val isLoan: Boolean = false
 )
 
 @Serializable

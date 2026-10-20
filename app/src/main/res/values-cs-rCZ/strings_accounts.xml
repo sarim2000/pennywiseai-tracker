@@ -210,8 +210,6 @@
     <string name="manage_accounts_account_ending_in">Účet končící v %1$s</string>
     <string name="manage_accounts_delete_warning">Toto trvale odstraní celou historii zůstatků pro tento účet. Všechny propojené karty budou odpojeny. Tuto akci nelze vrátit zpět.</string>
     <string name="manage_accounts_edit_account_title">Upravit účet</string>
-    <string name="manage_accounts_type_credit_card">Platební karta</string>
-    <string name="manage_accounts_type_bank_account">Účet banky</string>
     <string name="manage_accounts_bank_name_label">Název banky</string>
     <string name="manage_accounts_account_number_label">Číslo účtu</string>
     <string name="manage_accounts_read_only">Pouze pro čtení</string>

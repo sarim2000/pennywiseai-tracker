@@ -100,7 +100,6 @@
     <!-- %1$s = last digits of the account -->
     <string name="manage_accounts_delete_warning">यसले यस खाताको सबै ब्यालेन्स इतिहास स्थायी रूपमा मेटाउनेछ। कुनै पनि लिंक गरिएको कार्डहरू अनलिंक गरिनेछ। यो कार्य पूर्ववत गर्न सकिँदैन।</string>
     <string name="manage_accounts_edit_account_title">खाता सम्पादन गर्नुहोस्</string>
-    <string name="manage_accounts_type_credit_card">क्रेडिट कार्ड</string>
     <string name="manage_accounts_bank_name_label">बैंकको नाम</string>
     <!-- ══ Loans list ══ -->
     <string name="loans_title">ऋणहरू</string>

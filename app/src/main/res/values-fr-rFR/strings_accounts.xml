@@ -202,8 +202,6 @@
     <string name="manage_accounts_account_ending_in">Compte se terminant par %1$s</string>
     <string name="manage_accounts_delete_warning">Ceci supprimera définitivement tout l\'historique de la balance pour ce compte. Toutes les cartes liées seront dissociées. Cette action ne peut pas être annulée.</string>
     <string name="manage_accounts_edit_account_title">Modifier le compte</string>
-    <string name="manage_accounts_type_credit_card">Carte de Crédit</string>
-    <string name="manage_accounts_type_bank_account">Compte bancaire</string>
     <string name="manage_accounts_bank_name_label">Nom de la banque</string>
     <string name="manage_accounts_account_number_label">Numéro de compte</string>
     <string name="manage_accounts_read_only">Lecture seule</string>

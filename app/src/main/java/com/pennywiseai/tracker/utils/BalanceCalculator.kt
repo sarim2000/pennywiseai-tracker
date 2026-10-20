@@ -14,6 +14,15 @@ object BalanceCalculator {
     fun preservedAccountType(existing: AccountBalanceEntity?): String? = existing?.accountType
 
     /**
+     * `is_credit_card` for a balance row rebuilt from an SMS: a card SMS marks the
+     * account, and an existing card stays one. An account the user set to LOAN is
+     * never turned into a card, or it would jump to the Credit Cards section. Its
+     * balance is still handled as owed, through [AccountBalanceEntity.isLiability]. (#792)
+     */
+    fun resolvedIsCreditCard(smsIsCard: Boolean, existing: AccountBalanceEntity?): Boolean =
+        existing?.isLoan != true && (smsIsCard || existing?.isCreditCard == true)
+
+    /**
      * Balance an account row should carry after a parsed SMS whose amount is in
      * [transactionCurrency] while the account is kept in [accountCurrency].
      *
@@ -41,6 +50,10 @@ object BalanceCalculator {
     /**
      * Calculates the new account balance post-transaction.
      * For credit cards, balance represents outstanding debt.
+     *
+     * Throughout this object `isCreditCard` means "the balance is an amount
+     * owed": pass [AccountBalanceEntity.isLiability], so loan accounts get the
+     * credit-card rules (a payment lowers what's owed). (#792)
      */
     fun calculateNewBalance(
         explicitBalance: BigDecimal?,

@@ -27,10 +27,10 @@ class DetectBalanceDiscrepancyUseCase @Inject constructor(
 
         val history = accountBalanceRepository.getBalanceHistoryForAccount(bank, last4) // newest first
         val own = history.firstOrNull { it.transactionId == tx.id }
-        if (own?.isCreditCard == true) return null
+        if (own?.isLiability == true) return null
         val at = own?.timestamp ?: tx.dateTime
         val previous = history.firstOrNull { it.id != own?.id && it.timestamp < at } ?: return null
-        if (previous.isCreditCard || previous.currency != tx.currency) return null
+        if (previous.isLiability || previous.currency != tx.currency) return null
 
         // A transfer row only records the FROM bank, so an incoming leg can't be
         // tied to a bank. If another bank has an account with the same last four,

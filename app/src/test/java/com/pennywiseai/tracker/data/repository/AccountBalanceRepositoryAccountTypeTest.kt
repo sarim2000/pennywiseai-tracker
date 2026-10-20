@@ -6,11 +6,14 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.lang.reflect.Proxy
@@ -78,6 +81,17 @@ class AccountBalanceRepositoryAccountTypeTest {
                     balanceRows
                         .filter { it.bankName == bankName && it.accountLast4 == accountLast4 }
                         .maxByOrNull { it.timestamp }
+                }
+                "updateAccountType" -> {
+                    val (bankName, accountLast4, type, isCredit) = args
+                    var updated = 0
+                    balanceRows.replaceAll { row ->
+                        if (row.bankName == bankName && row.accountLast4 == accountLast4) {
+                            updated++
+                            row.copy(accountType = type as String, isCreditCard = isCredit as Boolean)
+                        } else row
+                    }
+                    updated
                 }
                 else -> null
             }
@@ -187,5 +201,54 @@ class AccountBalanceRepositoryAccountTypeTest {
         val latest = repository.getLatestBalance("AXIS", "4321")
         assertEquals("CREDIT", latest?.accountType)
         assertEquals(AccountType.CREDIT, latest?.getAccountType())
+    }
+
+    private fun smsAccountRow(balance: String, hoursAgo: Long) = AccountBalanceEntity(
+        bankName = "Test Bank",
+        accountLast4 = "7777",
+        balance = BigDecimal(balance),
+        timestamp = LocalDateTime.now().minusHours(hoursAgo),
+        sourceType = "TRANSACTION"
+    )
+
+    @Test
+    fun `changing an SMS account to LOAN re-tags every row and keeps the balance figures`() = runBlocking {
+        repository.insertBalance(smsAccountRow("260000.00", hoursAgo = 5))
+        repository.insertBalance(smsAccountRow("250000.00", hoursAgo = 2))
+
+        repository.setAccountType("Test Bank", "7777", AccountType.LOAN)
+
+        assertEquals(2, balanceRows.size)
+        assertTrue(balanceRows.all { it.isLoan && it.isLiability && !it.isCreditCard })
+        assertEquals(listOf("260000.00", "250000.00"), balanceRows.map { it.balance.toPlainString() })
+        assertEquals(AccountType.LOAN, repository.getLatestBalance("Test Bank", "7777")?.getAccountType())
+    }
+
+    @Test
+    fun `a payment on a loan account lowers what is owed, and switching back restores bank behaviour`() = runBlocking {
+        repository.insertBalance(smsAccountRow("250000.00", hoursAgo = 2))
+        repository.setAccountType("Test Bank", "7777", AccountType.LOAN)
+
+        repository.applyTransactionToBalance("Test Bank", "7777", BigDecimal("12000.00"), TransactionType.INCOME, 1L)
+        assertEquals(BigDecimal("238000.00"), repository.getLatestBalance("Test Bank", "7777")?.balance)
+
+        repository.setAccountType("Test Bank", "7777", AccountType.SAVINGS)
+        repository.applyTransactionToBalance("Test Bank", "7777", BigDecimal("1000.00"), TransactionType.INCOME, 2L)
+        val latest = repository.getLatestBalance("Test Bank", "7777")!!
+        assertFalse(latest.isLiability)
+        assertEquals(BigDecimal("239000.00"), latest.balance)
+    }
+
+    @Test
+    fun `switching a loan to CREDIT sets the credit-card flag, and back to LOAN clears it`() = runBlocking {
+        repository.insertBalance(smsAccountRow("5000.00", hoursAgo = 1))
+
+        repository.setAccountType("Test Bank", "7777", AccountType.CREDIT)
+        assertTrue(repository.getLatestBalance("Test Bank", "7777")!!.isCreditCard)
+
+        repository.setAccountType("Test Bank", "7777", AccountType.LOAN)
+        val latest = repository.getLatestBalance("Test Bank", "7777")!!
+        assertFalse(latest.isCreditCard)
+        assertTrue(latest.isLoan)
     }
 }

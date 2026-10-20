@@ -950,7 +950,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
-        val resolvedIsCreditCard = isCreditCard || (existing?.isCreditCard ?: false)
+        val resolvedIsCreditCard = BalanceCalculator.resolvedIsCreditCard(isCreditCard, existing)
 
         // The account keeps its own currency; a foreign-currency spend isn't
         // added to it (see BalanceCalculator.balanceAfter).
@@ -959,7 +959,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             ?: parsed.currency
         val newBalance = BalanceCalculator.balanceAfter(
             explicitBalance = parsed.balance,
-            isCreditCard = resolvedIsCreditCard,
+            // A loan account's balance is owed too: a payment lowers it (#792).
+            isCreditCard = resolvedIsCreditCard || existing?.isLoan == true,
             transactionType = parsed.type.toEntityType(),
             transactionAmount = parsed.amount,
             transactionCurrency = parsed.currency,

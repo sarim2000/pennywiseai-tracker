@@ -71,18 +71,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
 
-        // Initial billing-entitlement sync. No-op on F-Droid (the stub
-        // gateway returns immediately). Failure here is non-fatal — the
-        // cached entitlement (DataStore) keeps the UI consistent until
-        // the next attempt.
-        applicationScope.launch {
-            try {
-                purchaseGateway.refresh()
-            } catch (e: Exception) {
-                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
-            }
-        }
-
         // Re-arm the daily folder backup on process start when the user has it enabled,
         // so scheduled work survives reboots / app updates that clear WorkManager state.
         applicationScope.launch {
@@ -140,6 +128,28 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         }
     }
 
+    private var billingRefreshed = false
+
+    /**
+     * Billing-entitlement sync, once per process, the first time a screen
+     * opens. Not in [onCreate]: the process also starts for an incoming SMS,
+     * a bank notification, a worker or a widget, and connecting to Play
+     * Billing there also queues the library's own usage logs for upload
+     * (#881). Those starts don't need a fresh check — the cached entitlement
+     * (DataStore) covers them. No-op on F-Droid. A failure keeps the cache.
+     */
+    private fun refreshBillingOnce() {
+        if (billingRefreshed) return
+        billingRefreshed = true
+        applicationScope.launch {
+            try {
+                purchaseGateway.refresh()
+            } catch (e: Exception) {
+                android.util.Log.w("PennyWiseApp", "Initial billing refresh failed: ${e.message}", e)
+            }
+        }
+    }
+
     private var lastLocales: android.os.LocaleList? = null
 
     // Widgets bake translated text into their stored snapshots, so rebuild them
@@ -166,6 +176,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // App came to foreground
                 isInForeground = true
                 isAppInForeground = true
+                refreshBillingOnce()
                 // Check if app should be locked when returning from background
                 checkAndLockApp()
             }

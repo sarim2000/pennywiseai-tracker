@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Local release script that replicates .github/workflows/release.yml
-# Usage: ./scripts/release.sh [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--dry-run]
+# Usage: ./scripts/release.sh [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--no-relay] [--dry-run]
 #
 # One-shot headless release (build + Claude notes + tag + push + GitHub release
 # + Play Console draft upload):
@@ -45,6 +45,7 @@ trap cleanup_on_exit EXIT INT TERM
 #                 via scripts/upload-play.sh (implies building the bundle)
 #   --no-claude   skip Claude release-note generation, use the commit-list format
 #   --web         also deploy pennywise-web to Cloudflare
+#   --no-relay    skip the AI relay deploy (it otherwise deploys when relay/ changed)
 #   --dry-run     print the plan + release notes, change nothing
 VERSION_BUMP="patch"
 DRY_RUN=""
@@ -52,6 +53,7 @@ AUTO_YES=""
 DO_PLAY=""
 NO_CLAUDE=""
 DO_WEB=""
+NO_RELAY=""
 for arg in "$@"; do
     case "$arg" in
         patch|minor|major) VERSION_BUMP="$arg" ;;
@@ -59,9 +61,10 @@ for arg in "$@"; do
         --play)            DO_PLAY="true" ;;
         --no-claude)       NO_CLAUDE="true" ;;
         --web)             DO_WEB="true" ;;
+        --no-relay)        NO_RELAY="true" ;;
         --dry-run)         DRY_RUN="true"; echo -e "${YELLOW}🔍 DRY RUN MODE${NC}" ;;
         *) echo -e "${RED}Unknown argument: $arg${NC}"
-           echo "Usage: $0 [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--dry-run]"
+           echo "Usage: $0 [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--no-relay] [--dry-run]"
            exit 1 ;;
     esac
 done
@@ -100,6 +103,13 @@ fi
 
 # 4. Generate changelog
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+# The AI relay (relay/, ADR 0002) ships with the app: deploy it whenever it
+# changed since the last release, so the live relay matches the app's tools.
+DO_RELAY=""
+if [ -z "$NO_RELAY" ] && { [ -z "$LAST_TAG" ] || ! git diff --quiet "$LAST_TAG" HEAD -- relay/; }; then
+    DO_RELAY="true"
+fi
 
 # Generate release notes via the Claude Agent SDK with schema-enforced
 # structured output. Runs on the local Claude subscription (same auth as the
@@ -228,6 +238,7 @@ if [ "$DRY_RUN" = "true" ]; then
     echo "Current version: $CURRENT_VERSION"
     echo "Next version: $NEXT_VERSION"
     echo "Version code: $NEXT_CODE"
+    echo "Deploy AI relay: $([ -n "$DO_RELAY" ] && echo yes || echo no)"
     echo ""
     echo "📝 Release Notes:"
     cat RELEASE_NOTES.md
@@ -420,7 +431,9 @@ else
     read -p "Push to GitHub? (y/n) " -n 1 -r
     echo
 fi
+PUBLISHED=""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
+    PUBLISHED="true"
     git push origin main
     git push origin "v$NEXT_VERSION"
     echo -e "${GREEN}✅ Pushed to GitHub${NC}"
@@ -536,6 +549,22 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     else
         echo -e "${RED}❌ pennywise-web directory not found${NC}"
     fi
+fi
+
+# 13. Deploy the AI relay + dashboard (ai.pennywise.zynth.dev) when relay/ changed,
+# and only for a release that was pushed: a local-only release keeps the relay as is.
+if [ -n "$DO_RELAY" ] && [ -z "$PUBLISHED" ]; then
+    echo -e "${YELLOW}Skipped the AI relay deploy: the release wasn't pushed.${NC}"
+elif [ -n "$DO_RELAY" ]; then
+    echo -e "${YELLOW}🤖 Deploying AI relay to Cloudflare...${NC}"
+    cd "$ORIGINAL_DIR/relay"
+    if npm ci --silent && npm --prefix dashboard ci --silent && npm test --silent && npm run deploy; then
+        echo -e "${GREEN}✅ AI relay deployed${NC}"
+    else
+        echo -e "${RED}❌ AI relay deployment failed${NC}"
+        echo -e "${YELLOW}You can retry manually: cd relay && npm run deploy${NC}"
+    fi
+    cd "$ORIGINAL_DIR"
 fi
 
 echo ""

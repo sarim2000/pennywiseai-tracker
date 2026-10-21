@@ -868,6 +868,16 @@ class TransactionDetailViewModel @Inject constructor(
             return
         }
 
+        // Likewise its money direction: retyping a linked row between income and
+        // money out would turn the loan's principal into a repayment, or back (#876).
+        if (original != null && com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(
+                original.loanId, original.transactionType, toSave.transactionType
+            )
+        ) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_type_locked)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&
@@ -1243,13 +1253,17 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
+                // Only while something is still owed: an active loan left at zero (the
+                // refresh never settles one, #876) would cap this payment to nothing and
+                // swallow the new debt it should open.
                 val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
+                    ?.takeIf { it.remainingAmount.signum() > 0 }
 
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the
                     // user-chosen partial amount so only that portion counts
                     // toward the loan's remaining balance.
-                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution)
+                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution, note)
                     _transaction.value = transactionRepository.getTransactionById(txn.id)
                     _loan.value = loanRepository.getLoanById(oppositeLoan.id)
                     _showMarkAsLoanSheet.value = false
@@ -1260,7 +1274,7 @@ class TransactionDetailViewModel @Inject constructor(
                 val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan with the user-chosen contribution.
-                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id)
+                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id, note)
                     existingLoan.id
                 } else {
                     // Create new loan; principal = user-chosen contribution.

@@ -85,9 +85,8 @@ class LoanSplitTest {
         coEvery { loanDao.getSharesForTransaction(any()) } answers { shares.filter { it.transactionId == firstArg<Long>() } }
         coEvery { loanDao.getSharesForLoan(any()) } answers { shares.filter { it.loanId == firstArg<Long>() } }
         coEvery { loanDao.deleteSharesForLoan(any()) } answers { shares.removeAll { it.loanId == firstArg<Long>() } }
-        coEvery { loanDao.getTotalRepaidByType(any(), any()) } answers {
-            txns.values.filter { it.loanId == firstArg<Long>() && !it.isDeleted && it.transactionType.name == secondArg<String>() }
-                .fold(BigDecimal.ZERO) { a, t -> a + (t.loanContribution ?: t.amount) }
+        coEvery { loanDao.getLinkedTransactions(any()) } answers {
+            txns.values.filter { it.loanId == firstArg<Long>() && !it.isDeleted }
         }
         coEvery { transactionDao.syncLentSharesTotal(any()) } answers {
             val id = firstArg<Long>()

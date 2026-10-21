@@ -40,6 +40,8 @@ class LoansViewModel @Inject constructor(
     val uiState: StateFlow<LoansUiState> = _uiState.asStateFlow()
 
     init {
+        // Corrects active loans whose stored remainder predates #876.
+        viewModelScope.launch { loanRepository.refreshActiveLoans() }
         loadLoans()
     }
 

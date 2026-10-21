@@ -36,6 +36,8 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.model.displayName
@@ -475,14 +477,7 @@ fun TransactionTabContent(
                                 .fillMaxWidth()
                                 .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                             shape = bottomShape,
-                            leadingIcon = {
-                                val selected = categories.find { it.name == uiState.category }
-                                if (selected != null) {
-                                    CategoryChip(category = selected, showText = false, modifier = Modifier.padding(start = Spacing.smd))
-                                } else {
-                                    Icon(Icons.Default.Category, contentDescription = null)
-                                }
-                            },
+                            leadingIcon = { SelectedCategoryIcon(categories.find { it.name == uiState.category }) },
                             trailingIcon = {
                                 Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
                             },
@@ -495,32 +490,18 @@ fun TransactionTabContent(
                             expanded = showCategoryMenu,
                             onDismissRequest = { showCategoryMenu = false }
                         ) {
-                            // At the top so it's reachable without scrolling a long
-                            // list of sub-categories (#835).
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.txn_detail_add_category)) },
-                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null) },
-                                onClick = {
+                            CategoryMenuItems(
+                                categories = categories,
+                                isIncome = uiState.transactionType == TransactionType.INCOME,
+                                onSelected = {
+                                    viewModel.updateTransactionCategory(it.name)
+                                    showCategoryMenu = false
+                                },
+                                onAddCategory = {
                                     showCategoryMenu = false
                                     showAddCategoryDialog = true
                                 }
                             )
-                            HorizontalDivider()
-                            categories.forEach { category ->
-                                DropdownMenuItem(
-                                    // Same chip as the edit screen's picker, so icons/emoji show (#876).
-                                    text = {
-                                        CategoryChip(
-                                            category = category,
-                                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
-                                        )
-                                    },
-                                    onClick = {
-                                        viewModel.updateTransactionCategory(category.name)
-                                        showCategoryMenu = false
-                                    }
-                                )
-                            }
                         }
                     }
                 }

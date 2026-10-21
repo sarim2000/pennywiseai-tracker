@@ -24,6 +24,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,6 +32,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -261,10 +263,8 @@ fun LoanDetailScreen(
                 }
 
                 items(uiState.linkedTransactions, key = { it.id }) { txn ->
-                    // Original transaction type matches loan direction (LENT→EXPENSE, BORROWED→INCOME)
-                    val isOriginal = if (loan.direction == LoanDirection.LENT)
-                        txn.transactionType == TransactionType.EXPENSE
-                    else txn.transactionType == TransactionType.INCOME
+                    // Principal flows the loan's way (LENT→money out, BORROWED→money in).
+                    val isOriginal = LoanMath.isPrincipal(loan.direction, txn.transactionType)
                     LoanTransactionItem(
                         transaction = txn,
                         isOriginal = isOriginal,
@@ -381,17 +381,15 @@ private fun LoanTransactionItem(
     onClick: () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
-    // Color reflects the actual money flow: red = money out, green = money in
-    val color = when (transaction.transactionType) {
-        TransactionType.EXPENSE -> if (isDark) expense_dark else expense_light
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
-        else -> MaterialTheme.colorScheme.onSurface
+    // Color reflects the actual money flow: red = money out, green = money in.
+    // Every type but INCOME is money out, as in the loan's own math (#876).
+    val moneyIn = transaction.transactionType == TransactionType.INCOME
+    val color = if (moneyIn) {
+        if (isDark) income_dark else income_light
+    } else {
+        if (isDark) expense_dark else expense_light
     }
-    val sign = when (transaction.transactionType) {
-        TransactionType.EXPENSE -> "-"
-        TransactionType.INCOME -> "+"
-        else -> ""
-    }
+    val sign = if (moneyIn) "+" else "-"
 
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
@@ -429,6 +427,16 @@ private fun LoanTransactionItem(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // This transaction's own note, not the loan's (#876).
+                transaction.description?.takeIf { it.isNotBlank() }?.let { note ->
+                    Text(
+                        note,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             Text(
                 // Show the portion assigned to this loan, not the full transaction

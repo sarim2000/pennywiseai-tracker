@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.domain.loan.SettledShareException
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
@@ -70,8 +71,7 @@ class LoanRepository @Inject constructor(
      */
     suspend fun getSettlementLoss(loan: LoanEntity): BigDecimal {
         if (loan.direction != LoanDirection.LENT) return BigDecimal.ZERO
-        val repaid = loanDao.getTotalRepaidByType(loan.id, "INCOME")
-        return (loan.originalAmount - repaid).coerceAtLeast(BigDecimal.ZERO)
+        return remainingFor(loan)
     }
 
     /** The loan's history; a split bill shows with this person's share as its loan part. */
@@ -87,8 +87,8 @@ class LoanRepository @Inject constructor(
 
     // Only same-currency transactions can repay a loan (see getActiveLoanByPersonAndDirection).
     fun getRecentUnlinkedRepayments(direction: LoanDirection, currency: String, limit: Int = 20): Flow<List<TransactionEntity>> {
-        val repaymentType = if (direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
-        return loanDao.getRecentUnlinkedTransactionsByType(repaymentType, currency, limit)
+        // A repayment flows against the loan: money in for LENT, any money out for BORROWED (#876).
+        return loanDao.getRecentUnlinkedTransactions(moneyIn = direction == LoanDirection.LENT, currency = currency, limit = limit)
     }
 
     fun getRecentPersonNames(): Flow<List<String>> = loanDao.getRecentPersonNames()
@@ -108,7 +108,7 @@ class LoanRepository @Inject constructor(
      * transaction's `loan_contribution` column so the override survives future
      * recomputations.
      */
-    suspend fun addToExistingLoan(loanId: Long, contribution: BigDecimal, transactionId: Long) {
+    suspend fun addToExistingLoan(loanId: Long, contribution: BigDecimal, transactionId: Long, note: String? = null) {
         requireNotSplit(transactionId)
         val loan = loanDao.getLoanById(loanId) ?: return
         loanDao.updateLoan(
@@ -120,6 +120,23 @@ class LoanRepository @Inject constructor(
         )
         loanDao.linkTransaction(transactionId, loanId)
         persistContributionOverride(transactionId, contribution)
+        keepNote(transactionId, note)
+    }
+
+    /**
+     * The loan already has its note (from the transaction that opened it), so
+     * a note given when another transaction joins or repays it is that
+     * transaction's own: it goes on the transaction's description, which the
+     * loan's history shows on its row (#876). Before, it was dropped.
+     * Appended, never overwriting what the user already wrote there.
+     */
+    private suspend fun keepNote(transactionId: Long, note: String?) {
+        val text = note?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        val txn = transactionDao.getTransactionById(transactionId) ?: return
+        val current = txn.description?.trim().orEmpty()
+        if (current == text || current.endsWith(" · $text")) return
+        val description = if (current.isEmpty()) text else "$current · $text"
+        transactionDao.updateTransaction(txn.copy(description = description, updatedAt = LocalDateTime.now()))
     }
 
     /**
@@ -183,7 +200,8 @@ class LoanRepository @Inject constructor(
     suspend fun recordRepayment(
         loanId: Long,
         transactionId: Long,
-        contribution: BigDecimal? = null
+        contribution: BigDecimal? = null,
+        note: String? = null
     ) = repaymentLock.withLock {
         requireNotSplit(transactionId)
         val loan = loanDao.getLoanById(loanId)
@@ -191,7 +209,7 @@ class LoanRepository @Inject constructor(
         val wanted = contribution ?: txn?.amount
         // A row already linked here is already counted as repaid, so add it back to what is owed.
         val alreadyRepaid = if (txn?.loanId == loanId) txn.loanContribution ?: txn.amount else BigDecimal.ZERO
-        val owed = loan?.remainingAmount?.plus(alreadyRepaid)
+        val owed = loan?.let { owedNow(it) + alreadyRepaid }
         // Capped even at zero (a reopened, fully repaid loan): the payment then
         // counts in full as ordinary income/spend rather than vanishing.
         val capped = if (wanted != null && owed != null && wanted > owed) owed else contribution
@@ -199,6 +217,7 @@ class LoanRepository @Inject constructor(
         if (capped != null) {
             persistContributionOverride(transactionId, capped)
         }
+        keepNote(transactionId, note)
         recalculateRemaining(loanId)
     }
 
@@ -223,7 +242,7 @@ class LoanRepository @Inject constructor(
             loanId = loanId,
             // Same cap as [recordRepayment]: anything beyond what's owed counts
             // as ordinary income/spend instead of vanishing (#831).
-            loanContribution = loan.remainingAmount.takeIf { amount > it }
+            loanContribution = owedNow(loan).takeIf { amount > it }
         )
         val txId = transactionDao.insertTransaction(transaction)
         recalculateRemaining(loanId)
@@ -234,11 +253,10 @@ class LoanRepository @Inject constructor(
         loanDao.unlinkTransaction(transactionId)
         val loan = loanDao.getLoanById(loanId) ?: return
         // Recompute the principal from the remaining CONTRIBUTION transactions
-        // (the loan's own direction: LENT->EXPENSE, BORROWED->INCOME). Repayments
-        // are the opposite type and don't count toward principal.
-        val contributionType = if (loan.direction == LoanDirection.LENT) "EXPENSE" else "INCOME"
+        // (the loan's own direction: LENT->money out, BORROWED->money in).
+        // Repayments flow the other way and don't count toward principal.
         // Split-bill shares (#346) are principal too.
-        val remainingPrincipal = loanDao.getTotalRepaidByType(loanId, contributionType) + shareTotal(loanId)
+        val remainingPrincipal = LoanMath.principal(loan.direction, loanDao.getLinkedTransactions(loanId)) + shareTotal(loanId)
         if (remainingPrincipal.compareTo(BigDecimal.ZERO) == 0) {
             // No principal left — the loan is meaningless. Delete it; deleteLoan's
             // unlinkAllTransactions also detaches any leftover repayment rows so
@@ -267,8 +285,9 @@ class LoanRepository @Inject constructor(
         recalculateRemaining(loanId)
     }
 
-    suspend fun settleLoan(loanId: Long) {
-        val loan = loanDao.getLoanById(loanId) ?: return
+    // Under repaymentLock so a running refreshActiveLoans can't reopen it (see there).
+    suspend fun settleLoan(loanId: Long): Unit = repaymentLock.withLock {
+        val loan = loanDao.getLoanById(loanId) ?: return@withLock
         loanDao.updateLoan(
             loan.copy(
                 status = LoanStatus.SETTLED,
@@ -280,15 +299,13 @@ class LoanRepository @Inject constructor(
     }
 
     /** Settles all [loanIds] atomically — same effect as [settleLoan] on each. */
-    suspend fun settleLoans(loanIds: List<Long>) {
+    suspend fun settleLoans(loanIds: List<Long>) = repaymentLock.withLock {
         loanDao.settleLoans(loanIds, LocalDateTime.now())
     }
 
     suspend fun reopenLoan(loanId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
-        val repaymentType = if (loan.direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
-        val totalRepaid = loanDao.getTotalRepaidByType(loanId, repaymentType)
-        val remaining = (loan.originalAmount - totalRepaid).coerceAtLeast(BigDecimal.ZERO)
+        val remaining = remainingFor(loan)
         loanDao.updateLoan(
             loan.copy(
                 status = LoanStatus.ACTIVE,
@@ -389,7 +406,7 @@ class LoanRepository @Inject constructor(
         loanDao.deleteShare(share)
         if (loan == null) return
         val left = loan.originalAmount - share.amount
-        val otherPrincipal = loanDao.getTotalRepaidByType(loan.id, "EXPENSE") + shareTotal(loan.id)
+        val otherPrincipal = LoanMath.principal(loan.direction, loanDao.getLinkedTransactions(loan.id)) + shareTotal(loan.id)
         val principal = when {
             left.signum() > 0 -> left
             otherPrincipal.signum() > 0 -> otherPrincipal
@@ -417,11 +434,39 @@ class LoanRepository @Inject constructor(
     /** Recomputes [TransactionEntity.lentSharesTotal] from the transaction's share rows. */
     suspend fun syncLentSharesTotal(transactionId: Long) = transactionDao.syncLentSharesTotal(transactionId)
 
+    private suspend fun remainingFor(loan: LoanEntity): BigDecimal =
+        LoanMath.remaining(loan.originalAmount, LoanMath.repaid(loan.direction, loanDao.getLinkedTransactions(loan.id)))
+
+    /**
+     * What a new repayment may repay: recomputed for an active loan, so a
+     * remainder stored before #876 can't let it over-repay; a settled loan's
+     * stored zero stands (Settle up records no repayment).
+     */
+    private suspend fun owedNow(loan: LoanEntity): BigDecimal =
+        if (loan.status == LoanStatus.ACTIVE) remainingFor(loan) else loan.remainingAmount
+
+    /**
+     * Re-derives what's left on each active loan. Loans saved before #876 never
+     * counted a repayment typed CREDIT/TRANSFER, so their stored remainder is
+     * too high until recomputed; this fixes them when Loans opens. Writes only
+     * on a change, and never touches a settled loan (Settle up records no
+     * repayment, so recomputing would reopen forgiven debt). Settling takes
+     * the same lock, so a loan can't be settled between the read and the write.
+     *
+     * Only the remainder moves, never the status: a repair must not settle a
+     * loan behind the user's back. Settling stays an explicit action.
+     */
+    suspend fun refreshActiveLoans() = repaymentLock.withLock {
+        loanDao.getActiveLoans().first().forEach { listed ->
+            val loan = loanDao.getLoanById(listed.id)?.takeIf { it.status == LoanStatus.ACTIVE } ?: return@forEach
+            val remaining = remainingFor(loan)
+            if (remaining.compareTo(loan.remainingAmount) != 0) loanDao.updateLoan(loan.copy(remainingAmount = remaining))
+        }
+    }
+
     private suspend fun recalculateRemaining(loanId: Long) {
         val loan = loanDao.getLoanById(loanId) ?: return
-        val repaymentType = if (loan.direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
-        val totalRepaid = loanDao.getTotalRepaidByType(loanId, repaymentType)
-        val remaining = (loan.originalAmount - totalRepaid).coerceAtLeast(BigDecimal.ZERO)
+        val remaining = remainingFor(loan)
         val newStatus = if (remaining <= BigDecimal.ZERO) LoanStatus.SETTLED else LoanStatus.ACTIVE
         loanDao.updateLoan(
             loan.copy(

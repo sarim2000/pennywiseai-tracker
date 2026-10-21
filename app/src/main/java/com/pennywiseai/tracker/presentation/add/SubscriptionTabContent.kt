@@ -29,6 +29,8 @@ import com.pennywiseai.tracker.domain.model.displayName
 import com.pennywiseai.tracker.domain.model.icon
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -336,7 +338,7 @@ fun SubscriptionTabContent(
                             .fillMaxWidth()
                             .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         shape = subMiddleShape,
-                        leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
+                        leadingIcon = { SelectedCategoryIcon(categories.find { it.name == uiState.category }) },
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                         isError = uiState.categoryError != null,
                         supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
@@ -347,20 +349,14 @@ fun SubscriptionTabContent(
                         expanded = showCategoryMenu,
                         onDismissRequest = { showCategoryMenu = false }
                     ) {
-                        categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        category.name,
-                                        modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.updateSubscriptionCategory(category.name)
-                                    showCategoryMenu = false
-                                }
-                            )
-                        }
+                        CategoryMenuItems(
+                            categories = categories,
+                            isIncome = uiState.direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME,
+                            onSelected = {
+                                viewModel.updateSubscriptionCategory(it.name)
+                                showCategoryMenu = false
+                            }
+                        )
                     }
                 }
 

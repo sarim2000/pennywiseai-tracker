@@ -4,12 +4,14 @@ import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -36,6 +38,8 @@ class LoanRepaymentCapTest {
 
     private fun savedContribution(remaining: String, txn: TransactionEntity, contribution: BigDecimal?): BigDecimal? {
         coEvery { loanDao.getLoanById(2) } returns loan(remaining)
+        // What's owed is recomputed from the linked rows: one repayment leaves [remaining].
+        repaid(BigDecimal("130") - BigDecimal(remaining))
         coEvery { transactionDao.getTransactionById(9) } returns txn
         val saved = slot<TransactionEntity>()
         coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
@@ -87,6 +91,114 @@ class LoanRepaymentCapTest {
         coEvery { transactionDao.insertTransaction(capture(inserted)) } returns 11L
         runBlocking { repo.recordManualRepayment(2, BigDecimal("100"), "Pal", "INR") }
         assertNull(inserted.captured.loanContribution)
+    }
+
+    private fun repaid(amount: BigDecimal) {
+        coEvery { loanDao.getLinkedTransactions(2) } returns
+            if (amount.signum() > 0) listOf(txn(amount.toPlainString(), loanId = 2).copy(id = 7)) else emptyList()
+    }
+
+    @Test
+    fun `a stale stored remainder can't let a repayment over-repay`() {
+        // Stored ₹130 owed, but ₹100 is already repaid: a ₹50 payment repays only ₹30.
+        coEvery { loanDao.getLoanById(2) } returns loan("130")
+        repaid(BigDecimal("100"))
+        coEvery { transactionDao.getTransactionById(9) } returns txn("50")
+        val saved = slot<TransactionEntity>()
+        coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9) }
+        assertEquals(BigDecimal("30"), saved.captured.loanContribution)
+    }
+
+    // #876: a borrowed ₹500 repaid by a ₹220 UPI payment the parser typed CREDIT.
+    private val borrowed = LoanEntity(
+        id = 2, personName = "Pal", direction = LoanDirection.BORROWED,
+        originalAmount = BigDecimal("500"), remainingAmount = BigDecimal("500"), currency = "INR"
+    )
+    private val borrowedFrom = txn("500", loanId = 2).copy(id = 8)
+    private val upiCredit = txn("220").copy(transactionType = TransactionType.CREDIT, merchantName = "UPI")
+
+    @Test
+    fun `a CREDIT payment linked to a borrowed loan repays it`() {
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { transactionDao.getTransactionById(9) } returns upiCredit
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom, upiCredit.copy(loanId = 2))
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9) }
+        assertEquals(0, BigDecimal("280").compareTo(saved.captured.remainingAmount))
+        assertEquals(LoanStatus.ACTIVE, saved.captured.status)
+    }
+
+    @Test
+    fun `opening Loans corrects a remainder saved before CREDIT repayments counted`() {
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom, upiCredit.copy(loanId = 2))
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.refreshActiveLoans() }
+        assertEquals(0, BigDecimal("280").compareTo(saved.captured.remainingAmount))
+    }
+
+    @Test
+    fun `the refresh moves only the remainder and never settles`() {
+        // The borrowed ₹500 row retyped CREDIT before the type lock: it now reads as a repayment of itself.
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom.copy(transactionType = TransactionType.CREDIT))
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.refreshActiveLoans() }
+        assertEquals(0, BigDecimal.ZERO.compareTo(saved.captured.remainingAmount))
+        assertEquals(LoanStatus.ACTIVE, saved.captured.status)
+        assertNull(saved.captured.settledAt)
+    }
+
+    @Test
+    fun `the refresh skips a loan settled since the list was read`() {
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed.copy(status = LoanStatus.SETTLED, remainingAmount = BigDecimal.ZERO)
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom)
+        runBlocking { repo.refreshActiveLoans() }
+        coVerify(exactly = 0) { loanDao.updateLoan(any()) }
+    }
+
+    @Test
+    fun `record payment offers every money-out type for a borrowed loan, income for a lent one`() {
+        repo.getRecentUnlinkedRepayments(LoanDirection.BORROWED, "INR")
+        repo.getRecentUnlinkedRepayments(LoanDirection.LENT, "INR")
+        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = false, currency = "INR", limit = 20) }
+        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = true, currency = "INR", limit = 20) }
+    }
+
+    @Test
+    fun `a loan already right is not rewritten`() {
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom)
+        runBlocking { repo.refreshActiveLoans() }
+        coVerify(exactly = 0) { loanDao.updateLoan(any()) }
+    }
+
+    @Test
+    fun `a note given with a repayment is kept on that transaction`() {
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { transactionDao.getTransactionById(9) } returns upiCredit
+        val saved = slot<TransactionEntity>()
+        coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9, note = " first part ") }
+        assertEquals("first part", saved.captured.description)
+    }
+
+    @Test
+    fun `a note never overwrites the transaction's own description`() {
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { transactionDao.getTransactionById(9) } returns upiCredit.copy(description = "groceries")
+        val saved = slot<TransactionEntity>()
+        coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9, note = "first part") }
+        assertEquals("groceries · first part", saved.captured.description)
     }
 
     @Test

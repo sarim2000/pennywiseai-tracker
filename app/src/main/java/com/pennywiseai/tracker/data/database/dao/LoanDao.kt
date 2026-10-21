@@ -69,12 +69,9 @@ interface LoanDao {
     // No currency filter here on purpose: linked transactions can't change
     // currency (TransactionDetailViewModel.saveChanges blocks it), and filtering
     // would drop a loan's own principal from unlinkTransaction's recount.
-    @Query("""
-        SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
-        WHERE t.loan_id = :loanId AND t.is_deleted = 0
-        AND t.transaction_type = :repaymentType
-    """)
-    suspend fun getTotalRepaidByType(loanId: Long, repaymentType: String): BigDecimal
+    // LoanMath splits these into principal and repayments.
+    @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0")
+    suspend fun getLinkedTransactions(loanId: Long): List<TransactionEntity>
 
     @Query("SELECT COALESCE(SUM(remaining_amount), 0) FROM loans WHERE direction = 'LENT' AND status = 'ACTIVE'")
     fun getTotalLentRemaining(): Flow<BigDecimal>
@@ -131,12 +128,12 @@ interface LoanDao {
         SELECT * FROM transactions
         WHERE loan_id IS NULL AND is_deleted = 0
         AND id NOT IN (SELECT transaction_id FROM loan_shares)
-        AND transaction_type = :type
+        AND (transaction_type = 'INCOME') = :moneyIn
         AND currency = :currency
         ORDER BY date_time DESC
         LIMIT :limit
     """)
-    fun getRecentUnlinkedTransactionsByType(type: String, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
+    fun getRecentUnlinkedTransactions(moneyIn: Boolean, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
 
     // Used by BackupImporter.replaceAllData to clear loans before re-import.
     @Query("DELETE FROM loans")

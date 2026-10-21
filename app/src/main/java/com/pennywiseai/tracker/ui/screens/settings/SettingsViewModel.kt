@@ -418,7 +418,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setDailySummaryEnabled(enabled: Boolean) {
-        viewModelScope.launch { userPreferencesRepository.setDailySummaryEnabled(enabled) }
+        viewModelScope.launch {
+            userPreferencesRepository.setDailySummaryEnabled(enabled)
+            com.pennywiseai.tracker.worker.DailySummaryWorker.sync(context, enabled)
+        }
     }
 
     fun toggleDeveloperMode(enabled: Boolean) {

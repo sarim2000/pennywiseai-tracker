@@ -53,10 +53,11 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 )
 
 /**
- * Whether the evening recap is on for someone who never touched its switch.
- * The single source of that default: the pref and the Settings switch read it.
+ * Whether the evening recap is on for someone who never touched its switch:
+ * off, an opt-in from Settings → Notifications. The single source of that
+ * default: the pref, the Settings switch and the scheduler all read it.
  */
-const val DAILY_SUMMARY_DEFAULT = true
+const val DAILY_SUMMARY_DEFAULT = false
 
 @Singleton
 open class UserPreferencesRepository @Inject constructor(

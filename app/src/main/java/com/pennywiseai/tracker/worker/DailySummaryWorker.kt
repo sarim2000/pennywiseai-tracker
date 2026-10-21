@@ -181,14 +181,22 @@ class DailySummaryWorker @AssistedInject constructor(
                 .sumByCurrency({ it.currency }, { it.amount })
         }
 
+        /**
+         * Schedules the recap while [enabled] (KEEP: an existing schedule stands)
+         * and cancels it otherwise. Called on app start and from the Settings switch.
+         */
         // ponytail: WorkManager, not an exact alarm: under Doze the recap can land a little after 9 PM.
-        fun schedule(context: Context) {
+        fun sync(context: Context, enabled: Boolean) {
+            val workManager = WorkManager.getInstance(context)
+            if (!enabled) {
+                workManager.cancelUniqueWork(WORK_NAME)
+                return
+            }
             val now = ZonedDateTime.now()
             val request = PeriodicWorkRequestBuilder<DailySummaryWorker>(1, TimeUnit.DAYS)
                 .setInitialDelay(Duration.between(now, nextRun(now)))
                 .build()
-            WorkManager.getInstance(context)
-                .enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+            workManager.enqueueUniquePeriodicWork(WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
         }
     }
 }

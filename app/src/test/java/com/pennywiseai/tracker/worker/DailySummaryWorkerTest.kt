@@ -12,7 +12,9 @@ import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
@@ -29,6 +31,12 @@ class DailySummaryWorkerTest {
             transactionType = type, dateTime = LocalDateTime.now(), currency = currency,
             transactionHash = "h$amount$type", budgetImpactType = impact
         )
+
+    @Test
+    fun `the recap is off until the user turns it on`() {
+        // Owner decision on #968: opt-in from Settings → Notifications.
+        assertFalse(DAILY_SUMMARY_DEFAULT)
+    }
 
     @Test
     fun `a loan forgiven today is spent today, even with no other rows`() {

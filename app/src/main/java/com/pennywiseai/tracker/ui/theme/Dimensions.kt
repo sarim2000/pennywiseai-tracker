@@ -167,6 +167,9 @@ object Dimensions {
         val goalRingLarge = 168.dp
         val goalRingLargeStroke = 12.dp
 
+        /** One column of a spreadsheet preview (statement import's column mapping, #13). */
+        val tableCellWidth = 112.dp
+
         /** The colour dot beside a chart legend entry. */
         val legendDot = 10.dp
 

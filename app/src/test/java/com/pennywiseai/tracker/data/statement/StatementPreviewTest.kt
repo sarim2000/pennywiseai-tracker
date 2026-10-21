@@ -160,6 +160,27 @@ class StatementPreviewTest {
     }
 
     @Test
+    fun `a row unticked last time is still new next time`() = runBlocking {
+        // Two different ₹500 payments on one day; the user imported only the second.
+        val parsed = table(
+            """
+            Date,Narration,Debit,Credit
+            02/01/2025,PLUMBER,500.00,
+            02/01/2025,ELECTRICIAN,500.00,
+            """
+        )
+        val store = InMemoryStore()
+        val processor = StatementImportProcessor(store)
+        processor.apply(processor.plan(parsed), excluded = setOf(0))
+
+        // Re-opened: the electrician's exact re-import is reserved before the
+        // plumber row may match it by amount, so the plumber is still selectable.
+        val again = processor.plan(parsed)
+        assertEquals(listOf(0), again.newIndices)
+        assertEquals(1, again.count(StatementRowDecision.SkipReason.HASH))
+    }
+
+    @Test
     fun `two identical rows with one SMS are one match and one new row`() = runBlocking {
         val store = InMemoryStore().apply {
             seed(sms(BigDecimal("20.00"), TransactionType.EXPENSE, day, merchant = "Tea"))

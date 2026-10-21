@@ -248,6 +248,47 @@ class StatementTableParserTest {
     }
 
     @Test
+    fun `a quiet stretch of a long statement is kept`() {
+        // 19 January rows and one in December: December is sparse, not a misread.
+        val csv = buildString {
+            append("Date,Narration,Debit,Credit\n")
+            (1..19).forEach { append("%02d/01/2025,JAN $it,10.00,\n".format(it)) }
+            append("15/12/2025,DECEMBER RENT,999.00,\n")
+        }
+        val rows = StatementTableParser.readCsv(csv)
+        val result = StatementTableParser.parse(rows, StatementTableParser.guessMapping(rows), account)
+        assertEquals(20, result.transactions.size)
+        assertEquals(0, result.skippedRows)
+        assertEquals("DECEMBER RENT", result.transactions.last().merchant)
+    }
+
+    @Test
+    fun `a huge number in an Excel date column is no date, not a crash`() {
+        assertNull(StatementTableParser.parseDate("999999999999", StatementTableParser.EXCEL_SERIAL))
+        assertNull(StatementTableParser.parseDate("1e300", StatementTableParser.EXCEL_SERIAL))
+        assertNull(StatementTableParser.parseDate("-5", StatementTableParser.EXCEL_SERIAL))
+    }
+
+    @Test
+    fun `one Debit-Credit header is a direction column, not two amount columns`() {
+        val rows = StatementTableParser.readCsv(
+            """
+            Date,Description,Amount,Debit/Credit
+            02/01/2025,SHOP,450.00,Dr
+            03/01/2025,REFUND,450.00,Cr
+            """.trimIndent()
+        )
+        val mapping = StatementTableParser.guessMapping(rows)
+        assertFalse(mapping.usesDebitCredit)
+        assertEquals(2, mapping.amountColumn)
+        assertEquals(3, mapping.typeColumn)
+        assertEquals(
+            listOf(TransactionType.EXPENSE, TransactionType.INCOME),
+            StatementTableParser.parse(rows, mapping, account).transactions.map { it.type }
+        )
+    }
+
+    @Test
     fun `a channel in a Transaction Type column doesn't override the sign`() {
         val rows = StatementTableParser.readCsv(
             """

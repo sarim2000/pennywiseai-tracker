@@ -41,10 +41,12 @@ internal class StatementImportProcessor(
      *
      * Each stored transaction absorbs at most one statement row ([claimed]):
      * two identical ₹20 teas on a day with one SMS are one match and one new
-     * row, not two matches. Matching runs in two passes so that a row's own
-     * day is tried for every row before any row may reach a neighbouring day —
-     * an SMS stamped the day after the statement's value date still matches,
-     * without stealing the SMS of the row that really is from that day.
+     * row, not two matches. Matching runs strongest-first across all rows —
+     * exact re-imports, then references, then the row's own day, then a day
+     * either side — so weaker evidence never takes a stored transaction that
+     * stronger evidence for another row points at. An SMS stamped the day after
+     * the statement's value date still matches, without stealing the SMS of
+     * the row that really is from that day.
      */
     suspend fun plan(parsedTransactions: List<ParsedTransaction>): StatementImportPlan {
         val pending = HashMap<Long, TransactionEntity>()
@@ -92,38 +94,48 @@ internal class StatementImportProcessor(
             return StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
         }
 
-        // Pass 1: exact re-imports, references, then the row's own day.
-        val decisions = parsedTransactions.mapIndexed { i, parsed ->
-            val statement = entities[i]
+        // Strongest evidence first, for every row, before any weaker match may claim
+        // a stored transaction: otherwise a row that only shares an amount could take
+        // the very transaction another row is an exact re-import of.
+        val decisions = arrayOfNulls<StatementRowDecision>(parsedTransactions.size)
+
+        // 1. Exact re-imports.
+        parsedTransactions.forEachIndexed { i, parsed ->
             val hash = parsed.transactionHash?.takeIf { it.isNotBlank() } ?: parsed.generateTransactionId()
             transactionStore.getTransactionByHash(hash)?.current()?.let { hashMatch ->
-                return@mapIndexed matchDecision(hashMatch, statement, StatementRowDecision.SkipReason.HASH)
+                decisions[i] = matchDecision(hashMatch, entities[i], StatementRowDecision.SkipReason.HASH)
             }
+        }
 
-            val ref = parsed.reference?.takeIf { it.isNotBlank() }
-            if (ref != null) {
-                val sameTime = transactionStore.findStatementMergeCandidate(statement)?.current()
-                    ?.takeIf { it.id !in claimed }
-                // A reference is unique, so its match may sit a few days off: an SMS is
-                // stamped when it arrives, a statement row on its value date.
-                val byReference = sameTime ?: transactionStore.getTransactionsByReference(ref)
+        // 2. References. A reference is unique, so its match may sit a few days off:
+        //    an SMS is stamped when it arrives, a statement row on its value date.
+        parsedTransactions.forEachIndexed { i, parsed ->
+            if (decisions[i] != null) return@forEachIndexed
+            val ref = parsed.reference?.takeIf { it.isNotBlank() } ?: return@forEachIndexed
+            val statement = entities[i]
+            val byReference = transactionStore.findStatementMergeCandidate(statement)?.current()
+                ?.takeIf { it.id !in claimed }
+                ?: transactionStore.getTransactionsByReference(ref)
                     .map { it.current() }
                     .filter { it.id !in claimed && StatementTransactionEnricher.isReferenceMatch(it, statement, REFERENCE_WINDOW) }
                     .minByOrNull { Duration.between(it.dateTime, statement.dateTime).abs() }
-                if (byReference != null) {
-                    return@mapIndexed matchDecision(byReference, statement, StatementRowDecision.SkipReason.REFERENCE)
-                }
+            if (byReference != null) {
+                decisions[i] = matchDecision(byReference, statement, StatementRowDecision.SkipReason.REFERENCE)
             }
-
-            amountMatch(i, days = 0)
-        }.toMutableList()
-
-        // Pass 2: rows still unmatched may match a day either side.
-        for (i in decisions.indices) {
-            if (decisions[i] == null) decisions[i] = amountMatch(i, days = 1) ?: StatementRowDecision.Insert(entities[i])
         }
 
-        return StatementImportPlan(parsedTransactions.indices.map { StatementPlanRow(parsedTransactions[it], decisions[it]!!) })
+        // 3. Same amount on the row's own day, then 4. a day either side.
+        for (days in 0L..1L) {
+            for (i in decisions.indices) {
+                if (decisions[i] == null) decisions[i] = amountMatch(i, days)
+            }
+        }
+
+        return StatementImportPlan(
+            parsedTransactions.indices.map { i ->
+                StatementPlanRow(parsedTransactions[i], decisions[i] ?: StatementRowDecision.Insert(entities[i]))
+            }
+        )
     }
 
     private companion object {

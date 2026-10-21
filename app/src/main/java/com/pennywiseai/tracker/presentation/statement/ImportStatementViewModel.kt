@@ -283,8 +283,19 @@ class ImportStatementViewModel @Inject constructor(
     private suspend fun showMapping(rows: List<List<String>>, mapping: StatementColumnMapping, accounts: List<AccountBalanceEntity>) {
         val target = statementAccount(mapping, accounts).second
         val (parsed, dateFormat) = withContext(Dispatchers.Default) {
-            val parsed = if (mapping.isComplete) StatementTableParser.parse(rows, mapping, target) else null
-            parsed to if (mapping.dateColumn >= 0) StatementTableParser.effectiveDateFormat(rows, mapping) else null
+            // Any column can be picked for any role while mapping; a choice that reads
+            // nothing sensible shows "no transactions", it never takes the app down.
+            val parsed = if (mapping.isComplete) {
+                runCatching { StatementTableParser.parse(rows, mapping, target) }.getOrNull()
+            } else {
+                null
+            }
+            val format = if (mapping.dateColumn >= 0) {
+                runCatching { StatementTableParser.effectiveDateFormat(rows, mapping) }.getOrNull()
+            } else {
+                null
+            }
+            parsed to format
         }
         // A superseded parse (newer edit, Continue, Cancel) must not land.
         currentCoroutineContext().ensureActive()
@@ -307,7 +318,9 @@ class ImportStatementViewModel @Inject constructor(
     ): Boolean {
         if (!mapping.isComplete) return false
         val (account, target) = statementAccount(mapping, accounts)
-        val parsed = withContext(Dispatchers.Default) { StatementTableParser.parse(rows, mapping, target).transactions }
+        val parsed = withContext(Dispatchers.Default) {
+            runCatching { StatementTableParser.parse(rows, mapping, target).transactions }.getOrDefault(emptyList())
+        }
         if (parsed.isEmpty()) return false
         showPreview(Pending(parsed, account, rows, mapping))
         return true

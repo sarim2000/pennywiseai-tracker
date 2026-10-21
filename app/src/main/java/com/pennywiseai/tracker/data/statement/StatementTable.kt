@@ -19,6 +19,7 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /**
@@ -202,7 +203,8 @@ object StatementTableParser {
 
         val debit = find("debit", "withdrawal", "paid out", exact = setOf("dr"))
         val credit = find("credit", "deposit", "paid in", exact = setOf("cr"))
-        val separate = debit != StatementColumnMapping.NONE && credit != StatementColumnMapping.NONE
+        // Two different columns: one "Debit/Credit" header is a direction column, not both amounts.
+        val separate = debit != StatementColumnMapping.NONE && credit != StatementColumnMapping.NONE && debit != credit
         return StatementColumnMapping(
             headerRow = headerRow,
             dateColumn = find("transaction date", "txn date", "tran date", "date"),
@@ -306,9 +308,11 @@ object StatementTableParser {
         val text = raw?.trim().orEmpty()
         if (text.isEmpty() || pattern == null) return null
         if (pattern == EXCEL_SERIAL) {
-            val serial = text.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0 } ?: return null
+            // Range-checked before any date arithmetic: a reference number picked as
+            // the Date column would otherwise overflow plusDays and throw.
+            val serial = text.toDoubleOrNull()?.takeIf { it in SERIAL_RANGE } ?: return null
             // Excel's 1900 date system; day 0 is 1899-12-30 (it counts the fake 1900-02-29).
-            return EXCEL_EPOCH.plusDays(serial.toLong()).takeIf { it.year in YEARS }
+            return EXCEL_EPOCH.plusDays(serial.toLong())
         }
         val position = ParsePosition(0)
         val parsed = runCatching { formatter(pattern).parse(text, position) }.getOrNull() ?: return null
@@ -356,21 +360,21 @@ object StatementTableParser {
             if (txn == null) skipped++
             txn
         }
-        // A date far outside the statement's own span is a misread cell (a footer's
-        // number, a typo), not a transaction — it would also move the closing row.
-        val span = mainSpan(parsed)
-        val transactions = if (span == null) parsed else parsed.filter { StatementBalanceCheck.dateOf(it) in span }
+        // A date more than a year away from every other row is a misread cell (a
+        // footer's number, a year typo), not a transaction — it would also move the
+        // closing row. Quiet stretches are fine: only isolation counts, not density.
+        val dates = parsed.map { StatementBalanceCheck.dateOf(it) }
+        val sorted = dates.sorted()
+        val transactions = if (sorted.size < 3) parsed else parsed.filterIndexed { i, _ -> !isolated(dates[i], sorted) }
         return TableParseResult(transactions, skipped + parsed.size - transactions.size)
     }
 
-    /**
-     * Where most of the statement's dates lie: the 10th–90th percentile widened by
-     * two months. Null for a short statement, where there's no "most" to go by.
-     */
-    private fun mainSpan(rows: List<ParsedTransaction>): ClosedRange<LocalDate>? {
-        if (rows.size < 10) return null
-        val dates = rows.map { StatementBalanceCheck.dateOf(it) }.sorted()
-        return dates[dates.size / 10].minusMonths(2)..dates[dates.size * 9 / 10].plusMonths(2)
+    /** Whether [date]'s nearest other row in [sorted] is over a year away. */
+    private fun isolated(date: LocalDate, sorted: List<LocalDate>): Boolean {
+        val at = sorted.indexOf(date)
+        val neighbours = listOfNotNull(sorted.getOrNull(at - 1), sorted.getOrNull(at + 1))
+        // A date shared by two rows has a same-day neighbour in the sorted list.
+        return neighbours.all { kotlin.math.abs(ChronoUnit.DAYS.between(date, it)) > ISOLATION_DAYS }
     }
 
     private fun parseRow(
@@ -460,4 +464,11 @@ object StatementTableParser {
     private fun List<String>.cell(index: Int): String = if (index < 0) "" else getOrNull(index).orEmpty()
 
     private val EXCEL_EPOCH: LocalDate = LocalDate.of(1899, 12, 30)
+
+    /** Day numbers of 1990-01-01 … 2100-12-31 ([YEARS]) in Excel's 1900 system. */
+    private val SERIAL_RANGE: ClosedFloatingPointRange<Double> =
+        ChronoUnit.DAYS.between(EXCEL_EPOCH, LocalDate.of(YEARS.first, 1, 1)).toDouble()..
+            ChronoUnit.DAYS.between(EXCEL_EPOCH, LocalDate.of(YEARS.last, 12, 31)).toDouble()
+
+    private const val ISOLATION_DAYS = 366L
 }

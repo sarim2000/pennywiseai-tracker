@@ -73,11 +73,11 @@
     <string name="import_statement_back">الرجوع</string>
     <string name="import_statement_select_pdf">حدد بيان PDF</string>
     <string name="import_statement_loading_title">استيراد المعاملات...</string>
-    <string name="import_statement_loading_body">تحليل PDF والتحقق من التكرارات</string>
+    <string name="import_statement_loading_body">جارٍ قراءة كشف الحساب والتحقق من التكرارات</string>
     <string name="import_statement_complete">اكتمل الاستيراد</string>
     <string name="import_statement_result_imported">المعاملات المستوردة</string>
     <string name="import_statement_result_enriched">المعاملات المثرية</string>
-    <string name="import_statement_result_total_parsed">إجمالي التحليل من PDF</string>
+    <string name="import_statement_result_total_parsed">الصفوف في كشف الحساب</string>
     <string name="import_statement_result_duplicates">تم تخطي التكرار: %1$d</string>
     <string name="import_statement_result_exact">إعادة الاستيراد بالضبط</string>
     <string name="import_statement_result_by_reference">حسب مرجع UPI</string>
@@ -97,7 +97,7 @@
     <string name="upgrade_copy_address">نسخ العنوان</string>
     <string name="upgrade_includes">يشمل</string>
     <string name="upgrade_feature_rules">قواعد مخصصة غير محدودة</string>
-    <string name="upgrade_feature_statements">استيراد بيان PDF غير محدود</string>
+    <string name="upgrade_feature_statements">استيراد غير محدود لكشوف الحساب</string>
     <string name="upgrade_feature_csv">تصدير CSV غير محدود</string>
     <string name="upgrade_feature_merge_accounts">دمج الحسابات المكررة</string>
     <string name="upgrade_restoring">إستعادة…</string>
@@ -537,7 +537,7 @@
     <string name="rules_preview_action_clear">مسح %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">تعيين %1$s إلى %2$s</string>
-    <string name="import_statement_description">استورد المعاملات من كشوف حساب PDF من Google Pay وPhonePe وPaytm وslice وICICI Bank. يتم اكتشاف المعاملات المكررة وتخطيها تلقائيًا.</string>
+    <string name="import_statement_description">استورد كشف حساب PDF من Google Pay أو PhonePe أو Paytm أو slice أو ICICI Bank، أو كشف حساب Excel (.xlsx) أو CSV من أي بنك. سترى ما هو جديد قبل إضافة أي شيء.</string>
     <string name="import_statement_password_title">ملف PDF محمي بكلمة مرور</string>
     <string name="import_statement_password_body">كشف الحساب هذا مقفل. أدخل كلمة المرور التي زوّدك بها البنك. تُستخدم فقط لفتح الملف ولا يتم حفظها.</string>
     <string name="import_statement_password_label">كلمة مرور PDF</string>

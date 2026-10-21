@@ -109,7 +109,7 @@
     <string name="settings_import_csv_title">استيراد المعاملات (CSV)</string>
     <string name="settings_import_csv_subtitle">استيراد من تصدير PennyWise CSV</string>
     <string name="settings_import_statement_title">بيان الاستيراد</string>
-    <string name="settings_import_statement_subtitle">استيراد من GPay. الهاتف, Paytm</string>
+    <string name="settings_import_statement_subtitle">كشوف حساب بنكية (Excel وCSV) أو ملفات PDF من تطبيقات UPI</string>
     <string name="settings_unrecognized_sms_title">الرسائل القصيرة غير المعترف بها</string>
     <string name="settings_unrecognized_sms_subtitle">عرض الرسائل المصرفية غير المدعومة والإبلاغ عنها</string>
     <string name="settings_delete_all_title">حذف جميع المعاملات</string>

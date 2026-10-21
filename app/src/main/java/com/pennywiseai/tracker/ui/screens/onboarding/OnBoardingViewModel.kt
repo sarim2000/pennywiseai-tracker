@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -60,6 +61,8 @@ data class OnBoardingUiState(
     val profileImageUri: Uri? = null,
     val selectedBackgroundColor: Int = 0,
     val selectedCurrency: String = "INR",
+    /** True once the user changes the pre-selected currency; a guess left as is stays overridable. */
+    val currencyPicked: Boolean = false,
     val smsPermissionGranted: Boolean = false,
     val smsPermissionSkipped: Boolean = false,
     val isScanning: Boolean = false,
@@ -140,7 +143,7 @@ class OnBoardingViewModel @Inject constructor(
     }
 
     fun selectCurrency(currency: String) {
-        _uiState.update { it.copy(selectedCurrency = currency) }
+        _uiState.update { it.copy(selectedCurrency = currency, currencyPicked = true) }
     }
 
     /** Pre-selects the SIM country's currency, then the network country's, then the device locale's. */
@@ -295,10 +298,28 @@ class OnBoardingViewModel @Inject constructor(
             if (state.selectedBackgroundColor >= 0 && state.selectedBackgroundColor < backgroundColors.size) {
                 userPreferencesRepository.updateProfileBackgroundColor(backgroundColors[state.selectedBackgroundColor])
             }
-            // An explicit pick — the main account below no longer overrides it.
-            userPreferencesRepository.updateBaseCurrency(state.selectedCurrency)
             if (state.selectedAccountKey != null) {
                 userPreferencesRepository.updateMainAccountKey(state.selectedAccountKey)
+            }
+            if (state.currencyPicked) {
+                // An explicit pick: the main account doesn't override it.
+                userPreferencesRepository.updateBaseCurrency(state.selectedCurrency)
+            } else {
+                // The pre-selection is a SIM/locale guess; the main account's currency is
+                // real data. SMS-tracked accounts fall back to the bank parser's currency
+                // (their stored value may be the INR default even for a non-INR bank).
+                val mainAccount = state.accounts.firstOrNull {
+                    "${it.bankName}_${it.accountLast4}" == state.selectedAccountKey
+                }
+                val currency = mainAccount?.let {
+                    CurrencyFormatter.resolveAccountCurrency(
+                        sourceType = it.sourceType,
+                        storedCurrency = it.currency,
+                        bankName = it.bankName
+                    )
+                } ?: state.selectedCurrency
+                // Won't override a currency the user explicitly picked in Settings.
+                userPreferencesRepository.applyMainAccountCurrency(currency)
             }
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }

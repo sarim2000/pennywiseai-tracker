@@ -53,7 +53,10 @@ fun Application.configureRouting() {
             // Apollo mobile wallet (Ethiopia) (#719)
             ApolloParser(),
             // El Salvador (#755, #756, #757) — Spanish/USD parsers.
-            BancoCuscatlanParser(), BancoPromericaParser(), BancoAgricolaParser()
+            BancoCuscatlanParser(), BancoPromericaParser(), BancoAgricolaParser(),
+            // Jordan (#955) — the web tester advertises JIB and Safwa samples.
+            JordanIslamicBankParser(), IslamicInternationalArabBankParser(),
+            BankAlEtihadParser(), SafwaIslamicBankParser()
         )
     )
 

@@ -134,6 +134,7 @@
     <string name="manage_accounts_section_bank">Банковские счета</string>
     <string name="manage_accounts_section_unlinked_cards">Несвязанные карты</string>
     <string name="manage_accounts_section_credit_cards">Кредитные карты</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">Переместить существующие транзакции?</string>
     <string name="manage_accounts_reassign_move">Переместить</string>
     <string name="manage_accounts_reassign_keep">Оставить как</string>

@@ -445,7 +445,8 @@ class SmsTransactionProcessor @Inject constructor(
             smsSource = parsedTransaction.smsBody.take(500),
             sourceType = "TRANSACTION",
             accountType = BalanceCalculator.preservedAccountType(existingAccount),
-            currency = parsedTransaction.currency,
+            // The balance is in the account's currency, which can differ from the spend's.
+            currency = parsedTransaction.accountCurrency ?: parsedTransaction.currency,
             profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existingAccount?.alias,
             lowBalanceThreshold = existingAccount?.lowBalanceThreshold

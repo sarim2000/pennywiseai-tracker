@@ -15,6 +15,8 @@
     <string name="analytics_top_tags">Meilleurs mots-clés</string>
     <string name="analytics_top_merchants">Meilleurs marchands</string>
     <string name="analytics_by_account">Par compte</string>
+    <!-- Group by picker (#422); the chip and menu show one of these -->
+    <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Nettoyer</string>
     <string name="analytics_filter_all_profiles">Tous les comptes</string>

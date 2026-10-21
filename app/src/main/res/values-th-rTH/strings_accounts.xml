@@ -66,6 +66,7 @@
     <string name="manage_accounts_section_bank">บัญชีธนาคาร</string>
     <string name="manage_accounts_section_unlinked_cards">บัตรที่ยังไม่ลิงก์</string>
     <string name="manage_accounts_section_credit_cards">บัตรเครดิต</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_outstanding">ยอดคงค้าง</string>
     <string name="manage_accounts_available">พร้อมใช้งาน</string>
     <string name="manage_accounts_credit_limit">วงเงินเครดิต</string>

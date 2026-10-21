@@ -151,6 +151,7 @@
     <string name="manage_accounts_section_bank">الحسابات البنكية</string>
     <string name="manage_accounts_section_unlinked_cards">البطاقات غير المرتبطة</string>
     <string name="manage_accounts_section_credit_cards">بطاقات الائتمان</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_reassign_title">نقل المعاملات الموجودة؟</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="zero">تم تعيين معاملات %1$d من هذا الحساب إلى ملف تعريف مختلف. نقلها إلى الملف الشخصي الجديد أيضًا؟</item>

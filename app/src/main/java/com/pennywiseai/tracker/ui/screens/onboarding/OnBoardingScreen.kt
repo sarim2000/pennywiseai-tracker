@@ -816,7 +816,7 @@ private fun AccountSetupStep(
                             }
                         }
                         Text(
-                            text = "${account.currency} ${account.balance}",
+                            text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
                             style = PennyWiseText.amountRow
                         )
                         if (isSelected) {

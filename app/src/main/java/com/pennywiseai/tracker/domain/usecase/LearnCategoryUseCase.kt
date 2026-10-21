@@ -54,8 +54,19 @@ class LearnCategoryUseCase @Inject constructor(
      * Files the transaction under [category] and, when there is a merchant to
      * teach, learns it. Nothing is learned from a placeholder merchant or from
      * a pick of "Others". Null when the transaction is gone.
+     *
+     * [announce] runs with the result while the lock is still held, so the
+     * "Saved as" notes post in the same order as the lessons they describe.
      */
-    suspend operator fun invoke(transactionId: Long, category: String): Learned? = lock.withLock {
+    suspend operator fun invoke(
+        transactionId: Long,
+        category: String,
+        announce: (Learned?) -> Unit = {}
+    ): Learned? = lock.withLock {
+        learn(transactionId, category).also(announce)
+    }
+
+    private suspend fun learn(transactionId: Long, category: String): Learned? =
         database.withTransaction {
             val transaction = transactionRepository.getTransactionById(transactionId)
                 ?.takeUnless { it.isDeleted } ?: return@withTransaction null
@@ -72,7 +83,6 @@ class LearnCategoryUseCase @Inject constructor(
             transactionRepository.moveCategory(ids, from = others, to = category)
             filed.copy(merchant = merchant, previousMapping = previousMapping, mappedAt = mappedAt, movedIds = ids)
         }
-    }
 
     /**
      * Reverses [learned] if it is still the merchant's latest lesson (the

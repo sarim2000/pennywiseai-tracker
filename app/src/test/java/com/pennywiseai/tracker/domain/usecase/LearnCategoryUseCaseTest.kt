@@ -12,6 +12,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -64,6 +65,23 @@ class LearnCategoryUseCaseTest {
         assertEquals(listOf(7L, 8L, 9L), learned.movedIds)
         coVerify { mappings.setMapping("Shein", "Shopping", any()) }
         coVerify { transactions.moveCategory(listOf(7L, 8L, 9L), from = "Others", to = "Shopping") }
+    }
+
+    @Test
+    fun `picks announce in lesson order, one at a time`() = runBlocking {
+        given("Shein")
+        val order = mutableListOf<String>()
+        kotlinx.coroutines.coroutineScope {
+            listOf("Food & Dining", "Shopping").forEach { pick ->
+                launch(kotlinx.coroutines.Dispatchers.Default) {
+                    learn(1, pick) { order += "start ${it!!.category}"; Thread.sleep(50); order += "end ${it.category}" }
+                }
+            }
+        }
+        // The lock is held while announcing, so one note never interleaves with another.
+        assertEquals(4, order.size)
+        assertEquals(order[0].removePrefix("start "), order[1].removePrefix("end "))
+        assertEquals(order[2].removePrefix("start "), order[3].removePrefix("end "))
     }
 
     @Test

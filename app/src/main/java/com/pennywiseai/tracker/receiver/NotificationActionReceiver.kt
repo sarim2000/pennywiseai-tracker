@@ -169,9 +169,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
         notificationId: Int
     ) {
         try {
-            val learned = learnCategory(transactionId, newCategory)
+            learnCategory(transactionId, newCategory) { learned ->
+                SmsBroadcastReceiver.showLearnedNotification(context, notificationId, learned)
+            }
             WidgetRefresher.refreshTransactionWidgets(context)
-            SmsBroadcastReceiver.showLearnedNotification(context, notificationId, learned)
         } catch (e: Exception) {
             Log.e(TAG, "Error changing category", e)
         }

@@ -168,8 +168,11 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 val sameMerchant = notificationManager.activeNotifications.filter {
                     it.notification.extras.getString(EXTRA_LEARNED_MERCHANT).equals(merchant, ignoreCase = true)
                 }
-                if (sameMerchant.any { it.notification.extras.getLong(EXTRA_LEARNED_AT) > learnedAt }) {
-                    notificationManager.cancel(notificationId)
+                val newer = sameMerchant.filter { it.notification.extras.getLong(EXTRA_LEARNED_AT) > learnedAt }
+                if (newer.isNotEmpty()) {
+                    // Clear this pick's own alert, unless the newer note already sits
+                    // in its slot (both picks came from the same alert).
+                    if (newer.none { it.id == notificationId && it.tag == null }) notificationManager.cancel(notificationId)
                     return
                 }
                 sameMerchant.forEach { notificationManager.cancel(it.tag, it.id) }

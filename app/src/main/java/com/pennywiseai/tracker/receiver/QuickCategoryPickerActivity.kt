@@ -195,9 +195,10 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                     }
                     appScope.launch {
                         runCatching {
-                            val learned = learnCategory(txn.id, newCategory)
+                            learnCategory(txn.id, newCategory) { learned ->
+                                SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned)
+                            }
                             WidgetRefresher.refreshTransactionWidgets(applicationContext)
-                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned)
                         }.onFailure { Log.e(TAG, "Error saving the picked category", it) }
                     }
                     finish()

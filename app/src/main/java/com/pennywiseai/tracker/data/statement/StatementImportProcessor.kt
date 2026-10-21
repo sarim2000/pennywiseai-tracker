@@ -132,17 +132,19 @@ internal class StatementImportProcessor(
         }
 
         // 4. A date-only row (a bank's value date) may have its SMS on that day or
-        //    the next. In date order, each takes the earliest unclaimed one, so a
-        //    run of rows whose SMS all lag a day still matches one to one. A
-        //    next-day SMS is only evidence of a duplicate, never of its merchant.
-        for (i in decisions.indices.filter { dateOnly[it] }.sortedBy { days[it] }) {
+        //    the next. Latest row first, each taking the latest unclaimed one:
+        //    that matches as many rows as possible, so a run of SMS that all lag
+        //    a day matches one to one, and a row never takes the next day's SMS
+        //    from the row that is really from that day. A next-day SMS is only
+        //    evidence of a duplicate, never of its merchant.
+        for (i in decisions.indices.filter { dateOnly[it] }.sortedByDescending { days[it] }) {
             if (decisions[i] != null) continue
             val candidates = amountCandidates(i, days[i], days[i].plusDays(1))
-            val first = candidates.firstOrNull() ?: continue
-            decisions[i] = if (first.dateTime.toLocalDate() == days[i]) {
-                sameDayMatch(i, candidates.filter { it.dateTime.toLocalDate() == days[i] })
+            val latest = candidates.lastOrNull() ?: continue
+            decisions[i] = if (latest.dateTime.toLocalDate() == days[i]) {
+                sameDayMatch(i, candidates)
             } else {
-                claim(first)
+                claim(latest)
                 StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
             }
         }

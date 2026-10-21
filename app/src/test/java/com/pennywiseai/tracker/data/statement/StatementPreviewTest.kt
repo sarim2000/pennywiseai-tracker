@@ -162,6 +162,24 @@ class StatementPreviewTest {
     }
 
     @Test
+    fun `a row doesn't take the next day's SMS from that day's own row`() = runBlocking {
+        // Only the 3rd's payment has an SMS: the 2nd is the one to import.
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("500.00"), TransactionType.EXPENSE, day.plusDays(1), merchant = "UPI Transaction"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,MILK,500.00,
+                03/01/2025,MILK,500.00,
+                """
+            )
+        )
+        assertEquals(listOf(0), plan.newIndices)
+    }
+
+    @Test
     fun `an SMS the day before a date-only row is not a match`() = runBlocking {
         val store = InMemoryStore().apply {
             seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.minusDays(1), merchant = "Cafe"))

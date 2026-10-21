@@ -104,14 +104,11 @@ open class TransactionRepository @Inject constructor(
         transactionDao.getAllCategories()
 
     /**
-     * Gets the top N categories by usage count (number of transactions).
-     * Useful for showing user's most frequently used categories in notifications.
-     *
-     * @param limit Maximum number of categories to return (default: 3)
-     * @return List of category names ordered by usage count (most used first)
+     * Every category in use, most-used first. Unlimited on purpose: callers
+     * filter by transaction type, and a limit applied first could leave only
+     * the other type's categories (#968).
      */
-    suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String> =
-        transactionDao.getTopCategoriesByUsage(limit)
+    suspend fun getCategoriesByUsage(): List<String> = transactionDao.getCategoriesByUsage()
 
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
@@ -354,9 +351,13 @@ open class TransactionRepository @Inject constructor(
         transactionDao.updateCategoryById(transactionId, category, LocalDateTime.now())
     }
 
-    /** Moves [merchantName]'s live money-in ([isIncome]) or money-out rows in [from] to [to]; returns the count. */
-    suspend fun recategorizeMerchant(merchantName: String, isIncome: Boolean, from: String, to: String): Int =
-        transactionDao.recategorizeMerchant(merchantName, isIncome, from, to)
+    /** See [TransactionDao.getMovableMerchantRowIds]. */
+    suspend fun getMovableMerchantRowIds(merchantName: String, category: String, types: Collection<TransactionType>): List<Long> =
+        transactionDao.getMovableMerchantRowIds(merchantName, category, types.map { it.name })
+
+    /** Moves the rows of [ids] still in [from] to [to], in chunks under SQLite's variable limit; returns the count. */
+    suspend fun moveCategory(ids: List<Long>, from: String, to: String): Int =
+        ids.chunked(500).sumOf { transactionDao.moveCategory(it, from, to) }
     
     suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)

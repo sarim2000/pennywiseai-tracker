@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.receiver
 
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -39,6 +40,42 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         const val EXTRA_NEW_CATEGORY = "new_category"
+        const val ACTION_UNDO_LEARN = "com.pennywiseai.tracker.ACTION_UNDO_LEARN"
+        private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
+        private const val EXTRA_MERCHANT = "merchant"
+        private const val EXTRA_PREVIOUS_MAPPING = "previous_mapping"
+        private const val EXTRA_MOVED_IDS = "moved_ids"
+
+        /** The learned note's Undo: carries everything [LearnCategoryUseCase.undo] needs. */
+        fun undoIntent(context: Context, requestCode: Int, notificationId: Int, learned: LearnCategoryUseCase.Learned): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_UNDO_LEARN
+                    putExtra(EXTRA_TRANSACTION_ID, learned.transactionId)
+                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+                    putExtra(EXTRA_NEW_CATEGORY, learned.category)
+                    putExtra(EXTRA_PREVIOUS_CATEGORY, learned.previousCategory)
+                    putExtra(EXTRA_MERCHANT, learned.merchant)
+                    putExtra(EXTRA_PREVIOUS_MAPPING, learned.previousMapping)
+                    putExtra(EXTRA_MOVED_IDS, learned.movedIds.toLongArray())
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        private fun Intent.toLearned(transactionId: Long): LearnCategoryUseCase.Learned? {
+            val category = getStringExtra(EXTRA_NEW_CATEGORY) ?: return null
+            val previous = getStringExtra(EXTRA_PREVIOUS_CATEGORY) ?: return null
+            return LearnCategoryUseCase.Learned(
+                transactionId = transactionId,
+                category = category,
+                previousCategory = previous,
+                merchant = getStringExtra(EXTRA_MERCHANT),
+                previousMapping = getStringExtra(EXTRA_PREVIOUS_MAPPING),
+                movedIds = getLongArrayExtra(EXTRA_MOVED_IDS)?.toList().orEmpty()
+            )
+        }
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -75,6 +112,11 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         } else {
                             Log.e(TAG, "No category provided")
                         }
+                    }
+                    ACTION_UNDO_LEARN -> {
+                        intent.toLearned(transactionId)?.let { entryPoint.learnCategoryUseCase().undo(it) }
+                        WidgetRefresher.refreshTransactionWidgets(context)
+                        dismissNotification(context, notificationId)
                     }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")
@@ -122,9 +164,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
         notificationId: Int
     ) {
         try {
-            val moved = learnCategory(transactionId, newCategory)
+            val learned = learnCategory(transactionId, newCategory)
             WidgetRefresher.refreshTransactionWidgets(context)
-            SmsBroadcastReceiver.showLearnedNotification(context, notificationId, transactionId, newCategory, moved)
+            SmsBroadcastReceiver.showLearnedNotification(context, notificationId, learned)
         } catch (e: Exception) {
             Log.e(TAG, "Error changing category", e)
         }

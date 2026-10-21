@@ -78,7 +78,8 @@ class BiometricAuthManager @Inject constructor(
         description: String = activity.getString(R.string.applock_prompt_description),
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
-        onFailed: () -> Unit = {}
+        onFailed: () -> Unit = {},
+        onCancel: () -> Unit = {}
     ) {
         val executor = ContextCompat.getMainExecutor(context)
 
@@ -97,6 +98,8 @@ class BiometricAuthManager @Inject constructor(
                     if (errorCode != BiometricPrompt.ERROR_USER_CANCELED &&
                         errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
                         onError(errString.toString())
+                    } else {
+                        onCancel()
                     }
                 }
 

@@ -336,7 +336,6 @@ object SharedCategoryMapping {
         "hypermarket",
         "minimarket",
         "mini market",
-        "market",
         "hypermax",
         "cozmo",
         "safeway",
@@ -345,9 +344,12 @@ object SharedCategoryMapping {
         "civil consumer"
     )
 
-    // The bare word "market" is in GROCERY for Jordan's corner shops; keep it
-    // off pharmacies, online marketplaces and money-market funds.
-    private val GROCERY_EXCLUDE = setOf(
+    // The bare word "market" names Jordan's corner shops, but in India it is
+    // usually a locality ("BATA KHAN MARKET"). So it is the LAST rule: it only
+    // files what nothing else knew, and never steals fuel, salons or brokers.
+    // Kept off pharmacies, online marketplaces and money-market funds.
+    private val MARKET = setOf("market")
+    private val MARKET_EXCLUDE = setOf(
         "medical",
         "pharmacy",
         "chemist",
@@ -901,7 +903,7 @@ object SharedCategoryMapping {
         Rule("Bank Charges", BANK_CHARGE),
         Rule("Credit Card Payment", CC_PAYMENT),
         Rule("Food & Dining", FOOD),
-        Rule("Groceries", GROCERY, GROCERY_EXCLUDE),
+        Rule("Groceries", GROCERY),
         Rule("Transportation", TRANSPORT),
         Rule("Shopping", SHOPPING + SHOPPING_EXTENDED, SHOPPING_EXCLUDE),
         Rule("Bills & Utilities", UTILITIES),
@@ -915,6 +917,7 @@ object SharedCategoryMapping {
         Rule("Fitness", FITNESS),
         Rule("Insurance", INSURANCE),
         Rule("Travel", TRAVEL),
+        Rule("Groceries", MARKET, MARKET_EXCLUDE),
     )
 
     /**

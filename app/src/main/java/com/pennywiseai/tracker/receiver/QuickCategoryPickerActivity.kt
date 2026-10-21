@@ -3,20 +3,23 @@ package com.pennywiseai.tracker.receiver
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.domain.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.forPicker
@@ -43,14 +46,22 @@ import kotlinx.coroutines.launch
  * On pick: file the transaction and learn the merchant (see
  * [LearnCategoryUseCase]), swap the alert for a short confirmation, finish.
  * On dismiss without picking: finish.
+ *
+ * Behind the app lock, like opening the app: the sheet shows the
+ * transaction's category and tags, so a locked app asks first.
  */
 @AndroidEntryPoint
-class QuickCategoryPickerActivity : ComponentActivity() {
+class QuickCategoryPickerActivity : FragmentActivity() {
 
     @Inject lateinit var transactionRepository: TransactionRepository
     @Inject lateinit var categoryRepository: CategoryRepository
     @Inject lateinit var tagRepository: TagRepository
     @Inject lateinit var learnCategory: LearnCategoryUseCase
+    @Inject lateinit var appLockRepository: AppLockRepository
+    @Inject lateinit var biometricAuthManager: BiometricAuthManager
+
+    /** Nothing is read or shown until this is true. */
+    private val unlocked = mutableStateOf(false)
 
     // App-lifetime scope so the DB write survives finish() — the activity
     // closes immediately after the user picks.
@@ -71,12 +82,41 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         }
         currentArgs.value = initial
 
+        if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) {
+            unlocked.value = true
+        } else if (savedInstanceState == null) {
+            lifecycleScope.launch {
+                if (!appLockRepository.shouldLockApp()) {
+                    unlocked.value = true
+                } else {
+                    biometricAuthManager.authenticate(
+                        activity = this@QuickCategoryPickerActivity,
+                        onSuccess = {
+                            lifecycleScope.launch { appLockRepository.updateAuthTimestamp() }
+                            unlocked.value = true
+                        },
+                        onError = { finish() },
+                        onCancel = { finish() }
+                    )
+                }
+            }
+        } else {
+            // Recreated mid-prompt: start over from the notification.
+            finish()
+            return
+        }
+
         setContent {
             PennyWiseTheme {
                 val args by currentArgs
-                args?.let { PickerHost(it) }
+                if (unlocked.value) args?.let { PickerHost(it) }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_UNLOCKED, unlocked.value)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -145,11 +185,9 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                         return@QuickCategoryPickerSheet
                     }
                     appScope.launch {
-                        val moved = learnCategory(txn.id, newCategory)
+                        val learned = learnCategory(txn.id, newCategory)
                         WidgetRefresher.refreshTransactionWidgets(applicationContext)
-                        SmsBroadcastReceiver.showLearnedNotification(
-                            applicationContext, activeNotificationId, txn.id, newCategory, moved
-                        )
+                        SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned)
                     }
                     finish()
                 },
@@ -184,5 +222,6 @@ class QuickCategoryPickerActivity : ComponentActivity() {
         private const val TAG = "QuickCategoryPicker"
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
+        private const val KEY_UNLOCKED = "unlocked"
     }
 }

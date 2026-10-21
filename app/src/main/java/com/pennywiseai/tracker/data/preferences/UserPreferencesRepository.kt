@@ -52,6 +52,12 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     }
 )
 
+/**
+ * Whether the evening recap is on for someone who never touched its switch.
+ * The single source of that default: the pref and the Settings switch read it.
+ */
+const val DAILY_SUMMARY_DEFAULT = true
+
 @Singleton
 open class UserPreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context
@@ -339,9 +345,9 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    /** The 9 PM recap notification (DailySummaryWorker). On by default: people forget to open the app. */
+    /** The 9 PM recap notification (DailySummaryWorker); default in [DAILY_SUMMARY_DEFAULT]. */
     val dailySummaryEnabled: Flow<Boolean> = context.dataStore.data
-        .map { preferences -> preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] ?: true }
+        .map { preferences -> preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] ?: DAILY_SUMMARY_DEFAULT }
 
     suspend fun setDailySummaryEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->

@@ -150,9 +150,8 @@ interface TransactionDao {
         WHERE is_deleted = 0
         GROUP BY category
         ORDER BY COUNT(*) DESC
-        LIMIT :limit
     """)
-    suspend fun getTopCategoriesByUsage(limit: Int = 3): List<String>
+    suspend fun getCategoriesByUsage(): List<String>
 
 
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
@@ -241,8 +240,25 @@ interface TransactionDao {
     @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
 
-    @Query("UPDATE transactions SET category = :to, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE AND category = :from AND is_deleted = 0 AND (transaction_type = 'INCOME') = :isIncome")
-    suspend fun recategorizeMerchant(merchantName: String, isIncome: Boolean, from: String, to: String): Int
+    /**
+     * [merchantName]'s live rows of [types] still in [category], minus loan-linked,
+     * split-bill and category-split rows: what learning a category may move.
+     */
+    @Query("""
+        SELECT id FROM transactions
+        WHERE merchant_name = :merchantName COLLATE NOCASE
+          AND category = :category
+          AND is_deleted = 0
+          AND transaction_type IN (:types)
+          AND loan_id IS NULL
+          AND lent_shares_total IS NULL
+          AND id NOT IN (SELECT transaction_id FROM transaction_splits)
+    """)
+    suspend fun getMovableMerchantRowIds(merchantName: String, category: String, types: List<String>): List<Long>
+
+    /** Moves the rows of [ids] that are still in [from] to [to]; returns the count. */
+    @Query("UPDATE transactions SET category = :to, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE id IN (:ids) AND category = :from")
+    suspend fun moveCategory(ids: List<Long>, from: String, to: String): Int
 
     @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
     suspend fun updateCategoryById(transactionId: Long, category: String, updatedAt: LocalDateTime)

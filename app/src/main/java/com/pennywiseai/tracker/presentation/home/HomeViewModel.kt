@@ -643,23 +643,9 @@ class HomeViewModel @Inject constructor(
                 // so settlement losses silently stopped reaching "Spent" after #571.
                 .collect { (settledLoans, profileId, balances) ->
                     val keys = buildProfileAccountKeys(balances)
-                    val byCurrency = mutableMapOf<String, BigDecimal>()
-                    for (loan in settledLoans) {
-                        val sourceTx = loanRepository.getOriginalTransactionForLoan(loan.id)
-                        // Null sourceTx means the loan has no live linked transaction (all were
-                        // unlinked or deleted). Skip entirely — without a transaction we can't
-                        // attribute the loss to any profile, and treating null as "include
-                        // everywhere" would double-count it for users with multiple profiles.
-                        val belongsToProfile = sourceTx != null &&
-                            filterTransactionsByProfile(listOf(sourceTx), profileId, keys).isNotEmpty()
-                        if (!belongsToProfile) continue
-
-                        val loss = loanRepository.getSettlementLoss(loan)
-                        if (loss > BigDecimal.ZERO) {
-                            byCurrency.merge(loan.currency, loss) { a, b -> a + b }
-                        }
+                    currentMonthLoanLossByCurrency = loanRepository.settlementLossByCurrency(settledLoans) {
+                        filterTransactionsByProfile(listOf(it), profileId, keys).isNotEmpty()
                     }
-                    currentMonthLoanLossByCurrency = byCurrency
                     updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
         }

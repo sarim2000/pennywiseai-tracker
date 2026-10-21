@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.EntryPoint
@@ -52,7 +53,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val CHANNEL_ID = "transaction_notifications"
 
-        // Category actions occupy slots 0..1; picker reserves slot 9.
+        // Category actions occupy slots 0..1; the learned note's Undo slot 8; picker reserves slot 9.
         // Codes are unique per (transactionId, slot): txId*10+slot cannot alias across
         // transactions because take(2) bounds slot < 10. This numbering is used ONLY by
         // ACTION_CHANGE_CATEGORY broadcasts — one filterEquals space; activity intents
@@ -76,6 +77,21 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         internal fun quickPicks(usedMostFirst: List<String>, offered: List<String>, exclude: String): List<String> {
             val skip = setOf(exclude, BuiltinCategoryNames.current("Others"))
             return (usedMostFirst.filter { it in offered } + offered).distinct().filterNot { it in skip }.take(2)
+        }
+
+        /** [quickPicks] for [transaction]: the whole usage ranking, filtered to its type afterwards. */
+        internal suspend fun quickPicksFor(
+            transaction: TransactionEntity,
+            transactionRepository: TransactionRepository,
+            categoryRepository: CategoryRepository
+        ): List<String> {
+            val offered = runCatching {
+                categoryRepository.getVisibleCategories().first()
+                    .forPicker(isIncome = transaction.transactionType == TransactionType.INCOME)
+                    .map { it.name }
+            }.getOrDefault(emptyList())
+            val used = runCatching { transactionRepository.getCategoriesByUsage() }.getOrDefault(emptyList())
+            return quickPicks(used, offered, exclude = transaction.category)
         }
 
         fun ensureChannel(context: Context): NotificationManager {
@@ -122,26 +138,43 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         /**
          * Replaces the alert with a short, silent "saved — and learned" note so
-         * the user sees the tap landed and knows the next one is automatic.
-         * [moved] is [LearnCategoryUseCase]'s result: null when nothing was
-         * learned, so the note doesn't promise it.
+         * the user sees the tap landed and knows the next one is automatic, with
+         * an Undo: a quick pick is one tap, and a mis-tap teaches the merchant
+         * and moves its earlier rows. [learned] is [LearnCategoryUseCase]'s
+         * result; null (the transaction is gone) just clears the alert.
          */
-        fun showLearnedNotification(context: Context, notificationId: Int, transactionId: Long, category: String, moved: Int?) {
+        fun showLearnedNotification(context: Context, notificationId: Int, learned: LearnCategoryUseCase.Learned?) {
             if (notificationId == -1) return
+            val notificationManager = ensureChannel(context)
+            if (learned == null) {
+                notificationManager.cancel(notificationId)
+                return
+            }
+            val moved = learned.movedIds.size
             val text = when {
-                moved == null -> ""
+                learned.merchant == null -> ""
                 moved > 0 -> context.getString(R.string.notif_txn_learned_text) + " " +
                     context.resources.getQuantityString(R.plurals.notif_txn_learned_moved, moved, moved)
                 else -> context.getString(R.string.notif_txn_learned_text)
             }
-            ensureChannel(context).notify(
+            notificationManager.notify(
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, category))
+                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, learned.category))
                     .setContentText(text)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-                    .setContentIntent(openTransactionIntent(context, transactionId))
+                    .setContentIntent(openTransactionIntent(context, learned.transactionId))
+                    .addAction(
+                        0,
+                        context.getString(R.string.home_undo),
+                        NotificationActionReceiver.undoIntent(
+                            context,
+                            categoryRequestCode(learned.transactionId, UNDO_SLOT),
+                            notificationId,
+                            learned
+                        )
+                    )
                     .setAutoCancel(true)
                     .setSilent(true)
                     .setTimeoutAfter(LEARNED_TIMEOUT_MS)
@@ -149,7 +182,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             )
         }
 
-        private const val LEARNED_TIMEOUT_MS = 6_000L
+        // Long enough to reach Undo after the picker closes the shade.
+        private const val LEARNED_TIMEOUT_MS = 15_000L
+        private const val UNDO_SLOT = 8
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -308,13 +343,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // user's most-used categories of this type, for one-tap answers. (#303)
             val notificationId = transactionId.toInt()
             if (uncategorized) {
-                val offered = runCatching {
-                    categoryRepository.getVisibleCategories().first()
-                        .forPicker(isIncome = transaction.transactionType == TransactionType.INCOME)
-                        .map { it.name }
-                }.getOrDefault(emptyList())
-                val used = runCatching { repository.getTopCategoriesByUsage(10) }.getOrDefault(emptyList())
-                quickPicks(used, offered, exclude = transaction.category).forEachIndexed { index, pick ->
+                quickPicksFor(transaction, repository, categoryRepository).forEachIndexed { index, pick ->
                     val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
                         action = NotificationActionReceiver.ACTION_CHANGE_CATEGORY
                         putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)

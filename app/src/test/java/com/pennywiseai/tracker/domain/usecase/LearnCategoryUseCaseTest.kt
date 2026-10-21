@@ -28,23 +28,58 @@ class LearnCategoryUseCaseTest {
         )
 
     @Test
-    fun `a pick remembers the merchant and moves its unsorted rows of the same kind`() = runBlocking {
+    fun `a pick remembers the merchant and moves its unsorted purchases`() = runBlocking {
         given("Shein")
-        coEvery { transactions.recategorizeMerchant("Shein", isIncome = false, from = "Others", to = "Shopping") } returns 3
+        val purchases = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
+        coEvery { transactions.getMovableMerchantRowIds("Shein", "Others", purchases) } returns listOf(7L, 8L, 9L)
 
-        assertEquals(3, learn(1, "Shopping"))
+        val learned = learn(1, "Shopping")!!
+
+        assertEquals(listOf(7L, 8L, 9L), learned.movedIds)
         coVerify { mappings.setMapping("Shein", "Shopping") }
+        coVerify { transactions.moveCategory(listOf(7L, 8L, 9L), from = "Others", to = "Shopping") }
+    }
+
+    @Test
+    fun `money in only moves money in`() = runBlocking {
+        given("Ahmad", type = TransactionType.INCOME)
+        learn(1, "Salary")
+        coVerify { transactions.getMovableMerchantRowIds("Ahmad", "Others", setOf(TransactionType.INCOME)) }
     }
 
     @Test
     fun `no merchant, a pick of Others, or a deleted row teaches nothing`() = runBlocking {
         given("Unknown Merchant")
-        assertNull(learn(1, "Groceries"))
+        assertNull(learn(1, "Groceries")!!.merchant)
         given("Shein")
-        assertNull(learn(1, "Others"))
+        assertNull(learn(1, "Others")!!.merchant)
         given("Shein", deleted = true)
         assertNull(learn(1, "Shopping"))
 
         coVerify(exactly = 0) { mappings.setMapping(any(), any()) }
+        coVerify(exactly = 0) { transactions.moveCategory(any(), any(), any()) }
+    }
+
+    @Test
+    fun `undo puts back the category, the old mapping and the moved rows`() = runBlocking {
+        given("Shein")
+        coEvery { mappings.getCategoryForMerchant("Shein") } returns "Entertainment"
+        coEvery { transactions.getMovableMerchantRowIds(any(), any(), any()) } returns listOf(7L)
+
+        learn.undo(learn(1, "Shopping")!!)
+
+        coVerify { transactions.updateCategory(1, "Others") }
+        coVerify { mappings.setMapping("Shein", "Entertainment") }
+        coVerify { transactions.moveCategory(listOf(7L), from = "Shopping", to = "Others") }
+    }
+
+    @Test
+    fun `undo of a first lesson forgets the merchant`() = runBlocking {
+        given("Shein")
+        coEvery { mappings.getCategoryForMerchant("Shein") } returns null
+
+        learn.undo(learn(1, "Shopping")!!)
+
+        coVerify { mappings.removeMapping("Shein") }
     }
 }

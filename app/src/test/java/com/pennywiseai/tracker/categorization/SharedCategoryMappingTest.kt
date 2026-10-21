@@ -142,4 +142,16 @@ class SharedCategoryMappingTest {
         assertCategory("Shopping", "AMAZON MARKET PLACE")
         assertCategory("Groceries", "CARREFOUR")
     }
+
+    @Test
+    fun `an Indian market locality never steals a merchant another rule knows`() {
+        // "market" is the last rule: it only files what would otherwise be Others.
+        assertCategory("Transportation", "HP PETROL PUMP NEW MARKET")
+        assertCategory("Personal Care", "LAKME SALON SAROJINI MARKET")
+        assertCategory("Fitness", "CULT FIT KHAN MARKET")
+        assertCategory("Investments", "ANGEL ONE SHARE MARKET")
+        assertCategory("Shopping", "MEESHO MARKET")
+        // The market exclusions don't reach the grocery chains themselves.
+        assertCategory("Groceries", "DMART HOSPITAL ROAD")
+    }
 }

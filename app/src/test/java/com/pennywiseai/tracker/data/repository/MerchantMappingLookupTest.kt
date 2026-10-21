@@ -1,7 +1,10 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
 
@@ -38,5 +41,16 @@ class MerchantMappingLookupTest {
     fun `timestamp tie goes to the smallest name, like the DAO`() {
         val lookup = listOf(mapping("zomato", "Bills", 3), mapping("ZOMATO", "Travel", 3)).toCategoryLookup()
         assertEquals("Travel", lookup["Zomato"])
+    }
+
+    @Test
+    fun `a mapping files every money-out type under an expense category, and only money in under income`() {
+        val out = listOf(TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.TRANSFER, TransactionType.INVESTMENT)
+        out.forEach { assertTrue("$it", mappingFits(categoryIsIncome = false, type = it)) }
+        out.forEach { assertFalse("$it", mappingFits(categoryIsIncome = true, type = it)) }
+        assertTrue(mappingFits(categoryIsIncome = true, type = TransactionType.INCOME))
+        assertFalse(mappingFits(categoryIsIncome = false, type = TransactionType.INCOME))
+        // A mapping to a deleted category still applies, as before.
+        TransactionType.entries.forEach { assertTrue(mappingFits(categoryIsIncome = null, type = it)) }
     }
 }

@@ -10,6 +10,22 @@ object TokenUtils {
     
     // Average characters per token for English text
     private const val CHARS_PER_TOKEN = 4.0
+
+    /** KV cache of the chat model (Qwen2.5-1.5B-Instruct-q8-ekv4096). */
+    const val MODEL_CONTEXT_TOKENS = 4096
+
+    /**
+     * Kept free for what the estimate can't see: the tool schemas LiteRT-LM adds
+     * to the system turn, chat-template tokens, and the reply itself.
+     */
+    private const val RESERVED_TOKENS = 1536
+
+    /**
+     * Estimated tokens (system prompt + history + next message) a chat may hold
+     * before it has to be cleared. Was a hard-coded 1200, which a long category
+     * or account list alone could exceed, blocking every new chat (#959).
+     */
+    const val CHAT_TOKEN_BUDGET = MODEL_CONTEXT_TOKENS - RESERVED_TOKENS
     
     /**
      * Estimates the number of tokens in a given text.
@@ -32,6 +48,10 @@ object TokenUtils {
         return messages.fold(0) { acc, msg -> acc + estimateTokens(msg) }
     }
     
+    /** Whether a chat holding [context] (system prompt included) still has room for [nextMessage]. */
+    fun fitsChatBudget(context: List<String>, nextMessage: String): Boolean =
+        estimateTokens(context.joinToString("") + nextMessage) <= CHAT_TOKEN_BUDGET
+
     /**
      * Formats a number in a user-friendly way (e.g., 1234 -> "1.2k")
      * 

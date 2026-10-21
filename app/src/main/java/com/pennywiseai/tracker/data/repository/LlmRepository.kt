@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.ChatContext
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.service.LlmService
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.TokenUtils
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
@@ -35,7 +37,8 @@ class LlmRepository @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
 
     // A transaction the model proposed via the add_transaction tool (#170),
@@ -87,17 +90,12 @@ class LlmRepository @Inject constructor(
         val existingMessages = chatDao.getAllMessagesForContext()
         val isNewChat = existingMessages.isEmpty()
 
-        // If new chat, add system prompt first
+        // If new chat, add system prompt first. Always rebuilt: a cached one
+        // carries a stale date, figures and lists — and, when oversized, used to
+        // block every new chat until something refreshed the cache (#959).
         if (isNewChat) {
-            val storedPrompt = userPreferencesRepository.getSystemPrompt().first()
-            val systemPrompt = if (storedPrompt.isNullOrEmpty() || !storedPrompt.startsWith(PROMPT_MARKER)) {
-                val chatContext = aiContextRepository.getChatContext()
-                val newPrompt = buildSystemPrompt(chatContext)
-                userPreferencesRepository.updateSystemPrompt(newPrompt)
-                newPrompt
-            } else {
-                storedPrompt
-            }
+            val systemPrompt = buildSystemPrompt(aiContextRepository.getChatContext())
+            userPreferencesRepository.updateSystemPrompt(systemPrompt)
 
             val systemMessage = ChatMessage(
                 message = systemPrompt,
@@ -110,10 +108,7 @@ class LlmRepository @Inject constructor(
 
         // Estimate tokens from all messages
         val currentMessages = chatDao.getAllMessagesForContext()
-        val totalChars = currentMessages.map { it.message.length }.sum() + userMessage.length
-        val estimatedTokens = totalChars / 4
-
-        if (estimatedTokens > 1200) {
+        if (!TokenUtils.fitsChatBudget(currentMessages.map { it.message }, userMessage)) {
             throw Exception("Chat memory is full. Please clear the chat to continue.")
         }
 
@@ -136,7 +131,6 @@ class LlmRepository @Inject constructor(
 
         Log.d(TAG, "=== SENDING TO LLM ===")
         Log.d(TAG, "Total messages in context: ${currentMessages.size}")
-        Log.d(TAG, "Estimated tokens: $estimatedTokens")
 
         // Stream response — LiteRT-LM conversation manages history internally.
         // Tool calls are handed to us (never auto-run, #170): a lookup is
@@ -340,28 +334,18 @@ class LlmRepository @Inject constructor(
         val monthSummary = context.monthSummary
         val currency = userPreferencesRepository.baseCurrency.first()
         val categories = categoryRepository.getVisibleCategories().first()
-        val expense = categories.filter { !it.isIncome }.joinToString(", ") { it.name }
-        val income = categories.filter { it.isIncome }.joinToString(", ") { it.name }
+        val ignored = ignoredAccountsStore.keys()
         val accounts = accountBalanceRepository.getAllLatestBalancesOnce()
-            .joinToString(", ") { it.alias ?: "${it.bankName} ${it.accountLast4}" }
-            .ifEmpty { "none yet" }
-
-        return """
-        $PROMPT_MARKER
-        You are PennyWise AI, a friendly assistant inside an expense tracker. Today is ${context.currentDate}.
-        This month so far: ${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency)} spent, ${CurrencyFormatter.formatCurrency(monthSummary.totalIncome, currency)} income, ${monthSummary.transactionCount} transactions.
-
-        When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
-        When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
-        If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
-        Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
-
-        Expense categories: $expense
-        Income categories: $income
-        Accounts: $accounts
-
-        Plain text only: no markdown, asterisks or backticks.
-        """.trimIndent()
+            .filter { IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4) !in ignored }
+            .map { it.alias ?: "${it.bankName} ${it.accountLast4}" }
+        return composeSystemPrompt(
+            currentDate = context.currentDate.toString(),
+            monthLine = "${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency)} spent, " +
+                "${CurrencyFormatter.formatCurrency(monthSummary.totalIncome, currency)} income, ${monthSummary.transactionCount} transactions",
+            expenseCategories = categories.filter { !it.isIncome }.map { it.name },
+            incomeCategories = categories.filter { it.isIncome }.map { it.name },
+            accounts = accounts
+        )
     }
 
     suspend fun updateSystemPrompt() {
@@ -389,7 +373,46 @@ class LlmRepository @Inject constructor(
     }
 
     companion object {
-        private const val PROMPT_MARKER = "[PennyWise tools v6]"
+        /**
+         * The system prompt from already-gathered data. Each list is capped so the
+         * prompt stays a bounded slice of [TokenUtils.CHAT_TOKEN_BUDGET] however
+         * many categories or accounts the user has — a fresh chat must always fit
+         * (#959). The tools still match any category or account the user names.
+         */
+        internal fun composeSystemPrompt(
+            currentDate: String,
+            monthLine: String,
+            expenseCategories: List<String>,
+            incomeCategories: List<String>,
+            accounts: List<String>
+        ): String = """
+            You are PennyWise AI, a friendly assistant inside an expense tracker. Today is $currentDate.
+            This month so far: $monthLine.
+
+            When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
+            When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
+            If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
+            Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
+
+            Expense categories: ${promptList(expenseCategories, MAX_EXPENSE_CATEGORY_CHARS)}
+            Income categories: ${promptList(incomeCategories, MAX_INCOME_CATEGORY_CHARS)}
+            Accounts: ${promptList(accounts, MAX_ACCOUNT_CHARS).ifEmpty { "none yet" }}
+
+            Plain text only: no markdown, asterisks or backticks.
+            """.trimIndent()
+
+        /** Names joined in order until [maxChars]; the rest are counted, not listed. */
+        internal fun promptList(names: List<String>, maxChars: Int): String {
+            var used = 0
+            val shown = names.takeWhile { used += it.length + 2; used <= maxChars }
+            val more = names.size - shown.size
+            return (shown + listOfNotNull(if (more > 0) "and $more more" else null)).joinToString(", ")
+        }
+
+        // ~2,000 chars (~500 tokens) of lists at most; default categories fit with room to spare.
+        private const val MAX_EXPENSE_CATEGORY_CHARS = 1200
+        private const val MAX_INCOME_CATEGORY_CHARS = 400
+        private const val MAX_ACCOUNT_CHARS = 500
         private val CLAIMS_A_CHANGE = Regex("\\b(I(?:'ve| have)?|has been|have been|is now|was) (added|updated|changed|deleted|removed|recorded)\\b", RegexOption.IGNORE_CASE)
         private const val TAG = "LlmRepository"
     }

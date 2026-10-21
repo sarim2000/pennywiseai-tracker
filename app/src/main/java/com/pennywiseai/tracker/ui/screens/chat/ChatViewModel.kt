@@ -119,7 +119,7 @@ class ChatViewModel @Inject constructor(
         val allText = allMsgs.joinToString(" ") { it.message } + " " + current
         val totalChars = allText.length
         val estimatedTokens = TokenUtils.estimateTokens(allText)
-        val maxTokens = 4096
+        val maxTokens = TokenUtils.CHAT_TOKEN_BUDGET
         
         // Count only visible messages for UI
         val visibleCount = allMsgs.count { !it.isSystemPrompt }
@@ -340,6 +340,6 @@ data class ChatStats(
     val totalCharacters: Int = 0,
     val estimatedTokens: Int = 0,
     val systemPromptTokens: Int = 0,
-    val maxTokens: Int = 4096,
+    val maxTokens: Int = TokenUtils.CHAT_TOKEN_BUDGET,
     val contextUsagePercent: Int = 0
 )

@@ -19,7 +19,8 @@ export function Analytics() {
 	const byAccount = useTool<Summary>("spending_summary", { ...range, group_by: "account", type: "EXPENSE" }, version);
 	const byDay = useTool<Summary>("spending_summary", { ...range, group_by: "day", type: "EXPENSE" }, version);
 
-	const error = grid.error ?? now.error;
+	// Any failed read fails the page, so a missing answer never looks like "no data".
+	const error = [grid, spentByMonth, receivedByMonth, now, before, byAccount, byDay].find((r) => r.error)?.error;
 	if (error) return <ErrorNote error={error} />;
 
 	// Category × month, in the chart currency.

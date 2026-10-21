@@ -16,6 +16,7 @@ export class Phone extends DurableObject<Env> {
 		super(ctx, env);
 		ctx.blockConcurrencyWhile(async () => {
 			ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS device (secret_hash TEXT NOT NULL)");
+			ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS pair (code TEXT NOT NULL, expires_at INTEGER NOT NULL)");
 		});
 		// Keepalives from the phone are answered without waking the object.
 		ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
@@ -34,6 +35,17 @@ export class Phone extends DurableObject<Env> {
 	async wipe(): Promise<void> {
 		for (const ws of this.ctx.getWebSockets()) ws.close(4001, "reset");
 		await this.ctx.storage.deleteAll();
+	}
+
+	/** One live pairing code per phone; a new one replaces the old. */
+	issuePairCode(code: string, expiresAt: number): void {
+		this.ctx.storage.sql.exec("DELETE FROM pair");
+		this.ctx.storage.sql.exec("INSERT INTO pair (code, expires_at) VALUES (?, ?)", code, expiresAt);
+	}
+
+	/** True for exactly one caller: the object runs one call at a time and the delete is the check. */
+	consumePairCode(code: string): boolean {
+		return this.ctx.storage.sql.exec("DELETE FROM pair WHERE code = ? AND expires_at > ? RETURNING code", code, Date.now()).toArray().length > 0;
 	}
 
 	isOnline(): boolean {

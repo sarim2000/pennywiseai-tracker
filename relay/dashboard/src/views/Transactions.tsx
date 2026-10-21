@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { tool, type Search, type Summary, type Txn } from "@/lib/api";
+import { tool, type Search, type Txn } from "@/lib/api";
 import { useFilters } from "@/lib/filters";
 import { fmt } from "@/lib/money";
 import { useTool } from "@/lib/useTool";
@@ -24,6 +24,10 @@ function toCsv(rows: Txn[]) {
 		[t.date, t.merchant, t.category, t.type, t.amount.amount, t.amount.currency, t.account ?? ""].map(esc).join(","))].join("\n");
 }
 
+/** Picker options from the phone, keeping the current choice listed so the select never goes blank. */
+const withSelected = (options: string[] | undefined, selected: string) =>
+	selected === ALL || options?.includes(selected) ? options ?? [] : [selected, ...(options ?? [])];
+
 export function Transactions() {
 	const { range, version, drilled } = useFilters();
 	const [query, setQuery] = useState(drilled.query ?? "");
@@ -34,13 +38,11 @@ export function Transactions() {
 	const [sort, setSort] = useState("date_desc");
 	const [page, setPage] = useState(0);
 	const [exporting, setExporting] = useState(false);
+	const [exportError, setExportError] = useState<Error>();
 
 	useEffect(() => { const t = setTimeout(() => setDebounced(query.trim()), 300); return () => clearTimeout(t); }, [query]);
 	useEffect(() => setPage(0), [debounced, category, type, account, sort, range]);
 
-	// Filter options come from the period's own groups, so they always match what's there.
-	const cats = useTool<Summary>("spending_summary", { ...range, group_by: "category", type: "EXPENSE" }, version);
-	const accts = useTool<Summary>("spending_summary", { ...range, group_by: "account", type: "EXPENSE" }, version);
 	const args = {
 		...range, limit: PAGE, offset: page * PAGE, sort,
 		...(debounced && { query: debounced }), ...(category !== ALL && { category }), ...(type !== ALL && { type }), ...(account !== ALL && { account }),
@@ -49,17 +51,20 @@ export function Transactions() {
 
 	async function exportCsv() {
 		setExporting(true);
+		setExportError(undefined);
 		try {
 			const all: Txn[] = [];
-			for (let offset = 0; offset < 5000; offset += 200) {
+			for (let offset = 0; ; offset += 200) {
 				const r = await tool("search_transactions", { ...args, limit: 200, offset });
 				all.push(...r.transactions);
-				if (offset + 200 >= r.total_matches) break;
+				if (r.shown === 0 || offset + 200 >= r.total_matches) break;
 			}
 			const url = URL.createObjectURL(new Blob([toCsv(all)], { type: "text/csv" }));
 			const a = Object.assign(document.createElement("a"), { href: url, download: `pennywise-${range.from}-to-${range.to}.csv` });
 			a.click();
 			URL.revokeObjectURL(url);
+		} catch (e) {
+			setExportError(e as Error);
 		} finally {
 			setExporting(false);
 		}
@@ -78,7 +83,7 @@ export function Transactions() {
 						<SelectTrigger aria-label="Category" className="w-48"><SelectValue placeholder="Category" /></SelectTrigger>
 						<SelectContent>
 							<SelectItem value={ALL}>All categories</SelectItem>
-							{(cats.data?.groups ?? []).map((g) => g.group).sort().map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+							{withSelected(res.data?.categories, category).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
 						</SelectContent>
 					</Select>
 					<Select value={type} onValueChange={setType}>
@@ -92,7 +97,7 @@ export function Transactions() {
 						<SelectTrigger aria-label="Account" className="w-48"><SelectValue /></SelectTrigger>
 						<SelectContent>
 							<SelectItem value={ALL}>All accounts</SelectItem>
-							{(accts.data?.groups ?? []).map((g) => g.group).sort().map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+							{withSelected(res.data?.accounts, account).map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
 						</SelectContent>
 					</Select>
 					<Select value={sort} onValueChange={setSort}>
@@ -105,6 +110,7 @@ export function Transactions() {
 					</Button>
 				</div>
 
+				{exportError && <ErrorNote error={exportError} onRetry={exportCsv} />}
 				{res.error ? <ErrorNote error={res.error} /> : !res.data ? <Loading rows={10} /> : res.data.transactions.length === 0 ? <Empty>No transactions match.</Empty> : (
 					<>
 						<div className="overflow-x-auto">

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.aiaccess
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.serialization.json.JsonObject
@@ -101,6 +102,8 @@ class AiToolLogicTest {
         assertEquals(listOf("C", "B"), page2["transactions"]!!.jsonArray.map { it.jsonObject["merchant"]!!.jsonPrimitive.content })
         val hdfcOnly = AiToolLogic.searchTransactions(list, null, null, null, limit = 50, account = "HDFC ••1234")
         assertEquals(4, hdfcOnly["total_matches"]!!.jsonPrimitive.content.toInt())
+        // Pickers list every account, not just the chosen one.
+        assertEquals(listOf("HDFC ••1234", "ICICI ••9999"), hdfcOnly["accounts"]!!.jsonArray.map { it.jsonPrimitive.content })
         val byAmount = AiToolLogic.searchTransactions(list, null, null, null, limit = 50, sort = "amount_desc")
         assertEquals(listOf("E", "B", "C", "A", "D"), byAmount["transactions"]!!.jsonArray.map { it.jsonObject["merchant"]!!.jsonPrimitive.content })
     }
@@ -114,5 +117,22 @@ class AiToolLogicTest {
         val food = out["groups"]!!.jsonArray.map { it.jsonObject }.single { it["sub"]!!.jsonPrimitive.content == "Food & Dining" }
         assertEquals("2026-10", food["group"]!!.jsonPrimitive.content)
         assertEquals(mapOf("INR" to "30.00"), food.totals("totals"))
+    }
+
+    @Test
+    fun `summary counts only your part of split bills and nets refunds per currency`() {
+        val all = listOf(
+            txn("Dinner", "1000").copy(lentSharesTotal = BigDecimal("400")),
+            txn("Lent", "500", category = "Transfers").copy(loanId = 1),
+            txn("Shop", "100", category = "Shopping"),
+            txn("Shop refund", "40", type = TransactionType.INCOME, category = "Refund")
+                .copy(budgetImpactType = BudgetImpactType.DEDUCT_SPENT, budgetCategory = "Shopping"),
+            txn("Salary", "85000", type = TransactionType.INCOME, category = "Salary"),
+        )
+        val spend = AiToolLogic.spendingSummary(all, groupBy = "category", type = "EXPENSE")
+        assertEquals(mapOf("INR" to "660.00"), spend.totals())
+        val shopping = spend["groups"]!!.jsonArray.map { it.jsonObject }.single { it["group"]!!.jsonPrimitive.content == "Shopping" }
+        assertEquals(mapOf("INR" to "60.00"), shopping.totals("totals"))
+        assertEquals(mapOf("INR" to "85000.00"), AiToolLogic.spendingSummary(all, groupBy = "category", type = "INCOME").totals())
     }
 }

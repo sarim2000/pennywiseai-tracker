@@ -1,13 +1,16 @@
 package com.pennywiseai.tracker.aiaccess
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -35,12 +38,10 @@ object AiToolLogic {
         sort: String? = null,
     ): JsonObject {
         val q = query?.trim()?.lowercase().orEmpty()
-        val filtered = all.asSequence()
-            .filter { type == null || it.transactionType.name == type }
-            .filter { category == null || it.category.equals(category, ignoreCase = true) }
-            .filter { q.isEmpty() || it.merchantName.lowercase().contains(q) }
-            .filter { account == null || accountOf(it) == account }
-            .toList()
+        val base = all.filter { (type == null || it.transactionType.name == type) && (q.isEmpty() || it.merchantName.lowercase().contains(q)) }
+        val filtered = base.filter {
+            (category == null || it.category.equals(category, ignoreCase = true)) && (account == null || accountOf(it) == account)
+        }
         val matches = when (sort) {
             "date_asc" -> filtered.sortedBy { it.dateTime }
             // Amount order only makes sense within one currency; group by currency first.
@@ -54,6 +55,9 @@ object AiToolLogic {
             put("total_matches", matches.size)
             put("offset", from)
             put("shown", shown.size)
+            // Every category and account among the matches before those two filters, for pickers.
+            putJsonArray("categories") { base.map { it.category }.distinct().sorted().forEach { add(it) } }
+            putJsonArray("accounts") { base.mapNotNull { accountOf(it) }.distinct().sorted().forEach { add(it) } }
             putJsonArray("transactions") {
                 shown.forEach { t ->
                     add(buildJsonObject {
@@ -72,35 +76,49 @@ object AiToolLogic {
     /**
      * `type` EXPENSE means spending: debits and card purchases; INCOME means money received.
      * `month_category` groups by month, then category: each group carries `group` (YYYY-MM) and `sub`.
+     * Amounts follow the app's totals: only your part of loan-linked and split rows counts
+     * ([forTotals]), and refunds (INCOME + DEDUCT_SPENT) come off spending instead of counting
+     * as income, per currency and floored at zero, like Analytics.
      */
     fun spendingSummary(all: List<TransactionEntity>, groupBy: String, type: String, account: String? = null): JsonObject {
-        val types = if (type == "INCOME") setOf(TransactionType.INCOME) else setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
-        val counted = all.filter { it.transactionType in types && !it.excludedFromAnalytics && (account == null || accountOf(it) == account) }
+        val income = type == "INCOME"
+        val inAccount = all.filter { account == null || accountOf(it) == account }.forTotals()
+        val counted = if (income) {
+            inAccount.filter { it.transactionType == TransactionType.INCOME && !it.isRefund() }
+        } else {
+            inAccount.filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
+        }
+        val refunds = if (income) emptyList() else inAccount.filter { it.transactionType == TransactionType.INCOME && it.isRefund() }
         val month: (TransactionEntity) -> String = { t -> t.dateTime.toLocalDate().toString().take(7) }
+        // A refund's category is the budget category it gives back to, as in Analytics.
+        val category: (TransactionEntity) -> String = { t -> if (t.isRefund()) (t.budgetCategory ?: "").ifEmpty { "Others" } else t.category }
         val key: (TransactionEntity) -> Pair<String, String?> = when (groupBy) {
             "merchant" -> { t -> t.merchantName to null }
             "month" -> { t -> month(t) to null }
             "day" -> { t -> t.dateTime.toLocalDate().toString() to null }
             "account" -> { t -> (accountOf(t) ?: "Unknown account") to null }
-            "month_category" -> { t -> month(t) to t.category }
-            else -> { t -> t.category to null }
+            "month_category" -> { t -> month(t) to category(t) }
+            else -> { t -> category(t) to null }
         }
+        val refundsByKey = refunds.groupBy(key)
         val groups = counted.groupBy(key).entries.sortedByDescending { it.value.size }
         return buildJsonObject {
-            put("type", if (type == "INCOME") "INCOME" else "EXPENSE")
-            put("grand_total", totals(counted))
+            put("type", if (income) "INCOME" else "EXPENSE")
+            put("grand_total", totals(counted, refunds))
             putJsonArray("groups") {
                 groups.forEach { (k, txns) ->
                     add(buildJsonObject {
                         put("group", k.first)
                         k.second?.let { put("sub", it) }
                         put("count", txns.size)
-                        put("totals", totals(txns))
+                        put("totals", totals(txns, refundsByKey[k].orEmpty()))
                     })
                 }
             }
         }
     }
+
+    private fun TransactionEntity.isRefund() = budgetImpactType == BudgetImpactType.DEDUCT_SPENT
 
     private fun accountOf(t: TransactionEntity) = maskedAccount(t.bankName, t.accountNumber)
 
@@ -134,8 +152,16 @@ object AiToolLogic {
         }
     }
 
-    private fun totals(txns: List<TransactionEntity>): JsonArray =
-        buildJsonArray { txns.sumByCurrency({ it.currency }, { it.amount }).values.forEach { add(money(it)) } }
+    /** Per-currency sums of [txns] less [refunds] in the same currency, floored at zero. */
+    private fun totals(txns: List<TransactionEntity>, refunds: List<TransactionEntity>): JsonArray {
+        val back = refunds.sumByCurrency({ it.currency }, { it.amount })
+        return buildJsonArray {
+            txns.sumByCurrency({ it.currency }, { it.amount }).forEach { (currency, gross) ->
+                val net = gross.amount - (back[currency]?.amount ?: BigDecimal.ZERO)
+                add(money(net.coerceAtLeast(BigDecimal.ZERO), currency))
+            }
+        }
+    }
 
     private fun money(m: Money) = money(m.amount, m.currency)
 

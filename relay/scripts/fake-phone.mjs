@@ -70,12 +70,14 @@ const totals = (list) => {
 const tools = {
 	search_transactions: (a) => {
 		const q = (a.query ?? "").toLowerCase();
-		let list = SAMPLE.filter((t) => inRange(t, a) && (!a.type || t.type === a.type) && (!a.category || t.category === a.category) && (!a.account || t.account === a.account) && (!q || t.merchant.toLowerCase().includes(q)));
+		const base = SAMPLE.filter((t) => inRange(t, a) && (!a.type || t.type === a.type) && (!q || t.merchant.toLowerCase().includes(q)));
+		const facets = (f) => [...new Set(base.map(f).filter(Boolean))].sort();
+		let list = base.filter((t) => (!a.category || t.category === a.category) && (!a.account || t.account === a.account));
 		const sorts = { date_asc: (x, y) => x.date.localeCompare(y.date), amount_desc: (x, y) => x.currency.localeCompare(y.currency) || y.amount - x.amount, amount_asc: (x, y) => x.currency.localeCompare(y.currency) || x.amount - y.amount };
 		list = list.sort(sorts[a.sort] ?? ((x, y) => y.date.localeCompare(x.date)));
 		const offset = a.offset ?? 0;
 		const shown = list.slice(offset, offset + Math.min(a.limit ?? 50, 200));
-		return { total_matches: list.length, offset, shown: shown.length, transactions: shown.map((t) => ({ date: t.date, merchant: t.merchant, category: t.category, type: t.type, amount: money(t), account: t.account })) };
+		return { total_matches: list.length, offset, shown: shown.length, categories: facets((t) => t.category), accounts: facets((t) => t.account), transactions: shown.map((t) => ({ date: t.date, merchant: t.merchant, category: t.category, type: t.type, amount: money(t), account: t.account })) };
 	},
 	spending_summary: (a) => {
 		const types = a.type === "INCOME" ? ["INCOME"] : ["EXPENSE", "CREDIT"];

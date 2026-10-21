@@ -26,6 +26,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -126,7 +128,9 @@ class AiSessionService : Service() {
                     pinger.cancel()
                 }
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException && !scope.isActive) throw e
+                // Our own job cancelled (reconnect or stop): leave without publishing a dropped line.
+                // A CancellationException from the socket itself is just a drop.
+                if (e is kotlinx.coroutines.CancellationException) currentCoroutineContext().ensureActive()
                 Log.w(TAG, "AI line dropped: ${e.javaClass.simpleName}")
             }
             publish(lineUp = false)

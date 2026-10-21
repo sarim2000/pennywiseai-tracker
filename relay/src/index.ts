@@ -148,6 +148,10 @@ async function authorize(request: Request, env: Env, oauth: OAuthHelpers): Promi
 		const fail = (title: string, message: string, status = 400) =>
 			inPage ? json({ error: message }, status) : messagePage(title, message, status);
 
+		const badCode = () => fail("That code didn't work", inPage
+			? "That code didn't work. Codes last 5 minutes and work once; get a new one in PennyWise."
+			: "Codes last 5 minutes and work once. Go back, get a new code in PennyWise and try again.");
+
 		const form = await request.formData();
 		const handle = String(form.get("handle") ?? "");
 		if (form.get("decision") !== "approve") {
@@ -161,11 +165,12 @@ async function authorize(request: Request, env: Env, oauth: OAuthHelpers): Promi
 		const deviceId = /^\d{6}$/.test(code) ? await env.OAUTH_KV.get(`pair:${code}`) : null;
 		if (!deviceId) {
 			// The handle is still unused, so the same page can try again.
-			return fail("That code didn't work", inPage
-				? "That code didn't work. Codes last 5 minutes and work once; get a new one in PennyWise."
-				: "Codes last 5 minutes and work once. Go back, get a new code in PennyWise and try again.");
+			return badCode();
 		}
+		// KV can't do check-and-delete, so the phone's object decides which request gets the code.
+		const consumed = await env.PHONE.getByName(deviceId).consumePairCode(code);
 		await env.OAUTH_KV.delete(`pair:${code}`);
+		if (!consumed) return badCode();
 		const approved = await oauth.approveConsent(request, handle);
 		const client = await oauth.lookupClient(approved.request.clientId);
 		const { redirectTo } = await oauth.completeAuthorization({
@@ -192,6 +197,7 @@ async function newPairingCode(env: Env, deviceId: string): Promise<string> {
 		const code = n.toString().padStart(6, "0");
 		if ((await env.OAUTH_KV.get(`pair:${code}`)) === null) {
 			await env.OAUTH_KV.put(`pair:${code}`, deviceId, { expirationTtl: PAIR_TTL_SECONDS });
+			await env.PHONE.getByName(deviceId).issuePairCode(code, Date.now() + PAIR_TTL_SECONDS * 1000);
 			return code;
 		}
 	}

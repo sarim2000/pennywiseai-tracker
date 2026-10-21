@@ -69,53 +69,66 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
      */
     fun setRelayUrl(url: String) {
         val normalized = normalizeRelayUrl(url) ?: throw RelayException("Use an https:// address")
-        if (normalized == relay) return
-        prefs.edit {
-            remove(KEY_ID); remove(KEY_SECRET_SEALED)
-            if (normalized == DEFAULT_RELAY_URL) remove(KEY_RELAY) else putString(KEY_RELAY, normalized)
+        synchronized(this) {
+            if (normalized == relay) return
+            prefs.edit {
+                remove(KEY_ID); remove(KEY_SECRET_SEALED)
+                if (normalized == DEFAULT_RELAY_URL) remove(KEY_RELAY) else putString(KEY_RELAY, normalized)
+            }
+            _device.value = null
+            _relayUrl.value = normalized
         }
-        _device.value = null
-        _relayUrl.value = normalized
     }
 
-    private suspend fun ensureDevice(): Device = registerLock.withLock {
-        _device.value ?: run {
-            val res = http.post("$relay/device")
-            val d = json.decodeFromString<Device>(res.checked().bodyAsText())
+    /** This phone's registration and the relay it belongs to, registering first if needed. */
+    private suspend fun ensureDevice(): Pair<String, Device> = registerLock.withLock {
+        val base = synchronized(this) { _device.value?.let { return@withLock relay to it }; relay }
+        val d = json.decodeFromString<Device>(http.post("$base/device").checked().bodyAsText())
+        synchronized(this) {
+            // The relay was switched while this registered: the device belongs to the old one.
+            if (relay != base) throw RelayException("Relay changed")
             prefs.edit { putString(KEY_ID, d.deviceId); putString(KEY_SECRET_SEALED, DeviceSecretBox.seal(d.secret)); remove("device_secret") /* pre-Keystore plaintext */ }
             _device.value = d
-            d
         }
+        base to d
     }
 
-    private suspend fun auth(): String = ensureDevice().let { "Device ${it.deviceId}.${it.secret}" }
+    /** Relay base URL plus the matching `Authorization` header, read together. */
+    private suspend fun signed(): Pair<String, String> = ensureDevice().let { (base, d) -> base to "Device ${d.deviceId}.${d.secret}" }
 
-    suspend fun newPairingCode(): PairingCode =
-        json.decodeFromString(http.post("$relay/device/pair") { header(HttpHeaders.Authorization, auth()) }.checked().bodyAsText())
+    suspend fun newPairingCode(): PairingCode {
+        val (base, auth) = signed()
+        return json.decodeFromString(http.post("$base/device/pair") { header(HttpHeaders.Authorization, auth) }.checked().bodyAsText())
+    }
 
     suspend fun connections(): List<Connection> {
         if (_device.value == null) return emptyList()
-        val res = http.get("$relay/device/connections") { header(HttpHeaders.Authorization, auth()) }
+        val (base, auth) = signed()
+        val res = http.get("$base/device/connections") { header(HttpHeaders.Authorization, auth) }
         return json.decodeFromString<Connections>(res.checked().bodyAsText()).connections
     }
 
     suspend fun revoke(connectionId: String) {
-        http.delete("$relay/device/connections/$connectionId") { header(HttpHeaders.Authorization, auth()) }.checked()
+        val (base, auth) = signed()
+        http.delete("$base/device/connections/$connectionId") { header(HttpHeaders.Authorization, auth) }.checked()
     }
 
     /** Revokes every AI connection and forgets this phone; the next pairing registers afresh. */
     suspend fun reset() {
-        if (_device.value != null) {
-            http.delete("$relay/device") { header(HttpHeaders.Authorization, auth()) }.checked()
+        if (_device.value == null) return
+        val (base, auth) = signed()
+        http.delete("$base/device") { header(HttpHeaders.Authorization, auth) }.checked()
+        synchronized(this) {
+            if (relay != base) return
+            prefs.edit { remove(KEY_ID); remove(KEY_SECRET_SEALED) }
+            _device.value = null
         }
-        prefs.edit { remove(KEY_ID); remove(KEY_SECRET_SEALED) }
-        _device.value = null
     }
 
     /** Opens the AI-session line and runs [block] until it closes. */
     suspend fun openLine(block: suspend DefaultClientWebSocketSession.() -> Unit) {
-        val auth = auth()
-        http.webSocket("${relay.replaceFirst("https", "wss")}/device/connect", request = {
+        val (base, auth) = signed()
+        http.webSocket("${base.replaceFirst("https", "wss")}/device/connect", request = {
             header(HttpHeaders.Authorization, auth)
         }, block = block)
     }

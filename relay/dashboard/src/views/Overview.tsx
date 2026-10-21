@@ -51,7 +51,8 @@ export function Overview() {
 	const merchants = useTool<Summary>("spending_summary", { ...range, group_by: "merchant", type: "EXPENSE" }, version);
 	const subs = useTool<{ subscriptions: Subscription[] }>("list_subscriptions", {}, version);
 
-	const error = spent.error ?? received.error;
+	// Any failed read fails the page, so a missing answer never looks like "no data".
+	const error = [spent, received, prevSpent, prevReceived, trend, merchants, subs].find((r) => r.error)?.error;
 	if (error) return <ErrorNote error={error} />;
 
 	const net = spent.data && received.data

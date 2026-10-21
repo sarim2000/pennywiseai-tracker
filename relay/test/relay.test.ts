@@ -8,7 +8,7 @@ const call = (path: string, init: RequestInit = {}) => worker().fetch(new Reques
 
 async function registerDevice() {
 	// A fresh IP per phone keeps the per-IP registration limit out of the way.
-	const res = await call("/device", { method: "POST", headers: { "CF-Connecting-IP": `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` } });
+	const res = await call("/device", { method: "POST", headers: { "CF-Connecting-IP": randomIp() } });
 	expect(res.status).toBe(201);
 	const { deviceId, secret } = (await res.json()) as { deviceId: string; secret: string };
 	return { deviceId, auth: { Authorization: `Device ${deviceId}.${secret}` } };
@@ -43,6 +43,9 @@ async function registerClient(clientName: string) {
 	return ((await reg.json()) as { client_id: string }).client_id;
 }
 
+// Each request from its own address, so the per-IP rate limits don't trip across tests.
+const randomIp = () => `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
+
 async function signIn(code: string, clientName = "Test AI", existingClientId?: string) {
 	const client_id = existingClientId ?? (await registerClient(clientName));
 
@@ -61,7 +64,7 @@ async function signIn(code: string, clientName = "Test AI", existingClientId?: s
 
 	const submit = await call("/authorize", {
 		method: "POST",
-		headers: { Cookie: cookie, Origin: BASE, "Content-Type": "application/x-www-form-urlencoded" },
+		headers: { Cookie: cookie, Origin: BASE, "Content-Type": "application/x-www-form-urlencoded", "CF-Connecting-IP": randomIp() },
 		body: new URLSearchParams({ handle, code, decision: "approve" }),
 	});
 	if (submit.status !== 302) return { status: submit.status, token: undefined };
@@ -130,6 +133,13 @@ describe("AI relay", () => {
 		expect((await signIn(wrong)).status).toBe(400);
 		expect((await signIn(code)).status).toBe(302);
 		expect((await signIn(code)).status).toBe(400); // single use
+	});
+
+	it("lets only one of two simultaneous sign-ins use a code", async () => {
+		const { auth } = await registerDevice();
+		const code = await pair(auth);
+		const statuses = (await Promise.all([signIn(code), signIn(code)])).map((r) => r.status).sort();
+		expect(statuses).toEqual([302, 400]);
 	});
 
 	it("lists AI connections and revoking one cuts its token off", async () => {

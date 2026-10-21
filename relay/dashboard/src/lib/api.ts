@@ -5,7 +5,8 @@ export type Money = { amount: string; currency: string };
 export type Group = { group: string; sub?: string; count: number; totals: Money[] };
 export type Summary = { type: "EXPENSE" | "INCOME"; grand_total: Money[]; groups: Group[] };
 export type Txn = { date: string; merchant: string; category: string; type: string; amount: Money; account?: string };
-export type Search = { total_matches: number; offset: number; shown: number; transactions: Txn[] };
+/** `categories`/`accounts`: every value among the matches before those two filters (older apps omit them). */
+export type Search = { total_matches: number; offset: number; shown: number; categories?: string[]; accounts?: string[]; transactions: Txn[] };
 export type Account = { account: string; kind: string; balance?: Money; outstanding?: Money; credit_limit?: Money; as_of: string };
 export type Subscription = { merchant: string; amount: Money; billing_cycle: string; direction: string; next_payment?: string; category?: string };
 

@@ -94,6 +94,44 @@ class CanaraBankParserTest {
                 message = "Card ending 4321: Dear Customer, you have done 02 out of 06 free transactions at Canara ATMs in this month. Charges applicable beyond free transactions.-Canara Bank",
                 sender = "JK-CANBNK-S",
                 shouldParse = false
+            ),
+            ParserTestCase(
+                name = "UPI credit names the payer without the trailing ';' (#911)",
+                message = upiCredit,
+                sender = "JM-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1000.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    merchant = "TEST PAYEE",
+                    accountLast4 = "123",
+                    balance = BigDecimal("5000.00")
+                )
+            ),
+            ParserTestCase(
+                name = "UPI debit to a VPA shows its handle (#911)",
+                message = upiDebitVpa,
+                sender = "JM-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250.50"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "testshop",
+                    accountLast4 = "123",
+                    balance = BigDecimal("3749.50")
+                )
+            ),
+            ParserTestCase(
+                name = "UPI debit payee with initials keeps the whole name",
+                message = upiDebitInitials,
+                sender = "JM-CANBNK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("80.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "M. K. STORES",
+                    balance = BigDecimal("3669.50")
+                )
             )
         )
 
@@ -106,4 +144,11 @@ class CanaraBankParserTest {
             )
         )
     }
+
+    private val upiCredit =
+        "Dear Customer, Acct XX123 credited with INR 1,000.00 on 18-10-26 from TEST PAYEE; UPI:600000000001; Bal INR 5,000.00-CanaraBank"
+    private val upiDebitVpa =
+        "Dear Customer, Acct XX123 Dr. INR 250.50 on 18/10/2026 to testshop@ybl; UPI: 600000000005; Bal INR 3,749.50. Not you? SMS BLOCKUPI to 9000000000-CanaraBank"
+    private val upiDebitInitials =
+        "Dear Customer, Acct XX123 Dr. INR 80.00 on 18/10/2026 to M. K. STORES; UPI: 600000000006; Bal INR 3,669.50. Not you? SMS BLOCKUPI to 9000000000-CanaraBank"
 }

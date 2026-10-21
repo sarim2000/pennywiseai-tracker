@@ -74,6 +74,21 @@ class CanaraBankParser : BaseIndianBankParser() {
             }
         }
 
+        // Pattern 1b: UPI with a "; UPI" trailer (#911) — "Dr. INR 1,000.00 on … to TEST PAYEE; UPI: …"
+        // and "credited with INR 1,000.00 on … from TEST PAYEE; UPI:…". The name runs to the ";"
+        // (it may contain dots: "M. K. STORES"); a VPA payee shows its handle.
+        val upiCounterpartyPattern = Regex(
+            """\b(?:to|from)\s+([^;]+?)\s*;\s*UPI""",
+            RegexOption.IGNORE_CASE
+        )
+        upiCounterpartyPattern.find(message)?.let { match ->
+            val raw = match.groupValues[1].trim()
+            val merchant = cleanMerchantName(if ('@' in raw) raw.substringBefore('@') else raw)
+            if (merchant.isNotEmpty() && (isValidMerchantName(merchant) || '@' in raw)) {
+                return merchant
+            }
+        }
+
         // Pattern 2: UPI - paid thru A/C XX1234 on 08-8-25 16:41:00 to BMTC BUS KA57F6
         val upiMerchantPattern = Regex(
             """\sto\s+([^,;]+?)(?:[,;]\s*UPI|\.|-Canara)""",

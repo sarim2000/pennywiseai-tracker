@@ -329,8 +329,11 @@ object SharedCategoryMapping {
         "keells",
         "glomark",
         "spar",
-        // Jordan: generic shop words plus the big local chains. The two
-        // consumer corporations are the state-run grocery chains.
+        // Jordan: explicit shop words plus the big local chains. The two
+        // consumer corporations are the state-run grocery chains. Not bare
+        // "market" or "stores": in India those are localities and general
+        // shops ("SAROJINI MARKET", "MOBILE STORES"), and a confident wrong
+        // category stops the alert from asking.
         "supermarket",
         "super market",
         "hypermarket",
@@ -342,23 +345,6 @@ object SharedCategoryMapping {
         "sameh mall",
         "military consumer",
         "civil consumer"
-    )
-
-    // The bare word "market" names Jordan's corner shops, but in India it is
-    // usually a locality ("BATA KHAN MARKET"). So it is the LAST rule: it only
-    // files what nothing else knew, and never steals fuel, salons or brokers.
-    // Kept off pharmacies, online marketplaces and money-market funds.
-    private val MARKET = setOf("market")
-    private val MARKET_EXCLUDE = setOf(
-        "medical",
-        "pharmacy",
-        "chemist",
-        "clinic",
-        "hospital",
-        "market place",
-        "marketplace",
-        "money market",
-        "fund",
     )
 
     private val TRANSPORT = setOf(
@@ -412,7 +398,7 @@ object SharedCategoryMapping {
         "amazon", "flipkart", "myntra", "ajio", "nykaa", "meesho",
         "snapdeal", "shopclues", "firstcry", "pepperfry", "urban ladder",
         "store", "mart",
-        "stores", "shein", "temu", "ikea", "centrepoint", "home center", "home centre"
+        "shein", "temu", "ikea", "centrepoint", "home center", "home centre"
     )
     // Shopping is evaluated before Healthcare, so its generic retail words
     // ("store", "mart") swallowed chemists — "SALT LAKE MEDICAL STORE" came
@@ -917,7 +903,6 @@ object SharedCategoryMapping {
         Rule("Fitness", FITNESS),
         Rule("Insurance", INSURANCE),
         Rule("Travel", TRAVEL),
-        Rule("Groceries", MARKET, MARKET_EXCLUDE),
     )
 
     /**

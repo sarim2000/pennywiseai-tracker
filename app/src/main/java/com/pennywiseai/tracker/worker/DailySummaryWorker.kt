@@ -134,7 +134,8 @@ class DailySummaryWorker @AssistedInject constructor(
             builder.addAction(
                 0,
                 context.getString(R.string.notif_daily_action_sort),
-                SmsBroadcastReceiver.pickerIntent(context, latest.id, NOTIFICATION_ID, requestCode = NOTIFICATION_ID)
+                // The pick's "Saved as" note takes the transaction's own alert id, so the recap stays.
+                SmsBroadcastReceiver.pickerIntent(context, latest.id, latest.id.toInt(), requestCode = NOTIFICATION_ID)
             )
         }
         notificationManager.notify(NOTIFICATION_ID, builder.build())

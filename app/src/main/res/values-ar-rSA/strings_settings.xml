@@ -238,6 +238,7 @@
     <string name="settings_notification_access_on">تشغيل</string>
     <string name="settings_notification_access_off">متوقف</string>
     <string name="settings_daily_summary_title">الملخص اليومي</string>
+    <string name="settings_daily_summary_needs_permission">اسمح بإشعارات PennyWise لتصلك الخلاصة اليومية.</string>
     <string name="settings_daily_summary_subtitle">ملخص لمصاريف اليوم الساعة 9\u00A0مساءً</string>
     <!-- AI Features -->
     <string name="settings_ai_section">خصائص الذكاء الاصطناعي</string>

@@ -150,6 +150,13 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 notificationManager.cancel(notificationId)
                 return
             }
+            // Only the merchant's latest lesson is undoable: an older note's
+            // Undo would restore a mapping the newer pick replaced.
+            learned.merchant?.let { merchant ->
+                notificationManager.activeNotifications
+                    .filter { it.notification.extras.getString(EXTRA_LEARNED_MERCHANT).equals(merchant, ignoreCase = true) }
+                    .forEach { notificationManager.cancel(it.tag, it.id) }
+            }
             val moved = learned.movedIds.size
             val text = when {
                 learned.merchant == null -> ""
@@ -175,6 +182,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                             learned
                         )
                     )
+                    .addExtras(android.os.Bundle().apply { putString(EXTRA_LEARNED_MERCHANT, learned.merchant) })
                     .setAutoCancel(true)
                     .setSilent(true)
                     .setTimeoutAfter(LEARNED_TIMEOUT_MS)
@@ -185,6 +193,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         // Long enough to reach Undo after the picker closes the shade.
         private const val LEARNED_TIMEOUT_MS = 15_000L
         private const val UNDO_SLOT = 8
+        private const val EXTRA_LEARNED_MERCHANT = "com.pennywiseai.tracker.learned_merchant"
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

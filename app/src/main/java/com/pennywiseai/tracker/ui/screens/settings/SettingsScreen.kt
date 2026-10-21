@@ -182,6 +182,17 @@ fun SettingsScreen(
     ) {
         permissionViewModel.refreshNotificationAccess()
     }
+    // The recap is a notification: on Android 13+ turning it on asks for the
+    // permission first, and a refusal leaves it off with a word on why.
+    val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setDailySummaryEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
 
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -799,7 +810,19 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_daily_summary_title),
                     subtitle = stringResource(R.string.settings_daily_summary_subtitle),
                     checked = dailySummaryEnabled,
-                    onCheckedChange = { settingsViewModel.setDailySummaryEnabled(it) },
+                    onCheckedChange = { enabled ->
+                        val needsPermission = enabled &&
+                            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.POST_NOTIFICATIONS
+                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (needsPermission) {
+                            dailySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            settingsViewModel.setDailySummaryEnabled(enabled)
+                        }
+                    },
                     position = ListItemPosition.Bottom
                 )
             }

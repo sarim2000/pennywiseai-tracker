@@ -117,8 +117,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         }
                     }
                     ACTION_UNDO_LEARN -> {
-                        intent.toLearned(transactionId)?.let { entryPoint.learnCategoryUseCase().undo(it) }
-                        WidgetRefresher.refreshTransactionWidgets(context)
+                        runCatching {
+                            intent.toLearned(transactionId)?.let { entryPoint.learnCategoryUseCase().undo(it) }
+                            WidgetRefresher.refreshTransactionWidgets(context)
+                        }.onFailure { Log.e(TAG, "Error undoing a learned category", it) }
                         dismissNotification(context, notificationId)
                     }
                     else -> {

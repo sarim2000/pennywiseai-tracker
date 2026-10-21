@@ -82,14 +82,15 @@
              notification action (#303). singleTask + excludeFromRecents so a
              second tap doesn't stack instances and it never shows in Recents.
              Its own task (empty affinity), so picking doesn't bring the app's
-             task forward and leave the user inside PennyWise. -->
+             task forward and leave the user inside PennyWise. No noHistory:
+             the app-lock PIN screen on API 26-27 is an activity started for a
+             result, and a noHistory picker would be finished under it. -->
         <activity
             android:name=".receiver.QuickCategoryPickerActivity"
             android:exported="false"
             android:taskAffinity=""
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
-            android:noHistory="true"
             android:theme="@style/Theme.PennyWise.Transparent" />
 
         <!-- Quick Settings tile: swipe down -> tap -> Add Transaction -->

@@ -113,12 +113,10 @@ class SharedCategoryMappingTest {
         assertCategory("Groceries", "HYPERMAX - SWEIFIEH")
         assertCategory("Groceries", "AL NOOR SUPERMARKET")
         assertCategory("Groceries", "SUPER MARKET AL AMAL")
-        assertCategory("Groceries", "LUMI MARKET / KHALDA")
         assertCategory("Groceries", "MILITARY CONSUMER EST MARKA")
         assertCategory("Food & Dining", "AL SAFA BAKERIES")
         assertCategory("Food & Dining", "THE CAKE SHOP")
         assertCategory("Shopping", "www.shein.com")
-        assertCategory("Shopping", "AL AMAL STORES")
         assertCategory("Shopping", "AL RAWDA HOME CENTER")
         assertCategory("Transportation", "AMMAN VISION TRANSPORT")
         assertCategory("Mobile", "ZAIN WEBSITE AND SELFC")
@@ -137,21 +135,24 @@ class SharedCategoryMappingTest {
     }
 
     @Test
-    fun `market keeps off pharmacies, marketplaces and funds`() {
-        assertCategory("Healthcare", "MARKET PHARMACY")
-        assertCategory("Shopping", "AMAZON MARKET PLACE")
-        assertCategory("Groceries", "CARREFOUR")
-    }
-
-    @Test
     fun `an Indian market locality never steals a merchant another rule knows`() {
-        // "market" is the last rule: it only files what would otherwise be Others.
+        // No bare "market" keyword: in India it is a locality, not a shop.
         assertCategory("Transportation", "HP PETROL PUMP NEW MARKET")
         assertCategory("Personal Care", "LAKME SALON SAROJINI MARKET")
         assertCategory("Fitness", "CULT FIT KHAN MARKET")
         assertCategory("Investments", "ANGEL ONE SHARE MARKET")
         assertCategory("Shopping", "MEESHO MARKET")
-        // The market exclusions don't reach the grocery chains themselves.
         assertCategory("Groceries", "DMART HOSPITAL ROAD")
+    }
+
+    @Test
+    fun `bare market and stores keep their categories from before the Jordan keywords`() {
+        // A confident wrong category stops the alert from asking, so these stay as on main.
+        assertCategory("Others", "STOCK MARKET ACADEMY")
+        assertCategory("Others", "RAJ TAILORS SAROJINI MARKET")
+        assertCategory("Others", "NEW MARKET KOLKATA")
+        assertCategory("Others", "MARKET YARD PUNE")
+        assertCategory("Others", "SHREE GANESH GENERAL STORES")
+        assertCategory("Mobile", "SHARMA MOBILE STORES")
     }
 }

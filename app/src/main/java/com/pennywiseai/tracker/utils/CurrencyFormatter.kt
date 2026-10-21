@@ -169,12 +169,14 @@ object CurrencyFormatter {
     private val RTL_LANGUAGES = setOf("ar", "fa", "he", "iw", "ur")
 
     /**
-     * Prefixes a left-to-right mark under an RTL locale so a Latin-script amount
-     * ("-JD5", "₹1,200") reads left to right inside RTL text. No-op otherwise,
+     * Wraps the amount in a left-to-right isolate (LRI…PDI) under an RTL locale so
+     * a Latin-script amount ("-JD5", "₹1,200") reads left to right inside RTL text.
+     * An isolate, unlike a bare LRM, doesn't set the surrounding paragraph's
+     * direction, so "%1$s من %2$s" still reads right to left. No-op otherwise,
      * so English output (and every exact-string test) is unchanged.
      */
     private fun ltr(s: String): String =
-        if (Locale.getDefault().language in RTL_LANGUAGES) "\u200E$s" else s
+        if (Locale.getDefault().language in RTL_LANGUAGES) "\u2066$s\u2069" else s
 
     private fun formatCurrencyRaw(amount: BigDecimal, currencyCode: String): String {
         if (currencyCode in EXPLICIT_SYMBOL_CURRENCIES) {

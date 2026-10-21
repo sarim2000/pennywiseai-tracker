@@ -262,8 +262,8 @@ class CurrencyFormatterTest {
         val default = java.util.Locale.getDefault()
         try {
             java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-SA"))
-            // A leading LRM makes "-" resolve left-to-right inside Arabic text.
-            assertEquals("\u200E-\u200E$5", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
+            // An LTR isolate keeps "-" on the left without flipping the Arabic paragraph.
+            assertEquals("\u2066-\u2066$5\u2069\u2069", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
             java.util.Locale.setDefault(java.util.Locale.US)
             assertEquals("-$5", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
         } finally {

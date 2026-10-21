@@ -71,6 +71,7 @@
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">بيان الاستيراد</string>
     <string name="import_statement_back">الرجوع</string>
+    <string name="import_statement_description">استورد كشف حساب PDF من Google Pay أو PhonePe أو Paytm أو slice أو ICICI Bank، أو كشف حساب Excel (.xlsx) أو CSV من أي بنك. سترى ما هو جديد قبل إضافة أي شيء.</string>
     <string name="import_statement_select_pdf">حدد بيان PDF</string>
     <string name="import_statement_loading_title">استيراد المعاملات...</string>
     <string name="import_statement_loading_body">جارٍ قراءة كشف الحساب والتحقق من التكرارات</string>
@@ -86,6 +87,12 @@
     <string name="import_statement_done">تم</string>
     <string name="import_statement_failed">فشل الاستيراد</string>
     <string name="import_statement_try_again">حاول مرة أخرى</string>
+    <string name="import_statement_password_title">ملف PDF محمي بكلمة مرور</string>
+    <string name="import_statement_password_body">كشف الحساب هذا مقفل. أدخل كلمة المرور التي زوّدك بها البنك. تُستخدم فقط لفتح الملف ولا يتم حفظها.</string>
+    <string name="import_statement_password_label">كلمة مرور PDF</string>
+    <string name="import_statement_password_wrong">كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
+    <string name="import_statement_password_open">فتح</string>
+    <string name="import_statement_password_cancel">إلغاء</string>
     <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_title">PennyWise Pro</string>
     <string name="upgrade_subtitle_member">جميع القدرات المحترفة نشطة</string>
@@ -258,6 +265,7 @@
     <string name="chat_error_download_start_failed">فشل في بدء التنزيل. الرجاء المحاولة مرة أخرى.</string>
     <string name="chat_error_integrity_failed">فشل تنزيل النموذج في التحقق من سلامته وتمت إزالته. الرجاء محاولة التنزيل مرة أخرى.</string>
     <string name="chat_error_download_failed">فشل التنزيل. الرجاء المحاولة مرة أخرى.</string>
+    <string name="chat_error_download_roaming">لن يتم التنزيل أثناء التجوال. اتصل بشبكة Wi-Fi أو أوقف التجوال، ثم حاول مرة أخرى.</string>
     <string name="chat_download_notification_title">نموذج الدردشة AI</string>
     <string name="chat_download_notification_description">تحميل مساعد دردشة AI لـ PennyWise</string>
     <!-- ══ Smart Rules list ══ -->
@@ -284,6 +292,7 @@
     <string name="rules_group_other">أخرى</string>
     <string name="rules_footer_info">يتم تطبيق القواعد تلقائيًا على المعاملات الجديدة. القواعد ذات الأولوية الأعلى تعمل أولاً.</string>
     <string name="rules_summary_small_payments">المبلغ &lt; 200</string>
+    <string name="rules_summary_upi_cashback">المبلغ &lt; 10 من NPCI</string>
     <string name="rules_summary_salary">الاعتمادات مع كلمات مرتب</string>
     <string name="rules_summary_rent">المدفوعات مع كلمات إيجار</string>
     <string name="rules_summary_emi">كلمات القرض / EMI</string>
@@ -503,6 +512,7 @@
     <string name="rules_preview_title">معاينة القاعدة</string>
     <string name="rules_preview_sentence">عندما %1$s، %2$s</string>
     <string name="rules_preview_conditions_and">%1$s و %2$s</string>
+    <string name="rules_preview_conditions_or">%1$s أو %2$s</string>
     <string name="rules_preview_actions_and">%1$sو %2$s</string>
     <!-- field, operator, value -->
     <string name="rules_preview_condition">%1$s %2$s %3$s</string>
@@ -523,6 +533,8 @@
     <string name="rules_preview_field_generic">الحقل</string>
     <string name="rules_preview_op_before">قبل</string>
     <string name="rules_preview_op_after">هو بعد</string>
+    <string name="rules_preview_op_less_than">أقل من</string>
+    <string name="rules_preview_op_greater_than">أكبر من</string>
     <string name="rules_preview_op_at_or_before">هو في أو قبل</string>
     <string name="rules_preview_op_at_or_after">هو في أو بعد</string>
     <string name="rules_preview_op_is">هو</string>
@@ -540,16 +552,4 @@
     <string name="rules_preview_action_clear">مسح %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">تعيين %1$s إلى %2$s</string>
-    <string name="import_statement_description">استورد كشف حساب PDF من Google Pay أو PhonePe أو Paytm أو slice أو ICICI Bank، أو كشف حساب Excel (.xlsx) أو CSV من أي بنك. سترى ما هو جديد قبل إضافة أي شيء.</string>
-    <string name="import_statement_password_title">ملف PDF محمي بكلمة مرور</string>
-    <string name="import_statement_password_body">كشف الحساب هذا مقفل. أدخل كلمة المرور التي زوّدك بها البنك. تُستخدم فقط لفتح الملف ولا يتم حفظها.</string>
-    <string name="import_statement_password_label">كلمة مرور PDF</string>
-    <string name="import_statement_password_wrong">كلمة المرور غير صحيحة. حاول مرة أخرى.</string>
-    <string name="import_statement_password_open">فتح</string>
-    <string name="import_statement_password_cancel">إلغاء</string>
-    <string name="chat_error_download_roaming">لن يتم التنزيل أثناء التجوال. اتصل بشبكة Wi-Fi أو أوقف التجوال، ثم حاول مرة أخرى.</string>
-    <string name="rules_summary_upi_cashback">المبلغ &lt; 10 من NPCI</string>
-    <string name="rules_preview_conditions_or">%1$s أو %2$s</string>
-    <string name="rules_preview_op_less_than">أقل من</string>
-    <string name="rules_preview_op_greater_than">أكبر من</string>
 </resources>

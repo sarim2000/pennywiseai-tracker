@@ -67,11 +67,9 @@
     <string name="import_statement_back">Назад</string>
     <string name="import_statement_select_pdf">Выберите PDF-файл</string>
     <string name="import_statement_loading_title">Импорт транзакций...</string>
-    <string name="import_statement_loading_body">Анализ PDF и проверка дубликатов</string>
     <string name="import_statement_complete">Импорт завершен</string>
     <string name="import_statement_result_imported">Транзакции импортированы</string>
     <string name="import_statement_result_enriched">Транзакции обогащены</string>
-    <string name="import_statement_result_total_parsed">Всего обработано из PDF</string>
     <string name="import_statement_result_duplicates">Дубликаты пропущены: %1$d</string>
     <string name="import_statement_result_exact">Точный повторный импорт</string>
     <string name="import_statement_result_by_reference">По ссылке UPI</string>
@@ -91,7 +89,6 @@
     <string name="upgrade_copy_address">Копировать адрес</string>
     <string name="upgrade_includes">Включает</string>
     <string name="upgrade_feature_rules">Неограниченное количество пользовательских правил</string>
-    <string name="upgrade_feature_statements">Неограниченный импорт отчетов PDF</string>
     <string name="upgrade_feature_csv">Неограниченный экспорт CSV</string>
     <string name="upgrade_feature_merge_accounts">Объединить повторяющиеся учетные записи</string>
     <string name="upgrade_restoring">Восстановление…</string>

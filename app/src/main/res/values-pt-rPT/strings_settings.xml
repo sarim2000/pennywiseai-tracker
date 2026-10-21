@@ -97,7 +97,6 @@
     <string name="settings_import_csv_title">Importar transações (CSV)</string>
     <string name="settings_import_csv_subtitle">Importar de uma exportação CSV PennyWise</string>
     <string name="settings_import_statement_title">Importar Declaração</string>
-    <string name="settings_import_statement_subtitle">Importar do GPay, PhonePe, Paytm</string>
     <string name="settings_unrecognized_sms_title">SMS não reconhecido</string>
     <string name="settings_unrecognized_sms_subtitle">Ver e reportar mensagens bancárias não suportadas</string>
     <string name="settings_delete_all_title">Excluir Todas as Transações</string>

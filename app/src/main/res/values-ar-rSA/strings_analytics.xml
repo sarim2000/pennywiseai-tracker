@@ -15,8 +15,17 @@
     <string name="analytics_top_tags">أعلى العلامات</string>
     <string name="analytics_top_merchants">التجار الأعلى</string>
     <string name="analytics_by_account">حسب الحساب</string>
+    <string name="analytics_by_day_of_week">حسب يوم الأسبوع</string>
+    <string name="analytics_no_tag">بدون علامة</string>
+    <string name="analytics_tag_overlap_note">المعاملة التي لها عدة علامات تُحتسب ضمن كل علامة منها، لذا قد يتجاوز مجموع العلامات الإجمالي.</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">حسب الفئة</string>
+    <string name="analytics_group_by_merchant">حسب التاجر</string>
+    <string name="analytics_group_by_account">حسب الحساب</string>
+    <string name="analytics_group_by_tag">حسب العلامة</string>
+    <string name="analytics_group_by_day_of_week">حسب يوم الأسبوع</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
+    <string name="analytics_group_by_pro">Pro</string>
     <!-- Filters -->
     <string name="analytics_filter_clear">مسح</string>
     <string name="analytics_filter_all_profiles">جميع الحسابات</string>
@@ -350,16 +359,6 @@
     <string name="mark_paid_or_mark_today">أو وضع علامة اليوم</string>
     <string name="mark_paid_today">اليوم</string>
     <string name="mark_paid_yesterday">أمس</string>
-    <string name="mark_paid_pick_date">اختيار تاريخ</string>
-    <string name="analytics_by_day_of_week">حسب يوم الأسبوع</string>
-    <string name="analytics_no_tag">بدون علامة</string>
-    <string name="analytics_tag_overlap_note">المعاملة التي لها عدة علامات تُحتسب ضمن كل علامة منها، لذا قد يتجاوز مجموع العلامات الإجمالي.</string>
-    <string name="analytics_group_by_category">حسب الفئة</string>
-    <string name="analytics_group_by_merchant">حسب التاجر</string>
-    <string name="analytics_group_by_account">حسب الحساب</string>
-    <string name="analytics_group_by_tag">حسب العلامة</string>
-    <string name="analytics_group_by_day_of_week">حسب يوم الأسبوع</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <plurals name="mark_paid_days_ago">
         <item quantity="zero">قبل %1$d يوم</item>
         <item quantity="one">قبل %1$d يوم</item>
@@ -368,4 +367,5 @@
         <item quantity="many">قبل %1$d يومًا</item>
         <item quantity="other">قبل %1$d يوم</item>
     </plurals>
+    <string name="mark_paid_pick_date">اختيار تاريخ</string>
 </resources>

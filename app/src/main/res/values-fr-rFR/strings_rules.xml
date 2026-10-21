@@ -57,11 +57,9 @@
     <string name="import_statement_back">Précédent</string>
     <string name="import_statement_select_pdf">Sélectionnez la déclaration PDF</string>
     <string name="import_statement_loading_title">Importation des transactions...</string>
-    <string name="import_statement_loading_body">Analyse du PDF et vérification des doublons</string>
     <string name="import_statement_complete">Importation terminée</string>
     <string name="import_statement_result_imported">Transactions importées</string>
     <string name="import_statement_result_enriched">Transactions enrichies</string>
-    <string name="import_statement_result_total_parsed">Total analysé à partir de PDF</string>
     <string name="import_statement_result_duplicates">Doublons ignorés : %1$d</string>
     <string name="import_statement_result_exact">Réimportations exactes</string>
     <string name="import_statement_result_by_reference">Par référence UPI</string>
@@ -81,7 +79,6 @@
     <string name="upgrade_copy_address">Copier l\'adresse</string>
     <string name="upgrade_includes">Inclus</string>
     <string name="upgrade_feature_rules">Règles personnalisées illimitées</string>
-    <string name="upgrade_feature_statements">Importation illimitée de relevés PDF</string>
     <string name="upgrade_feature_csv">Export CSV illimité</string>
     <string name="upgrade_feature_merge_accounts">Fusionner les comptes en double</string>
     <string name="upgrade_restoring">Restauration de…</string>

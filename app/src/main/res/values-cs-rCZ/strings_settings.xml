@@ -105,7 +105,6 @@
     <string name="settings_import_csv_title">Importovat transakce (CSV)</string>
     <string name="settings_import_csv_subtitle">Import z PennyWise CSV exportu</string>
     <string name="settings_import_statement_title">Prohlášení o importu</string>
-    <string name="settings_import_statement_subtitle">Importovat z GPay, PhonePe, Paytm</string>
     <string name="settings_unrecognized_sms_title">Nerozpoznané SMS</string>
     <string name="settings_unrecognized_sms_subtitle">Zobrazit a nahlásit nepodporované bankovní zprávy</string>
     <string name="settings_delete_all_title">Odstranit všechny transakce</string>

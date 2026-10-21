@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
-
     <!-- Budgets screen section -->
     <string name="goals_section_title">الأهداف</string>
     <string name="upgrade_feature_goals">أهداف غير محدودة</string>
@@ -28,7 +27,6 @@
         <item quantity="many">تبقّى %d شهرًا</item>
         <item quantity="other">تبقّى %d شهر</item>
     </plurals>
-
     <!-- Create / edit -->
     <string name="goal_edit_title_new">هدف جديد</string>
     <string name="goal_edit_title_edit">تعديل الهدف</string>
@@ -52,13 +50,12 @@
     <string name="goal_edit_save">حفظ</string>
     <string name="goal_action_ok">حسنًا</string>
     <string name="goal_action_cancel">إلغاء</string>
-
     <!-- Detail -->
     <string name="goal_detail_left">المتبقي</string>
     <string name="goal_detail_per_month">شهريًا</string>
     <string name="goal_detail_over">زيادة %1$s</string>
     <string name="goal_detail_history">الأموال المضافة والمسحوبة</string>
-    <string name="goal_detail_history_empty">لم تُضف أي أموال بعد. استخدم "إضافة أموال" عندما تدّخر مبلغًا.</string>
+    <string name="goal_detail_history_empty">لم تُضف أي أموال بعد. استخدم \"إضافة أموال\" عندما تدّخر مبلغًا.</string>
     <string name="goal_add_money">إضافة أموال</string>
     <string name="goal_take_out">سحب</string>
     <string name="goal_more">خيارات إضافية</string>
@@ -72,7 +69,6 @@
     <string name="goal_converted_from">من %1$s</string>
     <string name="goal_withdrawal">سحب</string>
     <string name="goal_contribution">مساهمة</string>
-
     <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">المبلغ</string>
     <string name="goal_money_date">التاريخ</string>
@@ -108,7 +104,6 @@
         <item quantity="many">%d شهرًا</item>
         <item quantity="other">%d شهر</item>
     </plurals>
-
     <!-- Home-screen widgets -->
     <string name="widget_name_goal">هدف</string>
     <string name="widget_name_goals">الأهداف</string>
@@ -120,4 +115,5 @@
     <string name="widget_goals_empty_hint">اضغط لإنشاء هدف</string>
     <string name="widget_goal_config_title">اختر هدفًا</string>
     <string name="widget_goal_config_close">إغلاق</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

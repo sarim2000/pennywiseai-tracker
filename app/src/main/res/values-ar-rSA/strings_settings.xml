@@ -98,6 +98,10 @@
     <string name="settings_folder_backup_subtitle_enabled">النسخ الاحتياطي اليومي عند 2:00 صباحا للمجلد الذي اخترته</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · حفظ نسخة احتياطية في مجلد كل يوم في الثانية صباحا</string>
     <string name="settings_folder_backup_subtitle_disabled">حفظ نسخة احتياطية إلى مجلد كل يوم في الثانية صباحا</string>
+    <string name="settings_export_include_receipts_title">تضمين صور الإيصالات</string>
+    <string name="settings_export_include_receipts_subtitle">إضافة صور الإيصالات المرفقة إلى النسخ الاحتياطية المُصدَّرة (حجم ملف أكبر)</string>
+    <string name="settings_folder_backup_include_receipts_title">تضمين صور الإيصالات في النسخ الاحتياطية التلقائية</string>
+    <string name="settings_folder_backup_include_receipts_subtitle">يزيد حجم كل نسخة احتياطية يومية</string>
     <string name="settings_backup_now_title">النسخ الاحتياطي الآن</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">النسخة الاحتياطية الأخيرة: %1$s</string>
@@ -262,6 +266,8 @@
     <string name="settings_support_section">دعم &amp; المجتمع</string>
     <string name="settings_help_faq_title">المساعدة &amp; أسئلة متكررة</string>
     <string name="settings_help_faq_subtitle">الأسئلة المتكررة والمساعدة</string>
+    <string name="settings_user_guide_title">دليل المستخدم</string>
+    <string name="settings_user_guide_subtitle">أدلة خطوة بخطوة مع لقطات شاشة</string>
     <string name="settings_report_issue_title">الإبلاغ عن مشكلة</string>
     <string name="settings_report_issue_subtitle">تقديم تقارير الأخطاء على GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
@@ -285,6 +291,8 @@
     <string name="appearance_blur_subtitle">تمكين تأثيرات التمويه الزجاجية في مكونات واجهة المستخدم</string>
     <!-- Navigation -->
     <string name="appearance_navigation_section">التنقل</string>
+    <string name="appearance_bottom_bar_section">الشريط السفلي</string>
+    <string name="appearance_bottom_bar_subtitle">اختر علامات التبويب التي تظهر. تبقى الرئيسية ظاهرة دائمًا.</string>
     <string name="appearance_nav_floating">عائم</string>
     <string name="appearance_nav_floating_subtitle">عصري &amp; اظهرك</string>
     <string name="appearance_nav_normal">عادي</string>
@@ -308,6 +316,7 @@
     <string name="faq_wallet_credit_question">لماذا يتم وضع علامة على معاملات المحفظة كائتمان؟</string>
     <string name="faq_wallet_credit_answer">معاملات المحفظة (دفع الأمازون، بايتم، إلخ.) تعتبر ائتمانية لأنها تُحمّل على حسابك البنكي أو بطاقة الائتمان أولا، وليس على الديون المصرفية المباشرة. وهذا يساعد على تتبع طريقة الدفع الفعلية المستخدمة.</string>
     <string name="faq_transaction_types_question">ما هو الفرق بين أنواع المعاملات الخمسة؟</string>
+    <string name="faq_transaction_types_answer">• مصروف: أموال تخرج من حسابك (خصومات، مشتريات، دفع فواتير)\n• دخل: أموال تدخل إلى حسابك (راتب، مبالغ مستردة، استرداد نقدي)\n• استثمار: صناديق استثمار مشتركة، أسهم، استثمارات دورية (SIP)، حسابات تداول\n• ائتمان: معاملات بطاقات الائتمان ومدفوعات المحافظ (أموال ستدفعها لاحقًا)\n• تحويل: أموال تنتقل بين حساباتك الخاصة (تحويلات ذاتية)</string>
     <string name="faq_transfer_vs_expense_question">متى يجب أن أستخدم التحويل مقابل المصروفات؟</string>
     <string name="faq_transfer_vs_expense_answer">استخدم التحويل عند نقل المال بين حساباتك الخاصة (على سبيل المثال، المدخرات للتحقق). هذه لا تؤثر على القيمة الصافية. استخدم المصاريف للإنفاق الفعلي.</string>
     <!-- SMS Parsing -->
@@ -342,13 +351,4 @@
     <string name="faq_still_need_help_section">لا تزال بحاجة إلى مساعدة؟</string>
     <string name="faq_report_issue_title">الإبلاغ عن مشكلة</string>
     <string name="faq_report_issue_subtitle">تقديم تقارير الأخطاء، طلبات البنك، أو تحسينات الميزات على GitHub</string>
-    <string name="settings_export_include_receipts_title">تضمين صور الإيصالات</string>
-    <string name="settings_export_include_receipts_subtitle">إضافة صور الإيصالات المرفقة إلى النسخ الاحتياطية المُصدَّرة (حجم ملف أكبر)</string>
-    <string name="settings_folder_backup_include_receipts_title">تضمين صور الإيصالات في النسخ الاحتياطية التلقائية</string>
-    <string name="settings_folder_backup_include_receipts_subtitle">يزيد حجم كل نسخة احتياطية يومية</string>
-    <string name="settings_user_guide_title">دليل المستخدم</string>
-    <string name="settings_user_guide_subtitle">أدلة خطوة بخطوة مع لقطات شاشة</string>
-    <string name="appearance_bottom_bar_section">الشريط السفلي</string>
-    <string name="appearance_bottom_bar_subtitle">اختر علامات التبويب التي تظهر. تبقى الرئيسية ظاهرة دائمًا.</string>
-    <string name="faq_transaction_types_answer">• مصروف: أموال تخرج من حسابك (خصومات، مشتريات، دفع فواتير)\n• دخل: أموال تدخل إلى حسابك (راتب، مبالغ مستردة، استرداد نقدي)\n• استثمار: صناديق استثمار مشتركة، أسهم، استثمارات دورية (SIP)، حسابات تداول\n• ائتمان: معاملات بطاقات الائتمان ومدفوعات المحافظ (أموال ستدفعها لاحقًا)\n• تحويل: أموال تنتقل بين حساباتك الخاصة (تحويلات ذاتية)</string>
 </resources>

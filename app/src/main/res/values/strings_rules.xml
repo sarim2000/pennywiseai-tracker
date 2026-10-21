@@ -101,6 +101,8 @@
     <string name="import_statement_col_amount">Amount (negative or Dr = money out)</string>
     <string name="import_statement_col_type">Dr/Cr column (optional)</string>
     <string name="import_statement_col_balance">Balance (optional)</string>
+    <string name="import_statement_col_reference">Reference / UTR (optional)</string>
+    <string name="import_statement_date_excel">Excel date</string>
     <string name="import_statement_col_none">None</string>
     <string name="import_statement_column_label">Column %1$s</string>
     <string name="import_statement_account">Account</string>

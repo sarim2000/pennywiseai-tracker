@@ -152,7 +152,7 @@ class ImportStatementViewModel @Inject constructor(
                 if (saved != null && savedAccountIsSure(rows, saved, accounts) && previewSpreadsheet(rows, saved, accounts)) {
                     return@launch
                 }
-                showMapping(rows, saved ?: StatementTableParser.guessMapping(rows), accounts)
+                showMapping(rows, withNamedAccount(rows, saved ?: StatementTableParser.guessMapping(rows), accounts), accounts)
             } catch (e: Exception) {
                 _uiState.value = ImportStatementUiState.Error(e.message ?: "Couldn't read this file.")
             }
@@ -160,21 +160,35 @@ class ImportStatementViewModel @Inject constructor(
     }
 
     /**
-     * A saved mapping skips straight to the preview only when its account can't
-     * be the wrong one: two accounts at one bank export the same columns, so with
-     * several, the statement itself must name the saved account's digits above
-     * its header ("Account: XXXXXX4321"). Otherwise the user confirms it.
+     * A saved mapping skips straight to the preview only when the file itself
+     * says it's that account's statement: its last 4 above the header
+     * ("Account: XXXXXX4321"), or its bank's name when that's the only account
+     * at the bank. Headers alone prove nothing — two banks (or two accounts at
+     * one bank) can export identical columns. Otherwise the user confirms.
      */
     private fun savedAccountIsSure(
         rows: List<List<String>>,
         saved: StatementColumnMapping,
         accounts: List<AccountBalanceEntity>
     ): Boolean {
-        val bank = saved.accountBankName ?: return true
+        val bank = saved.accountBankName ?: return true // unlinked: nothing to book wrongly
         val last4 = saved.accountLast4 ?: return true
         if (accounts.none { it.bankName == bank && it.accountLast4 == last4 }) return false
-        if (accounts.count { it.bankName == bank } <= 1) return true
-        return rows.take(saved.headerRow).any { row -> row.any { last4 in it } }
+        val preamble = StatementTableParser.preamble(rows, saved.headerRow)
+        if (StatementTableParser.namesAccount(preamble, last4)) return true
+        return preamble.contains(bank, ignoreCase = true) && accounts.count { it.bankName == bank } == 1
+    }
+
+    /** [mapping] with the account the file names above its header, when exactly one matches. */
+    private fun withNamedAccount(
+        rows: List<List<String>>,
+        mapping: StatementColumnMapping,
+        accounts: List<AccountBalanceEntity>
+    ): StatementColumnMapping {
+        val preamble = StatementTableParser.preamble(rows, mapping.headerRow)
+        val named = accounts.filter { StatementTableParser.namesAccount(preamble, it.accountLast4) }.singleOrNull()
+            ?: return mapping
+        return mapping.copy(accountBankName = named.bankName, accountLast4 = named.accountLast4)
     }
 
     fun updateMapping(mapping: StatementColumnMapping) {

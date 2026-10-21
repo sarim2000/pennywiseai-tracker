@@ -201,9 +201,12 @@ object XlsxReader {
     }
 
     private fun parse(bytes: ByteArray, handler: DefaultHandler) {
+        // Spreadsheet parts never declare a DTD. Refuse one outright: Android's
+        // parser ignores the hardening flags below, and an entity-expansion
+        // ("billion laughs") part would otherwise exhaust memory.
+        if (containsDoctype(bytes)) throw IllegalArgumentException("This spreadsheet can't be read safely")
         val factory = SAXParserFactory.newInstance().apply { isNamespaceAware = true }
-        // No DTDs or external entities in an untrusted file (not every platform
-        // parser supports every feature flag, hence runCatching).
+        // Belt and braces where the platform parser does honour them.
         runCatching { factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true) }
         runCatching { factory.setFeature("http://xml.org/sax/features/external-general-entities", false) }
         runCatching { factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false) }
@@ -211,6 +214,20 @@ object XlsxReader {
             contentHandler = handler
             parse(InputSource(ByteArrayInputStream(bytes)))
         }
+    }
+
+    /** "<!DOCTYPE" anywhere, any case (ASCII is enough: XML markup is ASCII in UTF-8). */
+    internal fun containsDoctype(bytes: ByteArray): Boolean {
+        val needle = "<!doctype".toByteArray()
+        outer@ for (i in 0..bytes.size - needle.size) {
+            for (j in needle.indices) {
+                val b = bytes[i + j].toInt()
+                val lower = if (b in 'A'.code..'Z'.code) b + 32 else b
+                if (lower != needle[j].toInt()) continue@outer
+            }
+            return true
+        }
+        return false
     }
 
     /** The current entry, failing once it passes [budget] uncompressed bytes. */

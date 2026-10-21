@@ -65,7 +65,13 @@ class ImportStatementUseCase @Inject constructor(
             require(buffer.size <= MAX_FILE_BYTES) { "This file is too large to import." }
             buffer
         } ?: throw IllegalArgumentException("Couldn't open the file.")
-        StatementTableParser.readTable(bytes).also {
+        val rows = try {
+            StatementTableParser.readTable(bytes)
+        } catch (e: OutOfMemoryError) {
+            // A hostile or enormous file: tell the user rather than crash the app.
+            throw IllegalArgumentException("This file is too large to import.")
+        }
+        rows.also {
             require(it.any { row -> row.any(String::isNotBlank) }) { "This file has no rows." }
         }
     }
@@ -199,6 +205,9 @@ class ImportStatementUseCase @Inject constructor(
             transaction: TransactionEntity
         ): TransactionEntity? =
             transactionRepository.findStatementMergeCandidate(transaction)
+
+        override suspend fun getTransactionsByReference(reference: String): List<TransactionEntity> =
+            transactionRepository.getTransactionsByReference(reference)
 
         override suspend fun updateTransaction(transaction: TransactionEntity) {
             transactionRepository.updateTransaction(transaction)

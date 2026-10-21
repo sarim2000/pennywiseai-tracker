@@ -4,10 +4,9 @@ import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.mapper.toEntity
 import java.math.BigDecimal
-import java.time.Instant
-import java.time.LocalDateTime
+import java.time.Duration
 import java.time.LocalTime
-import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 internal class StatementImportProcessor(
     private val transactionStore: TransactionStore
@@ -15,11 +14,13 @@ internal class StatementImportProcessor(
     interface TransactionStore {
         suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
         suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity?
+        /** Active transactions carrying [reference] (a UPI/IMPS/NEFT reference or UTR). */
+        suspend fun getTransactionsByReference(reference: String): List<TransactionEntity> = emptyList()
         suspend fun updateTransaction(transaction: TransactionEntity)
         suspend fun getTransactionByAmountAndDate(
             amount: BigDecimal,
-            dateStart: LocalDateTime,
-            dateEnd: LocalDateTime
+            dateStart: java.time.LocalDateTime,
+            dateEnd: java.time.LocalDateTime
         ): List<TransactionEntity>
 
         suspend fun insertTransactions(transactions: List<TransactionEntity>)
@@ -37,74 +38,96 @@ internal class StatementImportProcessor(
      * Enrichments are kept in memory while planning, so a later row that hits
      * the same stored transaction sees it already enriched — as it would have
      * when every update was written straight away.
+     *
+     * Each stored transaction absorbs at most one statement row ([claimed]):
+     * two identical ₹20 teas on a day with one SMS are one match and one new
+     * row, not two matches. Matching runs in two passes so that a row's own
+     * day is tried for every row before any row may reach a neighbouring day —
+     * an SMS stamped the day after the statement's value date still matches,
+     * without stealing the SMS of the row that really is from that day.
      */
     suspend fun plan(parsedTransactions: List<ParsedTransaction>): StatementImportPlan {
         val pending = HashMap<Long, TransactionEntity>()
+        val claimed = HashSet<Long>()
         fun TransactionEntity.current() = pending[id] ?: this
+        fun claim(existing: TransactionEntity) = claimed.add(existing.id)
         fun enrichDecision(existing: TransactionEntity, merged: TransactionEntity): StatementRowDecision {
+            claim(existing)
             pending[existing.id] = merged
             return StatementRowDecision.Enrich(merged)
         }
-
-        val rows = parsedTransactions.map { parsed ->
-            val hash = parsed.transactionHash?.takeIf { it.isNotBlank() }
-                ?: parsed.generateTransactionId()
-            val statementEntity = parsed.toEntity()
-
-            val decision = run decide@{
-                val hashMatch = transactionStore.getTransactionByHash(hash)?.current()
-                if (hashMatch != null) {
-                    val merged = StatementTransactionEnricher.enrich(hashMatch, statementEntity)
-                    return@decide if (!hashMatch.isDeleted && StatementTransactionEnricher.hasEnrichment(hashMatch, merged)) {
-                        enrichDecision(hashMatch, merged)
-                    } else {
-                        StatementRowDecision.Skip(StatementRowDecision.SkipReason.HASH)
-                    }
-                }
-
-                val ref = parsed.reference
-                if (!ref.isNullOrBlank()) {
-                    val existing = transactionStore.findStatementMergeCandidate(statementEntity)?.current()
-                    if (existing != null) {
-                        val merged = StatementTransactionEnricher.enrich(existing, statementEntity)
-                        return@decide if (StatementTransactionEnricher.hasEnrichment(existing, merged)) {
-                            enrichDecision(existing, merged)
-                        } else {
-                            StatementRowDecision.Skip(StatementRowDecision.SkipReason.REFERENCE)
-                        }
-                    }
-                }
-
-                // Reference-bearing statement rows can still match older SMS imports
-                // that were saved before parsers extracted UPI references.
-                val dateTime = LocalDateTime.ofInstant(
-                    Instant.ofEpochMilli(parsed.timestamp),
-                    ZoneId.systemDefault()
-                )
-                val startOfDay = dateTime.toLocalDate().atStartOfDay()
-                val endOfDay = dateTime.toLocalDate().atTime(LocalTime.MAX)
-
-                val amountMatches = transactionStore.getTransactionByAmountAndDate(
-                    parsed.amount, startOfDay, endOfDay
-                ).map { it.current() }
-                    .filter { StatementTransactionEnricher.isPossibleAmountDateMatch(it, statementEntity) }
-                val fallbackMergeCandidates = amountMatches.filter { candidate ->
-                    StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(candidate, statementEntity)
-                }
-                if (fallbackMergeCandidates.size == 1) {
-                    val existing = fallbackMergeCandidates.single()
-                    return@decide enrichDecision(existing, StatementTransactionEnricher.enrich(existing, statementEntity))
-                }
-
-                if (amountMatches.isNotEmpty()) {
-                    return@decide StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
-                }
-
-                StatementRowDecision.Insert(statementEntity)
+        fun matchDecision(existing: TransactionEntity, statement: TransactionEntity, reason: StatementRowDecision.SkipReason): StatementRowDecision {
+            val merged = StatementTransactionEnricher.enrich(existing, statement)
+            return if (!existing.isDeleted && StatementTransactionEnricher.hasEnrichment(existing, merged)) {
+                enrichDecision(existing, merged)
+            } else {
+                claim(existing)
+                StatementRowDecision.Skip(reason)
             }
-            StatementPlanRow(parsed, decision)
         }
-        return StatementImportPlan(rows)
+
+        // The statement's running balance is for the closing-balance check only:
+        // stored on a noon-stamped row it would read as a bank-reported balance.
+        val entities = parsedTransactions.map { it.toEntity().copy(balanceAfter = null) }
+
+        /** Same amount within [days] of the row, same direction/account/currency, not yet claimed. */
+        suspend fun amountMatch(index: Int, days: Long): StatementRowDecision? {
+            val statement = entities[index]
+            val day = statement.dateTime.toLocalDate()
+            val candidates = transactionStore.getTransactionByAmountAndDate(
+                parsedTransactions[index].amount,
+                day.minusDays(days).atStartOfDay(),
+                day.plusDays(days).atTime(LocalTime.MAX)
+            ).map { it.current() }
+                .filter { it.id !in claimed && StatementTransactionEnricher.isPossibleAmountDateMatch(it, statement) }
+                .sortedBy { ChronoUnit.DAYS.between(day, it.dateTime.toLocalDate()).let(Math::abs) }
+            if (candidates.isEmpty()) return null
+            // Only enrich when exactly one candidate could be this row; otherwise just match.
+            val enrichable = candidates.filter { StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(it, statement) }
+            if (enrichable.size == 1 && candidates.size == 1) {
+                val existing = enrichable.single()
+                return enrichDecision(existing, StatementTransactionEnricher.enrich(existing, statement))
+            }
+            claim(candidates.first())
+            return StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
+        }
+
+        // Pass 1: exact re-imports, references, then the row's own day.
+        val decisions = parsedTransactions.mapIndexed { i, parsed ->
+            val statement = entities[i]
+            val hash = parsed.transactionHash?.takeIf { it.isNotBlank() } ?: parsed.generateTransactionId()
+            transactionStore.getTransactionByHash(hash)?.current()?.let { hashMatch ->
+                return@mapIndexed matchDecision(hashMatch, statement, StatementRowDecision.SkipReason.HASH)
+            }
+
+            val ref = parsed.reference?.takeIf { it.isNotBlank() }
+            if (ref != null) {
+                val sameTime = transactionStore.findStatementMergeCandidate(statement)?.current()
+                    ?.takeIf { it.id !in claimed }
+                // A reference is unique, so its match may sit a few days off: an SMS is
+                // stamped when it arrives, a statement row on its value date.
+                val byReference = sameTime ?: transactionStore.getTransactionsByReference(ref)
+                    .map { it.current() }
+                    .filter { it.id !in claimed && StatementTransactionEnricher.isReferenceMatch(it, statement, REFERENCE_WINDOW) }
+                    .minByOrNull { Duration.between(it.dateTime, statement.dateTime).abs() }
+                if (byReference != null) {
+                    return@mapIndexed matchDecision(byReference, statement, StatementRowDecision.SkipReason.REFERENCE)
+                }
+            }
+
+            amountMatch(i, days = 0)
+        }.toMutableList()
+
+        // Pass 2: rows still unmatched may match a day either side.
+        for (i in decisions.indices) {
+            if (decisions[i] == null) decisions[i] = amountMatch(i, days = 1) ?: StatementRowDecision.Insert(entities[i])
+        }
+
+        return StatementImportPlan(parsedTransactions.indices.map { StatementPlanRow(parsedTransactions[it], decisions[it]!!) })
+    }
+
+    private companion object {
+        val REFERENCE_WINDOW: Duration = Duration.ofDays(3)
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -43,12 +44,36 @@ object StatementTransactionEnricher {
     }
 
     /**
-     * Whether a same-day, same-amount transaction can be this statement row at
-     * all: same currency, and not on a different account when both name one.
-     * A row from another account is someone else's ₹120 coffee, not this one (#13).
+     * Whether a same-amount transaction near the row's date can be this
+     * statement row at all (#13): same currency, same direction, and not on a
+     * different account when both name one. A row from another account is
+     * someone else's ₹120 coffee; a ₹120 credit is the refund of the debit,
+     * not the debit.
      */
     fun isPossibleAmountDateMatch(existing: TransactionEntity, statement: TransactionEntity): Boolean =
-        existing.currency == statement.currency && accountsMatch(existing.accountNumber, statement.accountNumber)
+        existing.currency == statement.currency &&
+            sameDirection(existing, statement) &&
+            accountsMatch(existing.accountNumber, statement.accountNumber)
+
+    /**
+     * A stored transaction with the statement row's reference that is the same
+     * payment: same amount and direction, compatible account, within [window]
+     * (an SMS is stamped on arrival, a statement row on its value date).
+     */
+    fun isReferenceMatch(existing: TransactionEntity, statement: TransactionEntity, window: Duration): Boolean {
+        val reference = statement.reference?.trim().orEmpty()
+        if (reference.isEmpty() || existing.reference?.trim() != reference) return false
+        if (existing.amount.compareTo(statement.amount) != 0) return false
+        if (!isPossibleAmountDateMatch(existing, statement)) return false
+        return Duration.between(existing.dateTime, statement.dateTime).abs() <= window
+    }
+
+    /**
+     * Money in vs money out. Only INCOME is money in; a TRANSFER-stored debit
+     * still matches a statement debit, so this isn't an exact type comparison.
+     */
+    private fun sameDirection(existing: TransactionEntity, statement: TransactionEntity): Boolean =
+        (existing.transactionType == TransactionType.INCOME) == (statement.transactionType == TransactionType.INCOME)
 
     private fun hasUsableStatementDetails(
         existing: TransactionEntity,

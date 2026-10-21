@@ -280,6 +280,10 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
 
+    /** Every active transaction carrying [reference], oldest first. */
+    suspend fun getTransactionsByReference(reference: String): List<TransactionEntity> =
+        transactionDao.getTransactionsByReference(reference)
+
     suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
         val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
         return transactionDao.getTransactionsByReference(reference)

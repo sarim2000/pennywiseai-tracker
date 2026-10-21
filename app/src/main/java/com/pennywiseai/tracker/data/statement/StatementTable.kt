@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.data.statement
 
-import com.opencsv.CSVParserBuilder
 import com.opencsv.CSVReaderBuilder
+import com.opencsv.RFC4180ParserBuilder
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import kotlinx.serialization.Serializable
@@ -11,6 +11,8 @@ import kotlinx.serialization.json.Json
 import java.io.ByteArrayInputStream
 import java.io.StringReader
 import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
 import java.text.ParsePosition
 import java.time.LocalDate
 import java.time.LocalTime
@@ -42,6 +44,8 @@ data class StatementColumnMapping(
     val debitColumn: Int = NONE,
     val creditColumn: Int = NONE,
     val balanceColumn: Int = NONE,
+    /** Cheque/UTR/reference number; a UPI/IMPS/NEFT reference in the narration is used when absent. */
+    val referenceColumn: Int = NONE,
     /** The account the statement belongs to (bank name + last 4), if linked. */
     val accountBankName: String? = null,
     val accountLast4: String? = null
@@ -72,10 +76,18 @@ object StatementTableParser {
         "yyyy-MM-dd", "yyyy/MM/dd", "MM/dd/yyyy", "MMM dd, yyyy"
     )
 
+    /** Pseudo-format: the Date column holds Excel day numbers (see [detectDateFormat]). */
+    const val EXCEL_SERIAL = "excel-serial"
+    private val YEARS = 1990..2100
+
     const val STATEMENT_SENDER = "STATEMENT"
     private const val HEADER_SCAN_ROWS = 50
     private const val MAX_MERCHANT = 60
     private val REFERENCE = Regex("""(?<!\d)\d{12}(?!\d)""")
+    // "UPI/612345678901/…", "IMPS-612345678901-…", "NEFT/N289/…": the token after the channel.
+    private val CHANNEL_REFERENCE = Regex("""^(?:UPI|IMPS|NEFT|RTGS)[/\-: ]+([A-Za-z0-9]*\d[A-Za-z0-9]{5,})""", RegexOption.IGNORE_CASE)
+    private val REFERENCE_TOKEN = Regex("""[A-Za-z0-9]{6,32}""")
+    private val DIRECTION_HEADERS = listOf("dr/cr", "cr/dr", "dr / cr", "cr / dr", "debit/credit", "credit/debit")
     private val WHITESPACE = Regex("""\s+""")
     private val CHANNELS = setOf("UPI", "IMPS", "NEFT", "RTGS", "POS", "ACH", "NACH", "BIL", "VIN", "MMT", "CMS", "INF")
     private val IFSC = Regex("""[A-Z]{4}0[A-Z0-9]{6}""")
@@ -100,8 +112,10 @@ object StatementTableParser {
 
     fun readCsv(text: String): List<List<String>> {
         val separator = detectSeparator(text.lineSequence().take(20).joinToString("\n"))
+        // RFC 4180: quotes are escaped by doubling. No backslash escapes, so a
+        // narration ending "C:\" before its closing quote doesn't swallow the row.
         val reader = CSVReaderBuilder(StringReader(text))
-            .withCSVParser(CSVParserBuilder().withSeparator(separator).build())
+            .withCSVParser(RFC4180ParserBuilder().withSeparator(separator).build())
             .build()
         val rows = reader.use { r ->
             generateSequence { r.readNext() }.take(XlsxReader.MAX_ROWS + 1).map { it.toList() }.toList()
@@ -153,6 +167,22 @@ object StatementTableParser {
         return null
     }
 
+    /** The text above the header row: where a statement prints its bank, account and period. */
+    fun preamble(rows: List<List<String>>, headerRow: Int): String =
+        rows.take(headerRow).joinToString("\n") { row -> row.filter { it.isNotBlank() }.joinToString(" ") }
+
+    /**
+     * Whether [preamble] names the account ending [last4]: masked or full
+     * ("XXXXXX4321", "••4321", "123456784321"), or after an account label
+     * ("A/c No: 4321"). A bare "2021" in a date range doesn't count.
+     */
+    fun namesAccount(preamble: String, last4: String): Boolean {
+        if (last4.length < 3 || last4.any { !it.isDigit() }) return false
+        val digits = Regex.escape(last4)
+        return Regex("""[Xx*•\d]$digits(?!\d)""").containsMatchIn(preamble) ||
+            Regex("""(?i)(?:a/c|acc(?:oun)?t|acct)[^\n]{0,30}?(?<!\d)$digits(?!\d)""").containsMatchIn(preamble)
+    }
+
     /** First row that names a date column among 3+ filled cells; else the widest early row. */
     fun guessHeaderRow(rows: List<List<String>>): Int {
         val scan = rows.take(HEADER_SCAN_ROWS)
@@ -178,12 +208,33 @@ object StatementTableParser {
             dateColumn = find("transaction date", "txn date", "tran date", "date"),
             descriptionColumn = find("narration", "description", "particulars", "details", "remarks"),
             amountColumn = if (separate) StatementColumnMapping.NONE else find("amount", "amt"),
-            typeColumn = if (separate) StatementColumnMapping.NONE else find("dr/cr", "cr/dr", "type"),
+            typeColumn = if (separate) StatementColumnMapping.NONE else guessTypeColumn(rows, headerRow, header),
             debitColumn = if (separate) debit else StatementColumnMapping.NONE,
             creditColumn = if (separate) credit else StatementColumnMapping.NONE,
-            balanceColumn = find("balance")
+            balanceColumn = find("balance"),
+            referenceColumn = find("utr", "ref no", "ref.", "reference", "chq", "cheque", "ref")
         )
     }
+
+    /**
+     * A Dr/Cr column: named so ("Dr/Cr"), or a "Type" column whose cells really
+     * are Dr/Cr words. A "Transaction Type" of Card/UPI/NEFT is a channel, not a direction.
+     */
+    private fun guessTypeColumn(rows: List<List<String>>, headerRow: Int, header: List<String>): Int {
+        header.indexOfFirst { h -> DIRECTION_HEADERS.any { it in h } }.takeIf { it >= 0 }?.let { return it }
+        val typed = header.indexOfFirst { "type" in it }.takeIf { it >= 0 } ?: return StatementColumnMapping.NONE
+        val cells = rows.drop(headerRow + 1).map { it.cell(typed) }.filter { it.isNotBlank() }.take(200)
+        return if (cells.isNotEmpty() && cells.count { directionWord(it) != null } * 10 >= cells.size * 9) typed
+        else StatementColumnMapping.NONE
+    }
+
+    /** Debit (true) / credit (false) for an exact Dr/Cr word, else null. */
+    internal fun directionWord(raw: String): Boolean? =
+        when (raw.trim().lowercase().replace(".", "")) {
+            "dr", "d", "debit", "withdrawal" -> true
+            "cr", "c", "credit", "deposit" -> false
+            else -> null
+        }
 
     fun encodeMappings(mappings: Map<String, StatementColumnMapping>): String = json.encodeToString(mappings)
 
@@ -203,8 +254,10 @@ object StatementTableParser {
         if (PLAIN_NUMBER.matches(s)) {
             val n = BigDecimal(s)
             if (n.precision() - n.scale() > MAX_INTEGER_DIGITS) return null
-            val plain = if (n.scale() < 0) n.setScale(0) else n
-            return CellAmount(plain.abs(), if (n.signum() < 0) true else if (s.startsWith("+")) false else null)
+            // Excel stores formula results as doubles ("24521.000000000004"): drop the
+            // binary noise at 15 significant digits, then keep paise.
+            val money = n.round(MathContext(15)).setScale(2, RoundingMode.HALF_UP)
+            return CellAmount(money.abs(), if (n.signum() < 0) true else if (s.startsWith("+")) false else null)
         }
         // Exponent notation outside those bounds isn't an amount we can trust.
         if (EXPONENT.containsMatchIn(s)) return null
@@ -245,30 +298,37 @@ object StatementTableParser {
     }
 
     /**
-     * The date in [raw], read with [pattern] (a time after the date is fine), or
-     * as an Excel day serial when the cell is a bare number. Null otherwise.
+     * The date in [raw], read with [pattern] (a time after the date is fine).
+     * With [EXCEL_SERIAL] the cell is an Excel day number, and only then: a
+     * stray number in a text-date column (a summary row's count) is not a date.
      */
     fun parseDate(raw: String?, pattern: String?): LocalDate? {
         val text = raw?.trim().orEmpty()
-        if (text.isEmpty()) return null
-        text.toDoubleOrNull()?.let { serial ->
+        if (text.isEmpty() || pattern == null) return null
+        if (pattern == EXCEL_SERIAL) {
+            val serial = text.toDoubleOrNull()?.takeIf { it.isFinite() && it > 0 } ?: return null
             // Excel's 1900 date system; day 0 is 1899-12-30 (it counts the fake 1900-02-29).
-            return if (serial in 20_000.0..80_000.0) EXCEL_EPOCH.plusDays(serial.toLong()) else null
+            return EXCEL_EPOCH.plusDays(serial.toLong()).takeIf { it.year in YEARS }
         }
-        if (pattern == null) return null
         val position = ParsePosition(0)
         val parsed = runCatching { formatter(pattern).parse(text, position) }.getOrNull() ?: return null
         if (position.errorIndex >= 0) return null
         val rest = text.substring(position.index)
         // "05/01/2025" must not read as dd/MM/yy + leftover "25".
         if (rest.isNotEmpty() && !rest[0].isWhitespace() && rest[0] != 'T' && rest[0] != ',') return null
-        return runCatching { LocalDate.from(parsed) }.getOrNull()?.takeIf { it.year in 1990..2100 }
+        return runCatching { LocalDate.from(parsed) }.getOrNull()?.takeIf { it.year in YEARS }
     }
 
-    /** The format that reads the most of [cells]; earlier formats win ties. */
+    /**
+     * How [cells] hold their dates: [EXCEL_SERIAL] when most are bare numbers
+     * (an .xlsx date column), else the text format that reads the most of them
+     * (earlier formats win ties).
+     */
     fun detectDateFormat(cells: List<String>): String? {
-        val sample = cells.filter { it.isNotBlank() && it.trim().toDoubleOrNull() == null }.take(200)
-        if (sample.isEmpty()) return null
+        val filled = cells.filter { it.isNotBlank() }.take(200)
+        if (filled.isEmpty()) return null
+        if (filled.count { it.trim().toDoubleOrNull() != null } * 2 > filled.size) return EXCEL_SERIAL
+        val sample = filled.filter { it.trim().toDoubleOrNull() == null }
         return DATE_FORMATS
             .map { f -> f to sample.count { parseDate(it, f) != null } }
             .filter { it.second > 0 }
@@ -290,13 +350,27 @@ object StatementTableParser {
         val format = effectiveDateFormat(rows, mapping)
         val seen = HashMap<String, Int>()
         var skipped = 0
-        val transactions = rows.drop(mapping.headerRow + 1).mapNotNull { row ->
+        val parsed = rows.drop(mapping.headerRow + 1).mapNotNull { row ->
             if (row.all { it.isBlank() }) return@mapNotNull null
             val txn = parseRow(row, mapping, format, account, seen)
             if (txn == null) skipped++
             txn
         }
-        return TableParseResult(transactions, skipped)
+        // A date far outside the statement's own span is a misread cell (a footer's
+        // number, a typo), not a transaction — it would also move the closing row.
+        val span = mainSpan(parsed)
+        val transactions = if (span == null) parsed else parsed.filter { StatementBalanceCheck.dateOf(it) in span }
+        return TableParseResult(transactions, skipped + parsed.size - transactions.size)
+    }
+
+    /**
+     * Where most of the statement's dates lie: the 10th–90th percentile widened by
+     * two months. Null for a short statement, where there's no "most" to go by.
+     */
+    private fun mainSpan(rows: List<ParsedTransaction>): ClosedRange<LocalDate>? {
+        if (rows.size < 10) return null
+        val dates = rows.map { StatementBalanceCheck.dateOf(it) }.sorted()
+        return dates[dates.size / 10].minusMonths(2)..dates[dates.size * 9 / 10].plusMonths(2)
     }
 
     private fun parseRow(
@@ -329,7 +403,7 @@ object StatementTableParser {
             amount = amount,
             type = type,
             merchant = merchantFrom(description),
-            reference = REFERENCE.findAll(description).lastOrNull()?.value,
+            reference = referenceFrom(row.cell(mapping.referenceColumn), description),
             accountLast4 = account.last4,
             balance = balance,
             smsBody = body,
@@ -354,6 +428,17 @@ object StatementTableParser {
         return (payee ?: description).take(MAX_MERCHANT).ifBlank { null }
     }
 
+    /**
+     * The row's payment reference: the Reference column when it holds one, else
+     * the reference in a channel narration ("UPI/612345678901/…", "IMPS-…",
+     * "NEFT/N289/…"), else a bare 12-digit UPI reference anywhere in it.
+     */
+    internal fun referenceFrom(referenceCell: String, description: String): String? {
+        referenceCell.trim().takeIf { REFERENCE_TOKEN.matches(it) && it.any(Char::isDigit) }?.let { return it }
+        CHANNEL_REFERENCE.find(description)?.let { return it.groupValues[1] }
+        return REFERENCE.findAll(description).lastOrNull()?.value
+    }
+
     private fun amountAndType(row: List<String>, mapping: StatementColumnMapping): Pair<BigDecimal, TransactionType>? {
         if (mapping.usesDebitCredit) {
             val debit = parseAmount(row.cell(mapping.debitColumn))?.value?.abs()
@@ -366,13 +451,9 @@ object StatementTableParser {
         }
         val cell = parseAmount(row.cell(mapping.amountColumn)) ?: return null
         if (cell.value.signum() == 0) return null
-        val typeText = row.cell(mapping.typeColumn).trim().lowercase()
-        val type = when {
-            typeText.startsWith("d") || "withdraw" in typeText -> TransactionType.EXPENSE
-            typeText.startsWith("c") || "deposit" in typeText -> TransactionType.INCOME
-            cell.negative == true -> TransactionType.EXPENSE
-            else -> TransactionType.INCOME
-        }
+        // Only an exact Dr/Cr word overrides the sign; "Card" or "UPI" says nothing about direction.
+        val debit = directionWord(row.cell(mapping.typeColumn)) ?: (cell.negative == true)
+        val type = if (debit) TransactionType.EXPENSE else TransactionType.INCOME
         return cell.value.abs() to type
     }
 

@@ -385,15 +385,17 @@ private fun MappingContent(
             TablePreview(
                 rows = state.rows.drop(mapping.headerRow).take(PREVIEW_ROWS + 1),
                 columnCount = columnCount,
-                dateColumn = mapping.dateColumn
+                // Excel day numbers shown as dates, when that's what the column holds.
+                serialDateColumn = mapping.dateColumn.takeIf { state.detectedDateFormat == StatementTableParser.EXCEL_SERIAL }
             )
         }
 
         ColumnPicker(stringResource(R.string.import_statement_col_date), listOf(none) + columns, mapping.dateColumn) {
             onMappingChange(mapping.copy(dateColumn = it))
         }
-        val autoLabel = state.detectedDateFormat?.takeIf { mapping.dateFormat == null }
-            ?.let { stringResource(R.string.import_statement_date_auto_found, it) }
+        val detected = state.detectedDateFormat?.takeIf { mapping.dateFormat == null }
+            ?.let { if (it == StatementTableParser.EXCEL_SERIAL) stringResource(R.string.import_statement_date_excel) else it }
+        val autoLabel = detected?.let { stringResource(R.string.import_statement_date_auto_found, it) }
             ?: stringResource(R.string.import_statement_date_auto)
         val formats = listOf<Pair<String?, String>>(null to autoLabel) + StatementTableParser.DATE_FORMATS.map { it to it }
         Picker(stringResource(R.string.import_statement_col_date_format), formats, mapping.dateFormat) {
@@ -442,6 +444,9 @@ private fun MappingContent(
         ColumnPicker(stringResource(R.string.import_statement_col_balance), listOf(none) + columns, mapping.balanceColumn) {
             onMappingChange(mapping.copy(balanceColumn = it))
         }
+        ColumnPicker(stringResource(R.string.import_statement_col_reference), listOf(none) + columns, mapping.referenceColumn) {
+            onMappingChange(mapping.copy(referenceColumn = it))
+        }
 
         val accountOptions = listOf<Pair<Pair<String, String>?, String>>(null to stringResource(R.string.import_statement_account_none)) +
             state.accounts.map { (it.bankName to it.accountLast4) to it.displayLabel }
@@ -488,7 +493,7 @@ private fun MappingContent(
 
 /** The header row and the first data rows, so the user sees what each column holds. */
 @Composable
-private fun TablePreview(rows: List<List<String>>, columnCount: Int, dateColumn: Int) {
+private fun TablePreview(rows: List<List<String>>, columnCount: Int, serialDateColumn: Int?) {
     Column(modifier = Modifier.horizontalScroll(rememberScrollState())) {
         Row {
             (0 until columnCount).forEach { i ->
@@ -504,8 +509,11 @@ private fun TablePreview(rows: List<List<String>>, columnCount: Int, dateColumn:
             Row(modifier = Modifier.padding(top = Spacing.xxs)) {
                 (0 until columnCount).forEach { i ->
                     val raw = row.getOrNull(i).orEmpty()
-                    // Excel keeps dates as day numbers; show the Date column as dates.
-                    val serialDate = if (r > 0 && i == dateColumn) StatementTableParser.parseDate(raw, null) else null
+                    val serialDate = if (r > 0 && i == serialDateColumn) {
+                        StatementTableParser.parseDate(raw, StatementTableParser.EXCEL_SERIAL)
+                    } else {
+                        null
+                    }
                     Text(
                         text = serialDate?.format(ROW_DATE) ?: raw,
                         style = MaterialTheme.typography.bodySmall,

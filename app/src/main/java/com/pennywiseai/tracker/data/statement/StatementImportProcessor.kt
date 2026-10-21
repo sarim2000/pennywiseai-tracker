@@ -137,6 +137,7 @@ internal class StatementImportProcessor(
         //    a day matches one to one, and a row never takes the next day's SMS
         //    from the row that is really from that day. A next-day SMS is only
         //    evidence of a duplicate, never of its merchant.
+        val nextDay = HashMap<Int, TransactionEntity>()
         for (i in decisions.indices.filter { dateOnly[it] }.sortedByDescending { days[it] }) {
             if (decisions[i] != null) continue
             val candidates = amountCandidates(i, days[i], days[i].plusDays(1))
@@ -145,8 +146,17 @@ internal class StatementImportProcessor(
                 sameDayMatch(i, candidates)
             } else {
                 claim(latest)
+                nextDay[i] = latest
                 StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
             }
+        }
+        // A row that took a next-day SMS while its own day's SMS went unused
+        // swaps to its own day: no fewer matches, and that one can be enriched.
+        for ((i, taken) in nextDay) {
+            val sameDay = amountCandidates(i, days[i], days[i])
+            if (sameDay.isEmpty()) continue
+            claimed.remove(taken.id)
+            decisions[i] = sameDayMatch(i, sameDay)
         }
 
         return StatementImportPlan(

@@ -180,6 +180,24 @@ class StatementPreviewTest {
     }
 
     @Test
+    fun `a row with its own day's SMS and a next-day one enriches its own day's`() = runBlocking {
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("500.00"), TransactionType.EXPENSE, day, merchant = "UPI Transaction"))
+            seed(sms(BigDecimal("500.00"), TransactionType.EXPENSE, day.plusDays(1), merchant = "UPI Transaction"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,MILK,500.00,
+                """
+            )
+        )
+        val enriched = (plan.rows.single().decision as StatementRowDecision.Enrich).merged
+        assertEquals(day, enriched.dateTime.toLocalDate())
+    }
+
+    @Test
     fun `an SMS the day before a date-only row is not a match`() = runBlocking {
         val store = InMemoryStore().apply {
             seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.minusDays(1), merchant = "Cafe"))

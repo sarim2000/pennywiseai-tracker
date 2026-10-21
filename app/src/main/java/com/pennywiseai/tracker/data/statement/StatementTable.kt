@@ -364,17 +364,20 @@ object StatementTableParser {
         // footer's number, a year typo), not a transaction — it would also move the
         // closing row. Quiet stretches are fine: only isolation counts, not density.
         val dates = parsed.map { StatementBalanceCheck.dateOf(it) }
-        val sorted = dates.sorted()
-        val transactions = if (sorted.size < 3) parsed else parsed.filterIndexed { i, _ -> !isolated(dates[i], sorted) }
+        val isolated = if (dates.size < 3) emptySet() else isolatedDates(dates.sorted())
+        val transactions = parsed.filterIndexed { i, _ -> dates[i] !in isolated }
         return TableParseResult(transactions, skipped + parsed.size - transactions.size)
     }
 
-    /** Whether [date]'s nearest other row in [sorted] is over a year away. */
-    private fun isolated(date: LocalDate, sorted: List<LocalDate>): Boolean {
-        val at = sorted.indexOf(date)
-        val neighbours = listOfNotNull(sorted.getOrNull(at - 1), sorted.getOrNull(at + 1))
-        // A date shared by two rows has a same-day neighbour in the sorted list.
-        return neighbours.all { kotlin.math.abs(ChronoUnit.DAYS.between(date, it)) > ISOLATION_DAYS }
+    /**
+     * The dates in [sorted] whose nearest other row is over a year away, in one
+     * walk. A date shared by two rows has a same-day neighbour, so it's never isolated.
+     */
+    private fun isolatedDates(sorted: List<LocalDate>): Set<LocalDate> {
+        fun farApart(a: LocalDate?, b: LocalDate?) = a == null || b == null || ChronoUnit.DAYS.between(a, b) > ISOLATION_DAYS
+        return sorted.indices
+            .filter { i -> farApart(sorted.getOrNull(i - 1), sorted[i]) && farApart(sorted[i], sorted.getOrNull(i + 1)) }
+            .mapTo(HashSet()) { sorted[it] }
     }
 
     private fun parseRow(

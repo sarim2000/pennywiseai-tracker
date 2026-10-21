@@ -570,7 +570,8 @@ class AddViewModel @Inject constructor(
             val isIncome = direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
             currentState.copy(
                 direction = direction,
-                category = categories.value.pickerDefault(if (isIncome) "Income" else "Subscriptions", isIncome),
+                // Back on expense: the tab's own default, as when it opened.
+                category = if (isIncome) categories.value.pickerDefault("Income", isIncome = true) else SubscriptionUiState().category,
                 categoryError = null
             )
         }

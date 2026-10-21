@@ -299,6 +299,12 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun `chart axis amounts keep Latin digits under Arabic`() {
+        // String.format without a locale gave "₹٣٫٠K" next to "₹750" on one axis.
+        assertEquals("₹3.0K", withLocale("ar-SA") { CurrencyFormatter.formatAbbreviated(3000.0, "INR") })
+    }
+
+    @Test
     fun `LTR locales get no bidi marks`() {
         for (tag in listOf("en-US", "en-IN", "hi-IN", "de-DE", "fr-FR", "es", "ru-RU", "th-TH")) {
             withLocale(tag) {

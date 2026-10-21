@@ -161,10 +161,10 @@ private fun formatCompactBalance(value: BigDecimal, currency: String): String {
     }
     val absValue = value.abs().toDouble()
     val formatted = when {
-        absValue >= 10_000_000 -> String.format("%.1fCr", absValue / 10_000_000)
-        absValue >= 100_000 -> String.format("%.1fL", absValue / 100_000)
-        absValue >= 1_000 -> String.format("%.1fK", absValue / 1_000)
-        else -> String.format("%.0f", absValue)
+        absValue >= 10_000_000 -> String.format(java.util.Locale.US, "%.1fCr", absValue / 10_000_000)
+        absValue >= 100_000 -> String.format(java.util.Locale.US, "%.1fL", absValue / 100_000)
+        absValue >= 1_000 -> String.format(java.util.Locale.US, "%.1fK", absValue / 1_000)
+        else -> String.format(java.util.Locale.US, "%.0f", absValue)
     }
     val clean = formatted.replace(".0K", "K").replace(".0L", "L").replace(".0Cr", "Cr")
     val prefix = if (value < BigDecimal.ZERO) "-" else ""

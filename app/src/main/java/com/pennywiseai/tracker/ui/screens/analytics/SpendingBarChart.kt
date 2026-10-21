@@ -203,13 +203,13 @@ private fun formatCompactValue(value: Double, currencyCode: String): String {
     val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
     return when {
         useIndianNotation && absValue >= 1_00_00_000 ->
-            "${String.format("%.1f", absValue / 1_00_00_000)}Cr"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_00_00_000)}Cr"
         useIndianNotation && absValue >= 1_00_000 ->
-            "${String.format("%.1f", absValue / 1_00_000)}L"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_00_000)}L"
         absValue >= 10_000_000 ->
-            "${String.format("%.1f", absValue / 1_000_000)}M"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_000_000)}M"
         absValue >= 1_000 ->
-            "${String.format("%.1f", absValue / 1_000)}K"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_000)}K"
         absValue > 0 -> absValue.toInt().toString()
         else -> "0"
     }

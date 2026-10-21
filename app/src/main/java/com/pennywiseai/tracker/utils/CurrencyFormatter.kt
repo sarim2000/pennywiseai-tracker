@@ -316,13 +316,13 @@ object CurrencyFormatter {
         val useIndianNotation = useIndianAbbreviation(currencyCode)
         return when {
             useIndianNotation && absValue >= 1_00_00_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_00_00_000)}Cr"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_00_00_000)}Cr"
             useIndianNotation && absValue >= 1_00_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_00_000)}L"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_00_000)}L"
             absValue >= 10_000_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_000_000)}M"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000_000)}M"
             absValue >= 1_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_000)}K"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000)}K"
             absValue > 0 -> "${symbol}${absValue.toInt()}"
             else -> "${symbol}0"
         }

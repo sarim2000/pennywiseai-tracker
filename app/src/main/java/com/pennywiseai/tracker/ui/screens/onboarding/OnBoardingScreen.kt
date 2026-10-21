@@ -1,7 +1,11 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
 import android.Manifest
+import android.app.LocaleConfig
+import android.app.LocaleManager
 import android.os.Build
+import android.os.LocaleList
+import androidx.annotation.RequiresApi
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -66,6 +70,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
@@ -86,7 +91,9 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.text.Collator
 import java.util.Currency
+import java.util.Locale
 
 @Composable
 fun OnBoardingScreen(
@@ -226,10 +233,102 @@ private fun WelcomeStep() {
                 )
             }
         }
+
+        // ponytail: per-app language is framework-only on Android 13+ (same as Settings);
+        // older versions keep following the device language.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Spacer(modifier = Modifier.height(Spacing.lg))
+            LanguagePicker()
+        }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+/** Defaults to the device language; picking one sets the per-app locale and recreates the activity. */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Composable
+private fun LanguagePicker() {
+    val context = LocalContext.current
+    val localeManager = remember { context.getSystemService(LocaleManager::class.java) }
+    val languages = remember {
+        val supported = LocaleConfig(context).supportedLocales ?: LocaleList.getEmptyLocaleList()
+        // Debug builds also list the en-XA / ar-XB pseudolocales.
+        val locales = (0 until supported.size()).map { supported[it] }.filter { it.country !in PSEUDO_REGIONS }
+        val multiRegion = locales.groupBy { it.language }.filterValues { it.size > 1 }.keys
+        // Region only where a language has several variants (pt-BR / pt-PT).
+        listOf<Pair<Locale?, String>>(null to "") + locales
+            .map { it to (if (it.language in multiRegion) it.getDisplayName(it) else it.getDisplayLanguage(it)).replaceFirstChar { c -> c.titlecase(it) } }
+            .sortedWith(compareBy(Collator.getInstance()) { it.second })
+    }
+    val deviceLanguage = stringResource(R.string.onboarding_language_device)
+    val current = localeManager.applicationLocales.takeUnless { it.isEmpty }?.get(0)
+    Text(
+        text = stringResource(R.string.settings_language_title),
+        style = MaterialTheme.typography.titleMedium
+    )
+    Spacer(modifier = Modifier.height(Spacing.sm))
+    OnboardingPicker(
+        options = languages,
+        selected = languages.firstOrNull { it.first == current } ?: languages.first(),
+        label = { (locale, name) -> if (locale == null) deviceLanguage else name },
+        onSelect = { (locale, _) ->
+            localeManager.applicationLocales = locale?.let { LocaleList(it) } ?: LocaleList.getEmptyLocaleList()
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> OnboardingPicker(
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+    supportingText: String? = null
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        TextField(
+            value = label(selected),
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            supportingText = supportingText?.let { { Text(it) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(label(option)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                    leadingIcon = if (option == selected) {
+                        { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileStep(
     uiState: OnBoardingUiState,
@@ -286,47 +385,13 @@ private fun ProfileStep(
 
         Spacer(modifier = Modifier.height(Spacing.sm))
 
-        var currencyExpanded by rememberSaveable { mutableStateOf(false) }
-        ExposedDropdownMenuBox(
-            expanded = currencyExpanded,
-            onExpandedChange = { currencyExpanded = it }
-        ) {
-            TextField(
-                value = currencyLabel(uiState.selectedCurrency),
-                onValueChange = {},
-                readOnly = true,
-                singleLine = true,
-                supportingText = { Text(stringResource(R.string.onboarding_currency_hint)) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded) },
-                shape = MaterialTheme.shapes.large,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                )
-            )
-            ExposedDropdownMenu(
-                expanded = currencyExpanded,
-                onDismissRequest = { currencyExpanded = false }
-            ) {
-                viewModel.currencies.forEach { currency ->
-                    DropdownMenuItem(
-                        text = { Text(currencyLabel(currency)) },
-                        onClick = {
-                            viewModel.selectCurrency(currency)
-                            currencyExpanded = false
-                        },
-                        leadingIcon = if (currency == uiState.selectedCurrency) {
-                            { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-                        } else null
-                    )
-                }
-            }
-        }
+        OnboardingPicker(
+            options = viewModel.currencies,
+            selected = uiState.selectedCurrency,
+            label = ::currencyLabel,
+            onSelect = viewModel::selectCurrency,
+            supportingText = stringResource(R.string.onboarding_currency_hint)
+        )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
@@ -1003,6 +1068,7 @@ private fun currencyLabel(code: String): String {
 // Onboarding-only geometry. These are intentionally larger than any in-app
 // token: full-screen illustrative moments, not list chrome.
 private val HERO_ICON_SIZE = 100.dp
+private val PSEUDO_REGIONS = setOf("XA", "XB")
 private val HERO_ICON_SIZE_SMALL = 80.dp
 private val OPTION_TILE_SIZE = 72.dp
 private val SELECTION_RING_WIDTH = 3.dp

@@ -132,6 +132,9 @@
     <string name="onboarding_setup_steps">1. ملفك الشخصي\n2. أذونات الرسائل القصيرة للكشف التلقائي\n3. فحص المعاملات الأولية\n4. حسابك المصرفي الرئيسي</string>
     <string name="onboarding_name_title">بماذا نطلق عليك؟</string>
     <string name="onboarding_name_label">اسمك</string>
+    <string name="onboarding_currency_title">عملتك</string>
+    <string name="onboarding_language_device">لغة الجهاز</string>
+    <string name="onboarding_currency_hint">تُستخدم للمجاميع والميزانيات. يمكنك تغييرها من الإعدادات.</string>
     <string name="onboarding_avatar_title">اختر الصورة الرمزية</string>
     <string name="onboarding_avatar_cd">الصورة الرمزية %1$d</string>
     <string name="onboarding_photo_selected_cd">تم تحديد الصورة</string>

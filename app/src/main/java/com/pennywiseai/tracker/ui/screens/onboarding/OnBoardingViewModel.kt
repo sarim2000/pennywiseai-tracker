@@ -131,12 +131,13 @@ class OnBoardingViewModel @Inject constructor(
         _uiState.update { it.copy(selectedCurrency = currency) }
     }
 
-    /** Pre-selects the SIM's country currency (falling back to the device locale), else INR. */
+    /** Pre-selects the first supported currency of the SIM's country, then the device locale's, else INR. */
     private fun detectCurrency(): String {
         val simCountry = context.getSystemService(TelephonyManager::class.java)?.simCountryIso
-        val country = simCountry?.takeIf { it.isNotBlank() } ?: Locale.getDefault().country
-        val code = runCatching { Currency.getInstance(Locale("", country.uppercase())).currencyCode }.getOrNull()
-        return code?.takeIf { it in currencies } ?: "INR"
+        return listOfNotNull(simCountry, Locale.getDefault().country).firstNotNullOfOrNull { country ->
+            runCatching { Currency.getInstance(Locale("", country.uppercase())).currencyCode }
+                .getOrNull()?.takeIf { it in currencies }
+        } ?: "INR"
     }
 
     fun onSmsPermissionResult(granted: Boolean) {

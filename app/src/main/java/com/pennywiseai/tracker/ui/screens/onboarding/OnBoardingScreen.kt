@@ -155,7 +155,10 @@ fun OnBoardingScreen(
             label = "onboarding_step"
         ) { step ->
             when (step) {
-                OnBoardingStep.WELCOME -> WelcomeStep()
+                OnBoardingStep.WELCOME -> WelcomeStep(
+                    uiState = uiState,
+                    viewModel = viewModel
+                )
                 OnBoardingStep.PROFILE -> ProfileStep(
                     uiState = uiState,
                     viewModel = viewModel
@@ -175,10 +178,15 @@ fun OnBoardingScreen(
 }
 
 @Composable
-private fun WelcomeStep() {
+private fun WelcomeStep(
+    uiState: OnBoardingUiState,
+    viewModel: OnBoardingViewModel
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -240,6 +248,23 @@ private fun WelcomeStep() {
             Spacer(modifier = Modifier.height(Spacing.lg))
             LanguagePicker()
         }
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        Text(
+            text = stringResource(R.string.onboarding_currency_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        OnboardingPicker(
+            options = viewModel.currencies,
+            selected = uiState.selectedCurrency,
+            label = ::currencyLabel,
+            onSelect = viewModel::selectCurrency,
+            supportingText = stringResource(R.string.onboarding_currency_hint)
+        )
     }
 }
 
@@ -377,23 +402,6 @@ private fun ProfileStep(
         )
 
         Spacer(modifier = Modifier.height(Spacing.xl))
-
-        Text(
-            text = stringResource(R.string.onboarding_currency_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(Spacing.sm))
-
-        OnboardingPicker(
-            options = viewModel.currencies,
-            selected = uiState.selectedCurrency,
-            label = ::currencyLabel,
-            onSelect = viewModel::selectCurrency,
-            supportingText = stringResource(R.string.onboarding_currency_hint)
-        )
-
-        Spacer(modifier = Modifier.height(Spacing.lg))
 
         Text(
             text = stringResource(R.string.onboarding_avatar_title),

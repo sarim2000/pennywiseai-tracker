@@ -129,11 +129,12 @@ class StatementImportProcessorTest {
             )
         )
 
-        assertEquals(0, result.imported)
+        // A same-amount credit is a different transaction (a refund, a reversal):
+        // the debit is neither enriched onto it nor swallowed by it (#13).
+        assertEquals(1, result.imported)
         assertEquals(0, result.enriched)
-        assertEquals(1, result.skippedByAmountDate)
+        assertEquals(0, result.skippedByAmountDate)
         assertTrue(store.updated.isEmpty())
-        assertTrue(store.inserted.isEmpty())
     }
 
     @Test
@@ -203,7 +204,8 @@ class StatementImportProcessorTest {
         assertEquals(1, result.imported)
         assertEquals(0, result.skippedDuplicates)
         assertEquals("190200588907", store.inserted.single().reference)
-        assertEquals(1, store.amountDateQueries.size)
+        // Its own day first, then a day either side.
+        assertEquals(2, store.amountDateQueries.size)
     }
 
     @Test

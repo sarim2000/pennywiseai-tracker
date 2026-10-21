@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.parser.core.TransactionType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -76,7 +77,7 @@ class StatementTableParserTest {
         assertEquals(2, mapping.amountColumn)
         val txns = StatementTableParser.parse(rows, mapping, account).transactions
         assertEquals(listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.EXPENSE), txns.map { it.type })
-        assertEquals(listOf(BigDecimal("120.00"), BigDecimal("45.5"), BigDecimal("500.00")), txns.map { it.amount })
+        assertEquals(listOf(BigDecimal("120.00"), BigDecimal("45.50"), BigDecimal("500.00")), txns.map { it.amount })
     }
 
     @Test
@@ -133,8 +134,12 @@ class StatementTableParserTest {
         assertEquals(LocalDate.of(2025, 1, 5), p.parseDate("05/01/2025 14:32:10", "dd/MM/yyyy"))
         // A four-digit year must not be read as two digits plus leftovers.
         assertNull(p.parseDate("05/01/2025", "dd/MM/yy"))
-        // Excel day serial.
-        assertEquals(LocalDate.of(2025, 1, 5), p.parseDate("45662", null))
+        // Excel day serial — only when the column is read as Excel dates.
+        assertEquals(LocalDate.of(2025, 1, 5), p.parseDate("45662", StatementTableParser.EXCEL_SERIAL))
+        assertNull(p.parseDate("45662", "dd/MM/yyyy"))
+        assertNull(p.parseDate("45662", null))
+        // Serials outside 1990–2100 aren't dates either.
+        assertNull(p.parseDate("200", StatementTableParser.EXCEL_SERIAL))
         assertNull(p.parseDate("Total", "dd/MM/yyyy"))
     }
 
@@ -207,7 +212,113 @@ class StatementTableParserTest {
         val txns = StatementTableParser.parse(rows, StatementTableParser.guessMapping(rows), account).transactions
         assertEquals(1, txns.size)
         assertEquals(LocalDate.of(2025, 1, 5), StatementBalanceCheck.dateOf(txns[0]))
-        assertEquals(BigDecimal("749.5"), txns[0].balance)
+        assertEquals(BigDecimal("749.50"), txns[0].balance)
+    }
+
+    @Test
+    fun `a number in a text date column is not an Excel date`() {
+        // The summary row's "220" used to become a 1900s/2023-ish expense.
+        val rows = StatementTableParser.readCsv(
+            """
+            Date,Narration,Debit,Credit
+            02/01/2025,TEA,20.00,
+            03/01/2025,LUNCH,200.00,
+            220,Total debits,220.00,
+            45000,Opening balance carried,500.00,
+            """.trimIndent()
+        )
+        val mapping = StatementTableParser.guessMapping(rows)
+        assertEquals("dd/MM/yyyy", StatementTableParser.effectiveDateFormat(rows, mapping))
+        val result = StatementTableParser.parse(rows, mapping, account)
+        assertEquals(listOf("TEA", "LUNCH"), result.transactions.map { it.merchant })
+        assertEquals(2, result.skippedRows)
+    }
+
+    @Test
+    fun `a date far outside the statement's span is dropped`() {
+        val csv = buildString {
+            append("Date,Narration,Debit,Credit\n")
+            (1..12).forEach { append("%02d/01/2025,ROW $it,10.00,\n".format(it)) }
+            append("15/06/2023,TYPO ROW,999.00,\n")
+        }
+        val rows = StatementTableParser.readCsv(csv)
+        val result = StatementTableParser.parse(rows, StatementTableParser.guessMapping(rows), account)
+        assertEquals(12, result.transactions.size)
+        assertTrue(result.transactions.none { it.merchant == "TYPO ROW" })
+    }
+
+    @Test
+    fun `a channel in a Transaction Type column doesn't override the sign`() {
+        val rows = StatementTableParser.readCsv(
+            """
+            Date,Description,Transaction Type,Amount
+            02/01/2025,SHOP,Card,-450.00
+            03/01/2025,SALARY,NEFT,50000.00
+            """.trimIndent()
+        )
+        val mapping = StatementTableParser.guessMapping(rows)
+        // A "type" header of channel names isn't a Dr/Cr column.
+        assertEquals(StatementColumnMapping.NONE, mapping.typeColumn)
+        val forced = mapping.copy(typeColumn = 2)
+        assertEquals(
+            listOf(TransactionType.EXPENSE, TransactionType.INCOME),
+            StatementTableParser.parse(rows, forced, account).transactions.map { it.type }
+        )
+    }
+
+    @Test
+    fun `a Type column of Dr and Cr words is used`() {
+        val rows = StatementTableParser.readCsv(
+            """
+            Date,Description,Type,Amount
+            02/01/2025,SHOP,DR,450.00
+            03/01/2025,REFUND,Cr.,450.00
+            """.trimIndent()
+        )
+        val mapping = StatementTableParser.guessMapping(rows)
+        assertEquals(2, mapping.typeColumn)
+        assertEquals(
+            listOf(TransactionType.EXPENSE, TransactionType.INCOME),
+            StatementTableParser.parse(rows, mapping, account).transactions.map { it.type }
+        )
+    }
+
+    @Test
+    fun `a backslash before a closing quote doesn't break the CSV`() {
+        val rows = StatementTableParser.readCsv("Date,Narration,Debit\n02/01/2025,\"PAYMENT C:\\\",20.00\n")
+        assertEquals(listOf("02/01/2025", "PAYMENT C:\\", "20.00"), rows[1])
+    }
+
+    @Test
+    fun `references come from the Reference column or a channel narration`() {
+        val rows = StatementTableParser.readCsv("Txn Date,Narration,Chq/Ref No,Debit,Credit\n")
+        assertEquals(2, StatementTableParser.guessMapping(rows).referenceColumn)
+        val p = StatementTableParser
+        assertEquals("UTR0000123456", p.referenceFrom("UTR0000123456", "NEFT TRANSFER"))
+        assertEquals("612345678901", p.referenceFrom("", "UPI/612345678901/GROCERY MART/okaxis"))
+        assertEquals("612345678901", p.referenceFrom("", "IMPS-612345678901-SOME NAME"))
+        assertEquals("612345678901", p.referenceFrom("N289", "UPI/612345678901/X")) // a short cheque no. isn't one
+        assertNull(p.referenceFrom("", "NEFT/SALARY OCT/EXAMPLE CORP"))
+    }
+
+    @Test
+    fun `the preamble names an account by its last four`() {
+        val p = StatementTableParser
+        assertTrue(p.namesAccount("Sample Bank\nAccount: XXXXXX4321", "4321"))
+        assertTrue(p.namesAccount("A/c No: 4321", "4321"))
+        assertTrue(p.namesAccount("Account number 123456784321", "4321"))
+        // A year in the statement period is not an account number.
+        assertFalse(p.namesAccount("Period: 01/01/2021 to 31/01/2021", "2021"))
+        assertFalse(p.namesAccount("Account: XXXXXX4321", "1234"))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `xlsx parts with a DTD are refused`() {
+        StatementTableParser.readTable(
+            zip(
+                "xl/worksheets/sheet1.xml" to """<?xml version="1.0"?><!DOCTYPE lolz [<!ENTITY lol "lol">]><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>"""
+            )
+        )
     }
 
     @Test
@@ -231,9 +342,16 @@ class StatementTableParserTest {
 
     @Test
     fun `Excel numbers in exponent notation keep their value`() {
-        assertEquals(BigDecimal("1500"), StatementTableParser.parseAmount("1.5E+3")!!.value)
-        assertEquals(CellAmount(BigDecimal("250.5"), true), StatementTableParser.parseAmount("-250.5"))
-        assertEquals(BigDecimal("0.00012"), StatementTableParser.parseAmount("1.2E-4")!!.value)
+        assertEquals(BigDecimal("1500.00"), StatementTableParser.parseAmount("1.5E+3")!!.value)
+        assertEquals(CellAmount(BigDecimal("250.50"), true), StatementTableParser.parseAmount("-250.5"))
+    }
+
+    @Test
+    fun `Excel floating-point noise is rounded to paise`() {
+        // A formula result as Excel stores it.
+        assertEquals(BigDecimal("24521.00"), StatementTableParser.parseAmount("24521.000000000004")!!.value)
+        assertEquals(BigDecimal("0.30"), StatementTableParser.parseAmount("0.30000000000000004")!!.value)
+        assertEquals(BigDecimal("1234.57"), StatementTableParser.parseAmount("1234.565")!!.value)
     }
 
     @Test

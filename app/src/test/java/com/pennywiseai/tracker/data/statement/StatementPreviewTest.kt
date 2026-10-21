@@ -98,6 +98,94 @@ class StatementPreviewTest {
         assertEquals(1, store.rows.count { it.amount.compareTo(BigDecimal("15000")) == 0 })
     }
 
+    private fun table(csv: String): List<ParsedTransaction> {
+        val rows = StatementTableParser.readCsv(csv.trimIndent())
+        return StatementTableParser.parse(rows, StatementTableParser.guessMapping(rows), account).transactions
+    }
+
+    @Test
+    fun `a reference matches an SMS stamped a day after the statement's date`() = runBlocking {
+        // The SMS arrived on the 3rd; the statement books the payment on the 2nd.
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("450.00"), TransactionType.EXPENSE, day.plusDays(1), reference = "612345678901", merchant = "Grocery Mart"))
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.plusDays(1), reference = "612345678902", merchant = "Cafe"))
+        }
+        val parsed = table(
+            """
+            Txn Date,Narration,Chq/Ref No,Debit,Credit,Balance
+            02/01/2025,UPI/612345678901/GROCERY MART,612345678901,450.00,,9550.00
+            02/01/2025,COFFEE,612345678902,120.00,,9430.00
+            02/01/2025,SMS CHARGES,,59.00,,9371.00
+            """
+        )
+        assertEquals("612345678902", parsed[1].reference) // from the Reference column
+        val plan = StatementImportProcessor(store).plan(parsed)
+        assertEquals(listOf(2), plan.newIndices)
+        assertEquals(2, plan.count(StatementRowDecision.SkipReason.REFERENCE))
+    }
+
+    @Test
+    fun `without a reference, an amount match may sit a day off in the same direction`() = runBlocking {
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.plusDays(1), merchant = "Cafe"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,COFFEE,120.00,
+                """
+            )
+        )
+        assertTrue(plan.newIndices.isEmpty())
+        assertEquals(1, plan.count(StatementRowDecision.SkipReason.AMOUNT_DATE))
+    }
+
+    @Test
+    fun `a same-day reversal is not swallowed by the debit's SMS`() = runBlocking {
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day, merchant = "Cafe"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,CAFE,120.00,
+                02/01/2025,CAFE REVERSAL,,120.00
+                """
+            )
+        )
+        // The debit matches its SMS; the ₹120 credit is new money in.
+        assertEquals(listOf(1), plan.newIndices)
+    }
+
+    @Test
+    fun `two identical rows with one SMS are one match and one new row`() = runBlocking {
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("20.00"), TransactionType.EXPENSE, day, merchant = "Tea"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,TEA,20.00,
+                02/01/2025,TEA,20.00,
+                """
+            )
+        )
+        assertEquals(1, plan.matchedCount)
+        assertEquals(1, plan.newIndices.size)
+    }
+
+    @Test
+    fun `imported rows don't carry the statement's running balance`() = runBlocking {
+        val store = InMemoryStore()
+        val parsed = statement()
+        assertTrue(parsed.all { it.balance != null }) // kept for the closing-balance check…
+        StatementImportProcessor(store).process(parsed)
+        assertTrue(store.rows.all { it.balanceAfter == null }) // …but never stored as a bank-reported balance
+    }
+
     @Test
     fun `a same-day same-amount transaction on another account is not a match`() = runBlocking {
         val store = InMemoryStore().apply {
@@ -212,6 +300,9 @@ class StatementPreviewTest {
 
         override suspend fun findStatementMergeCandidate(transaction: TransactionEntity) =
             rows.firstOrNull { it.reference == transaction.reference && StatementTransactionEnricher.isStatementMatch(it, transaction) }
+
+        override suspend fun getTransactionsByReference(reference: String) =
+            rows.filter { !it.isDeleted && it.reference == reference }
 
         override suspend fun updateTransaction(transaction: TransactionEntity) {
             writes++

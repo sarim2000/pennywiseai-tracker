@@ -152,6 +152,8 @@
     <string name="manage_accounts_section_unlinked_cards">البطاقات غير المرتبطة</string>
     <string name="manage_accounts_section_credit_cards">بطاقات الائتمان</string>
     <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
+    <string name="manage_accounts_section_loan_accounts">حسابات القروض</string>
+    <string name="manage_accounts_hidden_header">الحسابات المتجاهَلة (%1$d)</string>
     <string name="manage_accounts_reassign_title">نقل المعاملات الموجودة؟</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="zero">تم تعيين معاملات %1$d من هذا الحساب إلى ملف تعريف مختلف. نقلها إلى الملف الشخصي الجديد أيضًا؟</item>
@@ -163,6 +165,7 @@
     </plurals>
     <string name="manage_accounts_reassign_move">نقل</string>
     <string name="manage_accounts_reassign_keep">الاحتفاظ كما هو</string>
+    <string name="manage_accounts_hidden_badge">متجاهَل</string>
     <string name="manage_accounts_business_badge">الأعمال</string>
     <string name="manage_accounts_outstanding">المستحق</string>
     <string name="manage_accounts_available">متاح</string>
@@ -175,7 +178,11 @@
     <string name="manage_accounts_action_clear">مسح</string>
     <string name="manage_accounts_action_link">ربط</string>
     <string name="manage_accounts_menu_history">التاريخ</string>
+    <string name="manage_accounts_menu_show">إلغاء التجاهل</string>
+    <string name="manage_accounts_menu_hide">تجاهل هذا الحساب</string>
     <!-- Snackbar after ignoring an account; %1$s = account label -->
+    <string name="manage_accounts_ignored_snackbar">تم تجاهل %1$s</string>
+    <string name="manage_accounts_undo">تراجع</string>
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">تاريخ البيان: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">تعيين تاريخ البيان</string>
@@ -209,6 +216,7 @@
     <string name="manage_accounts_update_credit_card">تحديث بطاقة الائتمان</string>
     <string name="manage_accounts_outstanding_balance">الرصيد غير المسدد</string>
     <string name="manage_accounts_outstanding_balance_hint">المبلغ المستحق حاليا على البطاقة</string>
+    <string name="manage_accounts_loan_outstanding_hint">المبلغ الذي لا يزال مستحقًا على القرض</string>
     <string name="manage_accounts_credit_limit_hint">الحد الأقصى الإجمالي للائتمان من البطاقة</string>
     <string name="manage_accounts_available_credit_label">الرصيد المتاح:</string>
     <string name="manage_accounts_utilization_label">الاستخدام:</string>
@@ -235,6 +243,7 @@
     <string name="manage_accounts_account_ending_in">الحساب الذي ينتهي في %1$s</string>
     <string name="manage_accounts_delete_warning">سيؤدي هذا إلى حذف كل سجل الرصيد لهذا الحساب بشكل دائم. سيتم فصل أي بطاقات مرتبطة. لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="manage_accounts_edit_account_title">تعديل الحساب</string>
+    <string name="manage_accounts_type_note">تغيير النوع يغيّر فقط طريقة احتساب الرصيد من الآن فصاعدًا. تبقى المعاملات السابقة كما هي.</string>
     <string name="manage_accounts_bank_name_label">اسم البنك</string>
     <string name="manage_accounts_account_number_label">رقم الحساب</string>
     <string name="manage_accounts_read_only">قراءة فقط</string>
@@ -253,7 +262,14 @@
     <!-- %1$s = formatted original loan amount -->
     <string name="loans_of_original">من %1$s</string>
     <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <string name="loans_person_owes_you">مدين لك بـ %1$s</string>
+    <string name="loans_person_you_owe">أنت مدين بـ %1$s</string>
+    <string name="loans_person_all_settled">تمت تسوية كل شيء</string>
     <!-- Open loans both ways that cancel out exactly -->
+    <string name="loans_person_even">متعادلان — لا ديون على أي طرف</string>
+    <string name="loans_settle_up">تسوية الحساب</string>
+    <string name="loans_settle_up_title">تسوية الحساب مع %1$s؟</string>
+    <string name="loans_settle_up_message">سيتم تحديد جميع القروض المفتوحة مع %1$s على أنها مسوّاة، ويُعفى من أي مبلغ لم يُسدَّد بعد.</string>
     <!-- ══ Loan detail ══ -->
     <string name="loan_detail_title_fallback">قرض</string>
     <string name="loan_detail_more">المزيد</string>
@@ -321,20 +337,4 @@
         <item quantity="many">عرض جميع حسابات %1$d</item>
         <item quantity="other">عرض جميع حسابات %1$d</item>
     </plurals>
-    <string name="manage_accounts_section_loan_accounts">حسابات القروض</string>
-    <string name="manage_accounts_hidden_header">الحسابات المتجاهَلة (%1$d)</string>
-    <string name="manage_accounts_hidden_badge">متجاهَل</string>
-    <string name="manage_accounts_menu_show">إلغاء التجاهل</string>
-    <string name="manage_accounts_menu_hide">تجاهل هذا الحساب</string>
-    <string name="manage_accounts_ignored_snackbar">تم تجاهل %1$s</string>
-    <string name="manage_accounts_undo">تراجع</string>
-    <string name="manage_accounts_loan_outstanding_hint">المبلغ الذي لا يزال مستحقًا على القرض</string>
-    <string name="manage_accounts_type_note">تغيير النوع يغيّر فقط طريقة احتساب الرصيد من الآن فصاعدًا. تبقى المعاملات السابقة كما هي.</string>
-    <string name="loans_person_owes_you">مدين لك بـ %1$s</string>
-    <string name="loans_person_you_owe">أنت مدين بـ %1$s</string>
-    <string name="loans_person_all_settled">تمت تسوية كل شيء</string>
-    <string name="loans_person_even">متعادلان — لا ديون على أي طرف</string>
-    <string name="loans_settle_up">تسوية الحساب</string>
-    <string name="loans_settle_up_title">تسوية الحساب مع %1$s؟</string>
-    <string name="loans_settle_up_message">سيتم تحديد جميع القروض المفتوحة مع %1$s على أنها مسوّاة، ويُعفى من أي مبلغ لم يُسدَّد بعد.</string>
 </resources>

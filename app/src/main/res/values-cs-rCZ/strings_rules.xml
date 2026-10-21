@@ -67,11 +67,9 @@
     <string name="import_statement_back">Zpět</string>
     <string name="import_statement_select_pdf">Vyberte PDF prohlášení</string>
     <string name="import_statement_loading_title">Importuji transakce...</string>
-    <string name="import_statement_loading_body">Analýza PDF a kontrola duplicit</string>
     <string name="import_statement_complete">Import dokončen</string>
     <string name="import_statement_result_imported">Transakce importovány</string>
     <string name="import_statement_result_enriched">obohacené transakce</string>
-    <string name="import_statement_result_total_parsed">Celkem analyzováno z PDF</string>
     <string name="import_statement_result_duplicates">Duplikáty přeskočeny: %1$d</string>
     <string name="import_statement_result_exact">Přesný zpětný dovoz</string>
     <string name="import_statement_result_by_reference">Podle UPI</string>
@@ -91,7 +89,6 @@
     <string name="upgrade_copy_address">Kopírovat adresu</string>
     <string name="upgrade_includes">Zahrnuje</string>
     <string name="upgrade_feature_rules">Neomezená vlastní pravidla</string>
-    <string name="upgrade_feature_statements">Neomezený dovoz prohlášení PDF</string>
     <string name="upgrade_feature_csv">Neomezený export CSV</string>
     <string name="upgrade_feature_merge_accounts">Sloučit duplicitní účty</string>
     <string name="upgrade_restoring">Obnovuji…</string>

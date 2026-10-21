@@ -14,6 +14,7 @@
     <string name="home_close">إغلاق</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">الميزانيات</string>
+    <string name="home_section_goals">الأهداف</string>
     <string name="home_section_loans">القروض</string>
     <string name="home_section_groups">المجموعات</string>
     <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
@@ -28,6 +29,11 @@
     <string name="home_fab_add">إضافة معاملة أو اشتراك</string>
     <string name="home_fab_sync">مزامنة الرسائل القصيرة (ضغطة طويلة للحصول على ريسينك كامل)</string>
     <string name="home_fab_sync_hint">اضغط للريسينك الكامل</string>
+    <string name="home_resync_title">قراءة الرسائل مجددًا</string>
+    <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
+    <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
+    <string name="home_resync_rebuild">إعادة البناء من البداية</string>
+    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات SMS للاستفادة من إصلاحات قراءة الرسائل. تُلغى التعديلات على معاملات SMS. ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
     <string name="home_menu_monthly_recap">موجز شهري</string>
@@ -68,6 +74,7 @@
         <item quantity="other">%1$d قروض نشطة</item>
     </plurals>
     <string name="home_loans_owed_to_you">مستحق لك %1$s</string>
+    <string name="home_loans_you_owe">أنت مدين بـ %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
     <string name="greeting_last_day_of_month">آخر يوم في %1$s</string>
     <plurals name="greeting_days_left_in_month">
@@ -97,6 +104,8 @@
     <string name="color_swatch_selected">المحدد</string>
     <string name="profile_filter_all_accounts">جميع الحسابات</string>
     <string name="whats_new_got_it">فهمت ذلك</string>
+    <string name="whats_new_title">ما الجديد</string>
+    <string name="whats_new_version">الإصدار %1$s</string>
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">اضغط هنا لفحص رسائل SMS الخاصة بك للمعاملات</string>
     <string name="spotlight_tap_to_dismiss">انقر في أي مكان للإلغاء</string>
@@ -105,6 +114,7 @@
     <string name="type_filter_income">دخل</string>
     <string name="type_filter_expense">مصروف</string>
     <string name="type_filter_credit">رصيد</string>
+    <string name="type_filter_spending">الإنفاق</string>
     <string name="type_filter_transfer">تحويل</string>
     <string name="type_filter_investment">استثمر</string>
     <!-- ══ SMS scan progress dialog ══ -->
@@ -181,6 +191,7 @@
     <string name="budget_card_over_budget">%1$s زيادة على الميزانية</string>
     <string name="budget_card_remaining">متبقي %1$s</string>
     <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <string name="budget_card_per_day">%1$s/يوم</string>
     <string name="budget_card_finished">انتهى</string>
     <string name="budget_card_tracking_all">تتبع جميع المصروفات</string>
     <!-- %1$s is a weekday name -->
@@ -237,6 +248,7 @@
         <item quantity="other">عناصر %1$d</item>
     </plurals>
     <string name="group_card_no_transactions">لا توجد معاملات بعد</string>
+    <string name="group_card_invested">تم استثمار %1$s</string>
     <plurals name="group_card_transaction_count">
         <item quantity="zero">%1$d معاملة</item>
         <item quantity="one">معاملة %1$d</item>
@@ -314,18 +326,6 @@
     <string name="notif_txn_public_text">%1$s • يحتاج التوازن إلى مظهر</string>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
-    <string name="home_section_goals">الأهداف</string>
-    <string name="home_resync_title">قراءة الرسائل مجددًا</string>
-    <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
-    <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
-    <string name="home_resync_rebuild">إعادة البناء من البداية</string>
-    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات SMS للاستفادة من إصلاحات قراءة الرسائل. تُلغى التعديلات على معاملات SMS. ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
-    <string name="home_loans_you_owe">أنت مدين بـ %1$s</string>
-    <string name="whats_new_title">ما الجديد</string>
-    <string name="whats_new_version">الإصدار %1$s</string>
-    <string name="type_filter_spending">الإنفاق</string>
-    <string name="budget_card_per_day">%1$s/يوم</string>
-    <string name="group_card_invested">تم استثمار %1$s</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">يعجبك PennyWise؟</string>
     <string name="pro_home_card_body">مع Pro تحصل على قواعد وأهداف وعمليات تصدير واستيراد كشوف حساب بلا حدود.</string>

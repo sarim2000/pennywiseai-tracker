@@ -431,7 +431,9 @@ else
     read -p "Push to GitHub? (y/n) " -n 1 -r
     echo
 fi
+PUBLISHED=""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
+    PUBLISHED="true"
     git push origin main
     git push origin "v$NEXT_VERSION"
     echo -e "${GREEN}✅ Pushed to GitHub${NC}"
@@ -549,8 +551,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     fi
 fi
 
-# 13. Deploy the AI relay + dashboard (ai.pennywise.zynth.dev) when relay/ changed.
-if [ -n "$DO_RELAY" ]; then
+# 13. Deploy the AI relay + dashboard (ai.pennywise.zynth.dev) when relay/ changed,
+# and only for a release that was pushed: a local-only release keeps the relay as is.
+if [ -n "$DO_RELAY" ] && [ -z "$PUBLISHED" ]; then
+    echo -e "${YELLOW}Skipped the AI relay deploy: the release wasn't pushed.${NC}"
+elif [ -n "$DO_RELAY" ]; then
     echo -e "${YELLOW}🤖 Deploying AI relay to Cloudflare...${NC}"
     cd "$ORIGINAL_DIR/relay"
     if npm ci --silent && npm --prefix dashboard ci --silent && npm test --silent && npm run deploy; then

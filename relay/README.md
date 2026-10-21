@@ -8,7 +8,7 @@ Cloudflare Worker that lets Claude, ChatGPT and other MCP apps — and the big-s
 
 ## Self-hosting
 
-Anyone can run their own relay so nothing passes through PennyWise's. You need a Cloudflare account (the free plan is enough) and Node 20+.
+Anyone can run their own relay so nothing passes through PennyWise's. You need a Cloudflare account (the free plan is enough) and Node 22.12+.
 
 1. `cd relay && npm ci && npm --prefix dashboard ci`
 2. `npx wrangler login`

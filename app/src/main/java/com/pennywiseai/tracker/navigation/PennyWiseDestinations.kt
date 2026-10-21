@@ -103,6 +103,9 @@ object ImportStatement
 object Webhooks
 
 @Serializable
+object AiAccess
+
+@Serializable
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,

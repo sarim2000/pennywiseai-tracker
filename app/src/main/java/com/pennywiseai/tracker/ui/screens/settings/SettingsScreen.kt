@@ -112,6 +112,7 @@ fun SettingsScreen(
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToWebhooks: () -> Unit = {},
+    onNavigateToAiAccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
@@ -803,6 +804,17 @@ fun SettingsScreen(
                     onDownload = { settingsViewModel.startModelDownload() },
                     onCancel = { settingsViewModel.cancelDownload() },
                     onDelete = { settingsViewModel.deleteModel() }
+                )
+            }
+            SettingsGroup {
+                SettingsNavItem(
+                    icon = Icons.Default.AutoAwesome,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.ai_access_settings_title),
+                    subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
+                    onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
+                    position = ListItemPosition.Single
                 )
             }
 

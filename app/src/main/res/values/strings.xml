@@ -12,6 +12,7 @@
 
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Add Transaction</string>
+    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Add</string>
     <string name="shortcut_add_transaction_long">Add transaction</string>
 

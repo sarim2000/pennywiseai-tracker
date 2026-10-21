@@ -558,6 +558,11 @@ fun MainScreen(
                                 rootNavController?.navigate(
                                     com.pennywiseai.tracker.navigation.Webhooks
                                 ) { launchSingleTop = true }
+                            },
+                            onNavigateToAiAccess = {
+                                rootNavController?.navigate(
+                                    com.pennywiseai.tracker.navigation.AiAccess
+                                ) { launchSingleTop = true }
                             }
                         )
                     }

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated: August 2026**
+**Last Updated: October 2026**
 
 ## Our Commitment to Privacy
 
@@ -55,6 +55,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 - **Model Download**: One-time download of the ~1.5GB Qwen 2.5 model from a public Cloudflare R2 bucket, verified against a SHA-256 checksum before use
 - **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com; only the currency code is sent
 - **Parse Reports**: The "report a parsing problem" action opens pennywise.zynth.dev with the SMS text and sender ID pre-filled. The link also carries an encrypted device identifier — your Android device ID plus a timestamp, RSA-encrypted on-device before it leaves. Opening the page sends these details to the server right away to generate a parsed preview; submitting the report itself remains a separate user action
+- **AI Access (optional, off by default)**: Only while you have started an AI session, answers to a connected AI app's questions travel from your phone through PennyWise's relay (see "Connected AI Apps" below)
 - **App Updates**: Google Play Store variant uses Play Services for app updates (F-Droid variant does not)
 - **After Model Download**: AI works completely offline, no internet required for core features
 
@@ -81,6 +82,16 @@ PennyWise AI does **NOT** use:
 - Chat history is saved locally in the app's database so conversations survive restarts; it's never transmitted
 - AI insights are generated locally from your local transaction data
 - Model file stored in app's private storage
+
+### Connected AI Apps (optional, Pro)
+You can connect Claude, ChatGPT or another app that supports MCP so it can answer questions about your spending. It is off until you set it up, and it only works while you have started a timed AI session on your phone.
+
+- **Your data stays on your phone.** The AI app sends questions to PennyWise's relay (a Cloudflare Worker at ai.pennywise.zynth.dev), which passes them to your phone over a connection your phone opened. Your phone answers from its local database and the answer goes back the same way. The relay never stores or logs questions or answers; its code is in this repository under `relay/`.
+- **What the relay stores**: a random ID for your phone, a hash of its secret, and your connected AI apps (their names and hashed sign-in tokens). Nothing about your money.
+- **What an AI app can read**: transactions (date, merchant or payee name, category, type, amount and currency, bank with the last 4 digits of the account), account balances and credit card dues, and active subscriptions. It can search your whole history, across all profiles, up to 200 transactions per request. Payee names can include people's names for transfers.
+- **What it never gets**: SMS text, full account numbers, UPI or reference numbers, notes, receipts, budgets, goals, loans or your settings. It cannot add, change or delete anything.
+- **The AI provider** (for example Anthropic or OpenAI) receives the answers it reads, under its own privacy policy.
+- **Control**: stop the session any time from the notification, disconnect one app or all of them in Settings → Connect Claude / ChatGPT. Disconnecting all also deletes your phone's ID from the relay.
 
 ## Data Export
 

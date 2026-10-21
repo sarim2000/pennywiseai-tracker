@@ -1,0 +1,7 @@
+node_modules/
+.wrangler/
+.dev.vars
+.fake-phone.json
+.fake-phone-local.json
+public/dashboard/
+*.log

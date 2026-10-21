@@ -1,0 +1,23 @@
+// PennyWise AI relay (ADR 0002). Passes MCP tool calls to the phone; stores and logs no money data.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "pennywise-ai-relay",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-09-01",
+	// CIMD: the OAuth library fetches client metadata documents and must never reach private addresses.
+	"compatibility_flags": ["global_fetch_strictly_public"],
+	"routes": [{ "pattern": "ai.pennywise.zynth.dev", "custom_domain": true }],
+	// Dashboard page; the Worker runs first so it can add security headers.
+	"assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
+	"vars": { "BASE_URL": "https://ai.pennywise.zynth.dev" },
+	// KV namespace "pennywise-ai-relay-oauth": OAuth grants (hashed) and pairing codes.
+	"kv_namespaces": [{ "binding": "OAUTH_KV", "id": "a045a70c397941b4a4bcc7672f676aa9" }],
+	"durable_objects": { "bindings": [{ "name": "PHONE", "class_name": "Phone" }] },
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["Phone"] }],
+	"ratelimits": [
+		{ "name": "PAIR_LIMIT", "namespace_id": "840101", "simple": { "limit": 10, "period": 60 } },
+		{ "name": "REGISTER_LIMIT", "namespace_id": "840102", "simple": { "limit": 5, "period": 60 } },
+		{ "name": "MCP_LIMIT", "namespace_id": "840103", "simple": { "limit": 120, "period": 60 } }
+	],
+	"observability": { "enabled": true, "logs": { "invocation_logs": false } }
+}

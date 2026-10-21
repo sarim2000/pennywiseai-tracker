@@ -1,0 +1,24 @@
+{
+  "name": "pennywise-ai-relay",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
+    "test": "vitest run",
+    "types": "wrangler types",
+    "build": "npm --prefix dashboard run build",
+    "pretest": "npm run build"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "^1.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.5",
+    "@cloudflare/workers-types": "^5.20261019.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.151.2",
+    "ws": "^8.22.0"
+  }
+}

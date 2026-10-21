@@ -117,6 +117,7 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Pro tier — statement-import monthly quota tracking.
         val LAST_STATEMENT_IMPORT_AT = longPreferencesKey("last_statement_import_at")
+        val STATEMENT_COLUMN_MAPPINGS = stringPreferencesKey("statement_column_mappings")
 
         // What's New feature
         val LAST_SEEN_APP_VERSION = stringPreferencesKey("last_seen_app_version")
@@ -746,6 +747,18 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] = epochMillis
         }
+    }
+
+    /**
+     * Spreadsheet statement column mappings (#13), JSON keyed by header
+     * signature — see StatementTableParser.encodeMappings. Device-local, not
+     * backed up: a lost mapping costs one re-map.
+     */
+    suspend fun getStatementColumnMappings(): String? =
+        context.dataStore.data.first()[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS]
+
+    suspend fun setStatementColumnMappings(json: String) {
+        context.dataStore.edit { it[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS] = json }
     }
 
     // What's New feature

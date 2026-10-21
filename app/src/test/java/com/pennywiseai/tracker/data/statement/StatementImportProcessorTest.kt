@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -22,9 +23,7 @@ class StatementImportProcessorTest {
             merchantName = "Specific Merchant",
             reference = null
         )
-        val store = FakeTransactionStore(
-            amountDateMatches = listOf(existingSmsWithoutReference)
-        )
+        val store = FakeTransactionStore(existingSmsWithoutReference)
         val processor = StatementImportProcessor(store)
 
         val result = processor.process(
@@ -36,7 +35,7 @@ class StatementImportProcessorTest {
         assertEquals(0, result.skippedByReference)
         assertEquals(1, result.skippedByAmountDate)
         assertTrue(store.inserted.isEmpty())
-        assertEquals(1, store.amountDateQueries.size)
+        assertEquals(1, store.rangeQueries)
     }
 
     @Test
@@ -47,9 +46,7 @@ class StatementImportProcessorTest {
             description = null,
             reference = null
         )
-        val store = FakeTransactionStore(
-            amountDateMatches = listOf(existingSmsWithoutReference)
-        )
+        val store = FakeTransactionStore(existingSmsWithoutReference)
         val processor = StatementImportProcessor(store)
 
         val result = processor.process(
@@ -66,7 +63,7 @@ class StatementImportProcessorTest {
         assertEquals(0, result.skippedByAmountDate)
         assertEquals("Swiggy", store.updated.single().merchantName)
         assertTrue(store.inserted.isEmpty())
-        assertEquals(1, store.amountDateQueries.size)
+        assertEquals(1, store.rangeQueries)
     }
 
     @Test
@@ -78,9 +75,7 @@ class StatementImportProcessorTest {
             reference = null,
             dateTime = baseTime
         )
-        val store = FakeTransactionStore(
-            amountDateMatches = listOf(existingSmsWithoutReference)
-        )
+        val store = FakeTransactionStore(existingSmsWithoutReference)
         val processor = StatementImportProcessor(store)
 
         val result = processor.process(
@@ -102,19 +97,17 @@ class StatementImportProcessorTest {
         assertEquals(0, result.skippedByAmountDate)
         assertEquals("Swiggy", store.updated.single().merchantName)
         assertTrue(store.inserted.isEmpty())
-        assertEquals(1, store.amountDateQueries.size)
+        assertEquals(1, store.rangeQueries)
     }
 
     @Test
     fun `amount date fallback does not enrich opposite direction transaction`() = runBlocking {
         val store = FakeTransactionStore(
-            amountDateMatches = listOf(
-                transaction(
-                    id = 8,
-                    merchantName = "UPI Transaction",
-                    transactionType = TransactionType.INCOME,
-                    reference = null
-                )
+            transaction(
+                id = 8,
+                merchantName = "UPI Transaction",
+                transactionType = TransactionType.INCOME,
+                reference = null
             )
         )
         val processor = StatementImportProcessor(store)
@@ -129,11 +122,12 @@ class StatementImportProcessorTest {
             )
         )
 
-        assertEquals(0, result.imported)
+        // A same-amount credit is a different transaction (a refund, a reversal):
+        // the debit is neither enriched onto it nor swallowed by it (#13).
+        assertEquals(1, result.imported)
         assertEquals(0, result.enriched)
-        assertEquals(1, result.skippedByAmountDate)
+        assertEquals(0, result.skippedByAmountDate)
         assertTrue(store.updated.isEmpty())
-        assertTrue(store.inserted.isEmpty())
     }
 
     @Test
@@ -144,7 +138,7 @@ class StatementImportProcessorTest {
             description = null,
             reference = "190200588907"
         )
-        val store = FakeTransactionStore(hashMatch = existingGeneric)
+        val store = FakeTransactionStore(existingGeneric)
         val processor = StatementImportProcessor(store)
 
         val result = processor.process(
@@ -162,16 +156,13 @@ class StatementImportProcessorTest {
         assertEquals(0, result.skippedByHash)
         assertEquals("Swiggy", store.updated.single().merchantName)
         assertTrue(store.inserted.isEmpty())
-        assertTrue(store.amountDateQueries.isEmpty())
     }
 
     @Test
     fun `amount date fallback does not enrich ambiguous generic transactions`() = runBlocking {
         val store = FakeTransactionStore(
-            amountDateMatches = listOf(
-                transaction(id = 8, merchantName = "UPI Transaction", reference = null),
-                transaction(id = 9, merchantName = "UPI Transaction", reference = null)
-            )
+            transaction(id = 8, merchantName = "UPI Transaction", reference = null),
+            transaction(id = 9, merchantName = "UPI Transaction", reference = null)
         )
         val processor = StatementImportProcessor(store)
 
@@ -203,7 +194,8 @@ class StatementImportProcessorTest {
         assertEquals(1, result.imported)
         assertEquals(0, result.skippedDuplicates)
         assertEquals("190200588907", store.inserted.single().reference)
-        assertEquals(1, store.amountDateQueries.size)
+        // One read of the statement's date range, whatever matched.
+        assertEquals(1, store.rangeQueries)
     }
 
     @Test
@@ -214,7 +206,7 @@ class StatementImportProcessorTest {
             description = null,
             reference = "190200588907"
         )
-        val store = FakeTransactionStore(mergeCandidate = existingSms)
+        val store = FakeTransactionStore(existingSms)
         val processor = StatementImportProcessor(store)
 
         val result = processor.process(
@@ -230,37 +222,67 @@ class StatementImportProcessorTest {
         assertEquals(1, result.enriched)
         assertEquals("Swiggy", store.updated.single().merchantName)
         assertTrue(store.inserted.isEmpty())
-        assertTrue(store.amountDateQueries.isEmpty())
+    }
+
+    @Test
+    fun `wallet statements printing a shorter or zero-padded account still match the SMS`() = runBlocking {
+        // Paytm prints "17" for the SMS's "4517"; Google Pay "0123" for an SMS's "123".
+        for ((smsAccount, statementAccount) in listOf("4517" to "17", "123" to "0123")) {
+            val store = FakeTransactionStore(
+                transaction(merchantName = "Specific Merchant", reference = null, accountNumber = smsAccount)
+            )
+            val result = StatementImportProcessor(store).process(
+                listOf(parsedTransaction(accountLast4 = statementAccount))
+            )
+            assertEquals(0, result.imported)
+            assertEquals(1, result.skippedByAmountDate)
+        }
+    }
+
+    @Test
+    fun `a different account is still no match`() {
+        assertFalse(StatementTransactionEnricher.accountsMatch("0517", "4517"))
+        assertFalse(StatementTransactionEnricher.accountsMatch("7", "4517"))
+        assertTrue(StatementTransactionEnricher.accountsMatch(null, "4517"))
+    }
+
+    @Test
+    fun `a reference match doesn't need the accounts to agree`() = runBlocking {
+        val store = FakeTransactionStore(transaction(merchantName = "Specific Merchant", accountNumber = "9999"))
+        val result = StatementImportProcessor(store).process(listOf(parsedTransaction()))
+        assertEquals(1, result.skippedByReference)
+    }
+
+    @Test
+    fun `a timed row never matches an SMS on the next day`() = runBlocking {
+        // GPay ₹500 on the 1st; an unrelated ₹500 SMS on the 2nd.
+        val unrelated = transaction(amount = BigDecimal("500"), reference = null, dateTime = baseTime.plusDays(1))
+        val store = FakeTransactionStore(unrelated)
+        val result = StatementImportProcessor(store).process(
+            listOf(parsedTransaction(amount = BigDecimal("500.00"), merchant = "Swiggy", reference = null))
+        )
+        assertEquals(1, result.imported)
+        assertTrue(store.updated.isEmpty())
     }
 
     private class FakeTransactionStore(
-        private val hashMatch: TransactionEntity? = null,
-        private val mergeCandidate: TransactionEntity? = null,
-        private val amountDateMatches: List<TransactionEntity> = emptyList()
+        vararg stored: TransactionEntity
     ) : StatementImportProcessor.TransactionStore {
+        private val stored = stored.toList()
         val inserted = mutableListOf<TransactionEntity>()
         val updated = mutableListOf<TransactionEntity>()
-        val amountDateQueries = mutableListOf<Pair<LocalDateTime, LocalDateTime>>()
+        var rangeQueries = 0
 
-        override suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
-            hashMatch
+        override suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
+            stored.filter { it.transactionHash in hashes }
 
-        override suspend fun findStatementMergeCandidate(
-            transaction: TransactionEntity
-        ): TransactionEntity? =
-            mergeCandidate
+        override suspend fun getTransactionsBetween(start: LocalDateTime, end: LocalDateTime): List<TransactionEntity> {
+            rangeQueries++
+            return stored.filter { !it.isDeleted && it.dateTime in start..end }
+        }
 
         override suspend fun updateTransaction(transaction: TransactionEntity) {
             updated += transaction
-        }
-
-        override suspend fun getTransactionByAmountAndDate(
-            amount: BigDecimal,
-            dateStart: LocalDateTime,
-            dateEnd: LocalDateTime
-        ): List<TransactionEntity> {
-            amountDateQueries += dateStart to dateEnd
-            return amountDateMatches
         }
 
         override suspend fun insertTransactions(transactions: List<TransactionEntity>) {

@@ -264,42 +264,7 @@ class ManageAccountsViewModel @Inject constructor(
     
     fun updateAccountBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
         viewModelScope.launch {
-            // For a manual/cash account the balance is derived (opening + Σtxns). The
-            // user types their *current* balance, so back-solve the opening (option b)
-            // — future transactions still adjust from there.
-            if (accountBalanceRepository.isManualAccount(bankName, accountLast4)) {
-                accountBalanceRepository.setManualCurrentBalance(bankName, accountLast4, newBalance)
-                return@launch
-            }
-
-            // Get the latest balance to preserve existing account properties
-            val latestBalance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
-
-            accountBalanceRepository.insertBalance(
-                AccountBalanceEntity(
-                    bankName = bankName,
-                    accountLast4 = accountLast4,
-                    balance = newBalance,
-                    creditLimit = latestBalance?.creditLimit,
-                    isCreditCard = latestBalance?.isCreditCard ?: false,
-                    // Reinserted rows are stamped MANUAL (so a rescan won't purge a
-                    // user-edited balance), but that makes resolveAccountCurrency trust
-                    // the stored value. Resolve it first so an SMS-tracked non-INR
-                    // account keeps its parser currency instead of flipping to the
-                    // stored INR default. See [CurrencyFormatter.resolveAccountCurrency].
-                    currency = CurrencyFormatter.resolveAccountCurrency(
-                        sourceType = latestBalance?.sourceType,
-                        storedCurrency = latestBalance?.currency ?: "INR",
-                        bankName = bankName
-                    ),
-                    accountType = latestBalance?.accountType,
-                    profileId = latestBalance?.profileId ?: ProfileEntity.PERSONAL_ID,
-                    alias = latestBalance?.alias,
-                    lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
-                    sourceType = "MANUAL",
-                    timestamp = LocalDateTime.now()
-                )
-            )
+            accountBalanceRepository.setCurrentBalance(bankName, accountLast4, newBalance)
         }
     }
 

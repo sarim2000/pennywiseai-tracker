@@ -280,6 +280,13 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionByReference(reference: String): TransactionEntity? =
         transactionDao.getTransactionByReference(reference)
 
+    /** Transactions (deleted included) with any of [hashes], in chunks under SQLite's bound-variable limit. */
+    suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
+        hashes.chunked(500).flatMap { transactionDao.getTransactionsByHashes(it) }
+
+    suspend fun getTransactionsBetweenDatesList(startDate: LocalDateTime, endDate: LocalDateTime): List<TransactionEntity> =
+        transactionDao.getTransactionsBetweenDatesList(startDate, endDate)
+
     suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
         val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
         return transactionDao.getTransactionsByReference(reference)

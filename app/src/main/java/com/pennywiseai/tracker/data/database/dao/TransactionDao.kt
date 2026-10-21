@@ -276,6 +276,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE transaction_hash = :transactionHash LIMIT 1")
     suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
 
+    @Query("SELECT * FROM transactions WHERE transaction_hash IN (:transactionHashes)")
+    suspend fun getTransactionsByHashes(transactionHashes: List<String>): List<TransactionEntity>
+
     /**
      * A SOFT-DELETED transaction from the exact same SMS (raw sender + body).
      * Used to keep deletion durable across app updates: the transaction_hash

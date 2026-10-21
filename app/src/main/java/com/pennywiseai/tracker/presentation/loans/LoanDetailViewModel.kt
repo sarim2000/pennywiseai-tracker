@@ -43,6 +43,8 @@ class LoanDetailViewModel @Inject constructor(
 
     private fun loadLoan() {
         viewModelScope.launch {
+            // Opened straight from a transaction, Loans may not have run this yet.
+            loanRepository.refreshActiveLoans()
             val loan = loanRepository.getLoanById(loanId)
             _uiState.value = _uiState.value.copy(loan = loan, isLoading = false)
         }

@@ -4,12 +4,14 @@ import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -87,6 +89,65 @@ class LoanRepaymentCapTest {
         coEvery { transactionDao.insertTransaction(capture(inserted)) } returns 11L
         runBlocking { repo.recordManualRepayment(2, BigDecimal("100"), "Pal", "INR") }
         assertNull(inserted.captured.loanContribution)
+    }
+
+    // #876: a borrowed ₹500 repaid by a ₹220 UPI payment the parser typed CREDIT.
+    private val borrowed = LoanEntity(
+        id = 2, personName = "Pal", direction = LoanDirection.BORROWED,
+        originalAmount = BigDecimal("500"), remainingAmount = BigDecimal("500"), currency = "INR"
+    )
+    private val borrowedFrom = txn("500", loanId = 2).copy(id = 8)
+    private val upiCredit = txn("220").copy(transactionType = TransactionType.CREDIT, merchantName = "UPI")
+
+    @Test
+    fun `a CREDIT payment linked to a borrowed loan repays it`() {
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { transactionDao.getTransactionById(9) } returns upiCredit
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom, upiCredit.copy(loanId = 2))
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9) }
+        assertEquals(0, BigDecimal("280").compareTo(saved.captured.remainingAmount))
+        assertEquals(LoanStatus.ACTIVE, saved.captured.status)
+    }
+
+    @Test
+    fun `opening Loans corrects a remainder saved before CREDIT repayments counted`() {
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom, upiCredit.copy(loanId = 2))
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.refreshActiveLoans() }
+        assertEquals(0, BigDecimal("280").compareTo(saved.captured.remainingAmount))
+    }
+
+    @Test
+    fun `a loan already right is not rewritten`() {
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom)
+        runBlocking { repo.refreshActiveLoans() }
+        coVerify(exactly = 0) { loanDao.updateLoan(any()) }
+    }
+
+    @Test
+    fun `a note given with a repayment is kept on that transaction`() {
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { transactionDao.getTransactionById(9) } returns upiCredit
+        val saved = slot<TransactionEntity>()
+        coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9, note = " first part ") }
+        assertEquals("first part", saved.captured.description)
+    }
+
+    @Test
+    fun `a note never overwrites the transaction's own description`() {
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { transactionDao.getTransactionById(9) } returns upiCredit.copy(description = "groceries")
+        val saved = slot<TransactionEntity>()
+        coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9, note = "first part") }
+        assertEquals("groceries · first part", saved.captured.description)
     }
 
     @Test

@@ -27,11 +27,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -129,7 +132,7 @@ fun RecurringTransactionsScreen(
     editing?.let { form ->
         RecurringEditorDialog(
             form = form,
-            categoryNames = categories.map { it.name },
+            categories = categories,
             onDismiss = { editing = null },
             onSave = { viewModel.save(it); editing = null }
         )
@@ -259,7 +262,7 @@ private fun RecurringItem(
 @Composable
 private fun RecurringEditorDialog(
     form: RecurringFormState,
-    categoryNames: List<String>,
+    categories: List<CategoryEntity>,
     onDismiss: () -> Unit,
     onSave: (RecurringFormState) -> Unit
 ) {
@@ -315,14 +318,23 @@ private fun RecurringEditorDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
+                    // Switching type picks that type's default category (#876).
                     FilterChip(
                         selected = state.transactionType == TransactionType.EXPENSE,
-                        onClick = { state = state.copy(transactionType = TransactionType.EXPENSE) },
+                        onClick = {
+                            if (state.transactionType != TransactionType.EXPENSE) {
+                                state = state.copy(transactionType = TransactionType.EXPENSE, category = "Others")
+                            }
+                        },
                         label = { Text(stringResource(R.string.recurring_expense)) }
                     )
                     FilterChip(
                         selected = state.transactionType == TransactionType.INCOME,
-                        onClick = { state = state.copy(transactionType = TransactionType.INCOME) },
+                        onClick = {
+                            if (state.transactionType != TransactionType.INCOME) {
+                                state = state.copy(transactionType = TransactionType.INCOME, category = "Income")
+                            }
+                        },
                         label = { Text(stringResource(R.string.recurring_income)) }
                     )
                 }
@@ -337,6 +349,7 @@ private fun RecurringEditorDialog(
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(R.string.recurring_field_category)) },
+                        leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoryExpanded) },
                         modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
@@ -344,15 +357,14 @@ private fun RecurringEditorDialog(
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false }
                     ) {
-                        categoryNames.forEach { name ->
-                            DropdownMenuItem(
-                                text = { Text(name) },
-                                onClick = {
-                                    state = state.copy(category = name)
-                                    categoryExpanded = false
-                                }
-                            )
-                        }
+                        CategoryMenuItems(
+                            categories = categories,
+                            isIncome = state.transactionType == TransactionType.INCOME,
+                            onSelected = {
+                                state = state.copy(category = it.name)
+                                categoryExpanded = false
+                            }
+                        )
                     }
                 }
 

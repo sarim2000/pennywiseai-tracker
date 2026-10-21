@@ -1249,7 +1249,7 @@ class TransactionDetailViewModel @Inject constructor(
                     // Record as repayment on the opposite loan, threading the
                     // user-chosen partial amount so only that portion counts
                     // toward the loan's remaining balance.
-                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution)
+                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution, note)
                     _transaction.value = transactionRepository.getTransactionById(txn.id)
                     _loan.value = loanRepository.getLoanById(oppositeLoan.id)
                     _showMarkAsLoanSheet.value = false
@@ -1260,7 +1260,7 @@ class TransactionDetailViewModel @Inject constructor(
                 val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan with the user-chosen contribution.
-                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id)
+                    loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id, note)
                     existingLoan.id
                 } else {
                     // Create new loan; principal = user-chosen contribution.

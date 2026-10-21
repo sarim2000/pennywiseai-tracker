@@ -69,12 +69,9 @@ interface LoanDao {
     // No currency filter here on purpose: linked transactions can't change
     // currency (TransactionDetailViewModel.saveChanges blocks it), and filtering
     // would drop a loan's own principal from unlinkTransaction's recount.
-    @Query("""
-        SELECT COALESCE(SUM(COALESCE(t.loan_contribution, t.amount)), 0) FROM transactions t
-        WHERE t.loan_id = :loanId AND t.is_deleted = 0
-        AND t.transaction_type = :repaymentType
-    """)
-    suspend fun getTotalRepaidByType(loanId: Long, repaymentType: String): BigDecimal
+    // LoanMath splits these into principal and repayments.
+    @Query("SELECT * FROM transactions WHERE loan_id = :loanId AND is_deleted = 0")
+    suspend fun getLinkedTransactions(loanId: Long): List<TransactionEntity>
 
     @Query("SELECT COALESCE(SUM(remaining_amount), 0) FROM loans WHERE direction = 'LENT' AND status = 'ACTIVE'")
     fun getTotalLentRemaining(): Flow<BigDecimal>

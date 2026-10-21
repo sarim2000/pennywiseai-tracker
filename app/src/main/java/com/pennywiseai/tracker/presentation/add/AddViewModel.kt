@@ -563,7 +563,14 @@ class AddViewModel @Inject constructor(
         direction: com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
     ) {
         _subscriptionUiState.update { currentState ->
-            currentState.copy(direction = direction)
+            if (currentState.direction == direction) return@update currentState
+            // The other type's default, as the transaction tab does, so an expense
+            // category can't ride along onto an income subscription (#876).
+            currentState.copy(
+                direction = direction,
+                category = if (direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME) "Income" else "Subscriptions",
+                categoryError = null
+            )
         }
     }
     

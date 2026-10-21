@@ -74,6 +74,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -1829,21 +1831,7 @@ private fun CategoryDropdown(
             value = selectedCategory,
             onValueChange = { },
             label = { Text(stringResource(R.string.txn_detail_label_category), fontWeight = FontWeight.SemiBold) },
-            leadingIcon = {
-                if (selectedCategoryEntity != null) {
-                    CategoryChip(
-                        category = selectedCategoryEntity,
-                        showText = false,
-                        modifier = Modifier.padding(start = 12.dp)
-                    )
-                } else {
-                    Icon(
-                        Icons.Default.Category,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                }
-            },
+            leadingIcon = { SelectedCategoryIcon(selectedCategoryEntity) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -1857,42 +1845,19 @@ private fun CategoryDropdown(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            // Create a new category without leaving the edit flow (#584). At the
-            // top so it's reachable without scrolling sub-categories (#835).
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.txn_detail_add_category)) },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
+            // Create a new category without leaving the edit flow (#584).
+            CategoryMenuItems(
+                categories = categories,
+                isIncome = isIncomeTransaction,
+                onSelected = {
+                    onCategorySelected(it.name)
+                    expanded = false
                 },
-                onClick = {
+                onAddCategory = {
                     expanded = false
                     showAddDialog = true
-                },
-                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                }
             )
-
-            HorizontalDivider()
-
-            categories.forEach { category ->
-                DropdownMenuItem(
-                    text = {
-                        CategoryChip(
-                            category = category,
-                            modifier = Modifier.padding(start = if (category.parentId != null) Spacing.lg else Spacing.none)
-                        )
-                    },
-                    onClick = {
-                        onCategorySelected(category.name)
-                        expanded = false
-                    },
-                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                )
-            }
-
         }
     }
 

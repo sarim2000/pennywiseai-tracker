@@ -38,4 +38,8 @@ interface MerchantMappingDao {
 
     @Query("SELECT * FROM merchant_mappings")
     suspend fun getAllMappingsList(): List<MerchantMappingEntity>
+
+    /** The row stored under exactly [merchantName] (its primary key). */
+    @Query("SELECT * FROM merchant_mappings WHERE merchant_name = :merchantName")
+    suspend fun getMapping(merchantName: String): MerchantMappingEntity?
 }

@@ -4,6 +4,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -30,6 +32,8 @@ class LearnCategoryUseCase @Inject constructor(
         /** The merchant now mapped to [category]; null when nothing was learned. */
         val merchant: String? = null,
         val previousMapping: String? = null,
+        /** When this lesson wrote the mapping: [undo] reverts it only while it is still this one. */
+        val mappedAt: LocalDateTime? = null,
         /** The earlier rows that moved from "Others" to [category]. */
         val movedIds: List<Long> = emptyList()
     )
@@ -49,20 +53,29 @@ class LearnCategoryUseCase @Inject constructor(
         if (category == others || merchant.isBlank() || merchant == UNKNOWN_MERCHANT) return filed
 
         val previousMapping = merchantMappingRepository.getCategoryForMerchant(merchant)
-        merchantMappingRepository.setMapping(merchant, category)
+        val mappedAt = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS)
+        merchantMappingRepository.setMapping(merchant, category, mappedAt)
         val ids = transactionRepository.getMovableMerchantRowIds(merchant, others, sameKind(transaction.transactionType))
         transactionRepository.moveCategory(ids, from = others, to = category)
-        return filed.copy(merchant = merchant, previousMapping = previousMapping, movedIds = ids)
+        return filed.copy(merchant = merchant, previousMapping = previousMapping, mappedAt = mappedAt, movedIds = ids)
     }
 
-    /** Puts back the transaction's category, the merchant's mapping and the moved rows. */
+    /**
+     * Puts back what [learned] changed and still owns: the transaction and the
+     * moved rows only while they are still in its category, and the mapping
+     * only while it is still the one it wrote. So undoing an older alert never
+     * erases a newer pick for the same merchant or a later edit.
+     */
     suspend fun undo(learned: Learned) {
-        transactionRepository.updateCategory(learned.transactionId, learned.previousCategory)
+        transactionRepository.moveCategory(listOf(learned.transactionId), from = learned.category, to = learned.previousCategory)
         val merchant = learned.merchant ?: return
-        if (learned.previousMapping == null) {
-            merchantMappingRepository.removeMapping(merchant)
-        } else {
-            merchantMappingRepository.setMapping(merchant, learned.previousMapping)
+        val current = merchantMappingRepository.getMapping(merchant)
+        if (current != null && current.category == learned.category && current.updatedAt == learned.mappedAt) {
+            if (learned.previousMapping == null) {
+                merchantMappingRepository.removeMapping(merchant)
+            } else {
+                merchantMappingRepository.setMapping(merchant, learned.previousMapping)
+            }
         }
         transactionRepository.moveCategory(learned.movedIds, from = learned.category, to = BuiltinCategoryNames.current("Others"))
     }

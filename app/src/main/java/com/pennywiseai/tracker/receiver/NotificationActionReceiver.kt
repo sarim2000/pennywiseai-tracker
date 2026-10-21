@@ -45,6 +45,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         private const val EXTRA_MERCHANT = "merchant"
         private const val EXTRA_PREVIOUS_MAPPING = "previous_mapping"
         private const val EXTRA_MOVED_IDS = "moved_ids"
+        private const val EXTRA_MAPPED_AT = "mapped_at"
 
         /** The learned note's Undo: carries everything [LearnCategoryUseCase.undo] needs. */
         fun undoIntent(context: Context, requestCode: Int, notificationId: Int, learned: LearnCategoryUseCase.Learned): PendingIntent =
@@ -60,6 +61,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     putExtra(EXTRA_MERCHANT, learned.merchant)
                     putExtra(EXTRA_PREVIOUS_MAPPING, learned.previousMapping)
                     putExtra(EXTRA_MOVED_IDS, learned.movedIds.toLongArray())
+                    putExtra(EXTRA_MAPPED_AT, learned.mappedAt?.toString())
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -73,6 +75,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 previousCategory = previous,
                 merchant = getStringExtra(EXTRA_MERCHANT),
                 previousMapping = getStringExtra(EXTRA_PREVIOUS_MAPPING),
+                mappedAt = getStringExtra(EXTRA_MAPPED_AT)?.let { runCatching { java.time.LocalDateTime.parse(it) }.getOrNull() },
                 movedIds = getLongArrayExtra(EXTRA_MOVED_IDS)?.toList().orEmpty()
             )
         }

@@ -16,15 +16,18 @@ class MerchantMappingRepository @Inject constructor(
         return merchantMappingDao.getCategoryForMerchant(merchantName)
     }
     
-    suspend fun setMapping(merchantName: String, category: String) {
+    suspend fun setMapping(merchantName: String, category: String, updatedAt: LocalDateTime = LocalDateTime.now()) {
         merchantMappingDao.insertOrUpdateMapping(
             MerchantMappingEntity(
                 merchantName = merchantName,
                 category = category,
-                updatedAt = LocalDateTime.now()
+                updatedAt = updatedAt
             )
         )
     }
+
+    suspend fun getMapping(merchantName: String): MerchantMappingEntity? =
+        merchantMappingDao.getMapping(merchantName)
     
     suspend fun removeMapping(merchantName: String) {
         merchantMappingDao.deleteMapping(merchantName)

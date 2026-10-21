@@ -184,6 +184,9 @@
     <string name="onboarding_setup_steps">1. Your profile\n2. SMS permissions for auto-detection\n3. Initial transaction scan\n4. Your main bank account</string>
     <string name="onboarding_name_title">What should we call you?</string>
     <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_currency_title">Your currency</string>
+    <string name="onboarding_language_device">Device language</string>
+    <string name="onboarding_currency_hint">Used for totals and budgets. You can change it in Settings.</string>
     <string name="onboarding_avatar_title">Choose an avatar</string>
     <string name="onboarding_avatar_cd">Avatar %1$d</string>
     <string name="onboarding_photo_selected_cd">Photo selected</string>

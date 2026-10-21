@@ -6,6 +6,7 @@ import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import com.pennywiseai.tracker.MainActivity
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -21,7 +22,7 @@ class AiSessionTileService : TileService() {
         val tile = qsTile ?: return
         val on = state.session.value != null
         tile.state = if (on) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-        if (Build.VERSION.SDK_INT >= 29) tile.subtitle = if (on) "On" else "Off"
+        if (Build.VERSION.SDK_INT >= 29) tile.subtitle = getString(if (on) R.string.ai_session_tile_on else R.string.ai_session_tile_off)
         tile.updateTile()
     }
 

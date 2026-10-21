@@ -1,11 +1,13 @@
 package com.pennywiseai.tracker.ui.screens.settings.aiaccess
 
 import android.content.Context
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.aiaccess.AiRelayClient
 import com.pennywiseai.tracker.aiaccess.AiSessionService
 import com.pennywiseai.tracker.aiaccess.AiSessionState
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,7 +24,8 @@ data class AiAccessUiState(
     val connections: List<AiRelayClient.Connection> = emptyList(),
     val loadingConnections: Boolean = false,
     val busy: Boolean = false,
-    val message: String? = null,
+    @StringRes val message: Int? = null,
+    val messageIsError: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,6 +38,7 @@ class AiAccessViewModel @Inject constructor(
 
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     val session = sessionState.session
+    val relayUrl: StateFlow<String> = relay.relayUrl
 
     private val _state = MutableStateFlow(AiAccessUiState())
     val state: StateFlow<AiAccessUiState> = _state.asStateFlow()
@@ -62,29 +66,36 @@ class AiAccessViewModel @Inject constructor(
                     it.copy(connections = list, loadingConnections = false, pairingCode = if (used) null else it.pairingCode)
                 }
             }
-            .onFailure { _state.update { it.copy(loadingConnections = false, message = OFFLINE) } }
+            .onFailure { _state.update { it.copy(loadingConnections = false, message = R.string.ai_access_offline, messageIsError = true) } }
     }
 
     fun revoke(id: String) = work {
         relay.revoke(id)
-        _state.update { s -> s.copy(connections = s.connections.filterNot { it.id == id }, message = "Disconnected.") }
+        _state.update { s -> s.copy(connections = s.connections.filterNot { it.id == id }, message = R.string.ai_access_disconnected, messageIsError = false) }
     }
 
     fun disconnectEverything() = work {
         AiSessionService.stop(context)
         relay.reset()
-        _state.value = AiAccessUiState(message = "Every AI app is disconnected.")
+        _state.value = AiAccessUiState(message = R.string.ai_access_all_disconnected)
+    }
+
+    /** Switches to a self-hosted relay (or back). Returns false when the address isn't https. */
+    fun setRelayUrl(url: String): Boolean {
+        if (AiRelayClient.normalizeRelayUrl(url) == null) {
+            _state.update { it.copy(message = R.string.ai_access_relay_invalid, messageIsError = true) }
+            return false
+        }
+        relay.setRelayUrl(url)
+        _state.value = AiAccessUiState(message = R.string.ai_access_relay_saved)
+        return true
     }
 
     fun clearMessage() = _state.update { it.copy(message = null) }
 
     private fun work(block: suspend () -> Unit) = viewModelScope.launch {
         _state.update { it.copy(busy = true, message = null) }
-        runCatching { block() }.onFailure { _state.update { it.copy(message = OFFLINE) } }
+        runCatching { block() }.onFailure { _state.update { it.copy(message = R.string.ai_access_offline, messageIsError = true) } }
         _state.update { it.copy(busy = false) }
-    }
-
-    private companion object {
-        const val OFFLINE = "Couldn't reach PennyWise's relay. Check your internet connection and try again."
     }
 }

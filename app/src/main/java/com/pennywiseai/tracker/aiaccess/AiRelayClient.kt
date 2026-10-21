@@ -38,8 +38,8 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
 
     class RelayException(message: String) : Exception(message)
 
-    // Device secret: app-private, outside PennyWise backups and Android backup (allowBackup=false).
-    // ponytail: plain private prefs, wrap with a Keystore key if the threat model grows.
+    // App-private prefs, outside PennyWise backups and Android backup (allowBackup=false).
+    // The device secret is additionally encrypted with a non-exportable Android Keystore key.
     private val prefs = context.getSharedPreferences("ai_access", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
     private val registerLock = Mutex()
@@ -48,20 +48,41 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
         install(HttpTimeout) { connectTimeoutMillis = 15_000; requestTimeoutMillis = 20_000 }
     }
 
+    private val _relayUrl = MutableStateFlow(prefs.getString(KEY_RELAY, null) ?: DEFAULT_RELAY_URL)
+    /** The relay this phone uses: PennyWise's by default, or one the user hosts themselves. */
+    val relayUrl: StateFlow<String> = _relayUrl.asStateFlow()
+    private val relay get() = _relayUrl.value
+
     private val _device = MutableStateFlow(load())
     val device: StateFlow<Device?> = _device.asStateFlow()
 
     private fun load(): Device? {
         val id = prefs.getString(KEY_ID, null) ?: return null
-        val secret = prefs.getString(KEY_SECRET, null) ?: return null
+        val sealed = prefs.getString(KEY_SECRET_SEALED, null) ?: return null
+        val secret = runCatching { DeviceSecretBox.open(sealed) }.getOrNull() ?: return null // key lost: register again
         return Device(id, secret)
+    }
+
+    /**
+     * Switches to another relay (for example a self-hosted one). The old relay's registration
+     * doesn't carry over, so this phone registers afresh and every AI app must pair again.
+     */
+    fun setRelayUrl(url: String) {
+        val normalized = normalizeRelayUrl(url) ?: throw RelayException("Use an https:// address")
+        if (normalized == relay) return
+        prefs.edit {
+            remove(KEY_ID); remove(KEY_SECRET_SEALED)
+            if (normalized == DEFAULT_RELAY_URL) remove(KEY_RELAY) else putString(KEY_RELAY, normalized)
+        }
+        _device.value = null
+        _relayUrl.value = normalized
     }
 
     private suspend fun ensureDevice(): Device = registerLock.withLock {
         _device.value ?: run {
-            val res = http.post("$RELAY_URL/device")
+            val res = http.post("$relay/device")
             val d = json.decodeFromString<Device>(res.checked().bodyAsText())
-            prefs.edit { putString(KEY_ID, d.deviceId); putString(KEY_SECRET, d.secret) }
+            prefs.edit { putString(KEY_ID, d.deviceId); putString(KEY_SECRET_SEALED, DeviceSecretBox.seal(d.secret)); remove("device_secret") /* pre-Keystore plaintext */ }
             _device.value = d
             d
         }
@@ -70,31 +91,31 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
     private suspend fun auth(): String = ensureDevice().let { "Device ${it.deviceId}.${it.secret}" }
 
     suspend fun newPairingCode(): PairingCode =
-        json.decodeFromString(http.post("$RELAY_URL/device/pair") { header(HttpHeaders.Authorization, auth()) }.checked().bodyAsText())
+        json.decodeFromString(http.post("$relay/device/pair") { header(HttpHeaders.Authorization, auth()) }.checked().bodyAsText())
 
     suspend fun connections(): List<Connection> {
         if (_device.value == null) return emptyList()
-        val res = http.get("$RELAY_URL/device/connections") { header(HttpHeaders.Authorization, auth()) }
+        val res = http.get("$relay/device/connections") { header(HttpHeaders.Authorization, auth()) }
         return json.decodeFromString<Connections>(res.checked().bodyAsText()).connections
     }
 
     suspend fun revoke(connectionId: String) {
-        http.delete("$RELAY_URL/device/connections/$connectionId") { header(HttpHeaders.Authorization, auth()) }.checked()
+        http.delete("$relay/device/connections/$connectionId") { header(HttpHeaders.Authorization, auth()) }.checked()
     }
 
     /** Revokes every AI connection and forgets this phone; the next pairing registers afresh. */
     suspend fun reset() {
         if (_device.value != null) {
-            http.delete("$RELAY_URL/device") { header(HttpHeaders.Authorization, auth()) }.checked()
+            http.delete("$relay/device") { header(HttpHeaders.Authorization, auth()) }.checked()
         }
-        prefs.edit { clear() }
+        prefs.edit { remove(KEY_ID); remove(KEY_SECRET_SEALED) }
         _device.value = null
     }
 
     /** Opens the AI-session line and runs [block] until it closes. */
     suspend fun openLine(block: suspend DefaultClientWebSocketSession.() -> Unit) {
         val auth = auth()
-        http.webSocket("${RELAY_URL.replaceFirst("https", "wss")}/device/connect", request = {
+        http.webSocket("${relay.replaceFirst("https", "wss")}/device/connect", request = {
             header(HttpHeaders.Authorization, auth)
         }, block = block)
     }
@@ -105,9 +126,19 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
     }
 
     companion object {
-        const val RELAY_URL = "https://ai.pennywise.zynth.dev"
-        const val CONNECTOR_URL = "$RELAY_URL/mcp"
+        const val DEFAULT_RELAY_URL = "https://ai.pennywise.zynth.dev"
         private const val KEY_ID = "device_id"
-        private const val KEY_SECRET = "device_secret"
+        private const val KEY_SECRET_SEALED = "device_secret_sealed"
+        private const val KEY_RELAY = "relay_url"
+
+        fun connectorUrl(relay: String) = "$relay/mcp"
+        fun dashboardUrl(relay: String) = "$relay/dashboard/"
+
+        /** `https://host[/path]` without a trailing slash or `/mcp`; null if it isn't https. */
+        fun normalizeRelayUrl(input: String): String? {
+            val u = input.trim().removeSuffix("/").removeSuffix("/mcp").removeSuffix("/")
+            val uri = runCatching { java.net.URI(u) }.getOrNull() ?: return null
+            return u.takeIf { uri.scheme == "https" && !uri.host.isNullOrBlank() }
+        }
     }
 }

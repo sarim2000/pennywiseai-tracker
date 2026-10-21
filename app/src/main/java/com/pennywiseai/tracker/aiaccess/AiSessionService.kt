@@ -148,8 +148,8 @@ class AiSessionService : Service() {
     private fun notification() = run {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "AI session", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Shows while connected AI apps can read your PennyWise data"
+            NotificationChannel(CHANNEL_ID, getString(R.string.ai_session_channel), NotificationManager.IMPORTANCE_LOW).apply {
+                description = getString(R.string.ai_session_channel_description)
                 setShowBadge(false)
             }
         )
@@ -158,16 +158,16 @@ class AiSessionService : Service() {
         )
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_ai_session)
-            .setContentTitle("AI apps can read your PennyWise data")
-            .setContentText(if (state.session.value?.lineUp == true) "Connected · read-only" else "Connecting…")
+            .setContentTitle(getString(R.string.ai_session_notification_title))
+            .setContentText(getString(if (state.session.value?.lineUp == true) R.string.ai_session_notification_connected else R.string.ai_session_notification_connecting))
             .setWhen(endsAt)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
             .setOngoing(true)
             .setSilent(true)
             .setContentIntent(open)
-            .addAction(0, "+15 min", serviceIntent(ACTION_EXTEND, 1))
-            .addAction(0, "Stop", serviceIntent(ACTION_STOP, 2))
+            .addAction(0, getString(R.string.ai_access_extend), serviceIntent(ACTION_EXTEND, 1))
+            .addAction(0, getString(R.string.ai_access_stop), serviceIntent(ACTION_STOP, 2))
             .build()
     }
 

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
+<resources>
+    <string name="ai_access_settings_title">Connect Claude / ChatGPT</string>
+    <string name="ai_access_settings_subtitle">Let AI apps read your data while you allow it</string>
+    <string name="ai_access_settings_subtitle_pro">Pro · Let AI apps read your data while you allow it</string>
+
+    <string name="ai_access_title">AI access</string>
+    <string name="ai_access_back">Back</string>
+    <string name="ai_access_intro">Ask Claude, ChatGPT or another AI app about your spending, or open the dashboard on a computer. They can read your transactions, balances and subscriptions only while an AI session is on. They can\'t change anything.</string>
+    <string name="ai_access_pro_only">AI access is a Pro feature.</string>
+    <string name="ai_access_unlock">Unlock with Pro</string>
+
+    <string name="ai_access_session_title">AI session</string>
+    <string name="ai_access_session_off">Off. Start one before you ask, or use the PennyWise AI tile in Quick Settings.</string>
+    <string name="ai_access_session_minutes">%d min</string>
+    <string name="ai_access_session_on">On · %1$d:%2$02d left</string>
+    <string name="ai_access_session_connecting">Connecting… · %1$d:%2$02d left</string>
+    <string name="ai_access_extend">+15 min</string>
+    <string name="ai_access_stop">Stop</string>
+
+    <string name="ai_access_connect_title">Connect an AI app</string>
+    <string name="ai_access_connect_step1">1. In Claude or ChatGPT, add a custom connector with this URL:</string>
+    <string name="ai_access_connect_step2">2. When it asks you to sign in, enter a pairing code from here.</string>
+    <string name="ai_access_copy_url">Copy connector URL</string>
+    <string name="ai_access_code_a11y">Pairing code %s</string>
+    <string name="ai_access_code_left">Works once · %1$d:%2$02d left</string>
+    <string name="ai_access_get_code">Get pairing code</string>
+    <string name="ai_access_new_code">New code</string>
+
+    <string name="ai_access_dashboard_title">Dashboard on a computer</string>
+    <string name="ai_access_dashboard_body">Detailed analytics and your full history on a bigger screen. Open this address on a computer, then connect with a pairing code:</string>
+    <string name="ai_access_copy_dashboard">Copy dashboard address</string>
+
+    <string name="ai_access_connected_title">Connected apps</string>
+    <string name="ai_access_refresh">Refresh</string>
+    <string name="ai_access_loading">Loading…</string>
+    <string name="ai_access_none_connected">No AI apps connected yet.</string>
+    <string name="ai_access_connected_on">Connected %s</string>
+    <string name="ai_access_disconnect">Disconnect</string>
+    <string name="ai_access_disconnected">Disconnected.</string>
+
+    <string name="ai_access_privacy">Your data stays on your phone. During an AI session, the AI app\'s questions pass through the relay to your phone and the answers go back the same way. The relay never stores or logs them. The AI app\'s provider (for example Anthropic or OpenAI) sees the answers it receives.\n\nConnected apps can search your whole history across all profiles, including payee names on transfers. They never get SMS text, full account numbers or reference numbers.</string>
+
+    <string name="ai_access_relay_title">Use your own relay</string>
+    <string name="ai_access_relay_body">For full control, deploy the open-source relay (relay/ in PennyWise\'s GitHub repository) to your own Cloudflare account and enter its address. Switching relays disconnects every AI app.</string>
+    <string name="ai_access_relay_label">Relay address</string>
+    <string name="ai_access_relay_save">Use this relay</string>
+    <string name="ai_access_relay_reset">Use PennyWise\'s relay</string>
+    <string name="ai_access_relay_busy">Stop the AI session before changing the relay.</string>
+    <string name="ai_access_relay_invalid">Enter an https:// address, for example https://relay.example.com</string>
+    <string name="ai_access_relay_saved">Relay changed. Connect your AI apps again.</string>
+
+    <string name="ai_access_disconnect_all">Disconnect every AI app</string>
+    <string name="ai_access_disconnect_all_title">Disconnect every AI app?</string>
+    <string name="ai_access_disconnect_all_body">Every connected AI app loses access. To use one again, connect it with a new pairing code.</string>
+    <string name="ai_access_disconnect_all_confirm">Disconnect all</string>
+    <string name="ai_access_all_disconnected">Every AI app is disconnected.</string>
+    <string name="ai_access_offline">Couldn\'t reach the relay. Check your internet connection and try again.</string>
+
+    <string name="ai_session_channel">AI session</string>
+    <string name="ai_session_channel_description">Shows while connected AI apps can read your PennyWise data</string>
+    <string name="ai_session_notification_title">AI apps can read your PennyWise data</string>
+    <string name="ai_session_notification_connected">Connected · read-only</string>
+    <string name="ai_session_notification_connecting">Connecting…</string>
+    <string name="ai_session_tile_on">On</string>
+    <string name="ai_session_tile_off">Off</string>
+</resources>

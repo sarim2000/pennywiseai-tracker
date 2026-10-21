@@ -810,8 +810,8 @@ fun SettingsScreen(
                     icon = Icons.Default.AutoAwesome,
                     iconBgColor = indigo_light,
                     iconTint = indigo_dark,
-                    title = "Connect Claude / ChatGPT",
-                    subtitle = if (isProEntitled) "Let AI apps read your data while you allow it" else "Pro · Let AI apps read your data while you allow it",
+                    title = stringResource(R.string.ai_access_settings_title),
+                    subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
                     onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
                     position = ListItemPosition.Single
                 )

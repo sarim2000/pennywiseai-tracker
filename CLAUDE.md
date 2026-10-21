@@ -92,6 +92,7 @@ part of the gate — don't use them to verify.
 | Parser tests | `docs/parser-test-standards.md` | Writing parser tests |
 | DB migrations | `docs/database-migrations.md` | Room schema changes |
 | Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (144 banks, 23 countries) |
+| AI access (MCP relay, dashboard) | `docs/ai-access.md`, `relay/README.md`, `docs/adr/0002-*` | Touching `aiaccess/`, the relay or the dashboard |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |
 
 **Subagents:** `backup-maintainer` (backup-serialized changes) ·

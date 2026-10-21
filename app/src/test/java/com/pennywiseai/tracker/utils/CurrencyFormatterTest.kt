@@ -257,17 +257,62 @@ class CurrencyFormatterTest {
         assertTrue("expected \$U in: $uyu", uyu.contains("\$U"))
     }
 
-    @Test
-    fun `signed amounts keep their sign on the left under an RTL locale`() {
+    // \u2500\u2500\u2500 RTL (Arabic): amounts are LTR isolates (LRI\u2026PDI), never a bare LRM \u2500\u2500\u2500
+    // java.text.Bidi implements the same UBA (isolates included) Android uses, so
+    // these check the rendered direction, not just the inserted characters.
+
+    private fun <T> withLocale(tag: String, block: () -> T): T {
         val default = java.util.Locale.getDefault()
-        try {
-            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-SA"))
-            // An LTR isolate keeps "-" on the left without flipping the Arabic paragraph.
-            assertEquals("\u2066-\u2066$5\u2069\u2069", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
-            java.util.Locale.setDefault(java.util.Locale.US)
-            assertEquals("-$5", CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD")))
-        } finally {
-            java.util.Locale.setDefault(default)
+        java.util.Locale.setDefault(java.util.Locale.forLanguageTag(tag))
+        try { return block() } finally { java.util.Locale.setDefault(default) }
+    }
+
+    private val bidiControls = Regex("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+
+    @Test
+    fun `Arabic sentence with inserted amounts stays right to left`() {
+        // goals_amount_of in values-ar-rSA. A leading LRM here made the whole
+        // paragraph LTR, so "$50 of $100" read backwards.
+        val text = withLocale("ar-SA") {
+            "%1\$s \u0645\u0646 %2\$s".format(
+                CurrencyFormatter.formatCurrency(BigDecimal("50"), "USD"),
+                CurrencyFormatter.formatCurrency(BigDecimal("100"), "USD"),
+            )
+        }
+        assertEquals("\u2066$50\u2069 \u0645\u0646 \u2066$100\u2069", text)
+        val bidi = java.text.Bidi(text, java.text.Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT)
+        assertFalse("paragraph must resolve RTL", bidi.baseIsLeftToRight())
+    }
+
+    @Test
+    fun `signed amount keeps its sign on the left in an RTL paragraph`() {
+        val text = withLocale("ar-SA") {
+            CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD"))
+        }
+        val bidi = java.text.Bidi(text, java.text.Bidi.DIRECTION_RIGHT_TO_LEFT)
+        // Even embedding level = laid out left to right, so "-" sits left of "$5".
+        assertEquals(0, bidi.getLevelAt(text.indexOf('-')) % 2)
+        assertEquals(0, bidi.getLevelAt(text.indexOf('$')) % 2)
+        // Without signed(), the sign falls outside the isolate and flips to the right.
+        val bare = withLocale("ar-SA") { "-" + CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD") }
+        assertEquals(1, java.text.Bidi(bare, java.text.Bidi.DIRECTION_RIGHT_TO_LEFT).getLevelAt(0) % 2)
+    }
+
+    @Test
+    fun `LTR locales get no bidi marks`() {
+        for (tag in listOf("en-US", "en-IN", "hi-IN", "de-DE", "fr-FR", "es", "ru-RU", "th-TH")) {
+            withLocale(tag) {
+                val plain = CurrencyFormatter.formatCurrency(BigDecimal("1234.5"), "INR")
+                val signed = CurrencyFormatter.signed("-", CurrencyFormatter.formatCurrency(BigDecimal("5"), "USD"))
+                val mixed = CurrencyFormatter.formatByCurrency(
+                    mapOf("USD" to Money(BigDecimal("5"), "USD"), "INR" to Money(BigDecimal("9"), "INR")),
+                    signPrefix = "+",
+                )
+                for (s in listOf(plain, signed, mixed)) {
+                    assertFalse("$tag: unexpected bidi control in $s", bidiControls.containsMatchIn(s))
+                }
+                assertEquals("-$5", signed)
+            }
         }
     }
 }

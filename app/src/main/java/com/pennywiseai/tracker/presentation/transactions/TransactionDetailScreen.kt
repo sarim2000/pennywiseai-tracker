@@ -1421,6 +1421,8 @@ private fun EditableTransactionHeader(
         // #752: mirrors the category checkbox below — saved as a Smart Rule.
         if (editTags.isNotEmpty()) {
             val applyTagsToAll by viewModel.applyTagsToAllFromMerchant.collectAsStateWithLifecycle()
+            // The rule keys on the merchant as saved before this edit, so name that one.
+            val originalMerchant = viewModel.transaction.collectAsStateWithLifecycle().value?.merchantName
             Row(
                 modifier = Modifier.fillMaxWidth().toggleable(
                     value = applyTagsToAll,
@@ -1435,7 +1437,7 @@ private fun EditableTransactionHeader(
                     modifier = Modifier.minimumInteractiveComponentSize()
                 )
                 Text(
-                    text = stringResource(R.string.txn_detail_apply_tags_to_merchant, transaction.merchantName),
+                    text = stringResource(R.string.txn_detail_apply_tags_to_merchant, originalMerchant ?: transaction.merchantName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -1571,6 +1573,8 @@ private fun EditableExtractedInfoCard(
 
         // Checkboxes
         if (!showSplitEditor) {
+            // The mapping keys on the merchant as saved before this edit, so name that one.
+            val originalMerchant = viewModel.transaction.collectAsStateWithLifecycle().value?.merchantName
             // The whole row toggles, so tapping the label ticks the box (#911).
             Row(
                 modifier = Modifier.fillMaxWidth().toggleable(
@@ -1586,7 +1590,7 @@ private fun EditableExtractedInfoCard(
                     modifier = Modifier.minimumInteractiveComponentSize()
                 )
                 Text(
-                    text = stringResource(R.string.txn_detail_apply_category_to_merchant, transaction.merchantName),
+                    text = stringResource(R.string.txn_detail_apply_category_to_merchant, originalMerchant ?: transaction.merchantName),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )

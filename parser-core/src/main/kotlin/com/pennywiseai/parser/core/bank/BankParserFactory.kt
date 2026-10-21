@@ -111,6 +111,10 @@ object BankParserFactory {
         CIBEgyptParser(),  // CIB - Commercial International Bank (Egypt)
         ArabBankParser(),  // Arab Bank (Egypt) — multi-currency card, English + Arabic SMS
         NationalBankOfEgyptParser(),  // National Bank of Egypt / NBE (Egypt) — Arabic SMS (#762)
+        JordanIslamicBankParser(),  // Jordan Islamic Bank (Jordan) — JIB, Arabic SMS
+        IslamicInternationalArabBankParser(),  // Islamic International Arab Bank (Jordan) — ARABIISLAMI
+        BankAlEtihadParser(),  // Bank al Etihad (Jordan) — BankEtihad
+        SafwaIslamicBankParser(),  // Safwa Islamic Bank (Jordan)
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)

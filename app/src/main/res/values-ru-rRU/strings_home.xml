@@ -270,4 +270,5 @@
     <string name="notif_txn_public_text">%1$s • баланс нуждается в покупке</string>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Тренд баланса</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
 </resources>

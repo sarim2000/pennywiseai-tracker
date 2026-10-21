@@ -326,6 +326,7 @@
     <string name="type_filter_spending">الإنفاق</string>
     <string name="budget_card_per_day">%1$s/يوم</string>
     <string name="group_card_invested">تم استثمار %1$s</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">يعجبك PennyWise؟</string>
     <string name="pro_home_card_body">مع Pro تحصل على قواعد وأهداف وعمليات تصدير واستيراد كشوف حساب بلا حدود.</string>
     <string name="pro_home_card_action">اكتشف Pro</string>

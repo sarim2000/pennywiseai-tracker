@@ -6,6 +6,7 @@ import android.provider.ContactsContract
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +55,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -252,6 +255,10 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
         Column(
             Modifier
                 .fillMaxWidth()
+                // Android 8 and older focus a new window's first field, which opened
+                // the keyboard over the buttons. Only a tap (Enter) focuses a field.
+                .focusProperties { onEnter = { if (requestedFocusDirection != FocusDirection.Enter) cancelFocusChange() } }
+                .focusGroup()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimensions.Padding.content)
                 .padding(bottom = Spacing.lg)

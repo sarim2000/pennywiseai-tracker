@@ -1054,7 +1054,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             smsSource     = parsed.smsBody.take(500),
             sourceType    = "TRANSACTION",
             accountType   = BalanceCalculator.preservedAccountType(existing),
-            currency      = parsed.currency,
+            // The balance is in the account's currency, which can differ from the spend's.
+            currency      = parsed.accountCurrency ?: parsed.currency,
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold

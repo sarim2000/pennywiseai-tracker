@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import android.os.Build
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -43,6 +44,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -286,12 +288,19 @@ private fun RegularTopAppBar(
                 ) else Modifier
             )
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        Color.Transparent
+                // The fade relies on the blur to hide what scrolls under it. Without
+                // blur (Android 11 and older, or turned off) content showed sharp
+                // behind the back button and title, so the bar is opaque there.
+                if (blurEffects && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            Color.Transparent
+                        )
                     )
-                )
+                } else {
+                    SolidColor(MaterialTheme.colorScheme.background)
+                }
             )
             .windowInsetsPadding(WindowInsets.statusBars)
             .alpha(collapsedFraction)

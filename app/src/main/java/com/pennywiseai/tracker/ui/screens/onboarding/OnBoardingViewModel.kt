@@ -12,6 +12,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.manager.SmsScanManager
+import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -32,6 +33,17 @@ import java.math.BigDecimal
 import java.util.Currency
 import java.util.Locale
 import javax.inject.Inject
+
+/**
+ * The currency of the first [countries] entry (ISO 3166 region, best guess first) that
+ * resolves to a [supported] currency, else the app-wide default base currency.
+ */
+internal fun detectCurrency(countries: List<String?>, supported: Collection<String>): String =
+    countries.firstNotNullOfOrNull { country ->
+        // Blank/unknown regions throw; regions without a currency (e.g. AQ) return null.
+        runCatching { Currency.getInstance(Locale("", country.orEmpty().uppercase()))?.currencyCode }
+            .getOrNull()?.takeIf { it in supported }
+    } ?: UserPreferences().baseCurrency
 
 enum class OnBoardingStep {
     WELCOME,
@@ -131,13 +143,13 @@ class OnBoardingViewModel @Inject constructor(
         _uiState.update { it.copy(selectedCurrency = currency) }
     }
 
-    /** Pre-selects the first supported currency of the SIM's country, then the device locale's, else INR. */
+    /** Pre-selects the SIM country's currency, then the network country's, then the device locale's. */
     private fun detectCurrency(): String {
-        val simCountry = context.getSystemService(TelephonyManager::class.java)?.simCountryIso
-        return listOfNotNull(simCountry, Locale.getDefault().country).firstNotNullOfOrNull { country ->
-            runCatching { Currency.getInstance(Locale("", country.uppercase())).currencyCode }
-                .getOrNull()?.takeIf { it in currencies }
-        } ?: "INR"
+        val telephony = context.getSystemService(TelephonyManager::class.java)
+        return detectCurrency(
+            countries = listOf(telephony?.simCountryIso, telephony?.networkCountryIso, Locale.getDefault().country),
+            supported = currencies
+        )
     }
 
     fun onSmsPermissionResult(granted: Boolean) {

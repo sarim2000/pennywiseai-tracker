@@ -155,7 +155,30 @@ object CurrencyFormatter {
     /**
      * Formats a BigDecimal amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String {
+    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String =
+        ltr(formatCurrencyRaw(amount, currencyCode))
+
+    /**
+     * [formatted] with a leading [signPrefix] ("-" / "+") that stays on the left in
+     * an RTL (Arabic) UI. Plain `"-" + amount` renders as "JD5-" there, because a
+     * sign at the start of an RTL paragraph takes the paragraph's direction.
+     */
+    fun signed(signPrefix: String, formatted: String): String = ltr("$signPrefix$formatted")
+
+    /** RTL app languages we ship (or may ship) translations for. */
+    private val RTL_LANGUAGES = setOf("ar", "fa", "he", "iw", "ur")
+
+    /**
+     * Wraps the amount in a left-to-right isolate (LRI…PDI) under an RTL locale so
+     * a Latin-script amount ("-JD5", "₹1,200") reads left to right inside RTL text.
+     * An isolate, unlike a bare LRM, doesn't set the surrounding paragraph's
+     * direction, so "%1$s من %2$s" still reads right to left. No-op otherwise,
+     * so English output (and every exact-string test) is unchanged.
+     */
+    private fun ltr(s: String): String =
+        if (Locale.getDefault().language in RTL_LANGUAGES) "\u2066$s\u2069" else s
+
+    private fun formatCurrencyRaw(amount: BigDecimal, currencyCode: String): String {
         if (currencyCode in EXPLICIT_SYMBOL_CURRENCIES) {
             return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode)}"
         }
@@ -293,13 +316,13 @@ object CurrencyFormatter {
         val useIndianNotation = useIndianAbbreviation(currencyCode)
         return when {
             useIndianNotation && absValue >= 1_00_00_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_00_00_000)}Cr"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_00_00_000)}Cr"
             useIndianNotation && absValue >= 1_00_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_00_000)}L"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_00_000)}L"
             absValue >= 10_000_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_000_000)}M"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000_000)}M"
             absValue >= 1_000 ->
-                "${symbol}${String.format("%.1f", absValue / 1_000)}K"
+                "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000)}K"
             absValue > 0 -> "${symbol}${absValue.toInt()}"
             else -> "${symbol}0"
         }

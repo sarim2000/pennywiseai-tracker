@@ -27,7 +27,7 @@ data class Money(val amount: BigDecimal, val currency: String) {
 
     /** Renders with the correct symbol for [currency]. [signPrefix] is e.g. "-" / "+". */
     fun format(signPrefix: String = ""): String =
-        "$signPrefix${CurrencyFormatter.formatCurrency(amount, currency)}"
+        CurrencyFormatter.signed(signPrefix, CurrencyFormatter.formatCurrency(amount, currency))
 
     companion object {
         fun zero(currency: String) = Money(BigDecimal.ZERO, currency)

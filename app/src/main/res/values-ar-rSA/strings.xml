@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - متتبع المصروفات</string>
+    <string name="widget_name_budget">نظرة عامة على الميزانية</string>
+    <string name="widget_description_budget">يعرض تقدّم ميزانيتك الشهرية ومدخراتك والمبلغ المتاح لك يوميًا بنظرة سريعة.</string>
+    <string name="widget_loading">جارٍ تحميل الأداة…</string>
+    <string name="widget_name_recent">المعاملات الأخيرة</string>
+    <string name="widget_description_recent">اطّلع على إنفاقك الشهري وأحدث معاملاتك بنظرة سريعة.</string>
+    <string name="widget_name_category_pie">مخطط الإنفاق الدائري</string>
+    <string name="widget_description_category_pie">إنفاق هذا الشهر حسب الفئة في مخطط دائري مع وسيلة إيضاح.</string>
+    <string name="widget_name_add_transaction">إضافة معاملة</string>
+    <string name="widget_description_add_transaction">اضغط لإضافة معاملة يدوية بسرعة دون فتح التطبيق.</string>
+    <string name="tile_add_transaction">إضافة معاملة</string>
+    <string name="shortcut_add_transaction_short">إضافة</string>
+    <string name="shortcut_add_transaction_long">إضافة معاملة</string>
+    <string name="support_title">ادعم التطوير</string>
+    <string name="support_subtitle">يطوّره مطوّر واحد — إكرامية صغيرة تساعده على الاستمرار 🦉</string>
+    <string name="support_dialog_body">PennyWise مجاني ومفتوح المصدر، ويطوّره مطوّر واحد. كل الميزات مفتوحة بالفعل في هذا الإصدار. إذا وجدته مفيدًا، فإكرامية صغيرة تساعده على الاستمرار 🦉</string>
+    <string name="support_pay_via_upi">الدفع عبر UPI</string>
+    <string name="support_close">إغلاق</string>
+    <string name="support_copy_upi_id">نسخ معرّف UPI</string>
+    <string name="support_copied_toast">تم نسخ معرّف UPI</string>
+    <string name="support_no_upi_app">لم يتم العثور على تطبيق UPI. انسخ معرّف UPI بدلًا من ذلك.</string>
+    <string name="support_nudge_body">يعجبك PennyWise؟ ادعم التطوير 💛</string>
+    <string name="duplicate_accounts_title">حسابات قد تكون مكررة</string>
+    <string name="duplicate_accounts_message">قد تؤدي الاختلافات في صيغ رسائل SMS البنكية أو القراءة السابقة لها إلى إنشاء حسابات مكررة بأرقام من ثلاث خانات وأربع خانات. إذا كان %1$s و%2$s الحساب نفسه، فهل تريد دمجهما؟ ستنتقل المعاملات إلى الحساب ذي الخانات الأربع، وسيُحتفظ بسجل رصيده، وستُسجَّل عليه رسائل SMS القادمة تلقائيًا.</string>
+    <string name="duplicate_accounts_merge">دمج وتذكّر ذلك</string>
+    <string name="duplicate_accounts_keep">إبقاؤهما منفصلين</string>
+</resources>

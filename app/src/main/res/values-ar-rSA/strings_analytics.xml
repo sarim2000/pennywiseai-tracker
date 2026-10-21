@@ -325,7 +325,7 @@
     <string name="subscriptions_msg_linked_existing">%1$s مرتبط بالدفعة الحالية · الدورة التالية على %2$s</string>
     <string name="subscriptions_msg_linked_generic">مرتبط</string>
     <!-- ══ Mark-as-paid sheet ══ -->
-    <string name="mark_paid_eyebrow_paid">MARK AS PAID</string>
+    <string name="mark_paid_eyebrow_paid">تحديد كمدفوع</string>
     <string name="mark_paid_eyebrow_received">رسالة مميزة</string>
     <!-- %1$s = date -->
     <string name="mark_paid_already_marked">تم تحديد الدفع بالفعل على %1$s</string>
@@ -351,4 +351,21 @@
     <string name="mark_paid_today">اليوم</string>
     <string name="mark_paid_yesterday">أمس</string>
     <string name="mark_paid_pick_date">اختيار تاريخ</string>
+    <string name="analytics_by_day_of_week">حسب يوم الأسبوع</string>
+    <string name="analytics_no_tag">بدون علامة</string>
+    <string name="analytics_tag_overlap_note">المعاملة التي لها عدة علامات تُحتسب ضمن كل علامة منها، لذا قد يتجاوز مجموع العلامات الإجمالي.</string>
+    <string name="analytics_group_by_category">حسب الفئة</string>
+    <string name="analytics_group_by_merchant">حسب التاجر</string>
+    <string name="analytics_group_by_account">حسب الحساب</string>
+    <string name="analytics_group_by_tag">حسب العلامة</string>
+    <string name="analytics_group_by_day_of_week">حسب يوم الأسبوع</string>
+    <string name="analytics_group_by_pro">Pro</string>
+    <plurals name="mark_paid_days_ago">
+        <item quantity="zero">قبل %1$d يوم</item>
+        <item quantity="one">قبل %1$d يوم</item>
+        <item quantity="two">قبل يومين</item>
+        <item quantity="few">قبل %1$d أيام</item>
+        <item quantity="many">قبل %1$d يومًا</item>
+        <item quantity="other">قبل %1$d يوم</item>
+    </plurals>
 </resources>

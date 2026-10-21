@@ -10,9 +10,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import java.math.BigDecimal
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -52,89 +54,96 @@ fun BalanceSparkline(
         val labelHeight = 14.dp.toPx()
         val chartHeight = height - labelHeight
         val stepX = width / (data.size - 1)
+        // RTL: time runs right to left, like the analytics charts.
+        val rtl = layoutDirection == LayoutDirection.Rtl
 
-        // Draw comparison line FIRST (behind main line)
-        if (hasComparison) {
-            val compData = comparisonData!!
-            val compStepX = if (compData.size > 1) width / (compData.size - 1) else width
-            val compPath = Path()
+        scale(scaleX = if (rtl) -1f else 1f, scaleY = 1f) {
+            // Draw comparison line FIRST (behind main line)
+            if (hasComparison) {
+                val compData = comparisonData!!
+                val compStepX = if (compData.size > 1) width / (compData.size - 1) else width
+                val compPath = Path()
 
-            compData.forEachIndexed { index, value ->
-                val x = index * compStepX
+                compData.forEachIndexed { index, value ->
+                    val x = index * compStepX
+                    val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+
+                    if (index == 0) {
+                        compPath.moveTo(x, y)
+                    } else {
+                        val prevX = (index - 1) * compStepX
+                        val prevValue = compData[index - 1]
+                        val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+                        val midX = (prevX + x) / 2f
+                        compPath.cubicTo(midX, prevY, midX, y, x, y)
+                    }
+                }
+
+                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()), 0f)
+                drawPath(
+                    path = compPath,
+                    color = comparisonLineColor,
+                    style = Stroke(width = 1.5.dp.toPx(), pathEffect = dashEffect)
+                )
+            }
+
+            // Draw main line
+            val linePath = Path()
+
+            data.forEachIndexed { index, value ->
+                val x = index * stepX
                 val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
 
                 if (index == 0) {
-                    compPath.moveTo(x, y)
+                    linePath.moveTo(x, y)
                 } else {
-                    val prevX = (index - 1) * compStepX
-                    val prevValue = compData[index - 1]
+                    val prevX = (index - 1) * stepX
+                    val prevValue = data[index - 1]
                     val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
                     val midX = (prevX + x) / 2f
-                    compPath.cubicTo(midX, prevY, midX, y, x, y)
+                    linePath.cubicTo(midX, prevY, midX, y, x, y)
                 }
             }
 
-            val dashEffect = PathEffect.dashPathEffect(floatArrayOf(8.dp.toPx(), 6.dp.toPx()), 0f)
             drawPath(
-                path = compPath,
-                color = comparisonLineColor,
-                style = Stroke(width = 1.5.dp.toPx(), pathEffect = dashEffect)
+                path = linePath,
+                color = lineColor,
+                style = Stroke(width = 2.dp.toPx())
             )
-        }
 
-        // Draw main line
-        val linePath = Path()
-
-        data.forEachIndexed { index, value ->
-            val x = index * stepX
-            val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
-
-            if (index == 0) {
-                linePath.moveTo(x, y)
-            } else {
-                val prevX = (index - 1) * stepX
-                val prevValue = data[index - 1]
-                val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
-                val midX = (prevX + x) / 2f
-                linePath.cubicTo(midX, prevY, midX, y, x, y)
+            // Gradient fill under the main line
+            val fillPath = Path().apply {
+                addPath(linePath)
+                lineTo(width, chartHeight)
+                lineTo(0f, chartHeight)
+                close()
             }
-        }
 
-        drawPath(
-            path = linePath,
-            color = lineColor,
-            style = Stroke(width = 2.dp.toPx())
-        )
-
-        // Gradient fill under the main line
-        val fillPath = Path().apply {
-            addPath(linePath)
-            lineTo(width, chartHeight)
-            lineTo(0f, chartHeight)
-            close()
-        }
-
-        drawPath(
-            path = fillPath,
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    lineColor.copy(alpha = 0.25f),
-                    lineColor.copy(alpha = 0.05f),
-                    Color.Transparent
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        lineColor.copy(alpha = 0.25f),
+                        lineColor.copy(alpha = 0.05f),
+                        Color.Transparent
+                    )
                 )
             )
-        )
+        }
 
-        // Draw endpoint labels
+        // Draw endpoint labels (start sits on the reading-start side)
         val labelY = height - 2.dp.toPx()
         drawText(
             textLayoutResult = startResult,
-            topLeft = androidx.compose.ui.geometry.Offset(0f, labelY - startResult.size.height)
+            topLeft = androidx.compose.ui.geometry.Offset(
+                if (rtl) width - startResult.size.width else 0f,
+                labelY - startResult.size.height
+            )
         )
         drawText(
             textLayoutResult = endResult,
             topLeft = androidx.compose.ui.geometry.Offset(
-                width - endResult.size.width,
+                if (rtl) 0f else width - endResult.size.width,
                 labelY - endResult.size.height
             )
         )
@@ -152,12 +161,12 @@ private fun formatCompactBalance(value: BigDecimal, currency: String): String {
     }
     val absValue = value.abs().toDouble()
     val formatted = when {
-        absValue >= 10_000_000 -> String.format("%.1fCr", absValue / 10_000_000)
-        absValue >= 100_000 -> String.format("%.1fL", absValue / 100_000)
-        absValue >= 1_000 -> String.format("%.1fK", absValue / 1_000)
-        else -> String.format("%.0f", absValue)
+        absValue >= 10_000_000 -> String.format(java.util.Locale.US, "%.1fCr", absValue / 10_000_000)
+        absValue >= 100_000 -> String.format(java.util.Locale.US, "%.1fL", absValue / 100_000)
+        absValue >= 1_000 -> String.format(java.util.Locale.US, "%.1fK", absValue / 1_000)
+        else -> String.format(java.util.Locale.US, "%.0f", absValue)
     }
     val clean = formatted.replace(".0K", "K").replace(".0L", "L").replace(".0Cr", "Cr")
     val prefix = if (value < BigDecimal.ZERO) "-" else ""
-    return "$prefix$symbol$clean"
+    return com.pennywiseai.tracker.utils.CurrencyFormatter.signed(prefix, "$symbol$clean")
 }

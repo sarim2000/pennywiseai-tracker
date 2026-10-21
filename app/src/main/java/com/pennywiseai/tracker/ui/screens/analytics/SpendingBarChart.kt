@@ -17,6 +17,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -100,6 +101,11 @@ fun SpendingBarChart(
 
         if (chartHeight <= 0f || chartWidth <= 0f) return@Canvas
 
+        // RTL: mirror every x (axis on the right, time running right to left),
+        // matching the line chart. [w] is the drawn item's width.
+        val rtl = layoutDirection == LayoutDirection.Rtl
+        fun mx(x: Float, w: Float = 0f) = if (rtl) size.width - x - w else x
+
         // Draw horizontal grid lines and Y-axis indicators
         val gridLineCount = 4
         val dashEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 4f), 0f)
@@ -108,8 +114,8 @@ fun SpendingBarChart(
             val y = chartBottom - fraction * chartHeight
             drawLine(
                 color = gridColor,
-                start = Offset(chartLeft, y),
-                end = Offset(chartRight, y),
+                start = Offset(mx(chartLeft), y),
+                end = Offset(mx(chartRight), y),
                 pathEffect = dashEffect,
                 strokeWidth = 1f
             )
@@ -119,7 +125,7 @@ fun SpendingBarChart(
             drawText(
                 textLayoutResult = measured,
                 topLeft = Offset(
-                    x = yAxisWidth - measured.size.width - 4.dp.toPx(),
+                    x = mx(yAxisWidth - measured.size.width - 4.dp.toPx(), measured.size.width.toFloat()),
                     y = y - measured.size.height / 2f
                 )
             )
@@ -148,7 +154,7 @@ fun SpendingBarChart(
             if (barHeight > 0f) {
                 drawRoundRect(
                     color = barColor,
-                    topLeft = Offset(x, barTop),
+                    topLeft = Offset(mx(x, barThickness), barTop),
                     size = Size(barThickness, barHeight),
                     cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                 )
@@ -166,7 +172,7 @@ fun SpendingBarChart(
                 if (labelY >= 0f) {
                     drawText(
                         textLayoutResult = valueMeasured,
-                        topLeft = Offset(labelX, labelY)
+                        topLeft = Offset(mx(labelX, valueMeasured.size.width.toFloat()), labelY)
                     )
                 }
             }
@@ -179,7 +185,7 @@ fun SpendingBarChart(
                 if (labelY + labelMeasured.size.height <= size.height) {
                     drawText(
                         textLayoutResult = labelMeasured,
-                        topLeft = Offset(labelX, labelY)
+                        topLeft = Offset(mx(labelX, labelMeasured.size.width.toFloat()), labelY)
                     )
                 }
             }
@@ -197,13 +203,13 @@ private fun formatCompactValue(value: Double, currencyCode: String): String {
     val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
     return when {
         useIndianNotation && absValue >= 1_00_00_000 ->
-            "${String.format("%.1f", absValue / 1_00_00_000)}Cr"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_00_00_000)}Cr"
         useIndianNotation && absValue >= 1_00_000 ->
-            "${String.format("%.1f", absValue / 1_00_000)}L"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_00_000)}L"
         absValue >= 10_000_000 ->
-            "${String.format("%.1f", absValue / 1_000_000)}M"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_000_000)}M"
         absValue >= 1_000 ->
-            "${String.format("%.1f", absValue / 1_000)}K"
+            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_000)}K"
         absValue > 0 -> absValue.toInt().toString()
         else -> "0"
     }

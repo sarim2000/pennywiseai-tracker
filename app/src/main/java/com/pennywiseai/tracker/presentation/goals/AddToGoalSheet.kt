@@ -244,7 +244,7 @@ fun TowardGoalsSection(linked: List<LinkedGoal>, onOpenGoal: (Long) -> Unit, onR
                         } else null,
                     )
                     Text(
-                        "+" + CurrencyFormatter.formatCurrency(c.amount, goal.currency),
+                        CurrencyFormatter.signed("+", CurrencyFormatter.formatCurrency(c.amount, goal.currency)),
                         style = PennyWiseText.amountRow,
                         color = MaterialTheme.colorScheme.success,
                     )

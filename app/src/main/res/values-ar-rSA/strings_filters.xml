@@ -20,4 +20,6 @@
     <string name="account_type_current">الحالي</string>
     <string name="account_type_credit_card">بطاقة ائتمان</string>
     <string name="account_type_cash">نقدا</string>
+    <string name="filter_type_spending">الإنفاق (مصروف + بطاقة)</string>
+    <string name="account_type_loan">قرض</string>
 </resources>

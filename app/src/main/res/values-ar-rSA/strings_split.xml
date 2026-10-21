@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">تقسيم مع…</string>
+    <string name="split_menu_edit">تعديل التقسيم</string>
+    <string name="split_sheet_title">تقسيم %1$s</string>
+    <string name="split_sheet_hint">تُضاف كل حصة ضمن القروض كمبلغ أقرضته. حصتك وحدها تُحتسب ضمن الإنفاق.</string>
+    <string name="split_people_count">%1$d من %2$d أشخاص</string>
+    <string name="split_person_name">اسم الشخص</string>
+    <string name="split_add_person">إضافة</string>
+    <string name="split_pick_contact">اختيار من جهات الاتصال</string>
+    <string name="split_remove_person">إزالة %1$s</string>
+    <string name="split_mode_equal">تقسيم بالتساوي</string>
+    <string name="split_mode_custom">مبالغ مخصّصة</string>
+    <string name="split_you">أنت</string>
+    <string name="split_your_part">حصتك</string>
+    <string name="split_left_to_assign">متبقٍ للتوزيع: %1$s</string>
+    <string name="split_over_total">يزيد على الإجمالي بـ %1$s</string>
+    <string name="split_adds_up">المجموع %1$s</string>
+    <string name="split_save">حفظ التقسيم</string>
+    <string name="split_error_share_positive">يجب أن تكون كل حصة أكبر من صفر</string>
+    <string name="split_error_over">مجموع الحصص أكبر من الإجمالي</string>
+    <string name="split_error_your_part_negative">لا يمكن أن تكون حصتك أقل من صفر</string>
+    <string name="split_error_failed">تعذّر حفظ التقسيم: %1$s</string>
+    <string name="split_error_settled">تمت تسوية قرض %1$s. أعد فتحه من القروض لتغيير حصته.</string>
+    <string name="split_error_transfer">لا يمكن أن تكون الفاتورة المقسّمة تحويلًا. أزل التقسيم أولًا.</string>
+    <string name="split_error_type_locked">هذه الفاتورة مقسّمة. أزل التقسيم قبل تغيير نوعها.</string>
+    <string name="split_error_amount_below_shares">هذه الفاتورة مقسّمة. لا يمكن أن يكون مبلغها أقل من الحصص التي أقرضتها.</string>
+    <string name="split_section_title">مقسّمة مع</string>
+    <string name="split_settled">تمت التسوية</string>
+    <string name="split_request">طلب %1$s</string>
+    <string name="split_remove">إزالة التقسيم</string>
+    <string name="split_remove_title">إزالة التقسيم؟</string>
+    <string name="split_remove_message">تُخصم حصة كل شخص من قرضه، ويُحذف القرض إذا لم يبقَ فيه شيء آخر.</string>
+    <string name="split_remove_confirm">إزالة</string>
+    <string name="split_upi_title">معرّف UPI الخاص بك</string>
+    <string name="split_upi_message">يدفع الأشخاص حصصهم إلى معرّف UPI هذا. يمكنك تغييره من الإعدادات.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">أدخل معرّف UPI مثل name@bank</string>
+    <string name="split_upi_save">حفظ</string>
+    <string name="split_request_text">ادفع %1$s إلى %2$s مقابل %3$s</string>
+    <string name="split_request_failed">تعذّر إنشاء رمز QR</string>
+    <string name="settings_upi_title">معرّف UPI الخاص بك</string>
+    <string name="settings_upi_subtitle">يُستخدم لمطالبة الأشخاص بدفع حصصهم من فاتورة مقسّمة</string>
+    <string name="settings_upi_not_set">غير محدد</string>
 </resources>

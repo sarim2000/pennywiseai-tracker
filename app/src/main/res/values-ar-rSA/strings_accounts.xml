@@ -202,7 +202,7 @@
     <!-- %1$s = currency code -->
     <string name="manage_accounts_threshold_label">الحد الأقصى (%1$s)</string>
     <string name="manage_accounts_rename_title">إعادة تسمية الحساب</string>
-    <string name="manage_accounts_alias_label">Alias</string>
+    <string name="manage_accounts_alias_label">الاسم المستعار</string>
     <string name="manage_accounts_alias_placeholder">على سبيل المثال حساب الراتب</string>
     <string name="manage_accounts_alias_hint">اتركه فارغاً لمسح الاسم المستعار.</string>
     <string name="manage_accounts_new_balance">رصيد جديد</string>
@@ -321,4 +321,20 @@
         <item quantity="many">عرض جميع حسابات %1$d</item>
         <item quantity="other">عرض جميع حسابات %1$d</item>
     </plurals>
+    <string name="manage_accounts_section_loan_accounts">حسابات القروض</string>
+    <string name="manage_accounts_hidden_header">الحسابات المتجاهَلة (%1$d)</string>
+    <string name="manage_accounts_hidden_badge">متجاهَل</string>
+    <string name="manage_accounts_menu_show">إلغاء التجاهل</string>
+    <string name="manage_accounts_menu_hide">تجاهل هذا الحساب</string>
+    <string name="manage_accounts_ignored_snackbar">تم تجاهل %1$s</string>
+    <string name="manage_accounts_undo">تراجع</string>
+    <string name="manage_accounts_loan_outstanding_hint">المبلغ الذي لا يزال مستحقًا على القرض</string>
+    <string name="manage_accounts_type_note">تغيير النوع يغيّر فقط طريقة احتساب الرصيد من الآن فصاعدًا. تبقى المعاملات السابقة كما هي.</string>
+    <string name="loans_person_owes_you">مدين لك بـ %1$s</string>
+    <string name="loans_person_you_owe">أنت مدين بـ %1$s</string>
+    <string name="loans_person_all_settled">تمت تسوية كل شيء</string>
+    <string name="loans_person_even">متعادلان — لا ديون على أي طرف</string>
+    <string name="loans_settle_up">تسوية الحساب</string>
+    <string name="loans_settle_up_title">تسوية الحساب مع %1$s؟</string>
+    <string name="loans_settle_up_message">سيتم تحديد جميع القروض المفتوحة مع %1$s على أنها مسوّاة، ويُعفى من أي مبلغ لم يُسدَّد بعد.</string>
 </resources>

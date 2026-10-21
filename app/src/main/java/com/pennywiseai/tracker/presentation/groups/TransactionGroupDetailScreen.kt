@@ -391,7 +391,7 @@ private fun GroupTransactionItem(
                 )
             }
             Text(
-                "$sign${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)}",
+                CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = color
@@ -520,7 +520,7 @@ private fun AddTransactionToGroupSheet(
                                     )
                                 }
                                 Text(
-                                    "$sign${CurrencyFormatter.formatCurrency(txn.amount, txn.currency)}",
+                                    CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(txn.amount, txn.currency)),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.SemiBold,
                                     color = color

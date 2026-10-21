@@ -260,7 +260,7 @@
     <string name="txn_item_tag_recurring">متكرر</string>
     <string name="txn_item_tag_business">الأعمال</string>
     <string name="txn_item_tag_excluded">مستبعد</string>
-    <string name="txn_item_balance_after">Bal %1$s</string>
+    <string name="txn_item_balance_after">الرصيد %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">نقل → %1$s</string>
     <string name="txn_item_transfer_from">التحويل من %1$s</string>
@@ -314,5 +314,21 @@
     <string name="notif_txn_public_text">%1$s • يحتاج التوازن إلى مظهر</string>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
+    <string name="home_section_goals">الأهداف</string>
+    <string name="home_resync_title">قراءة الرسائل مجددًا</string>
+    <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
+    <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
+    <string name="home_resync_rebuild">إعادة البناء من البداية</string>
+    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات SMS للاستفادة من إصلاحات قراءة الرسائل. تُلغى التعديلات على معاملات SMS. ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
+    <string name="home_loans_you_owe">أنت مدين بـ %1$s</string>
+    <string name="whats_new_title">ما الجديد</string>
+    <string name="whats_new_version">الإصدار %1$s</string>
+    <string name="type_filter_spending">الإنفاق</string>
+    <string name="budget_card_per_day">%1$s/يوم</string>
+    <string name="group_card_invested">تم استثمار %1$s</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
+    <string name="pro_home_card_title">يعجبك PennyWise؟</string>
+    <string name="pro_home_card_body">مع Pro تحصل على قواعد وأهداف وعمليات تصدير واستيراد كشوف حساب بلا حدود.</string>
+    <string name="pro_home_card_action">اكتشف Pro</string>
+    <string name="pro_home_card_dismiss">إخفاء</string>
 </resources>

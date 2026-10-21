@@ -42,6 +42,9 @@ import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.Input
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
@@ -310,7 +313,7 @@ fun TransactionDetailScreen(
                                             Text(stringResource(if (transaction?.lentSharesTotal != null) R.string.split_menu_edit else R.string.split_menu_split))
                                         },
                                         leadingIcon = {
-                                            Icon(Icons.Default.CallSplit, contentDescription = null)
+                                            Icon(Icons.AutoMirrored.Filled.CallSplit, contentDescription = null)
                                         },
                                         onClick = {
                                             showActionsMenu = false
@@ -712,9 +715,15 @@ private fun TransactionReceipt(
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // Transaction type chip
-                val typeLabel = transaction.transactionType.name.lowercase().let { s ->
-                    if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1)
-                }
+                val typeLabel = stringResource(
+                    when (transaction.transactionType) {
+                        TransactionType.INCOME -> R.string.txn_type_income
+                        TransactionType.EXPENSE -> R.string.txn_type_expense
+                        TransactionType.CREDIT -> R.string.txn_type_credit
+                        TransactionType.TRANSFER -> R.string.txn_type_transfer
+                        TransactionType.INVESTMENT -> R.string.txn_type_investment
+                    }
+                )
                 val typeIcon = when (transaction.transactionType) {
                     TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
                     TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
@@ -821,7 +830,7 @@ private fun TransactionReceipt(
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 Text(
-                    text = "$sign${transaction.formatAmount()}",
+                    text = CurrencyFormatter.signed(sign, transaction.formatAmount()),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = typeColor,
@@ -1004,7 +1013,7 @@ private fun TransactionReceipt(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     val masked = maskedLeg(to, transaction.toBankName)
                     DetailInfoRow(
-                        icon = Icons.Default.Input,
+                        icon = Icons.AutoMirrored.Filled.Input,
                         label = stringResource(R.string.txn_detail_label_to),
                         value = masked
                     )
@@ -1013,11 +1022,12 @@ private fun TransactionReceipt(
 
             // Balance
             transaction.balanceAfter?.let {
+                val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
                     icon = Icons.Default.AccountBalanceWallet,
                     label = stringResource(R.string.txn_detail_label_balance),
-                    value = CurrencyFormatter.formatCurrency(it, viewModel.primaryCurrency.value)
+                    value = CurrencyFormatter.formatCurrency(it, accountCurrency ?: transaction.currency)
                 )
             }
 
@@ -1220,7 +1230,7 @@ private fun TransferFlowRow(
         }
 
         Icon(
-            Icons.Default.ArrowForward,
+            Icons.AutoMirrored.Filled.ArrowForward,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.small),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1553,7 +1563,7 @@ private fun EditableExtractedInfoCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
-                    Icons.Default.CallSplit,
+                    Icons.AutoMirrored.Filled.CallSplit,
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.small)
                 )

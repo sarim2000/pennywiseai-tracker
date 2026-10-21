@@ -31,7 +31,7 @@
     <string name="txn_export_action_export">تصدير</string>
     <string name="txn_export_action_export_first">تصدير أول %1$d</string>
     <string name="txn_export_action_done">تم</string>
-    <string name="txn_export_share_subject">تصدير معاملات كاشيرو</string>
+    <string name="txn_export_share_subject">تصدير معاملات PennyWise</string>
     <string name="txn_export_share_chooser_title">مشاركة CSV</string>
     <string name="txn_export_action_share">مشاركة</string>
     <string name="txn_export_action_close">إغلاق</string>
@@ -73,13 +73,13 @@
     <string name="txn_detail_action_confirm">تأكيد</string>
     <string name="txn_detail_more_actions">المزيد من الإجراءات</string>
     <string name="txn_detail_menu_add_to_group">إضافة إلى المجموعة</string>
-    <string name="txn_detail_menu_duplicate">Duplicate</string>
+    <string name="txn_detail_menu_duplicate">تكرار</string>
     <string name="txn_detail_menu_report_issue">الإبلاغ عن مشكلة</string>
     <string name="txn_detail_delete_title">حذف المعاملة</string>
     <string name="txn_detail_delete_message">هل أنت متأكد من أنك تريد حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="txn_detail_unmark_loan_title">إلغاء وضع علامة كقرض؟</string>
     <string name="txn_detail_unmark_loan_message">هذا يزيل رابط القرض من هذه المعاملة. إذا لم تكن هناك معاملات أخرى مرتبطة، يتم حذف القرض أيضا.</string>
-    <string name="txn_detail_unmark_loan_confirm">Unmark</string>
+    <string name="txn_detail_unmark_loan_confirm">إلغاء التحديد</string>
     <string name="txn_detail_unmark_loan">إلغاء وضع علامة كقرض</string>
     <string name="txn_detail_mark_as_loan">وضع علامة كقرض</string>
     <string name="txn_detail_loan_lent_to">أرسلت إلى %1$s</string>
@@ -458,4 +458,10 @@
     <string name="tag_input_remove">إزالة %1$s</string>
     <string name="tag_input_add">إضافة علامة</string>
     <string name="tag_input_create">إنشاء \"%1$s\"</string>
+    <string name="txn_detail_error_category_exists_other_parent">توجد بالفعل فئة باسم \"%1$s\" ضمن فئة رئيسية أخرى</string>
+    <string name="txn_detail_error_loan_currency_locked">هذه المعاملة جزء من قرض. أزلها من القرض قبل تغيير عملتها.</string>
+    <string name="txn_detail_receipt_missing">صورة الإيصال غير مضمّنة في هذه النسخة الاحتياطية</string>
+    <string name="txn_totals_transfer">تحويل</string>
+    <string name="txn_totals_invest">استثمار</string>
+    <string name="group_detail_invested">المُستثمَر</string>
 </resources>

@@ -1515,7 +1515,7 @@ private fun BreakdownRow(
             fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
         )
         Text(
-            text = "${if (isIncome) "+" else "-"}${CurrencyFormatter.formatCurrency(amount.abs(), currency)}",
+            text = CurrencyFormatter.signed(if (isIncome) "+" else "-", CurrencyFormatter.formatCurrency(amount.abs(), currency)),
             style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
                 fontWeight = FontWeight.Normal
             ),

@@ -10,14 +10,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
+import com.pennywiseai.tracker.ui.components.forPicker
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -37,8 +40,9 @@ import kotlinx.coroutines.launch
  * a fresh [onCreate], which is why the picker args live in a mutableState
  * the Compose tree observes.
  *
- * On pick: update the transaction's category, dismiss the originating
- * notification, finish. On dismiss without picking: finish.
+ * On pick: file the transaction and learn the merchant (see
+ * [LearnCategoryUseCase]), swap the alert for a short confirmation, finish.
+ * On dismiss without picking: finish.
  */
 @AndroidEntryPoint
 class QuickCategoryPickerActivity : ComponentActivity() {
@@ -46,6 +50,7 @@ class QuickCategoryPickerActivity : ComponentActivity() {
     @Inject lateinit var transactionRepository: TransactionRepository
     @Inject lateinit var categoryRepository: CategoryRepository
     @Inject lateinit var tagRepository: TagRepository
+    @Inject lateinit var learnCategory: LearnCategoryUseCase
 
     // App-lifetime scope so the DB write survives finish() — the activity
     // closes immediately after the user picks.
@@ -131,16 +136,15 @@ class QuickCategoryPickerActivity : ComponentActivity() {
             val activeNotificationId = args.notificationId
             QuickCategoryPickerSheet(
                 currentCategory = txn.category,
-                categories = categories,
+                // #876: only the transaction's own type, like every other picker.
+                categories = categories.forPicker(isIncome = txn.transactionType == TransactionType.INCOME),
                 onCategorySelected = { newCategory ->
-                    if (newCategory != txn.category) {
-                        appScope.launch {
-                            transactionRepository.updateCategory(txn.id, newCategory)
-                        }
-                    }
-                    if (activeNotificationId != -1) {
-                        NotificationManagerCompat.from(applicationContext)
-                            .cancel(activeNotificationId)
+                    appScope.launch {
+                        val moved = learnCategory(txn.id, newCategory)
+                        WidgetRefresher.refreshTransactionWidgets(applicationContext)
+                        SmsBroadcastReceiver.showLearnedNotification(
+                            applicationContext, activeNotificationId, txn.id, newCategory, moved
+                        )
                     }
                     finish()
                 },

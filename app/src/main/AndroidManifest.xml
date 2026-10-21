@@ -208,6 +208,19 @@
                 android:resource="@xml/recent_transactions_widget_info" />
         </receiver>
 
+        <!-- Spending summary: today + this month + quick add, one row -->
+        <receiver
+            android:name=".widget.SpendingSummaryWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_summary">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/spending_summary_widget_info" />
+        </receiver>
+
         <!-- Goal widgets (#914): one chosen goal (2x2) and up to three goals (4x2) -->
         <receiver
             android:name=".widget.GoalWidgetReceiver"

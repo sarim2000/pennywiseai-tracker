@@ -13,6 +13,13 @@ import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.ui.components.forPicker
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -20,8 +27,9 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
 
 /**
  * BroadcastReceiver that intercepts incoming SMS messages in real-time
@@ -33,7 +41,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
     @InstallIn(SingletonComponent::class)
     interface SmsBroadcastReceiverEntryPoint {
         fun smsTransactionProcessor(): SmsTransactionProcessor
-        fun transactionRepository(): com.pennywiseai.tracker.data.repository.TransactionRepository
+        fun transactionRepository(): TransactionRepository
+        fun categoryRepository(): CategoryRepository
         fun detectBalanceDiscrepancy(): com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase
     }
 
@@ -57,6 +66,79 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         internal fun pickerRequestCode(transactionId: Long): Int =
             (transactionId * CATEGORY_SLOT_BASE + PICKER_SLOT).toInt()
+
+        /**
+         * Two one-tap answers for "what was this for?": the most-used categories
+         * the picker would offer for this type, topped up from the offered list
+         * so a new install still gets buttons. "Others" is the question, never
+         * an answer.
+         */
+        internal fun quickPicks(usedMostFirst: List<String>, offered: List<String>, exclude: String): List<String> {
+            val skip = setOf(exclude, BuiltinCategoryNames.current("Others"))
+            return (usedMostFirst.filter { it in offered } + offered).distinct().filterNot { it in skip }.take(2)
+        }
+
+        fun ensureChannel(context: Context): NotificationManager {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ID,
+                    context.getString(R.string.notif_txn_channel_name),
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply { description = context.getString(R.string.notif_txn_channel_description) }
+            )
+            return notificationManager
+        }
+
+        fun openTransactionIntent(context: Context, transactionId: Long): PendingIntent =
+            PendingIntent.getActivity(
+                context,
+                transactionId.toInt(),
+                Intent(context, MainActivity::class.java).apply {
+                    action = ACTION_EDIT_TRANSACTION
+                    putExtra(EXTRA_TRANSACTION_ID, transactionId)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        fun pickerIntent(context: Context, transactionId: Long, notificationId: Int): PendingIntent =
+            PendingIntent.getActivity(
+                context,
+                pickerRequestCode(transactionId),
+                Intent(context, QuickCategoryPickerActivity::class.java).apply {
+                    putExtra(QuickCategoryPickerActivity.EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(QuickCategoryPickerActivity.EXTRA_NOTIFICATION_ID, notificationId)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /**
+         * Replaces the alert with a short, silent "saved — and learned" note so
+         * the user sees the tap landed and knows the next one is automatic.
+         */
+        fun showLearnedNotification(context: Context, notificationId: Int, transactionId: Long, category: String, moved: Int) {
+            if (notificationId == -1) return
+            val text = context.getString(R.string.notif_txn_learned_text) + if (moved > 0) {
+                " " + context.resources.getQuantityString(R.plurals.notif_txn_learned_moved, moved, moved)
+            } else ""
+            ensureChannel(context).notify(
+                notificationId,
+                NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, category))
+                    .setContentText(text)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                    .setContentIntent(openTransactionIntent(context, transactionId))
+                    .setAutoCancel(true)
+                    .setSilent(true)
+                    .setTimeoutAfter(LEARNED_TIMEOUT_MS)
+                    .build()
+            )
+        }
+
+        private const val LEARNED_TIMEOUT_MS = 6_000L
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -109,7 +191,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun processIncomingSms(
+    // Internal so the debug-only SmsProbeReceiver can drive the real path with a made-up SMS.
+    internal suspend fun processIncomingSms(
         context: Context,
         processor: SmsTransactionProcessor,
         sender: String,
@@ -119,57 +202,34 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         try {
             // Use the shared processor to parse and save the transaction
             val result = processor.processAndSaveTransaction(sender, body, timestamp)
-
-            if (result.success && result.transactionId != null) {
-                Log.d(TAG, "Transaction saved with ID: ${result.transactionId}")
-
-                // Show notification if app is not in foreground
-                if (!isAppInForeground(context)) {
-                    // Get transaction details for notification
-                    // Content-aware dispatch (same as processAndSaveTransaction) so
-                    // shared-sender banks (M-Pesa KE/TZ/MZ) re-parse with the right parser.
-                    val parsedTransaction = com.pennywiseai.parser.core.bank.BankParserFactory
-                        .parse(body, sender, timestamp)
-
-                    if (parsedTransaction != null) {
-                        // Get entry point to access repository
-                        val entryPoint = EntryPointAccessors.fromApplication(
-                            context.applicationContext,
-                            SmsBroadcastReceiverEntryPoint::class.java
-                        )
-                        val repository = entryPoint.transactionRepository()
-
-                        // Fetch the saved transaction to get its category
-                        val savedTransaction = repository.getTransactionById(result.transactionId)
-                        // #734: tell the user right away when the bank's balance disagrees
-                        // with the ledger — the detail screen offers the fix.
-                        val discrepancyLine = savedTransaction?.let { tx ->
-                            runCatching { entryPoint.detectBalanceDiscrepancy().execute(tx) }.getOrNull()
-                        }?.let { d ->
-                            context.getString(
-                                R.string.notif_txn_balance_discrepancy,
-                                com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency),
-                                com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.expected, d.currency),
-                                com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.reported, d.currency)
-                            )
-                        }
-
-                        showTransactionNotification(
-                            context = context,
-                            transactionId = result.transactionId,
-                            amount = parsedTransaction.amount.toString(),
-                            merchant = parsedTransaction.merchant ?: context.getString(R.string.notif_txn_unknown_merchant),
-                            type = parsedTransaction.type.name,
-                            bankName = parsedTransaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank),
-                            category = savedTransaction?.category ?: "Others",
-                            repository = repository,
-                            discrepancyLine = discrepancyLine
-                        )
-                    }
-                }
-            } else {
+            if (!result.success || result.transactionId == null) {
                 Log.d(TAG, "Transaction not saved: ${result.reason}")
+                return
             }
+            Log.d(TAG, "Transaction saved with ID: ${result.transactionId}")
+
+            // The open app shows the new row itself.
+            if (isAppInForeground(context)) return
+
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                SmsBroadcastReceiverEntryPoint::class.java
+            )
+            val repository = entryPoint.transactionRepository()
+            val saved = repository.getTransactionById(result.transactionId) ?: return
+            // #734: tell the user right away when the bank's balance disagrees
+            // with the ledger — the detail screen offers the fix.
+            val discrepancyLine = runCatching { entryPoint.detectBalanceDiscrepancy().execute(saved) }
+                .getOrNull()
+                ?.let { d ->
+                    context.getString(
+                        R.string.notif_txn_balance_discrepancy,
+                        CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency),
+                        CurrencyFormatter.formatCurrency(d.expected, d.currency),
+                        CurrencyFormatter.formatCurrency(d.reported, d.currency)
+                    )
+                }
+            showTransactionNotification(context, saved, repository, entryPoint.categoryRepository(), discrepancyLine)
         } catch (e: Exception) {
             Log.e(TAG, "Error processing SMS", e)
         }
@@ -186,66 +246,43 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
     private suspend fun showTransactionNotification(
         context: Context,
-        transactionId: Long,
-        amount: String,
-        merchant: String,
-        type: String,
-        bankName: String,
-        category: String,
-        repository: com.pennywiseai.tracker.data.repository.TransactionRepository,
+        transaction: TransactionEntity,
+        repository: TransactionRepository,
+        categoryRepository: CategoryRepository,
         discrepancyLine: String? = null
     ) {
         try {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = ensureChannel(context)
+            val transactionId = transaction.id
+            val pendingIntent = openTransactionIntent(context, transactionId)
 
-            // Create notification channel
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                context.getString(R.string.notif_txn_channel_name),
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = context.getString(R.string.notif_txn_channel_description)
-            }
-            notificationManager.createNotificationChannel(channel)
-
-            // Create intent to open transaction detail
-            val intent = Intent(context, MainActivity::class.java).apply {
-                action = ACTION_EDIT_TRANSACTION
-                putExtra(EXTRA_TRANSACTION_ID, transactionId)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            // Lock-screen version only; the full title says it in words.
+            val typeEmoji = when (transaction.transactionType) {
+                TransactionType.EXPENSE -> "💸"
+                TransactionType.INCOME -> "💰"
+                TransactionType.CREDIT -> "💳"
+                TransactionType.TRANSFER -> "🔄"
+                TransactionType.INVESTMENT -> "📈"
             }
 
-            val pendingIntent = PendingIntent.getActivity(
-                context,
-                transactionId.toInt(),
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            // Format notification content
-            val typeEmoji = when (type) {
-                "EXPENSE" -> "💸"
-                "INCOME" -> "💰"
-                "CREDIT" -> "💳"
-                "TRANSFER" -> "🔄"
-                "INVESTMENT" -> "📈"
-                else -> "💵"
+            val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)
+            val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
+            val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
+            val title = when (transaction.transactionType) {
+                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount, merchant)
+                TransactionType.EXPENSE, TransactionType.CREDIT ->
+                    context.getString(R.string.notif_txn_title_spent, amount, merchant)
+                else -> context.getString(R.string.notif_txn_title_other, amount, merchant)
             }
-
-            val title = "$typeEmoji $amount - $merchant"
-            val categoryLine = context.getString(R.string.notif_txn_category_bank, category, bankName)
-            val content = if (discrepancyLine != null) "$categoryLine\n$discrepancyLine" else categoryLine
-
-            // Get top 3 categories by usage (personalized for user)
-            val topCategories = try {
-                repository.getTopCategoriesByUsage(3)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error fetching top categories", e)
-                // Fallback to common categories
-                listOf("Food & Dining", "Shopping", "Transportation")
+            // Unsorted: ask, with one-tap answers. Sorted: just say where it went.
+            val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
+            val summaryLine = if (uncategorized) {
+                context.getString(R.string.notif_txn_ask_category, bankName)
+            } else {
+                context.getString(R.string.notif_txn_category_bank, transaction.category, bankName)
             }
+            val content = listOfNotNull(summaryLine, discrepancyLine).joinToString("\n")
 
-            // Build notification with category quick actions
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(title)
@@ -256,45 +293,39 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .setAutoCancel(true)
 
             // Notification action slots are precious (Android collapses past 3),
-            // so we reserve the last for "More…" — the full picker — and let the
-            // top 2 most-used categories fill the first two for one-tap recategorise. (#303)
+            // so the last opens the full picker and the first two are the
+            // user's most-used categories of this type, for one-tap answers. (#303)
             val notificationId = transactionId.toInt()
-            topCategories.filter { it != category }.take(2).forEachIndexed { index, topCategory ->
-                val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
-                    action = NotificationActionReceiver.ACTION_CHANGE_CATEGORY
-                    putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)
-                    putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
-                    putExtra(NotificationActionReceiver.EXTRA_NEW_CATEGORY, topCategory)
+            if (uncategorized) {
+                val offered = runCatching {
+                    categoryRepository.getVisibleCategories().first()
+                        .forPicker(isIncome = transaction.transactionType == TransactionType.INCOME)
+                        .map { it.name }
+                }.getOrDefault(emptyList())
+                val used = runCatching { repository.getTopCategoriesByUsage(10) }.getOrDefault(emptyList())
+                quickPicks(used, offered, exclude = transaction.category).forEachIndexed { index, pick ->
+                    val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
+                        action = NotificationActionReceiver.ACTION_CHANGE_CATEGORY
+                        putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)
+                        putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, notificationId)
+                        putExtra(NotificationActionReceiver.EXTRA_NEW_CATEGORY, pick)
+                    }
+                    val categoryPendingIntent = PendingIntent.getBroadcast(
+                        context,
+                        categoryRequestCode(transactionId, index),
+                        categoryIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                    notificationBuilder.addAction(0, pick, categoryPendingIntent)
                 }
-
-                val categoryPendingIntent = PendingIntent.getBroadcast(
-                    context,
-                    categoryRequestCode(transactionId, index),
-                    categoryIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-
-                notificationBuilder.addAction(
-                    0, // No icon for actions
-                    topCategory,
-                    categoryPendingIntent
-                )
             }
 
-            // "More…" — launches the translucent picker activity so the user
-            // can choose any category, not just the top 2 quick-picks above.
-            val pickerIntent = Intent(context, QuickCategoryPickerActivity::class.java).apply {
-                putExtra(QuickCategoryPickerActivity.EXTRA_TRANSACTION_ID, transactionId)
-                putExtra(QuickCategoryPickerActivity.EXTRA_NOTIFICATION_ID, notificationId)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            }
-            val pickerPendingIntent = PendingIntent.getActivity(
-                context,
-                pickerRequestCode(transactionId),
-                pickerIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            // The translucent picker: any category, not just the quick picks.
+            notificationBuilder.addAction(
+                0,
+                context.getString(if (uncategorized) R.string.notif_txn_action_more else R.string.notif_txn_action_change),
+                pickerIntent(context, transactionId, notificationId)
             )
-            notificationBuilder.addAction(0, context.getString(R.string.notif_txn_action_more), pickerPendingIntent)
 
             // Account balances stay off the lock screen (#734): private visibility
             // with a public version that carries no figures.
@@ -312,8 +343,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     )
             }
 
-            val notification = notificationBuilder.build()
-            notificationManager.notify(notificationId, notification)
+            notificationManager.notify(notificationId, notificationBuilder.build())
         } catch (e: Exception) {
             Log.e(TAG, "Error showing notification", e)
         }

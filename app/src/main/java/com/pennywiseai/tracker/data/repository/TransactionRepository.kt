@@ -353,6 +353,10 @@ open class TransactionRepository @Inject constructor(
     suspend fun updateCategory(transactionId: Long, category: String) {
         transactionDao.updateCategoryById(transactionId, category, LocalDateTime.now())
     }
+
+    /** Moves [merchantName]'s live transactions in category [from] to [to]; returns the count. */
+    suspend fun recategorizeMerchant(merchantName: String, from: String, to: String): Int =
+        transactionDao.recategorizeMerchant(merchantName, from, to)
     
     suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
         return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)

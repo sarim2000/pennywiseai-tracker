@@ -282,6 +282,10 @@
     <string name="widget_recent_empty_hint">Tap + to add manually</string>
     <string name="widget_recent_fallback_title">Transaction</string>
 
+    <!-- Spending summary widget -->
+    <string name="widget_summary_today">Today</string>
+    <string name="widget_summary_month">This month</string>
+
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">SMS Scan</string>
@@ -302,6 +306,35 @@
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s New transaction</string>
     <string name="notif_txn_public_text">%1$s • balance needs a look</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <string name="notif_txn_title_spent">Spent %1$s at %2$s</string>
+    <string name="notif_txn_title_received">Received %1$s from %2$s</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <string name="notif_txn_ask_category">What was this for? · %1$s</string>
+    <string name="notif_txn_action_change">Change</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <string name="notif_txn_learned_title">Saved as %1$s</string>
+    <string name="notif_txn_learned_text">Payments here will be sorted automatically from now on.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">%d earlier one moved too.</item>
+        <item quantity="other">%d earlier ones moved too.</item>
+    </plurals>
+
+    <!-- Evening recap notification -->
+    <string name="notif_daily_channel_name">Daily summary</string>
+    <string name="notif_daily_channel_description">A short recap of the day\'s spending each evening</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <string name="notif_daily_title">Today you spent %1$s</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d transaction</item>
+        <item quantity="other">%d transactions</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d needs a category</item>
+        <item quantity="other">%d need a category</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Sort it</string>
 
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>

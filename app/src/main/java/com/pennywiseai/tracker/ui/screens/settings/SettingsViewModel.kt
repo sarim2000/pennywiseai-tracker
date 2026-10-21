@@ -158,6 +158,8 @@ class SettingsViewModel @Inject constructor(
     // Count credit-card spend toward the "Spent this month" total (#705)
     val countCreditCardAsExpense = userPreferencesRepository.countCreditCardAsExpense
 
+    val dailySummaryEnabled = userPreferencesRepository.dailySummaryEnabled
+
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 
@@ -413,6 +415,10 @@ class SettingsViewModel @Inject constructor(
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
         }
+    }
+
+    fun setDailySummaryEnabled(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setDailySummaryEnabled(enabled) }
     }
 
     fun toggleDeveloperMode(enabled: Boolean) {

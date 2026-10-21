@@ -18,6 +18,7 @@ object RecentTransactionsWidgetDataStore {
     private const val MAX_ITEMS = 10
 
     private val TOTAL_SPENT = stringPreferencesKey("total_spent")
+    private val TODAY_SPENT = stringPreferencesKey("today_spent")
     private val CURRENCY = stringPreferencesKey("currency")
     private val COUNT = intPreferencesKey("count")
 
@@ -51,6 +52,7 @@ object RecentTransactionsWidgetDataStore {
 
             RecentTransactionsWidgetData(
                 totalSpent = prefs[TOTAL_SPENT]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                todaySpent = prefs[TODAY_SPENT]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
                 currency = prefs[CURRENCY] ?: prefs[currencyKey(0)] ?: "INR",
                 transactions = items
             )
@@ -63,6 +65,7 @@ object RecentTransactionsWidgetDataStore {
     suspend fun update(context: Context, data: RecentTransactionsWidgetData) {
         context.recentTransactionsWidgetDataStore.edit { prefs ->
             prefs[TOTAL_SPENT] = data.totalSpent.toPlainString()
+            prefs[TODAY_SPENT] = data.todaySpent.toPlainString()
             prefs[CURRENCY] = data.currency
 
             // Clear previous entries

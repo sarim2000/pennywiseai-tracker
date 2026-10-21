@@ -89,6 +89,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // off still creates anything that came due while it was down.
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
+        com.pennywiseai.tracker.worker.DailySummaryWorker.schedule(this)
         applicationScope.launch { webhookSyncScheduler.observeSchedule() }
 
         // Goal widgets (#914): one hook for every goal write (screens, Add to goal,

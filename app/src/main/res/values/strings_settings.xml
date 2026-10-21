@@ -214,6 +214,8 @@
     <string name="settings_notification_access_disabled">Tap to enable bank app notifications</string>
     <string name="settings_notification_access_on">On</string>
     <string name="settings_notification_access_off">Off</string>
+    <string name="settings_daily_summary_title">Daily summary</string>
+    <string name="settings_daily_summary_subtitle">A recap of today\'s spending at 9\u00A0PM</string>
 
     <!-- AI Features -->
     <string name="settings_ai_section">AI Features</string>

@@ -114,21 +114,26 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             // Same spend definition as Home: card purchases only when the user
             // opted in (#705), investments never.
             val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
-            val grossSpent = nonLoan
-                .filter {
-                    it.transactionType == TransactionType.EXPENSE ||
-                        (creditAsExpense && it.transactionType == TransactionType.CREDIT)
-                }
-                .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
+            suspend fun spentIn(rows: List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>): BigDecimal {
+                val grossSpent = rows
+                    .filter {
+                        it.transactionType == TransactionType.EXPENSE ||
+                            (creditAsExpense && it.transactionType == TransactionType.CREDIT)
+                    }
+                    .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
-            // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
-            // shrinks the spend total (floored at zero) — matching the Home card and
-            // the Transactions page, which were already net of refunds.
-            val refundTotal = nonLoan
-                .filter { it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
-                .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
+                // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
+                // shrinks the spend total (floored at zero) — matching the Home card and
+                // the Transactions page, which were already net of refunds.
+                val refundTotal = rows
+                    .filter { it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+                    .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
-            val totalSpent = (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
+                return (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
+            }
+
+            val totalSpent = spentIn(nonLoan)
+            val todaySpent = spentIn(nonLoan.filter { it.dateTime.toLocalDate() == now })
 
             val formatter = DateTimeFormatter.ofPattern("MMM d")
 
@@ -165,12 +170,14 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
 
             val data = RecentTransactionsWidgetData(
                 totalSpent = totalSpent,
+                todaySpent = todaySpent,
                 currency = targetCurrency,
                 transactions = recentItems
             )
 
             RecentTransactionsWidgetDataStore.update(applicationContext, data)
             RecentTransactionsWidget().updateAll(applicationContext)
+            SpendingSummaryWidget().updateAll(applicationContext)
 
             Result.success()
         } catch (e: Exception) {

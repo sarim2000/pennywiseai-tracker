@@ -105,4 +105,33 @@ class SharedCategoryMappingTest {
     fun `an unknown merchant still falls back to Others`() {
         assertCategory("Others", "QWERTYUIOP PRIVATE LIMITED")
     }
+
+    // --- Jordan: 71% of one real ledger fell through to "Others" ---
+
+    @Test
+    fun `Jordanian shops and services are recognised`() {
+        assertCategory("Groceries", "HYPERMAX - SWEIFIEH")
+        assertCategory("Groceries", "AL NOOR SUPERMARKET")
+        assertCategory("Groceries", "SUPER MARKET AL AMAL")
+        assertCategory("Groceries", "LUMI MARKET / KHALDA")
+        assertCategory("Groceries", "MILITARY CONSUMER EST MARKA")
+        assertCategory("Food & Dining", "AL SAFA BAKERIES")
+        assertCategory("Food & Dining", "THE CAKE SHOP")
+        assertCategory("Shopping", "www.shein.com")
+        assertCategory("Shopping", "AL AMAL STORES")
+        assertCategory("Shopping", "AL RAWDA HOME CENTER")
+        assertCategory("Transportation", "AMMAN VISION TRANSPORT")
+        assertCategory("Mobile", "ZAIN WEBSITE AND SELFC")
+        assertCategory("Mobile", "ORANGE MOBILE")
+        assertCategory("Mobile", "UMNIAH E-PAY")
+        assertCategory("Entertainment", "PRIME CINEMAS AL ABDALI")
+        assertCategory("Entertainment", "TELEGRAM PREMIUM")
+    }
+
+    @Test
+    fun `a person called Zain is not a phone bill`() {
+        assertCategory("Others", "ZAIN AHMAD")
+        // "marketing" is not a market.
+        assertCategory("Others", "DIGITAL MARKETING CO")
+    }
 }

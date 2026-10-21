@@ -244,7 +244,13 @@ object SharedCategoryMapping {
         "the coffee lab",
         "top cafeteria",
         "bosporus sharjah",
-        "uber eats"
+        "uber eats",
+        // Jordan: plurals and staples the singular brand list misses.
+        "bakeries",
+        "cake",
+        "falafel",
+        "kunafa",
+        "knafeh"
     )
 
     private val GROCERY = setOf(
@@ -322,7 +328,21 @@ object SharedCategoryMapping {
         "majid al futtaim hypm",
         "keells",
         "glomark",
-        "spar"
+        "spar",
+        // Jordan: generic shop words plus the big local chains. The two
+        // consumer corporations are the state-run grocery chains.
+        "supermarket",
+        "super market",
+        "hypermarket",
+        "minimarket",
+        "mini market",
+        "market",
+        "hypermax",
+        "cozmo",
+        "safeway",
+        "sameh mall",
+        "military consumer",
+        "civil consumer"
     )
 
     private val TRANSPORT = setOf(
@@ -363,13 +383,20 @@ object SharedCategoryMapping {
         "pttst.c",
         "smart auto",
         "interchange",
-        "pickme"
+        "pickme",
+        // Jordan: bus/BRT top-ups, taxis, intercity coaches, fuel stations.
+        "transport",
+        "taxi",
+        "jett",
+        "manaseer",
+        "jopetrol"
     )
 
     private val SHOPPING = setOf(
         "amazon", "flipkart", "myntra", "ajio", "nykaa", "meesho",
         "snapdeal", "shopclues", "firstcry", "pepperfry", "urban ladder",
-        "store", "mart"
+        "store", "mart",
+        "stores", "shein", "temu", "ikea", "centrepoint", "home center", "home centre"
     )
     // Shopping is evaluated before Healthcare, so its generic retail words
     // ("store", "mart") swallowed chemists — "SALT LAKE MEDICAL STORE" came
@@ -564,7 +591,9 @@ object SharedCategoryMapping {
         "sfcinemacity",
         "platinumlist.net",
         "scope entertainment",
-        "scope cinemas"
+        "scope cinemas",
+        "cinemas",
+        "telegram premium"
     )
 
     private val HEALTHCARE = setOf(
@@ -654,7 +683,10 @@ object SharedCategoryMapping {
 
     private val MOBILE = setOf(
         "airtel", "jio", "vodafone", "idea", "bsnl", "recharge", "prepaid", "postpaid", "mobile",
-        "etisalat"
+        "etisalat",
+        // Jordan. "zain" alone is also a first name, and a transfer to a
+        // person must not land in Mobile.
+        "umniah", "zain website", "zain jordan", "orange jordan"
     )
 
     private val FITNESS = setOf(

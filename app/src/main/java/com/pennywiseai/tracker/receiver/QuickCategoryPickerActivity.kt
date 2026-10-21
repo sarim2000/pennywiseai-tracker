@@ -85,21 +85,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) {
             unlocked.value = true
         } else if (savedInstanceState == null) {
-            lifecycleScope.launch {
-                if (!appLockRepository.shouldLockApp()) {
-                    unlocked.value = true
-                } else {
-                    biometricAuthManager.authenticate(
-                        activity = this@QuickCategoryPickerActivity,
-                        onSuccess = {
-                            lifecycleScope.launch { appLockRepository.updateAuthTimestamp() }
-                            unlocked.value = true
-                        },
-                        onError = { finish() },
-                        onCancel = { finish() }
-                    )
-                }
-            }
+            checkLock()
         } else {
             // Recreated mid-prompt: start over from the notification.
             finish()
@@ -126,6 +112,29 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         // bottom-sheet keeps its surface and just refreshes its content.
         setIntent(intent)
         PickerArgs.from(intent)?.let { currentArgs.value = it }
+        // A picker left open in the background must not show the next
+        // transaction after the lock has timed out: hide it and ask again.
+        unlocked.value = false
+        checkLock()
+    }
+
+    /** Shows the sheet only once the app lock (if on) is satisfied; a cancel closes the picker. */
+    private fun checkLock() {
+        lifecycleScope.launch {
+            if (!appLockRepository.shouldLockApp()) {
+                unlocked.value = true
+                return@launch
+            }
+            biometricAuthManager.authenticate(
+                activity = this@QuickCategoryPickerActivity,
+                onSuccess = {
+                    lifecycleScope.launch { appLockRepository.updateAuthTimestamp() }
+                    unlocked.value = true
+                },
+                onError = { finish() },
+                onCancel = { finish() }
+            )
+        }
     }
 
     @androidx.compose.runtime.Composable

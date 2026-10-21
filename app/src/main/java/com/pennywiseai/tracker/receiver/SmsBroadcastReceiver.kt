@@ -150,12 +150,29 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 notificationManager.cancel(notificationId)
                 return
             }
+            // Picks post from different threads, so check-and-post is one step.
+            synchronized(LEARNED_LOCK) { postLearned(context, notificationManager, notificationId, learned) }
+        }
+
+        private fun postLearned(
+            context: Context,
+            notificationManager: NotificationManager,
+            notificationId: Int,
+            learned: LearnCategoryUseCase.Learned
+        ) {
             // Only the merchant's latest lesson is undoable: an older note's
-            // Undo would restore a mapping the newer pick replaced.
+            // Undo would restore a mapping the newer pick replaced. A note that
+            // lost the race to a newer lesson is dropped, never the newer one.
+            val learnedAt = learned.mappedAt?.atZone(java.time.ZoneId.systemDefault())?.toInstant()?.toEpochMilli() ?: 0L
             learned.merchant?.let { merchant ->
-                notificationManager.activeNotifications
-                    .filter { it.notification.extras.getString(EXTRA_LEARNED_MERCHANT).equals(merchant, ignoreCase = true) }
-                    .forEach { notificationManager.cancel(it.tag, it.id) }
+                val sameMerchant = notificationManager.activeNotifications.filter {
+                    it.notification.extras.getString(EXTRA_LEARNED_MERCHANT).equals(merchant, ignoreCase = true)
+                }
+                if (sameMerchant.any { it.notification.extras.getLong(EXTRA_LEARNED_AT) > learnedAt }) {
+                    notificationManager.cancel(notificationId)
+                    return
+                }
+                sameMerchant.forEach { notificationManager.cancel(it.tag, it.id) }
             }
             val moved = learned.movedIds.size
             val text = when {
@@ -182,7 +199,12 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                             learned
                         )
                     )
-                    .addExtras(android.os.Bundle().apply { putString(EXTRA_LEARNED_MERCHANT, learned.merchant) })
+                    .addExtras(
+                        android.os.Bundle().apply {
+                            putString(EXTRA_LEARNED_MERCHANT, learned.merchant)
+                            putLong(EXTRA_LEARNED_AT, learnedAt)
+                        }
+                    )
                     .setAutoCancel(true)
                     .setSilent(true)
                     .setTimeoutAfter(LEARNED_TIMEOUT_MS)
@@ -194,6 +216,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private const val LEARNED_TIMEOUT_MS = 15_000L
         private const val UNDO_SLOT = 8
         private const val EXTRA_LEARNED_MERCHANT = "com.pennywiseai.tracker.learned_merchant"
+        private const val EXTRA_LEARNED_AT = "com.pennywiseai.tracker.learned_at"
+        private val LEARNED_LOCK = Any()
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

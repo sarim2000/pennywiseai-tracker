@@ -3,6 +3,7 @@
 // Usage: node scripts/fake-phone.mjs [relay-url]
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Resolver } from "node:dns";
+import http from "node:http";
 import https from "node:https";
 import WebSocket from "ws";
 
@@ -15,7 +16,7 @@ const lookup = resolver
 
 function post(url, headers = {}) {
 	return new Promise((resolve, reject) => {
-		const req = https.request(url, { method: "POST", headers, lookup }, (res) => {
+		const req = (url.startsWith("https") ? https : http).request(url, { method: "POST", headers, lookup }, (res) => {
 			let body = "";
 			res.on("data", (c) => (body += c));
 			res.on("end", () => (res.statusCode < 300 ? resolve(JSON.parse(body)) : reject(new Error(`${url} → ${res.statusCode}`))));
@@ -26,37 +27,87 @@ function post(url, headers = {}) {
 }
 
 const RELAY = process.argv[2] ?? "https://ai.pennywise.zynth.dev";
-const STATE = new URL("../.fake-phone.json", import.meta.url);
+const STATE = new URL(RELAY.includes("localhost") ? "../.fake-phone-local.json" : "../.fake-phone.json", import.meta.url);
 
-const SAMPLE = [
-	{ date: "2026-10-02", merchant: "Swiggy", category: "Food & Dining", type: "EXPENSE", amount: "412.00", currency: "INR", account: "HDFC ••4821" },
-	{ date: "2026-10-05", merchant: "Zomato", category: "Food & Dining", type: "EXPENSE", amount: "289.50", currency: "INR", account: "HDFC ••4821" },
-	{ date: "2026-10-06", merchant: "Uber", category: "Transportation", type: "EXPENSE", amount: "236.00", currency: "INR", account: "ICICI ••1093" },
-	{ date: "2026-10-09", merchant: "Netflix", category: "Entertainment", type: "EXPENSE", amount: "649.00", currency: "INR", account: "ICICI ••1093" },
-	{ date: "2026-10-12", merchant: "Amazon", category: "Shopping", type: "EXPENSE", amount: "18.99", currency: "USD", account: "ICICI ••1093" },
-	{ date: "2026-10-01", merchant: "Salary", category: "Salary", type: "INCOME", amount: "85000.00", currency: "INR", account: "HDFC ••4821" },
+// Six months of made-up sample data, deterministic so screenshots are repeatable.
+const MERCHANTS = [
+	["Swiggy", "Food & Dining", 180, 650], ["Zomato", "Food & Dining", 150, 700], ["Blinkit", "Groceries", 300, 1400],
+	["BigBasket", "Groceries", 600, 2600], ["Uber", "Transportation", 120, 480], ["Rapido", "Transportation", 40, 160],
+	["Amazon", "Shopping", 400, 4200], ["Myntra", "Shopping", 700, 3200], ["Netflix", "Entertainment", 649, 649],
+	["BookMyShow", "Entertainment", 250, 900], ["Airtel", "Bills & Utilities", 599, 599], ["BESCOM", "Bills & Utilities", 900, 2100],
+	["Apollo Pharmacy", "Healthcare", 150, 1200], ["Cult.fit", "Personal Care", 1200, 1200],
 ];
+const ACCOUNTS = ["HDFC ••4821", "ICICI ••1093", "SBI ••7720"];
+const SAMPLE = (() => {
+	let seed = 42;
+	const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+	const out = [];
+	const today = new Date();
+	for (let back = 0; back < 182; back++) {
+		const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - back);
+		const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+		if (d.getDate() === 1) out.push({ date: `${iso}T09:30:00`, merchant: "Salary", category: "Salary", type: "INCOME", amount: "85000.00", currency: "INR", account: "HDFC ••4821" });
+		const n = d.getDay() === 0 || d.getDay() === 6 ? 3 : 2;
+		for (let i = 0; i < n; i++) {
+			if (rnd() < 0.35) continue;
+			const [merchant, category, lo, hi] = MERCHANTS[Math.floor(rnd() * MERCHANTS.length)];
+			const amount = (lo + Math.round(rnd() * (hi - lo))).toFixed(2);
+			const account = ACCOUNTS[Math.floor(rnd() * ACCOUNTS.length)];
+			out.push({ date: `${iso}T${String(9 + Math.floor(rnd() * 12)).padStart(2, "0")}:${String(Math.floor(rnd() * 60)).padStart(2, "0")}:00`, merchant, category, type: account === "ICICI ••1093" ? "CREDIT" : "EXPENSE", amount, currency: "INR", account });
+		}
+		if (back % 23 === 5) out.push({ date: `${iso}T14:00:00`, merchant: "Amazon US", category: "Shopping", type: "CREDIT", amount: (12 + Math.round(rnd() * 60)).toFixed(2), currency: "USD", account: "ICICI ••1093" });
+	}
+	return out;
+})();
 
-const inRange = (t, a) => (!a.from || t.date >= a.from) && (!a.to || t.date <= a.to);
+const inRange = (t, a) => (!a.from || t.date.slice(0, 10) >= a.from) && (!a.to || t.date.slice(0, 10) <= a.to);
+const money = (t) => ({ amount: t.amount, currency: t.currency });
+const totals = (list) => {
+	const by = {};
+	for (const t of list) by[t.currency] = (by[t.currency] ?? 0) + Number(t.amount);
+	return Object.entries(by).map(([currency, v]) => ({ amount: v.toFixed(2), currency }));
+};
 const tools = {
 	search_transactions: (a) => {
 		const q = (a.query ?? "").toLowerCase();
-		return SAMPLE.filter((t) => inRange(t, a) && (!a.type || t.type === a.type) && (!a.category || t.category === a.category) && (!q || t.merchant.toLowerCase().includes(q))).slice(0, a.limit ?? 50);
+		let list = SAMPLE.filter((t) => inRange(t, a) && (!a.type || t.type === a.type) && (!a.category || t.category === a.category) && (!a.account || t.account === a.account) && (!q || t.merchant.toLowerCase().includes(q)));
+		const sorts = { date_asc: (x, y) => x.date.localeCompare(y.date), amount_desc: (x, y) => x.currency.localeCompare(y.currency) || y.amount - x.amount, amount_asc: (x, y) => x.currency.localeCompare(y.currency) || x.amount - y.amount };
+		list = list.sort(sorts[a.sort] ?? ((x, y) => y.date.localeCompare(x.date)));
+		const offset = a.offset ?? 0;
+		const shown = list.slice(offset, offset + Math.min(a.limit ?? 50, 200));
+		return { total_matches: list.length, offset, shown: shown.length, transactions: shown.map((t) => ({ date: t.date, merchant: t.merchant, category: t.category, type: t.type, amount: money(t), account: t.account })) };
 	},
 	spending_summary: (a) => {
-		const key = { category: (t) => t.category, merchant: (t) => t.merchant, month: (t) => t.date.slice(0, 7) }[a.group_by ?? "category"];
-		const totals = {};
-		for (const t of SAMPLE.filter((t) => inRange(t, a) && t.type === (a.type ?? "EXPENSE"))) {
-			const g = (totals[key(t)] ??= {});
-			g[t.currency] = ((Number(g[t.currency] ?? 0) * 100 + Number(t.amount) * 100) / 100).toFixed(2); // per currency, never mixed
-		}
-		return Object.entries(totals).map(([group, byCurrency]) => ({ group, totals: Object.entries(byCurrency).map(([currency, amount]) => ({ amount, currency })) }));
+		const types = a.type === "INCOME" ? ["INCOME"] : ["EXPENSE", "CREDIT"];
+		const list = SAMPLE.filter((t) => inRange(t, a) && types.includes(t.type) && (!a.account || t.account === a.account));
+		const key = {
+			merchant: (t) => [t.merchant], month: (t) => [t.date.slice(0, 7)], day: (t) => [t.date.slice(0, 10)],
+			account: (t) => [t.account], month_category: (t) => [t.date.slice(0, 7), t.category],
+		}[a.group_by] ?? ((t) => [t.category]);
+		const groups = {};
+		for (const t of list) (groups[JSON.stringify(key(t))] ??= []).push(t);
+		return {
+			type: a.type === "INCOME" ? "INCOME" : "EXPENSE", grand_total: totals(list),
+			groups: Object.entries(groups).sort((x, y) => y[1].length - x[1].length).map(([k, ts]) => {
+				const [group, sub] = JSON.parse(k);
+				return { group, ...(sub && { sub }), count: ts.length, totals: totals(ts) };
+			}),
+		};
 	},
-	list_accounts: () => [
-		{ account: "HDFC ••4821", balance: "54210.40", currency: "INR", asOf: "2026-10-12" },
-		{ account: "ICICI ••1093 (credit card)", outstanding: "3914.00", currency: "INR", asOf: "2026-10-12" },
-	],
-	list_subscriptions: () => [{ merchant: "Netflix", amount: "649.00", currency: "INR", every: "month", next: "2026-11-09" }],
+	list_accounts: () => ({ accounts: [
+		{ account: "HDFC ••4821", kind: "savings", balance: { amount: "154210.40", currency: "INR" }, as_of: new Date().toISOString().slice(0, 19) },
+		{ account: "SBI ••7720", kind: "savings", balance: { amount: "38990.00", currency: "INR" }, as_of: new Date().toISOString().slice(0, 19) },
+		{ account: "ICICI ••1093", kind: "credit card", outstanding: { amount: "23914.00", currency: "INR" }, credit_limit: { amount: "150000.00", currency: "INR" }, as_of: new Date().toISOString().slice(0, 19) },
+	] }),
+	list_subscriptions: () => {
+		const next = (day) => { const d = new Date(); d.setMonth(d.getDate() > day ? d.getMonth() + 1 : d.getMonth(), day); return d.toISOString().slice(0, 10); };
+		return { subscriptions: [
+			{ merchant: "Netflix", amount: { amount: "649.00", currency: "INR" }, billing_cycle: "Monthly", direction: "EXPENSE", next_payment: next(9), category: "Entertainment" },
+			{ merchant: "Airtel", amount: { amount: "599.00", currency: "INR" }, billing_cycle: "Monthly", direction: "EXPENSE", next_payment: next(14), category: "Bills & Utilities" },
+			{ merchant: "Cult.fit", amount: { amount: "1200.00", currency: "INR" }, billing_cycle: "Monthly", direction: "EXPENSE", next_payment: next(3), category: "Personal Care" },
+			{ merchant: "iCloud+", amount: { amount: "2.99", currency: "USD" }, billing_cycle: "Monthly", direction: "EXPENSE", next_payment: next(21), category: "Bills & Utilities" },
+		] };
+	},
 };
 
 async function main() {

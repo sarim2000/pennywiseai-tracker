@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npm run build && wrangler deploy",
     "test": "vitest run",
-    "types": "wrangler types"
+    "types": "wrangler types",
+    "build": "npm --prefix dashboard run build",
+    "pretest": "npm run build"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^1.2.3"

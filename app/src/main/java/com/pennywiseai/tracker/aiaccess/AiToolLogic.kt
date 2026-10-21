@@ -30,17 +30,29 @@ object AiToolLogic {
         category: String?,
         type: String?,
         limit: Int,
+        account: String? = null,
+        offset: Int = 0,
+        sort: String? = null,
     ): JsonObject {
         val q = query?.trim()?.lowercase().orEmpty()
-        val matches = all.asSequence()
+        val filtered = all.asSequence()
             .filter { type == null || it.transactionType.name == type }
             .filter { category == null || it.category.equals(category, ignoreCase = true) }
             .filter { q.isEmpty() || it.merchantName.lowercase().contains(q) }
-            .sortedByDescending { it.dateTime }
+            .filter { account == null || accountOf(it) == account }
             .toList()
-        val shown = matches.take(limit.coerceIn(1, MAX_ROWS))
+        val matches = when (sort) {
+            "date_asc" -> filtered.sortedBy { it.dateTime }
+            // Amount order only makes sense within one currency; group by currency first.
+            "amount_desc" -> filtered.sortedWith(compareBy<TransactionEntity> { it.currency }.thenByDescending { it.amount })
+            "amount_asc" -> filtered.sortedWith(compareBy<TransactionEntity> { it.currency }.thenBy { it.amount })
+            else -> filtered.sortedByDescending { it.dateTime }
+        }
+        val from = offset.coerceAtLeast(0)
+        val shown = matches.drop(from).take(limit.coerceIn(1, MAX_ROWS))
         return buildJsonObject {
             put("total_matches", matches.size)
+            put("offset", from)
             put("shown", shown.size)
             putJsonArray("transactions") {
                 shown.forEach { t ->
@@ -50,30 +62,38 @@ object AiToolLogic {
                         put("category", t.category)
                         put("type", t.transactionType.name)
                         put("amount", money(t.amount, t.currency))
-                        maskedAccount(t.bankName, t.accountNumber)?.let { put("account", it) }
+                        accountOf(t)?.let { put("account", it) }
                     })
                 }
             }
         }
     }
 
-    /** `type` EXPENSE means spending: debits and card purchases; INCOME means money received. */
-    fun spendingSummary(all: List<TransactionEntity>, groupBy: String, type: String): JsonObject {
+    /**
+     * `type` EXPENSE means spending: debits and card purchases; INCOME means money received.
+     * `month_category` groups by month, then category: each group carries `group` (YYYY-MM) and `sub`.
+     */
+    fun spendingSummary(all: List<TransactionEntity>, groupBy: String, type: String, account: String? = null): JsonObject {
         val types = if (type == "INCOME") setOf(TransactionType.INCOME) else setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
-        val counted = all.filter { it.transactionType in types && !it.excludedFromAnalytics }
-        val key: (TransactionEntity) -> String = when (groupBy) {
-            "merchant" -> { t -> t.merchantName }
-            "month" -> { t -> t.dateTime.toLocalDate().toString().take(7) }
-            else -> { t -> t.category }
+        val counted = all.filter { it.transactionType in types && !it.excludedFromAnalytics && (account == null || accountOf(it) == account) }
+        val month: (TransactionEntity) -> String = { t -> t.dateTime.toLocalDate().toString().take(7) }
+        val key: (TransactionEntity) -> Pair<String, String?> = when (groupBy) {
+            "merchant" -> { t -> t.merchantName to null }
+            "month" -> { t -> month(t) to null }
+            "day" -> { t -> t.dateTime.toLocalDate().toString() to null }
+            "account" -> { t -> (accountOf(t) ?: "Unknown account") to null }
+            "month_category" -> { t -> month(t) to t.category }
+            else -> { t -> t.category to null }
         }
         val groups = counted.groupBy(key).entries.sortedByDescending { it.value.size }
         return buildJsonObject {
             put("type", if (type == "INCOME") "INCOME" else "EXPENSE")
             put("grand_total", totals(counted))
             putJsonArray("groups") {
-                groups.forEach { (name, txns) ->
+                groups.forEach { (k, txns) ->
                     add(buildJsonObject {
-                        put("group", name)
+                        put("group", k.first)
+                        k.second?.let { put("sub", it) }
                         put("count", txns.size)
                         put("totals", totals(txns))
                     })
@@ -81,6 +101,8 @@ object AiToolLogic {
             }
         }
     }
+
+    private fun accountOf(t: TransactionEntity) = maskedAccount(t.bankName, t.accountNumber)
 
     fun accounts(balances: List<AccountBalanceEntity>): JsonObject = buildJsonObject {
         putJsonArray("accounts") {

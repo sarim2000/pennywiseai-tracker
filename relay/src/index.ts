@@ -10,6 +10,18 @@ type HelperEnv = Env & { OAUTH_PROVIDER: OAuthHelpers };
 
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26"];
 const PAIR_TTL_SECONDS = 300;
+const DASHBOARD_CLIENT = "PennyWise dashboard";
+
+// The dashboard shows phone data, so it gets a strict policy: own scripts only, no framing, no referrer.
+async function dashboardAsset(request: Request, env: Env): Promise<Response> {
+	const res = await env.ASSETS.fetch(request);
+	const out = new Response(res.body, res);
+	out.headers.set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; img-src 'self' data:; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+	out.headers.set("X-Frame-Options", "DENY");
+	out.headers.set("Referrer-Policy", "no-referrer");
+	out.headers.set("X-Content-Type-Options", "nosniff");
+	return out;
+}
 
 const INSTRUCTIONS =
 	"Read-only access to the user's PennyWise expense data, answered live by their phone. " +
@@ -67,6 +79,8 @@ const defaultHandler = {
 		const oauth = env.OAUTH_PROVIDER;
 
 		if (path === "/authorize") return authorize(request, env, oauth);
+		if (path === "/dashboard") return Response.redirect(`${url.origin}/dashboard/`, 301);
+		if (path.startsWith("/dashboard/")) return dashboardAsset(request, env);
 
 		if (path === "/device" && request.method === "POST") {
 			if (!(await env.REGISTER_LIMIT.limit({ key: clientIp(request) })).success) return json({ error: "rate_limited" }, 429);
@@ -118,24 +132,38 @@ async function authorize(request: Request, env: Env, oauth: OAuthHelpers): Promi
 			const details = await oauth.describeConsent(authRequest);
 			const consent = await oauth.beginConsent(authRequest);
 			consent.headers.set("Content-Type", "text/html; charset=utf-8");
-			return new Response(authorizePage(details, consent.handle), { headers: consent.headers });
+			const firstParty = details.clientName === DASHBOARD_CLIENT && details.redirectUri === `${new URL(request.url).origin}/dashboard/`;
+			return new Response(authorizePage(details, consent.handle, firstParty), { headers: consent.headers });
 		}
 		if (request.method !== "POST") return new Response(null, { status: 405 });
+
+		// The page submits in the background (X-PennyWise-Submit) and then replaces itself with the
+		// redirect, so the sign-in page doesn't stay in the browser's history. A plain form post still works.
+		const inPage = request.headers.get("X-PennyWise-Submit") === "1";
+		const go = (url: string, headers: Headers) => {
+			if (inPage) { headers.set("Content-Type", "application/json"); return new Response(JSON.stringify({ redirectTo: url }), { headers }); }
+			headers.set("Location", url);
+			return new Response(null, { status: 302, headers });
+		};
+		const fail = (title: string, message: string, status = 400) =>
+			inPage ? json({ error: message }, status) : messagePage(title, message, status);
 
 		const form = await request.formData();
 		const handle = String(form.get("handle") ?? "");
 		if (form.get("decision") !== "approve") {
 			const denied = await oauth.denyConsent(request, handle);
-			return new Response(null, { status: 302, headers: denied.headers });
+			return go(denied.headers.get("Location") ?? "/", denied.headers);
 		}
 		if (!(await env.PAIR_LIMIT.limit({ key: clientIp(request) })).success) {
-			return messagePage("Too many attempts", "Wait a minute, then start connecting again from your AI app.", 429);
+			return fail("Too many attempts", "Too many attempts. Wait a minute, then try again.", 429);
 		}
 		const code = String(form.get("code") ?? "").trim();
 		const deviceId = /^\d{6}$/.test(code) ? await env.OAUTH_KV.get(`pair:${code}`) : null;
 		if (!deviceId) {
-			// The handle is still unused, so the same page can be shown again.
-			return messagePage("That code didn't work", "Codes last 5 minutes and work once. Go back, get a new code in PennyWise and try again.");
+			// The handle is still unused, so the same page can try again.
+			return fail("That code didn't work", inPage
+				? "That code didn't work. Codes last 5 minutes and work once; get a new one in PennyWise."
+				: "Codes last 5 minutes and work once. Go back, get a new code in PennyWise and try again.");
 		}
 		await env.OAUTH_KV.delete(`pair:${code}`);
 		const approved = await oauth.approveConsent(request, handle);
@@ -146,10 +174,10 @@ async function authorize(request: Request, env: Env, oauth: OAuthHelpers): Promi
 			metadata: { clientName: client?.clientName ?? "AI app" },
 			scope: approved.request.scope,
 			props: { deviceId } satisfies Props,
-			revokeExistingGrants: false, // the same AI app on web and phone are separate connections
+			// The same AI app on web and phone are separate connections; a new dashboard sign-in replaces the old one.
+			revokeExistingGrants: client?.clientName === DASHBOARD_CLIENT,
 		});
-		approved.headers.set("Location", redirectTo);
-		return new Response(null, { status: 302, headers: approved.headers });
+		return go(redirectTo, approved.headers);
 	} catch (error) {
 		if (error instanceof AuthorizationError && error.redirectTo) return Response.redirect(error.redirectTo, 302);
 		if (error instanceof AuthorizationError) return messagePage("Can't connect", error.description ?? "This sign-in request isn't valid.");

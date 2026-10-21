@@ -7,7 +7,8 @@ const worker = () => (exports as unknown as { default: { fetch: (r: Request) => 
 const call = (path: string, init: RequestInit = {}) => worker().fetch(new Request(BASE + path, { redirect: "manual", ...init }));
 
 async function registerDevice() {
-	const res = await call("/device", { method: "POST" });
+	// A fresh IP per phone keeps the per-IP registration limit out of the way.
+	const res = await call("/device", { method: "POST", headers: { "CF-Connecting-IP": `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}` } });
 	expect(res.status).toBe(201);
 	const { deviceId, secret } = (await res.json()) as { deviceId: string; secret: string };
 	return { deviceId, auth: { Authorization: `Device ${deviceId}.${secret}` } };
@@ -32,14 +33,18 @@ const b64url = (bytes: ArrayBuffer | Uint8Array) =>
 	btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 /** Runs the full OAuth sign-in an AI app does, typing `code` on our page. Returns the access token. */
-async function signIn(code: string, clientName = "Test AI") {
+async function registerClient(clientName: string) {
 	const reg = await call("/oauth/register", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ redirect_uris: [REDIRECT], token_endpoint_auth_method: "none", client_name: clientName }),
 	});
 	expect(reg.status).toBe(201);
-	const { client_id } = (await reg.json()) as { client_id: string };
+	return ((await reg.json()) as { client_id: string }).client_id;
+}
+
+async function signIn(code: string, clientName = "Test AI", existingClientId?: string) {
+	const client_id = existingClientId ?? (await registerClient(clientName));
 
 	const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
 	const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
@@ -142,5 +147,24 @@ describe("AI relay", () => {
 		const forged = { Authorization: `Device ${deviceId}.${"x".repeat(43)}` };
 		expect((await call("/device/pair", { method: "POST", headers: forged })).status).toBe(401);
 		expect((await call("/device/connect", { headers: { ...forged, Upgrade: "websocket" } })).status).toBe(401);
+	});
+});
+
+describe("dashboard", () => {
+	it("is served with a strict content security policy", async () => {
+		const res = await call("/dashboard/");
+		expect(res.status).toBe(200);
+		expect(await res.text()).toContain("PennyWise Dashboard");
+		expect(res.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
+	});
+
+	it("replaces an earlier dashboard sign-in instead of adding another connection", async () => {
+		const { auth } = await registerDevice();
+		const dashboard = await registerClient("PennyWise dashboard"); // the page keeps its client id in localStorage
+		await signIn(await pair(auth), "PennyWise dashboard", dashboard);
+		await signIn(await pair(auth), "PennyWise dashboard", dashboard);
+		await signIn(await pair(auth), "Claude");
+		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
+		expect(connections.map((c: any) => c.clientName).sort()).toEqual(["Claude", "PennyWise dashboard"]);
 	});
 });

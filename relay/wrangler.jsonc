@@ -7,6 +7,8 @@
 	// CIMD: the OAuth library fetches client metadata documents and must never reach private addresses.
 	"compatibility_flags": ["global_fetch_strictly_public"],
 	"routes": [{ "pattern": "ai.pennywise.zynth.dev", "custom_domain": true }],
+	// Dashboard page; the Worker runs first so it can add security headers.
+	"assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true },
 	"vars": { "BASE_URL": "https://ai.pennywise.zynth.dev" },
 	// KV namespace "pennywise-ai-relay-oauth": OAuth grants (hashed) and pairing codes.
 	"kv_namespaces": [{ "binding": "OAUTH_KV", "id": "a045a70c397941b4a4bcc7672f676aa9" }],

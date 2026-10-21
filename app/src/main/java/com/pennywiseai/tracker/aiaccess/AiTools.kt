@@ -39,11 +39,15 @@ class AiTools @Inject constructor(
                     category = args.string("category"),
                     type = args.string("type"),
                     limit = args["limit"]?.jsonPrimitive?.intOrNull ?: 50,
+                    account = args.string("account"),
+                    offset = args["offset"]?.jsonPrimitive?.intOrNull ?: 0,
+                    sort = args.string("sort"),
                 )
                 "spending_summary" -> AiToolLogic.spendingSummary(
                     all = inRange(args) ?: return error("Give from and to as YYYY-MM-DD."),
                     groupBy = args.string("group_by") ?: "category",
                     type = args.string("type") ?: "EXPENSE",
+                    account = args.string("account"),
                 )
                 "list_accounts" -> AiToolLogic.accounts(balances.getAllLatestBalances().first())
                 "list_subscriptions" -> AiToolLogic.subscriptions(subscriptions.getActiveSubscriptions().first())

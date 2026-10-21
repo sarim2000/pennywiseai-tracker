@@ -17,7 +17,10 @@ export const TOOLS = [
 				query: { type: "string", description: "Words to match in the merchant or description" },
 				category: { type: "string", description: "Category name, e.g. Food & Dining" },
 				type: { type: "string", enum: ["EXPENSE", "INCOME", "TRANSFER", "CREDIT", "INVESTMENT"] },
+				account: { type: "string", description: "Only this account, exactly as shown in results, e.g. HDFC ••1234" },
+				sort: { type: "string", enum: ["date_desc", "date_asc", "amount_desc", "amount_asc"], default: "date_desc" },
 				limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+				offset: { type: "integer", minimum: 0, default: 0, description: "Skip this many matches, to page through more than 200" },
 			},
 			required: ["from", "to"],
 		},
@@ -27,14 +30,20 @@ export const TOOLS = [
 		name: "spending_summary",
 		title: "Spending summary",
 		description:
-			"Totals for a date range grouped by category, merchant or month. EXPENSE means spending, including card purchases. Each total is per currency; the result never mixes currencies.",
+			"Totals for a date range grouped by category, merchant, month, day, account, or month and category together. EXPENSE means spending, including card purchases. Each total is per currency; the result never mixes currencies.",
 		inputSchema: {
 			type: "object",
 			properties: {
 				from: date,
 				to: date,
-				group_by: { type: "string", enum: ["category", "merchant", "month"], default: "category" },
+				group_by: {
+					type: "string",
+					enum: ["category", "merchant", "month", "day", "account", "month_category"],
+					default: "category",
+					description: "month_category returns one group per month and category: group is YYYY-MM, sub is the category",
+				},
 				type: { type: "string", enum: ["EXPENSE", "INCOME"], default: "EXPENSE" },
+				account: { type: "string", description: "Only this account, exactly as shown in results, e.g. HDFC ••1234" },
 			},
 			required: ["from", "to"],
 		},

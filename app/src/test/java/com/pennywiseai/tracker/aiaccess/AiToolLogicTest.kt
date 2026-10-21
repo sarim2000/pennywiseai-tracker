@@ -89,4 +89,30 @@ class AiToolLogicTest {
         assertEquals("3914.00", out[0]["outstanding"]!!.jsonObject["amount"]!!.jsonPrimitive.content)
         assertEquals("eMola", out[1]["account"]!!.jsonPrimitive.content)
     }
+
+    @Test
+    fun `search pages with offset, filters by account and sorts amounts within a currency`() {
+        val list = listOf(
+            txn("A", "10", day = 1), txn("B", "300", day = 2), txn("C", "50", day = 3),
+            txn("D", "5", currency = "USD", day = 4),
+            txn("E", "999", day = 5).copy(bankName = "ICICI", accountNumber = "9999"),
+        )
+        val page2 = AiToolLogic.searchTransactions(list, null, null, null, limit = 2, offset = 2)
+        assertEquals(listOf("C", "B"), page2["transactions"]!!.jsonArray.map { it.jsonObject["merchant"]!!.jsonPrimitive.content })
+        val hdfcOnly = AiToolLogic.searchTransactions(list, null, null, null, limit = 50, account = "HDFC ••1234")
+        assertEquals(4, hdfcOnly["total_matches"]!!.jsonPrimitive.content.toInt())
+        val byAmount = AiToolLogic.searchTransactions(list, null, null, null, limit = 50, sort = "amount_desc")
+        assertEquals(listOf("E", "B", "C", "A", "D"), byAmount["transactions"]!!.jsonArray.map { it.jsonObject["merchant"]!!.jsonPrimitive.content })
+    }
+
+    @Test
+    fun `month_category groups carry month and category, totals still per currency`() {
+        val out = AiToolLogic.spendingSummary(
+            listOf(txn("A", "10", day = 1), txn("B", "20", day = 2), txn("C", "7", currency = "USD", day = 3, category = "Shopping")),
+            groupBy = "month_category", type = "EXPENSE",
+        )
+        val food = out["groups"]!!.jsonArray.map { it.jsonObject }.single { it["sub"]!!.jsonPrimitive.content == "Food & Dining" }
+        assertEquals("2026-10", food["group"]!!.jsonPrimitive.content)
+        assertEquals(mapOf("INR" to "30.00"), food.totals("totals"))
+    }
 }

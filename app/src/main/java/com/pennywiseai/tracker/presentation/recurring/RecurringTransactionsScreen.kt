@@ -271,6 +271,12 @@ private fun RecurringEditorDialog(
     var freqExpanded by remember { mutableStateOf(false) }
     var categoryExpanded by remember { mutableStateOf(false) }
     var dowExpanded by remember { mutableStateOf(false) }
+    // Switching type picks that type's default; switching back restores what the item opened with.
+    fun categoryFor(type: TransactionType): String = when {
+        type == form.transactionType -> form.category
+        type == TransactionType.INCOME -> categories.pickerDefault("Income", isIncome = true)
+        else -> categories.pickerDefault("Others", isIncome = false)
+    }
 
     val locale = LocalConfiguration.current.locales[0]
     val dayOfWeekNames = remember(locale) {
@@ -324,7 +330,7 @@ private fun RecurringEditorDialog(
                         selected = state.transactionType == TransactionType.EXPENSE,
                         onClick = {
                             if (state.transactionType != TransactionType.EXPENSE) {
-                                state = state.copy(transactionType = TransactionType.EXPENSE, category = categories.pickerDefault("Others", isIncome = false))
+                                state = state.copy(transactionType = TransactionType.EXPENSE, category = categoryFor(TransactionType.EXPENSE))
                             }
                         },
                         label = { Text(stringResource(R.string.recurring_expense)) }
@@ -333,7 +339,7 @@ private fun RecurringEditorDialog(
                         selected = state.transactionType == TransactionType.INCOME,
                         onClick = {
                             if (state.transactionType != TransactionType.INCOME) {
-                                state = state.copy(transactionType = TransactionType.INCOME, category = categories.pickerDefault("Income", isIncome = true))
+                                state = state.copy(transactionType = TransactionType.INCOME, category = categoryFor(TransactionType.INCOME))
                             }
                         },
                         label = { Text(stringResource(R.string.recurring_income)) }

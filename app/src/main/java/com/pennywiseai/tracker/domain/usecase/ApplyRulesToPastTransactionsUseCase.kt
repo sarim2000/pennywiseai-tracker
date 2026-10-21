@@ -110,8 +110,9 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     // even when it changes nothing, so ask the tag write whether it did.
                     // Otherwise the completion count disagrees with the preview.
                     // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
+                    // A loan-linked row keeps its money direction (#876); see LoanMath.keepLoanDirection.
                     // What it undid isn't recorded as applied.
-                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult)
+                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
                     if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
@@ -179,8 +180,9 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     // even when it changes nothing, so ask the tag write whether it did.
                     // Otherwise the completion count disagrees with the preview.
                     // A split bill (#346) keeps its type and currency; see SplitRules.keepSplitBill.
+                    // A loan-linked row keeps its money direction (#876); see LoanMath.keepLoanDirection.
                     // What it undid isn't recorded as applied.
-                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult)
+                    val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
                     if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
@@ -242,8 +244,9 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
             val (ruleResult, rawApplications) = ruleEngine.evaluateRules(
                 transaction, smsBody, listOf(rule)
             )
-            // Preview what apply will really write: a split bill keeps its type (#346).
-            val updated = com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult)
+            // Preview what apply will really write: a split bill keeps its type (#346),
+            // a loan-linked row its money direction (#876).
+            val updated = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
             val applications = rawApplications.landedOn(updated, ruleResult)
 
             // A field change is a real change by construction (the engine only records

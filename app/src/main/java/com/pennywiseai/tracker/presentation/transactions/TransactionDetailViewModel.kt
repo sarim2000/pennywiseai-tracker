@@ -868,6 +868,16 @@ class TransactionDetailViewModel @Inject constructor(
             return
         }
 
+        // Likewise its money direction: retyping a linked row between income and
+        // money out would turn the loan's principal into a repayment, or back (#876).
+        if (original != null && com.pennywiseai.tracker.domain.loan.LoanMath.blocksTypeChange(
+                original.loanId, original.transactionType, toSave.transactionType
+            )
+        ) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_loan_type_locked)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&

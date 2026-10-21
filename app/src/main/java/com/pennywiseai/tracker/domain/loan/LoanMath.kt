@@ -28,6 +28,26 @@ object LoanMath {
     fun repaid(direction: LoanDirection, linked: List<TransactionEntity>): BigDecimal =
         loanPart(linked) { !isPrincipal(direction, it.transactionType) }
 
+    /**
+     * Whether retyping a row from [original] to [edited] crosses the money-in /
+     * money-out line. On a loan-linked row that would turn principal into a
+     * repayment (or back): a borrowed ₹1,000 retyped TRANSFER would repay itself.
+     */
+    fun crossesDirection(original: TransactionType, edited: TransactionType): Boolean =
+        (original == TransactionType.INCOME) != (edited == TransactionType.INCOME)
+
+    /** Whether an edit must be refused: it would retype a loan-linked row across that line. Unlink it first. */
+    fun blocksTypeChange(linkedLoanId: Long?, original: TransactionType, edited: TransactionType): Boolean =
+        linkedLoanId != null && crossesDirection(original, edited)
+
+    /** [updated] as a rule may write it over [persisted]: a loan-linked row keeps a type on its side of the line. */
+    fun keepLoanDirection(persisted: TransactionEntity, updated: TransactionEntity): TransactionEntity =
+        if (blocksTypeChange(persisted.loanId, persisted.transactionType, updated.transactionType)) {
+            updated.copy(transactionType = persisted.transactionType)
+        } else {
+            updated
+        }
+
     /** Still owed: never below zero, an overpayment's extra counts as ordinary money (#831). */
     fun remaining(originalAmount: BigDecimal, repaid: BigDecimal): BigDecimal =
         (originalAmount - repaid).coerceAtLeast(BigDecimal.ZERO)

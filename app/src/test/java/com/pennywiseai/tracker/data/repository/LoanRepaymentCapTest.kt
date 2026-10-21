@@ -142,8 +142,40 @@ class LoanRepaymentCapTest {
     }
 
     @Test
+    fun `the refresh moves only the remainder and never settles`() {
+        // The borrowed ₹500 row retyped CREDIT before the type lock: it now reads as a repayment of itself.
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom.copy(transactionType = TransactionType.CREDIT))
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.refreshActiveLoans() }
+        assertEquals(0, BigDecimal.ZERO.compareTo(saved.captured.remainingAmount))
+        assertEquals(LoanStatus.ACTIVE, saved.captured.status)
+        assertNull(saved.captured.settledAt)
+    }
+
+    @Test
+    fun `the refresh skips a loan settled since the list was read`() {
+        coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed.copy(status = LoanStatus.SETTLED, remainingAmount = BigDecimal.ZERO)
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom)
+        runBlocking { repo.refreshActiveLoans() }
+        coVerify(exactly = 0) { loanDao.updateLoan(any()) }
+    }
+
+    @Test
+    fun `record payment offers every money-out type for a borrowed loan, income for a lent one`() {
+        repo.getRecentUnlinkedRepayments(LoanDirection.BORROWED, "INR")
+        repo.getRecentUnlinkedRepayments(LoanDirection.LENT, "INR")
+        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = false, currency = "INR", limit = 20) }
+        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = true, currency = "INR", limit = 20) }
+    }
+
+    @Test
     fun `a loan already right is not rewritten`() {
         coEvery { loanDao.getActiveLoans() } returns flowOf(listOf(borrowed))
+        coEvery { loanDao.getLoanById(2) } returns borrowed
         coEvery { loanDao.getLinkedTransactions(2) } returns listOf(borrowedFrom)
         runBlocking { repo.refreshActiveLoans() }
         coVerify(exactly = 0) { loanDao.updateLoan(any()) }

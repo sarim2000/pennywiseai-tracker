@@ -87,8 +87,8 @@ class LoanRepository @Inject constructor(
 
     // Only same-currency transactions can repay a loan (see getActiveLoanByPersonAndDirection).
     fun getRecentUnlinkedRepayments(direction: LoanDirection, currency: String, limit: Int = 20): Flow<List<TransactionEntity>> {
-        val repaymentType = if (direction == LoanDirection.LENT) "INCOME" else "EXPENSE"
-        return loanDao.getRecentUnlinkedTransactionsByType(repaymentType, currency, limit)
+        // A repayment flows against the loan: money in for LENT, any money out for BORROWED (#876).
+        return loanDao.getRecentUnlinkedTransactions(moneyIn = direction == LoanDirection.LENT, currency = currency, limit = limit)
     }
 
     fun getRecentPersonNames(): Flow<List<String>> = loanDao.getRecentPersonNames()
@@ -452,10 +452,15 @@ class LoanRepository @Inject constructor(
      * on a change, and never touches a settled loan (Settle up records no
      * repayment, so recomputing would reopen forgiven debt). Settling takes
      * the same lock, so a loan can't be settled between the read and the write.
+     *
+     * Only the remainder moves, never the status: a repair must not settle a
+     * loan behind the user's back. Settling stays an explicit action.
      */
     suspend fun refreshActiveLoans() = repaymentLock.withLock {
-        loanDao.getActiveLoans().first().forEach { loan ->
-            if (remainingFor(loan).compareTo(loan.remainingAmount) != 0) recalculateRemaining(loan.id)
+        loanDao.getActiveLoans().first().forEach { listed ->
+            val loan = loanDao.getLoanById(listed.id)?.takeIf { it.status == LoanStatus.ACTIVE } ?: return@forEach
+            val remaining = remainingFor(loan)
+            if (remaining.compareTo(loan.remainingAmount) != 0) loanDao.updateLoan(loan.copy(remainingAmount = remaining))
         }
     }
 

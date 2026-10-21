@@ -128,12 +128,12 @@ interface LoanDao {
         SELECT * FROM transactions
         WHERE loan_id IS NULL AND is_deleted = 0
         AND id NOT IN (SELECT transaction_id FROM loan_shares)
-        AND transaction_type = :type
+        AND (transaction_type = 'INCOME') = :moneyIn
         AND currency = :currency
         ORDER BY date_time DESC
         LIMIT :limit
     """)
-    fun getRecentUnlinkedTransactionsByType(type: String, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
+    fun getRecentUnlinkedTransactions(moneyIn: Boolean, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
 
     // Used by BackupImporter.replaceAllData to clear loans before re-import.
     @Query("DELETE FROM loans")

@@ -85,6 +85,35 @@ class LoanMathTest {
     }
 
     @Test
+    fun `a linked row can't be retyped across the money-in line`() {
+        assertTrue(LoanMath.blocksTypeChange(1, INCOME, TRANSFER))
+        assertTrue(LoanMath.blocksTypeChange(1, CREDIT, INCOME))
+        assertFalse(LoanMath.blocksTypeChange(1, EXPENSE, CREDIT))
+        assertFalse(LoanMath.blocksTypeChange(null, INCOME, TRANSFER))
+    }
+
+    @Test
+    fun `a rule can't retype a borrowed loan's principal into a repayment of itself`() {
+        val borrowed = row(INCOME, "1000").copy(loanId = 1)
+        val kept = LoanMath.keepLoanDirection(borrowed, borrowed.copy(transactionType = TRANSFER, category = "Bills"))
+        assertEquals(INCOME, kept.transactionType)
+        assertEquals("Bills", kept.category)
+        assertOwed("1000", remaining(BORROWED, kept))
+        // Same side of the line is fine, and unlinked rows are untouched.
+        assertEquals(CREDIT, LoanMath.keepLoanDirection(row(EXPENSE, "5").copy(loanId = 1), row(CREDIT, "5")).transactionType)
+        assertEquals(TRANSFER, LoanMath.keepLoanDirection(row(INCOME, "5"), row(TRANSFER, "5")).transactionType)
+    }
+
+    @Test
+    fun `unlinking principal can't count a retyped repayment as principal`() {
+        // Lent ₹1,000 + ₹500, ₹300 back; a rule tries to retype the repayment TRANSFER.
+        val repayment = row(INCOME, "300").copy(loanId = 1)
+        val kept = LoanMath.keepLoanDirection(repayment, repayment.copy(transactionType = TRANSFER))
+        // After unlinking the ₹500, the principal left is the ₹1,000 alone, not ₹1,300.
+        assertOwed("1000", LoanMath.principal(LENT, listOf(row(EXPENSE, "1000"), kept)))
+    }
+
+    @Test
     fun `only each row's loan part counts and deleted rows count nothing`() {
         // ₹1,000 paid, ₹400 of it lent; ₹100 back; a deleted ₹300 repayment ignored.
         val rows = listOf(row(EXPENSE, "1000", contribution = "400"), row(INCOME, "100"), row(INCOME, "300", deleted = true))

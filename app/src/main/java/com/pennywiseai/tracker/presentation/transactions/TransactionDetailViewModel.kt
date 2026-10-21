@@ -83,6 +83,11 @@ class TransactionDetailViewModel @Inject constructor(
     private val _accountProfileId = MutableStateFlow<Long?>(null)
     val accountProfileId: StateFlow<Long?> = _accountProfileId.asStateFlow()
 
+    // The reported balance is in the account's currency, which can differ from the
+    // transaction's (e.g. a USD card purchase on an INR account).
+    private val _accountCurrency = MutableStateFlow<String?>(null)
+    val accountCurrency: StateFlow<String?> = _accountCurrency.asStateFlow()
+
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
     
@@ -374,10 +379,14 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     private suspend fun loadAccountProfileId(transaction: TransactionEntity) {
+        _accountCurrency.value = null
         val bankName = transaction.bankName ?: return
         val accountLast4 = transaction.accountNumber ?: return
         val balance = accountBalanceRepository.getLatestBalance(bankName, accountLast4)
         _accountProfileId.value = balance?.profileId
+        _accountCurrency.value = balance?.let {
+            CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
+        }
     }
 
     private suspend fun loadSplits(transactionId: Long) {

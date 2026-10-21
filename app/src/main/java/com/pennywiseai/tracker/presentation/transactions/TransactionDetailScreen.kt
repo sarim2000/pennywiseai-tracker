@@ -1022,11 +1022,12 @@ private fun TransactionReceipt(
 
             // Balance
             transaction.balanceAfter?.let {
+                val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
                     icon = Icons.Default.AccountBalanceWallet,
                     label = stringResource(R.string.txn_detail_label_balance),
-                    value = CurrencyFormatter.formatCurrency(it, transaction.currency)
+                    value = CurrencyFormatter.formatCurrency(it, accountCurrency ?: transaction.currency)
                 )
             }
 

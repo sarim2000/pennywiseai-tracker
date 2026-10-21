@@ -16,12 +16,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /** The categories a picker offers for [isIncome]: that type only, hidden ones left out (#736). */
 fun List<CategoryEntity>.forPicker(isIncome: Boolean): List<CategoryEntity> =
     filter { it.isIncome == isIncome && !it.isHidden }
+
+/**
+ * The category a picker switches to when its type flips: the built-in
+ * [builtin] under its current name (it may be renamed), or the first one
+ * offered if that built-in is hidden or gone.
+ */
+fun List<CategoryEntity>.pickerDefault(builtin: String, isIncome: Boolean): String {
+    val offered = forPicker(isIncome)
+    val name = nameForBuiltin(builtin)
+    return if (offered.any { it.name == name }) name else offered.firstOrNull()?.name ?: name
+}
 
 /**
  * The rows of every category picker's dropdown (Add, Edit, manual subscription,

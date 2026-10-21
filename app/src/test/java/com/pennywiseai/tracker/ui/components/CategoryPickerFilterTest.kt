@@ -19,6 +19,13 @@ class CategoryPickerFilterTest {
         assertEquals(listOf("Food", "Fruit"), all.forPicker(isIncome = false).map { it.name })
 
     @Test
+    fun `a type switch picks the built-in under its current name, or the first offered`() {
+        val renamed = all + CategoryEntity(id = 6, name = "Earnings", color = "#000000", isIncome = true, isSystem = true, systemName = "Income")
+        assertEquals("Earnings", renamed.pickerDefault("Income", isIncome = true))
+        assertEquals("Food", all.pickerDefault("Others", isIncome = false))
+    }
+
+    @Test
     fun `income pickers show income categories`() =
         assertEquals(listOf("Salary"), all.forPicker(isIncome = true).map { it.name })
 }

@@ -38,6 +38,8 @@ class LoanRepaymentCapTest {
 
     private fun savedContribution(remaining: String, txn: TransactionEntity, contribution: BigDecimal?): BigDecimal? {
         coEvery { loanDao.getLoanById(2) } returns loan(remaining)
+        // What's owed is recomputed from the linked rows: one repayment leaves [remaining].
+        repaid(BigDecimal("130") - BigDecimal(remaining))
         coEvery { transactionDao.getTransactionById(9) } returns txn
         val saved = slot<TransactionEntity>()
         coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
@@ -89,6 +91,23 @@ class LoanRepaymentCapTest {
         coEvery { transactionDao.insertTransaction(capture(inserted)) } returns 11L
         runBlocking { repo.recordManualRepayment(2, BigDecimal("100"), "Pal", "INR") }
         assertNull(inserted.captured.loanContribution)
+    }
+
+    private fun repaid(amount: BigDecimal) {
+        coEvery { loanDao.getLinkedTransactions(2) } returns
+            if (amount.signum() > 0) listOf(txn(amount.toPlainString(), loanId = 2).copy(id = 7)) else emptyList()
+    }
+
+    @Test
+    fun `a stale stored remainder can't let a repayment over-repay`() {
+        // Stored ₹130 owed, but ₹100 is already repaid: a ₹50 payment repays only ₹30.
+        coEvery { loanDao.getLoanById(2) } returns loan("130")
+        repaid(BigDecimal("100"))
+        coEvery { transactionDao.getTransactionById(9) } returns txn("50")
+        val saved = slot<TransactionEntity>()
+        coEvery { transactionDao.updateTransaction(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9) }
+        assertEquals(BigDecimal("30"), saved.captured.loanContribution)
     }
 
     // #876: a borrowed ₹500 repaid by a ₹220 UPI payment the parser typed CREDIT.

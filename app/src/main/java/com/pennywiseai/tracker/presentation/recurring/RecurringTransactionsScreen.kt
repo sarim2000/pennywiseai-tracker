@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -323,7 +324,7 @@ private fun RecurringEditorDialog(
                         selected = state.transactionType == TransactionType.EXPENSE,
                         onClick = {
                             if (state.transactionType != TransactionType.EXPENSE) {
-                                state = state.copy(transactionType = TransactionType.EXPENSE, category = "Others")
+                                state = state.copy(transactionType = TransactionType.EXPENSE, category = categories.pickerDefault("Others", isIncome = false))
                             }
                         },
                         label = { Text(stringResource(R.string.recurring_expense)) }
@@ -332,7 +333,7 @@ private fun RecurringEditorDialog(
                         selected = state.transactionType == TransactionType.INCOME,
                         onClick = {
                             if (state.transactionType != TransactionType.INCOME) {
-                                state = state.copy(transactionType = TransactionType.INCOME, category = "Income")
+                                state = state.copy(transactionType = TransactionType.INCOME, category = categories.pickerDefault("Income", isIncome = true))
                             }
                         },
                         label = { Text(stringResource(R.string.recurring_income)) }

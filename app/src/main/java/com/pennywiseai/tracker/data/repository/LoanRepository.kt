@@ -209,7 +209,7 @@ class LoanRepository @Inject constructor(
         val wanted = contribution ?: txn?.amount
         // A row already linked here is already counted as repaid, so add it back to what is owed.
         val alreadyRepaid = if (txn?.loanId == loanId) txn.loanContribution ?: txn.amount else BigDecimal.ZERO
-        val owed = loan?.remainingAmount?.plus(alreadyRepaid)
+        val owed = loan?.let { owedNow(it) + alreadyRepaid }
         // Capped even at zero (a reopened, fully repaid loan): the payment then
         // counts in full as ordinary income/spend rather than vanishing.
         val capped = if (wanted != null && owed != null && wanted > owed) owed else contribution
@@ -242,7 +242,7 @@ class LoanRepository @Inject constructor(
             loanId = loanId,
             // Same cap as [recordRepayment]: anything beyond what's owed counts
             // as ordinary income/spend instead of vanishing (#831).
-            loanContribution = loan.remainingAmount.takeIf { amount > it }
+            loanContribution = owedNow(loan).takeIf { amount > it }
         )
         val txId = transactionDao.insertTransaction(transaction)
         recalculateRemaining(loanId)
@@ -285,8 +285,9 @@ class LoanRepository @Inject constructor(
         recalculateRemaining(loanId)
     }
 
-    suspend fun settleLoan(loanId: Long) {
-        val loan = loanDao.getLoanById(loanId) ?: return
+    // Under repaymentLock so a running refreshActiveLoans can't reopen it (see there).
+    suspend fun settleLoan(loanId: Long): Unit = repaymentLock.withLock {
+        val loan = loanDao.getLoanById(loanId) ?: return@withLock
         loanDao.updateLoan(
             loan.copy(
                 status = LoanStatus.SETTLED,
@@ -298,7 +299,7 @@ class LoanRepository @Inject constructor(
     }
 
     /** Settles all [loanIds] atomically — same effect as [settleLoan] on each. */
-    suspend fun settleLoans(loanIds: List<Long>) {
+    suspend fun settleLoans(loanIds: List<Long>) = repaymentLock.withLock {
         loanDao.settleLoans(loanIds, LocalDateTime.now())
     }
 
@@ -437,11 +438,20 @@ class LoanRepository @Inject constructor(
         LoanMath.remaining(loan.originalAmount, LoanMath.repaid(loan.direction, loanDao.getLinkedTransactions(loan.id)))
 
     /**
+     * What a new repayment may repay: recomputed for an active loan, so a
+     * remainder stored before #876 can't let it over-repay; a settled loan's
+     * stored zero stands (Settle up records no repayment).
+     */
+    private suspend fun owedNow(loan: LoanEntity): BigDecimal =
+        if (loan.status == LoanStatus.ACTIVE) remainingFor(loan) else loan.remainingAmount
+
+    /**
      * Re-derives what's left on each active loan. Loans saved before #876 never
      * counted a repayment typed CREDIT/TRANSFER, so their stored remainder is
      * too high until recomputed; this fixes them when Loans opens. Writes only
      * on a change, and never touches a settled loan (Settle up records no
-     * repayment, so recomputing would reopen forgiven debt).
+     * repayment, so recomputing would reopen forgiven debt). Settling takes
+     * the same lock, so a loan can't be settled between the read and the write.
      */
     suspend fun refreshActiveLoans() = repaymentLock.withLock {
         loanDao.getActiveLoans().first().forEach { loan ->

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -564,11 +565,12 @@ class AddViewModel @Inject constructor(
     ) {
         _subscriptionUiState.update { currentState ->
             if (currentState.direction == direction) return@update currentState
-            // The other type's default, as the transaction tab does, so an expense
-            // category can't ride along onto an income subscription (#876).
+            // That type's default, so an expense category can't ride along onto
+            // an income subscription (#876).
+            val isIncome = direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
             currentState.copy(
                 direction = direction,
-                category = if (direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME) "Income" else "Subscriptions",
+                category = categories.value.pickerDefault(if (isIncome) "Income" else "Subscriptions", isIncome),
                 categoryError = null
             )
         }

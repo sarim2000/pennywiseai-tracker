@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
@@ -27,6 +28,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
@@ -38,7 +40,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val loanRepository: LoanRepository
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -87,15 +90,17 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             // Scope to the selected profile and drop ignored accounts, like
             // the pie widget and the Transactions list.
             val ignored = ignoredAccountsStore.keys()
-            val allTransactions = filterTransactionsByProfile(
-                // Through end of today, like Home: an SMS can carry a timestamp a
-                // few seconds ahead of the device clock, and a `now` cutoff would
-                // drop it from the widget right after it arrives.
-                transactionRepository.getTransactionsBetweenDates(cycleStart, now).first()
-                    .filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
-                userPreferencesRepository.selectedProfileId.first(),
-                buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+            val profileId = userPreferencesRepository.selectedProfileId.first()
+            val profileKeys = buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+            fun counted(rows: List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>) = filterTransactionsByProfile(
+                rows.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
+                profileId,
+                profileKeys
             )
+            // Through end of today, like Home: an SMS can carry a timestamp a
+            // few seconds ahead of the device clock, and a `now` cutoff would
+            // drop it from the widget right after it arrives.
+            val allTransactions = counted(transactionRepository.getTransactionsBetweenDates(cycleStart, now).first())
 
             // Loan disbursements/repayments are tracked in the Loans feature, not
             // spending — exclude them, matching Home/Analytics. Analytics-excluded
@@ -132,8 +137,19 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 return (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
             }
 
-            val totalSpent = spentIn(nonLoan)
-            val todaySpent = spentIn(nonLoan.filter { it.dateTime.toLocalDate() == now })
+            // Lent loans forgiven in the window are spent, as on Home (#938).
+            suspend fun lossSince(from: LocalDate): BigDecimal =
+                loanRepository.settlementLossByCurrency(
+                    loanRepository.getLentLoansSettledInPeriod(from.atStartOfDay(), now.atTime(LocalTime.MAX)).first()
+                ) { counted(listOf(it)).isNotEmpty() }
+                    .entries.fold(BigDecimal.ZERO) { acc, (currency, loss) ->
+                        val inTargetCurrency = if (currency.equals(targetCurrency, ignoreCase = true)) loss
+                        else currencyConversionService.convertAmountOrNull(loss, currency, targetCurrency)
+                        inTargetCurrency?.let { acc + it } ?: acc
+                    }
+
+            val totalSpent = spentIn(nonLoan) + lossSince(cycleStart)
+            val todaySpent = spentIn(nonLoan.filter { it.dateTime.toLocalDate() == now }) + lossSince(now)
 
             val formatter = DateTimeFormatter.ofPattern("MMM d")
 

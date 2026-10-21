@@ -80,10 +80,13 @@
 
         <!-- Translucent picker launched from the "More categories…" txn-alert
              notification action (#303). singleTask + excludeFromRecents so a
-             second tap doesn't stack instances and it never shows in Recents. -->
+             second tap doesn't stack instances and it never shows in Recents.
+             Its own task (empty affinity), so picking doesn't bring the app's
+             task forward and leave the user inside PennyWise. -->
         <activity
             android:name=".receiver.QuickCategoryPickerActivity"
             android:exported="false"
+            android:taskAffinity=""
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:noHistory="true"

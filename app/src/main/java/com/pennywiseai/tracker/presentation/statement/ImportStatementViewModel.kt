@@ -175,7 +175,9 @@ class ImportStatementViewModel @Inject constructor(
         val last4 = saved.accountLast4 ?: return true
         if (accounts.none { it.bankName == bank && it.accountLast4 == last4 }) return false
         val preamble = StatementTableParser.preamble(rows, saved.headerRow)
-        if (StatementTableParser.namesAccount(preamble, last4)) return true
+        // Sure only when the saved account is the one account the file names.
+        val named = accounts.filter { StatementTableParser.namesAccount(preamble, it.accountLast4) }
+        if (named.isNotEmpty()) return named.singleOrNull()?.let { it.bankName == bank && it.accountLast4 == last4 } == true
         return preamble.contains(bank, ignoreCase = true) && accounts.count { it.bankName == bank } == 1
     }
 

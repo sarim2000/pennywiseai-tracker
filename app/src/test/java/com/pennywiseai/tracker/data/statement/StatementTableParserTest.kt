@@ -248,6 +248,20 @@ class StatementTableParserTest {
     }
 
     @Test
+    fun `rows spread over years with no main body are all kept`() {
+        val csv = """
+            Date,Narration,Debit,Credit
+            01/01/2021,FIRST,10.00,
+            01/06/2022,SECOND,20.00,
+            01/12/2023,THIRD,30.00,
+        """.trimIndent()
+        val rows = StatementTableParser.readCsv(csv)
+        val result = StatementTableParser.parse(rows, StatementTableParser.guessMapping(rows), account)
+        assertEquals(3, result.transactions.size)
+        assertEquals(0, result.skippedRows)
+    }
+
+    @Test
     fun `a quiet stretch of a long statement is kept`() {
         // 19 January rows and one in December: December is sparse, not a misread.
         val csv = buildString {
@@ -351,6 +365,14 @@ class StatementTableParserTest {
         // A year in the statement period is not an account number.
         assertFalse(p.namesAccount("Period: 01/01/2021 to 31/01/2021", "2021"))
         assertFalse(p.namesAccount("Account: XXXXXX4321", "1234"))
+        assertTrue(p.namesAccount("Card XXXX XXXX XXXX 4321", "4321"))
+        assertTrue(p.namesAccount("Account No: ...4321", "4321"))
+        // Numbers that merely end in the digits.
+        assertFalse(p.namesAccount("Customer ID: 98764321", "4321"))
+        assertFalse(p.namesAccount("Opening Balance: 154321.00", "4321"))
+        assertFalse(p.namesAccount("Branch: MG Road 560034", "0034"))
+        assertFalse(p.namesAccount("Statement period 01/04/2025", "2025"))
+        assertFalse(p.namesAccount("Tax 4321", "4321"))
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -360,6 +382,18 @@ class StatementTableParserTest {
                 "xl/worksheets/sheet1.xml" to """<?xml version="1.0"?><!DOCTYPE lolz [<!ENTITY lol "lol">]><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>"""
             )
         )
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `UTF-16 xlsx parts are refused`() {
+        val sheet = """<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData/></worksheet>"""
+        val out = ByteArrayOutputStream()
+        ZipOutputStream(out).use { zip ->
+            zip.putNextEntry(ZipEntry("xl/worksheets/sheet1.xml"))
+            zip.write(sheet.toByteArray(Charsets.UTF_16))
+            zip.closeEntry()
+        }
+        StatementTableParser.readTable(out.toByteArray())
     }
 
     @Test
@@ -392,7 +426,14 @@ class StatementTableParserTest {
         // A formula result as Excel stores it.
         assertEquals(BigDecimal("24521.00"), StatementTableParser.parseAmount("24521.000000000004")!!.value)
         assertEquals(BigDecimal("0.30"), StatementTableParser.parseAmount("0.30000000000000004")!!.value)
-        assertEquals(BigDecimal("1234.57"), StatementTableParser.parseAmount("1234.565")!!.value)
+    }
+
+    @Test
+    fun `three-decimal amounts keep their precision`() {
+        // OMR and JOD have three decimals.
+        assertEquals(BigDecimal("12.345"), StatementTableParser.parseAmount("12.345")!!.value)
+        assertEquals(BigDecimal("12.345"), StatementTableParser.parseAmount("12.345000000000001")!!.value)
+        assertEquals(BigDecimal("12.345"), StatementTableParser.parseAmount("OMR 12.345")!!.value)
     }
 
     @Test

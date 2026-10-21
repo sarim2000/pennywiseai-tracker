@@ -142,6 +142,62 @@ class StatementPreviewTest {
     }
 
     @Test
+    fun `a run of rows whose SMS all lag a day matches one to one`() = runBlocking {
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.plusDays(1), merchant = "UPI Transaction"))
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.plusDays(2), merchant = "UPI Transaction"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,COFFEE,120.00,
+                03/01/2025,COFFEE,120.00,
+                """
+            )
+        )
+        assertTrue(plan.newIndices.isEmpty())
+        // A next-day SMS proves a duplicate, not its merchant: nothing is enriched.
+        assertEquals(2, plan.count(StatementRowDecision.SkipReason.AMOUNT_DATE))
+    }
+
+    @Test
+    fun `an SMS the day before a date-only row is not a match`() = runBlocking {
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day.minusDays(1), merchant = "Cafe"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Debit,Credit
+                02/01/2025,COFFEE,120.00,
+                """
+            )
+        )
+        assertEquals(listOf(0), plan.newIndices)
+    }
+
+    @Test
+    fun `zero-padded references match and all-zero ones match nothing`() = runBlocking {
+        // Two days off: only the reference can match.
+        val store = InMemoryStore().apply {
+            seed(sms(BigDecimal("450.00"), TransactionType.EXPENSE, day.plusDays(2), reference = "412345678901", merchant = "Grocery Mart"))
+            seed(sms(BigDecimal("99.00"), TransactionType.EXPENSE, day.plusDays(2), reference = "0", merchant = "Shop"))
+        }
+        val plan = StatementImportProcessor(store).plan(
+            table(
+                """
+                Date,Narration,Ref No,Debit,Credit
+                02/01/2025,GROCERY,0000412345678901,450.00,
+                02/01/2025,SHOP,000000,99.00,
+                """
+            )
+        )
+        assertEquals(1, plan.count(StatementRowDecision.SkipReason.REFERENCE))
+        assertEquals(listOf(1), plan.newIndices)
+    }
+
+    @Test
     fun `a same-day reversal is not swallowed by the debit's SMS`() = runBlocking {
         val store = InMemoryStore().apply {
             seed(sms(BigDecimal("120.00"), TransactionType.EXPENSE, day, merchant = "Cafe"))
@@ -271,13 +327,6 @@ class StatementPreviewTest {
         assertEquals(BigDecimal("800.00"), StatementBalanceCheck.closingRow(parsed)!!.balance)
     }
 
-    @Test
-    fun `amount spellings cover how SMS and statements write the same amount`() {
-        val spellings = ImportStatementUseCase.amountSpellings(BigDecimal("500.00")).map { it.toPlainString() }.toSet()
-        assertEquals(setOf("500.00", "500", "500.0"), spellings)
-        assertEquals(setOf("12.5", "12.50"), ImportStatementUseCase.amountSpellings(BigDecimal("12.5")).map { it.toPlainString() }.toSet())
-    }
-
     private fun check(statement: String, app: String?) = StatementBalanceCheck(
         bankName = "Sample Bank",
         accountLast4 = "1234",
@@ -316,22 +365,16 @@ class StatementPreviewTest {
 
         fun seed(t: TransactionEntity) { rows += t.copy(id = nextId++) }
 
-        override suspend fun getTransactionByHash(transactionHash: String) =
-            rows.firstOrNull { it.transactionHash == transactionHash }
+        override suspend fun getTransactionsByHashes(hashes: List<String>) =
+            rows.filter { it.transactionHash in hashes }
 
-        override suspend fun findStatementMergeCandidate(transaction: TransactionEntity) =
-            rows.firstOrNull { it.reference == transaction.reference && StatementTransactionEnricher.isStatementMatch(it, transaction) }
-
-        override suspend fun getTransactionsByReference(reference: String) =
-            rows.filter { !it.isDeleted && it.reference == reference }
+        override suspend fun getTransactionsBetween(start: LocalDateTime, end: LocalDateTime) =
+            rows.filter { !it.isDeleted && it.dateTime in start..end }
 
         override suspend fun updateTransaction(transaction: TransactionEntity) {
             writes++
             rows.replaceAll { if (it.id == transaction.id) transaction else it }
         }
-
-        override suspend fun getTransactionByAmountAndDate(amount: BigDecimal, dateStart: LocalDateTime, dateEnd: LocalDateTime) =
-            rows.filter { !it.isDeleted && it.amount.compareTo(amount) == 0 && it.dateTime in dateStart..dateEnd }
 
         override suspend fun insertTransactions(transactions: List<TransactionEntity>) {
             writes++

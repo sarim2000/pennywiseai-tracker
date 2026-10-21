@@ -12,7 +12,6 @@ import java.io.ByteArrayInputStream
 import java.io.StringReader
 import java.math.BigDecimal
 import java.math.MathContext
-import java.math.RoundingMode
 import java.text.ParsePosition
 import java.time.LocalDate
 import java.time.LocalTime
@@ -173,15 +172,18 @@ object StatementTableParser {
         rows.take(headerRow).joinToString("\n") { row -> row.filter { it.isNotBlank() }.joinToString(" ") }
 
     /**
-     * Whether [preamble] names the account ending [last4]: masked or full
-     * ("XXXXXX4321", "••4321", "123456784321"), or after an account label
-     * ("A/c No: 4321"). A bare "2021" in a date range doesn't count.
+     * Whether [preamble] names the account ending [last4]: right after a mask
+     * ("XXXXXX4321", "XXXX XXXX XXXX 4321", "••4321"), or as the number after
+     * an account or card label ("A/c No: 4321", "Account No: ...4321"). Any
+     * other number that merely ends in the digits (a customer ID, a balance, a
+     * PIN code, a year) doesn't count.
      */
     fun namesAccount(preamble: String, last4: String): Boolean {
         if (last4.length < 3 || last4.any { !it.isDigit() }) return false
         val digits = Regex.escape(last4)
-        return Regex("""[Xx*•\d]$digits(?!\d)""").containsMatchIn(preamble) ||
-            Regex("""(?i)(?:a/c|acc(?:oun)?t|acct)[^\n]{0,30}?(?<!\d)$digits(?!\d)""").containsMatchIn(preamble)
+        return Regex("""(?<![A-Za-z])[Xx*•][Xx*• ]*+$digits(?!\d)""").containsMatchIn(preamble) ||
+            Regex("""(?i)(?:a/c|acc(?:oun)?t|acct|card)(?: ?(?:no|number|num)\b| ending(?: in)?)?\.?[ :#-]*[Xx*•.\d -]*?$digits(?!\d)""")
+                .containsMatchIn(preamble)
     }
 
     /** First row that names a date column among 3+ filled cells; else the widest early row. */
@@ -257,8 +259,9 @@ object StatementTableParser {
             val n = BigDecimal(s)
             if (n.precision() - n.scale() > MAX_INTEGER_DIGITS) return null
             // Excel stores formula results as doubles ("24521.000000000004"): drop the
-            // binary noise at 15 significant digits, then keep paise.
-            val money = n.round(MathContext(15)).setScale(2, RoundingMode.HALF_UP)
+            // binary noise at 15 significant digits. Never round to paise: OMR and
+            // JOD amounts have three decimals.
+            val money = n.round(MathContext(15)).stripTrailingZeros().let { if (it.scale() < 2) it.setScale(2) else it }
             return CellAmount(money.abs(), if (n.signum() < 0) true else if (s.startsWith("+")) false else null)
         }
         // Exponent notation outside those bounds isn't an amount we can trust.
@@ -363,8 +366,12 @@ object StatementTableParser {
         // A date more than a year away from every other row is a misread cell (a
         // footer's number, a year typo), not a transaction — it would also move the
         // closing row. Quiet stretches are fine: only isolation counts, not density.
+        // Only a few strays beside a clear main body are dropped; when isolated
+        // rows are anything like half the file there's no main body, so keep all.
         val dates = parsed.map { StatementBalanceCheck.dateOf(it) }
-        val isolated = if (dates.size < 3) emptySet() else isolatedDates(dates.sorted())
+        val isolated = (if (dates.size < 3) emptySet() else isolatedDates(dates.sorted()))
+            .takeIf { set -> dates.count { it in set } * 4 < dates.size }
+            .orEmpty()
         val transactions = parsed.filterIndexed { i, _ -> dates[i] !in isolated }
         return TableParseResult(transactions, skipped + parsed.size - transactions.size)
     }

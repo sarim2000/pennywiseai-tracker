@@ -15,8 +15,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.LocalTime
 import javax.inject.Inject
@@ -198,31 +196,15 @@ class ImportStatementUseCase @Inject constructor(
         }
 
     private fun repositoryStore() = object : StatementImportProcessor.TransactionStore {
-        override suspend fun getTransactionByHash(transactionHash: String): TransactionEntity? =
-            transactionRepository.getTransactionByHash(transactionHash)
+        override suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity> =
+            transactionRepository.getTransactionsByHashes(hashes)
 
-        override suspend fun findStatementMergeCandidate(
-            transaction: TransactionEntity
-        ): TransactionEntity? =
-            transactionRepository.findStatementMergeCandidate(transaction)
-
-        override suspend fun getTransactionsByReference(reference: String): List<TransactionEntity> =
-            transactionRepository.getTransactionsByReference(reference)
+        override suspend fun getTransactionsBetween(start: LocalDateTime, end: LocalDateTime): List<TransactionEntity> =
+            transactionRepository.getTransactionsBetweenDatesList(start, end)
 
         override suspend fun updateTransaction(transaction: TransactionEntity) {
             transactionRepository.updateTransaction(transaction)
         }
-
-        // Amounts are stored as text, so "500", "500.0" and "500.00" only match
-        // themselves; a statement and an SMS often write the same amount differently.
-        override suspend fun getTransactionByAmountAndDate(
-            amount: BigDecimal,
-            dateStart: LocalDateTime,
-            dateEnd: LocalDateTime
-        ): List<TransactionEntity> =
-            amountSpellings(amount)
-                .flatMap { transactionRepository.getTransactionByAmountAndDate(it, dateStart, dateEnd) }
-                .distinctBy { it.id }
 
         override suspend fun insertTransactions(transactions: List<TransactionEntity>) {
             transactionRepository.insertTransactions(transactions)
@@ -231,12 +213,6 @@ class ImportStatementUseCase @Inject constructor(
 
     companion object {
         private const val MAX_FILE_BYTES = 20 * 1024 * 1024
-
-        /** [amount] at scales 0–2 where exact, plus as given — each distinct spelling once. */
-        internal fun amountSpellings(amount: BigDecimal): List<BigDecimal> =
-            (listOf(amount) + (0..2).mapNotNull { scale ->
-                runCatching { amount.setScale(scale, RoundingMode.UNNECESSARY) }.getOrNull()
-            }).distinctBy { it.toPlainString() }
 
         private fun java.io.InputStream.readNBytesCompat(limit: Int): ByteArray {
             val out = java.io.ByteArrayOutputStream()

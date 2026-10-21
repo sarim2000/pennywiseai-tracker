@@ -57,16 +57,25 @@ object StatementTransactionEnricher {
 
     /**
      * A stored transaction with the statement row's reference that is the same
-     * payment: same amount and direction, compatible account, within [window]
-     * (an SMS is stamped on arrival, a statement row on its value date).
+     * payment: same amount, currency and direction, within [window] (an SMS is
+     * stamped on arrival, a statement row on its value date). The reference
+     * identifies the payment, so the account isn't compared: an SMS and a
+     * statement often print different parts of it.
      */
     fun isReferenceMatch(existing: TransactionEntity, statement: TransactionEntity, window: Duration): Boolean {
-        val reference = statement.reference?.trim().orEmpty()
-        if (reference.isEmpty() || existing.reference?.trim() != reference) return false
+        val reference = normalizedReference(statement.reference) ?: return false
+        if (normalizedReference(existing.reference) != reference) return false
         if (existing.amount.compareTo(statement.amount) != 0) return false
-        if (!isPossibleAmountDateMatch(existing, statement)) return false
+        if (existing.currency != statement.currency || !sameDirection(existing, statement)) return false
         return Duration.between(existing.dateTime, statement.dateTime).abs() <= window
     }
+
+    /**
+     * A reference as compared: zero-padding dropped ("0000412345678901" is
+     * "412345678901"); null when there's nothing left (blank or all zeros).
+     */
+    fun normalizedReference(reference: String?): String? =
+        reference?.trim()?.trimStart('0')?.takeIf { it.isNotEmpty() }
 
     /**
      * Money in vs money out. Only INCOME is money in; a TRANSFER-stored debit
@@ -159,8 +168,17 @@ object StatementTransactionEnricher {
     private fun isGeneric(value: String): Boolean =
         value.trim().lowercase() in genericValues
 
-    private fun accountsMatch(existingAccount: String?, statementAccount: String?): Boolean =
-        existingAccount.isNullOrBlank() ||
-                statementAccount.isNullOrBlank() ||
-                existingAccount == statementAccount
+    /**
+     * Unknown on either side is compatible. Otherwise the digits must agree on
+     * at least the last two, one ending the other: Paytm prints "17" for the
+     * SMS's "4517", Google Pay "0123" for an SMS's "123".
+     */
+    internal fun accountsMatch(existingAccount: String?, statementAccount: String?): Boolean {
+        if (existingAccount.isNullOrBlank() || statementAccount.isNullOrBlank()) return true
+        val a = existingAccount.filter(Char::isDigit)
+        val b = statementAccount.filter(Char::isDigit)
+        if (a.isEmpty() || b.isEmpty()) return existingAccount.trim().equals(statementAccount.trim(), ignoreCase = true)
+        if (a == b) return true
+        return minOf(a.length, b.length) >= 2 && (a.endsWith(b) || b.endsWith(a))
+    }
 }

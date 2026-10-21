@@ -8,6 +8,9 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+/** ICICI rows carry a value date only; the import matches them as date-only. */
+internal const val ICICI_PDF_SENDER = "ICICI PDF"
+
 /**
  * ICICI Bank savings-account statement (#874).
  *
@@ -50,7 +53,7 @@ class IciciBankPdfParser : PdfStatementParser {
                 // same amount and particulars. The balance makes every row unique.
                 smsBody = (listOf("${row.date.format(DATE_FORMAT)} · balance ${row.balance.toPlainString()}") + description)
                     .joinToString("\n"),
-                sender = "ICICI PDF",
+                sender = ICICI_PDF_SENDER,
                 timestamp = row.date.atTime(LocalTime.NOON).atZone(IST).toInstant().toEpochMilli(),
                 bankName = "ICICI Bank"
             )

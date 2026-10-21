@@ -2,27 +2,22 @@ package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.toEntity
-import java.math.BigDecimal
 import java.time.Duration
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 
 internal class StatementImportProcessor(
     private val transactionStore: TransactionStore
 ) {
     interface TransactionStore {
-        suspend fun getTransactionByHash(transactionHash: String): TransactionEntity?
-        suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity?
-        /** Active transactions carrying [reference] (a UPI/IMPS/NEFT reference or UTR). */
-        suspend fun getTransactionsByReference(reference: String): List<TransactionEntity> = emptyList()
+        /** Stored transactions (deleted ones included) with any of [hashes]. */
+        suspend fun getTransactionsByHashes(hashes: List<String>): List<TransactionEntity>
+        /** Active transactions dated within [start]..[end]. */
+        suspend fun getTransactionsBetween(start: LocalDateTime, end: LocalDateTime): List<TransactionEntity>
         suspend fun updateTransaction(transaction: TransactionEntity)
-        suspend fun getTransactionByAmountAndDate(
-            amount: BigDecimal,
-            dateStart: java.time.LocalDateTime,
-            dateEnd: java.time.LocalDateTime
-        ): List<TransactionEntity>
-
         suspend fun insertTransactions(transactions: List<TransactionEntity>)
     }
 
@@ -35,6 +30,10 @@ internal class StatementImportProcessor(
      * would do to each row (#13). The preview shows this and [apply] executes
      * it, so "N matched, M new" is exactly what the import then does.
      *
+     * Two reads, whatever the statement's size: the rows' hashes, and every
+     * transaction in the statement's date range (plus the matching windows),
+     * indexed in memory by reference and by amount.
+     *
      * Enrichments are kept in memory while planning, so a later row that hits
      * the same stored transaction sees it already enriched — as it would have
      * when every update was written straight away.
@@ -42,13 +41,12 @@ internal class StatementImportProcessor(
      * Each stored transaction absorbs at most one statement row ([claimed]):
      * two identical ₹20 teas on a day with one SMS are one match and one new
      * row, not two matches. Matching runs strongest-first across all rows —
-     * exact re-imports, then references, then the row's own day, then a day
-     * either side — so weaker evidence never takes a stored transaction that
-     * stronger evidence for another row points at. An SMS stamped the day after
-     * the statement's value date still matches, without stealing the SMS of
-     * the row that really is from that day.
+     * exact re-imports, then references, then amounts — so weaker evidence
+     * never takes a stored transaction that stronger evidence for another row
+     * points at.
      */
     suspend fun plan(parsedTransactions: List<ParsedTransaction>): StatementImportPlan {
+        if (parsedTransactions.isEmpty()) return StatementImportPlan(emptyList())
         val pending = HashMap<Long, TransactionEntity>()
         val claimed = HashSet<Long>()
         fun TransactionEntity.current() = pending[id] ?: this
@@ -71,63 +69,81 @@ internal class StatementImportProcessor(
         // The statement's running balance is for the closing-balance check only:
         // stored on a noon-stamped row it would read as a bank-reported balance.
         val entities = parsedTransactions.map { it.toEntity().copy(balanceAfter = null) }
+        val days = entities.map { it.dateTime.toLocalDate() }
 
-        /** Same amount within [days] of the row, same direction/account/currency, not yet claimed. */
-        suspend fun amountMatch(index: Int, days: Long): StatementRowDecision? {
-            val statement = entities[index]
-            val day = statement.dateTime.toLocalDate()
-            val candidates = transactionStore.getTransactionByAmountAndDate(
-                parsedTransactions[index].amount,
-                day.minusDays(days).atStartOfDay(),
-                day.plusDays(days).atTime(LocalTime.MAX)
-            ).map { it.current() }
-                .filter { it.id !in claimed && StatementTransactionEnricher.isPossibleAmountDateMatch(it, statement) }
-                .sortedBy { ChronoUnit.DAYS.between(day, it.dateTime.toLocalDate()).let(Math::abs) }
-            if (candidates.isEmpty()) return null
-            // Only enrich when exactly one candidate could be this row; otherwise just match.
-            val enrichable = candidates.filter { StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(it, statement) }
-            if (enrichable.size == 1 && candidates.size == 1) {
-                val existing = enrichable.single()
-                return enrichDecision(existing, StatementTransactionEnricher.enrich(existing, statement))
+        val hashes = parsedTransactions.map { it.transactionHash?.takeIf { h -> h.isNotBlank() } ?: it.generateTransactionId() }
+        val byHash = transactionStore.getTransactionsByHashes(hashes.distinct()).associateBy { it.transactionHash }
+        val nearby = transactionStore.getTransactionsBetween(
+            days.min().minusDays(REFERENCE_WINDOW.toDays()).atStartOfDay(),
+            days.max().plusDays(REFERENCE_WINDOW.toDays()).atTime(LocalTime.MAX)
+        )
+        val byReference = nearby.groupBy { StatementTransactionEnricher.normalizedReference(it.reference) }
+        // Money in vs out, as [StatementTransactionEnricher.isPossibleAmountDateMatch] compares it.
+        fun amountKey(t: TransactionEntity) = t.amount.stripTrailingZeros() to (t.transactionType == TransactionType.INCOME)
+        val byAmount = nearby.groupBy(::amountKey)
+
+        /** Unclaimed same-amount transactions on [from]..[to] that could be row [index], earliest first. */
+        fun amountCandidates(index: Int, from: LocalDate, to: LocalDate): List<TransactionEntity> =
+            byAmount[amountKey(entities[index])].orEmpty()
+                .map { it.current() }
+                .filter {
+                    it.id !in claimed && it.dateTime.toLocalDate() in from..to &&
+                        StatementTransactionEnricher.isPossibleAmountDateMatch(it, entities[index])
+                }
+                .sortedBy { it.dateTime }
+
+        /** A same-day match; it enriches only when exactly one transaction could be this row. */
+        fun sameDayMatch(index: Int, candidates: List<TransactionEntity>): StatementRowDecision {
+            val only = candidates.singleOrNull()
+            if (only != null && StatementTransactionEnricher.isAmountDateFallbackEnrichmentCandidate(only, entities[index])) {
+                return enrichDecision(only, StatementTransactionEnricher.enrich(only, entities[index]))
             }
             claim(candidates.first())
             return StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
         }
 
-        // Strongest evidence first, for every row, before any weaker match may claim
-        // a stored transaction: otherwise a row that only shares an amount could take
-        // the very transaction another row is an exact re-import of.
         val decisions = arrayOfNulls<StatementRowDecision>(parsedTransactions.size)
 
         // 1. Exact re-imports.
-        parsedTransactions.forEachIndexed { i, parsed ->
-            val hash = parsed.transactionHash?.takeIf { it.isNotBlank() } ?: parsed.generateTransactionId()
-            transactionStore.getTransactionByHash(hash)?.current()?.let { hashMatch ->
+        hashes.forEachIndexed { i, hash ->
+            byHash[hash]?.current()?.let { hashMatch ->
                 decisions[i] = matchDecision(hashMatch, entities[i], StatementRowDecision.SkipReason.HASH)
             }
         }
 
         // 2. References. A reference is unique, so its match may sit a few days off:
         //    an SMS is stamped when it arrives, a statement row on its value date.
-        parsedTransactions.forEachIndexed { i, parsed ->
+        entities.forEachIndexed { i, statement ->
             if (decisions[i] != null) return@forEachIndexed
-            val ref = parsed.reference?.takeIf { it.isNotBlank() } ?: return@forEachIndexed
-            val statement = entities[i]
-            val byReference = transactionStore.findStatementMergeCandidate(statement)?.current()
-                ?.takeIf { it.id !in claimed }
-                ?: transactionStore.getTransactionsByReference(ref)
-                    .map { it.current() }
-                    .filter { it.id !in claimed && StatementTransactionEnricher.isReferenceMatch(it, statement, REFERENCE_WINDOW) }
-                    .minByOrNull { Duration.between(it.dateTime, statement.dateTime).abs() }
-            if (byReference != null) {
-                decisions[i] = matchDecision(byReference, statement, StatementRowDecision.SkipReason.REFERENCE)
-            }
+            val ref = StatementTransactionEnricher.normalizedReference(statement.reference) ?: return@forEachIndexed
+            byReference[ref].orEmpty()
+                .map { it.current() }
+                .filter { it.id !in claimed && StatementTransactionEnricher.isReferenceMatch(it, statement, REFERENCE_WINDOW) }
+                .minByOrNull { Duration.between(it.dateTime, statement.dateTime).abs() }
+                ?.let { decisions[i] = matchDecision(it, statement, StatementRowDecision.SkipReason.REFERENCE) }
         }
 
-        // 3. Same amount on the row's own day, then 4. a day either side.
-        for (days in 0L..1L) {
-            for (i in decisions.indices) {
-                if (decisions[i] == null) decisions[i] = amountMatch(i, days)
+        // 3. Same amount on the row's own day, for rows with a real time.
+        val dateOnly = parsedTransactions.map { it.sender in DATE_ONLY_SENDERS }
+        for (i in decisions.indices) {
+            if (decisions[i] != null || dateOnly[i]) continue
+            val candidates = amountCandidates(i, days[i], days[i])
+            if (candidates.isNotEmpty()) decisions[i] = sameDayMatch(i, candidates)
+        }
+
+        // 4. A date-only row (a bank's value date) may have its SMS on that day or
+        //    the next. In date order, each takes the earliest unclaimed one, so a
+        //    run of rows whose SMS all lag a day still matches one to one. A
+        //    next-day SMS is only evidence of a duplicate, never of its merchant.
+        for (i in decisions.indices.filter { dateOnly[it] }.sortedBy { days[it] }) {
+            if (decisions[i] != null) continue
+            val candidates = amountCandidates(i, days[i], days[i].plusDays(1))
+            val first = candidates.firstOrNull() ?: continue
+            decisions[i] = if (first.dateTime.toLocalDate() == days[i]) {
+                sameDayMatch(i, candidates.filter { it.dateTime.toLocalDate() == days[i] })
+            } else {
+                claim(first)
+                StatementRowDecision.Skip(StatementRowDecision.SkipReason.AMOUNT_DATE)
             }
         }
 
@@ -140,6 +156,9 @@ internal class StatementImportProcessor(
 
     private companion object {
         val REFERENCE_WINDOW: Duration = Duration.ofDays(3)
+
+        /** Sources whose rows carry a date but no time (stamped at noon): spreadsheets and ICICI PDFs. */
+        val DATE_ONLY_SENDERS = setOf(StatementTableParser.STATEMENT_SENDER, ICICI_PDF_SENDER)
     }
 
     /**

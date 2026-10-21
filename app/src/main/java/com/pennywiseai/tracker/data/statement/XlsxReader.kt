@@ -204,7 +204,8 @@ object XlsxReader {
         // Spreadsheet parts never declare a DTD. Refuse one outright: Android's
         // parser ignores the hardening flags below, and an entity-expansion
         // ("billion laughs") part would otherwise exhaust memory.
-        if (containsDoctype(bytes)) throw IllegalArgumentException("This spreadsheet can't be read safely")
+        // The DOCTYPE scan reads ASCII bytes: UTF-16 (a BOM, or NULs early on) would hide it.
+        if (containsDoctype(bytes) || isWideText(bytes)) throw IllegalArgumentException("This spreadsheet can't be read safely")
         val factory = SAXParserFactory.newInstance().apply { isNamespaceAware = true }
         // Belt and braces where the platform parser does honour them.
         runCatching { factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true) }
@@ -214,6 +215,12 @@ object XlsxReader {
             contentHandler = handler
             parse(InputSource(ByteArrayInputStream(bytes)))
         }
+    }
+
+    /** A UTF-16 BOM, or a NUL byte in the first few KB. */
+    internal fun isWideText(bytes: ByteArray): Boolean {
+        if (bytes.size >= 2 && (bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte() || bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte())) return true
+        return (0 until minOf(bytes.size, 4096)).any { bytes[it] == 0.toByte() }
     }
 
     /** "<!DOCTYPE" anywhere, any case (ASCII is enough: XML markup is ASCII in UTF-8). */

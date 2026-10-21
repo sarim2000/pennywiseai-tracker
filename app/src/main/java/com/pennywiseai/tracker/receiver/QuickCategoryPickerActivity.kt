@@ -139,6 +139,11 @@ class QuickCategoryPickerActivity : ComponentActivity() {
                 // #876: only the transaction's own type, like every other picker.
                 categories = categories.forPicker(isIncome = txn.transactionType == TransactionType.INCOME),
                 onCategorySelected = { newCategory ->
+                    // Re-tapping the ticked row is "leave it", not a lesson.
+                    if (newCategory == txn.category) {
+                        finish()
+                        return@QuickCategoryPickerSheet
+                    }
                     appScope.launch {
                         val moved = learnCategory(txn.id, newCategory)
                         WidgetRefresher.refreshTransactionWidgets(applicationContext)

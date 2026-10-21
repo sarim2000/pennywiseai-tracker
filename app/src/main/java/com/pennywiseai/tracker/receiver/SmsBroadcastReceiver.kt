@@ -102,10 +102,16 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-        fun pickerIntent(context: Context, transactionId: Long, notificationId: Int): PendingIntent =
+        /** [requestCode] keeps another notification's picker for the same transaction from overwriting this one's extras. */
+        fun pickerIntent(
+            context: Context,
+            transactionId: Long,
+            notificationId: Int,
+            requestCode: Int = pickerRequestCode(transactionId)
+        ): PendingIntent =
             PendingIntent.getActivity(
                 context,
-                pickerRequestCode(transactionId),
+                requestCode,
                 Intent(context, QuickCategoryPickerActivity::class.java).apply {
                     putExtra(QuickCategoryPickerActivity.EXTRA_TRANSACTION_ID, transactionId)
                     putExtra(QuickCategoryPickerActivity.EXTRA_NOTIFICATION_ID, notificationId)
@@ -117,12 +123,17 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         /**
          * Replaces the alert with a short, silent "saved — and learned" note so
          * the user sees the tap landed and knows the next one is automatic.
+         * [moved] is [LearnCategoryUseCase]'s result: null when nothing was
+         * learned, so the note doesn't promise it.
          */
-        fun showLearnedNotification(context: Context, notificationId: Int, transactionId: Long, category: String, moved: Int) {
+        fun showLearnedNotification(context: Context, notificationId: Int, transactionId: Long, category: String, moved: Int?) {
             if (notificationId == -1) return
-            val text = context.getString(R.string.notif_txn_learned_text) + if (moved > 0) {
-                " " + context.resources.getQuantityString(R.plurals.notif_txn_learned_moved, moved, moved)
-            } else ""
+            val text = when {
+                moved == null -> ""
+                moved > 0 -> context.getString(R.string.notif_txn_learned_text) + " " +
+                    context.resources.getQuantityString(R.plurals.notif_txn_learned_moved, moved, moved)
+                else -> context.getString(R.string.notif_txn_learned_text)
+            }
             ensureChannel(context).notify(
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)

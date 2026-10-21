@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -197,6 +198,7 @@ class SmsTransactionProcessor @Inject constructor(
 
             // Check for custom merchant mapping
             val customCategory = merchantMappingRepository.getCategoryForMerchant(entity.merchantName)
+                ?.takeIf { mappingFits(database.categoryDao().getCategoryByName(it)?.isIncome, entity.transactionType) }
             val entityWithMapping = if (customCategory != null) {
                 Log.d(TAG, "Found custom category mapping: ${entity.merchantName} -> $customCategory")
                 entity.copy(category = customCategory)

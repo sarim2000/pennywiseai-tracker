@@ -345,6 +345,20 @@ object SharedCategoryMapping {
         "civil consumer"
     )
 
+    // The bare word "market" is in GROCERY for Jordan's corner shops; keep it
+    // off pharmacies, online marketplaces and money-market funds.
+    private val GROCERY_EXCLUDE = setOf(
+        "medical",
+        "pharmacy",
+        "chemist",
+        "clinic",
+        "hospital",
+        "market place",
+        "marketplace",
+        "money market",
+        "fund",
+    )
+
     private val TRANSPORT = setOf(
         "uber", "ola", "rapido", "metro", "irctc", "redbus", "makemytrip",
         "goibibo", "petrol", "fuel", "parking", "toll", "fastag",
@@ -384,11 +398,11 @@ object SharedCategoryMapping {
         "smart auto",
         "interchange",
         "pickme",
-        // Jordan: bus/BRT top-ups, taxis, intercity coaches, fuel stations.
+        // Jordan: bus/BRT top-ups, taxis, intercity coaches, fuel. (Not
+        // "manaseer": the fuel chain shares a common family name.)
         "transport",
         "taxi",
         "jett",
-        "manaseer",
         "jopetrol"
     )
 
@@ -887,7 +901,7 @@ object SharedCategoryMapping {
         Rule("Bank Charges", BANK_CHARGE),
         Rule("Credit Card Payment", CC_PAYMENT),
         Rule("Food & Dining", FOOD),
-        Rule("Groceries", GROCERY),
+        Rule("Groceries", GROCERY, GROCERY_EXCLUDE),
         Rule("Transportation", TRANSPORT),
         Rule("Shopping", SHOPPING + SHOPPING_EXTENDED, SHOPPING_EXCLUDE),
         Rule("Bills & Utilities", UTILITIES),

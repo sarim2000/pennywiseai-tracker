@@ -131,7 +131,15 @@ class SharedCategoryMappingTest {
     @Test
     fun `a person called Zain is not a phone bill`() {
         assertCategory("Others", "ZAIN AHMAD")
-        // "marketing" is not a market.
+        // "marketing" is not a market, and Al-Manaseer is a family before it's a fuel chain.
         assertCategory("Others", "DIGITAL MARKETING CO")
+        assertCategory("Others", "MOHAMMAD AL MANASEER")
+    }
+
+    @Test
+    fun `market keeps off pharmacies, marketplaces and funds`() {
+        assertCategory("Healthcare", "MARKET PHARMACY")
+        assertCategory("Shopping", "AMAZON MARKET PLACE")
+        assertCategory("Groceries", "CARREFOUR")
     }
 }

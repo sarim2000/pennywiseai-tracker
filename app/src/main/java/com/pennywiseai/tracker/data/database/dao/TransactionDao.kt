@@ -241,8 +241,8 @@ interface TransactionDao {
     @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE")
     suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
 
-    @Query("UPDATE transactions SET category = :to, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE AND category = :from AND is_deleted = 0")
-    suspend fun recategorizeMerchant(merchantName: String, from: String, to: String): Int
+    @Query("UPDATE transactions SET category = :to, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE AND category = :from AND is_deleted = 0 AND (transaction_type = 'INCOME') = :isIncome")
+    suspend fun recategorizeMerchant(merchantName: String, isIncome: Boolean, from: String, to: String): Int
 
     @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
     suspend fun updateCategoryById(transactionId: Long, category: String, updatedAt: LocalDateTime)

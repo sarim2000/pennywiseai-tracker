@@ -14,12 +14,18 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.assisted.Assisted
@@ -40,24 +46,40 @@ class DailySummaryWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val transactionRepository: TransactionRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
         if (!userPreferencesRepository.dailySummaryEnabled.first()) return Result.success()
 
+        // Same rows as the widgets: the selected profile, no ignored accounts.
         val today = LocalDate.now()
-        val transactions = transactionRepository.getTransactionsBetweenDates(today, today).first().forTotals()
+        val ignored = ignoredAccountsStore.keys()
+        val transactions = filterTransactionsByProfile(
+            transactionRepository.getTransactionsBetweenDates(today, today).first()
+                .filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
+            userPreferencesRepository.selectedProfileId.first(),
+            buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+        ).forTotals()
         if (transactions.isEmpty()) return Result.success()
 
-        // Same spend definition as Home and the widgets (#705).
+        // Same spend definition as Home and the widgets: card spend only when
+        // opted in (#705), net of refunds, floored at zero — per currency.
         val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
         val spent = transactions
-            .filter {
-                it.transactionType == TransactionType.EXPENSE ||
-                    (creditAsExpense && it.transactionType == TransactionType.CREDIT)
+            .mapNotNull { tx ->
+                when {
+                    tx.transactionType == TransactionType.EXPENSE ||
+                        (creditAsExpense && tx.transactionType == TransactionType.CREDIT) -> tx to tx.amount
+                    tx.transactionType == TransactionType.INCOME &&
+                        tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT -> tx to tx.amount.negate()
+                    else -> null
+                }
             }
-            .sumByCurrency({ it.currency }, { it.amount })
+            .sumByCurrency({ it.first.currency }, { it.second })
+            .mapValues { (currency, total) -> if (total.amount.signum() < 0) Money.zero(currency) else total }
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
 
         val context = applicationContext
@@ -98,7 +120,7 @@ class DailySummaryWorker @AssistedInject constructor(
             builder.addAction(
                 0,
                 context.getString(R.string.notif_daily_action_sort),
-                SmsBroadcastReceiver.pickerIntent(context, latest.id, NOTIFICATION_ID)
+                SmsBroadcastReceiver.pickerIntent(context, latest.id, NOTIFICATION_ID, requestCode = NOTIFICATION_ID)
             )
         }
         notificationManager.notify(NOTIFICATION_ID, builder.build())

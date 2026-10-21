@@ -57,6 +57,15 @@ internal fun List<MerchantMappingEntity>.toCategoryLookup(): Map<String, String>
     sortedWith(compareBy<MerchantMappingEntity> { it.updatedAt }.thenByDescending { it.merchantName })
         .associateTo(java.util.TreeMap(SQLITE_NOCASE)) { it.merchantName to it.category }
 
+/**
+ * A mapping files only transactions of its category's kind, so a person you
+ * both pay and get paid by keeps "Food" on payments and "Income" on what they
+ * send back. [categoryIsIncome] is null for a category that no longer exists,
+ * which still applies as before.
+ */
+internal fun mappingFits(categoryIsIncome: Boolean?, type: com.pennywiseai.tracker.data.database.entity.TransactionType): Boolean =
+    categoryIsIncome == null || categoryIsIncome == (type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME)
+
 // SQLite's NOCASE folds ASCII letters only: "CAFÉ" and "Café" stay distinct
 // merchants there, so they must here too (String.CASE_INSENSITIVE_ORDER folds É).
 private fun Char.asciiLower(): Char = if (this in 'A'..'Z') this + 32 else this

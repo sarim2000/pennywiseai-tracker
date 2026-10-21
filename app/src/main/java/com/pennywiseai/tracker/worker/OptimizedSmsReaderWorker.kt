@@ -199,6 +199,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private var merchantMappingCache: Map<String, String> = emptyMap()
 
+    /** Category name to its income flag, for [mappingFits]; preloaded with the mappings. */
+    private var categoryIsIncome: Map<String, Boolean> = emptyMap()
+
     /**
      * Rules preloaded by transaction type at scan start.
      * Previously: getActiveRulesByType DB call per transaction.
@@ -403,6 +406,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Trace.beginSection("preloadCaches")
             try {
                 merchantMappingCache = merchantMappingRepository.getAllMappingsAsMap()
+                categoryIsIncome = database.categoryDao().getAllCategoriesList().associate { it.name to it.isIncome }
                 ruleCache = TransactionType.entries.associateWith { type ->
                     ruleRepository.getActiveRulesByType(type)
                 }
@@ -790,6 +794,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
 
                 val customCategory = merchantMappingCache[entity.merchantName]
+                    ?.takeIf { mappingFits(categoryIsIncome[it], entity.transactionType) }
                 val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
 
                 val activeRules = ruleCache[mapped.transactionType] ?: emptyList()

@@ -78,8 +78,9 @@ One-shot headless release with a Play draft:
   that `scripts/upload-play.sh` expects.
 - **`--web`** needs the `pennywise-web` deploy toolchain (`bun`, Cloudflare
   auth); the script runs `pennywise-web/scripts/deploy.sh`.
-- **The AI relay deploy** needs Node 22.12+ and `npx wrangler login` once, and runs only for a release you push; it runs
-  the relay tests first, then `npm run deploy` in `relay/`.
+- **The AI relay deploy** needs Node 22.12+ and `npx wrangler login` once. It
+  runs only for a release you push: the relay tests first, then `npm run deploy`
+  in `relay/`.
 
 ## Conventional commits
 

@@ -1253,7 +1253,11 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
+                // Only while something is still owed: an active loan left at zero (the
+                // refresh never settles one, #876) would cap this payment to nothing and
+                // swallow the new debt it should open.
                 val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
+                    ?.takeIf { it.remainingAmount.signum() > 0 }
 
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the

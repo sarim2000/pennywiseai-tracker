@@ -704,6 +704,8 @@ private fun TransactionLine(txn: ParsedTransaction, modifier: Modifier = Modifie
             Text(
                 text = txn.merchant ?: "—",
                 style = PennyWiseText.rowTitle,
+                // Explicit: preview rows aren't inside a Card/Surface that would supply it.
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -896,8 +898,12 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 color = MaterialTheme.colorScheme.success
             )
             // No safe correction (see StatementBalanceCheck.correctionFor): say why.
-            corrected == null -> if (check.difference != null) Text(
-                text = stringResource(R.string.import_statement_balance_newer),
+            corrected == null -> Text(
+                text = if (check.difference != null) {
+                    stringResource(R.string.import_statement_balance_newer)
+                } else {
+                    stringResource(R.string.import_statement_balance_unknown_note, check.asOf.format(ROW_DATE))
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

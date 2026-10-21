@@ -130,7 +130,8 @@
     <string name="import_statement_balance_statement">Statement says</string>
     <string name="import_statement_balance_app">PennyWise says</string>
     <string name="import_statement_balance_difference">Difference</string>
-    <string name="import_statement_balance_unknown">No balance recorded on or before that date</string>
+    <string name="import_statement_balance_unknown">—</string>
+    <string name="import_statement_balance_unknown_note">PennyWise has no balance for this account on or before %1$s, so there\'s nothing to compare it with yet.</string>
     <string name="import_statement_balance_match">Balances match.</string>
     <string name="import_statement_balance_set">Set balance to %1$s</string>
     <string name="import_statement_balance_set_note">Statement balance plus what PennyWise recorded after the statement ended.</string>

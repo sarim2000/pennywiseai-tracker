@@ -83,6 +83,15 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun aTimeStampedParserHashStillDedupesALaterRun() = runTest {
+        // With no reference, time or balance in it, JK Bank's own hash mixes in the sender and the time.
+        val jk = "Your A/c XX1234 has been debited with INR 100.00 at GROCERYMART. -JK Bank"
+
+        assertIs<BankSmsImportResult.Saved>(useCase.execute("JKBANK", jk, RECEIVED_AT))
+        assertEquals(BankSmsImportResult.Duplicate, useCase.execute("JKB", jk, RECEIVED_AT + 60_000))
+    }
+
+    @Test
     fun aDeletedTransactionIsNotBroughtBack() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("AX-HDFCBK-S", HDFC_UPI, RECEIVED_AT))
         transactions.rows[0] = saved.transaction.copy(isDeleted = true)

@@ -108,6 +108,61 @@ class AlRajhiBankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
+                name = "English online purchase, currency-first SR amount",
+                message = onlinePurchaseSr,
+                sender = "AlRajhiBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("43.25"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SYNTHETIC FOOD",
+                    accountLast4 = "0007",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "English online purchase with SAR and a Date: line",
+                message = onlinePurchaseSar,
+                sender = "AlRajhiBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.50"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SYNTHETIC* PENDING.EXAMPLE.COM",
+                    accountLast4 = "0007",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "Online purchase refund is income",
+                message = onlinePurchaseRefund,
+                sender = "AlRajhiBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("43.25"),
+                    currency = "SAR",
+                    type = TransactionType.INCOME,
+                    merchant = "SYNTHETIC FOOD",
+                    accountLast4 = "0007",
+                    isFromCard = true
+                )
+            ),
+            ParserTestCase(
+                name = "Online purchase reversal is income",
+                message = onlinePurchaseReversal,
+                sender = "AlRajhiBank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("43.25"),
+                    currency = "SAR",
+                    type = TransactionType.INCOME
+                )
+            ),
+            ParserTestCase(
+                name = "Declined online purchase is ignored",
+                message = onlinePurchaseDeclined,
+                sender = "AlRajhiBank",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "Declined historical purchase is ignored",
                 message = "PoS Purchase Declined\nBy:0007;mada\nAmount: 12.34 SAR\nAt: SYNTHETIC STORE\n01/01/2030 10:20",
                 sender = "AlRajhiBank",
@@ -267,4 +322,15 @@ class AlRajhiBankParserTest {
             suiteName = "Al Rajhi Bank Parser Suite"
         )
     }
+
+    private val onlinePurchaseSr =
+        "Online Purchase\nBy:0007;mada\nFrom:0008\nAmount:SR 43.25\nAt:SYNTHETIC FOOD\n01/01/30 17:34"
+    private val onlinePurchaseSar =
+        "Online Purchase\nBy:0007;mada\nFrom:0008\nAmount:SAR 12.50\nAt:SYNTHETIC* PENDING.EXAMPLE.COM\nDate:01/01/30 09:23"
+    private val onlinePurchaseRefund =
+        "Online Purchase Refund\nBy:0007;mada\nFrom:0008\nAmount:SR 43.25\nAt:SYNTHETIC FOOD\n01/01/30 17:34"
+    private val onlinePurchaseReversal =
+        "Online Purchase Reversal\nBy:0007;mada\nFrom:0008\nAmount:SR 43.25\nAt:SYNTHETIC FOOD\n01/01/30 17:34"
+    private val onlinePurchaseDeclined =
+        "Online Purchase Declined\nBy:0007;mada\nFrom:0008\nAmount:SR 43.25\nAt:SYNTHETIC FOOD\n01/01/30 17:34"
 }

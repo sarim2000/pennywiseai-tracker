@@ -270,6 +270,7 @@
     <string name="widget_recent_empty">Zatím žádné transakce</string>
     <string name="widget_recent_empty_hint">Klepněte na + pro ruční přidání</string>
     <string name="widget_recent_fallback_title">Transakce</string>
+    <!-- Spending summary widget -->
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">Skenování SMS</string>
@@ -289,6 +290,11 @@
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s Nová transakce</string>
     <string name="notif_txn_public_text">%1$s • zůstatek potřebuje vzhled</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <!-- Evening recap notification -->
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Vývoj zůstatku</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

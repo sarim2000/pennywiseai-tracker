@@ -11,21 +11,24 @@ private val BODY_WORD = Regex("[A-Za-z][A-Za-z0-9]{2,}")
 
 internal actual fun parseBankSms(sender: String?, body: String, receivedAt: Long): BankParseAttempt {
     // On iOS the "sender" is a constant typed into the Shortcut, not who texted: a Message
-    // Contains trigger fires for any text with the phrase, and one SMS can match two banks'
-    // automations ("credited to HDFC Bank A/c … from SBI"). So a bank the body itself marks
-    // or names wins over it, keeping every automation on the same bank and the same hash;
-    // the given sender decides only when the body doesn't name one.
+    // Contains trigger fires for any text with the phrase, so a bank the body marks or names
+    // ("HSBC: …", "… -SBI", "… from Axis Bank") is a better guess than a sender the body never
+    // mentions. A sender whose bank the body does name still goes first ("credited to HDFC
+    // Bank A/c … from Axis Bank" with HDFCBK). Two banks' automations matching one SMS can
+    // still disagree on the bank, but the hash leaves the sender out, so it's saved once.
     val (strong, weak) = guessSenders(body)
     val given = sender?.trim().orEmpty()
     val fromSender = if (given.isEmpty()) emptyList() else BankParserFactory.getParsers(given).map { it to given }
-    return attempt(strong + fromSender + weak, body, receivedAt)
+    val senderNamed = fromSender.any { (parser, _) -> strong.any { it.first === parser } }
+    return attempt(if (senderNamed) fromSender + strong + weak else strong + fromSender + weak, body, receivedAt)
 }
 
 /**
  * Shortcuts' Message trigger hands over the text, not always the sender, so the
  * bank is guessed from the body, in this order:
  *  1. a header or sign-off marker: "HSBC: Dear …", "BOI - Rs …", "… -SBI";
- *  2. a bank named in full, the one named last first ("… -Federal Bank");
+ *  2. a bank named in full, the one named first first: banks name the user's account up
+ *     front ("HDFC Bank A/c XX1234 … from Axis Bank");
  *  3. single words, scanned from the end, where Indian banks sign off.
  * 1 and 2 are strong (they outrank a given sender); 3 is the weak fallback.
  * A word near the start is usually the payee ("to INDIAN OIL CORP"), so it comes last.
@@ -40,11 +43,11 @@ private fun guessSenders(body: String): Pair<List<Pair<BankParser, String>>, Lis
         .flatMap { word -> BankParserFactory.getParsers(word).map { it to word } }
     val named = BankParserFactory.getAllParsers()
         .mapNotNull { parser ->
-            Regex("""\b${Regex.escape(parser.getBankName())}\b""", RegexOption.IGNORE_CASE).findAll(body).lastOrNull()
+            Regex("""\b${Regex.escape(parser.getBankName())}\b""", RegexOption.IGNORE_CASE).find(body)
                 ?.let { parser to it.range }
         }
-        // Named last first; a name inside a longer one ("Indian Bank" in "South Indian Bank") yields to it.
-        .sortedWith(compareByDescending<Pair<BankParser, IntRange>> { it.second.last }.thenBy { it.second.first })
+        // Named first first; a name inside a longer one ("Indian Bank" in "South Indian Bank") yields to it.
+        .sortedWith(compareBy<Pair<BankParser, IntRange>> { it.second.first }.thenByDescending { it.second.last })
         .map { (parser, _) -> parser to parser.getBankName() }
     val words = BODY_WORD.findAll(body).map { it.value.uppercase() }.toList().asReversed().distinct()
         .flatMap { word -> BankParserFactory.getParsers(word).map { it to word } }
@@ -75,14 +78,15 @@ private fun toParsedBankSms(
     // platforms treat such a number as "no amount" (and toMinor can't overflow).
     require(parsed.amount.toPlainString().substringBefore('.').trimStart('-').length <= 16) { "Amount too large" }
     // A Shortcut may pass "AX-HDFCBK-S", or nothing (the sender is then guessed from the body);
-    // both must dedupe as one SMS, so the hash is taken as if the bank name were the sender.
+    // both must dedupe as one SMS, and so must two banks' automations that both match it, so
+    // the hash leaves the sender out (Android's formula with an empty sender).
     // A parser's own hash is kept (M-Pesa Tanzania's spans its English and Swahili copies)
     // only when it ignores the sender and the time: JK Bank's can mix in both, and a Shortcut
     // stamps every run with the current time, so it would never dedupe.
     fun ownHash(at: Long) = parser.parse(body, parsed.bankName, at)?.transactionHash?.takeIf { it.isNotBlank() }
     val stableHash = parsed.transactionHash?.takeIf { it.isNotBlank() && it == ownHash(receivedAt) }
         ?.takeIf { it == ownHash(receivedAt + 1) }
-        ?: parsed.copy(sender = parsed.bankName).generateTransactionId()
+        ?: parsed.copy(sender = "").generateTransactionId()
     return ParsedBankSms(
         amount = parsed.amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
         type = parsed.type.name,

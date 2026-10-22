@@ -168,6 +168,30 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun theRemittersBankDoesntTakeACredit() = runTest {
+        val credit = "INR 2,000.00 credited to HDFC Bank A/c XX1234 from Axis Bank. Avl Bal INR 8,000.00"
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("HDFCBK", credit, RECEIVED_AT)).transaction
+        assertEquals(BankSmsImportResult.Duplicate, useCase.execute("AXISBK", credit, RECEIVED_AT))
+
+        assertEquals("HDFC Bank", saved.bankName)
+        assertEquals(listOf("HDFC Bank"), accounts.balances.map { it.bankName })
+    }
+
+    @Test
+    fun overlappingAutomationsSaveOnceEvenWhenTheBodyNamesNoBankInFull() = runTest {
+        // Only short phrases ("Kotak", "SBI") match, so each automation's own sender decides the bank.
+        val credit = "Rs 500.00 credited to your Kotak a/c XX1234 from SBI a/c XX9999 on 22-10-26. UPI Ref 000011112222"
+
+        val first = useCase.execute("KOTAK", credit, RECEIVED_AT)
+        val second = useCase.execute("SBI", credit, RECEIVED_AT)
+
+        assertIs<BankSmsImportResult.Saved>(first)
+        assertEquals(BankSmsImportResult.Duplicate, second)
+        assertEquals(1, transactions.rows.size)
+    }
+
+    @Test
     fun aPlainHdfcDebitWithoutSenderIsHdfc() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, HDFC_UPI, RECEIVED_AT)).transaction
 

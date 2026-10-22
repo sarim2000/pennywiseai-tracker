@@ -8,22 +8,25 @@ struct BankSmsSetupScreen: View {
     @Environment(\.isAmoledActive) private var isAmoled
     @State private var testResult: String?
     @State private var notificationStatus: UNAuthorizationStatus = .authorized
+    @State private var copied: String?
 
-    // Sender IDs as the parser-core parsers match them (canHandle), most-used Indian banks first.
-    private static let senders: [(bank: String, id: String, example: String)] = [
-        ("Kotak Mahindra Bank", "KOTAK", "JD-KOTAKB-S"),
-        ("HDFC Bank", "HDFCBK", "AX-HDFCBK-S"),
-        ("ICICI Bank", "ICICI", "JM-ICICIB-S"),
-        ("State Bank of India", "SBI", "ATMSBI, SBIINB, SBIUPI"),
-        ("Axis Bank", "AXISBK", "AX-AXISBK-S")
+    // Most-used Indian banks first. `phrase` appears in the bank's transaction texts (checked
+    // against parser-core's sample SMS); `id` is what the parser matches as the sender (canHandle).
+    private static let banks: [(bank: String, phrase: String, id: String)] = [
+        ("Kotak Mahindra Bank", "Kotak", "KOTAK"),
+        ("HDFC Bank", "HDFC Bank", "HDFCBK"),
+        ("ICICI Bank", "ICICI Bank", "ICICIB"),
+        ("State Bank of India", "SBI", "SBI"),
+        ("Axis Bank", "Axis Bank", "AXISBK")
     ]
 
+    // The Message trigger's Sender only takes contacts, so the trigger matches on text instead.
     private static let steps = [
         "Open the Shortcuts app, tap Automation, then tap +.",
         "Choose Message.",
-        "Under Sender, enter your bank's sender ID from the list below.",
+        "Choose Message Contains and type your bank's name as it appears in its texts (below).",
         "Choose Run Immediately, then tap Next.",
-        "Add the action \u{201C}Add bank SMS to PennyWise\u{201D}. Set Message to Shortcut Input, then tap the arrow and set Sender to the same sender ID."
+        "Add the action \u{201C}Add bank SMS to PennyWise\u{201D}. Set Message to Shortcut Input, then tap the arrow and set Sender to your bank's sender ID (below)."
     ]
 
     var body: some View {
@@ -34,7 +37,7 @@ struct BankSmsSetupScreen: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Set it up") {
+            Section {
                 ForEach(Array(Self.steps.enumerated()), id: \.offset) { index, step in
                     HStack(alignment: .firstTextBaseline, spacing: AppSpacing.md) {
                         Text("\(index + 1)")
@@ -48,28 +51,26 @@ struct BankSmsSetupScreen: View {
                 Button("Open Shortcuts") {
                     if let url = URL(string: "shortcuts://") { UIApplication.shared.open(url) }
                 }
+            } header: {
+                Text("Set it up")
+            } footer: {
+                Text("OTPs and offers that contain the phrase also run the automation. PennyWise skips them with \u{201C}No transaction found\u{201D}; that's expected.")
             }
 
             Section {
-                ForEach(Self.senders, id: \.id) { sender in
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        HStack {
-                            Text(sender.bank)
-                                .font(AppTypography.body)
-                            Spacer()
-                            Text(sender.id)
-                                .font(.body.monospaced().weight(.semibold))
-                                .textSelection(.enabled)
-                        }
-                        Text("Shows up as \(sender.example)")
-                            .font(AppTypography.caption)
-                            .foregroundStyle(.secondary)
+                ForEach(Self.banks, id: \.bank) { bank in
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        Text(bank.bank)
+                            .font(AppTypography.headline)
+                        copyRow(label: "Message contains", value: bank.phrase)
+                        copyRow(label: "Sender ID", value: bank.id)
                     }
+                    .padding(.vertical, AppSpacing.xs)
                 }
             } header: {
-                Text("Sender IDs")
+                Text("Your bank")
             } footer: {
-                Text("Make one automation per bank. PennyWise reads 160+ banks; for another bank, use the ID its texts come from.")
+                Text("Make one automation per bank. PennyWise reads 160+ banks; for another bank, use its name as it appears in its texts and the ID they come from.")
             }
 
             Section {
@@ -100,6 +101,25 @@ struct BankSmsSetupScreen: View {
         // Back from the Settings app, where a denied permission gets switched on.
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             Task { await refreshNotificationStatus() }
+        }
+    }
+
+    private func copyRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(AppTypography.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.body.monospaced().weight(.semibold))
+            Button {
+                UIPasteboard.general.string = value
+                copied = value
+            } label: {
+                Image(systemName: copied == value ? "checkmark" : "doc.on.doc")
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Copy \(value)")
         }
     }
 

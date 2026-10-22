@@ -8,10 +8,12 @@ package java.math
  * (string parsing, scale, HALF_UP rounding, scale-aware equals, compareTo that
  * ignores scale). [BigDecimalShimTest] pins them against JDK outputs.
  *
- * ponytail: unscaled value is a Long (18 significant digits). SMS amounts and
- * balances fit with room to spare; a longer digit string is rejected with
- * NumberFormatException (the parser then treats it as "no amount"). Swap to a
- * multiplatform bignum if a parser ever needs more.
+ * ponytail: unscaled value is a Long. A string with more than 16 integer digits
+ * or 18 significant digits is rejected with NumberFormatException (the parser
+ * then treats it as "no amount"), which keeps setScale(2) and the hash clear of
+ * Long overflow; compareTo falls back to doubles past that. SMS amounts and
+ * balances fit with room to spare. Swap to a multiplatform bignum if a parser
+ * ever needs more.
  */
 class BigDecimal private constructor(
     private val unscaled: Long,
@@ -74,7 +76,11 @@ class BigDecimal private constructor(
 
     override fun compareTo(other: BigDecimal): Int {
         val s = maxOf(scale, other.scale)
-        return rescaleUp(s).compareTo(other.rescaleUp(s))
+        return try {
+            rescaleUp(s).compareTo(other.rescaleUp(s))
+        } catch (_: ArithmeticException) {
+            toDouble().compareTo(other.toDouble()) // only for values too far apart in scale to align in a Long
+        }
     }
 
     /** Scale-aware, like the JDK: 2.0 != 2.00 (use compareTo for value equality). */
@@ -111,15 +117,21 @@ class BigDecimal private constructor(
         private val NUMBER = Regex("""([+-]?)(\d*)(?:\.(\d*))?(?:[eE]([+-]?\d+))?""")
 
         private fun parse(text: String): Pair<Long, Int> {
-            val m = NUMBER.matchEntire(text) ?: throw NumberFormatException("Not a decimal: $text")
+            // The JDK reads any Unicode digit ("४५०" = 450); fold them to ASCII before toLong().
+            val ascii = buildString { text.forEach { append(if (it.isDigit()) '0' + it.digitToInt() else it) } }
+            val m = NUMBER.matchEntire(ascii) ?: throw NumberFormatException("Not a decimal: $text")
             val (sign, intPart, fracPart, exp) = m.destructured
             if (intPart.isEmpty() && fracPart.isEmpty()) throw NumberFormatException("Not a decimal: $text")
             val digits = (intPart + fracPart).trimStart('0').ifEmpty { "0" }
-            if (digits.length > 18) throw NumberFormatException("Too many digits for the iOS BigDecimal: $text")
-            val magnitude = digits.toLong()
             val scale = fracPart.length - (exp.toIntOrNull() ?: 0)
+            if (digits.length > 18 || (digits != "0" && digits.length - scale > MAX_INTEGER_DIGITS)) {
+                throw NumberFormatException("Too large for the iOS BigDecimal: $text")
+            }
+            val magnitude = digits.toLong()
             return (if (sign == "-") -magnitude else magnitude) to scale
         }
+
+        private const val MAX_INTEGER_DIGITS = 16
 
         private fun pow10(n: Int): Long {
             if (n > 18) throw ArithmeticException("Overflow")

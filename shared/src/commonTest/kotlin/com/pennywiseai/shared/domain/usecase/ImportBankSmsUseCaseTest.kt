@@ -123,6 +123,59 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun aBankNamedInTheBodyBeatsAPayeeWord() = runTest {
+        // "INDIAN" (the payee) also matches Indian Bank's sender check; the sign-off names the real bank.
+        val federal = "Rs 450.00 debited from your A/c XX1234 to INDIAN OIL CORP via UPI on 22-10-2026 10:30:25 Ref No 000011112222.Small txns?Use UPI Lite!-Federal Bank"
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, federal, RECEIVED_AT)).transaction
+
+        assertEquals("Federal Bank", saved.bankName)
+        assertEquals(45_000L, saved.amountMinor)
+        assertEquals(emptyList(), accounts.balances.filter { it.bankName != "Federal Bank" })
+    }
+
+    @Test
+    fun triggerWordsBeforeTheSignOffDontPickTheBank() = runTest {
+        val words = listOf("CENTRAL", "AMEX", "CHASE", "DISCOVER", "SLICE", "HSBC", "DBS", "BOB", "LIVE", "OLIVE", "ALIVE", "DELIVERED")
+        for ((i, word) in words.withIndex()) {
+            val body = "Rs ${100 + i}.00 debited via UPI on 22-10-2026 10:30:25 to VPA ${word.lowercase()}.store@okbank.Ref No 0000111122${i.toString().padStart(2, '0')}.Small txns?Use UPI Lite!-Federal Bank"
+            val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, body, RECEIVED_AT), word).transaction
+            assertEquals("Federal Bank", saved.bankName, word)
+        }
+    }
+
+    @Test
+    fun anAbsurdAmountIsNoAmountAndDoesntAbortTheGuess() = runTest {
+        // 17 integer digits: past iOS's BigDecimal, so no parser may throw its way out of the loop.
+        val huge = "Rs 99999999999999999.00 debited via UPI on 22-10-2026 10:30:25 to VPA test.store@okbank.Ref No 000011112222.Small txns?Use UPI Lite!-Federal Bank"
+
+        assertEquals(BankSmsImportResult.Unparsed("Federal Bank"), useCase.execute(null, huge, RECEIVED_AT))
+        assertEquals(emptyList(), transactions.rows)
+    }
+
+    @Test
+    fun aSingleWordSignOffIsReadFromTheEnd() = runTest {
+        val sbi = "Dear UPI user A/C X1234 debited by 450.0 on date 22Oct26 trf to INDIAN OIL CORP Refno 000011112222. If not u? call 1800000000. -SBI"
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, sbi, RECEIVED_AT)).transaction
+
+        assertEquals("State Bank of India", saved.bankName)
+    }
+
+    @Test
+    fun aForeignSpendKeepsTheAccountsCurrency() = runTest {
+        accounts.balances += balanceRow(balanceMinor = 0L).copy(bankName = "Liv Bank", accountLast4 = "0000", currency = "AED")
+        val usdSpend = "Purchase of USD 75.00 with Debit Card ending 0000 at TEST STORE. Avl Balance is AED 4,100.00."
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("Liv", usdSpend, RECEIVED_AT)).transaction
+
+        assertEquals("USD", saved.currency)
+        val balance = accounts.balances.last()
+        assertEquals(410_000L, balance.balanceMinor)
+        assertEquals("AED", balance.currency) // the account's, not the spend's
+    }
+
+    @Test
     fun theReportedBalanceUpdatesTheAccount() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(
             useCase.execute("CP-HDFCBK-S", HDFC_NEFT_WITH_BALANCE, RECEIVED_AT)

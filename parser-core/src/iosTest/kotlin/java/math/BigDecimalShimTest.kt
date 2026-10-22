@@ -50,5 +50,21 @@ class BigDecimalShimTest {
     @Test
     fun rejectsAmountsTooLongForALong() {
         assertFailsWith<NumberFormatException> { BigDecimal("1234567890123456789") }
+        // 17 integer digits (~9.2e16 and up) would overflow setScale(2) and the hash: "no amount".
+        assertFailsWith<NumberFormatException> { BigDecimal("92233720368547758") }
+        assertFailsWith<NumberFormatException> { BigDecimal("1E17") }
+        assertEquals("9999999999999999.00", BigDecimal("9999999999999999").setScale(2, RoundingMode.HALF_UP).toPlainString())
+    }
+
+    @Test
+    fun comparesValuesTooFarApartInScale() {
+        assertTrue(BigDecimal("9999999999999999.99") > BigDecimal("0.001"))
+        assertTrue(BigDecimal("0.001") < BigDecimal("9999999999999999.99"))
+    }
+
+    @Test
+    fun readsNonAsciiDigitsLikeTheJdk() {
+        assertEquals("450.50", BigDecimal("४५०.५०").toPlainString()) // Devanagari
+        assertEquals("120", BigDecimal("١٢٠").toPlainString()) // Arabic-Indic
     }
 }

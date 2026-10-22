@@ -41,7 +41,7 @@ class ImportBankSmsUseCase(
     private val categoryRepository: SharedCategoryRepository
 ) {
     suspend fun execute(sender: String?, body: String, receivedAtEpochMillis: Long): BankSmsImportResult {
-        val parsed = when (val attempt = parse(sender, body, receivedAtEpochMillis)) {
+        val parsed = when (val attempt = parseBankSms(sender, body, receivedAtEpochMillis)) {
             BankParseAttempt.NoParser -> return BankSmsImportResult.NotATransaction
             is BankParseAttempt.NoTransaction -> return BankSmsImportResult.Unparsed(attempt.bankName)
             is BankParseAttempt.Parsed -> attempt.sms
@@ -103,8 +103,9 @@ class ImportBankSmsUseCase(
                 transactionId = transactionId,
                 isCreditCard = existing?.isCreditCard ?: (parsed.type == "CREDIT"),
                 accountType = existing?.accountType,
-                // The balance is in the account's currency, which can differ from the spend's.
-                currency = parsed.accountCurrency ?: parsed.currency,
+                // The account keeps its own currency (Android's processBalanceUpdate): a USD
+                // spend on an INR card must not relabel the INR balance as USD.
+                currency = existing?.currency ?: parsed.accountCurrency ?: parsed.currency,
                 createdAtEpochMillis = currentTimeMillis()
             )
         )
@@ -124,35 +125,11 @@ class ImportBankSmsUseCase(
         return isIncome == null || isIncome == (type == SharedTransactionType.INCOME)
     }
 
-    /**
-     * Tries the sender first. Shortcuts' Message trigger hands over the text and
-     * not always the sender, so an unknown sender falls back to the brand words
-     * in the body ("… -Kotak Bank", "… HDFC Bank A/C …").
-     *
-     * ponytail: a body naming two banks ("sent to your SBI a/c") goes to the
-     * first one whose parser reads it; passing the sender avoids the guess.
-     */
-    private fun parse(sender: String?, body: String, receivedAt: Long): BankParseAttempt {
-        val given = sender?.trim().orEmpty()
-        val first = if (given.isNotEmpty()) parseWithBankParsers(given, body, receivedAt) else BankParseAttempt.NoParser
-        if (first !is BankParseAttempt.NoParser) return first
-        var fallback: BankParseAttempt = BankParseAttempt.NoParser
-        for (word in BODY_WORD.findAll(body).map { it.value.uppercase() }.distinct()) {
-            when (val attempt = parseWithBankParsers(word, body, receivedAt)) {
-                is BankParseAttempt.Parsed -> return attempt
-                is BankParseAttempt.NoTransaction -> if (fallback is BankParseAttempt.NoParser) fallback = attempt
-                BankParseAttempt.NoParser -> Unit
-            }
-        }
-        return fallback
-    }
-
     companion object {
         /** Android's AccountBalanceEntity.WALLET_ACCOUNT_MARKER: a mobile wallet is one account. */
         const val WALLET_ACCOUNT = "WALLET"
 
         private val saveLock = Mutex()
-        private val BODY_WORD = Regex("[A-Za-z][A-Za-z0-9]{2,}")
 
         /** "450.00" → 45000. Every shared amount is value × 100, whatever the currency. */
         internal fun toMinor(plainAmount: String): Long {
@@ -194,8 +171,9 @@ internal sealed class BankParseAttempt {
 }
 
 /**
- * Runs parser-core's [BankParserFactory] for [sender]. parser-core's parsers
- * are platform code (JVM and iOS source sets, not common), so this is
+ * Runs parser-core's [BankParserFactory] on [body], using [sender] when it names
+ * a known bank and otherwise guessing the bank from the body. parser-core's
+ * parsers are platform code (JVM and iOS source sets, not common), so this is
  * expect/actual; both actuals compile the one file in src/bankParserMain.
  */
-internal expect fun parseWithBankParsers(sender: String, body: String, receivedAt: Long): BankParseAttempt
+internal expect fun parseBankSms(sender: String?, body: String, receivedAt: Long): BankParseAttempt

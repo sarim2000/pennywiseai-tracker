@@ -27,7 +27,7 @@ sealed class BankSmsImportResult {
 /**
  * Saves one bank SMS handed over by iOS Shortcuts — the iOS twin of Android's
  * `SmsTransactionProcessor`: parse with parser-core, dedupe on the same
- * transaction hash, apply the category mapping, merchant mappings and Smart
+ * transaction hash formula, apply the category mapping, merchant mappings and Smart
  * Rules, then record the balance the SMS reports.
  *
  * Not mirrored (no shared storage for them yet): ignored accounts, blocking

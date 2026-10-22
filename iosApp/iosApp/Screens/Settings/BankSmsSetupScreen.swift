@@ -7,7 +7,7 @@ import UserNotifications
 struct BankSmsSetupScreen: View {
     @Environment(\.isAmoledActive) private var isAmoled
     @State private var testResult: String?
-    @State private var notificationsAllowed = true
+    @State private var notificationStatus: UNAuthorizationStatus = .authorized
 
     // Sender IDs as the parser-core parsers match them (canHandle), most-used Indian banks first.
     private static let senders: [(bank: String, id: String, example: String)] = [
@@ -84,7 +84,7 @@ struct BankSmsSetupScreen: View {
                 Text("Runs a made-up HDFC Bank SMS through the same steps as the automation, then removes it again.")
             }
 
-            if !notificationsAllowed {
+            if notificationStatus == .notDetermined || notificationStatus == .denied {
                 Section {
                     Button("Allow notifications") { requestNotifications() }
                 } footer: {
@@ -97,6 +97,10 @@ struct BankSmsSetupScreen: View {
         .navigationTitle("Auto-add bank SMS")
         .navigationBarTitleDisplayMode(.inline)
         .task { await refreshNotificationStatus() }
+        // Back from the Settings app, where a denied permission gets switched on.
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await refreshNotificationStatus() }
+        }
     }
 
     private func runSample() {
@@ -114,6 +118,11 @@ struct BankSmsSetupScreen: View {
     }
 
     private func requestNotifications() {
+        // iOS asks only once; after a "Don't Allow" the switch lives in the app's Settings page.
+        if notificationStatus == .denied {
+            if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
+            return
+        }
         Task {
             _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
             await refreshNotificationStatus()
@@ -122,7 +131,6 @@ struct BankSmsSetupScreen: View {
 
     @MainActor
     private func refreshNotificationStatus() async {
-        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
-        notificationsAllowed = status == .authorized || status == .provisional || status == .ephemeral
+        notificationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     }
 }

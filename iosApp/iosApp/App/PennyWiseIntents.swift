@@ -62,10 +62,15 @@ struct LogExpenseIntent: AppIntent {
 
     /// Goes through the same manual-add path as the add-transaction screen.
     static func log(amount: Double, merchant: String, category: String?) -> String {
-        let facade = PennyWiseSharedFacade.companion.shared
         let name = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
-        let amountMinor = Int64((amount * 100).rounded())
-        guard amountMinor > 0, !name.isEmpty else { return "Give an amount above zero and a merchant" }
+        // A Shortcut can pass a calculated value: reject NaN/inf/huge before Int64() traps on it.
+        let scaled = (amount * 100).rounded()
+        guard scaled.isFinite, scaled >= 1, scaled < 1e15, !name.isEmpty else {
+            return "Give an amount above zero and a merchant"
+        }
+        let amountMinor = Int64(scaled)
+        let facade = PennyWiseSharedFacade.companion.shared
+        _ = facade.initializeAndLoadHome() // seeds categories if the app has never been opened
 
         let currency = UserDefaults.standard.string(forKey: "displayCurrency") ?? "INR"
         // A spoken category is matched to an existing one; otherwise the merchant picks it, as for SMS.
@@ -83,7 +88,9 @@ struct LogExpenseIntent: AppIntent {
 
 struct ExpenseCategoryOptions: DynamicOptionsProvider {
     func results() async throws -> [String] {
-        PennyWiseSharedFacade.companion.shared.getAllCategories().filter { !$0.isIncome }.map(\.name)
+        let facade = PennyWiseSharedFacade.companion.shared
+        _ = facade.initializeAndLoadHome() // seeds categories if the app has never been opened
+        return facade.getAllCategories().filter { !$0.isIncome }.map(\.name)
     }
 }
 

@@ -63,6 +63,16 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun theSameSmsWithAndWithoutItsSenderIsADuplicate() = runTest {
+        useCase.execute("AX-HDFCBK-S", HDFC_UPI, RECEIVED_AT)
+
+        // One automation passes the sender, another doesn't (it's then guessed from the body).
+        assertEquals(BankSmsImportResult.Duplicate, useCase.execute(null, HDFC_UPI, RECEIVED_AT))
+        assertEquals(BankSmsImportResult.Duplicate, useCase.execute("HDFCBK", HDFC_UPI, RECEIVED_AT))
+        assertEquals(1, transactions.rows.size)
+    }
+
+    @Test
     fun aDeletedTransactionIsNotBroughtBack() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("AX-HDFCBK-S", HDFC_UPI, RECEIVED_AT))
         transactions.rows[0] = saved.transaction.copy(isDeleted = true)

@@ -42,6 +42,11 @@ class AiSmsValidatorTest {
         assertNull(AiSmsValidator.validate(CARD_SPEND, reading(amount = "4321"), null)) // the masked card, not an amount
         assertNull(AiSmsValidator.validate(CARD_SPEND, reading(amount = "0"), null))
         assertNull(AiSmsValidator.validate(CARD_SPEND, reading(amount = "1318.005"), null))
+        // Dates and a spaced card number are numbers in the SMS, but not money.
+        val spaced = "INR 318 spent on card XX 4321 on 22-10-26"
+        assertEquals(setOf("318"), AiSmsValidator.amountsIn(spaced))
+        assertEquals(setOf("1250.5", "10000", "75.25"), AiSmsValidator.amountsIn("Rs.1,250.50 debited. Avl Bal Rs 10,000.00. 75.25 AED"))
+        assertEquals(setOf("318"), AiSmsValidator.amountsIn("₹318 at shop, try 2 times"))
     }
 
     @Test

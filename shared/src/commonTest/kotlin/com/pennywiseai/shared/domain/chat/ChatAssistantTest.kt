@@ -1,5 +1,6 @@
 package com.pennywiseai.shared.domain.chat
 
+import com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity
 import com.pennywiseai.shared.data.model.SharedTransaction
 import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.domain.usecase.FakeAccounts
@@ -52,6 +53,19 @@ class ChatAssistantTest {
         val income = assistant.proposeAdd(50_000.0, "Acme", "Salary", "EXPENSE", "", "got my salary", "INR").action
         assertEquals("Salary", assertIs<PendingChatAction.Add>(income).draft.category)
         assertNull(assistant.proposeAdd(0.0, "X", "", "EXPENSE", "", "zero", "INR").action)
+    }
+
+    @Test
+    fun statedLastFourPicksTheAccountTheBankNameOnlyNarrows() {
+        val accounts = listOf("1234", "5678").map {
+            SharedAccountBalanceEntity(bankName = "HDFC Bank", accountLast4 = it, timestampEpochMillis = 0, balanceMinor = 0, createdAtEpochMillis = 0)
+        }
+        val draft = { account: String ->
+            ChatDrafts.fromToolArgs(10.0, "Shop", "", "EXPENSE", account, "paid 10", "INR", emptyList(), accounts)!!
+        }
+        assertEquals("5678", draft("HDFC 5678").accountLast4)
+        assertNull(draft("hdfc").accountLast4) // two HDFC accounts: ask, don't guess
+        assertEquals("No account (say which, last 4 digits)", draft("hdfc").accountLabel)
     }
 
     @Test

@@ -179,30 +179,39 @@ final class ChatViewModel: ObservableObject {
     private var contextTexts: [String] = []
     private let facade = PennyWiseSharedFacade.companion.shared
 
+    /// What happened to the last card, told to the model with the next message: the
+    /// session can't hear button taps, and "did that save?" must get the right answer.
+    private var cardOutcome: String?
+
     var isResponding: Bool { streaming != nil }
+    /// Sending, New chat and Cancel wait while a card's write is in flight.
+    var isBusy: Bool { isResponding || isConfirming }
 
     func send(_ raw: String) {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isResponding else { return }
-        pending = nil // a new message supersedes a card still waiting
+        guard !text.isEmpty, !isBusy else { return }
+        // A new message supersedes a card still waiting; the model hears it was left.
+        if pending != nil { cancel() }
         error = nil
         streaming = "" // busy from the tap on: a second tap can't start a second turn
 
         Task {
             do {
                 let session = try await sessionForTurn()
+                let prompt = cardOutcome.map { "(\($0))\n\(text)" } ?? text
                 let contextSize = SystemLanguageModel.default.contextSize
-                guard ChatPrompt.shared.fitsBudget(context: contextTexts, nextMessage: text, contextSize: Int32(clamping: contextSize)) else {
+                guard ChatPrompt.shared.fitsBudget(context: contextTexts, nextMessage: prompt, contextSize: Int32(clamping: contextSize)) else {
                     streaming = nil
                     error = Self.chatFull
                     return
                 }
+                cardOutcome = nil
                 lines.append(ChatLine(text: text, isUser: true))
                 context.startTurn(text)
-                for try await snapshot in session.streamResponse(to: text) {
+                for try await snapshot in session.streamResponse(to: prompt) {
                     streaming = snapshot.content
                 }
-                finishTurn(userText: text)
+                finishTurn(prompt: prompt)
             } catch {
                 streaming = nil
                 self.error = Self.message(for: error)
@@ -210,7 +219,7 @@ final class ChatViewModel: ObservableObject {
         }
     }
 
-    private func finishTurn(userText: String) {
+    private func finishTurn(prompt: String) {
         let (replies, action) = context.endTurn()
         var reply = (streaming ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if let note = ChatAssistant.companion.nothingChangedNote(reply: reply, proposedSomething: action != nil) {
@@ -219,7 +228,7 @@ final class ChatViewModel: ObservableObject {
         streaming = nil
         if !reply.isEmpty { lines.append(ChatLine(text: reply, isUser: false)) }
         pending = action
-        contextTexts += [userText, reply] + replies
+        contextTexts += [prompt, reply] + replies
     }
 
     /// A new chat gets fresh instructions: today's date, this month, the user's lists (#959).
@@ -244,7 +253,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     func confirm() {
-        guard let action = pending, !isConfirming else { return }
+        guard let action = pending, !isBusy else { return }
         isConfirming = true
         let facade = self.facade
         Task {
@@ -252,7 +261,9 @@ final class ChatViewModel: ObservableObject {
             do {
                 let failure = try await Task.detached { try facade.chatConfirm(action: action) }.value
                 pending = nil
-                lines.append(ChatLine(text: failure.map { "Nothing changed: \($0)." } ?? Self.done(action), isUser: false))
+                let line = failure.map { "Nothing changed: \($0)." } ?? Self.done(action)
+                lines.append(ChatLine(text: line, isUser: false))
+                cardOutcome = "The user tapped the card's button. \(line)"
             } catch {
                 self.error = "Couldn't apply that: \(error.localizedDescription)"
             }
@@ -260,18 +271,20 @@ final class ChatViewModel: ObservableObject {
     }
 
     func cancel() {
-        guard pending != nil else { return }
+        guard pending != nil, !isConfirming else { return }
         pending = nil
         lines.append(ChatLine(text: "Cancelled. Nothing changed.", isUser: false))
+        cardOutcome = "The user cancelled the card. Nothing was changed."
     }
 
     func clear() {
-        guard !isResponding else { return }
+        guard !isBusy else { return }
         session = nil
         lines = []
         pending = nil
         error = nil
         contextTexts = []
+        cardOutcome = nil
     }
 
     /// "Added ₹120 at Starbucks (Food & Dining)." Each amount in its own currency.

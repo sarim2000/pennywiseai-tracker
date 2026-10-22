@@ -69,11 +69,13 @@ object AiSmsValidator {
         return if (fraction.isEmpty()) whole else "$whole.$fraction"
     }
 
-    /** Every amount printed in [body], canonical; a masked account ("XX1234") isn't one. */
+    /**
+     * Every amount [body] prints next to a currency ("Rs.1,250.50", "₹318", "INR 318",
+     * "75.25 AED"), canonical. A bare number (a date, a spaced "XX 4321") isn't money.
+     */
     internal fun amountsIn(body: String): Set<String> =
-        NUMBER.findAll(body)
-            .filter { it.groupValues[1].isEmpty() }
-            .mapNotNull { canonicalAmount(it.groupValues[2].replace(",", "")) }
+        MONEY.findAll(body)
+            .mapNotNull { m -> canonicalAmount((m.groups[1] ?: m.groups[2])!!.value.replace(",", "")) }
             .toSet()
 
     /** Same SMS, same hash: a second automation run is a duplicate, as for parsed SMS. */
@@ -86,7 +88,6 @@ object AiSmsValidator {
     }
 
     private val AMOUNT = Regex("""(\d+)(?:\.(\d{1,2}))?""")
-    private val NUMBER = Regex("""([Xx*]?)(\d[\d,]*(?:\.\d+)?)""")
     // An OTP or a payment request quotes an amount that hasn't moved; the debit SMS follows.
     private val NOT_A_SPEND = Regex("""\b(OTP|one[- ]time password|verification code)\b""", RegexOption.IGNORE_CASE)
     private val TYPES = mapOf("expense" to "EXPENSE", "income" to "INCOME", "credit" to "CREDIT", "transfer" to "TRANSFER")
@@ -98,4 +99,11 @@ object AiSmsValidator {
         "PLN", "CZK", "HUF", "RUB", "TRY", "BRL", "MXN", "ZAR", "KES", "NGN", "EGP", "KWD", "BHD", "OMR",
         "QAR", "ILS", "JOD", "ARS", "CLP", "UYU"
     )
+
+    // A number with a currency right before it (group 1) or a code right after it (group 2).
+    private val MONEY = SUPPORTED_CURRENCIES.joinToString("|").let { codes ->
+        val number = """(\d[\d,]*(?:\.\d+)?)"""
+        // Codes stay upper case: "try 2 times" must not read as TRY 2.
+        Regex("""(?:\b(?:[Rr][Ss]|$codes)\.?|[₹$€£])\s*$number|$number\s*(?:$codes)\b""")
+    }
 }

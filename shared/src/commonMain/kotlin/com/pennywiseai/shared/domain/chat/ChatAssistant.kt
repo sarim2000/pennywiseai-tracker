@@ -299,11 +299,14 @@ internal object ChatDrafts {
         // Attach an account only when the words pick exactly one; "hdfc" with two HDFC
         // accounts, or a shared last-4, stays unlinked rather than guessing.
         val text = accountArg.trim().lowercase()
+        // Stated last-4 digits decide first; the bank name only narrows them, or stands alone.
+        val namesBank = { acc: SharedAccountBalanceEntity ->
+            acc.bankName.lowercase().split(" ").first().let { bank -> bank.length >= 3 && text.contains(bank) }
+        }
         val matches = if (text.isEmpty() || text in setOf("cash", "null", "none")) emptyList() else {
-            accounts.filter { acc ->
-                (acc.accountLast4.isNotEmpty() && text.contains(acc.accountLast4)) ||
-                    acc.bankName.lowercase().split(" ").first().let { bank -> bank.length >= 3 && text.contains(bank) }
-            }.distinctBy { it.bankName to it.accountLast4 }
+            val byLast4 = accounts.filter { it.accountLast4.isNotEmpty() && text.contains(it.accountLast4) }
+            (if (byLast4.isEmpty()) accounts.filter(namesBank) else byLast4.filter(namesBank).ifEmpty { byLast4 })
+                .distinctBy { it.bankName to it.accountLast4 }
         }
         val account = matches.singleOrNull()
         return ChatDraft(

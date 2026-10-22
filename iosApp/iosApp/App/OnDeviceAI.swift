@@ -102,36 +102,73 @@ enum AiSmsReader {
     }
 }
 
+
 /// Bank texts the model couldn't read when they arrived (rate-limited in the
-/// background, model not ready): read on the next app open. A local queue in
-/// UserDefaults, never in a backup; each entry leaves it once tried.
+/// background): read on the next app open. A local file excluded from device
+/// backups; an entry leaves it only once its attempt is done.
 enum PendingAiSms {
-    private static let key = "pendingAiSms"
+    struct Entry: Codable, Equatable {
+        var id = UUID()
+        let sender: String?
+        let body: String
+        let receivedAt: Int64
+    }
+
     private static let lock = NSLock()
+    private static var draining = false
+
+    static var fileURL: URL {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return dir.appendingPathComponent("pending-ai-sms.json")
+    }
 
     static func enqueue(sender: String?, body: String, receivedAtEpochMillis: Int64) {
-        lock.lock(); defer { lock.unlock() }
-        var queue = UserDefaults.standard.array(forKey: key) as? [[String: Any]] ?? []
-        guard queue.count < 50 else { return }
-        queue.append(["sender": sender ?? "", "body": body, "at": receivedAtEpochMillis])
-        UserDefaults.standard.set(queue, forKey: key)
+        lock.withLock {
+            var queue = load()
+            guard queue.count < 50 else { return }
+            queue.append(Entry(sender: sender, body: body, receivedAt: receivedAtEpochMillis))
+            save(queue)
+        }
     }
 
-    private static func takeAll() -> [[String: Any]] {
-        lock.lock(); defer { lock.unlock() }
-        let queue = UserDefaults.standard.array(forKey: key) as? [[String: Any]] ?? []
-        UserDefaults.standard.removeObject(forKey: key)
-        return queue
-    }
+    static var count: Int { lock.withLock { load().count } }
 
     /// Runs on app open. A message the model still can't read is dropped, not retried forever.
     static func processAll() async {
         guard OnDeviceAI.isAvailable else { return }
-        for item in takeAll() {
-            guard let body = item["body"] as? String, let at = item["at"] as? Int64 else { continue }
-            let sender = (item["sender"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-            let outcome = await BankSmsImport.run(sender: sender, body: body, receivedAt: at, allowQueue: false)
+        // One drain at a time (app open fires both .task and the scene-phase change).
+        let started = lock.withLock { () -> Bool in
+            if draining { return false }
+            draining = true
+            return true
+        }
+        guard started else { return }
+        defer { lock.withLock { draining = false } }
+        while let entry = lock.withLock({ load().first }) {
+            let outcome = await BankSmsImport.run(sender: entry.sender, body: entry.body, receivedAt: entry.receivedAt, allowQueue: false)
+            lock.withLock { save(load().filter { $0.id != entry.id }) }
             if let alert = outcome.alert { await BankSmsImport.notify(alert) }
         }
+    }
+
+    // Callers hold the lock.
+    private static func load() -> [Entry] {
+        guard let data = try? Data(contentsOf: fileURL) else { return [] }
+        return (try? JSONDecoder().decode([Entry].self, from: data)) ?? []
+    }
+
+    private static func save(_ queue: [Entry]) {
+        var url = fileURL
+        if queue.isEmpty {
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        guard let data = try? JSONEncoder().encode(queue) else { return }
+        // Readable after the first unlock: a Shortcuts run on a locked phone still writes it.
+        try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
     }
 }

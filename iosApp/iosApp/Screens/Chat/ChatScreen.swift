@@ -64,7 +64,7 @@ struct ChatScreen: View {
                 } label: {
                     Label("New chat", systemImage: "square.and.pencil")
                 }
-                .disabled(viewModel.isResponding || (viewModel.lines.isEmpty && viewModel.error == nil))
+                .disabled(viewModel.isBusy || (viewModel.lines.isEmpty && viewModel.error == nil))
             }
         }
     }
@@ -140,7 +140,7 @@ struct ChatScreen: View {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32))
             }
-            .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isResponding)
+            .disabled(input.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isBusy)
             .accessibilityLabel("Send")
         }
         .padding(.horizontal, AppSpacing.md)
@@ -149,6 +149,7 @@ struct ChatScreen: View {
     }
 
     private func send(_ text: String) {
+        guard !viewModel.isBusy else { return } // keep the typed text until it can go
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-PennyAIDemo") {
             demoSend(text)

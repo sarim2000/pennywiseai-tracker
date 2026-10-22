@@ -54,7 +54,7 @@ struct BankSmsSetupScreen: View {
             } header: {
                 Text("Set it up")
             } footer: {
-                Text("OTPs and offers that contain the phrase also run the automation. PennyWise skips them with \u{201C}No transaction found\u{201D}; that's expected.")
+                Text("OTPs and offers that contain the phrase also run the automation. PennyWise skips them with \u{201C}No transaction found\u{201D}; that's expected. Shortcuts can't check who sent a text, so turn on notifications: each saved SMS shows an alert, and you can delete one you don't recognise.")
             }
 
             Section {

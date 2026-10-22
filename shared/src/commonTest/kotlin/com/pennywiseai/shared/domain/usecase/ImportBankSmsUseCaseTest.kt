@@ -156,6 +156,18 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun twoBanksAutomationsMatchingOneSmsSaveItOnce() = runTest {
+        // "HDFC Bank" and "SBI" are both Message Contains phrases; each automation passes its own sender ID.
+        val credit = "INR 2,000.00 credited to HDFC Bank A/c XX1234 from SBI. Avl Bal INR 8,000.00"
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("SBI", credit, RECEIVED_AT)).transaction
+        assertEquals(BankSmsImportResult.Duplicate, useCase.execute("HDFCBK", credit, RECEIVED_AT))
+
+        assertEquals("HDFC Bank", saved.bankName)
+        assertEquals(listOf("HDFC Bank"), accounts.balances.map { it.bankName })
+    }
+
+    @Test
     fun aPlainHdfcDebitWithoutSenderIsHdfc() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, HDFC_UPI, RECEIVED_AT)).transaction
 

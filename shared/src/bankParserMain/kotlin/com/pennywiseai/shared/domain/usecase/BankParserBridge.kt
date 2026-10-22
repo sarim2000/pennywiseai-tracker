@@ -10,12 +10,15 @@ import java.math.RoundingMode
 private val BODY_WORD = Regex("[A-Za-z][A-Za-z0-9]{2,}")
 
 internal actual fun parseBankSms(sender: String?, body: String, receivedAt: Long): BankParseAttempt {
+    // On iOS the "sender" is a constant typed into the Shortcut, not who texted: a Message
+    // Contains trigger fires for any text with the phrase, and one SMS can match two banks'
+    // automations ("credited to HDFC Bank A/c … from SBI"). So a bank the body itself marks
+    // or names wins over it, keeping every automation on the same bank and the same hash;
+    // the given sender decides only when the body doesn't name one.
+    val (strong, weak) = guessSenders(body)
     val given = sender?.trim().orEmpty()
-    if (given.isNotEmpty()) {
-        val parsers = BankParserFactory.getParsers(given)
-        if (parsers.isNotEmpty()) return attempt(parsers.map { it to given }, body, receivedAt)
-    }
-    return attempt(guessSenders(body), body, receivedAt)
+    val fromSender = if (given.isEmpty()) emptyList() else BankParserFactory.getParsers(given).map { it to given }
+    return attempt(strong + fromSender + weak, body, receivedAt)
 }
 
 /**
@@ -24,12 +27,13 @@ internal actual fun parseBankSms(sender: String?, body: String, receivedAt: Long
  *  1. a header or sign-off marker: "HSBC: Dear …", "BOI - Rs …", "… -SBI";
  *  2. a bank named in full, the one named last first ("… -Federal Bank");
  *  3. single words, scanned from the end, where Indian banks sign off.
+ * 1 and 2 are strong (they outrank a given sender); 3 is the weak fallback.
  * A word near the start is usually the payee ("to INDIAN OIL CORP"), so it comes last.
  * Words like "to"/"from" can't tell the user's bank from the other side
  * ("credited to the HDFC A/c of …" vs "credited to HDFC Bank A/c … from SBI"),
  * so they're not used; the setup guide asks for the Sender to avoid guessing.
  */
-private fun guessSenders(body: String): List<Pair<BankParser, String>> {
+private fun guessSenders(body: String): Pair<List<Pair<BankParser, String>>, List<Pair<BankParser, String>>> {
     val markers = (HEADER.find(body)?.groupValues?.get(1)?.let(::listOf).orEmpty() +
         SIGN_OFF.findAll(body.takeLast(40)).map { it.groupValues[1] }.toList().asReversed())
         .map { it.uppercase() }
@@ -44,7 +48,7 @@ private fun guessSenders(body: String): List<Pair<BankParser, String>> {
         .map { (parser, _) -> parser to parser.getBankName() }
     val words = BODY_WORD.findAll(body).map { it.value.uppercase() }.toList().asReversed().distinct()
         .flatMap { word -> BankParserFactory.getParsers(word).map { it to word } }
-    return markers + named + words
+    return (markers + named) to words
 }
 
 private val HEADER = Regex("""^\s*([A-Za-z][A-Za-z0-9]{1,14})\s*(?::|-\s)""")

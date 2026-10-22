@@ -163,8 +163,22 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          * dropped once the stack is empty. notify() and cancel() land
          * asynchronously, so the caller's own change is passed in rather than
          * read back from the shade.
+         *
+         * Two at once (a bank's two texts) each read a shade that showed
+         * neither yet, so each counted one and no header went up; one recount
+         * after the shade has caught up settles it.
          */
         fun updateAlertGroup(
+            context: Context,
+            posted: Pair<Int, android.app.Notification>? = null,
+            removedId: Int? = null
+        ) {
+            syncAlertGroup(context, posted, removedId)
+            val app = context.applicationContext
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ syncAlertGroup(app) }, GROUP_SETTLE_MS)
+        }
+
+        private fun syncAlertGroup(
             context: Context,
             posted: Pair<Int, android.app.Notification>? = null,
             removedId: Int? = null
@@ -282,6 +296,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         // Transaction alerts use the transaction id (never negative); the recap is -2.
         private const val GROUP_SUMMARY_ID = -3
         private val GROUP_LOCK = Any()
+        private const val GROUP_SETTLE_MS = 1_000L
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

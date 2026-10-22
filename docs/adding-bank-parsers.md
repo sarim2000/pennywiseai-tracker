@@ -50,6 +50,13 @@ Use `ParsedTransaction` from parser-core:
 - `com.pennywiseai.parser.core.ParsedTransaction`
 - `java.math.BigDecimal` for amounts
 
+The same sources also compile for iOS, where `parser-core/src/iosMain` stands
+in for the JDK: `BigDecimal` (string constructor, `toBigDecimal[OrNull]`,
+`setScale`, `+ - *`, comparisons), `RoundingMode`, `Normalizer` and
+`Currency.getInstance`. Any other `java.*` API (or a new `BigDecimal` method)
+breaks the iOS build, which CI doesn't run — add it to the stand-in, or check
+with `./gradlew :parser-core:compileKotlinIosSimulatorArm64` on a Mac.
+
 ## Using a parser result in the app
 Convert with `com.pennywiseai.tracker.data.mapper.toEntity()`, which maps
 `ParsedTransaction` → `TransactionEntity` and handles cross-module type

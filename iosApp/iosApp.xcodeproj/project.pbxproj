@@ -76,6 +76,8 @@
 		SS0004002D39B001007A8A11 /* RulesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0001002D39B001007A8A11 /* RulesScreen.swift */; };
 		SS0005002D39B001007A8A11 /* AddEditRuleScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */; };
 		SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0003002D39B001007A8A11 /* RulesViewModel.swift */; };
+		5E5A00012E9A0001007A8A11 /* PennyWiseIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5A00022E9A0001007A8A11 /* PennyWiseIntents.swift */; };
+		5E5A00032E9A0001007A8A11 /* BankSmsSetupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5A00042E9A0001007A8A11 /* BankSmsSetupScreen.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -150,6 +152,8 @@
 		SS0001002D39B001007A8A11 /* RulesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesScreen.swift; sourceTree = "<group>"; };
 		SS0002002D39B001007A8A11 /* AddEditRuleScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEditRuleScreen.swift; sourceTree = "<group>"; };
 		SS0003002D39B001007A8A11 /* RulesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesViewModel.swift; sourceTree = "<group>"; };
+		5E5A00022E9A0001007A8A11 /* PennyWiseIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PennyWiseIntents.swift; sourceTree = "<group>"; };
+		5E5A00042E9A0001007A8A11 /* BankSmsSetupScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankSmsSetupScreen.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -209,6 +213,7 @@
 			isa = PBXGroup;
 			children = (
 				BB0001002D39B001007A8A11 /* MainTabView.swift */,
+				5E5A00022E9A0001007A8A11 /* PennyWiseIntents.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -285,6 +290,7 @@
 			children = (
 				BB0005002D39B001007A8A11 /* SettingsPlaceholderScreen.swift */,
 				FF0001002D39B001007A8A11 /* SettingsScreen.swift */,
+				5E5A00042E9A0001007A8A11 /* BankSmsSetupScreen.swift */,
 				FF0002002D39B001007A8A11 /* CategoriesScreen.swift */,
 				FF0003002D39B001007A8A11 /* AddEditCategoryScreen.swift */,
 				JJ0003002D39B001007A8A11 /* CurrencyPickerScreen.swift */,
@@ -496,6 +502,8 @@
 				EE0005002D39B001007A8A11 /* AppTypography.swift in Sources */,
 				EE0006002D39B001007A8A11 /* AppSpacing.swift in Sources */,
 				FF0004002D39B001007A8A11 /* SettingsScreen.swift in Sources */,
+				5E5A00032E9A0001007A8A11 /* BankSmsSetupScreen.swift in Sources */,
+				5E5A00012E9A0001007A8A11 /* PennyWiseIntents.swift in Sources */,
 				FF0005002D39B001007A8A11 /* CategoriesScreen.swift in Sources */,
 				FF0006002D39B001007A8A11 /* AddEditCategoryScreen.swift in Sources */,
 				FF0008002D39B001007A8A11 /* CategoriesViewModel.swift in Sources */,

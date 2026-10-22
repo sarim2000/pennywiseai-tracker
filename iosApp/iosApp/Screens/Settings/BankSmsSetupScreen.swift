@@ -74,7 +74,7 @@ struct BankSmsSetupScreen: View {
             }
 
             Section {
-                Button("Test with a sample message") { runSample() }
+                Button("Test with a sample message") { Task { await runSample() } }
                 if let testResult {
                     Text(testResult)
                         .font(AppTypography.body)
@@ -123,12 +123,12 @@ struct BankSmsSetupScreen: View {
         }
     }
 
-    private func runSample() {
+    @MainActor private func runSample() async {
         // A fresh made-up reference each time, so a second test isn't a duplicate.
         let ref = (0..<12).map { _ in String(Int.random(in: 0...9)) }.joined()
         let date = Date().formatted(.dateTime.day(.twoDigits).month(.twoDigits).year(.twoDigits))
         let sample = "Sent Rs.450.00 From HDFC Bank A/C *0000 To GroceryMart On \(date) Ref \(ref) Not You? Call 18000000000/SMS BLOCK UPI to 7000000000"
-        let outcome = BankSmsImport.run(sender: "AX-HDFCBK-S", body: sample)
+        let outcome = await BankSmsImport.run(sender: "AX-HDFCBK-S", body: sample)
         if let id = outcome.savedTransactionId {
             let removed = PennyWiseSharedFacade.companion.shared.deleteTransaction(transactionId: id)
             testResult = removed

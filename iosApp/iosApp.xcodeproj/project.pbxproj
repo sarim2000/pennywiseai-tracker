@@ -78,6 +78,10 @@
 		SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = SS0003002D39B001007A8A11 /* RulesViewModel.swift */; };
 		5E5A00012E9A0001007A8A11 /* PennyWiseIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5A00022E9A0001007A8A11 /* PennyWiseIntents.swift */; };
 		5E5A00032E9A0001007A8A11 /* BankSmsSetupScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5A00042E9A0001007A8A11 /* BankSmsSetupScreen.swift */; };
+		5E5B00012E9A0001007A8A11 /* OnDeviceAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00022E9A0001007A8A11 /* OnDeviceAI.swift */; };
+		5E5B00032E9A0001007A8A11 /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00042E9A0001007A8A11 /* ChatScreen.swift */; };
+		5E5B00052E9A0001007A8A11 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00062E9A0001007A8A11 /* ChatViewModel.swift */; };
+		5E5B00072E9A0001007A8A11 /* AiSmsReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00082E9A0001007A8A11 /* AiSmsReaderTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -154,6 +158,11 @@
 		SS0003002D39B001007A8A11 /* RulesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesViewModel.swift; sourceTree = "<group>"; };
 		5E5A00022E9A0001007A8A11 /* PennyWiseIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PennyWiseIntents.swift; sourceTree = "<group>"; };
 		5E5A00042E9A0001007A8A11 /* BankSmsSetupScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankSmsSetupScreen.swift; sourceTree = "<group>"; };
+		5E5B00022E9A0001007A8A11 /* OnDeviceAI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnDeviceAI.swift; sourceTree = "<group>"; };
+		5E5B00042E9A0001007A8A11 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
+		5E5B00062E9A0001007A8A11 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		5E5B00082E9A0001007A8A11 /* AiSmsReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiSmsReaderTests.swift; sourceTree = "<group>"; };
+		5E5B00102E9A0001007A8A11 /* iosAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -172,6 +181,7 @@
 			isa = PBXGroup;
 			children = (
 				D10B8F7B2D39B001007A8A11 /* iosApp */,
+				5E5B000A2E9A0001007A8A11 /* iosAppTests */,
 				D20B8F7B2D39B001007A8A11 /* Frameworks */,
 				D30B8F7B2D39B001007A8A11 /* Products */,
 			);
@@ -205,6 +215,7 @@
 			isa = PBXGroup;
 			children = (
 				B00B8F7B2D39B001007A8A11 /* iosApp.app */,
+				5E5B00102E9A0001007A8A11 /* iosAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -214,6 +225,7 @@
 			children = (
 				BB0001002D39B001007A8A11 /* MainTabView.swift */,
 				5E5A00022E9A0001007A8A11 /* PennyWiseIntents.swift */,
+				5E5B00022E9A0001007A8A11 /* OnDeviceAI.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -229,6 +241,7 @@
 				DD0006002D39B001007A8A11 /* Settings */,
 				RR0007002D39B001007A8A11 /* Subscriptions */,
 				QQ0011002D39B001007A8A11 /* Onboarding */,
+				5E5B00092E9A0001007A8A11 /* Chat */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -383,6 +396,23 @@
 			path = Subscriptions;
 			sourceTree = "<group>";
 		};
+		5E5B00092E9A0001007A8A11 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				5E5B00042E9A0001007A8A11 /* ChatScreen.swift */,
+				5E5B00062E9A0001007A8A11 /* ChatViewModel.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		5E5B000A2E9A0001007A8A11 /* iosAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				5E5B00082E9A0001007A8A11 /* AiSmsReaderTests.swift */,
+			);
+			path = iosAppTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -404,7 +434,41 @@
 			productReference = B00B8F7B2D39B001007A8A11 /* iosApp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		5E5B000C2E9A0001007A8A11 /* iosAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5E5B000D2E9A0001007A8A11 /* Build configuration list for PBXNativeTarget "iosAppTests" */;
+			buildPhases = (
+				5E5B000B2E9A0001007A8A11 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5E5B000E2E9A0001007A8A11 /* PBXTargetDependency */,
+			);
+			name = iosAppTests;
+			productName = iosAppTests;
+			productReference = 5E5B00102E9A0001007A8A11 /* iosAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		5E5B000F2E9A0001007A8A11 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00B8F7B2D39B001007A8A11 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E00B8F7B2D39B001007A8A11;
+			remoteInfo = iosApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		5E5B000E2E9A0001007A8A11 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E00B8F7B2D39B001007A8A11 /* iosApp */;
+			targetProxy = 5E5B000F2E9A0001007A8A11 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		F00B8F7B2D39B001007A8A11 /* Project object */ = {
@@ -433,6 +497,7 @@
 			projectRoot = "";
 			targets = (
 				E00B8F7B2D39B001007A8A11 /* iosApp */,
+				5E5B000C2E9A0001007A8A11 /* iosAppTests */,
 			);
 		};
 /* End PBXProject section */
@@ -504,6 +569,9 @@
 				FF0004002D39B001007A8A11 /* SettingsScreen.swift in Sources */,
 				5E5A00032E9A0001007A8A11 /* BankSmsSetupScreen.swift in Sources */,
 				5E5A00012E9A0001007A8A11 /* PennyWiseIntents.swift in Sources */,
+				5E5B00012E9A0001007A8A11 /* OnDeviceAI.swift in Sources */,
+				5E5B00032E9A0001007A8A11 /* ChatScreen.swift in Sources */,
+				5E5B00052E9A0001007A8A11 /* ChatViewModel.swift in Sources */,
 				FF0005002D39B001007A8A11 /* CategoriesScreen.swift in Sources */,
 				FF0006002D39B001007A8A11 /* AddEditCategoryScreen.swift in Sources */,
 				FF0008002D39B001007A8A11 /* CategoriesViewModel.swift in Sources */,
@@ -543,6 +611,14 @@
 				SS0006002D39B001007A8A11 /* RulesViewModel.swift in Sources */,
 				VV0001002D39B001007A8A11 /* TransactionTotalsCard.swift in Sources */,
 				SK0001002D39B001007A8A11 /* TransactionRowSkeleton.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E5B000B2E9A0001007A8A11 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E5B00072E9A0001007A8A11 /* AiSmsReaderTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -695,6 +771,46 @@
 			};
 			name = Release;
 		};
+		5E5B00112E9A0001007A8A11 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F9FY44V4RR;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pennywiseai.iosAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iosApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iosApp";
+			};
+			name = Debug;
+		};
+		5E5B00122E9A0001007A8A11 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = F9FY44V4RR;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)",
+				);
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pennywiseai.iosAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/iosApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/iosApp";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -712,6 +828,15 @@
 			buildConfigurations = (
 				I30B8F7B2D39B001007A8A11 /* Debug */,
 				I40B8F7B2D39B001007A8A11 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5E5B000D2E9A0001007A8A11 /* Build configuration list for PBXNativeTarget "iosAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5E5B00112E9A0001007A8A11 /* Debug */,
+				5E5B00122E9A0001007A8A11 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

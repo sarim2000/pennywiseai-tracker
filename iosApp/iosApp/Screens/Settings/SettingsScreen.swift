@@ -9,6 +9,8 @@ struct SettingsScreen: View {
     @State private var showingStatementPicker = false
     @State private var statementImportResult: String? = nil
     @Environment(\.isAmoledActive) private var isAmoled
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var aiStatus = OnDeviceAI.status
 
     var body: some View {
         List {
@@ -48,6 +50,33 @@ struct SettingsScreen: View {
                     } icon: {
                         Image(systemName: "coloncurrencysign.circle.fill")
                             .foregroundStyle(.green)
+                    }
+                }
+            }
+
+            // MARK: - PennyWise AI
+
+            // Only when the phone can run it but Apple Intelligence is off or not ready;
+            // an ineligible phone never hears about it.
+            if case .needsSetup(let explanation) = aiStatus {
+                Section("PennyWise AI") {
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                                Text("Turn on Apple Intelligence")
+                                    .font(AppTypography.body)
+                                Text(explanation)
+                                    .font(AppTypography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "sparkles")
+                                .foregroundStyle(.purple)
+                        }
                     }
                 }
             }
@@ -314,6 +343,9 @@ struct SettingsScreen: View {
         .scrollContentBackground(isAmoled ? .hidden : .visible)
         .background(isAmoled ? AppColors.amoledBackground : Color.clear)
         .navigationTitle("Settings")
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { aiStatus = OnDeviceAI.status }
+        }
         .sheet(isPresented: $showingDocumentPicker) {
             DocumentPicker { url in
                 exportImportManager.importBackup(from: url)

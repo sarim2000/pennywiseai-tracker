@@ -73,6 +73,16 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun aParsersOwnHashStillDedupesItsTwins() = runTest {
+        // M-Pesa Tanzania sends one credit in English and in Swahili; its parser hashes both on the reference.
+        val english = "ABC1D2EF3G confirmed. You have received a payment of Tsh4,000.00 from 000000 - TIPS-SELCOM MF on 19/6/26 at 10:38 pm. New M-Pesa balance is Tsh4,000.36"
+        val swahili = "ABC1D2EF3G imethibitishwa. Umepokea Tshs 4,000.00 kutoka SELCOM MF, Akaunti ****0000 - PERSON ONE tarehe 19/06/2026 saa 22:38:24."
+
+        assertIs<BankSmsImportResult.Saved>(useCase.execute("M-Pesa", english, RECEIVED_AT))
+        assertEquals(BankSmsImportResult.Duplicate, useCase.execute("M-Pesa", swahili, RECEIVED_AT))
+    }
+
+    @Test
     fun aDeletedTransactionIsNotBroughtBack() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("AX-HDFCBK-S", HDFC_UPI, RECEIVED_AT))
         transactions.rows[0] = saved.transaction.copy(isDeleted = true)

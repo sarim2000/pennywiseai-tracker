@@ -8,8 +8,15 @@ import java.math.RoundingMode
 internal actual fun parseWithBankParsers(sender: String, body: String, receivedAt: Long): BankParseAttempt {
     val parsers = BankParserFactory.getParsers(sender)
     if (parsers.isEmpty()) return BankParseAttempt.NoParser
-    val parsed = parsers.firstNotNullOfOrNull { it.parse(body, sender, receivedAt) }
+    val (parser, parsed) = parsers.firstNotNullOfOrNull { p -> p.parse(body, sender, receivedAt)?.let { p to it } }
         ?: return BankParseAttempt.NoTransaction(parsers.first().getBankName())
+    // A Shortcut may pass "AX-HDFCBK-S", or nothing (the sender is then guessed from the body);
+    // both must dedupe as one SMS, so the hash is taken as if the bank name were the sender.
+    // A parser's own hash is kept (M-Pesa Tanzania's spans its English and Swahili copies),
+    // re-derived the same way since some mix in the sender (JK Bank).
+    val stableHash = parsed.transactionHash?.takeIf { it.isNotBlank() }
+        ?.let { parser.parse(body, parsed.bankName, receivedAt)?.transactionHash?.takeIf { h -> h.isNotBlank() } }
+        ?: parsed.copy(sender = parsed.bankName).generateTransactionId()
     return BankParseAttempt.Parsed(
         ParsedBankSms(
             amount = parsed.amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
@@ -19,11 +26,7 @@ internal actual fun parseWithBankParsers(sender: String, body: String, receivedA
             accountLast4 = parsed.accountLast4,
             balance = parsed.balance?.setScale(2, RoundingMode.HALF_UP)?.toPlainString(),
             bankName = parsed.bankName,
-            // Android's hash formula, keyed on the bank instead of the raw sender: a Shortcut may
-            // pass "AX-HDFCBK-S", or nothing (then the sender is guessed from the body), and both
-            // must dedupe as the same SMS. A parser's own hash is skipped for the same reason
-            // (JK Bank's mixes in the sender); the formula still catches the identical SMS.
-            transactionHash = parsed.copy(sender = parsed.bankName).generateTransactionId(),
+            transactionHash = stableHash,
             isFromCard = parsed.isFromCard,
             currency = parsed.currency,
             accountCurrency = parsed.accountCurrency,

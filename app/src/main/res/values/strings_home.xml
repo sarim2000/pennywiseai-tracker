@@ -335,6 +335,12 @@
         <item quantity="other">%d need a category</item>
     </plurals>
     <string name="notif_daily_action_sort">Sort it</string>
+    <string name="notif_daily_action_cash">+ Cash</string>
+    <!-- Header over a stack of transaction alerts -->
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d new transaction</item>
+        <item quantity="other">%d new transactions</item>
+    </plurals>
 
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>

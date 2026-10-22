@@ -361,6 +361,15 @@
         <item quantity="other">%d بلا تصنيف</item>
     </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
+    <string name="notif_daily_action_cash">+ نقداً</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="zero">لا عمليات جديدة</item>
+        <item quantity="one">%d عملية جديدة</item>
+        <item quantity="two">عمليتان جديدتان</item>
+        <item quantity="few">%d عمليات جديدة</item>
+        <item quantity="many">%d عملية جديدة</item>
+        <item quantity="other">%d عملية جديدة</item>
+    </plurals>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

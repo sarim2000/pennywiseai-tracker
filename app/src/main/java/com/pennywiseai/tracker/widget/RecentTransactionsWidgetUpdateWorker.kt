@@ -212,8 +212,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
 
                     RecentTransactionItem(
                         title = title,
-                        // RLM: an English category still reads right to left in an Arabic app.
-                        subtitle = if (ctx.isRtlLayout) "\u200F$meta" else meta,
+                        // WidgetLabel sets the line's direction, so an English category still reads right to left.
+                        subtitle = meta,
                         amount = amount,
                         currency = itemCurrency,
                         transactionType = tx.transactionType,

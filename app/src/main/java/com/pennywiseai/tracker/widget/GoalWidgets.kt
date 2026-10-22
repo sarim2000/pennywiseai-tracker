@@ -211,7 +211,7 @@ class GoalWidget : GlanceAppWidget() {
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
             )
             Text(
-                text = item.shortLine,
+                text = inAppDirection(item.shortLine),
                 maxLines = 1,
                 style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.tone), fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
             )

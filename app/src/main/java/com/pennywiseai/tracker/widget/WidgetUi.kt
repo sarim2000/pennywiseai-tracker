@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.glance.ColorFilter
@@ -52,6 +51,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
@@ -134,6 +134,13 @@ fun amountsHidden(): Boolean = LocalAmountsHidden.current
 private val LocalMirrored = staticCompositionLocalOf { false }
 
 /**
+ * Bumped by the app when its language changes. A widget's composition lives
+ * on between updates, and an update with unchanged data doesn't recompose
+ * its root, so without this it kept drawing the old language.
+ */
+val WidgetLanguageChanges = MutableStateFlow(0)
+
+/**
  * Every widget's root: theme, the app's language, and the eye.
  *
  * Glance's views take their direction from the launcher's language, not the
@@ -147,13 +154,14 @@ private val LocalMirrored = staticCompositionLocalOf { false }
  */
 @Composable
 fun WidgetRoot(privacy: WidgetPrivacy, content: @Composable () -> Unit) {
-    val base = LocalContext.current
-    val context = remember(base) { base.inAppLanguage() }
+    // Read so a session still alive when the language changes recomposes in the new one.
+    WidgetLanguageChanges.collectAsState().value
+    val context = LocalContext.current.inAppLanguage()
     val hidden by privacy.hidden.collectAsState(privacy.initial)
     CompositionLocalProvider(
         LocalContext provides context,
         LocalAmountsHidden provides hidden,
-        LocalMirrored provides remember(context) { context.readsAgainstDevice() }
+        LocalMirrored provides context.readsAgainstDevice()
     ) {
         GlanceTheme(
             colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else PennyWiseWidgetTheme.colors,
@@ -191,6 +199,16 @@ fun endTextAlign(): TextAlign = when {
     LocalContext.current.isRtlLayout -> TextAlign.Left
     else -> TextAlign.Right
 }
+
+/**
+ * [text] laid out in the app's direction. A TextView takes a line's
+ * direction from its first letter, so an Arabic line opening with an amount
+ * ("JD 45/شهر · …") was read left to right and came out in the wrong order.
+ * A leading direction mark settles it.
+ */
+@Composable
+fun inAppDirection(text: String): String =
+    (if (LocalContext.current.isRtlLayout) "\u200F" else "\u200E") + text
 
 /** Collects a [WidgetRow]'s items in the app's reading order. */
 class WidgetRowItems {
@@ -265,7 +283,7 @@ object WidgetDefaults {
 @Composable
 fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
     Text(
-        text = text,
+        text = inAppDirection(text),
         maxLines = 1,
         modifier = modifier,
         style = TextStyle(
@@ -281,7 +299,7 @@ fun WidgetTitle(text: String, modifier: GlanceModifier = GlanceModifier) {
 @Composable
 fun WidgetLabel(text: String, modifier: GlanceModifier = GlanceModifier, color: ColorProvider? = null) {
     Text(
-        text = text,
+        text = inAppDirection(text),
         maxLines = 1,
         modifier = modifier,
         style = TextStyle(

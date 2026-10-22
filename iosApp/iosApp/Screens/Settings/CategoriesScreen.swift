@@ -107,7 +107,9 @@ private struct CategoryRow: View {
     var body: some View {
         HStack(spacing: AppSpacing.md) {
             Circle()
-                .fill(Color(hex: categoryColorHex))
+                // System categories use the app's adaptive palette (the old
+                // seed stored Transportation as pure black, invisible in dark).
+                .fill(category.isSystem ? AppColors.categoryColor(for: category.name) : Color(hex: categoryColorHex))
                 .frame(width: 12, height: 12)
 
             Text(category.name)

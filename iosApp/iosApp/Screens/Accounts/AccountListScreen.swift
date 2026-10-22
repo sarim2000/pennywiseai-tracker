@@ -77,15 +77,17 @@ struct AccountListScreen: View {
     @ViewBuilder
     private var totalBalanceCard: some View {
         VStack(spacing: AppSpacing.sm) {
-            Text("Total Balance")
+            Text("Net Balance")
                 .font(AppTypography.caption)
                 .foregroundStyle(.secondary)
-            Text(AmountFormatter.format(
-                minorUnits: viewModel.totalBalanceMinor,
-                currency: viewModel.accounts.first?.currency ?? CurrencyManager.shared.displayCurrency
-            ))
-            .font(AppTypography.amountLarge)
-            .foregroundStyle(.primary)
+            // One line per currency: ₹ and $ never add up to one figure.
+            ForEach(viewModel.totals, id: \.currency) { total in
+                Text(AmountFormatter.format(minorUnits: total.amountMinor, currency: total.currency))
+                    .font(AppTypography.amountLarge)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
 
             Text("\(viewModel.accounts.count) account\(viewModel.accounts.count == 1 ? "" : "s")")
                 .font(AppTypography.caption2)

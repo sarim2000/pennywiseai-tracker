@@ -22,6 +22,8 @@ struct AnalyticsSummaryCard: View {
                     Text(AmountFormatter.format(minorUnits: summary.totalSpendingMinor, currency: currency))
                         .font(AppTypography.amountLarge)
                         .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
 
                     if let trend = summary.spendingTrendPct {
                         trendBadge(trend)
@@ -32,68 +34,19 @@ struct AnalyticsSummaryCard: View {
             Divider()
 
             // Income / Expenses / Net — mirrors the Android summary row.
-            HStack(spacing: AppSpacing.lg) {
-                summaryColumn(
-                    label: "INCOME",
-                    amountMinor: summary.incomeMinor,
-                    tint: .green
-                )
-                Spacer()
-                summaryColumn(
-                    label: "EXPENSES",
-                    amountMinor: summary.totalSpendingMinor,
-                    tint: .red
-                )
-                Spacer()
-                summaryColumn(
-                    label: "NET",
-                    amountMinor: summary.netMinor,
-                    tint: summary.netMinor >= 0 ? .green : .red
-                )
+            // ViewThatFits measures at full size, so the row stacks (rather
+            // than wrapping mid-number or shrinking one figure more than the
+            // others) when it doesn't fit: SE, or large Dynamic Type.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AppSpacing.md) { totalsColumns }
+                VStack(alignment: .leading, spacing: AppSpacing.sm) { totalsColumns }
             }
 
             Divider()
 
-            HStack(spacing: AppSpacing.lg) {
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("TRANSACTIONS")
-                        .font(AppTypography.caption2)
-                        .foregroundStyle(.secondary)
-                        .tracking(1)
-                    Text("\(summary.transactionCount)")
-                        .font(AppTypography.amountMedium)
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("DAILY AVG")
-                        .font(AppTypography.caption2)
-                        .foregroundStyle(.secondary)
-                        .tracking(1)
-                    Text(AmountFormatter.format(minorUnits: summary.dailyAverageMinor, currency: currency))
-                        .font(AppTypography.amountMedium)
-                }
-
-                Spacer()
-
-                if let topCategory = summary.topCategoryName {
-                    VStack(alignment: .trailing, spacing: AppSpacing.xs) {
-                        Text("TOP CATEGORY")
-                            .font(AppTypography.caption2)
-                            .foregroundStyle(.secondary)
-                            .tracking(1)
-                        HStack(spacing: AppSpacing.xs) {
-                            Circle()
-                                .fill(AppColors.categoryColor(for: topCategory))
-                                .frame(width: 8, height: 8)
-                            Text(topCategory)
-                                .font(AppTypography.caption)
-                                .fontWeight(.medium)
-                                .lineLimit(1)
-                        }
-                    }
-                }
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: AppSpacing.md) { statsColumns }
+                VStack(alignment: .leading, spacing: AppSpacing.sm) { statsColumns }
             }
         }
         .padding(AppSpacing.md)
@@ -101,18 +54,60 @@ struct AnalyticsSummaryCard: View {
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 
-    private func summaryColumn(label: String, amountMinor: Int64, tint: Color) -> some View {
+    @ViewBuilder
+    private var totalsColumns: some View {
+        statColumn("Income") {
+            amount(summary.incomeMinor, tint: .green)
+        }
+        statColumn("Expenses") {
+            amount(summary.totalSpendingMinor, tint: .red)
+        }
+        statColumn("Net") {
+            amount(summary.netMinor, tint: summary.netMinor >= 0 ? .green : .red)
+        }
+    }
+
+    @ViewBuilder
+    private var statsColumns: some View {
+        statColumn("Transactions") {
+            Text("\(summary.transactionCount)")
+                .font(AppTypography.amountMedium)
+        }
+        statColumn("Daily avg") {
+            amount(summary.dailyAverageMinor, tint: .primary)
+        }
+        if let topCategory = summary.topCategoryName {
+            statColumn("Top category") {
+                HStack(spacing: AppSpacing.xs) {
+                    Circle()
+                        .fill(AppColors.categoryColor(for: topCategory))
+                        .frame(width: 8, height: 8)
+                    Text(topCategory)
+                        .font(AppTypography.caption)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+
+    private func statColumn<Value: View>(_ label: String, @ViewBuilder value: () -> Value) -> some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
             Text(label)
                 .font(AppTypography.caption2)
                 .foregroundStyle(.secondary)
-                .tracking(1)
-            Text(AmountFormatter.format(minorUnits: amountMinor, currency: currency))
-                .font(AppTypography.amountMedium)
-                .foregroundStyle(tint)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            value()
         }
+        .fixedSize()
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func amount(_ minor: Int64, tint: Color) -> some View {
+        Text(AmountFormatter.format(minorUnits: minor, currency: currency))
+            .font(AppTypography.amountMedium)
+            .foregroundStyle(tint)
+            .lineLimit(1)
     }
 
     /// "↑ 12%" in red for more spending, "↓ 8%" in green for less.

@@ -19,6 +19,21 @@ final class ThemeManager: ObservableObject {
         AccentColorOption.all.first { $0.key == accentColorKey }?.color ?? AccentColorOption.all[0].color
     }
 
+    /// Text/icon colour on an accent fill. The dark-mode accents are light
+    /// pastels where white text drops to ~3:1, so they get black text there.
+    var onAccentColor: Color {
+        let accent = UIColor(accentColor)
+        return Color(uiColor: UIColor { traits in
+            guard traits.userInterfaceStyle == .dark else { return .white }
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            accent.resolvedColor(with: traits).getRed(&r, green: &g, blue: &b, alpha: &a)
+            func linear(_ c: CGFloat) -> CGFloat { c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+            let luminance = 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+            // 0.179 is where black and white text have equal contrast.
+            return luminance > 0.179 ? .black : .white
+        })
+    }
+
     /// Whether AMOLED pure-black mode should be active for the given color scheme
     func isAmoledActive(for scheme: ColorScheme) -> Bool {
         isAmoledDark && scheme == .dark

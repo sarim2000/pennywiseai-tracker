@@ -9,6 +9,7 @@ struct HomeScreen: View {
     var onSeeAllTransactions: (() -> Void)? = nil
 
     @ObservedObject private var currencyManager = CurrencyManager.shared
+    @ObservedObject private var themeManager = ThemeManager.shared
     @StateObject private var viewModel = HomeViewModel()
     @State private var showAddTransaction = false
     @State private var selectedDetail: SharedRecentTransactionItem?
@@ -67,7 +68,9 @@ struct HomeScreen: View {
                 }
                 .padding(.horizontal, AppSpacing.md)
                 .padding(.top, AppSpacing.sm)
-                .padding(.bottom, 80)
+                // Clears the floating + (56pt + its 24pt padding) so the last
+                // row and the empty state are never under it.
+                .padding(.bottom, 104)
             }
             .refreshable {
                 viewModel.loadHome()
@@ -86,11 +89,11 @@ struct HomeScreen: View {
             NavigationStack {
                 AddEditTransactionView(facade: viewModel.facade, onSave: {
                     viewModel.loadHome()
-                })
+                }, showsCancel: true)
             }
         }
         .sheet(item: $selectedDetail) { item in
-            TransactionDetailSheet(item: item)
+            TransactionDetailSheet(item: item, onUpdate: { viewModel.loadHome() })
         }
         .fileImporter(
             isPresented: $showImportPicker,
@@ -201,12 +204,15 @@ struct HomeScreen: View {
                 .padding(.vertical, AppSpacing.xs)
                 .background(Capsule().fill(Color.indigo.opacity(0.15)))
                 .foregroundStyle(.indigo)
-            Text(CurrencyFormatter.format(
-                amountMinor: viewModel.subscriptionMonthlyTotal,
-                currencyCode: CurrencyManager.shared.displayCurrency
-            ))
-            .font(AppTypography.headline)
-            .foregroundStyle(.primary)
+            // One line per currency: never one cross-currency sum.
+            VStack(alignment: .trailing, spacing: 2) {
+                ForEach(viewModel.subscriptionTotals, id: \.currency) { total in
+                    Text(CurrencyFormatter.format(amountMinor: total.amountMinor, currencyCode: total.currency))
+                        .font(AppTypography.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                }
+            }
         }
         .padding(AppSpacing.md)
         .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.secondaryGroupedBackground(isAmoled: isAmoled)))
@@ -240,11 +246,11 @@ struct HomeScreen: View {
             } label: {
                 Image(systemName: "plus")
                     .font(.title2.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(themeManager.onAccentColor)
                     .rotationEffect(.degrees(fabExpanded ? 45 : 0))
                     .frame(width: 56, height: 56)
-                    .background(Circle().fill(.blue))
-                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .background(Circle().fill(themeManager.accentColor))
+                    .shadow(color: themeManager.accentColor.opacity(0.3), radius: 8, x: 0, y: 4)
             }
         }
         .padding(AppSpacing.lg)
@@ -268,11 +274,11 @@ struct HomeScreen: View {
                 Image(systemName: systemImage)
                     .font(.body)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(themeManager.onAccentColor)
             .padding(.horizontal, AppSpacing.md)
             .frame(height: 44)
-            .background(Capsule().fill(.blue))
-            .shadow(color: .blue.opacity(0.25), radius: 6, x: 0, y: 3)
+            .background(Capsule().fill(themeManager.accentColor))
+            .shadow(color: themeManager.accentColor.opacity(0.25), radius: 6, x: 0, y: 3)
         }
         .transition(.scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity))
     }

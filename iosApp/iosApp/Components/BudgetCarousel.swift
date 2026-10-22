@@ -11,7 +11,7 @@ struct BudgetCarousel: View {
                 .font(AppTypography.headline)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.md) {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
                     ForEach(budgets, id: \.id) { budget in
                         BudgetCarouselCard(budget: budget)
                     }
@@ -30,8 +30,9 @@ private struct BudgetCarouselCard: View {
         return Double(budget.spentMinor) / Double(budget.limitMinor)
     }
 
+    /// Same rounding as the budget screens (computed once in shared).
     private var percentage: Int {
-        Int((spentRatio * 100).rounded())
+        Int(budget.percentUsed)
     }
 
     private var progressColor: Color {
@@ -76,13 +77,17 @@ private struct BudgetCarouselCard: View {
                     .font(AppTypography.caption2)
                     .foregroundStyle(.tertiary)
 
-                Text(AmountFormatter.format(minorUnits: remainingMinor, currency: currencyManager.displayCurrency))
+                Text(AmountFormatter.format(minorUnits: remainingMinor, currency: budget.currency))
                     .font(AppTypography.amountSmall)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
         }
         .padding(AppSpacing.md)
-        .frame(width: 160, height: 140)
+        // Min height, not a fixed one: large Dynamic Type grows the card
+        // instead of clipping the title and "Remaining".
+        .frame(width: 160)
+        .frame(minHeight: 140)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
         .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)

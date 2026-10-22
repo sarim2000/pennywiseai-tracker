@@ -19,34 +19,49 @@ struct SpendingSummaryCard: View {
                     currency: CurrencyManager.shared.displayCurrency,
                     font: AppTypography.amountLarge
                 )
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
             }
 
             Divider()
 
-            // Breakdown: Income | Expenses | Saved
-            HStack(spacing: 0) {
-                SummaryColumn(
-                    label: "Income",
-                    amountMinor: monthlyIncomeMinor,
-                    accentColor: AppColors.income
-                )
-                Spacer()
-                SummaryColumn(
-                    label: "Expenses",
-                    amountMinor: monthlyExpenseMinor,
-                    accentColor: AppColors.expense
-                )
-                Spacer()
-                SummaryColumn(
-                    label: "Saved",
-                    amountMinor: monthlyNetMinor,
-                    accentColor: monthlyNetMinor >= 0 ? AppColors.income : AppColors.expense
-                )
+            // Breakdown: Income | Expenses | Saved. Stacks vertically when the
+            // row doesn't fit at full size (large Dynamic Type), instead of
+            // splitting a figure across two lines.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 0) {
+                    incomeColumn
+                    Spacer(minLength: AppSpacing.sm)
+                    expenseColumn
+                    Spacer(minLength: AppSpacing.sm)
+                    savedColumn
+                }
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    incomeColumn
+                    expenseColumn
+                    savedColumn
+                }
             }
         }
         .padding(AppSpacing.md)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
+    }
+
+    private var incomeColumn: some View {
+        SummaryColumn(label: "Income", amountMinor: monthlyIncomeMinor, accentColor: AppColors.income)
+    }
+
+    private var expenseColumn: some View {
+        SummaryColumn(label: "Expenses", amountMinor: monthlyExpenseMinor, accentColor: AppColors.expense)
+    }
+
+    private var savedColumn: some View {
+        SummaryColumn(
+            label: "Saved",
+            amountMinor: monthlyNetMinor,
+            accentColor: monthlyNetMinor >= 0 ? AppColors.income : AppColors.expense
+        )
     }
 }
 
@@ -66,6 +81,7 @@ private struct SummaryColumn: View {
                 Text(AmountFormatter.format(minorUnits: amountMinor, currency: CurrencyManager.shared.displayCurrency))
                     .font(AppTypography.amountSmall)
                     .foregroundStyle(accentColor)
+                    .lineLimit(1)
                 Text(label)
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)

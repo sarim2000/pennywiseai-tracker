@@ -6,7 +6,7 @@ object DefaultCategoryData {
     val ALL: List<CategorySeed> = listOf(
         CategorySeed("Food & Dining",      "#FC8019", false),
         CategorySeed("Groceries",          "#5AC85A", false),
-        CategorySeed("Transportation",     "#000000", false),
+        CategorySeed("Transportation",     "#37474F", false),
         CategorySeed("Shopping",           "#FF9900", false),
         CategorySeed("Bills & Utilities",  "#4CAF50", false),
         CategorySeed("Entertainment",      "#E50914", false),

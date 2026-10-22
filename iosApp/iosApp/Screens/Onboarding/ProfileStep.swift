@@ -4,6 +4,7 @@ struct ProfileStep: View {
     @AppStorage("userName") private var userName: String = "User"
     @AppStorage("userAvatarIndex") private var userAvatarIndex: Int = 0
     @ObservedObject private var themeManager = ThemeManager.shared
+    @Environment(\.colorScheme) private var colorScheme
 
     private let avatarImages: [String] = [
         "avatar_1", "avatar_2", "avatar_3", "avatar_4", "avatar_5",
@@ -34,11 +35,15 @@ struct ProfileStep: View {
                         get: { userName == "User" && !isNameFocused ? "" : userName },
                         set: { userName = $0 }
                     ), prompt: Text("Enter your name").foregroundColor(.secondary))
-                        .textFieldStyle(.roundedBorder)
                         .font(.system(size: 18))
+                        .padding(AppSpacing.sm)
+                        // A filled field stays visible in dark mode, where the
+                        // rounded-border style is near-invisible on black.
+                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: AppCornerRadius.small))
                         .padding(.horizontal, AppSpacing.lg)
                         .padding(.vertical, AppSpacing.xs)
                         .focused($isNameFocused)
+                        .submitLabel(.done)
                 }
 
                 VStack(spacing: AppSpacing.md) {
@@ -57,10 +62,12 @@ struct ProfileStep: View {
             }
             .padding(AppSpacing.lg)
         }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     private func avatarButton(index: Int) -> some View {
         Button {
+            isNameFocused = false
             withAnimation(.easeInOut(duration: 0.2)) {
                 userAvatarIndex = index
             }
@@ -73,7 +80,10 @@ struct ProfileStep: View {
                 .frame(width: 64, height: 64)
                 .background(
                     Circle()
-                        .fill(userAvatarIndex == index ? themeManager.accentColor : themeManager.accentColor.opacity(0.15))
+                        // The avatars are black line-art: in dark mode a light
+                        // fill keeps them visible instead of a near-black tint.
+                        .fill(userAvatarIndex == index ? themeManager.accentColor
+                              : colorScheme == .dark ? Color(white: 0.85) : themeManager.accentColor.opacity(0.15))
                 )
                 .overlay(
                     Circle()

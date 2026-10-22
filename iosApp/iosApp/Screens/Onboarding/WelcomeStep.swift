@@ -17,6 +17,9 @@ struct WelcomeStep: View {
                 Text("Welcome to PennyWise")
                     .font(AppTypography.largeTitle)
                     .multilineTextAlignment(.center)
+                    // Shrink rather than truncate to "Welcome to Penny…" on SE.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                 Text("Your minimalist expense tracker")
                     .font(AppTypography.body)

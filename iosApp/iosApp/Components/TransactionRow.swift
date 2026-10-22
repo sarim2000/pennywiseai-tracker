@@ -30,11 +30,14 @@ struct TransactionRow: View {
                     Text(item.category)
                         .font(AppTypography.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     Text("\u{00B7}")
                         .foregroundStyle(.secondary)
                     Text(Date(epochMillis: item.occurredAtEpochMillis).formatted(as: "dd MMM"))
                         .font(AppTypography.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
             }
 
@@ -45,6 +48,11 @@ struct TransactionRow: View {
                 currency: item.currency,
                 transactionType: item.transactionType
             )
+            // The amount wins the row's width: the merchant/category truncate
+            // instead of the number wrapping mid-figure.
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .layoutPriority(1)
 
             if onViewDetails != nil || onEdit != nil {
                 Menu {

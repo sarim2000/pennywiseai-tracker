@@ -50,7 +50,7 @@ struct ImportStep: View {
             } label: {
                 Label("Import PDF", systemImage: "doc.badge.plus")
                     .font(AppTypography.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(themeManager.onAccentColor)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.md)
                     .background(themeManager.accentColor)

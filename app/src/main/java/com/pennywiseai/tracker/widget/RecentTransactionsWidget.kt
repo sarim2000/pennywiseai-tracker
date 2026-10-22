@@ -157,7 +157,11 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         }
     }
 
-    /** The category at a glance: its emoji or first letter on a tint of its color. */
+    /**
+     * The category at a glance, as the app's list draws it: a solid circle in
+     * its color with a white glyph, which stays legible for a near-black
+     * category on the dark theme where a tint of it vanished.
+     */
     @Composable
     private fun Avatar(item: RecentTransactionItem) {
         val color = item.colorArgb.takeIf { it != 0L }?.let { Color(it) }
@@ -165,14 +169,14 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .size(Dimensions.Icon.large)
                 .cornerRadius(Dimensions.Icon.large / 2)
-                .background(color?.let { ColorProvider(it.copy(alpha = AVATAR_TINT)) } ?: GlanceTheme.colors.surfaceVariant),
+                .background(color?.let { ColorProvider(it) } ?: GlanceTheme.colors.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = item.badge,
                 maxLines = 1,
                 style = TextStyle(
-                    color = color?.let { ColorProvider(it) } ?: GlanceTheme.colors.onSurfaceVariant,
+                    color = if (color != null) ColorProvider(Color.White) else GlanceTheme.colors.onSurfaceVariant,
                     fontSize = Typography.titleMedium.fontSize,
                     fontWeight = FontWeight.Medium
                 )
@@ -229,8 +233,6 @@ class RecentTransactionsWidget : GlanceAppWidget() {
         )
 
     private companion object {
-        const val AVATAR_TINT = 0.2f
-
         /** "+" inside the LTR isolate, so Arabic keeps it on the amount's left. */
         fun withPlus(amount: String): String =
             if (amount.startsWith('\u2066')) "\u2066+${amount.drop(1)}" else "+$amount"

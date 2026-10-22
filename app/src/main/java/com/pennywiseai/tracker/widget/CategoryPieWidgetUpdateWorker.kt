@@ -23,7 +23,6 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.forTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -31,8 +30,6 @@ import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -46,7 +43,7 @@ import java.util.concurrent.TimeUnit
  * Currency: a pie mixing currencies is meaningless, so either everything is
  * converted into the display currency (unified mode, same as the other
  * widgets) or the cycle's dominant spend currency is shown and the rest are
- * left out — the label always says which currency the pie is in. In unified
+ * left out — the total in the hole says which currency the pie is in. In unified
  * mode a transaction whose exchange rate is unavailable is left out rather
  * than counted at its raw foreign face value, which would corrupt the total
  * and every percentage.
@@ -189,7 +186,6 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     add(
                         CategoryPieSlice(
                             name = name,
-                            amountFormatted = CurrencyFormatter.formatCurrency(amount, currency),
                             colorArgb = CategoryMapping.colorFor(name, colorOverrides[name])
                                 .toArgb().toLong(),
                             percent = percentOf(amount)
@@ -199,8 +195,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (otherTotal.signum() > 0) {
                     add(
                         CategoryPieSlice(
-                            name = applicationContext.getString(R.string.widget_pie_other),
-                            amountFormatted = CurrencyFormatter.formatCurrency(otherTotal, currency),
+                            name = applicationContext.inAppLanguage().getString(R.string.widget_pie_other),
                             colorArgb = 0xFF9E9E9EL,
                             percent = percentOf(otherTotal)
                         )
@@ -211,11 +206,9 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
             CategoryPieWidgetDataStore.update(
                 applicationContext,
                 CategoryPieWidgetData(
-                    monthLabel = cycleStart.format(
-                        DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
-                    ).uppercase() + " · " + currency,
+                    cycleStart = cycleStart.toString(),
                     currency = currency,
-                    totalFormatted = CurrencyFormatter.formatCurrency(total, currency),
+                    total = total.toPlainString(),
                     slices = slices
                 )
             )

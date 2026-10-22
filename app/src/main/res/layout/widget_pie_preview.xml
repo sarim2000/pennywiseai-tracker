@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="14dp"
+    android:padding="16dp"
     android:theme="@android:style/Theme.DeviceDefault.DayNight"
     android:background="?android:attr/colorBackground"
     tools:ignore="HardcodedText">
@@ -15,26 +15,40 @@
         android:layout_height="wrap_content"
         android:text="@string/widget_pie_title"
         android:textColor="?android:attr/textColorPrimary"
-        android:textSize="13sp"
+        android:textSize="14sp"
         android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="8dp"
-        android:gravity="center_vertical"
+        android:gravity="center"
         android:orientation="horizontal">
 
-        <ImageView
+        <FrameLayout
             android:layout_width="96dp"
-            android:layout_height="96dp"
-            android:importantForAccessibility="no"
-            android:src="@drawable/widget_pie_preview_donut" />
+            android:layout_height="96dp">
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:importantForAccessibility="no"
+                android:src="@drawable/widget_pie_preview_donut" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="241"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="16dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -46,14 +60,14 @@
             android:orientation="horizontal">
 
             <FrameLayout
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
                 android:background="#FF7043" />
 
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="6dp"
-                android:layout_marginHorizontal="6dp"
+                android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="#40808080" />
 
@@ -62,7 +76,7 @@
                 android:layout_height="wrap_content"
                 android:text="40%"
                 android:textColor="?android:attr/textColorSecondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -73,14 +87,14 @@
             android:orientation="horizontal">
 
             <FrameLayout
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
                 android:background="#42A5F5" />
 
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="6dp"
-                android:layout_marginHorizontal="6dp"
+                android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="#40808080" />
 
@@ -89,7 +103,7 @@
                 android:layout_height="wrap_content"
                 android:text="25%"
                 android:textColor="?android:attr/textColorSecondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -100,14 +114,14 @@
             android:orientation="horizontal">
 
             <FrameLayout
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
                 android:background="#AB47BC" />
 
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="6dp"
-                android:layout_marginHorizontal="6dp"
+                android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="#40808080" />
 
@@ -116,7 +130,7 @@
                 android:layout_height="wrap_content"
                 android:text="20%"
                 android:textColor="?android:attr/textColorSecondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -127,14 +141,14 @@
             android:orientation="horizontal">
 
             <FrameLayout
-                android:layout_width="8dp"
-                android:layout_height="8dp"
+                android:layout_width="10dp"
+                android:layout_height="10dp"
                 android:background="#26A69A" />
 
             <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="6dp"
-                android:layout_marginHorizontal="6dp"
+                android:layout_marginHorizontal="8dp"
                 android:layout_weight="1"
                 android:background="#40808080" />
 
@@ -143,7 +157,7 @@
                 android:layout_height="wrap_content"
                 android:text="15%"
                 android:textColor="?android:attr/textColorSecondary"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
         </LinearLayout>
     </LinearLayout>

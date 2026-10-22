@@ -7,7 +7,6 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
@@ -34,14 +33,12 @@ import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.currentState
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
@@ -80,12 +77,6 @@ private suspend fun loadGoals(context: Context): List<GoalWidgetItem> = try {
 @Composable
 private fun observeGoals(context: Context, initial: List<GoalWidgetItem>): State<List<GoalWidgetItem>> =
     remember { GoalWidgetDataStore.getData(context) }.collectAsState(initial)
-
-@Composable
-private fun WidgetTheme(content: @Composable () -> Unit) = GlanceTheme(
-    colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else PennyWiseWidgetTheme.colors,
-    content = content,
-)
 
 /**
  * Opens the app on a goal, the Budgets screen or "New goal" (see
@@ -127,7 +118,7 @@ private fun GoalRingImage(item: GoalWidgetItem, size: Dp, stroke: Dp) {
         )
         Image(
             provider = ImageProvider(renderArc(context, item.fraction, color, size, stroke)),
-            contentDescription = context.getString(R.string.goals_ring_description, item.percent),
+            contentDescription = context.latinString(R.string.goals_ring_description, item.percent),
             modifier = GlanceModifier.size(size),
         )
     }
@@ -151,35 +142,17 @@ private fun renderArc(context: Context, fraction: Float, color: Int, size: Dp, s
     return bitmap
 }
 
-@Composable
-private fun TwoLineMessage(title: String, hint: String) {
-    Column(
-        modifier = GlanceModifier.fillMaxSize(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = title,
-            style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center),
-        )
-        Spacer(GlanceModifier.height(Spacing.xxs))
-        Text(
-            text = hint,
-            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = Typography.bodySmall.fontSize, textAlign = TextAlign.Center),
-        )
-    }
-}
-
-/** 2×2: one chosen goal — ring with %, name, and "₹9,600 left · 5 mo". */
+/** 2×2: one chosen goal — ring with %, name, and "JD 9,600 left · 5 mo". */
 class GoalWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val initial = loadGoals(context)
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        val privacy = WidgetPrivacy.load(context)
         provideContent {
             val items by observeGoals(context, initial)
             val chosenId = currentState<Preferences>()[GOAL_WIDGET_GOAL_ID]
-            WidgetTheme { Content(singleGoalState(items, chosenId), appWidgetId) }
+            WidgetRoot(privacy) { Content(singleGoalState(items, chosenId), appWidgetId) }
         }
     }
 
@@ -201,18 +174,16 @@ class GoalWidget : GlanceAppWidget() {
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
-                .padding(Spacing.smd)
+                .padding(WidgetDefaults.padding)
                 .clickable(tap),
             contentAlignment = Alignment.Center,
         ) {
             when (state) {
                 is SingleGoalState.Shown -> Goal(state.item)
-                SingleGoalState.Removed -> TwoLineMessage(
+                SingleGoalState.Removed -> WidgetEmptyState(
                     context.getString(R.string.widget_goal_removed), context.getString(R.string.widget_goal_removed_hint)
                 )
-                SingleGoalState.NoGoals -> TwoLineMessage(
-                    context.getString(R.string.widget_goals_empty), context.getString(R.string.widget_goals_empty_hint)
-                )
+                SingleGoalState.NoGoals -> GoalsEmpty()
             }
         }
     }
@@ -220,6 +191,7 @@ class GoalWidget : GlanceAppWidget() {
     @Composable
     private fun Goal(item: GoalWidgetItem) {
         val context = LocalContext.current
+        // Centred, so it reads the same both ways; only the text inside needs the app's language.
         Column(
             modifier = GlanceModifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
@@ -228,7 +200,7 @@ class GoalWidget : GlanceAppWidget() {
             Box(contentAlignment = Alignment.Center) {
                 GoalRingImage(item, Dimensions.Component.goalRing, Dimensions.Component.goalRingStroke)
                 Text(
-                    text = context.getString(R.string.budgets_percent, item.percent),
+                    text = context.latinString(R.string.budgets_percent, item.percent),
                     style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelMedium.fontSize, fontWeight = FontWeight.Bold),
                 )
             }
@@ -247,6 +219,18 @@ class GoalWidget : GlanceAppWidget() {
     }
 }
 
+/** No goals yet: say so, with a button straight to "New goal". */
+@Composable
+private fun GoalsEmpty() {
+    val context = LocalContext.current
+    WidgetEmptyState(
+        title = context.getString(R.string.widget_goals_empty),
+        hint = context.getString(R.string.widget_goals_empty_hint_target),
+        button = context.getString(R.string.goals_empty_action),
+        onButton = openBudgets(context, createGoal = true),
+    )
+}
+
 /** 4×2: up to three goals, soonest due first (Reached last), with a "+" for "New goal". */
 class GoalsListWidget : GlanceAppWidget() {
 
@@ -254,53 +238,31 @@ class GoalsListWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val initial = loadGoals(context)
+        val privacy = WidgetPrivacy.load(context)
         provideContent {
             val items by observeGoals(context, initial)
-            WidgetTheme { Content(items) }
+            WidgetRoot(privacy) { Content(items) }
         }
     }
 
     @Composable
     private fun Content(items: List<GoalWidgetItem>) {
         val context = LocalContext.current
+        // The 48dp header and rows carry their own air, so the frame is only tight vertically.
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
-                .padding(horizontal = Spacing.md, vertical = Spacing.xs)
+                .padding(horizontal = WidgetDefaults.padding, vertical = Spacing.xs)
                 .clickable(openBudgets(context)),
         ) {
-            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = context.getString(R.string.goals_section_title),
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.titleSmall.fontSize, fontWeight = FontWeight.Medium),
-                    modifier = GlanceModifier.defaultWeight(),
-                )
-                // A 48dp touch target around the smaller visible button.
-                Box(
-                    modifier = GlanceModifier
-                        .size(Dimensions.Component.minTouchTarget)
-                        .clickable(openBudgets(context, createGoal = true)),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
-                    Box(
-                        modifier = GlanceModifier
-                            .size(ADD_BUTTON)
-                            .cornerRadius(ADD_BUTTON / 2)
-                            .background(GlanceTheme.colors.primary),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Image(
-                            provider = ImageProvider(R.drawable.ic_widget_add),
-                            contentDescription = context.getString(R.string.goals_new),
-                            colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
-                            modifier = GlanceModifier.size(Dimensions.Icon.inline),
-                        )
-                    }
-                }
-            }
+            WidgetHeader(
+                title = context.getString(R.string.goals_section_title),
+                add = openBudgets(context, createGoal = true),
+                addDescription = context.getString(R.string.goals_new),
+            )
             if (items.isEmpty()) {
-                TwoLineMessage(context.getString(R.string.widget_goals_empty), context.getString(R.string.widget_goals_empty_hint))
+                GoalsEmpty()
             } else {
                 // Only as many 48dp rows as fit under the 48dp header, so a short
                 // widget never cuts one in half (a standard 4×2 fits all three).
@@ -314,37 +276,41 @@ class GoalsListWidget : GlanceAppWidget() {
     @Composable
     private fun GoalRow(item: GoalWidgetItem) {
         val context = LocalContext.current
-        Row(
+        WidgetRow(
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .height(Dimensions.Component.minTouchTarget)
                 .clickable(openGoal(context, item.id)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            GoalRingImage(item, ROW_RING, ROW_RING_STROKE)
-            Spacer(GlanceModifier.width(Spacing.smd))
-            Column(modifier = GlanceModifier.defaultWeight()) {
+            item { GoalRingImage(item, ROW_RING, ROW_RING_STROKE) }
+            item { Spacer(GlanceModifier.width(Spacing.smd)) }
+            item {
+                Column(modifier = GlanceModifier.defaultWeight(), horizontalAlignment = startAlignment()) {
+                    Text(
+                        text = item.name,
+                        maxLines = 1,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSurface,
+                            fontSize = Typography.bodyMedium.fontSize,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = startTextAlign(),
+                        ),
+                    )
+                    WidgetLabel(item.line, color = PennyWiseWidgetTheme.goalToneColor(item.tone))
+                }
+            }
+            item { Spacer(GlanceModifier.width(Spacing.sm)) }
+            item {
                 Text(
-                    text = item.name,
-                    maxLines = 1,
-                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.bodyMedium.fontSize, fontWeight = FontWeight.Medium),
-                )
-                Text(
-                    text = item.line,
-                    maxLines = 1,
-                    style = TextStyle(color = PennyWiseWidgetTheme.goalToneColor(item.tone), fontSize = Typography.bodySmall.fontSize),
+                    text = context.latinString(R.string.budgets_percent, item.percent),
+                    style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold),
                 )
             }
-            Spacer(GlanceModifier.width(Spacing.sm))
-            Text(
-                text = context.getString(R.string.budgets_percent, item.percent),
-                style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = Typography.labelLarge.fontSize, fontWeight = FontWeight.Bold),
-            )
         }
     }
 
     private companion object {
-        val ADD_BUTTON = Dimensions.Icon.large
         val ROW_RING = Dimensions.Icon.large
         val ROW_RING_STROKE = Dimensions.Component.goalRingSmallStroke
     }

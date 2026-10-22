@@ -104,8 +104,16 @@ struct AddEditSubscriptionScreen: View {
         amountMinor > 0
     }
 
+    /// Locale-aware ("2,99" with a comma keyboard; the "2.99" prefill also
+    /// parses). Unparseable or out-of-range input is 0, which keeps Save
+    /// disabled instead of overflowing Int64.
     private var amountMinor: Int64 {
-        Int64(((Double(amountText) ?? 0) * 100).rounded())
+        let separator = Locale.current.decimalSeparator ?? "."
+        let normalized = amountText.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: separator, with: ".")
+        guard let value = Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX")),
+              value > 0, value < 1_000_000_000_000 else { return 0 }
+        return Int64((NSDecimalNumber(decimal: value).doubleValue * 100).rounded())
     }
 
     private func save() {

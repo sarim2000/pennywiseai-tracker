@@ -64,7 +64,7 @@ struct AnalyticsScreen: View {
             viewModel.loadAnalytics()
         }
         .sheet(item: $drillDown) { drill in
-            AnalyticsDrillDownSheet(drill: drill)
+            AnalyticsDrillDownSheet(drill: drill, onChange: { viewModel.loadAnalytics() })
         }
     }
 
@@ -153,6 +153,8 @@ struct AnalyticsDrillDown: Identifiable {
 
 struct AnalyticsDrillDownSheet: View {
     let drill: AnalyticsDrillDown
+    /// Called after a transaction is edited or deleted from the detail sheet.
+    var onChange: (() -> Void)?
     @State private var selectedDetail: SharedRecentTransactionItem?
     @Environment(\.dismiss) private var dismiss
 
@@ -188,7 +190,12 @@ struct AnalyticsDrillDownSheet: View {
                 }
             }
             .sheet(item: $selectedDetail) { item in
-                TransactionDetailSheet(item: item)
+                // The drill-down holds a copy of the rows, so after an edit or
+                // delete, refresh Analytics and close it instead of showing stale rows.
+                TransactionDetailSheet(item: item, onUpdate: {
+                    onChange?()
+                    dismiss()
+                })
             }
         }
     }

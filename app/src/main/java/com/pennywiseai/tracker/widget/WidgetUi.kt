@@ -50,6 +50,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -113,15 +114,20 @@ interface WidgetEntryPoint {
 /**
  * The in-app eye (Home's hide-amounts toggle), read before composing so the
  * first frame is already right, then followed live. Hidden totals stay hidden
- * on the home screen, where anyone near the phone can read them.
+ * on the home screen, where anyone near the phone can read them; what the
+ * app shows with the eye closed (single transactions, goals) shows here too.
  */
 class WidgetPrivacy(val hidden: Flow<Boolean>, val initial: Boolean) {
     companion object {
-        suspend fun load(context: Context): WidgetPrivacy = runCatching {
+        suspend fun load(context: Context): WidgetPrivacy = try {
             val flow = EntryPointAccessors.fromApplication(context.applicationContext, WidgetEntryPoint::class.java)
                 .userPreferences().isBalanceHidden
             WidgetPrivacy(flow, flow.first())
-        }.getOrElse { WidgetPrivacy(flowOf(true), true) } // can't tell: keep them hidden
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            WidgetPrivacy(flowOf(true), true) // can't tell: keep them hidden
+        }
     }
 }
 
@@ -244,7 +250,10 @@ const val HIDDEN_AMOUNT = "••••"
 @Composable
 fun totalText(amount: BigDecimal, currency: String): String =
     if (amountsHidden()) HIDDEN_AMOUNT
-    else widgetMoney(LocalContext.current, amount.setScale(0, RoundingMode.HALF_UP), currency)
+    else widgetMoney(LocalContext.current, wholeUnits(amount), currency)
+
+/** [amount] as [totalText] shows it; decide "over" or "left" on this, not the exact figure. */
+fun wholeUnits(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.HALF_UP)
 
 /**
  * One transaction's exact amount ("JD 3.2"). Like the app's transaction list,

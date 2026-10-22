@@ -172,6 +172,7 @@ class GoalWidgetConfigActivity : FragmentActivity() {
                 prefs.toMutablePreferences().apply { remove(GOAL_WIDGET_GOAL_ID) }
             }
             GoalWidget().update(this@GoalWidgetConfigActivity, glanceId)
+            GoalWidgetUpdateWorker.enqueueOneShot(this@GoalWidgetConfigActivity)
             setResult(RESULT_OK, resultIntent(appWidgetId))
             startActivity(
                 Intent(this@GoalWidgetConfigActivity, MainActivity::class.java)

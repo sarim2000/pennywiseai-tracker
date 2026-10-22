@@ -220,14 +220,19 @@ class RecentTransactionsWidget : GlanceAppWidget() {
             )
         }
 
-    /** The alert's category picker, with no alert to replace; it refreshes the widgets itself. */
+    /**
+     * The alert's category picker; it refreshes the widgets itself. It takes
+     * the transaction's own alert id (as the evening recap's Sort does), so an
+     * alert still in the shade becomes the "Saved as" note with its Undo
+     * instead of asking again for a transaction that's already sorted.
+     */
     private fun sortAction(context: Context, transactionId: Long): Action =
         actionStartActivity(
             Intent(context, QuickCategoryPickerActivity::class.java).apply {
                 // One PendingIntent per row; extras alone don't tell them apart.
                 data = Uri.parse("pennywise://widget/sort/$transactionId")
                 putExtra(QuickCategoryPickerActivity.EXTRA_TRANSACTION_ID, transactionId)
-                putExtra(QuickCategoryPickerActivity.EXTRA_NOTIFICATION_ID, -1)
+                putExtra(QuickCategoryPickerActivity.EXTRA_NOTIFICATION_ID, transactionId.toInt())
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
         )

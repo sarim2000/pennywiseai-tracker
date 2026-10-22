@@ -98,7 +98,8 @@ class BudgetWidget : GlanceAppWidget() {
     private fun Overview(data: BudgetWidgetData, compact: Boolean, large: Boolean) {
         val context = LocalContext.current
         val statusColor = PennyWiseWidgetTheme.budgetStatusColor(data.percentageUsed)
-        val over = data.remaining < BigDecimal.ZERO
+        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
+        val over = wholeUnits(data.remaining) < BigDecimal.ZERO
         val label = when {
             compact && over -> R.string.widget_summary_over
             compact -> R.string.widget_summary_left

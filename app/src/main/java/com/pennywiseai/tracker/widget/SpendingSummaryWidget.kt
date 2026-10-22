@@ -114,7 +114,8 @@ class SpendingSummaryWidget : GlanceAppWidget() {
     @Composable
     private fun BudgetFigure(budget: BudgetWidgetData, height: Dp, modifier: GlanceModifier) {
         val context = LocalContext.current
-        val over = budget.remaining < BigDecimal.ZERO
+        // On the shown figure: 0.3 over reads "Left · JD 0", not "Over · JD 0".
+        val over = wholeUnits(budget.remaining) < BigDecimal.ZERO
         Column(modifier = modifier, horizontalAlignment = startAlignment()) {
             Figure(
                 label = context.getString(if (over) R.string.widget_summary_over else R.string.widget_summary_left),

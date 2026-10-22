@@ -146,7 +146,8 @@ enum PendingAiSms {
         defer { lock.withLock { draining = false } }
         while let entry = lock.withLock({ load().first }) {
             let outcome = await BankSmsImport.run(sender: entry.sender, body: entry.body, receivedAt: entry.receivedAt, allowQueue: false)
-            lock.withLock { save(load().filter { $0.id != entry.id }) }
+            // If the entry can't be removed (disk full), stop: retrying it in a loop helps nobody.
+            guard lock.withLock({ save(load().filter { $0.id != entry.id }) }) else { return }
             if let alert = outcome.alert { await BankSmsImport.notify(alert) }
         }
     }
@@ -157,18 +158,24 @@ enum PendingAiSms {
         return (try? JSONDecoder().decode([Entry].self, from: data)) ?? []
     }
 
-    private static func save(_ queue: [Entry]) {
+    /// False when the queue couldn't be written.
+    @discardableResult
+    private static func save(_ queue: [Entry]) -> Bool {
         var url = fileURL
-        if queue.isEmpty {
-            try? FileManager.default.removeItem(at: url)
-            return
+        do {
+            if queue.isEmpty {
+                if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+                return true
+            }
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            // Readable after the first unlock: a Shortcuts run on a locked phone still writes it.
+            try JSONEncoder().encode(queue).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            try url.setResourceValues(values)
+            return true
+        } catch {
+            return false
         }
-        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        guard let data = try? JSONEncoder().encode(queue) else { return }
-        // Readable after the first unlock: a Shortcuts run on a locked phone still writes it.
-        try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
-        var values = URLResourceValues()
-        values.isExcludedFromBackup = true
-        try? url.setResourceValues(values)
     }
 }

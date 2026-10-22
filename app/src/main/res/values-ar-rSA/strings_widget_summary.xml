@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_summary_description">مصروف اليوم، والمتبقي من ميزانيتك، وإضافة سريعة للصرف النقدي.</string>
+    <string name="widget_summary_left">متبقي من الميزانية</string>
+    <string name="widget_summary_over">تجاوزت الميزانية</string>
+
+    <string name="widget_budget_left_label">متبقي</string>
+    <string name="widget_budget_over_label">زيادة عن الحد</string>
+    <string name="widget_budget_empty_title">لا توجد ميزانية بعد</string>
+    <string name="widget_budget_empty_hint">حدّد سقفاً شهرياً لترى ما تبقى منه.</string>
+    <string name="widget_budget_create">أنشئ ميزانية</string>
+    <string name="widget_budget_preview_meta">من 3,600 · 120 لليوم</string>
+
+    <string name="widget_cash_label">نقداً</string>
+    <string name="widget_cash_spend">صرف نقدي</string>
+    <string name="widget_cash_description">سجّل بضغطة واحدة ما صرفته نقداً.</string>
+</resources>

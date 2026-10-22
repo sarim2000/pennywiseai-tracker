@@ -279,18 +279,13 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">إضافة معاملة</string>
-    <string name="widget_add_title">إضافة</string>
-    <string name="widget_add_subtitle">المعاملة</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">الميزانية الشهرية</string>
-    <string name="widget_budget_tap_to_set_up">انقر للإعداد</string>
-    <string name="widget_budget_percent_used">%1$d%% مستخدم</string>
+    <string name="widget_budget_percent_used">%1$d%% مستخدَمة</string>
     <string name="widget_budget_of_limit">من %1$s</string>
-    <string name="widget_budget_left">%1$s متبقي</string>
-    <string name="widget_budget_over">أكثر من %1$s</string>
-    <string name="widget_budget_per_day">%1$sيومًا</string>
-    <string name="widget_budget_saved">تم الحفظ %1$s</string>
-    <string name="widget_budget_overspent">أكثر من %1$s</string>
+    <string name="widget_budget_per_day">%1$s لليوم</string>
+    <string name="widget_budget_saved">وفّرت %1$s</string>
+    <string name="widget_budget_overspent">عجز %1$s</string>
     <!-- Spending pie widget -->
     <string name="widget_pie_title">الإنفاق</string>
     <string name="widget_pie_content_description">الإنفاق حسب الفئة</string>

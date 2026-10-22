@@ -109,8 +109,6 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">เพิ่มรายการธุรกรรม</string>
-    <string name="widget_add_title">เพิ่ม</string>
-    <string name="widget_add_subtitle">ธุรกรรม</string>
     <!-- Budget widget -->
     <string name="widget_budget_percent_used">%1$d%% ใช้แล้ว</string>
     <!-- Spending pie widget -->

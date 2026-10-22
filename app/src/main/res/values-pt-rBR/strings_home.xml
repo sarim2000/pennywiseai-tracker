@@ -200,15 +200,10 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Adicionar transação</string>
-    <string name="widget_add_title">Adicionar</string>
-    <string name="widget_add_subtitle">Transação</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">Orçamento mensal</string>
-    <string name="widget_budget_tap_to_set_up">Toque para configurar</string>
     <string name="widget_budget_percent_used">%1$d%% usado</string>
     <string name="widget_budget_of_limit">De %1$s</string>
-    <string name="widget_budget_left">%1$s restante</string>
-    <string name="widget_budget_over">%1$s acima</string>
     <string name="widget_budget_per_day">%1$s/dia</string>
     <string name="widget_budget_saved">%1$s Salvo</string>
     <!-- Spending pie widget -->

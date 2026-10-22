@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker preview for the budget widget: what's left, the bar, the limit. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:gravity="center_vertical"
     android:orientation="vertical"
     android:padding="16dp"
-    android:gravity="center_vertical"
-    android:theme="@android:style/Theme.DeviceDefault.DayNight"
-    android:background="?android:attr/colorBackground">
+    android:theme="@style/Theme.Pennywisecompose">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -17,84 +18,52 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Monthly Budget"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="?android:attr/textColorSecondary" />
+            android:maxLines="1"
+            android:text="@string/widget_budget_title"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="14sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="56% used"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="#2E7D32" />
+            android:text="57%"
+            android:textColor="?android:attr/colorAccent"
+            android:textSize="14sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="₹45,000"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="#2E7D32" />
+        android:text="@string/widget_budget_left_label"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="8dp"
-        android:layout_marginTop="8dp"
-        android:background="#E0E0E0">
-
-        <FrameLayout
-            android:layout_width="160dp"
-            android:layout_height="match_parent"
-            android:background="#2E7D32" />
-    </FrameLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
+        android:text="1,560"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="24sp"
+        android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="of ₹80,000"
-            android:textSize="12sp"
-            android:textColor="?android:attr/textColorSecondary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="₹35,000 left"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary" />
-    </LinearLayout>
-
-    <LinearLayout
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="8dp"
+        android:max="100"
+        android:progress="57"
+        android:progressBackgroundTint="?android:attr/colorControlHighlight"
+        android:progressTint="?android:attr/colorAccent" />
+
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="₹2,333/day"
-            android:textSize="11sp"
-            android:textColor="?android:attr/textColorSecondary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Saved ₹30,000 ↑"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:textColor="#2E7D32" />
-    </LinearLayout>
+        android:layout_marginTop="4dp"
+        android:maxLines="1"
+        android:text="@string/widget_budget_preview_meta"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="12sp" />
 </LinearLayout>

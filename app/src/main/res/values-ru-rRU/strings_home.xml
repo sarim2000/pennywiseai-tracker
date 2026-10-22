@@ -223,15 +223,10 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Добавить транзакцию</string>
-    <string name="widget_add_title">Добавить</string>
-    <string name="widget_add_subtitle">Транзакция</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">Ежемесячный бюджет</string>
-    <string name="widget_budget_tap_to_set_up">Нажмите, чтобы настроить</string>
     <string name="widget_budget_percent_used">%1$d%% использовано</string>
     <string name="widget_budget_of_limit">из %1$s</string>
-    <string name="widget_budget_left">%1$s осталось</string>
-    <string name="widget_budget_over">%1$s больше</string>
     <string name="widget_budget_per_day">%1$s/день</string>
     <string name="widget_budget_saved">Сохранено %1$s</string>
     <string name="widget_budget_overspent">Более %1$s</string>

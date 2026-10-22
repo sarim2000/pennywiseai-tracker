@@ -244,15 +244,10 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Přidat transakci</string>
-    <string name="widget_add_title">Přidat</string>
-    <string name="widget_add_subtitle">Transakce</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">Měsíční rozpočet</string>
-    <string name="widget_budget_tap_to_set_up">Klepnutím nastavíte</string>
     <string name="widget_budget_percent_used">%1$d%% použito</string>
     <string name="widget_budget_of_limit">z %1$s</string>
-    <string name="widget_budget_left">%1$s zbývá</string>
-    <string name="widget_budget_over">%1$s nad</string>
     <string name="widget_budget_per_day">%1$s/den</string>
     <string name="widget_budget_saved">Uloženo %1$s</string>
     <string name="widget_budget_overspent">Přes %1$s</string>

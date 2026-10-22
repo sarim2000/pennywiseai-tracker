@@ -252,16 +252,11 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Add transaction</string>
-    <string name="widget_add_title">Add</string>
-    <string name="widget_add_subtitle">Transaction</string>
 
     <!-- Budget widget -->
-    <string name="widget_budget_title">Monthly Budget</string>
-    <string name="widget_budget_tap_to_set_up">Tap to set up</string>
+    <string name="widget_budget_title">Monthly budget</string>
     <string name="widget_budget_percent_used">%1$d%% used</string>
     <string name="widget_budget_of_limit">of %1$s</string>
-    <string name="widget_budget_left">%1$s left</string>
-    <string name="widget_budget_over">%1$s over</string>
     <string name="widget_budget_per_day">%1$s/day</string>
     <string name="widget_budget_saved">Saved %1$s</string>
     <string name="widget_budget_overspent">Over %1$s</string>

@@ -7,10 +7,8 @@
     <string name="widget_name_recent">المعاملات الأخيرة</string>
     <string name="widget_name_category_pie">مخطط الإنفاق الدائري</string>
     <string name="widget_description_category_pie">إنفاق هذا الشهر حسب الفئة في مخطط دائري مع وسيلة إيضاح.</string>
-    <string name="widget_name_add_transaction">إضافة معاملة</string>
-    <string name="widget_description_add_transaction">اضغط لإضافة معاملة يدوية بسرعة دون فتح التطبيق.</string>
+    <string name="widget_name_add_transaction">صرف نقدي</string>
     <string name="widget_name_summary">ملخص المصاريف</string>
-    <string name="widget_description_summary">مصاريف اليوم والشهر، مع زر إضافة سريع.</string>
     <string name="tile_add_transaction">إضافة معاملة</string>
     <string name="shortcut_add_transaction_short">إضافة</string>
     <string name="shortcut_add_transaction_long">إضافة معاملة</string>

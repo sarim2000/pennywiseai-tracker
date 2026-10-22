@@ -264,11 +264,7 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Ostatní</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Poslední transakce</string>
-    <string name="widget_recent_add">Přidat transakci</string>
-    <string name="widget_recent_total_spend">Celkové výdaje tento měsíc</string>
     <string name="widget_recent_empty">Zatím žádné transakce</string>
-    <string name="widget_recent_empty_hint">Klepněte na + pro ruční přidání</string>
     <string name="widget_recent_fallback_title">Transakce</string>
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->

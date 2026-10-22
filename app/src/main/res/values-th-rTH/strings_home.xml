@@ -117,7 +117,6 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">อื่นๆ</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">เพิ่มรายการธุรกรรม</string>
     <string name="widget_recent_empty">ยังไม่มีรายการธุรกรรม</string>
     <string name="widget_recent_fallback_title">ธุรกรรม</string>
     <!-- ══ Notifications ══ -->

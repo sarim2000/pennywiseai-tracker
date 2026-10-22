@@ -239,11 +239,7 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Sonstiges</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Letzte Transaktionen</string>
-    <string name="widget_recent_add">Transaktion hinzufügen</string>
-    <string name="widget_recent_total_spend">Gesamtsumme in diesem Monat</string>
     <string name="widget_recent_empty">Noch keine Transaktionen</string>
-    <string name="widget_recent_empty_hint">Tippen + um manuell hinzuzufügen</string>
     <string name="widget_recent_fallback_title">Transaktion</string>
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->

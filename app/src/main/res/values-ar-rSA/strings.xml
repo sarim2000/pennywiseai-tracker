@@ -5,7 +5,6 @@
     <string name="widget_description_budget">يعرض تقدّم ميزانيتك الشهرية ومدخراتك والمبلغ المتاح لك يوميًا بنظرة سريعة.</string>
     <string name="widget_loading">جارٍ تحميل الأداة…</string>
     <string name="widget_name_recent">المعاملات الأخيرة</string>
-    <string name="widget_description_recent">اطّلع على إنفاقك الشهري وأحدث معاملاتك بنظرة سريعة.</string>
     <string name="widget_name_category_pie">مخطط الإنفاق الدائري</string>
     <string name="widget_description_category_pie">إنفاق هذا الشهر حسب الفئة في مخطط دائري مع وسيلة إيضاح.</string>
     <string name="widget_name_add_transaction">إضافة معاملة</string>

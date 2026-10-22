@@ -299,12 +299,8 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">أخرى</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">المعاملات الأخيرة</string>
-    <string name="widget_recent_add">إضافة عملية</string>
-    <string name="widget_recent_total_spend">إجمالي الإنفاق هذا الشهر</string>
     <string name="widget_recent_empty">لا توجد معاملات بعد</string>
-    <string name="widget_recent_empty_hint">انقر + لإضافة يدوياً</string>
-    <string name="widget_recent_fallback_title">المعاملة</string>
+    <string name="widget_recent_fallback_title">معاملة</string>
     <string name="widget_summary_today">اليوم</string>
     <string name="widget_summary_month">هذا الشهر</string>
     <!-- ══ Notifications ══ -->

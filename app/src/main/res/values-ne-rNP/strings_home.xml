@@ -107,7 +107,6 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">अन्य</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">लेनदेन थप्नुहोस्</string>
     <string name="widget_recent_empty">अझै कुनै लेनदेन छैन</string>
     <string name="widget_recent_fallback_title">लेनदेन</string>
     <!-- ══ Notifications ══ -->

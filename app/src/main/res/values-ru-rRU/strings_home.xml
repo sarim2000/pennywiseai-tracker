@@ -243,11 +243,7 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Другое</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Последние транзакции</string>
-    <string name="widget_recent_add">Добавить транзакцию</string>
-    <string name="widget_recent_total_spend">Всего потрачено в этом месяце</string>
     <string name="widget_recent_empty">Транзакций ещё нет</string>
-    <string name="widget_recent_empty_hint">Нажмите +, чтобы добавить вручную</string>
     <string name="widget_recent_fallback_title">Транзакция</string>
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->

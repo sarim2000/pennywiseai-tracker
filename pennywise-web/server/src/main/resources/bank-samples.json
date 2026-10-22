@@ -1122,6 +1122,17 @@
       "reference": null,
       "balance": null
     },
+    "Suryoday Small Finance Bank": {
+      "sender": "JM-SSFBNK-T",
+      "message": "Rs 553.00 spent on Stable Money Suryoday SFB CC 1111 on 20-10-2026 at 23:38:50. Avlb Rs 41628.18 Not you SMS BLOCK CC 1111 to 9000000000. Convert to EMI? visit: https://cc.suryoday.bank.in/emi-web SSFBNK-T",
+      "currency": "INR",
+      "amount": "553.00",
+      "type": "CREDIT",
+      "merchant": null,
+      "accountLast4": "1111",
+      "reference": null,
+      "balance": null
+    },
     "T-Bank": {
       "sender": "Tinkoff",
       "message": "Покупка, счет карты *1023. 3267 ₽. AZS 09117. Доступно 30672,14 ₽",

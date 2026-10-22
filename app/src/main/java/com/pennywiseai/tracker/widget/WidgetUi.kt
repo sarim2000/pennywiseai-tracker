@@ -140,10 +140,10 @@ private val LocalMirrored = staticCompositionLocalOf { false }
  * app's, so an Arabic app on an English phone got Arabic text laid out left
  * to right (and no parent direction can override that). When the two
  * disagree the widget mirrors itself: [WidgetRow] reverses its items and
- * [startAlignment] / [endAlignment] / [startTextAlign] swap edges. Glance
- * also turns start/end padding into left/right by its own guess of the
- * direction, so keep padding symmetric (horizontal = …) and space Row items
- * with Spacers.
+ * [startAlignment] / [endAlignment] swap edges; [startTextAlign] /
+ * [endTextAlign] pin text to the app's edges. Glance also turns start/end
+ * padding into left/right by its own guess of the direction, so keep
+ * padding symmetric (horizontal = …) and space Row items with Spacers.
  */
 @Composable
 fun WidgetRoot(privacy: WidgetPrivacy, content: @Composable () -> Unit) {
@@ -170,13 +170,27 @@ fun startAlignment(): Alignment.Horizontal = if (LocalMirrored.current) Alignmen
 @Composable
 fun endAlignment(): Alignment.Horizontal = if (LocalMirrored.current) Alignment.Start else Alignment.End
 
-/** Text aligned to the app's start edge; set it on any Text wider than its words. */
+/**
+ * Text aligned to the app's start edge; set it on any Text wider than its
+ * words. A TextView reads Start/End against each line's own direction (an
+ * Arabic line's start is its right, a Latin amount's its left), so this is
+ * the absolute side, which Glance sets as plain gravity from Android 12.
+ * Before 12 there's no per-app language, so Start/End already agree.
+ */
 @Composable
-fun startTextAlign(): TextAlign = if (LocalMirrored.current) TextAlign.End else TextAlign.Start
+fun startTextAlign(): TextAlign = when {
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> TextAlign.Start
+    LocalContext.current.isRtlLayout -> TextAlign.Right
+    else -> TextAlign.Left
+}
 
-/** Text aligned to the app's end edge (amounts at the row's end). */
+/** Text aligned to the app's end edge (amounts at the row's end); see [startTextAlign]. */
 @Composable
-fun endTextAlign(): TextAlign = if (LocalMirrored.current) TextAlign.Start else TextAlign.End
+fun endTextAlign(): TextAlign = when {
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> TextAlign.End
+    LocalContext.current.isRtlLayout -> TextAlign.Left
+    else -> TextAlign.Right
+}
 
 /** Collects a [WidgetRow]'s items in the app's reading order. */
 class WidgetRowItems {

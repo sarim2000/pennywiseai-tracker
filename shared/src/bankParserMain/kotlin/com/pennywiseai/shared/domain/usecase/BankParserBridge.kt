@@ -21,9 +21,9 @@ internal actual fun parseWithBankParsers(sender: String, body: String, receivedA
             bankName = parsed.bankName,
             // Android's hash formula, keyed on the bank instead of the raw sender: a Shortcut may
             // pass "AX-HDFCBK-S", or nothing (then the sender is guessed from the body), and both
-            // must dedupe as the same SMS.
-            transactionHash = parsed.transactionHash?.takeIf { it.isNotBlank() }
-                ?: parsed.copy(sender = parsed.bankName).generateTransactionId(),
+            // must dedupe as the same SMS. A parser's own hash is skipped for the same reason
+            // (JK Bank's mixes in the sender); the formula still catches the identical SMS.
+            transactionHash = parsed.copy(sender = parsed.bankName).generateTransactionId(),
             isFromCard = parsed.isFromCard,
             currency = parsed.currency,
             accountCurrency = parsed.accountCurrency,

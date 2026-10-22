@@ -23,7 +23,7 @@ struct BankSmsSetupScreen: View {
         "Choose Message.",
         "Under Sender, enter your bank's sender ID from the list below.",
         "Choose Run Immediately, then tap Next.",
-        "Add the action \u{201C}Add bank SMS to PennyWise\u{201D} and set its Message to Shortcut Input."
+        "Add the action \u{201C}Add bank SMS to PennyWise\u{201D}. Set Message to Shortcut Input, then tap the arrow and set Sender to the same sender ID."
     ]
 
     var body: some View {
@@ -110,8 +110,10 @@ struct BankSmsSetupScreen: View {
         let sample = "Sent Rs.450.00 From HDFC Bank A/C *0000 To GroceryMart On \(date) Ref \(ref) Not You? Call 18000000000/SMS BLOCK UPI to 7000000000"
         let outcome = BankSmsImport.run(sender: "AX-HDFCBK-S", body: sample)
         if let id = outcome.savedTransactionId {
-            _ = PennyWiseSharedFacade.companion.shared.deleteTransaction(transactionId: id)
-            testResult = "\(outcome.message). It works. The sample has been removed."
+            let removed = PennyWiseSharedFacade.companion.shared.deleteTransaction(transactionId: id)
+            testResult = removed
+                ? "\(outcome.message). It works. The sample has been removed."
+                : "\(outcome.message). It works, but the sample couldn't be removed. Delete it from Transactions."
         } else {
             testResult = outcome.message
         }

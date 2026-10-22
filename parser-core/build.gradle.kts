@@ -72,6 +72,11 @@ tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     maxParallelForks = maxOf(1, Runtime.getRuntime().availableProcessors() / 2)
 }
 
+// IosParityTest reads the JVM-generated golden file from the host filesystem.
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest>().configureEach {
+    environment("SIMCTL_CHILD_PARITY_FILE", file("src/test/resources/ios-parity.tsv").absolutePath)
+}
+
 // Keep compatibility with existing CI/scripts that invoke :parser-core:test
 tasks.register("test") {
     group = "verification"

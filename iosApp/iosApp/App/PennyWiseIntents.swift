@@ -39,6 +39,9 @@ struct LogExpenseIntent: AppIntent {
     static var title: LocalizedStringResource = "Log expense in PennyWise"
     static var description = IntentDescription("Adds an expense in your default currency.")
     static var openAppWhenRun = false
+    // Writing an expense from a locked phone (Siri) needs the owner. iOS 16 has no such policy.
+    @available(iOS 17.0, *)
+    static var authenticationPolicy: IntentAuthenticationPolicy { .requiresAuthentication }
 
     @Parameter(title: "Amount")
     var amount: Double
@@ -46,7 +49,9 @@ struct LogExpenseIntent: AppIntent {
     @Parameter(title: "Merchant")
     var merchant: String
 
-    @Parameter(title: "Category", optionsProvider: ExpenseCategoryOptions())
+    // Free text matched to an existing category. No options list: a provider would read the
+    // user's categories before any unlock, and an options provider can't require one.
+    @Parameter(title: "Category")
     var category: String?
 
     static var parameterSummary: some ParameterSummary {
@@ -83,14 +88,6 @@ struct LogExpenseIntent: AppIntent {
         )
         if let error = snapshot.lastError { return error }
         return "Logged \(CurrencyFormatter.format(amountMinor: amountMinor, currencyCode: currency)) at \(name)"
-    }
-}
-
-struct ExpenseCategoryOptions: DynamicOptionsProvider {
-    func results() async throws -> [String] {
-        let facade = PennyWiseSharedFacade.companion.shared
-        _ = facade.initializeAndLoadHome() // seeds categories if the app has never been opened
-        return facade.getAllCategories().filter { !$0.isIncome }.map(\.name)
     }
 }
 

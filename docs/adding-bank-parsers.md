@@ -53,9 +53,13 @@ Use `ParsedTransaction` from parser-core:
 The same sources also compile for iOS, where `parser-core/src/iosMain` stands
 in for the JDK: `BigDecimal` (string constructor, `toBigDecimal[OrNull]`,
 `setScale`, `+ - *`, comparisons), `RoundingMode`, `Normalizer` and
-`Currency.getInstance`. Any other `java.*` API (or a new `BigDecimal` method)
-breaks the iOS build, which CI doesn't run — add it to the stand-in, or check
-with `./gradlew :parser-core:compileKotlinIosSimulatorArm64` on a Mac.
+`Currency.getInstance`. Any other `java.*` API, `String.format`/`.format(`,
+`Math.`/`Character.`/`System.`/`Locale`, or a `BigDecimal` method the stand-in
+lacks (`stripTrailingZeros`, `pow`, `movePoint…`, …) breaks the iOS build.
+`IosCompatibilityTest` (part of `:parser-core:test`, so CI) fails on those;
+add the API to the stand-in or avoid it. On a Mac,
+`./gradlew :parser-core:iosSimulatorArm64Test` also checks that every sample
+in `src/test/resources/ios-parity.tsv` parses the same on iOS as on the JVM.
 
 ## Using a parser result in the app
 Convert with `com.pennywiseai.tracker.data.mapper.toEntity()`, which maps

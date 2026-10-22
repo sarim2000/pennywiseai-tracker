@@ -111,9 +111,11 @@ struct AddEditSubscriptionScreen: View {
         let separator = Locale.current.decimalSeparator ?? "."
         let normalized = amountText.trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: separator, with: ".")
-        guard let value = Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX")),
-              value > 0, value < 1_000_000_000_000 else { return 0 }
-        return Int64((NSDecimalNumber(decimal: value).doubleValue * 100).rounded())
+        // Plain digits with an optional fraction only: "1,234.56", "1e3",
+        // hex or "inf" are rejected, never read as a different amount.
+        guard normalized.range(of: #"^[0-9]+(\.[0-9]+)?$"#, options: .regularExpression) != nil,
+              let value = Double(normalized), value > 0, value < 1_000_000_000_000 else { return 0 }
+        return Int64((value * 100).rounded())
     }
 
     private func save() {

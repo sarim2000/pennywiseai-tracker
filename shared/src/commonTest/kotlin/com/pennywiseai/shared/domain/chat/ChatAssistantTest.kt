@@ -40,7 +40,7 @@ class ChatAssistantTest {
         assertEquals("INR", add.draft.currency)
         assertTrue(transactions.rows.isEmpty(), "nothing is written by the proposal")
 
-        assertEquals("Added INR 120.00 at Starbucks (Food & Dining).", assistant.confirm(add))
+        assertNull(assistant.confirm(add))
         assertEquals(1, transactions.rows.size)
         assertEquals("Starbucks", transactions.rows.single().merchantName)
     }

@@ -197,9 +197,9 @@ class PennyWiseSharedFacade {
         newMerchant: String
     ): ChatToolResult = runBlocking { chatAssistant.proposeChange(delete, words, amount, daysAgo, newCategory, newMerchant) }
 
-    /** The user tapped the card's confirm button. */
+    /** The user tapped the card's confirm button. Null when applied, else why it wasn't. */
     @Throws(Exception::class)
-    fun chatConfirm(action: PendingChatAction): String = runBlocking { chatAssistant.confirm(action) }
+    fun chatConfirm(action: PendingChatAction): String? = runBlocking { chatAssistant.confirm(action) }
 
     fun initializeAndLoadHome(): SharedHomeSnapshot = safeSnapshot {
         runBlocking {

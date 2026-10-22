@@ -186,18 +186,19 @@ final class ChatViewModel: ObservableObject {
         guard !text.isEmpty, !isResponding else { return }
         pending = nil // a new message supersedes a card still waiting
         error = nil
+        streaming = "" // busy from the tap on: a second tap can't start a second turn
 
         Task {
             do {
                 let session = try await sessionForTurn()
                 let contextSize = SystemLanguageModel.default.contextSize
                 guard ChatPrompt.shared.fitsBudget(context: contextTexts, nextMessage: text, contextSize: Int32(clamping: contextSize)) else {
+                    streaming = nil
                     error = Self.chatFull
                     return
                 }
                 lines.append(ChatLine(text: text, isUser: true))
                 context.startTurn(text)
-                streaming = ""
                 for try await snapshot in session.streamResponse(to: text) {
                     streaming = snapshot.content
                 }
@@ -249,9 +250,9 @@ final class ChatViewModel: ObservableObject {
         Task {
             defer { isConfirming = false }
             do {
-                let line = try await Task.detached { try facade.chatConfirm(action: action) }.value
+                let failure = try await Task.detached { try facade.chatConfirm(action: action) }.value
                 pending = nil
-                lines.append(ChatLine(text: line, isUser: false))
+                lines.append(ChatLine(text: failure.map { "Nothing changed: \($0)." } ?? Self.done(action), isUser: false))
             } catch {
                 self.error = "Couldn't apply that: \(error.localizedDescription)"
             }
@@ -273,6 +274,27 @@ final class ChatViewModel: ObservableObject {
         contextTexts = []
     }
 
+    /// "Added ₹120 at Starbucks (Food & Dining)." Each amount in its own currency.
+    private static func done(_ action: PendingChatAction) -> String {
+        func money(_ minor: Int64, _ currency: String) -> String {
+            CurrencyFormatter.format(amountMinor: minor, currencyCode: currency)
+        }
+        switch action {
+        case let add as PendingChatAction.Add:
+            let d = add.draft
+            return "Added \(money(d.amountMinor, d.currency)) \(d.type.name == "INCOME" ? "from" : "at") \(d.merchant) (\(d.category))."
+        case let delete as PendingChatAction.Delete:
+            let t = delete.transaction
+            return "Deleted \(money(t.amountMinor, t.currency)) at \(t.merchantName)."
+        case let update as PendingChatAction.Update:
+            let t = update.transaction
+            return "Updated \(money(t.amountMinor, t.currency)) at \(update.newMerchant ?? t.merchantName)"
+                + (update.newCategory.map { " → \($0)" } ?? "") + "."
+        default:
+            return "Done."
+        }
+    }
+
     static let chatFull = "Chat is full. Start a new chat to keep going."
 
     private static func message(for error: Error) -> String {
@@ -285,10 +307,11 @@ final class ChatViewModel: ObservableObject {
             case .exceededContextWindowSize: return chatFull
             case .guardrailViolation, .refusal: return "I can't help with that one."
             case .unsupportedLanguageOrLocale: return "PennyWise AI doesn't support this language yet."
+            case .assetsUnavailable: return "Apple Intelligence is still getting ready. Try again in a few minutes."
             default: break
             }
         }
-        return "Something went wrong: \(error.localizedDescription)"
+        return "PennyWise AI couldn't answer that. Try again."
     }
 
     #if DEBUG

@@ -41,4 +41,20 @@ final class AiSmsReaderTests: XCTestCase {
             XCTAssertEqual(reading.type, sample.type, sample.sms)
         }
     }
+
+    /// The intent's path: saved and marked when the model can read it, queued for the next app open when it can't.
+    func testIntentPathReadsOrQueuesAnUnknownBankSms() async throws {
+        try XCTSkipUnless(OnDeviceAI.isAvailable, "Foundation Models unavailable here")
+        UserDefaults.standard.removeObject(forKey: "pendingAiSms")
+        defer { UserDefaults.standard.removeObject(forKey: "pendingAiSms") }
+
+        let outcome = await BankSmsImport.run(sender: nil, body: samples[0].sms)
+        if let id = outcome.savedTransactionId {
+            XCTAssertTrue(outcome.message.hasPrefix("Read by AI: ₹318"), outcome.message)
+            _ = PennyWiseSharedFacade.companion.shared.deleteTransaction(transactionId: id)
+        } else if outcome.message != "Already saved" { // a soft-deleted earlier run still dedupes
+            XCTAssertEqual(outcome.message, "PennyWise AI will read this message when you next open the app")
+            XCTAssertEqual((UserDefaults.standard.array(forKey: "pendingAiSms") ?? []).count, 1)
+        }
+    }
 }

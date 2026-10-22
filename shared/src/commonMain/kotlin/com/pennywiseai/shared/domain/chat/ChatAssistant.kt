@@ -158,8 +158,8 @@ class ChatAssistant(
         )
     }
 
-    /** The user tapped the card's confirm button. Returns the line for the chat. */
-    suspend fun confirm(action: PendingChatAction): String = when (action) {
+    /** The user tapped the card's confirm button. Null when applied, else why it wasn't. */
+    suspend fun confirm(action: PendingChatAction): String? = when (action) {
         is PendingChatAction.Add -> {
             val d = action.draft
             val result = createUseCase.execute(
@@ -176,20 +176,19 @@ class ChatAssistant(
                 )
             )
             when (result) {
-                is TransactionMutationResult.Success -> "Added ${money(d.amountMinor, d.currency)} " +
-                    "${if (d.type == SharedTransactionType.INCOME) "from" else "at"} ${d.merchant} (${d.category})."
-                is TransactionMutationResult.ValidationError -> "Couldn't add it: ${result.message}"
-                is TransactionMutationResult.NotFound -> "Couldn't add it: ${result.message}"
+                is TransactionMutationResult.Success -> null
+                is TransactionMutationResult.ValidationError -> result.message
+                is TransactionMutationResult.NotFound -> result.message
             }
         }
         is PendingChatAction.Delete -> {
             transactionRepository.softDelete(action.transaction.id, now())
-            "Deleted ${describe(action.transaction)}."
+            null
         }
         is PendingChatAction.Update -> {
             val current = transactionRepository.getById(action.transaction.id)
             if (current == null || current.isDeleted) {
-                "That transaction is gone, nothing changed."
+                "That transaction is gone"
             } else {
                 transactionRepository.update(
                     current.copy(
@@ -198,8 +197,7 @@ class ChatAssistant(
                         updatedAtEpochMillis = now()
                     )
                 )
-                "Updated ${money(current.amountMinor, current.currency)} at ${action.newMerchant ?: current.merchantName}" +
-                    (action.newCategory?.let { " → $it" } ?: "") + "."
+                null
             }
         }
     }

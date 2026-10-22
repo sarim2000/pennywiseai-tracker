@@ -87,7 +87,7 @@ struct ChatScreen: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.sm + 2)
                             .padding(.horizontal, AppSpacing.md)
-                            .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled),
+                            .background(AppColors.surface(isAmoled: isAmoled),
                                         in: RoundedRectangle(cornerRadius: AppCornerRadius.medium))
                     }
                     .buttonStyle(.plain)
@@ -116,7 +116,7 @@ struct ChatScreen: View {
                 .padding(.horizontal, AppSpacing.md - 2)
                 .foregroundStyle(isUser ? Color.white : Color.primary)
                 .background(
-                    isUser ? AnyShapeStyle(.tint) : AnyShapeStyle(AppColors.secondaryGroupedBackground(isAmoled: isAmoled)),
+                    isUser ? AnyShapeStyle(.tint) : AnyShapeStyle(AppColors.surface(isAmoled: isAmoled)),
                     in: RoundedRectangle(cornerRadius: AppCornerRadius.large)
                 )
             if !isUser { Spacer(minLength: AppSpacing.xl) }
@@ -131,7 +131,7 @@ struct ChatScreen: View {
                 .focused($inputFocused)
                 .padding(.vertical, AppSpacing.sm)
                 .padding(.horizontal, AppSpacing.md - 4)
-                .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled),
+                .background(AppColors.surface(isAmoled: isAmoled),
                             in: RoundedRectangle(cornerRadius: AppCornerRadius.xl))
                 .onSubmit { send(input) }
             Button {
@@ -252,21 +252,25 @@ private struct ConfirmCard: View {
                 .font(AppTypography.body)
             }
             HStack(spacing: AppSpacing.sm) {
-                Button("Cancel", action: onCancel)
-                    .buttonStyle(.bordered)
-                    .frame(maxWidth: .infinity)
+                Button(action: onCancel) {
+                    Text("Cancel").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
                 Button(role: m.destructive ? .destructive : nil, action: onConfirm) {
-                    if isBusy { ProgressView() } else { Text(m.verb).bold() }
+                    Group {
+                        if isBusy { ProgressView() } else { Text(m.verb).bold() }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                .tint(m.destructive ? AppColors.expense : nil)
             }
             .controlSize(.large)
             .disabled(isBusy)
             .padding(.top, AppSpacing.xs)
         }
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled),
+        .background(AppColors.surface(isAmoled: isAmoled),
                     in: RoundedRectangle(cornerRadius: AppCornerRadius.large))
         .padding(.horizontal, AppSpacing.md)
     }

@@ -128,7 +128,7 @@ enum BankSmsImport {
         }
 
         let knownBank = (result as? BankSmsImportResult.Unparsed)?.bankName
-        if result is BankSmsImportResult.NotATransaction || knownBank != nil, OnDeviceAI.status != .unsupported {
+        if result is BankSmsImportResult.NotATransaction || knownBank != nil, OnDeviceAI.isAvailable {
             do {
                 let reading = try await AiSmsReader.read(body)
                 let aiResult = try facade.importAiReadSms(body: body, receivedAtEpochMillis: at, reading: reading, knownBank: knownBank)

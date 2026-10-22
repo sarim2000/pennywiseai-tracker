@@ -305,6 +305,7 @@
     <string name="widget_recent_empty">لا توجد معاملات بعد</string>
     <string name="widget_recent_empty_hint">انقر + لإضافة يدوياً</string>
     <string name="widget_recent_fallback_title">المعاملة</string>
+    <!-- Spending summary widget -->
     <string name="widget_summary_today">اليوم</string>
     <string name="widget_summary_month">هذا الشهر</string>
     <!-- ══ Notifications ══ -->
@@ -326,11 +327,14 @@
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s معاملة جديدة</string>
     <string name="notif_txn_public_text">%1$s • يحتاج التوازن إلى مظهر</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">صرفت %1$s في %2$s</string>
     <string name="notif_txn_title_received">استلمت %1$s من %2$s</string>
     <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">على ماذا صرفتها؟ · %1$s</string>
     <string name="notif_txn_action_change">تغيير</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">حُفظت في %1$s</string>
     <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>
     <plurals name="notif_txn_learned_moved">
@@ -341,8 +345,10 @@
         <item quantity="many">ونُقلت %d عملية سابقة أيضاً.</item>
         <item quantity="other">ونُقلت %d عملية سابقة أيضاً.</item>
     </plurals>
+    <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">الملخص اليومي</string>
     <string name="notif_daily_channel_description">ملخص قصير لمصاريف اليوم كل مساء</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">صرفت اليوم %1$s</string>
     <plurals name="notif_daily_count">
         <item quantity="zero">لا عمليات</item>

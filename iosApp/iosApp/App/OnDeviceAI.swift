@@ -146,9 +146,10 @@ enum PendingAiSms {
         defer { lock.withLock { draining = false } }
         while let entry = lock.withLock({ load().first }) {
             let outcome = await BankSmsImport.run(sender: entry.sender, body: entry.body, receivedAt: entry.receivedAt, allowQueue: false)
-            // If the entry can't be removed (disk full), stop: retrying it in a loop helps nobody.
-            guard lock.withLock({ save(load().filter { $0.id != entry.id }) }) else { return }
+            let removed = lock.withLock { save(load().filter { $0.id != entry.id }) }
             if let alert = outcome.alert { await BankSmsImport.notify(alert) }
+            // If the entry can't be removed (disk full), stop: retrying it in a loop helps nobody.
+            guard removed else { return }
         }
     }
 

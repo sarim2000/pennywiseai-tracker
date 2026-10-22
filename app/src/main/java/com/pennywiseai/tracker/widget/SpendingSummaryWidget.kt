@@ -62,11 +62,10 @@ class SpendingSummaryWidget : GlanceAppWidget() {
             RecentTransactionsWidgetDataStore.getData(context).first()
         } ?: RecentTransactionsWidgetData()
 
+        val privacy = WidgetPrivacy.load(context)
         provideContent {
             val data by remember { RecentTransactionsWidgetDataStore.getData(context) }.collectAsState(initial)
-            GlanceTheme(
-                colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) GlanceTheme.colors else PennyWiseWidgetTheme.colors
-            ) {
+            WidgetRoot(privacy) {
                 Content(data)
             }
         }
@@ -75,21 +74,24 @@ class SpendingSummaryWidget : GlanceAppWidget() {
     @Composable
     private fun Content(data: RecentTransactionsWidgetData) {
         val context = LocalContext.current
-        Row(
+        val wide = LocalSize.current.width >= WIDE.width
+        WidgetRow(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
-                .padding(start = Spacing.md, end = Spacing.sm)
+                .padding(horizontal = Spacing.md)
                 .clickable(actionStartActivity<MainActivity>()),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Figure(
-                label = context.getString(R.string.widget_summary_today),
-                amount = data.todaySpent,
-                currency = data.currency,
-                modifier = GlanceModifier.defaultWeight()
-            )
-            if (LocalSize.current.width >= WIDE.width) {
+            item {
+                Figure(
+                    label = context.getString(R.string.widget_summary_today),
+                    amount = data.todaySpent,
+                    currency = data.currency,
+                    modifier = GlanceModifier.defaultWeight()
+                )
+            }
+            if (wide) item {
                 Figure(
                     label = context.getString(R.string.widget_summary_month),
                     amount = data.totalSpent,
@@ -97,42 +99,16 @@ class SpendingSummaryWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.defaultWeight()
                 )
             }
-            Spacer(GlanceModifier.width(Spacing.xs))
-            // A 48dp touch target around the smaller visible button.
-            Box(
-                modifier = GlanceModifier
-                    .size(Dimensions.Component.minTouchTarget)
-                    .clickable(actionRunCallback<OpenAddTransactionAction>()),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = GlanceModifier
-                        .size(ADD_BUTTON)
-                        .cornerRadius(ADD_BUTTON / 2)
-                        .background(GlanceTheme.colors.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        provider = ImageProvider(R.drawable.ic_widget_add),
-                        contentDescription = context.getString(R.string.widget_add_content_description),
-                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary),
-                        modifier = GlanceModifier.size(Dimensions.Icon.inline)
-                    )
-                }
-            }
+            item { AddButton(actionRunCallback<OpenAddTransactionAction>(), context.getString(R.string.widget_add_content_description)) }
         }
     }
 
     @Composable
     private fun Figure(label: String, amount: BigDecimal, currency: String, modifier: GlanceModifier) {
-        Column(modifier = modifier) {
+        Column(modifier = modifier, horizontalAlignment = startAlignment()) {
+            WidgetLabel(label)
             Text(
-                text = label,
-                maxLines = 1,
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp)
-            )
-            Text(
-                text = CurrencyFormatter.formatCurrency(amount, currency),
+                text = totalText(amount, currency),
                 maxLines = 1,
                 style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             )

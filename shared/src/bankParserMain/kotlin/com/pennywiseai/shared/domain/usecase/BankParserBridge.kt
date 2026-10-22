@@ -20,24 +20,39 @@ internal actual fun parseBankSms(sender: String?, body: String, receivedAt: Long
 
 /**
  * Shortcuts' Message trigger hands over the text, not always the sender, so the
- * bank is guessed from the body. A bank named in full ("… -Federal Bank") wins,
- * the one named last first; then single words scanned from the end, where
- * Indian banks sign off ("… -SBI"). Words near the start are usually the payee
- * ("to INDIAN OIL CORP") and would pick the wrong bank.
+ * bank is guessed from the body, in this order:
+ *  1. a header or sign-off marker: "HSBC: Dear …", "BOI - Rs …", "… -SBI";
+ *  2. a bank named in full, the one named last first ("… -Federal Bank");
+ *  3. single words, scanned from the end, where Indian banks sign off;
+ *  4. last, any bank that only appears as the other side ("to INDIAN OIL CORP",
+ *     "credited to the HDFC A/c"): that's the payee, not the bank texting you.
  */
 private fun guessSenders(body: String): List<Pair<BankParser, String>> {
+    fun isPayee(at: Int) = PAYEE_LEAD.containsMatchIn(body.substring(0, at))
+    val markers = (HEADER.find(body)?.groupValues?.get(1)?.let(::listOf).orEmpty() +
+        SIGN_OFF.findAll(body.takeLast(40)).map { it.groupValues[1] }.toList().asReversed())
+        .map { it.uppercase() }
+        .flatMap { word -> BankParserFactory.getParsers(word).map { Triple(it, word, false) } }
     val named = BankParserFactory.getAllParsers()
         .mapNotNull { parser ->
             val name = parser.getBankName()
             Regex("""\b${Regex.escape(name)}\b""", RegexOption.IGNORE_CASE).findAll(body).lastOrNull()
-                ?.let { Triple(parser, name, it.range.first) }
+                ?.let { parser to it.range }
         }
-        .sortedWith(compareByDescending<Triple<BankParser, String, Int>> { it.third }.thenByDescending { it.second.length })
-        .map { (parser, name) -> parser to name }
-    val words = BODY_WORD.findAll(body).map { it.value.uppercase() }.toList().asReversed().distinct()
-        .flatMap { word -> BankParserFactory.getParsers(word).map { it to word } }
-    return named + words
+        // Named last first; a name inside a longer one ("Indian Bank" in "South Indian Bank") yields to it.
+        .sortedWith(compareByDescending<Pair<BankParser, IntRange>> { it.second.last }.thenByDescending { it.second.first.unaryMinus() })
+        .map { (parser, range) -> Triple(parser, parser.getBankName(), isPayee(range.first)) }
+    val words = BODY_WORD.findAll(body).toList().asReversed()
+        .distinctBy { it.value.uppercase() }
+        .flatMap { m -> BankParserFactory.getParsers(m.value.uppercase()).map { Triple(it, m.value.uppercase(), isPayee(m.range.first)) } }
+    val all = markers + named + words
+    return (all.filterNot { it.third } + all.filter { it.third }).map { it.first to it.second }
 }
+
+private val HEADER = Regex("""^\s*([A-Za-z][A-Za-z0-9]{1,14})\s*(?::|-\s)""")
+private val SIGN_OFF = Regex("""-\s*([A-Za-z][A-Za-z0-9]{1,14})\b""")
+/** "to X" / "to the X" right before a bank word marks the payee ("to your X" is the user's own account). */
+private val PAYEE_LEAD = Regex("""\bto(\s+the)?\s+$""", RegexOption.IGNORE_CASE)
 
 /** The first parser that reads the body wins; one that throws is skipped, never aborting the rest. */
 private fun attempt(candidates: List<Pair<BankParser, String>>, body: String, receivedAt: Long): BankParseAttempt {

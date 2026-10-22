@@ -145,6 +145,17 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun theRecipientsBankDoesntTakeOverAnOutgoingTransfer() = runTest {
+        // Sent from HSBC (header marker) to someone's HDFC account: HDFC's parser would call it income.
+        val hsbc = "HSBC: Dear HSBC Customer, your NEFT transaction with reference number HSBCN00000000000 for INR 150,000.00 has been credited to the HDFC A/c XXXXXXXXXX0000 of PERSON ONE on 01-01-2026 at 15:36:47 ."
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, hsbc, RECEIVED_AT)).transaction
+
+        assertEquals("HSBC Bank", saved.bankName)
+        assertEquals(SharedTransactionType.TRANSFER, saved.transactionType)
+    }
+
+    @Test
     fun anAbsurdAmountIsNoAmountAndDoesntAbortTheGuess() = runTest {
         // 17 integer digits: past iOS's BigDecimal, so no parser may throw its way out of the loop.
         val huge = "Rs 99999999999999999.00 debited via UPI on 22-10-2026 10:30:25 to VPA test.store@okbank.Ref No 000011112222.Small txns?Use UPI Lite!-Federal Bank"

@@ -156,6 +156,17 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun anIncomingCreditStaysWithTheBankNamedInFull() = runTest {
+        // "to HDFC Bank A/c" is the user's own account here; "from SBI" is the remitter.
+        val credit = "INR 2,000.00 credited to HDFC Bank A/c XX1234 from SBI. Avl Bal INR 8,000.00"
+
+        val result = useCase.execute(null, credit, RECEIVED_AT)
+
+        assertEquals("HDFC Bank", assertIs<BankSmsImportResult.Saved>(result).transaction.bankName)
+        assertEquals(emptyList(), accounts.balances.filter { it.bankName == "State Bank of India" })
+    }
+
+    @Test
     fun anAbsurdAmountIsNoAmountAndDoesntAbortTheGuess() = runTest {
         // 17 integer digits: past iOS's BigDecimal, so no parser may throw its way out of the loop.
         val huge = "Rs 99999999999999999.00 debited via UPI on 22-10-2026 10:30:25 to VPA test.store@okbank.Ref No 000011112222.Small txns?Use UPI Lite!-Federal Bank"

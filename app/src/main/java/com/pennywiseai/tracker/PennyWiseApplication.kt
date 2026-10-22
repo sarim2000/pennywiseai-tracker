@@ -19,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -89,6 +90,13 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // off still creates anything that came due while it was down.
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
+        // The evening recap is opt-in: scheduled only while its switch is on.
+        applicationScope.launch {
+            com.pennywiseai.tracker.worker.DailySummaryWorker.sync(
+                this@PennyWiseApplication,
+                userPreferencesRepository.dailySummaryEnabled.first()
+            )
+        }
         applicationScope.launch { webhookSyncScheduler.observeSchedule() }
 
         // Goal widgets (#914): one hook for every goal write (screens, Add to goal,

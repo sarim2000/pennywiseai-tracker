@@ -16,15 +16,18 @@ class MerchantMappingRepository @Inject constructor(
         return merchantMappingDao.getCategoryForMerchant(merchantName)
     }
     
-    suspend fun setMapping(merchantName: String, category: String) {
+    suspend fun setMapping(merchantName: String, category: String, updatedAt: LocalDateTime = LocalDateTime.now()) {
         merchantMappingDao.insertOrUpdateMapping(
             MerchantMappingEntity(
                 merchantName = merchantName,
                 category = category,
-                updatedAt = LocalDateTime.now()
+                updatedAt = updatedAt
             )
         )
     }
+
+    suspend fun getMapping(merchantName: String): MerchantMappingEntity? =
+        merchantMappingDao.getMapping(merchantName)
     
     suspend fun removeMapping(merchantName: String) {
         merchantMappingDao.deleteMapping(merchantName)
@@ -56,6 +59,15 @@ class MerchantMappingRepository @Inject constructor(
 internal fun List<MerchantMappingEntity>.toCategoryLookup(): Map<String, String> =
     sortedWith(compareBy<MerchantMappingEntity> { it.updatedAt }.thenByDescending { it.merchantName })
         .associateTo(java.util.TreeMap(SQLITE_NOCASE)) { it.merchantName to it.category }
+
+/**
+ * A mapping files only transactions of its category's kind, so a person you
+ * both pay and get paid by keeps "Food" on payments and "Income" on what they
+ * send back. [categoryIsIncome] is null for a category that no longer exists,
+ * which still applies as before.
+ */
+internal fun mappingFits(categoryIsIncome: Boolean?, type: com.pennywiseai.tracker.data.database.entity.TransactionType): Boolean =
+    categoryIsIncome == null || categoryIsIncome == (type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME)
 
 // SQLite's NOCASE folds ASCII letters only: "CAFÉ" and "Café" stay distinct
 // merchants there, so they must here too (String.CASE_INSENSITIVE_ORDER folds É).

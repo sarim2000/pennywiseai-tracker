@@ -8,5 +8,10 @@
             android:name="com.pennywiseai.tracker.debug.LlmProbeReceiver"
             android:exported="true"
             android:permission="android.permission.DUMP" />
+        <!-- Debug-only fake-SMS harness; see SmsProbeReceiver. Same DUMP guard. -->
+        <receiver
+            android:name="com.pennywiseai.tracker.debug.SmsProbeReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>

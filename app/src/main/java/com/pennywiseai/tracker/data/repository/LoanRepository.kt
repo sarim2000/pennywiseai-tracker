@@ -74,6 +74,28 @@ class LoanRepository @Inject constructor(
         return remainingFor(loan)
     }
 
+    /**
+     * What settled [loans] add to "Spent", per currency (#938): each forgiven
+     * balance counts once its source transaction passes [keep], the caller's
+     * profile/account filter. LoanEntity has no profile column, so the source
+     * transaction decides; a loan with no live linked transaction is skipped, as
+     * counting it everywhere would double it for users with several profiles.
+     * Home and the evening recap both total "Spent" through this.
+     */
+    suspend fun settlementLossByCurrency(
+        loans: List<LoanEntity>,
+        keep: (TransactionEntity) -> Boolean
+    ): Map<String, BigDecimal> {
+        val byCurrency = mutableMapOf<String, BigDecimal>()
+        for (loan in loans) {
+            val sourceTx = getOriginalTransactionForLoan(loan.id) ?: continue
+            if (!keep(sourceTx)) continue
+            val loss = getSettlementLoss(loan)
+            if (loss > BigDecimal.ZERO) byCurrency.merge(loan.currency, loss) { a, b -> a + b }
+        }
+        return byCurrency
+    }
+
     /** The loan's history; a split bill shows with this person's share as its loan part. */
     fun getTransactionsForLoan(loanId: Long): Flow<List<TransactionEntity>> = combine(
         loanDao.getTransactionsForLoan(loanId),

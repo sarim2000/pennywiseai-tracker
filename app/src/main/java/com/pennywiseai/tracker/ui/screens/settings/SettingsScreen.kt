@@ -138,6 +138,7 @@ fun SettingsScreen(
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val countCreditCardAsExpense by settingsViewModel.countCreditCardAsExpense.collectAsStateWithLifecycle(initialValue = false)
+    val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
@@ -180,6 +181,17 @@ fun SettingsScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         permissionViewModel.refreshNotificationAccess()
+    }
+    // The recap is a notification: on Android 13+ turning it on asks for the
+    // permission first, and a refusal leaves it off with a word on why.
+    val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setDailySummaryEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
+        }
     }
 
     // File picker for import
@@ -788,8 +800,30 @@ fun SettingsScreen(
                         val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                         notificationAccessLauncher.launch(intent)
                     },
-                    position = ListItemPosition.Single,
+                    position = ListItemPosition.Top,
                     trailingText = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_on) else stringResource(R.string.settings_notification_access_off)
+                )
+                SettingsSwitchRow(
+                    icon = Icons.Default.Schedule,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.settings_daily_summary_title),
+                    subtitle = stringResource(R.string.settings_daily_summary_subtitle),
+                    checked = dailySummaryEnabled,
+                    onCheckedChange = { enabled ->
+                        val needsPermission = enabled &&
+                            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.POST_NOTIFICATIONS
+                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                        if (needsPermission) {
+                            dailySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            settingsViewModel.setDailySummaryEnabled(enabled)
+                        }
+                    },
+                    position = ListItemPosition.Bottom
                 )
             }
 

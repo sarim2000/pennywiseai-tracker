@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
@@ -8,7 +9,9 @@ import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +36,8 @@ data class LoansUiState(
 class LoansViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoansUiState())
@@ -138,6 +142,8 @@ class LoansViewModel @Inject constructor(
     fun settleUp(person: LoanPerson) {
         viewModelScope.launch {
             loanRepository.settleLoans(person.activeLoans.map { it.id })
+            // Forgiven balances count as spent, so the widgets' totals move (#938).
+            WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 

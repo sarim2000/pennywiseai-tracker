@@ -52,6 +52,13 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     }
 )
 
+/**
+ * Whether the evening recap is on for someone who never touched its switch:
+ * off, an opt-in from Settings → Notifications. The single source of that
+ * default: the pref, the Settings switch and the scheduler all read it.
+ */
+const val DAILY_SUMMARY_DEFAULT = false
+
 @Singleton
 open class UserPreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context
@@ -66,6 +73,7 @@ open class UserPreferencesRepository @Inject constructor(
         val HAS_SKIPPED_SMS_PERMISSION = booleanPreferencesKey("has_skipped_sms_permission")
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
+        val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -335,6 +343,16 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun setCountCreditCardAsExpense(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.COUNT_CREDIT_AS_EXPENSE] = enabled
+        }
+    }
+
+    /** The 9 PM recap notification (DailySummaryWorker); default in [DAILY_SUMMARY_DEFAULT]. */
+    val dailySummaryEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] ?: DAILY_SUMMARY_DEFAULT }
+
+    suspend fun setDailySummaryEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] = enabled
         }
     }
     

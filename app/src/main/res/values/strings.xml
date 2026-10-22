@@ -9,6 +9,8 @@
     <string name="widget_description_category_pie">This month\'s spending by category as a pie chart with legend.</string>
     <string name="widget_name_add_transaction">Add Transaction</string>
     <string name="widget_description_add_transaction">Tap to quickly add a manual transaction without opening the app.</string>
+    <string name="widget_name_summary">Spending Summary</string>
+    <string name="widget_description_summary">Today\'s and this month\'s spending, with a quick add button.</string>
 
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Add Transaction</string>

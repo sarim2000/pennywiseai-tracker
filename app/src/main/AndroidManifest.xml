@@ -80,13 +80,17 @@
 
         <!-- Translucent picker launched from the "More categories…" txn-alert
              notification action (#303). singleTask + excludeFromRecents so a
-             second tap doesn't stack instances and it never shows in Recents. -->
+             second tap doesn't stack instances and it never shows in Recents.
+             Its own task (empty affinity), so picking doesn't bring the app's
+             task forward and leave the user inside PennyWise. No noHistory:
+             the app-lock PIN screen on API 26-27 is an activity started for a
+             result, and a noHistory picker would be finished under it. -->
         <activity
             android:name=".receiver.QuickCategoryPickerActivity"
             android:exported="false"
+            android:taskAffinity=""
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
-            android:noHistory="true"
             android:theme="@style/Theme.PennyWise.Transparent" />
 
         <!-- Quick Settings tile: swipe down -> tap -> Add Transaction -->
@@ -206,6 +210,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/recent_transactions_widget_info" />
+        </receiver>
+
+        <!-- Spending summary: today + this month + quick add, one row -->
+        <receiver
+            android:name=".widget.SpendingSummaryWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name_summary">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/spending_summary_widget_info" />
         </receiver>
 
         <!-- Goal widgets (#914): one chosen goal (2x2) and up to three goals (4x2) -->

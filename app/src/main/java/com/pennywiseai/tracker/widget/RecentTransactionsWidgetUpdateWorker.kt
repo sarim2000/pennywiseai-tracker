@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
@@ -27,6 +28,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
 
@@ -38,7 +40,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val loanRepository: LoanRepository
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -87,15 +90,17 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             // Scope to the selected profile and drop ignored accounts, like
             // the pie widget and the Transactions list.
             val ignored = ignoredAccountsStore.keys()
-            val allTransactions = filterTransactionsByProfile(
-                // Through end of today, like Home: an SMS can carry a timestamp a
-                // few seconds ahead of the device clock, and a `now` cutoff would
-                // drop it from the widget right after it arrives.
-                transactionRepository.getTransactionsBetweenDates(cycleStart, now).first()
-                    .filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
-                userPreferencesRepository.selectedProfileId.first(),
-                buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+            val profileId = userPreferencesRepository.selectedProfileId.first()
+            val profileKeys = buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalances().first())
+            fun counted(rows: List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>) = filterTransactionsByProfile(
+                rows.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
+                profileId,
+                profileKeys
             )
+            // Through end of today, like Home: an SMS can carry a timestamp a
+            // few seconds ahead of the device clock, and a `now` cutoff would
+            // drop it from the widget right after it arrives.
+            val allTransactions = counted(transactionRepository.getTransactionsBetweenDates(cycleStart, now).first())
 
             // Loan disbursements/repayments are tracked in the Loans feature, not
             // spending — exclude them, matching Home/Analytics. Analytics-excluded
@@ -114,21 +119,37 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             // Same spend definition as Home: card purchases only when the user
             // opted in (#705), investments never.
             val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
-            val grossSpent = nonLoan
-                .filter {
-                    it.transactionType == TransactionType.EXPENSE ||
-                        (creditAsExpense && it.transactionType == TransactionType.CREDIT)
-                }
-                .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
+            suspend fun spentIn(rows: List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>): BigDecimal {
+                val grossSpent = rows
+                    .filter {
+                        it.transactionType == TransactionType.EXPENSE ||
+                            (creditAsExpense && it.transactionType == TransactionType.CREDIT)
+                    }
+                    .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
-            // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
-            // shrinks the spend total (floored at zero) — matching the Home card and
-            // the Transactions page, which were already net of refunds.
-            val refundTotal = nonLoan
-                .filter { it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
-                .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
+                // A "Refund" (INCOME + DEDUCT_SPENT) reverses a previous expense, so it
+                // shrinks the spend total (floored at zero) — matching the Home card and
+                // the Transactions page, which were already net of refunds.
+                val refundTotal = rows
+                    .filter { it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+                    .fold(BigDecimal.ZERO) { acc, tx -> inTarget(tx)?.let { acc + it } ?: acc }
 
-            val totalSpent = (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
+                return (grossSpent - refundTotal).coerceAtLeast(BigDecimal.ZERO)
+            }
+
+            // Lent loans forgiven in the window are spent, as on Home (#938).
+            suspend fun lossSince(from: LocalDate): BigDecimal =
+                loanRepository.settlementLossByCurrency(
+                    loanRepository.getLentLoansSettledInPeriod(from.atStartOfDay(), now.atTime(LocalTime.MAX)).first()
+                ) { counted(listOf(it)).isNotEmpty() }
+                    .entries.fold(BigDecimal.ZERO) { acc, (currency, loss) ->
+                        val inTargetCurrency = if (currency.equals(targetCurrency, ignoreCase = true)) loss
+                        else currencyConversionService.convertAmountOrNull(loss, currency, targetCurrency)
+                        inTargetCurrency?.let { acc + it } ?: acc
+                    }
+
+            val totalSpent = spentIn(nonLoan) + lossSince(cycleStart)
+            val todaySpent = spentIn(nonLoan.filter { it.dateTime.toLocalDate() == now }) + lossSince(now)
 
             val formatter = DateTimeFormatter.ofPattern("MMM d")
 
@@ -165,12 +186,14 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
 
             val data = RecentTransactionsWidgetData(
                 totalSpent = totalSpent,
+                todaySpent = todaySpent,
                 currency = targetCurrency,
                 transactions = recentItems
             )
 
             RecentTransactionsWidgetDataStore.update(applicationContext, data)
             RecentTransactionsWidget().updateAll(applicationContext)
+            SpendingSummaryWidget().updateAll(applicationContext)
 
             Result.success()
         } catch (e: Exception) {

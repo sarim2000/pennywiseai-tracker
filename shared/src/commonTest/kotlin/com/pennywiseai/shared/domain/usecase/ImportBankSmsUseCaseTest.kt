@@ -156,6 +156,14 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun aPlainHdfcDebitWithoutSenderIsHdfc() = runTest {
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute(null, HDFC_UPI, RECEIVED_AT)).transaction
+
+        assertEquals("HDFC Bank", saved.bankName)
+        assertEquals(SharedTransactionType.EXPENSE, saved.transactionType)
+    }
+
+    @Test
     fun anIncomingCreditStaysWithTheBankNamedInFull() = runTest {
         // "to HDFC Bank A/c" is the user's own account here; "from SBI" is the remitter.
         val credit = "INR 2,000.00 credited to HDFC Bank A/c XX1234 from SBI. Avl Bal INR 8,000.00"

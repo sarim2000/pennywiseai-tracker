@@ -349,7 +349,7 @@ class AlRajhiBankParser : BankParser() {
 
     private fun isRefundOrReversalMessage(message: String): Boolean {
         val explicitTitle = Regex(
-            """(?im)^\s*(?:(?:pos\s+)?purchase\s+|card\s+purchase\s+)?(?:refund|reversal)\b""",
+            """(?im)^\s*(?:(?:pos\s+|online\s+)?purchase\s+|card\s+purchase\s+)?(?:refund|reversal)\b""",
             RegexOption.IGNORE_CASE
         )
         val explicitArabicTitle = Regex(

@@ -1048,7 +1048,7 @@ private fun TransactionReceipt(
                     )
                 )
                 val adding by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()
-                var showAdjustmentSheet by remember { mutableStateOf(false) }
+                var showAdjustmentSheet by rememberSaveable { mutableStateOf(false) }
                 if (showAdjustmentSheet) {
                     BalanceAdjustmentSheet(
                         discrepancy = d,

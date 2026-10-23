@@ -77,6 +77,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
+import java.text.DecimalFormatSymbols
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -194,6 +195,9 @@ class QuickAddActivity : FragmentActivity() {
         val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
         val focus = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
+        val decimalComma = remember {
+            DecimalFormatSymbols.getInstance(resources.configuration.locales[0]).decimalSeparator == ','
+        }
         LaunchedEffect(Unit) { focus.requestFocus() }
 
         Column(
@@ -222,7 +226,7 @@ class QuickAddActivity : FragmentActivity() {
             }
             OutlinedTextField(
                 value = amountText,
-                onValueChange = { typed -> normalizeAmount(typed)?.let { amountText = it } },
+                onValueChange = { typed -> normalizeAmount(typed, decimalComma)?.let { amountText = it } },
                 prefix = { Text(CurrencyFormatter.getCurrencySymbol(setup.currency) + " ") },
                 textStyle = MaterialTheme.typography.headlineSmall,
                 singleLine = true,
@@ -349,13 +353,17 @@ class QuickAddActivity : FragmentActivity() {
 
         /**
          * What the amount field keeps of a keystroke: digits in any script
-         * (an Arabic keyboard types ٣٫٥) as ASCII, "," or "٫" as the decimal
-         * point, at most one point. Null rejects the keystroke.
+         * (an Arabic keyboard types ٣٫٥) as ASCII, "٫" as the decimal point,
+         * at most one point. "," is the decimal point only where the locale
+         * writes it so (3,5 in German); elsewhere it's a thousands separator
+         * and dropped, as the full form does, so "1,250" is 1250, not 1.25.
+         * Null rejects the keystroke.
          */
-        internal fun normalizeAmount(input: String): String? {
-            val ascii = input.map { c ->
+        internal fun normalizeAmount(input: String, decimalComma: Boolean): String? {
+            val ascii = input.mapNotNull { c ->
                 when {
-                    c == ',' || c == '٫' -> '.'
+                    c == '٫' || (c == ',' && decimalComma) -> '.'
+                    c == ',' || c == '٬' -> null
                     Character.isDigit(c) -> '0' + Character.digit(c, 10)
                     else -> c
                 }

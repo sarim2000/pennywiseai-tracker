@@ -450,6 +450,19 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .setGroup(GROUP_KEY)
+                // Swiped away (or cleared): recount the stack's header.
+                .setDeleteIntent(
+                    PendingIntent.getBroadcast(
+                        context,
+                        transactionId.toInt(),
+                        Intent(context, NotificationActionReceiver::class.java).apply {
+                            action = NotificationActionReceiver.ACTION_CONFIRM_TRANSACTION
+                            putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)
+                            putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, transactionId.toInt())
+                        },
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
 
             // Notification action slots are precious (Android collapses past 3),
             // so the last opens the full picker and the first two are the

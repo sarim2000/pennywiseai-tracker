@@ -1502,9 +1502,11 @@ class HomeViewModel @Inject constructor(
                         currentBreakdown.expenses + loanLoss,
                         selectedCurrency,
                         previousCycleBreakdownMaps.mapIndexed { i, map ->
-                            if (map.isEmpty()) null
+                            val loss = previousCycleLoanLoss.getOrNull(i).orEmpty()
+                            // A cycle with only a settlement loss still counts as history.
+                            if (map.isEmpty() && loss.isEmpty()) null
                             else aggregateBreakdowns(map, selectedCurrency).expenses +
-                                aggregateAcrossCurrencies(previousCycleLoanLoss.getOrNull(i).orEmpty(), selectedCurrency, isUnified = true)
+                                aggregateAcrossCurrencies(loss, selectedCurrency, isUnified = true)
                         }
                     )
                 )
@@ -1541,9 +1543,11 @@ class HomeViewModel @Inject constructor(
                     currentBreakdown.expenses + loanLoss,
                     selectedCurrency,
                     previousCycleBreakdownMaps.mapIndexed { i, map ->
-                        map[selectedCurrency]?.expenses?.let {
-                            it + (previousCycleLoanLoss.getOrNull(i)?.get(selectedCurrency) ?: BigDecimal.ZERO)
-                        }
+                        val spent = map[selectedCurrency]?.expenses
+                        val loss = previousCycleLoanLoss.getOrNull(i)?.get(selectedCurrency)
+                        // A cycle with only a settlement loss still counts as history.
+                        if (spent == null && loss == null) null
+                        else (spent ?: BigDecimal.ZERO) + (loss ?: BigDecimal.ZERO)
                     }
                 )
             )

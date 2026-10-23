@@ -1,6 +1,7 @@
 import Foundation
 import Shared
 
+@MainActor
 class HomeViewModel: ObservableObject {
     let facade = PennyWiseSharedFacade.companion.shared
 
@@ -12,9 +13,11 @@ class HomeViewModel: ObservableObject {
     @Published var subscriptionTotals: [CurrencyTotal] = []
     @Published var budgetCount: Int = 0
     @Published var accountCount: Int = 0
-    @Published var monthlyIncomeMinor: Int64 = 0
-    @Published var monthlyExpenseMinor: Int64 = 0
-    @Published var monthlyNetMinor: Int64 = 0
+    /// This month's totals in the display currency; currencies without a
+    /// stored rate stay as their own lines (never summed in).
+    @Published var monthlyIncome: ConvertedTotal?
+    @Published var monthlyExpense: ConvertedTotal?
+    @Published var monthlyNet: ConvertedTotal?
     @Published var budgets: [SharedBudgetItem] = []
     @Published var accounts: [SharedAccountItem] = []
     @Published var errorMessage: String?
@@ -109,9 +112,10 @@ class HomeViewModel: ObservableObject {
         subscriptionCount = Int(snapshot.subscriptionCount)
         budgetCount = Int(snapshot.budgetCount)
         accountCount = Int(snapshot.accountCount)
-        monthlyIncomeMinor = snapshot.monthlyIncomeMinor
-        monthlyExpenseMinor = snapshot.monthlyExpenseMinor
-        monthlyNetMinor = snapshot.monthlyNetMinor
+        let converter = facade.currencyConverter(baseCurrency: CurrencyManager.shared.displayCurrency)
+        monthlyIncome = converter.total(totals: snapshot.monthlyIncomeTotals)
+        monthlyExpense = converter.total(totals: snapshot.monthlyExpenseTotals)
+        monthlyNet = converter.total(totals: snapshot.monthlyNetTotals)
         errorMessage = snapshot.lastError
         if snapshot.lastImportParsed > 0 {
             importResultText = "Imported \(snapshot.lastImportImported)/\(snapshot.lastImportParsed), skipped \(snapshot.lastImportSkipped)"

@@ -153,8 +153,21 @@ struct AccountListScreen: View {
 
     // MARK: - Cards Section
 
+    /// Cards not already listed as a credit-card account above: a card with
+    /// the same last 4 as a card account is the same card, shown once.
+    private var unlistedCards: [SharedCardItem] {
+        let cardAccountLast4 = Set(viewModel.accounts.filter(\.isCreditCard).map(\.accountLast4))
+        return viewModel.cards.filter { !cardAccountLast4.contains($0.cardLast4) }
+    }
+
     @ViewBuilder
     private var cardsSection: some View {
+        if viewModel.cards.isEmpty || !unlistedCards.isEmpty {
+            cardsList
+        }
+    }
+
+    private var cardsList: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("Cards")
                 .font(AppTypography.headline)
@@ -171,7 +184,7 @@ struct AccountListScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.lg)
             } else {
-                ForEach(viewModel.cards, id: \.id) { card in
+                ForEach(unlistedCards, id: \.id) { card in
                     CardRow(card: card)
                         .contextMenu {
                             Button(role: .destructive) {
@@ -244,10 +257,10 @@ private struct CardRow: View {
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("\(card.bankName) ••\(card.cardLast4)")
+                Text(card.bankName)
                     .font(AppTypography.body)
                     .lineLimit(1)
-                Text(card.cardType.capitalized)
+                Text("••\(card.cardLast4) \u{00B7} \(card.cardType.capitalized)")
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)
             }

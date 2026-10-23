@@ -138,22 +138,17 @@ struct AccountDetailScreen: View {
             }
 
             if viewModel.detailTransactions.isEmpty {
-                VStack(spacing: AppSpacing.md) {
-                    Image(systemName: "tray")
-                        .font(.largeTitle)
-                        .foregroundStyle(.quaternary)
-                    Text("No transactions for this account")
-                        .font(AppTypography.body)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.xl)
+                EmptyStateView(
+                    title: "No Transactions",
+                    systemImage: "tray",
+                    message: "Transactions for this account will show here."
+                )
             } else {
                 ForEach(viewModel.detailTransactions, id: \.transactionId) { item in
-                    TransactionRow(
-                        item: item,
-                        onViewDetails: { selectedTransaction = item }
-                    )
+                    Button { selectedTransaction = item } label: {
+                        TransactionRow(item: item)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }

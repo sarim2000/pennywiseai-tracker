@@ -85,7 +85,7 @@ private struct BudgetRowView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(budget.name)
                         .font(AppTypography.headline)
-                    Text(budget.periodType.capitalized)
+                    Text(budgetPeriodNote(periodType: budget.periodType) ?? budget.periodType.capitalized)
                         .font(AppTypography.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -107,6 +107,12 @@ private struct BudgetRowView: View {
                     .font(AppTypography.amountSmall)
                     .foregroundStyle(budgetColor(for: budget.progress))
                 Spacer()
+                if budget.spentMinor > budget.limitMinor {
+                    Text("\(AmountFormatter.format(minorUnits: budget.spentMinor - budget.limitMinor, currency: budget.currency)) over")
+                        .font(AppTypography.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColors.budgetDanger)
+                }
                 Text("of \(AmountFormatter.format(minorUnits: budget.limitMinor, currency: budget.currency))")
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
@@ -133,6 +139,16 @@ struct BudgetProgressBar: View {
         }
         .frame(height: 8)
     }
+}
+
+/// "October · 9 days left" for a monthly budget; nil for other periods.
+func budgetPeriodNote(periodType: String, now: Date = Date()) -> String? {
+    guard periodType.lowercased() == "monthly" else { return nil }
+    let calendar = Calendar.current
+    guard let month = calendar.dateInterval(of: .month, for: now) else { return nil }
+    let daysLeft = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: month.end).day ?? 0
+    let monthName = now.formatted(.dateTime.month(.wide))
+    return daysLeft == 1 ? "\(monthName) \u{00B7} last day" : "\(monthName) \u{00B7} \(daysLeft) days left"
 }
 
 func budgetColor(for ratio: Double) -> Color {

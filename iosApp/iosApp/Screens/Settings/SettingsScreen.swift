@@ -46,7 +46,7 @@ struct SettingsScreen: View {
                                 .foregroundStyle(.secondary)
                         }
                     } icon: {
-                        Image(systemName: "coloncurrencysign.circle.fill")
+                        Image(systemName: "banknote.fill")
                             .foregroundStyle(.green)
                     }
                 }

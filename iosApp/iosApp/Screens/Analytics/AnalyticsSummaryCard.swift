@@ -1,3 +1,4 @@
+import Shared
 import SwiftUI
 
 /// Android-parity summary: spending hero with a trend-vs-previous-period
@@ -13,16 +14,12 @@ struct AnalyticsSummaryCard: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             // Spending hero + trend vs previous period
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("SPENT THIS PERIOD")
-                    .font(AppTypography.caption2)
+                Text("Spent this period")
+                    .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
-                    .tracking(1)
 
                 HStack(alignment: .firstTextBaseline, spacing: AppSpacing.sm) {
-                    Text(AmountFormatter.format(minorUnits: summary.totalSpendingMinor, currency: currency))
-                        .font(AppTypography.amountLarge)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
+                    ConvertedAmountText(total: summary.totalSpending, font: AppTypography.amountLarge)
                         .minimumScaleFactor(0.5)
 
                     if let trend = summary.spendingTrendPct {
@@ -50,20 +47,20 @@ struct AnalyticsSummaryCard: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 
     @ViewBuilder
     private var totalsColumns: some View {
         statColumn("Income") {
-            amount(summary.incomeMinor, tint: .green)
+            ConvertedAmountText(total: summary.income, font: AppTypography.amountMedium, color: .green)
         }
         statColumn("Expenses") {
-            amount(summary.totalSpendingMinor, tint: .red)
+            ConvertedAmountText(total: summary.totalSpending, font: AppTypography.amountMedium, color: .red)
         }
         statColumn("Net") {
-            amount(summary.netMinor, tint: summary.netMinor >= 0 ? .green : .red)
+            ConvertedAmountText(total: summary.net, font: AppTypography.amountMedium, color: summary.net.amountMinor >= 0 ? .green : .red)
         }
     }
 

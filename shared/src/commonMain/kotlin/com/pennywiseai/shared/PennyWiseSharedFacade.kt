@@ -10,6 +10,8 @@ import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
+import com.pennywiseai.shared.domain.money.CurrencyConverter
+import com.pennywiseai.shared.domain.money.CurrencyTotal
 import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ImportStatementUseCase
@@ -99,9 +101,10 @@ data class SharedHomeSnapshot(
     val subscriptionCount: Int,
     val budgetCount: Int,
     val accountCount: Int,
-    val monthlyIncomeMinor: Long = 0L,
-    val monthlyExpenseMinor: Long = 0L,
-    val monthlyNetMinor: Long = 0L,
+    /** This month's totals, one per currency. Convert with [PennyWiseSharedFacade.currencyConverter]. */
+    val monthlyIncomeTotals: List<CurrencyTotal> = emptyList(),
+    val monthlyExpenseTotals: List<CurrencyTotal> = emptyList(),
+    val monthlyNetTotals: List<CurrencyTotal> = emptyList(),
     val lastImportImported: Int = 0,
     val lastImportParsed: Int = 0,
     val lastImportSkipped: Int = 0,
@@ -664,6 +667,20 @@ class PennyWiseSharedFacade {
 
     // ── Analytics methods ────────────────────────────────────
 
+    /**
+     * Converts amounts into [baseCurrency] with the stored exchange rates (any age:
+     * a stale rate beats dropping the amount, as on Android). Currencies with no
+     * rate stay unconverted and must be shown on their own.
+     */
+    fun currencyConverter(baseCurrency: String): CurrencyConverter {
+        val rates = try {
+            runBlocking { graph.exchangeRateRepository.observeAll().first() }
+        } catch (_: Throwable) {
+            emptyList()
+        }
+        return CurrencyConverter.fromRates(baseCurrency, rates.map { Triple(it.fromCurrency, it.toCurrency, it.rateMicros) })
+    }
+
     fun getTransactionsForPeriod(
         startDateMs: Long,
         endDateMs: Long,
@@ -923,16 +940,15 @@ class PennyWiseSharedFacade {
         val monthStart = monthStartEpochMillisIST()
         val thisMonthTxns = transactions.filter { it.occurredAtEpochMillis >= monthStart }
         println("[HomeSnapshot] monthStart=$monthStart, thisMonthTxnCount=${thisMonthTxns.size}, totalTxns=${transactions.size}")
-        val monthlyIncome = thisMonthTxns
-            .filter { it.transactionType == SharedTransactionType.INCOME }
-            .fold(0L) { acc, txn -> acc + txn.amountMinor }
         // EXPENSE only, matching Android's home breakdown: TRANSFER moves money
         // between the user's own accounts, and INVESTMENT/CREDIT are tracked as
-        // their own types — "everything that isn't income" counted a transfer to
-        // your own savings as spending.
-        val monthlyExpense = thisMonthTxns
-            .filter { it.transactionType == SharedTransactionType.EXPENSE }
-            .fold(0L) { acc, txn -> acc + txn.amountMinor }
+        // their own types. Kept per currency (hard constraint #2).
+        val monthlyIncome = MoneyTotals.transactionTotals(
+            thisMonthTxns.filter { it.transactionType == SharedTransactionType.INCOME }.map { it.toItem() }
+        )
+        val monthlyExpense = MoneyTotals.transactionTotals(
+            thisMonthTxns.filter { it.transactionType == SharedTransactionType.EXPENSE }.map { it.toItem() }
+        )
 
         return SharedHomeSnapshot(
             categories = categories,
@@ -942,9 +958,9 @@ class PennyWiseSharedFacade {
             subscriptionCount = subscriptions.size,
             budgetCount = budgets.size,
             accountCount = accounts.size,
-            monthlyIncomeMinor = monthlyIncome,
-            monthlyExpenseMinor = monthlyExpense,
-            monthlyNetMinor = monthlyIncome - monthlyExpense,
+            monthlyIncomeTotals = monthlyIncome,
+            monthlyExpenseTotals = monthlyExpense,
+            monthlyNetTotals = MoneyTotals.netTotals(monthlyIncome, monthlyExpense),
             lastImportImported = imported,
             lastImportParsed = parsed,
             lastImportSkipped = skipped,

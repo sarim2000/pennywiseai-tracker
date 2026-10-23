@@ -9,8 +9,10 @@ struct LockScreenView: View {
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
 
+            // Icon and title sit in the upper third: the system Face ID HUD
+            // draws in the centre of the screen.
             VStack(spacing: AppSpacing.lg) {
-                Spacer()
+                Spacer().frame(maxHeight: 96)
 
                 Image(systemName: "lock.shield.fill")
                     .font(.system(size: 56))

@@ -16,7 +16,7 @@ struct CategoryPieChart: View {
                 totalMinor: otherTotal,
                 count: otherCount,
                 percentage: pct,
-                color: "Others"
+                color: .gray
             )]
         }
         return top
@@ -38,8 +38,10 @@ struct CategoryPieChart: View {
                 }
             }
         }
+        // Full width like the cards around it, whatever the legend's width.
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 
@@ -71,7 +73,7 @@ struct CategoryPieChart: View {
                 path.addArc(center: center, radius: innerRadius, startAngle: endAngle, endAngle: startAngle, clockwise: true)
                 path.closeSubpath()
 
-                context.fill(path, with: .color(AppColors.categoryColor(for: item.name)))
+                context.fill(path, with: .color(item.color))
                 startAngle = endAngle
             }
         }
@@ -82,19 +84,26 @@ struct CategoryPieChart: View {
             ForEach(topCategories) { item in
                 HStack(spacing: AppSpacing.sm) {
                     Circle()
-                        .fill(AppColors.categoryColor(for: item.name))
+                        .fill(item.color)
                         .frame(width: 10, height: 10)
 
                     VStack(alignment: .leading, spacing: 0) {
                         Text(item.name)
                             .font(AppTypography.caption)
                             .lineLimit(1)
-                        Text("\(Int(item.percentage))%")
+                        Text(item.percentLabel)
                             .font(AppTypography.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
+    }
+}
+
+extension CategoryBreakdownItem {
+    /// Whole percent, or "<1%" for a slice too small to round to 1.
+    var percentLabel: String {
+        percentage > 0 && percentage < 1 ? "<1%" : "\(Int(percentage.rounded()))%"
     }
 }

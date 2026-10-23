@@ -18,15 +18,13 @@ struct AnalyticsScreen: View {
                 if viewModel.isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 200)
-                } else if viewModel.summary.transactionCount == 0 {
-                    emptyState
-                } else {
+                } else if let summary = viewModel.summary, summary.transactionCount > 0 {
                     // Summary card
-                    AnalyticsSummaryCard(summary: viewModel.summary)
+                    AnalyticsSummaryCard(summary: summary)
 
                     // Spending trends bar chart
                     if !viewModel.dailySpending.isEmpty {
-                        SpendingTrendsChart(data: viewModel.dailySpending)
+                        SpendingTrendsChart(data: viewModel.dailySpending, bucket: viewModel.chartBucket)
                     }
 
                     // Category pie chart
@@ -54,6 +52,8 @@ struct AnalyticsScreen: View {
                             )
                         }
                     }
+                } else {
+                    emptyState
                 }
             }
             .padding(.horizontal, AppSpacing.md)

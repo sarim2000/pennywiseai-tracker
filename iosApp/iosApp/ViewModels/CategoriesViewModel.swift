@@ -13,6 +13,7 @@ class CategoriesViewModel: ObservableObject {
 
     func loadCategories() {
         categories = facade.getAllCategories()
+        AppColors.reloadCategoryColors()
     }
 
     func createCategory(name: String, colorHex: String, isIncome: Bool) -> Bool {

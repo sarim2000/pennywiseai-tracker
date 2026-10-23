@@ -85,4 +85,38 @@ class MoneyTotalsTest {
         assertFalse(MoneyTotals.isSpendingType("TRANSFER"))
         assertFalse(MoneyTotals.isSpendingType("INVESTMENT"))
     }
+
+    private val usdToInr = CurrencyConverter.fromRates("INR", listOf(Triple("USD", "INR", 83_500_000L)))
+
+    @Test
+    fun converter_convertsWithStoredRate_andKeepsMissingRatesApart() {
+        val total = usdToInr.total(
+            listOf(CurrencyTotal("INR", 100_000), CurrencyTotal("USD", 1_250), CurrencyTotal("EUR", 900))
+        )
+        // $12.50 x 83.5 = 1,043.75
+        assertEquals(ConvertedTotal("INR", 204_375, listOf(CurrencyTotal("EUR", 900))), total)
+    }
+
+    @Test
+    fun converter_invertsReverseRate_andRoundsHalfAwayFromZero() {
+        val c = CurrencyConverter.fromRates("USD", listOf(Triple("USD", "INR", 80_000_000L)))
+        assertEquals(1_250, c.convert(100_000, "INR")) // 1000 INR / 80 = 12.50 USD
+        assertEquals(-1_250, c.convert(-100_000, "inr"))
+        assertEquals(1, usdToInr.convert(1, "INR"))
+        assertEquals(84, usdToInr.convert(1, "USD")) // 83.5 rounds up
+        assertEquals(null, usdToInr.convert(1, "GBP"))
+    }
+
+    @Test
+    fun converter_dropsZeroUnconvertedLines_andNetsPerCurrency() {
+        val net = MoneyTotals.netTotals(
+            income = listOf(CurrencyTotal("INR", 500_000), CurrencyTotal("EUR", 1_000)),
+            expense = listOf(CurrencyTotal("INR", 200_000), CurrencyTotal("EUR", 1_000), CurrencyTotal("USD", 100))
+        )
+        assertEquals(
+            listOf(CurrencyTotal("INR", 300_000), CurrencyTotal("EUR", 0), CurrencyTotal("USD", -100)),
+            net
+        )
+        assertEquals(ConvertedTotal("INR", 291_650, emptyList()), usdToInr.total(net))
+    }
 }

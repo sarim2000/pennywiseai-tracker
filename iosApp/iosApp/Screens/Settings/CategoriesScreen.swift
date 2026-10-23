@@ -109,7 +109,7 @@ private struct CategoryRow: View {
             Circle()
                 // System categories use the app's adaptive palette (the old
                 // seed stored Transportation as pure black, invisible in dark).
-                .fill(category.isSystem ? AppColors.categoryColor(for: category.name) : Color(hex: categoryColorHex))
+                .fill(category.isSystem ? AppColors.categoryColor(for: category.name) : Color(hex: AppColors.parseHex(category.colorHex)))
                 .frame(width: 12, height: 12)
 
             Text(category.name)
@@ -136,14 +136,5 @@ private struct CategoryRow: View {
             }
         }
         .padding(.vertical, AppSpacing.xs)
-    }
-
-    private var categoryColorHex: UInt {
-        let hex = category.colorHex
-            .replacingOccurrences(of: "#", with: "")
-            .replacingOccurrences(of: "0x", with: "")
-            .replacingOccurrences(of: "0X", with: "")
-        let trimmed = hex.count > 6 ? String(hex.suffix(6)) : hex
-        return UInt(trimmed, radix: 16) ?? 0x78909C
     }
 }

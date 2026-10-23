@@ -17,6 +17,7 @@ struct HomeScreen: View {
     @State private var fabExpanded = false
     @State private var showImportPicker = false
     @State private var importResult: String?
+    @State private var pendingDelete: SharedRecentTransactionItem?
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
@@ -30,9 +31,9 @@ struct HomeScreen: View {
 
                     // Spending Summary Card
                     SpendingSummaryCard(
-                        monthlyExpenseMinor: viewModel.monthlyExpenseMinor,
-                        monthlyIncomeMinor: viewModel.monthlyIncomeMinor,
-                        monthlyNetMinor: viewModel.monthlyNetMinor
+                        expense: viewModel.monthlyExpense,
+                        income: viewModel.monthlyIncome,
+                        net: viewModel.monthlyNet
                     )
                     .opacity(appeared ? 1 : 0)
                     .offset(y: appeared ? 0 : 12)
@@ -104,6 +105,22 @@ struct HomeScreen: View {
                 viewModel.loadHome()
             }
         }
+        // Same confirmation as the detail screen's Delete.
+        .alert(
+            "Delete Transaction",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            presenting: pendingDelete
+        ) { item in
+            Button("Delete", role: .destructive) {
+                viewModel.deleteTransaction(id: item.transactionId)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { item in
+            Text("Are you sure you want to delete the transaction \"\(item.merchantName)\"?")
+        }
         .alert(
             "Statement Import",
             isPresented: Binding(
@@ -136,13 +153,13 @@ struct HomeScreen: View {
                 emptyTransactionsView
             } else {
                 ForEach(Array(viewModel.recentTransactions.prefix(5))) { item in
-                    TransactionRow(
-                        item: item,
-                        onViewDetails: { selectedDetail = item }
-                    )
+                    Button { selectedDetail = item } label: {
+                        TransactionRow(item: item)
+                    }
+                    .buttonStyle(.plain)
                     .contextMenu {
                         Button(role: .destructive) {
-                            viewModel.deleteTransaction(id: item.transactionId)
+                            pendingDelete = item
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -152,21 +169,15 @@ struct HomeScreen: View {
         }
     }
 
-    @ViewBuilder
     private var emptyTransactionsView: some View {
-        VStack(spacing: AppSpacing.md) {
-            Image(systemName: "tray")
-                .font(.largeTitle)
-                .foregroundStyle(.quaternary)
-            Text("No transactions yet")
-                .font(AppTypography.body)
-                .foregroundStyle(.secondary)
-            Text("Tap + to add your first transaction")
-                .font(AppTypography.caption)
-                .foregroundStyle(.tertiary)
+        EmptyStateView(
+            title: "No Transactions Yet",
+            systemImage: "tray",
+            message: "Add one by hand or import a statement."
+        ) {
+            Button("Add Transaction") { showAddTransaction = true }
+                .buttonStyle(.borderedProminent)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, AppSpacing.xl)
     }
 
     // MARK: - Status Messages
@@ -215,7 +226,7 @@ struct HomeScreen: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.secondaryGroupedBackground(isAmoled: isAmoled)))
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.surface(isAmoled: isAmoled)))
     }
 
     // MARK: - Floating Add Button

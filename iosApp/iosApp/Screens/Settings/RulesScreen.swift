@@ -10,10 +10,20 @@ struct RulesScreen: View {
 
     var body: some View {
         List {
-            if viewModel.rules.isEmpty {
-                emptyState
-            } else {
+            if !viewModel.rules.isEmpty {
                 rulesList
+            }
+        }
+        .overlay {
+            if viewModel.rules.isEmpty {
+                EmptyStateView(
+                    title: "No Smart Rules",
+                    systemImage: "wand.and.stars",
+                    message: "Create a rule that auto-categorizes transactions by keyword."
+                ) {
+                    Button("Add Rule") { showAddRule = true }
+                        .buttonStyle(.borderedProminent)
+                }
             }
         }
         .refreshable {
@@ -85,26 +95,6 @@ struct RulesScreen: View {
         }
     }
 
-    // MARK: - Empty State
-
-    private var emptyState: some View {
-        Section {
-            VStack(spacing: AppSpacing.md) {
-                Image(systemName: "wand.and.stars")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.secondary)
-                Text("No smart rules yet")
-                    .font(AppTypography.headline)
-                Text("Tap + to create a rule that auto-categorizes transactions by keyword")
-                    .font(AppTypography.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, AppSpacing.xl)
-            .listRowBackground(Color.clear)
-        }
-    }
 }
 
 // MARK: - Rule Row
@@ -128,16 +118,21 @@ private struct RuleRow: View {
                             .lineLimit(1)
                     }
 
+                    // Primary text with a colour dot: category-coloured text on
+                    // its own pale tint was ~2.5:1.
                     if let category = extractCategory(from: rule.actionsJson) {
-                        Text(category)
-                            .font(AppTypography.caption2)
-                            .foregroundStyle(AppColors.categoryColor(for: category))
-                            .padding(.horizontal, AppSpacing.sm)
-                            .padding(.vertical, 2)
-                            .background(
-                                AppColors.categoryColor(for: category).opacity(0.1),
-                                in: Capsule()
-                            )
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(AppColors.categoryColor(for: category))
+                                .frame(width: 6, height: 6)
+                            Text(category)
+                                .font(AppTypography.caption2)
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, AppSpacing.sm)
+                        .padding(.vertical, 2)
+                        .background(Color(.tertiarySystemFill), in: Capsule())
                     }
                 }
             }

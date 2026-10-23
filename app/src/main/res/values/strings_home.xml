@@ -345,4 +345,28 @@
     <string name="pro_home_card_action">See Pro</string>
     <string name="pro_home_card_dismiss">Dismiss</string>
 
+    <!-- Month-end forecast on the "Spent this month" card -->
+    <string name="forecast_on_track">On track for %1$s by %2$s</string>
+    <string name="forecast_over_usual">%1$s over usual</string>
+
+    <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_safe_to_spend">Safe to spend</string>
+    <string name="safe_to_spend_title">Safe to spend</string>
+    <string name="safe_to_spend_tap_to_show">Tap to show</string>
+    <plurals name="safe_to_spend_per_day">
+        <item quantity="one">About %1$s a day for the next %2$d day</item>
+        <item quantity="other">About %1$s a day for the next %2$d days</item>
+    </plurals>
+    <string name="safe_to_spend_short">Bills due before %1$s are more than your balance</string>
+    <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
+    <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
+    <string name="safe_to_spend_until">Safe to spend until %1$s</string>
+    <string name="safe_to_spend_accounts">Bank balance</string>
+    <string name="safe_to_spend_excluded">Not counted</string>
+    <string name="safe_to_spend_bills_due">Bills due before %1$s</string>
+    <string name="safe_to_spend_no_bills">No subscriptions due</string>
+    <string name="safe_to_spend_choose_accounts">Choose accounts</string>
+    <string name="safe_to_spend_done">Done</string>
+    <string name="safe_to_spend_footnote">Bills come from your active subscriptions. Credit cards and loans don\'t count as spendable money.</string>
+
 </resources>

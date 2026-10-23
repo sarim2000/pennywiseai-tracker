@@ -6,6 +6,7 @@ package com.pennywiseai.tracker.data.preferences
  * cash-flow) is deliberately not here.
  */
 enum class HomeSection(val label: String) {
+    SAFE_TO_SPEND("Safe to spend"),
     BUDGETS("Budgets"),
     GOALS("Goals"),
     LOANS("Loans"),
@@ -28,8 +29,9 @@ object HomeSectionLayout {
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }
 
     /**
-     * Unknown names are dropped; enum values absent from the string are appended
-     * visible so a section added in a later version shows up instead of vanishing.
+     * Unknown names are dropped; enum values absent from the string are inserted
+     * visible at their default position (clamped to the end), so a section added
+     * in a later version shows up where a new user would see it.
      */
     fun decode(raw: String?): List<Pair<HomeSection, Boolean>> {
         if (raw.isNullOrBlank()) return DEFAULT
@@ -39,6 +41,9 @@ object HomeSectionLayout {
             HomeSection.entries.firstOrNull { it.name == t.removePrefix("!") }?.let { it to !hidden }
         }.distinctBy { it.first }
         val seen = parsed.mapTo(HashSet()) { it.first }
-        return parsed + HomeSection.entries.filter { it !in seen }.map { it to true }
+        val layout = parsed.toMutableList()
+        HomeSection.entries.filter { it !in seen }
+            .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to true) }
+        return layout
     }
 }

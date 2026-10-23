@@ -21,6 +21,9 @@ import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.SafeToSpend
+import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
@@ -60,6 +63,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -170,6 +174,10 @@ class HomeViewModel @Inject constructor(
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
+    // The previous SpendForecast.USUAL_PERIODS complete cycles, most recent first, for
+    // the forecast's "usual". The first one is lastMonthBreakdownMap.
+    private var previousCycleBreakdownMaps: List<Map<String, TransactionRepository.MonthlyBreakdown>> = emptyList()
+
     // Per-currency total loss from LENT loans settled this month. Folded into the displayed
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
     private var currentMonthLoanLossByCurrency: Map<String, BigDecimal> = emptyMap()
@@ -190,6 +198,9 @@ class HomeViewModel @Inject constructor(
     // null = not loaded yet (avoids emitting stale empty data on cold launch)
     private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>?>(null)
     private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value ?: emptyList()
+
+    // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.
+    private val spendableRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
 
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
@@ -216,6 +227,48 @@ class HomeViewModel @Inject constructor(
             sharePromptShowing = sharePromptShowing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /**
+     * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
+     * out) less active subscriptions due before the cycle ends. Netted per currency;
+     * in unified mode each figure is converted to the display currency first, and one
+     * with no rate stays in its own currency as a separate line. Null hides the card.
+     */
+    val safeToSpend: StateFlow<SafeToSpendUi?> = combine(
+        spendableRaw,
+        subscriptionRepository.getActiveSubscriptions(),
+        userPreferencesRepository.safeToSpendExcludedAccounts,
+        _currentCycleWindow,
+        combine(
+            userPreferencesRepository.unifiedCurrencyMode,
+            userPreferencesRepository.displayCurrency,
+            _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
+            currencyConversionService.getAllRatesFlow(),
+        ) { unified, display, selected, _ -> if (unified) display to true else selected to false },
+    ) { accounts, subscriptions, excluded, (_, periodEnd), (primaryCurrency, unified) ->
+        if (accounts.isEmpty()) return@combine null
+        val today = LocalDate.now()
+        suspend fun Money.forTotal(): Money =
+            if (!unified || currency == primaryCurrency) this
+            else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
+                ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
+        val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, periodEnd)
+        val results = SafeToSpend.calculate(
+            balances = accounts.filter { safeToSpendKey(it) !in excluded }.map { Money(it.balance, it.currency).forTotal() },
+            bills = bills.map { it.copy(amount = it.amount.forTotal()) },
+            today = today,
+            periodEnd = periodEnd,
+        )
+        val primary = results.firstOrNull { it.currency == primaryCurrency }
+            ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
+        SafeToSpendUi(primary, results - primary, periodEnd, accounts, excluded, bills)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun setSafeToSpendAccountIncluded(account: AccountBalanceEntity, included: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setSafeToSpendAccountIncluded(safeToSpendKey(account), included)
+        }
+    }
 
     init {
         loadUnifiedModePreferences()
@@ -508,6 +561,7 @@ class HomeViewModel @Inject constructor(
                 // Separate credit cards from regular accounts (hide zero balance accounts).
                 // Loan accounts land in neither: they are owed, not spendable (#792).
                 val rawRegularAccounts = spendableAccounts(balances)
+                spendableRaw.value = rawRegularAccounts
                 val rawCreditCards = balances.filter { it.isCreditCard }
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
@@ -655,24 +709,37 @@ class HomeViewModel @Inject constructor(
             // "Last month" here means "previous cycle" so the comparison lines up with the
             // custom start day (a user on the 25th-of-month cycle sees 25th→24th vs
             // 25th→24th, not 1st→today vs 1st→today).
+            //
+            // One query covers the last SpendForecast.USUAL_PERIODS cycles so the
+            // forecast's "usual" uses exactly this spend definition too.
             _currentCycleWindow
                 .flatMapLatest { current ->
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                    val (lastMonthStart, lastMonthEnd) = BudgetCycle.previousCycle(current, startDay)
-                    transactionRepository.getTransactionsBetweenDates(lastMonthStart, lastMonthEnd)
+                    val cycles = generateSequence(BudgetCycle.previousCycle(current, startDay)) {
+                        BudgetCycle.previousCycle(it, startDay)
+                    }.take(SpendForecast.USUAL_PERIODS).toList()
+                    transactionRepository.getTransactionsBetweenDates(cycles.last().first, cycles.first().second)
+                        .map { transactions -> cycles to transactions }
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
-                    transactions to profileId
+                .combine(userPreferencesRepository.selectedProfileId) { pair, profileId ->
+                    pair to profileId
                 }
-                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
+                .combine(_cachedAccountBalances.filterNotNull()) { (pair, profileId), balances ->
+                    val (cycles, transactions) = pair
+                    cycles to filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
                         .forTotals()
                 }
-                .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
-                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
+                    cycles.map { (start, end) ->
+                        computeBreakdownByCurrency(
+                            nonLoan.filter { it.dateTime.toLocalDate() in start..end },
+                            creditAsExpense
+                        )
+                    }
                 }
-                .collect { breakdownByCurrency ->
-                    updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = false)
+                .collect { breakdowns ->
+                    previousCycleBreakdownMaps = breakdowns
+                    updateBreakdownForSelectedCurrency(breakdowns.first(), isCurrentMonth = false)
                 }
         }
 
@@ -994,6 +1061,7 @@ class HomeViewModel @Inject constructor(
             val visibleBalances = filterVisibleBalances(allBalances, hiddenAccounts)
 
             val rawRegularAccounts = spendableAccounts(visibleBalances)
+            spendableRaw.value = rawRegularAccounts
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
 
             val selectedCurrency = _uiState.value.selectedCurrency
@@ -1104,6 +1172,7 @@ class HomeViewModel @Inject constructor(
 
             val balances = filterVisibleBalances(allBalances, hiddenAccounts)
             val rawRegularAccounts = spendableAccounts(balances)
+            spendableRaw.value = rawRegularAccounts
             val rawCreditCards = balances.filter { it.isCreditCard }
 
             val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
@@ -1400,7 +1469,14 @@ class HomeViewModel @Inject constructor(
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
                     selectedCurrency = selectedCurrency,
-                    availableCurrencies = availableCurrencies
+                    availableCurrencies = availableCurrencies,
+                    spendForecast = forecastFor(
+                        currentBreakdown.expenses + loanLoss,
+                        selectedCurrency,
+                        previousCycleBreakdownMaps.map { map ->
+                            if (map.isEmpty()) null else aggregateBreakdowns(map, selectedCurrency).expenses
+                        }
+                    )
                 )
                 calculateMonthlyChange()
             }
@@ -1430,10 +1506,21 @@ class HomeViewModel @Inject constructor(
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
                 selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies
+                availableCurrencies = availableCurrencies,
+                spendForecast = forecastFor(
+                    currentBreakdown.expenses + loanLoss,
+                    selectedCurrency,
+                    previousCycleBreakdownMaps.map { it[selectedCurrency]?.expenses }
+                )
             )
             calculateMonthlyChange()
         }
+    }
+
+    /** Month-end forecast for the "Spent this month" figure; null until day 7 of the cycle. */
+    private fun forecastFor(spent: BigDecimal, currency: String, previous: List<BigDecimal?>): SpendForecast? {
+        val (start, end) = _currentCycleWindow.value
+        return SpendForecast.of(spent, currency, start, end, LocalDate.now(), previous)
     }
 
     private suspend fun aggregateAcrossCurrencies(
@@ -1743,8 +1830,25 @@ data class HomeUiState(
     val isApproximateBalance: Boolean = false,
     val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
     val loanSummary: LoanSummary? = null,
+    val spendForecast: SpendForecast? = null,
     val selectedProfileId: Long? = null,
     val profiles: List<ProfileEntity> = emptyList()
+)
+
+/** Pref key for an account in the Safe to spend selection. */
+internal fun safeToSpendKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"
+
+data class SafeToSpendUi(
+    /** The headline figure, in the display (unified) or selected currency. */
+    val primary: SafeToSpend,
+    /** Figures in other currencies, never added to [primary]. */
+    val others: List<SafeToSpend>,
+    val periodEnd: LocalDate,
+    /** Every visible spendable account, each in its own currency. */
+    val accounts: List<AccountBalanceEntity>,
+    val excludedKeys: Set<String>,
+    /** Bills due today..[periodEnd], each in its own currency. */
+    val bills: List<Bill>,
 )
 
 data class LoanSummary(

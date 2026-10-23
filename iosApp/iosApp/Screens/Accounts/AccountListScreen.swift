@@ -153,11 +153,15 @@ struct AccountListScreen: View {
 
     // MARK: - Cards Section
 
-    /// Cards not already listed as a credit-card account above: a card with
-    /// the same last 4 as a card account is the same card, shown once.
+    /// Cards not already listed as a credit-card account above: same bank and
+    /// last 4 (the card's stored identity) is the same card, shown once.
     private var unlistedCards: [SharedCardItem] {
-        let cardAccountLast4 = Set(viewModel.accounts.filter(\.isCreditCard).map(\.accountLast4))
-        return viewModel.cards.filter { !cardAccountLast4.contains($0.cardLast4) }
+        let cardAccounts = viewModel.accounts.filter(\.isCreditCard)
+        return viewModel.cards.filter { card in
+            !cardAccounts.contains { account in
+                account.bankName == card.bankName && account.accountLast4 == card.cardLast4
+            }
+        }
     }
 
     @ViewBuilder

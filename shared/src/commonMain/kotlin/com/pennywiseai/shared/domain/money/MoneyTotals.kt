@@ -31,16 +31,30 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
         return applyRate(amountMinor, rate)
     }
 
-    /** Sums what converts; keeps each currency without a rate as its own total. */
-    fun total(totals: List<CurrencyTotal>): ConvertedTotal {
+    /**
+     * Sum of [transactions] in [baseCurrency]. Each one is converted (and rounded)
+     * on its own, the same way charts and breakdowns convert them, so every figure
+     * built from the same rows agrees. Rows with no rate stay per currency.
+     */
+    fun totalOf(transactions: List<SharedRecentTransactionItem>): ConvertedTotal {
         var sum = 0L
-        val unconverted = mutableListOf<CurrencyTotal>()
-        for (t in totals) {
+        val unconverted = mutableListOf<SharedRecentTransactionItem>()
+        for (t in transactions) {
             val converted = convert(t.amountMinor, t.currency)
             if (converted == null) unconverted += t else sum += converted
         }
-        return ConvertedTotal(baseCurrency, sum, unconverted.filter { it.amountMinor != 0L })
+        return ConvertedTotal(baseCurrency, sum, nonZero(MoneyTotals.transactionTotals(unconverted)))
     }
+
+    /** income - expense, from the two already-converted totals (no second rounding). */
+    fun net(income: ConvertedTotal, expense: ConvertedTotal): ConvertedTotal =
+        ConvertedTotal(
+            baseCurrency,
+            income.amountMinor - expense.amountMinor,
+            nonZero(MoneyTotals.netTotals(income.unconverted, expense.unconverted))
+        )
+
+    private fun nonZero(totals: List<CurrencyTotal>) = totals.filter { it.amountMinor != 0L }
 
     companion object {
         private const val MICROS = 1_000_000L

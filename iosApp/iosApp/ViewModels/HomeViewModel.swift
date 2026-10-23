@@ -113,9 +113,11 @@ class HomeViewModel: ObservableObject {
         budgetCount = Int(snapshot.budgetCount)
         accountCount = Int(snapshot.accountCount)
         let converter = facade.currencyConverter(baseCurrency: CurrencyManager.shared.displayCurrency)
-        monthlyIncome = converter.total(totals: snapshot.monthlyIncomeTotals)
-        monthlyExpense = converter.total(totals: snapshot.monthlyExpenseTotals)
-        monthlyNet = converter.total(totals: snapshot.monthlyNetTotals)
+        let income = converter.totalOf(transactions: snapshot.monthlyIncome)
+        let expense = converter.totalOf(transactions: snapshot.monthlyExpense)
+        monthlyIncome = income
+        monthlyExpense = expense
+        monthlyNet = converter.net(income: income, expense: expense)
         errorMessage = snapshot.lastError
         if snapshot.lastImportParsed > 0 {
             importResultText = "Imported \(snapshot.lastImportImported)/\(snapshot.lastImportParsed), skipped \(snapshot.lastImportSkipped)"

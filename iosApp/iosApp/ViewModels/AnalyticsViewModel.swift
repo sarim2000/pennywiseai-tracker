@@ -163,7 +163,7 @@ class AnalyticsViewModel: ObservableObject {
             type: "EXPENSE"
         )
         guard !previous.isEmpty else { return nil }
-        return converter.total(totals: MoneyTotals.shared.transactionTotals(transactions: previous)).amountMinor
+        return converter.totalOf(transactions: previous).amountMinor
     }
 
     func transactions(inCategory category: String) -> [SharedRecentTransactionItem] {
@@ -198,12 +198,10 @@ class AnalyticsViewModel: ObservableObject {
     ) {
         // Summary is always honest regardless of the chip: spend = EXPENSE,
         // income = INCOME — transfers and investments are neither. Totals are
-        // kept per currency, then converted with the stored rates.
-        let spendTotals = MoneyTotals.shared.transactionTotals(transactions: all.filter { $0.transactionType == "EXPENSE" })
-        let incomeTotals = MoneyTotals.shared.transactionTotals(transactions: all.filter { $0.transactionType == "INCOME" })
-        let spend = converter.total(totals: spendTotals)
-        let income = converter.total(totals: incomeTotals)
-        let net = converter.total(totals: MoneyTotals.shared.netTotals(income: incomeTotals, expense: spendTotals))
+        // converted per transaction with the stored rates, like the charts.
+        let spend = converter.totalOf(transactions: all.filter { $0.transactionType == "EXPENSE" })
+        let income = converter.totalOf(transactions: all.filter { $0.transactionType == "INCOME" })
+        let net = converter.net(income: income, expense: spend)
         let count = transactions.count
 
         let calendar = Calendar.current

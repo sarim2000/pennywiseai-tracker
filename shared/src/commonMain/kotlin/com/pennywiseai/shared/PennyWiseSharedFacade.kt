@@ -11,7 +11,6 @@ import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
 import com.pennywiseai.shared.domain.money.CurrencyConverter
-import com.pennywiseai.shared.domain.money.CurrencyTotal
 import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ImportStatementUseCase
@@ -101,10 +100,12 @@ data class SharedHomeSnapshot(
     val subscriptionCount: Int,
     val budgetCount: Int,
     val accountCount: Int,
-    /** This month's totals, one per currency. Convert with [PennyWiseSharedFacade.currencyConverter]. */
-    val monthlyIncomeTotals: List<CurrencyTotal> = emptyList(),
-    val monthlyExpenseTotals: List<CurrencyTotal> = emptyList(),
-    val monthlyNetTotals: List<CurrencyTotal> = emptyList(),
+    /**
+     * This month's INCOME and EXPENSE rows, in their own currencies. Total them
+     * with [PennyWiseSharedFacade.currencyConverter] — never sum them directly.
+     */
+    val monthlyIncome: List<SharedRecentTransactionItem> = emptyList(),
+    val monthlyExpense: List<SharedRecentTransactionItem> = emptyList(),
     val lastImportImported: Int = 0,
     val lastImportParsed: Int = 0,
     val lastImportSkipped: Int = 0,
@@ -942,13 +943,9 @@ class PennyWiseSharedFacade {
         println("[HomeSnapshot] monthStart=$monthStart, thisMonthTxnCount=${thisMonthTxns.size}, totalTxns=${transactions.size}")
         // EXPENSE only, matching Android's home breakdown: TRANSFER moves money
         // between the user's own accounts, and INVESTMENT/CREDIT are tracked as
-        // their own types. Kept per currency (hard constraint #2).
-        val monthlyIncome = MoneyTotals.transactionTotals(
-            thisMonthTxns.filter { it.transactionType == SharedTransactionType.INCOME }.map { it.toItem() }
-        )
-        val monthlyExpense = MoneyTotals.transactionTotals(
-            thisMonthTxns.filter { it.transactionType == SharedTransactionType.EXPENSE }.map { it.toItem() }
-        )
+        // their own types.
+        val monthlyIncome = thisMonthTxns.filter { it.transactionType == SharedTransactionType.INCOME }.map { it.toItem() }
+        val monthlyExpense = thisMonthTxns.filter { it.transactionType == SharedTransactionType.EXPENSE }.map { it.toItem() }
 
         return SharedHomeSnapshot(
             categories = categories,
@@ -958,9 +955,8 @@ class PennyWiseSharedFacade {
             subscriptionCount = subscriptions.size,
             budgetCount = budgets.size,
             accountCount = accounts.size,
-            monthlyIncomeTotals = monthlyIncome,
-            monthlyExpenseTotals = monthlyExpense,
-            monthlyNetTotals = MoneyTotals.netTotals(monthlyIncome, monthlyExpense),
+            monthlyIncome = monthlyIncome,
+            monthlyExpense = monthlyExpense,
             lastImportImported = imported,
             lastImportParsed = parsed,
             lastImportSkipped = skipped,

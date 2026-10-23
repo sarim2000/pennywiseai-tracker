@@ -207,13 +207,9 @@ struct TransactionListView: View {
         // EXPENSE only, mirroring Android and the home snapshot: TRANSFER
         // moves money between own accounts and CREDIT/INVESTMENT are their
         // own types.
-        let income = MoneyTotals.shared.transactionTotals(transactions: filteredTransactions.filter { $0.transactionType == "INCOME" })
-        let expense = MoneyTotals.shared.transactionTotals(transactions: filteredTransactions.filter { $0.transactionType == "EXPENSE" })
-        return (
-            converter.total(totals: income),
-            converter.total(totals: expense),
-            converter.total(totals: MoneyTotals.shared.netTotals(income: income, expense: expense))
-        )
+        let income = converter.totalOf(transactions: filteredTransactions.filter { $0.transactionType == "INCOME" })
+        let expense = converter.totalOf(transactions: filteredTransactions.filter { $0.transactionType == "EXPENSE" })
+        return (income, expense, converter.net(income: income, expense: expense))
     }
 
     var body: some View {

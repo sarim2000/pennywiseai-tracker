@@ -122,7 +122,7 @@ fun AnalyticsSummaryCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
             HorizontalDivider(
-                thickness = 1.5.dp,
+                thickness = Dimensions.Component.dividerThicknessEmphasis,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -210,7 +210,7 @@ fun AnalyticsSummaryCard(
 private fun ForecastSection(forecast: SpendForecast) {
     Spacer(modifier = Modifier.height(Spacing.md))
     HorizontalDivider(
-        thickness = 1.5.dp,
+        thickness = Dimensions.Component.dividerThicknessEmphasis,
         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
     )
     Spacer(modifier = Modifier.height(Spacing.md))
@@ -219,10 +219,8 @@ private fun ForecastSection(forecast: SpendForecast) {
             R.string.analytics_forecast_for,
             forecast.periodEnd.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
         ).uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 1.sp
+        style = PennyWiseText.overline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Text(
         text = CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),

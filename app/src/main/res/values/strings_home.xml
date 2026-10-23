@@ -358,6 +358,7 @@
         <item quantity="other">About %1$s a day for the next %2$d days</item>
     </plurals>
     <string name="safe_to_spend_short">Bills due before %1$s are more than your balance</string>
+    <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
     <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>

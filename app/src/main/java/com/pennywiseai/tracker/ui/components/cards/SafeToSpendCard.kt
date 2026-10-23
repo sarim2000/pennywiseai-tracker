@@ -130,17 +130,18 @@ fun SafeToSpendCard(
 @Composable
 private fun PerDayLine(s: SafeToSpend, dueBefore: String) {
     val perDay = s.perDay
+    val short = s.amount.signum() < 0
     Text(
-        text = if (perDay != null) {
-            pluralStringResource(
+        text = when {
+            perDay != null -> pluralStringResource(
                 R.plurals.safe_to_spend_per_day, s.days,
                 CurrencyFormatter.formatCurrency(perDay, s.currency), s.days
             )
-        } else {
-            stringResource(R.string.safe_to_spend_short, dueBefore)
+            short -> stringResource(R.string.safe_to_spend_short, dueBefore)
+            else -> stringResource(R.string.safe_to_spend_none_left, dueBefore)
         },
         style = MaterialTheme.typography.bodyMedium,
-        color = if (perDay != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
+        color = if (short) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     )
 }
 

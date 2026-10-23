@@ -84,6 +84,11 @@ object PennyWiseText {
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.bodySmall
 
+    /** Upper-case, widely tracked label above a summary figure ("TOTAL", "AVERAGE"). */
+    val overline: TextStyle
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+
     /** All-caps-ish label above a value in a detail sheet. */
     val fieldLabel: TextStyle
         @Composable @ReadOnlyComposable

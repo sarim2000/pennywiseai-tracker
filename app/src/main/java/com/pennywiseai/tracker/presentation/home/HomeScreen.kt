@@ -249,6 +249,12 @@ fun HomeScreen(
         }
     }
     
+    // A new day moves the forecast and Safe to spend on, even with no data change.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
+
     // Refresh hidden accounts whenever this screen becomes visible
     // This ensures changes from ManageAccountsScreen are reflected immediately
     DisposableEffect(Unit) {

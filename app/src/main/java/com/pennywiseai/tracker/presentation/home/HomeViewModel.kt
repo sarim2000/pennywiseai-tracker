@@ -178,6 +178,10 @@ class HomeViewModel @Inject constructor(
     // the forecast's "usual". The first one is lastMonthBreakdownMap.
     private var previousCycleBreakdownMaps: List<Map<String, TransactionRepository.MonthlyBreakdown>> = emptyList()
 
+    // Per-currency LENT-loan settlement loss for each of those cycles, folded into "usual"
+    // the same way currentMonthLoanLossByCurrency is folded into this cycle's spend.
+    private var previousCycleLoanLoss: List<Map<String, BigDecimal>> = emptyList()
+
     // Per-currency total loss from LENT loans settled this month. Folded into the displayed
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
     private var currentMonthLoanLossByCurrency: Map<String, BigDecimal> = emptyMap()
@@ -201,6 +205,9 @@ class HomeViewModel @Inject constructor(
 
     // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.
     private val spendableRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
+
+    // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
+    private val today = MutableStateFlow(LocalDate.now())
 
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
@@ -238,16 +245,15 @@ class HomeViewModel @Inject constructor(
         spendableRaw,
         subscriptionRepository.getActiveSubscriptions(),
         userPreferencesRepository.safeToSpendExcludedAccounts,
-        _currentCycleWindow,
+        _currentCycleWindow.combine(today) { window, day -> window.second to day },
         combine(
             userPreferencesRepository.unifiedCurrencyMode,
             userPreferencesRepository.displayCurrency,
             _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
             currencyConversionService.getAllRatesFlow(),
         ) { unified, display, selected, _ -> if (unified) display to true else selected to false },
-    ) { accounts, subscriptions, excluded, (_, periodEnd), (primaryCurrency, unified) ->
+    ) { accounts, subscriptions, excluded, (periodEnd, today), (primaryCurrency, unified) ->
         if (accounts.isEmpty()) return@combine null
-        val today = LocalDate.now()
         suspend fun Money.forTotal(): Money =
             if (!unified || currency == primaryCurrency) this
             else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
@@ -263,6 +269,20 @@ class HomeViewModel @Inject constructor(
             ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
         SafeToSpendUi(primary, results - primary, periodEnd, accounts, excluded, bills)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Called when Home resumes. On a new day, move the cycle window (if it rolled over)
+     * and re-run the day-based figures: forecast and Safe to spend.
+     */
+    fun refreshDate() {
+        val now = LocalDate.now()
+        if (now == today.value) return
+        today.value = now
+        viewModelScope.launch {
+            _currentCycleWindow.value = BudgetCycle.currentCycle(now, userPreferencesRepository.budgetCycleStartDay.first())
+            updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
+        }
+    }
 
     fun setSafeToSpendAccountIncluded(account: AccountBalanceEntity, included: Boolean) {
         viewModelScope.launch {
@@ -726,8 +746,16 @@ class HomeViewModel @Inject constructor(
                 }
                 .combine(_cachedAccountBalances.filterNotNull()) { (pair, profileId), balances ->
                     val (cycles, transactions) = pair
-                    cycles to filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .forTotals()
+                    val keys = buildProfileAccountKeys(balances)
+                    previousCycleLoanLoss = cycles.map { (start, end) ->
+                        val settled = loanRepository.getLentLoansSettledInPeriod(
+                            start.atStartOfDay(), end.atTime(java.time.LocalTime.MAX)
+                        ).first()
+                        loanRepository.settlementLossByCurrency(settled) {
+                            filterTransactionsByProfile(listOf(it), profileId, keys).isNotEmpty()
+                        }
+                    }
+                    cycles to filterTransactionsByProfile(transactions, profileId, keys).forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
                     cycles.map { (start, end) ->
@@ -1473,8 +1501,10 @@ class HomeViewModel @Inject constructor(
                     spendForecast = forecastFor(
                         currentBreakdown.expenses + loanLoss,
                         selectedCurrency,
-                        previousCycleBreakdownMaps.map { map ->
-                            if (map.isEmpty()) null else aggregateBreakdowns(map, selectedCurrency).expenses
+                        previousCycleBreakdownMaps.mapIndexed { i, map ->
+                            if (map.isEmpty()) null
+                            else aggregateBreakdowns(map, selectedCurrency).expenses +
+                                aggregateAcrossCurrencies(previousCycleLoanLoss.getOrNull(i).orEmpty(), selectedCurrency, isUnified = true)
                         }
                     )
                 )
@@ -1510,7 +1540,11 @@ class HomeViewModel @Inject constructor(
                 spendForecast = forecastFor(
                     currentBreakdown.expenses + loanLoss,
                     selectedCurrency,
-                    previousCycleBreakdownMaps.map { it[selectedCurrency]?.expenses }
+                    previousCycleBreakdownMaps.mapIndexed { i, map ->
+                        map[selectedCurrency]?.expenses?.let {
+                            it + (previousCycleLoanLoss.getOrNull(i)?.get(selectedCurrency) ?: BigDecimal.ZERO)
+                        }
+                    }
                 )
             )
             calculateMonthlyChange()

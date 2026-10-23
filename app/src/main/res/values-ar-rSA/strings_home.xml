@@ -279,18 +279,13 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">إضافة معاملة</string>
-    <string name="widget_add_title">إضافة</string>
-    <string name="widget_add_subtitle">المعاملة</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">الميزانية الشهرية</string>
-    <string name="widget_budget_tap_to_set_up">انقر للإعداد</string>
-    <string name="widget_budget_percent_used">%1$d%% مستخدم</string>
+    <string name="widget_budget_percent_used">%1$d%% مستخدَمة</string>
     <string name="widget_budget_of_limit">من %1$s</string>
-    <string name="widget_budget_left">%1$s متبقي</string>
-    <string name="widget_budget_over">أكثر من %1$s</string>
-    <string name="widget_budget_per_day">%1$sيومًا</string>
-    <string name="widget_budget_saved">تم الحفظ %1$s</string>
-    <string name="widget_budget_overspent">أكثر من %1$s</string>
+    <string name="widget_budget_per_day">%1$s لليوم</string>
+    <string name="widget_budget_saved">وفّرت %1$s</string>
+    <string name="widget_budget_overspent">عجز %1$s</string>
     <!-- Spending pie widget -->
     <string name="widget_pie_title">الإنفاق</string>
     <string name="widget_pie_content_description">الإنفاق حسب الفئة</string>
@@ -299,13 +294,8 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">أخرى</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">المعاملات الأخيرة</string>
-    <string name="widget_recent_add">إضافة عملية</string>
-    <string name="widget_recent_total_spend">إجمالي الإنفاق هذا الشهر</string>
     <string name="widget_recent_empty">لا توجد معاملات بعد</string>
-    <string name="widget_recent_empty_hint">انقر + لإضافة يدوياً</string>
-    <string name="widget_recent_fallback_title">المعاملة</string>
-    <!-- Spending summary widget -->
+    <string name="widget_recent_fallback_title">معاملة</string>
     <string name="widget_summary_today">اليوم</string>
     <string name="widget_summary_month">هذا الشهر</string>
     <!-- ══ Notifications ══ -->
@@ -367,6 +357,15 @@
         <item quantity="other">%d بلا تصنيف</item>
     </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
+    <string name="notif_daily_action_cash">+ نقداً</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="zero">لا عمليات جديدة</item>
+        <item quantity="one">%d عملية جديدة</item>
+        <item quantity="two">عمليتان جديدتان</item>
+        <item quantity="few">%d عمليات جديدة</item>
+        <item quantity="many">%d عملية جديدة</item>
+        <item quantity="other">%d عملية جديدة</item>
+    </plurals>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

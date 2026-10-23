@@ -109,15 +109,12 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">เพิ่มรายการธุรกรรม</string>
-    <string name="widget_add_title">เพิ่ม</string>
-    <string name="widget_add_subtitle">ธุรกรรม</string>
     <!-- Budget widget -->
     <string name="widget_budget_percent_used">%1$d%% ใช้แล้ว</string>
     <!-- Spending pie widget -->
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">อื่นๆ</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">เพิ่มรายการธุรกรรม</string>
     <string name="widget_recent_empty">ยังไม่มีรายการธุรกรรม</string>
     <string name="widget_recent_fallback_title">ธุรกรรม</string>
     <!-- Spending summary widget -->

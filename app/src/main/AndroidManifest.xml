@@ -93,6 +93,18 @@
             android:launchMode="singleTask"
             android:theme="@style/Theme.PennyWise.Transparent" />
 
+        <!-- Quick cash add (amount, category, Save) over whatever is on screen,
+             from the widgets' + and the evening recap. Same task setup as the
+             picker above; adjustResize keeps Save above the keyboard. -->
+        <activity
+            android:name=".presentation.add.QuickAddActivity"
+            android:exported="false"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.PennyWise.Transparent" />
+
         <!-- Quick Settings tile: swipe down -> tap -> Add Transaction -->
         <service
             android:name=".aiaccess.AiSessionService"

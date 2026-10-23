@@ -100,14 +100,11 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">लेनदेन थप्नुहोस्</string>
-    <string name="widget_add_title">थप्नुहोस्</string>
-    <string name="widget_add_subtitle">लेनदेन</string>
     <!-- Budget widget -->
     <!-- Spending pie widget -->
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">अन्य</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">लेनदेन थप्नुहोस्</string>
     <string name="widget_recent_empty">अझै कुनै लेनदेन छैन</string>
     <string name="widget_recent_fallback_title">लेनदेन</string>
     <!-- Spending summary widget -->

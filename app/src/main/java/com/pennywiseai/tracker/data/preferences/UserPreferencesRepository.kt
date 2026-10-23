@@ -894,6 +894,8 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
+        // The widgets' totals follow the same eye.
+        WidgetRefresher.refreshTransactionWidgets(context)
     }
 
     // Replace UPI VPAs with matching contact names at display time.

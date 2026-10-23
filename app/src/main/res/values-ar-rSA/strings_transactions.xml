@@ -436,6 +436,11 @@
     <string name="share_banner_dismiss">تجاهل</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">تغيير الفئة</string>
+    <string name="quick_add_title">صرف نقدي</string>
+    <string name="quick_add_more_details">تفاصيل أكثر</string>
+    <string name="quick_add_where_hint">أين؟ (اختياري)</string>
+    <string name="quick_add_from">من: %1$s</string>
+    <string name="quick_add_saved">حُفظ %1$s · %2$s</string>
     <string name="date_range_title">اختر نطاق التاريخ</string>
     <string name="date_range_ok">موافق</string>
     <string name="date_range_cancel">إلغاء</string>

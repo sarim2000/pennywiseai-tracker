@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Goal widgets' empty state, under "No goals yet" and above "Create goal" -->
+    <string name="widget_goals_empty_hint_target">Pick an amount and a date</string>
+    <!-- Spending pie widget's empty state, under "No spending yet this month" -->
+    <string name="widget_pie_empty_hint">Your spending by category shows here</string>
+</resources>

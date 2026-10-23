@@ -11,6 +11,6 @@
     android:maxResizeHeight="120dp"
     android:resizeMode="horizontal|vertical"
     android:previewLayout="@layout/spending_summary_widget_preview"
-    android:description="@string/widget_description_summary"
+    android:description="@string/widget_summary_description"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen" />

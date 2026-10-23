@@ -148,10 +148,79 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val notificationManager = ensureChannel(context)
             if (learned == null) {
                 notificationManager.cancel(notificationId)
-                return
+            } else {
+                // Picks post from different threads, so check-and-post is one step.
+                synchronized(LEARNED_LOCK) { postLearned(context, notificationManager, notificationId, learned) }
             }
-            // Picks post from different threads, so check-and-post is one step.
-            synchronized(LEARNED_LOCK) { postLearned(context, notificationManager, notificationId, learned) }
+            // The note replaces the alert outside the stack, so the stack is one shorter.
+            updateAlertGroup(context, removedId = notificationId)
+        }
+
+        /**
+         * Keeps the header over the stacked alerts in step: posted from the
+         * second alert on, recounted as they're answered, gone with the last.
+         * Cancelling a summary cancels its children too, so it's only ever
+         * dropped once the stack is empty. notify() and cancel() land
+         * asynchronously, so the caller's own change is passed in rather than
+         * read back from the shade.
+         *
+         * Two at once (a bank's two texts) each read a shade that showed
+         * neither yet, so each counted one and no header went up; one recount
+         * after the shade has caught up settles it.
+         */
+        fun updateAlertGroup(
+            context: Context,
+            posted: Pair<Int, android.app.Notification>? = null,
+            removedId: Int? = null
+        ) {
+            syncAlertGroup(context, posted, removedId)
+            val app = context.applicationContext
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ syncAlertGroup(app) }, GROUP_SETTLE_MS)
+        }
+
+        private fun syncAlertGroup(
+            context: Context,
+            posted: Pair<Int, android.app.Notification>? = null,
+            removedId: Int? = null
+        ) = synchronized(GROUP_LOCK) {
+            val notificationManager = ensureChannel(context)
+            val active = notificationManager.activeNotifications
+            val alerts = active.filter { it.notification.group == GROUP_KEY && it.id != GROUP_SUMMARY_ID }
+                .associate { it.id to it.notification }
+                .toMutableMap()
+            removedId?.let(alerts::remove)
+            posted?.let { (id, notification) -> alerts[id] = notification }
+            when {
+                alerts.isEmpty() -> notificationManager.cancel(GROUP_SUMMARY_ID)
+                alerts.size == 1 && active.none { it.id == GROUP_SUMMARY_ID } -> Unit
+                else -> {
+                    val title = context.resources.getQuantityString(R.plurals.notif_txn_group_title, alerts.size, alerts.size)
+                    val lines = alerts.values.sortedByDescending { it.`when` }
+                        .mapNotNull { it.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) }
+                    notificationManager.notify(
+                        GROUP_SUMMARY_ID,
+                        NotificationCompat.Builder(context, CHANNEL_ID)
+                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .setContentTitle(title)
+                            .setContentText(lines.firstOrNull())
+                            .setStyle(NotificationCompat.InboxStyle().setBigContentTitle(title).also { style -> lines.forEach(style::addLine) })
+                            .setContentIntent(
+                                PendingIntent.getActivity(
+                                    context,
+                                    GROUP_SUMMARY_ID,
+                                    Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                )
+                            )
+                            .setGroup(GROUP_KEY)
+                            .setGroupSummary(true)
+                            // The alerts ring; their header never does.
+                            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
+                            .setAutoCancel(true)
+                            .build()
+                    )
+                }
+            }
         }
 
         private fun postLearned(
@@ -221,6 +290,13 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private const val EXTRA_LEARNED_MERCHANT = "com.pennywiseai.tracker.learned_merchant"
         private const val EXTRA_LEARNED_AT = "com.pennywiseai.tracker.learned_at"
         private val LEARNED_LOCK = Any()
+
+        // A busy day is one stack in the shade, not a wall of alerts.
+        private const val GROUP_KEY = "com.pennywiseai.tracker.TRANSACTION_ALERTS"
+        // Transaction alerts use the transaction id (never negative); the recap is -2.
+        private const val GROUP_SUMMARY_ID = -3
+        private val GROUP_LOCK = Any()
+        private const val GROUP_SETTLE_MS = 1_000L
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -373,6 +449,20 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
+                .setGroup(GROUP_KEY)
+                // Swiped away (or cleared): recount the stack's header.
+                .setDeleteIntent(
+                    PendingIntent.getBroadcast(
+                        context,
+                        transactionId.toInt(),
+                        Intent(context, NotificationActionReceiver::class.java).apply {
+                            action = NotificationActionReceiver.ACTION_CONFIRM_TRANSACTION
+                            putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)
+                            putExtra(NotificationActionReceiver.EXTRA_NOTIFICATION_ID, transactionId.toInt())
+                        },
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
 
             // Notification action slots are precious (Android collapses past 3),
             // so the last opens the full picker and the first two are the
@@ -419,7 +509,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     )
             }
 
-            notificationManager.notify(notificationId, notificationBuilder.build())
+            val notification = notificationBuilder.build()
+            notificationManager.notify(notificationId, notification)
+            updateAlertGroup(context, posted = notificationId to notification)
         } catch (e: Exception) {
             Log.e(TAG, "Error showing notification", e)
         }

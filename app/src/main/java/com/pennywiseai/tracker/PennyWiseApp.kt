@@ -34,7 +34,7 @@ fun PennyWiseApp(
     themeViewModel: ThemeViewModel? = null,
     appLockViewModel: AppLockViewModel? = null,
     editTransactionId: Long? = null,
-    openAddTransaction: Boolean = false,
+    openAddTransaction: com.pennywiseai.tracker.navigation.AddTransaction? = null,
     onEditComplete: (() -> Unit)? = null,
     onAddTransactionShortcutHandled: (() -> Unit)? = null,
     sharedText: String? = null,
@@ -130,14 +130,14 @@ fun PennyWiseApp(
         onEditComplete?.invoke()
     }
     NavigateWhenUnlocked(
-        request = openAddTransaction.takeIf { it },
+        request = openAddTransaction,
         onboarded = themeUiState.hasCompletedOnboarding,
         lock = appLockUiState,
         currentRoute = currentRoute,
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
-    ) {
-        navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction()) { launchSingleTop = true }
+    ) { add ->
+        navController.navigate(add) { launchSingleTop = true }
         onAddTransactionShortcutHandled?.invoke()
     }
     NavigateWhenUnlocked(

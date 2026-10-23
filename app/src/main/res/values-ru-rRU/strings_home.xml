@@ -223,15 +223,10 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Добавить транзакцию</string>
-    <string name="widget_add_title">Добавить</string>
-    <string name="widget_add_subtitle">Транзакция</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">Ежемесячный бюджет</string>
-    <string name="widget_budget_tap_to_set_up">Нажмите, чтобы настроить</string>
     <string name="widget_budget_percent_used">%1$d%% использовано</string>
     <string name="widget_budget_of_limit">из %1$s</string>
-    <string name="widget_budget_left">%1$s осталось</string>
-    <string name="widget_budget_over">%1$s больше</string>
     <string name="widget_budget_per_day">%1$s/день</string>
     <string name="widget_budget_saved">Сохранено %1$s</string>
     <string name="widget_budget_overspent">Более %1$s</string>
@@ -243,11 +238,7 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Другое</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Последние транзакции</string>
-    <string name="widget_recent_add">Добавить транзакцию</string>
-    <string name="widget_recent_total_spend">Всего потрачено в этом месяце</string>
     <string name="widget_recent_empty">Транзакций ещё нет</string>
-    <string name="widget_recent_empty_hint">Нажмите +, чтобы добавить вручную</string>
     <string name="widget_recent_fallback_title">Транзакция</string>
     <!-- Spending summary widget -->
     <!-- ══ Notifications ══ -->

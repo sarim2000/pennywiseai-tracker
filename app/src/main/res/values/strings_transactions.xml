@@ -408,6 +408,14 @@
 
     <!-- Shared transaction components -->
     <string name="quick_category_title">Change category</string>
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <string name="quick_add_title">Cash spend</string>
+    <string name="quick_add_more_details">More details</string>
+    <string name="quick_add_where_hint">Where? (optional)</string>
+    <!-- %1$s the cash account the spend comes out of -->
+    <string name="quick_add_from">From: %1$s</string>
+    <!-- %1$s amount with currency, %2$s category -->
+    <string name="quick_add_saved">Saved %1$s · %2$s</string>
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>

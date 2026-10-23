@@ -1,134 +1,142 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Widget picker preview for recent transactions: generic rows, plain numbers (no currency). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
     android:orientation="vertical"
     android:padding="16dp"
-    android:theme="@android:style/Theme.DeviceDefault.DayNight"
-    android:background="?android:attr/colorBackground">
+    android:theme="@style/Theme.Pennywisecompose">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
         <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Recent Transactions"
+            android:text="@string/widget_recent_header"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:textStyle="bold" />
 
         <ImageView
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:padding="8dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/widget_add_content_description"
+            android:padding="10dp"
             android:src="@drawable/ic_widget_add"
             android:tint="?android:attr/textColorPrimary" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="₹12,450"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="?android:attr/textColorPrimary" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="Total spend this month"
-        android:textSize="12sp"
-        android:textColor="?android:attr/textColorSecondary" />
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="☕"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:text="Coffee shop"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:text="Food · 6:27 PM"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="3.50"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textDirection="ltr"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:orientation="vertical">
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="O"
+            android:textSize="16sp" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Zomato"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="?android:attr/textColorPrimary" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Food • Sep 12"
-                    android:textSize="12sp"
-                    android:textColor="?android:attr/textColorSecondary" />
-            </LinearLayout>
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="-₹850"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="#D32F2F" />
-        </LinearLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="10dp"
-            android:background="#E0E0E0" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Salary"
-                    android:textSize="13sp"
-                    android:textStyle="bold"
-                    android:textColor="?android:attr/textColorPrimary" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="Income • Sep 05"
-                    android:textSize="12sp"
-                    android:textColor="?android:attr/textColorSecondary" />
-            </LinearLayout>
+                android:maxLines="1"
+                android:text="Card payment"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="+₹85,000"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="#2E7D32" />
+                android:maxLines="1"
+                android:text="Others · 2:10 PM"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:background="?android:attr/colorControlHighlight"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:text="@string/widget_recent_sort"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="18.00"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textDirection="ltr"
+            android:textSize="14sp"
+            android:textStyle="bold" />
     </LinearLayout>
+
 </LinearLayout>

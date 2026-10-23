@@ -252,16 +252,11 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Add transaction</string>
-    <string name="widget_add_title">Add</string>
-    <string name="widget_add_subtitle">Transaction</string>
 
     <!-- Budget widget -->
-    <string name="widget_budget_title">Monthly Budget</string>
-    <string name="widget_budget_tap_to_set_up">Tap to set up</string>
+    <string name="widget_budget_title">Monthly budget</string>
     <string name="widget_budget_percent_used">%1$d%% used</string>
     <string name="widget_budget_of_limit">of %1$s</string>
-    <string name="widget_budget_left">%1$s left</string>
-    <string name="widget_budget_over">%1$s over</string>
     <string name="widget_budget_per_day">%1$s/day</string>
     <string name="widget_budget_saved">Saved %1$s</string>
     <string name="widget_budget_overspent">Over %1$s</string>
@@ -275,11 +270,7 @@
     <string name="widget_pie_other">Other</string>
 
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Recent Transactions</string>
-    <string name="widget_recent_add">Add Transaction</string>
-    <string name="widget_recent_total_spend">Total spend this month</string>
     <string name="widget_recent_empty">No transactions yet</string>
-    <string name="widget_recent_empty_hint">Tap + to add manually</string>
     <string name="widget_recent_fallback_title">Transaction</string>
 
     <!-- Spending summary widget -->
@@ -335,6 +326,12 @@
         <item quantity="other">%d need a category</item>
     </plurals>
     <string name="notif_daily_action_sort">Sort it</string>
+    <string name="notif_daily_action_cash">+ Cash</string>
+    <!-- Header over a stack of transaction alerts -->
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d new transaction</item>
+        <item quantity="other">%d new transactions</item>
+    </plurals>
 
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>

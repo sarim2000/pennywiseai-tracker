@@ -111,6 +111,11 @@
     <string name="txn_detail_balance_mismatch_value">Off by %1$s · expected %2$s</string>
     <string name="txn_detail_add_untracked_expense">Add %1$s untracked expense</string>
     <string name="txn_detail_add_untracked_income">Add %1$s untracked income</string>
+    <string name="txn_detail_adjustment_title_expense">Untracked expense</string>
+    <string name="txn_detail_adjustment_title_income">Untracked income</string>
+    <string name="txn_detail_adjustment_what">What was it?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Balance adjustment</string>
+    <string name="txn_detail_adjustment_add">Add</string>
     <string name="txn_detail_label_reference">Reference</string>
     <string name="txn_detail_receipt">Receipt</string>
     <string name="txn_detail_receipt_tap_to_view">Tap to view</string>

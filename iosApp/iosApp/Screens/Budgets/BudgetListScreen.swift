@@ -85,7 +85,7 @@ private struct BudgetRowView: View {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text(budget.name)
                         .font(AppTypography.headline)
-                    Text(budget.periodType.capitalized)
+                    Text(budgetPeriodNote(periodType: budget.periodType, startEpochMillis: budget.startEpochMillis, endEpochMillis: budget.endEpochMillis) ?? budget.periodType.capitalized)
                         .font(AppTypography.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -107,6 +107,12 @@ private struct BudgetRowView: View {
                     .font(AppTypography.amountSmall)
                     .foregroundStyle(budgetColor(for: budget.progress))
                 Spacer()
+                if budget.spentMinor > budget.limitMinor {
+                    Text("\(AmountFormatter.format(minorUnits: budget.spentMinor - budget.limitMinor, currency: budget.currency)) over")
+                        .font(AppTypography.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColors.budgetDanger)
+                }
                 Text("of \(AmountFormatter.format(minorUnits: budget.limitMinor, currency: budget.currency))")
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
@@ -133,6 +139,29 @@ struct BudgetProgressBar: View {
         }
         .frame(height: 8)
     }
+}
+
+/// "October · 9 days left" for a monthly budget. Uses the budget's own period
+/// (end is exclusive: the start of the next month) while today is inside it;
+/// nil for other periods or a budget from another month. Restored budgets
+/// carry placeholder dates (0 / Int64.max), so they get today's month.
+func budgetPeriodNote(periodType: String, startEpochMillis: Int64, endEpochMillis: Int64, now: Date = Date()) -> String? {
+    guard periodType.lowercased() == "monthly" else { return nil }
+    let calendar = Calendar.current
+    let start: Date
+    let end: Date
+    if startEpochMillis <= 0 || endEpochMillis == Int64.max || endEpochMillis <= startEpochMillis {
+        guard let month = calendar.dateInterval(of: .month, for: now) else { return nil }
+        start = month.start
+        end = month.end
+    } else {
+        start = Date(timeIntervalSince1970: TimeInterval(startEpochMillis) / 1000)
+        end = Date(timeIntervalSince1970: TimeInterval(endEpochMillis) / 1000)
+    }
+    guard now >= start, now < end else { return nil }
+    let daysLeft = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: end)).day ?? 0
+    let monthName = start.formatted(.dateTime.month(.wide))
+    return daysLeft <= 1 ? "\(monthName) \u{00B7} last day" : "\(monthName) \u{00B7} \(daysLeft) days left"
 }
 
 func budgetColor(for ratio: Double) -> Color {

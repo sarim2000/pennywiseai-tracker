@@ -1,3 +1,4 @@
+import Shared
 import SwiftUI
 
 struct CategoryIconInfo {
@@ -96,8 +97,36 @@ enum AppColors {
         case "travel":
             return CategoryIconInfo(systemName: "airplane", color: Color(hex: 0x00BCD4))
         default:
-            return CategoryIconInfo(systemName: "square.grid.2x2.fill", color: Color(hex: 0x757575))
+            // Custom categories use the colour they were saved with.
+            let stored = customCategoryHex[name.lowercased()]
+            return CategoryIconInfo(systemName: "tag.fill", color: Color(hex: stored ?? 0x757575))
         }
+    }
+
+    /// Custom category colours by lowercased name. Loaded on first use; call
+    /// `reloadCategoryColors()` after a category is added, edited or deleted.
+    private static var customCategoryHex: [String: UInt] = loadCategoryColors()
+
+    static func reloadCategoryColors() {
+        customCategoryHex = loadCategoryColors()
+    }
+
+    private static func loadCategoryColors() -> [String: UInt] {
+        var colors: [String: UInt] = [:]
+        for category in PennyWiseSharedFacade.companion.shared.getAllCategories() where !category.isSystem {
+            colors[category.name.lowercased()] = parseHex(category.colorHex)
+        }
+        return colors
+    }
+
+    /// "#RRGGBB", "0xRRGGBB" or "AARRGGBB" → 0xRRGGBB.
+    static func parseHex(_ value: String) -> UInt {
+        let hex = value
+            .replacingOccurrences(of: "#", with: "")
+            .replacingOccurrences(of: "0x", with: "")
+            .replacingOccurrences(of: "0X", with: "")
+        let trimmed = hex.count > 6 ? String(hex.suffix(6)) : hex
+        return UInt(trimmed, radix: 16) ?? 0x78909C
     }
 
     static func categoryColor(for name: String) -> Color {
@@ -128,11 +157,6 @@ enum AppColors {
     /// Adaptive grouped background
     static func groupedBackground(isAmoled: Bool) -> Color {
         isAmoled ? amoledBackground : Color(.systemGroupedBackground)
-    }
-
-    /// Adaptive secondary grouped background (cards within grouped views)
-    static func secondaryGroupedBackground(isAmoled: Bool) -> Color {
-        isAmoled ? amoledSurfaceVariant : Color(.secondarySystemGroupedBackground)
     }
 
     /// Adaptive tertiary background

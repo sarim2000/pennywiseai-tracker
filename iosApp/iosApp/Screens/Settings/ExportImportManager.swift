@@ -130,6 +130,7 @@ final class ExportImportManager: ObservableObject {
             }
 
             isImporting = false
+            AppColors.reloadCategoryColors()
             statusMessage = "Imported \(txImported) transactions, \(catImported) categories, \(budImported) budgets, \(accImported) accounts"
         } catch {
             isImporting = false

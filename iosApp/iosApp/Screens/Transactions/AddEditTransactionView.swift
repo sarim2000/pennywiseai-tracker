@@ -67,11 +67,22 @@ struct AddEditTransactionView: View {
             }
 
             Section("Optional") {
-                TextField("Bank name", text: $bankName)
-                TextField("Account last 4 digits", text: $accountLast4)
-                    .keyboardType(.numberPad)
-                TextField("Notes", text: $noteText, axis: .vertical)
-                    .lineLimit(3 ... 6)
+                // Labelled, so a filled value still says what it is.
+                LabeledContent("Bank") {
+                    TextField("Bank name", text: $bankName)
+                        .multilineTextAlignment(.trailing)
+                }
+                LabeledContent("Account") {
+                    TextField("Last 4 digits", text: $accountLast4)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                }
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("Note")
+                    TextField("Optional", text: $noteText, axis: .vertical)
+                        .lineLimit(3 ... 6)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             if let error = errorMessage {

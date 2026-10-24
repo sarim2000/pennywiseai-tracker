@@ -24,7 +24,7 @@ struct CategoryBreakdownList: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 
@@ -40,14 +40,14 @@ struct CategoryBreakdownList: View {
     private func categoryRowContent(_ item: CategoryBreakdownItem) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Circle()
-                .fill(AppColors.categoryColor(for: item.name))
+                .fill(item.color)
                 .frame(width: 12, height: 12)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.name)
                     .font(AppTypography.body)
                     .lineLimit(1)
-                Text("\(item.count) transactions")
+                Text("^[\(item.count) transaction](inflect: true)")
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -57,7 +57,7 @@ struct CategoryBreakdownList: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(AmountFormatter.format(minorUnits: item.totalMinor, currency: CurrencyManager.shared.displayCurrency))
                     .font(AppTypography.amountSmall)
-                Text(String(format: "%.1f%%", item.percentage))
+                Text(item.percentLabel)
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)
             }

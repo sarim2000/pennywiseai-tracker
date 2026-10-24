@@ -42,8 +42,10 @@ private struct BudgetCarouselCard: View {
     }
 
     private var remainingMinor: Int64 {
-        max(0, budget.limitMinor - budget.spentMinor)
+        budget.limitMinor - budget.spentMinor
     }
+
+    private var isOver: Bool { remainingMinor < 0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -70,19 +72,29 @@ private struct BudgetCarouselCard: View {
                 .font(AppTypography.caption2)
                 .foregroundStyle(progressColor)
 
+            if let note = budgetPeriodNote(periodType: budget.periodType, startEpochMillis: budget.startEpochMillis, endEpochMillis: budget.endEpochMillis) {
+                Text(note)
+                    .font(AppTypography.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+
             Spacer()
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Remaining")
+                // "₹499 over" rather than "Remaining ₹0" once the limit is passed.
+                Text(isOver ? "Over by" : "Remaining")
                     .font(AppTypography.caption2)
                     .foregroundStyle(.tertiary)
 
-                Text(AmountFormatter.format(minorUnits: remainingMinor, currency: budget.currency))
+                Text(AmountFormatter.format(minorUnits: abs(remainingMinor), currency: budget.currency))
                     .font(AppTypography.amountSmall)
+                    .foregroundStyle(isOver ? AppColors.budgetDanger : .primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.md)
         // Min height, not a fixed one: large Dynamic Type grows the card
         // instead of clipping the title and "Remaining".

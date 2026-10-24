@@ -1,10 +1,11 @@
+import Shared
 import SwiftUI
 
 struct SpendingSummaryCard: View {
-    @ObservedObject private var currencyManager = CurrencyManager.shared
-    let monthlyExpenseMinor: Int64
-    let monthlyIncomeMinor: Int64
-    let monthlyNetMinor: Int64
+    /// Totals in the display currency (nil before the first load).
+    let expense: ConvertedTotal?
+    let income: ConvertedTotal?
+    let net: ConvertedTotal?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -14,13 +15,10 @@ struct SpendingSummaryCard: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
 
-                AmountText(
-                    amountMinor: monthlyExpenseMinor,
-                    currency: CurrencyManager.shared.displayCurrency,
-                    font: AppTypography.amountLarge
-                )
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                if let expense {
+                    ConvertedAmountText(total: expense, font: AppTypography.amountLarge)
+                        .minimumScaleFactor(0.5)
+                }
             }
 
             Divider()
@@ -48,28 +46,40 @@ struct SpendingSummaryCard: View {
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
     }
 
+    @ViewBuilder
     private var incomeColumn: some View {
-        SummaryColumn(label: "Income", amountMinor: monthlyIncomeMinor, accentColor: AppColors.income)
+        if let income {
+            SummaryColumn(label: "Income", total: income, accentColor: AppColors.income)
+        }
     }
 
+    @ViewBuilder
     private var expenseColumn: some View {
-        SummaryColumn(label: "Expenses", amountMinor: monthlyExpenseMinor, accentColor: AppColors.expense)
+        if let expense {
+            SummaryColumn(label: "Expenses", total: expense, accentColor: AppColors.expense)
+        }
     }
 
+    /// "Overspent ₹500" rather than "Saved -₹500" when spending beats income.
+    @ViewBuilder
     private var savedColumn: some View {
-        SummaryColumn(
-            label: "Saved",
-            amountMinor: monthlyNetMinor,
-            accentColor: monthlyNetMinor >= 0 ? AppColors.income : AppColors.expense
-        )
+        if let net {
+            let overspent = net.amountMinor < 0
+            SummaryColumn(
+                label: overspent ? "Overspent" : "Saved",
+                total: net,
+                accentColor: overspent ? AppColors.expense : AppColors.income,
+                negated: overspent
+            )
+        }
     }
 }
 
 private struct SummaryColumn: View {
-    @ObservedObject private var currencyManager = CurrencyManager.shared
     let label: String
-    let amountMinor: Int64
+    let total: ConvertedTotal
     let accentColor: Color
+    var negated = false
 
     var body: some View {
         HStack(spacing: AppSpacing.sm) {
@@ -78,10 +88,7 @@ private struct SummaryColumn: View {
                 .frame(width: 3, height: 32)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(AmountFormatter.format(minorUnits: amountMinor, currency: CurrencyManager.shared.displayCurrency))
-                    .font(AppTypography.amountSmall)
-                    .foregroundStyle(accentColor)
-                    .lineLimit(1)
+                ConvertedAmountText(total: total, color: accentColor, negated: negated)
                 Text(label)
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)

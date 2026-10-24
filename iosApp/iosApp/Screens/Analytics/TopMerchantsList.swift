@@ -24,7 +24,7 @@ struct TopMerchantsList: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 

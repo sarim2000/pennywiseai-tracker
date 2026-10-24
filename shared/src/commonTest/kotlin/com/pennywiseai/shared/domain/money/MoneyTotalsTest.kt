@@ -3,6 +3,7 @@ package com.pennywiseai.shared.domain.money
 import com.pennywiseai.shared.SharedAccountItem
 import com.pennywiseai.shared.SharedBudgetCategoryBreakdown
 import com.pennywiseai.shared.SharedBudgetItem
+import com.pennywiseai.shared.SharedRecentTransactionItem
 import com.pennywiseai.shared.SharedSubscriptionItem
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -84,5 +85,51 @@ class MoneyTotalsTest {
         assertFalse(MoneyTotals.isSpendingType("INCOME"))
         assertFalse(MoneyTotals.isSpendingType("TRANSFER"))
         assertFalse(MoneyTotals.isSpendingType("INVESTMENT"))
+    }
+
+    private val usdToInr = CurrencyConverter.fromRates("INR", listOf(Triple("USD", "INR", 83_500_000L)))
+
+    private fun txn(amountMinor: Long, currency: String) = SharedRecentTransactionItem(
+        transactionId = 0L, merchantName = "Shop", category = "Others", amountMinor = amountMinor,
+        currency = currency, transactionType = "EXPENSE", occurredAtEpochMillis = 0L, note = null,
+        bankName = null, accountLast4 = null, summary = ""
+    )
+
+    @Test
+    fun converter_convertsWithStoredRate_andKeepsMissingRatesApart() {
+        val total = usdToInr.totalOf(listOf(txn(100_000, "INR"), txn(1_250, "USD"), txn(900, "EUR")))
+        // $12.50 x 83.5 = 1,043.75
+        assertEquals(ConvertedTotal("INR", 204_375, listOf(CurrencyTotal("EUR", 900))), total)
+    }
+
+    @Test
+    fun converter_totalMatchesSumOfConvertedRows() {
+        // Each $0.01 converts to 0.835 -> 0.84; the total is the sum of the rows
+        // the charts plot (1.68), not round(0.02 x 83.5) = 1.67.
+        val rows = listOf(txn(1, "USD"), txn(1, "USD"))
+        val chartSum = rows.sumOf { usdToInr.convert(it.amountMinor, it.currency)!! }
+        assertEquals(168, chartSum)
+        assertEquals(chartSum, usdToInr.totalOf(rows).amountMinor)
+    }
+
+    @Test
+    fun converter_invertsReverseRate_andRoundsHalfAwayFromZero() {
+        val c = CurrencyConverter.fromRates("USD", listOf(Triple("USD", "INR", 80_000_000L)))
+        assertEquals(1_250, c.convert(100_000, "INR")) // 1000 INR / 80 = 12.50 USD
+        assertEquals(-1_250, c.convert(-100_000, "inr"))
+        assertEquals(1, usdToInr.convert(1, "INR"))
+        assertEquals(84, usdToInr.convert(1, "USD")) // 83.5 rounds up
+        assertEquals(null, usdToInr.convert(1, "GBP"))
+    }
+
+    @Test
+    fun converter_netSubtractsConvertedTotals_andDropsZeroLines() {
+        val income = usdToInr.totalOf(listOf(txn(500_000, "INR"), txn(1_000, "EUR")))
+        val expense = usdToInr.totalOf(listOf(txn(200_000, "INR"), txn(1_000, "EUR"), txn(100, "USD"), txn(300, "GBP")))
+        // 5,000 - 2,000 - $1.00 x 83.5; EUR nets to zero and is dropped; GBP has no rate.
+        assertEquals(
+            ConvertedTotal("INR", 291_650, listOf(CurrencyTotal("GBP", -300))),
+            usdToInr.net(income, expense)
+        )
     }
 }

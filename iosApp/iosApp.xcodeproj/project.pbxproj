@@ -23,6 +23,7 @@
 		AA0007002D39B001007A8A11 /* CategoryChip.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0007002D39B001007A8A11 /* CategoryChip.swift */; };
 		AA0008002D39B001007A8A11 /* AmountText.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0008002D39B001007A8A11 /* AmountText.swift */; };
 		AA0009002D39B001007A8A11 /* StatPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0009002D39B001007A8A11 /* StatPill.swift */; };
+		AA0F1A2B3C4D5E6F70819201 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0F1A2B3C4D5E6F70819201 /* EmptyStateView.swift */; };
 		AA0010002D39B001007A8A11 /* TransactionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */; };
 		AA0011002D39B001007A8A11 /* HomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0011002D39B001007A8A11 /* HomeViewModel.swift */; };
 		AA0012002D39B001007A8A11 /* DateFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0012002D39B001007A8A11 /* DateFormatting.swift */; };
@@ -97,6 +98,7 @@
 		BB0007002D39B001007A8A11 /* CategoryChip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryChip.swift; sourceTree = "<group>"; };
 		BB0008002D39B001007A8A11 /* AmountText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountText.swift; sourceTree = "<group>"; };
 		BB0009002D39B001007A8A11 /* StatPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatPill.swift; sourceTree = "<group>"; };
+		BB0F1A2B3C4D5E6F70819201 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailSheet.swift; sourceTree = "<group>"; };
 		BB0011002D39B001007A8A11 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
 		BB0012002D39B001007A8A11 /* DateFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatting.swift; sourceTree = "<group>"; };
@@ -307,6 +309,7 @@
 				BB0007002D39B001007A8A11 /* CategoryChip.swift */,
 				BB0008002D39B001007A8A11 /* AmountText.swift */,
 				BB0009002D39B001007A8A11 /* StatPill.swift */,
+				BB0F1A2B3C4D5E6F70819201 /* EmptyStateView.swift */,
 				BB0010002D39B001007A8A11 /* TransactionDetailSheet.swift */,
 				BB0020002D39B001007A8A11 /* SpendingSummaryCard.swift */,
 				PP0001002D39B001007A8A11 /* GreetingCard.swift */,
@@ -483,6 +486,7 @@
 				AA0007002D39B001007A8A11 /* CategoryChip.swift in Sources */,
 				AA0008002D39B001007A8A11 /* AmountText.swift in Sources */,
 				AA0009002D39B001007A8A11 /* StatPill.swift in Sources */,
+				AA0F1A2B3C4D5E6F70819201 /* EmptyStateView.swift in Sources */,
 				AA0010002D39B001007A8A11 /* TransactionDetailSheet.swift in Sources */,
 				AA0011002D39B001007A8A11 /* HomeViewModel.swift in Sources */,
 				AA0012002D39B001007A8A11 /* DateFormatting.swift in Sources */,

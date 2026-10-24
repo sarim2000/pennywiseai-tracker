@@ -3,6 +3,8 @@ import Charts
 
 struct SpendingTrendsChart: View {
     let data: [DailySpendingItem]
+    /// .day, .weekOfYear or .month: one bar per bucket.
+    var bucket: Calendar.Component = .day
     @Environment(\.isAmoledActive) private var isAmoled
 
     private var maxAmount: Int64 {
@@ -21,21 +23,21 @@ struct SpendingTrendsChart: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 
     private var chartView: some View {
         Chart(data) { item in
             BarMark(
-                x: .value("Date", item.date, unit: .day),
+                x: .value("Date", item.date, unit: bucket),
                 y: .value("Amount", Double(item.totalMinor) / 100.0)
             )
             .foregroundStyle(Color.accentColor.gradient)
             .cornerRadius(2)
         }
         .chartXAxis {
-            AxisMarks(values: .stride(by: .day, count: axisStride)) { _ in
+            AxisMarks(values: .stride(by: bucket, count: axisStride)) { _ in
                 AxisGridLine()
                 AxisValueLabel(format: axisDateFormat, centered: true)
             }
@@ -62,21 +64,17 @@ struct SpendingTrendsChart: View {
             .multilineTextAlignment(.center)
     }
 
+    /// Aim for at most ~7 labels whatever the bucket.
     private var axisStride: Int {
-        let count = data.count
-        if count <= 7 { return 1 }
-        if count <= 14 { return 2 }
-        if count <= 31 { return 5 }
-        if count <= 90 { return 10 }
-        return 30
+        max(1, Int((Double(data.count) / 7).rounded(.up)))
     }
 
     private var axisDateFormat: Date.FormatStyle {
-        let count = data.count
-        if count <= 31 {
-            return .dateTime.day()
+        switch bucket {
+        case .day: return .dateTime.day()
+        case .month: return data.count > 12 ? .dateTime.month(.abbreviated).year(.twoDigits) : .dateTime.month(.abbreviated)
+        default: return .dateTime.month(.abbreviated).day()
         }
-        return .dateTime.month(.abbreviated).day()
     }
 
     /// One unit for the whole axis, picked from the tallest bar, with up to one

@@ -335,4 +335,5 @@
         <item quantity="other">%1$d dny</item>
     </plurals>
     <string name="mark_paid_pick_date">Vybrat datum</string>
+    <!-- Month-end forecast row in the summary card -->
 </resources>

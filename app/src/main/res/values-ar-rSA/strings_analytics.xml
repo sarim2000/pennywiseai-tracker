@@ -368,4 +368,5 @@
         <item quantity="other">قبل %1$d يوم</item>
     </plurals>
     <string name="mark_paid_pick_date">اختيار تاريخ</string>
+    <!-- Month-end forecast row in the summary card -->
 </resources>

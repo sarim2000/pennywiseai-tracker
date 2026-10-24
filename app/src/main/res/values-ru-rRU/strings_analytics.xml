@@ -304,4 +304,5 @@
     <string name="mark_paid_today">Сегодня</string>
     <string name="mark_paid_yesterday">Вчера</string>
     <string name="mark_paid_pick_date">Выберите дату</string>
+    <!-- Month-end forecast row in the summary card -->
 </resources>

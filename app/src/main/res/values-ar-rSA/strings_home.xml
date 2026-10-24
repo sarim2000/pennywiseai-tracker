@@ -375,4 +375,6 @@
     <string name="pro_home_card_body">مع Pro تحصل على قواعد وأهداف وعمليات تصدير واستيراد كشوف حساب بلا حدود.</string>
     <string name="pro_home_card_action">اكتشف Pro</string>
     <string name="pro_home_card_dismiss">إخفاء</string>
+    <!-- Month-end forecast on the "Spent this month" card -->
+    <!-- Safe to spend card + breakdown sheet -->
 </resources>

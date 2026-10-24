@@ -43,4 +43,5 @@
     <!-- %1$s = formatted amount -->
     <!-- %1$s = currency code -->
     <!-- %1$s = relative date, %2$s = bank name -->
+    <!-- Month-end forecast row in the summary card -->
 </resources>

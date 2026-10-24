@@ -233,4 +233,6 @@
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Tendance du solde</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
+    <!-- Month-end forecast on the "Spent this month" card -->
+    <!-- Safe to spend card + breakdown sheet -->
 </resources>

@@ -132,4 +132,5 @@
     <!-- %1$s = relative date, %2$s = bank name -->
     <string name="mark_paid_today">วันนี้</string>
     <string name="mark_paid_yesterday">เมื่อวาน</string>
+    <!-- Month-end forecast row in the summary card -->
 </resources>

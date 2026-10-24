@@ -79,14 +79,17 @@ struct SpendingTrendsChart: View {
         return .dateTime.month(.abbreviated).day()
     }
 
+    /// One unit for the whole axis, picked from the tallest bar, with up to one
+    /// decimal: the 1.5L gridline reads "1.5L" (not a rounded "2L") and the
+    /// 0.5L one reads "0.5L" (not "50K") next to it.
     private func formatCompact(_ value: Double) -> String {
-        if value >= 10_000_000 {
-            return String(format: "%.0fM", value / 1_000_000)
-        } else if value >= 100_000 {
-            return String(format: "%.0fL", value / 100_000)
-        } else if value >= 1_000 {
-            return String(format: "%.0fK", value / 1_000)
+        let top = Double(maxAmount) / 100.0
+        let units: [(size: Double, suffix: String)] = CurrencyManager.shared.displayCurrency == "INR"
+            ? [(1e7, "Cr"), (1e5, "L"), (1e3, "K")]
+            : [(1e9, "B"), (1e6, "M"), (1e3, "K")]
+        guard let unit = units.first(where: { top >= $0.size }) else {
+            return value.formatted(.number.precision(.fractionLength(0)))
         }
-        return String(format: "%.0f", value)
+        return (value / unit.size).formatted(.number.precision(.fractionLength(0...1))) + unit.suffix
     }
 }

@@ -20,6 +20,11 @@ struct GreetingCard: View {
         }
     }
 
+    private var displayName: String? {
+        let name = userName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty || name == "User" ? nil : name
+    }
+
     private var avatarImageName: String {
         let index = max(0, min(userAvatarIndex, Self.avatarImages.count - 1))
         return Self.avatarImages[index]
@@ -41,14 +46,22 @@ struct GreetingCard: View {
             }
 
             // Greeting text
+            // No name (onboarding skipped): show just the greeting rather
+            // than the "User" placeholder.
             VStack(alignment: .leading, spacing: 2) {
-                Text(userName.isEmpty ? "User" : userName)
-                    .font(AppTypography.headline)
-                    .foregroundStyle(.primary)
+                if let displayName {
+                    Text(displayName)
+                        .font(AppTypography.headline)
+                        .foregroundStyle(.primary)
 
-                Text(greeting)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    Text(greeting)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(greeting)
+                        .font(AppTypography.headline)
+                        .foregroundStyle(.primary)
+                }
             }
 
             Spacer()

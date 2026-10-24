@@ -6,15 +6,14 @@ class AccountsViewModel: ObservableObject {
 
     @Published var accounts: [SharedAccountItem] = []
     @Published var cards: [SharedCardItem] = []
-    @Published var totalBalanceMinor: Int64 = 0
+    /// One net figure per currency; card outstanding is subtracted (it's debt).
+    @Published var totals: [CurrencyTotal] = []
     @Published var detailTransactions: [SharedRecentTransactionItem] = []
 
     func loadAccounts() {
         accounts = facade.getAllAccounts()
         cards = facade.getAllCards()
-        totalBalanceMinor = accounts.reduce(Int64(0)) { sum, account in
-            sum + account.balanceMinor
-        }
+        totals = MoneyTotals.shared.accountTotals(accounts: accounts)
     }
 
     func loadAccountTransactions(bankName: String, accountLast4: String) {

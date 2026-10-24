@@ -9,35 +9,43 @@ struct TransactionTotalsCard: View {
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
-        HStack(spacing: AppSpacing.xs) {
-            TotalColumn(
-                icon: "arrow.down",
-                label: "Income",
-                amountMinor: incomeMinor,
-                currency: currency,
-                color: AppColors.income
-            )
-
-            TotalColumn(
-                icon: "arrow.up",
-                label: "Expenses",
-                amountMinor: expenseMinor,
-                currency: currency,
-                color: AppColors.expense
-            )
-
-            TotalColumn(
-                icon: "plus.forwardslash.minus",
-                label: "Net",
-                amountMinor: netMinor,
-                currency: currency,
-                color: netMinor >= 0 ? AppColors.income : AppColors.expense,
-                prefix: netMinor > 0 ? "+" : ""
-            )
+        // Stacks when the three figures don't fit side by side at full size
+        // (large Dynamic Type), so they can't run into each other.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppSpacing.md) { columns }
+            VStack(spacing: AppSpacing.sm) { columns }
         }
         .padding(AppSpacing.sm)
         .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
+    }
+
+    @ViewBuilder
+    private var columns: some View {
+        TotalColumn(
+            icon: "arrow.down",
+            label: "Income",
+            amountMinor: incomeMinor,
+            currency: currency,
+            color: AppColors.income
+        )
+
+        TotalColumn(
+            icon: "arrow.up",
+            label: "Expenses",
+            amountMinor: expenseMinor,
+            currency: currency,
+            color: AppColors.expense
+        )
+
+        TotalColumn(
+            icon: "plus.forwardslash.minus",
+            label: "Net",
+            amountMinor: netMinor,
+            currency: currency,
+            color: netMinor >= 0 ? AppColors.income : AppColors.expense,
+            prefix: netMinor > 0 ? "+" : ""
+        )
     }
 }
 
@@ -65,8 +73,8 @@ private struct TotalColumn: View {
                 .fontWeight(.semibold)
                 .foregroundStyle(color)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
+        .fixedSize()
         .frame(maxWidth: .infinity)
     }
 }

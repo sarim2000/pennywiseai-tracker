@@ -23,6 +23,13 @@ struct OnboardingScreen: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.3), value: viewModel.currentStep)
+            // Page content scrolls inside its page instead of drawing under
+            // the page dots when the keyboard shrinks it.
+            .clipped()
+            // The name keyboard must not follow the user onto other steps.
+            .onChange(of: viewModel.currentStep) { _ in
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
 
             bottomBar
                 .padding(.horizontal, AppSpacing.lg)
@@ -51,7 +58,7 @@ struct OnboardingScreen: View {
                     } label: {
                         Text("Get Started")
                             .font(AppTypography.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.onAccentColor)
                             .padding(.horizontal, AppSpacing.xl)
                             .padding(.vertical, AppSpacing.sm)
                             .background(themeManager.accentColor)
@@ -67,7 +74,7 @@ struct OnboardingScreen: View {
                     } label: {
                         Text("Get Started")
                             .font(AppTypography.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.onAccentColor)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, AppSpacing.md)
                             .background(themeManager.accentColor)
@@ -93,7 +100,7 @@ struct OnboardingScreen: View {
                     } label: {
                         Text("Next")
                             .font(AppTypography.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(themeManager.onAccentColor)
                             .padding(.horizontal, AppSpacing.xl)
                             .padding(.vertical, AppSpacing.sm)
                             .background(themeManager.accentColor)

@@ -1,63 +1,29 @@
 import Shared
 import SwiftUI
 
+/// Home, Account detail and Analytics open the same detail screen the
+/// Transactions tab pushes (with Edit and Delete), presented in a sheet.
 struct TransactionDetailSheet: View {
     let item: SharedRecentTransactionItem
+    var onUpdate: (() -> Void)?
+
+    @ObservedObject private var themeManager = ThemeManager.shared
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            HStack(spacing: AppSpacing.sm) {
-                Image(systemName: AppColors.transactionIcon(for: item.transactionType))
-                    .font(.title2)
-                    .foregroundStyle(AppColors.transactionColor(for: item.transactionType))
-                Text("Transaction Details")
-                    .font(AppTypography.headline)
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                detailRow("Merchant", item.merchantName)
-
-                HStack(spacing: AppSpacing.xs) {
-                    Text("Amount")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    AmountText(
-                        amountMinor: item.amountMinor,
-                        currency: item.currency,
-                        transactionType: item.transactionType,
-                        font: AppTypography.amountMedium
-                    )
-                }
-
-                detailRow("Type", item.transactionType)
-                detailRow("Category", item.category)
-                detailRow("Date", Date(epochMillis: item.occurredAtEpochMillis).formatted())
-
-                if let note = item.note, !note.isEmpty {
-                    detailRow("Note", note)
-                }
-                if let bank = item.bankName, !bank.isEmpty {
-                    detailRow("Bank", bank)
-                }
-                if let account = item.accountLast4, !account.isEmpty {
-                    detailRow("Account", "\u{2022}\u{2022}\(account)")
+        NavigationStack {
+            TransactionDetailView(
+                transactionId: item.transactionId,
+                facade: PennyWiseSharedFacade.companion.shared,
+                onUpdate: onUpdate
+            )
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
                 }
             }
-
-            Spacer()
         }
-        .padding(AppSpacing.lg)
-    }
-
-    @ViewBuilder
-    private func detailRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-        }
+        // Sheets don't inherit the TabView's tint.
+        .tint(themeManager.accentColor)
     }
 }

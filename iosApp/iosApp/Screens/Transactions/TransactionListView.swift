@@ -659,19 +659,26 @@ struct TransactionRowView: View {
                     Text(item.category)
                         .font(AppTypography.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     Text(Date(epochMillis: item.occurredAtEpochMillis).formatted(as: "dd MMM yyyy"))
                         .font(AppTypography.caption2)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
             }
 
             Spacer()
 
+            // The amount wins the row's width (see TransactionRow).
             AmountText(
                 amountMinor: item.amountMinor,
                 currency: item.currency,
                 transactionType: item.transactionType
             )
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .layoutPriority(1)
         }
         .padding(.vertical, AppSpacing.xs)
     }

@@ -5,6 +5,8 @@ struct AddEditTransactionView: View {
     let facade: PennyWiseSharedFacade
     var editingTransactionId: Int64? = nil
     var onSave: (() -> Void)?
+    /// Set by callers that present this in a sheet (a pushed form has Back).
+    var showsCancel = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -51,7 +53,7 @@ struct AddEditTransactionView: View {
 
                 Picker("Type", selection: $selectedType) {
                     ForEach(transactionTypes, id: \.self) { type in
-                        Text(type).tag(type)
+                        Text(type.capitalized).tag(type)
                     }
                 }
 
@@ -83,6 +85,11 @@ struct AddEditTransactionView: View {
         .navigationTitle(isEditing ? "Edit Transaction" : "Add Transaction")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if showsCancel {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") { saveTransaction() }
                     .bold()

@@ -59,7 +59,9 @@ struct AccountDetailScreen: View {
             }
         }
         .sheet(item: $selectedTransaction) { item in
-            TransactionDetailSheet(item: item)
+            TransactionDetailSheet(item: item, onUpdate: {
+                viewModel.loadAccountTransactions(bankName: bankName, accountLast4: accountLast4)
+            })
         }
     }
 

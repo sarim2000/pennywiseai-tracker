@@ -121,6 +121,37 @@ SMS BLOCK 7441 to 919951860002, if not you - Axis Bank""",
                 )
             ),
 
+            // Format 3: merchant follows "IST at" and ends with a period
+            ParserTestCase(
+                name = "Credit Card Spent - Swiggy (Format 3 with IST at)",
+                message = "Spent INR 623 \nusing Axis Bank Credit Card no. XX1234 on 24-10-26 17:31:29 IST at \nSWIGGY FOOD. \nAvl limit: INR 50376.49. Not you? SMS BLOCK 1234 to +919951860002.",
+                sender = "AX-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("623"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "SWIGGY FOOD",
+                    accountLast4 = "1234",
+                    isFromCard = true,
+                    creditLimit = BigDecimal("50376.49")
+                )
+            ),
+
+            ParserTestCase(
+                name = "Credit Card Spent - Blinkit (Format 3 single line)",
+                message = "Spent INR 1568 using Axis Bank Credit Card no. XX1234 on 24-10-26 11:07:10 IST at BLINKIT. Avl limit: INR 50999.49. Not you? SMS BLOCK 1234 to +919951860002.",
+                sender = "AX-AXISBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1568"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "BLINKIT",
+                    accountLast4 = "1234",
+                    isFromCard = true,
+                    creditLimit = BigDecimal("50999.49")
+                )
+            ),
+
             ParserTestCase(
                 name = "Credit Card Spent - BPCL Petrol",
                 message = """Spent INR 500

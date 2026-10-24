@@ -141,16 +141,25 @@ struct BudgetProgressBar: View {
     }
 }
 
-/// "October · 9 days left" for a monthly budget whose own period contains today;
-/// nil otherwise (other periods, or a budget from an earlier or later month).
+/// "October · 9 days left" for a monthly budget. Uses the budget's own period
+/// (end is exclusive: the start of the next month) while today is inside it;
+/// nil for other periods or a budget from another month. Restored budgets
+/// carry placeholder dates (0 / Int64.max), so they get today's month.
 func budgetPeriodNote(periodType: String, startEpochMillis: Int64, endEpochMillis: Int64, now: Date = Date()) -> String? {
-    guard periodType.lowercased() == "monthly", endEpochMillis > startEpochMillis else { return nil }
-    let start = Date(timeIntervalSince1970: TimeInterval(startEpochMillis) / 1000)
-    let end = Date(timeIntervalSince1970: TimeInterval(endEpochMillis) / 1000)
-    guard now >= start, now <= end else { return nil }
+    guard periodType.lowercased() == "monthly" else { return nil }
     let calendar = Calendar.current
-    let lastDay = calendar.startOfDay(for: end)
-    let daysLeft = (calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: lastDay).day ?? 0) + 1
+    let start: Date
+    let end: Date
+    if startEpochMillis <= 0 || endEpochMillis == Int64.max || endEpochMillis <= startEpochMillis {
+        guard let month = calendar.dateInterval(of: .month, for: now) else { return nil }
+        start = month.start
+        end = month.end
+    } else {
+        start = Date(timeIntervalSince1970: TimeInterval(startEpochMillis) / 1000)
+        end = Date(timeIntervalSince1970: TimeInterval(endEpochMillis) / 1000)
+    }
+    guard now >= start, now < end else { return nil }
+    let daysLeft = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: end)).day ?? 0
     let monthName = start.formatted(.dateTime.month(.wide))
     return daysLeft <= 1 ? "\(monthName) \u{00B7} last day" : "\(monthName) \u{00B7} \(daysLeft) days left"
 }

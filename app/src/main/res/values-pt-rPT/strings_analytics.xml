@@ -298,4 +298,5 @@
     <string name="mark_paid_today">Hoje</string>
     <string name="mark_paid_yesterday">Ontem</string>
     <string name="mark_paid_pick_date">Escolher data</string>
+    <!-- Month-end forecast row in the summary card -->
 </resources>

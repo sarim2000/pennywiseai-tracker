@@ -17,6 +17,12 @@ class MellatBankParser : BaseIranianBankParser() {
         """^واریز سود کوتاه مدت\s+حساب\d+\s+مبلغ\s*([0-9,]+)\s+\d{2}/\d{2}/\d{2}""",
         RegexOption.MULTILINE
     )
+    // Government subsidy (یارانه) deposit:
+    // "واریز یارانه\nبه حساب 1234567890\nمبلغ 15,000,000 ریال\n1405/08/02"
+    private val subsidyPattern = Regex(
+        """^واریز\s+یارانه\s+(?:به\s+)?حساب\s*\d+\s+مبلغ\s*([0-9,]+)\s*ریال""",
+        RegexOption.MULTILINE
+    )
     private val accountPattern = Regex("""حساب\s*(\d+)""")
 
     override fun getBankName(): String = "Mellat Bank"
@@ -35,7 +41,8 @@ class MellatBankParser : BaseIranianBankParser() {
 
     override fun isTransactionMessage(message: String): Boolean {
         val trimmed = message.trim()
-        return pattern1.containsMatchIn(trimmed) || pattern2.containsMatchIn(trimmed)
+        return pattern1.containsMatchIn(trimmed) || pattern2.containsMatchIn(trimmed) ||
+            subsidyPattern.containsMatchIn(trimmed)
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -48,7 +55,7 @@ class MellatBankParser : BaseIranianBankParser() {
                 null
             }
         }
-        pattern2.find(trimmed)?.let { match ->
+        (pattern2.find(trimmed) ?: subsidyPattern.find(trimmed))?.let { match ->
             val amountStr = match.groupValues[1].replace(",", "")
             return try {
                 BigDecimal(amountStr)
@@ -68,11 +75,15 @@ class MellatBankParser : BaseIranianBankParser() {
                 else -> null
             }
         }
-        if (pattern2.containsMatchIn(trimmed)) {
+        if (pattern2.containsMatchIn(trimmed) || subsidyPattern.containsMatchIn(trimmed)) {
             return TransactionType.INCOME
         }
         return null
     }
+
+    override fun extractMerchant(message: String, sender: String): String? =
+        if (subsidyPattern.containsMatchIn(message.trim())) "Subsidy Deposit"
+        else super.extractMerchant(message, sender)
 
     override fun extractAccountLast4(message: String): String? {
         accountPattern.find(message)?.let { match ->

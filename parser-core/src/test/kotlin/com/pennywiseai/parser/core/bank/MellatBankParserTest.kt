@@ -17,6 +17,18 @@ class MellatBankParserTest {
     fun `mellat bank parser handles key paths`(): List<DynamicTest> {
         val cases = listOf(
             ParserTestCase(
+                name = "Mellat Bank subsidy (یارانه) deposit",
+                message = subsidyDeposit,
+                sender = "Bank Mellat",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15000000"),
+                    currency = "IRR",
+                    type = TransactionType.INCOME,
+                    merchant = "Subsidy Deposit",
+                    accountLast4 = "7890"
+                )
+            ),
+            ParserTestCase(
                 name = "Mellat Bank withdrawal transaction",
                 message = """
                     حساب1234567890
@@ -176,4 +188,11 @@ class MellatBankParserTest {
 
         return ParserTestUtils.runFactoryTestSuite(cases, "Mellat Bank factory tests")
     }
+
+    private val subsidyDeposit = """
+        واریز یارانه
+        به حساب 1234567890
+        مبلغ 15,000,000 ریال
+        1405/08/02
+    """.trimIndent()
 }

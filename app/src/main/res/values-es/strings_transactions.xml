@@ -13,4 +13,7 @@
     <!-- Share card, sheet and banner -->
     <!-- %1$s = month name -->
     <!-- Shared transaction components -->
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <!-- %1$s the cash account the spend comes out of -->
+    <!-- %1$s amount with currency, %2$s category -->
 </resources>

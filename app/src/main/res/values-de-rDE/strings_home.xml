@@ -220,7 +220,6 @@
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Transaktion hinzufügen</string>
     <!-- Budget widget -->
-    <string name="widget_budget_title">Monatliches Budget</string>
     <string name="widget_budget_percent_used">%1$d%% verwendet</string>
     <string name="widget_budget_of_limit">von %1$s</string>
     <string name="widget_budget_per_day">%1$s/Tag</string>
@@ -261,6 +260,7 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <!-- Evening recap notification -->
     <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Saldo-Trend</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

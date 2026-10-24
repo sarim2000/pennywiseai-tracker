@@ -158,6 +158,9 @@
     <!-- %1$s = month name -->
     <string name="share_banner_dismiss">रद्ध गर्नुहोस्</string>
     <!-- Shared transaction components -->
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <!-- %1$s the cash account the spend comes out of -->
+    <!-- %1$s amount with currency, %2$s category -->
     <string name="date_range_title">मिति सीमा चयन गर्नुहोस्</string>
     <string name="date_range_ok">ठीक छ</string>
     <string name="date_range_cancel">रद्द गर्नुहोस्</string>

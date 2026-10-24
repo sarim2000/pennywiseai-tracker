@@ -242,6 +242,19 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun aForeignSpendAsTheFirstSmsUsesTheBanksCurrencyForTheBalance() = runTest {
+        // No account yet: the balance must still be AED, the bank's own currency.
+        val usdSpend = "Purchase of USD 75.00 with Debit Card ending 0000 at TEST STORE. Avl Balance is AED 4,100.00."
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("Liv", usdSpend, RECEIVED_AT)).transaction
+
+        assertEquals("USD", saved.currency)
+        val balance = accounts.balances.last()
+        assertEquals(410_000L, balance.balanceMinor)
+        assertEquals("AED", balance.currency)
+    }
+
+    @Test
     fun theReportedBalanceUpdatesTheAccount() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(
             useCase.execute("CP-HDFCBK-S", HDFC_NEFT_WITH_BALANCE, RECEIVED_AT)

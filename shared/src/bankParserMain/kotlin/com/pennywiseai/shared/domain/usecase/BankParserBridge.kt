@@ -98,7 +98,9 @@ private fun toParsedBankSms(
         transactionHash = stableHash,
         isFromCard = parsed.isFromCard,
         currency = parsed.currency,
-        accountCurrency = parsed.accountCurrency,
+        // A balance is in the account's currency: when the SMS doesn't say, it is the
+        // bank's home currency, never a foreign spend's (USD 75 spent, AED balance).
+        accountCurrency = parsed.accountCurrency ?: parser.getCurrency(),
         isMobileWallet = parsed.isMobileWallet
     )
 }

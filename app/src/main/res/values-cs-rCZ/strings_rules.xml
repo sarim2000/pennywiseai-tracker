@@ -8,8 +8,6 @@
     <string name="applock_title">PennyWise je uzamčen</string>
     <string name="applock_subtitle">Ověřte se pro přístup k datům o výdajích</string>
     <string name="applock_unlock">Odemknout</string>
-    <string name="applock_biometric_unavailable">Biometrické ověřování není dostupné</string>
-    <string name="applock_unavailable_hint">Prosím, deaktivujte zámek aplikace v nastavení zařízení nebo nastavte biometrické ověřování.</string>
     <string name="applock_protected_immediate">Vaše data jsou chráněna okamžitým uzamčením</string>
     <plurals name="applock_protected_timeout">
         <item quantity="one">Vaše data jsou chráněna časovým limitem %1$d minut</item>

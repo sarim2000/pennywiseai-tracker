@@ -8,8 +8,6 @@
     <string name="applock_title">PennyWise est verrouillé</string>
     <string name="applock_subtitle">Authentifiez-vous pour accéder à vos données de dépenses</string>
     <string name="applock_unlock">Déverrouiller</string>
-    <string name="applock_biometric_unavailable">Authentification biométrique non disponible</string>
-    <string name="applock_unavailable_hint">Veuillez désactiver le verrouillage de l\'application dans les paramètres de l\'appareil ou configurer l\'authentification biométrique.</string>
     <string name="applock_protected_immediate">Vos données sont protégées par un verrouillage immédiat</string>
     <string name="applock_auth_failed">L\'authentification a échoué. Veuillez réessayer.</string>
     <!-- Biometric capability errors (also shown in Settings) -->

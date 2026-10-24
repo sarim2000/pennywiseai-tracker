@@ -5,8 +5,6 @@
     <string name="applock_title">PennyWise ถูกล็อก</string>
     <string name="applock_subtitle">ตรวจสอบตัวตนเพื่อเข้าถึงข้อมูลค่าใช้จ่ายของคุณ</string>
     <string name="applock_unlock">ปลดล็อก</string>
-    <string name="applock_biometric_unavailable">การตรวจสอบทางชีวมิติไม่สามารถใช้งานได้</string>
-    <string name="applock_unavailable_hint">โปรดปิดการล็อกแอปในการตั้งค่าอุปกรณ์หรือตั้งค่าการตรวจสอบทางชีวมิติ</string>
     <!-- Biometric capability errors (also shown in Settings) -->
     <!-- ══ SMS permission screen ══ -->
     <!-- ══ Unrecognized SMS ══ -->

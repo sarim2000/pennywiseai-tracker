@@ -1,9 +1,12 @@
 package com.pennywiseai.tracker.domain.security
 
+import android.app.KeyguardManager
 import android.content.Context
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricManager.Authenticators.DEVICE_CREDENTIAL
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
@@ -27,7 +30,7 @@ class BiometricAuthManager @Inject constructor(
      */
     fun canAuthenticate(): BiometricCapability {
         val biometricManager = BiometricManager.from(context)
-        return when (biometricManager.canAuthenticate(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)) {
+        return when (biometricManager.canAuthenticate(appLockAuthenticators())) {
             BiometricManager.BIOMETRIC_SUCCESS ->
                 BiometricCapability.Available
 
@@ -60,6 +63,10 @@ class BiometricAuthManager @Inject constructor(
         return canAuthenticate() == BiometricCapability.Available
     }
 
+    /** A PIN, pattern or password is set on the device. */
+    private fun isDeviceSecure(): Boolean =
+        context.getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true
+
     /**
      * Create and show biometric prompt for authentication
      *
@@ -70,6 +77,8 @@ class BiometricAuthManager @Inject constructor(
      * @param onSuccess Callback when authentication succeeds
      * @param onError Callback when authentication fails with error message
      * @param onFailed Callback when authentication fails (e.g., wrong fingerprint)
+     * @param onNoScreenLock Called instead of prompting when the device has no screen
+     *   lock and no biometrics, so there is nothing to check; defaults to [onSuccess].
      */
     fun authenticate(
         activity: FragmentActivity,
@@ -79,15 +88,20 @@ class BiometricAuthManager @Inject constructor(
         onSuccess: () -> Unit,
         onError: (String) -> Unit,
         onFailed: () -> Unit = {},
-        onCancel: () -> Unit = {}
+        onCancel: () -> Unit = {},
+        onNoScreenLock: () -> Unit = onSuccess
     ) {
+        if (appLockDecision(isBiometricAvailable(), isDeviceSecure()) == AppLockDecision.LetIn) {
+            onNoScreenLock()
+            return
+        }
         val executor = ContextCompat.getMainExecutor(context)
 
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
             .setDescription(description)
-            .setAllowedAuthenticators(BIOMETRIC_STRONG or DEVICE_CREDENTIAL)
+            .setAllowedAuthenticators(appLockAuthenticators())
             .build()
 
         val biometricPrompt = BiometricPrompt(activity, executor,
@@ -117,6 +131,25 @@ class BiometricAuthManager @Inject constructor(
         biometricPrompt.authenticate(promptInfo)
     }
 }
+
+/**
+ * Biometrics with the device PIN/pattern/password as fallback. androidx.biometric
+ * rejects BIOMETRIC_STRONG | DEVICE_CREDENTIAL on API 28–29, where
+ * BIOMETRIC_WEAK | DEVICE_CREDENTIAL is the supported pairing.
+ */
+internal fun appLockAuthenticators(sdkInt: Int = Build.VERSION.SDK_INT): Int =
+    if (sdkInt == Build.VERSION_CODES.P || sdkInt == Build.VERSION_CODES.Q) BIOMETRIC_WEAK or DEVICE_CREDENTIAL
+    else BIOMETRIC_STRONG or DEVICE_CREDENTIAL
+
+enum class AppLockDecision { Prompt, LetIn }
+
+/**
+ * Prompt whenever the device can check anything. Only a device with no screen lock
+ * and no biometrics lets the user straight in: there is nothing to check, and
+ * refusing would lock them out of their own data.
+ */
+internal fun appLockDecision(canPrompt: Boolean, deviceSecure: Boolean): AppLockDecision =
+    if (canPrompt || deviceSecure) AppLockDecision.Prompt else AppLockDecision.LetIn
 
 /**
  * Represents the capability of the device to perform biometric authentication

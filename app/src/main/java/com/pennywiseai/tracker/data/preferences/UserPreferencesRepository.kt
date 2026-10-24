@@ -99,6 +99,8 @@ open class UserPreferencesRepository @Inject constructor(
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
         val APP_LOCK_TIMEOUT_MINUTES = intPreferencesKey("app_lock_timeout_minutes")
         val LAST_AUTH_TIMESTAMP = longPreferencesKey("last_auth_timestamp")
+        // Device-local: whether the "App Lock needs a screen lock" notice was shown.
+        val APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN = booleanPreferencesKey("app_lock_no_screen_lock_notice_shown")
 
         // In-App Review preferences
         val FIRST_LAUNCH_TIME = longPreferencesKey("first_launch_time")
@@ -667,6 +669,16 @@ open class UserPreferencesRepository @Inject constructor(
         return context.dataStore.data
             .map { preferences -> preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L }
             .first()
+    }
+
+    /** True only the first time it's called: the no-screen-lock notice is shown once. */
+    suspend fun claimAppLockNoScreenLockNotice(): Boolean {
+        var first = false
+        context.dataStore.edit { preferences ->
+            first = preferences[PreferencesKeys.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN] != true
+            preferences[PreferencesKeys.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN] = true
+        }
+        return first
     }
 
     fun getLastAuthTimestampFlow(): Flow<Long> = context.dataStore.data

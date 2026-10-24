@@ -28,13 +28,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.presentation.home.SafeToSpendUi
+import com.pennywiseai.tracker.presentation.home.isUncountedNegative
 import com.pennywiseai.tracker.presentation.home.safeToSpendKey
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -105,7 +105,7 @@ fun SafeToSpendCard(
 
         val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
         Spacer(Modifier.height(Spacing.xs))
-        PerDayLine(primary, dueBefore)
+        PerDayLine(primary, state.periodEnd.format(SHORT_DATE), dueBefore)
         Spacer(Modifier.height(Spacing.xxs))
         Text(
             text = stringResource(
@@ -128,14 +128,15 @@ fun SafeToSpendCard(
 }
 
 @Composable
-private fun PerDayLine(s: SafeToSpend, dueBefore: String) {
+private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
     val perDay = s.perDay
     val short = s.amount.signum() < 0
     Text(
         text = when {
-            perDay != null -> pluralStringResource(
-                R.plurals.safe_to_spend_per_day, s.days,
-                CurrencyFormatter.formatCurrency(perDay, s.currency), s.days
+            // A date, not a day count: Home's "7 days left" excludes today, this includes it.
+            perDay != null -> stringResource(
+                R.string.safe_to_spend_per_day,
+                CurrencyFormatter.formatCurrency(perDay, s.currency), until
             )
             short -> stringResource(R.string.safe_to_spend_short, dueBefore)
             else -> stringResource(R.string.safe_to_spend_none_left, dueBefore)
@@ -161,8 +162,11 @@ fun SafeToSpendSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        // M3 wraps the handle slot in a clickable whose hover/focus state layer draws a
+        // grey square behind the pill. The same pill as plain content has none.
+        dragHandle = null
     ) {
+        BottomSheetDefaults.DragHandle(Modifier.align(Alignment.CenterHorizontally))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -182,7 +186,7 @@ fun SafeToSpendSheet(
                 color = if (primary.amount.signum() < 0) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurface
             )
-            PerDayLine(primary, dueBefore)
+            PerDayLine(primary, until, dueBefore)
 
             SectionHeaderV2(
                 title = stringResource(R.string.safe_to_spend_accounts),
@@ -194,18 +198,27 @@ fun SafeToSpendSheet(
             )
             GroupedList {
                 state.accounts.forEachIndexed { i, account ->
-                    val included = safeToSpendKey(account) !in state.excludedKeys
+                    val negative = isUncountedNegative(account)
+                    val included = !negative && safeToSpendKey(account) !in state.excludedKeys
                     GroupedRow(
                         position = ListItemPosition.from(i, state.accounts.size),
-                        onClick = if (choosing) ({ onSetIncluded(account, !included) }) else null
+                        onClick = if (choosing && !negative) ({ onSetIncluded(account, !included) }) else null
                     ) {
                         SheetRowLabels(
                             title = account.displayLabel,
-                            subtitle = if (included) null else stringResource(R.string.safe_to_spend_excluded),
+                            subtitle = when {
+                                negative -> stringResource(R.string.safe_to_spend_excluded_negative)
+                                included -> null
+                                else -> stringResource(R.string.safe_to_spend_excluded)
+                            },
                             modifier = Modifier.weight(1f)
                         )
                         if (choosing) {
-                            Checkbox(checked = included, onCheckedChange = { onSetIncluded(account, it) })
+                            Checkbox(
+                                checked = included,
+                                onCheckedChange = { onSetIncluded(account, it) },
+                                enabled = !negative
+                            )
                         } else {
                             Text(
                                 text = account.formatBalance(),

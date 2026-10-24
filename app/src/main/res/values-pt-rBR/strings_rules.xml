@@ -8,8 +8,6 @@
     <string name="applock_title">PennySise está bloqueado</string>
     <string name="applock_subtitle">Autentique-se para acessar seus dados de despesa</string>
     <string name="applock_unlock">Desbloquear</string>
-    <string name="applock_biometric_unavailable">Autenticação Biométrica indisponível</string>
-    <string name="applock_unavailable_hint">Por favor, desabilite o bloqueio de app nas configurações do dispositivo ou configure a Autenticação Biométrica.</string>
     <string name="applock_protected_immediate">Seus dados estão protegidos com bloqueio imediato</string>
     <plurals name="applock_protected_timeout">
         <item quantity="one">Seus dados estão protegidos com tempo limite de %1$d minuto</item>

@@ -260,7 +260,7 @@ class HomeViewModel @Inject constructor(
                 ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
         val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, periodEnd)
         val results = SafeToSpend.calculate(
-            balances = accounts.filter { safeToSpendKey(it) !in excluded }.map { Money(it.balance, it.currency).forTotal() },
+            balances = countedInSafeToSpend(accounts, excluded).map { Money(it.balance, it.currency).forTotal() },
             bills = bills.map { it.copy(amount = it.amount.forTotal()) },
             today = today,
             periodEnd = periodEnd,
@@ -1066,15 +1066,9 @@ class HomeViewModel @Inject constructor(
     private fun calculateMonthlyChange() {
         val currentExpenses = _uiState.value.currentMonthExpenses
         val lastExpenses = _uiState.value.lastMonthExpenses
-        val change = currentExpenses - lastExpenses
-        val changePercent = if (lastExpenses != BigDecimal.ZERO) {
-            change.multiply(BigDecimal(100)).divide(lastExpenses, 0, RoundingMode.HALF_UP).toInt()
-        } else {
-            0
-        }
         _uiState.value = _uiState.value.copy(
-            monthlyChange = change,
-            monthlyChangePercent = changePercent
+            monthlyChange = currentExpenses - lastExpenses,
+            monthlyChangePercent = monthlyChangePercent(currentExpenses, lastExpenses)
         )
     }
     
@@ -1841,7 +1835,8 @@ data class HomeUiState(
     val lastMonthIncome: BigDecimal = BigDecimal.ZERO,
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
-    val monthlyChangePercent: Int = 0,
+    /** Null when last month had no spending: there is nothing to compare with. */
+    val monthlyChangePercent: Int? = null,
     val recentItems: List<HomeRecentItem> = emptyList(),
     val upcomingSubscriptions: List<SubscriptionEntity> = emptyList(),
     /** Unified-mode total, converted to the display currency. */
@@ -1875,6 +1870,25 @@ data class HomeUiState(
 
 /** Pref key for an account in the Safe to spend selection. */
 internal fun safeToSpendKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"
+
+/**
+ * Cash or a mobile wallet below zero: money can't really go negative there, so it's a
+ * tracking gap, not debt, and stays out of Safe to spend. An overdrawn bank account
+ * is real debt and still counts.
+ */
+internal fun isUncountedNegative(account: AccountBalanceEntity): Boolean =
+    account.balance.signum() < 0 &&
+        (account.accountType.equals("CASH", ignoreCase = true) ||
+            account.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER)
+
+/** The accounts Safe to spend adds up: not left out by the user, not [isUncountedNegative]. */
+internal fun countedInSafeToSpend(accounts: List<AccountBalanceEntity>, excluded: Set<String>) =
+    accounts.filter { safeToSpendKey(it) !in excluded && !isUncountedNegative(it) }
+
+/** Whole-percent change vs last month; null when last month had no spending to compare with. */
+internal fun monthlyChangePercent(current: BigDecimal, last: BigDecimal): Int? =
+    if (last.signum() == 0) null
+    else (current - last).multiply(BigDecimal(100)).divide(last, 0, RoundingMode.HALF_UP).toInt()
 
 data class SafeToSpendUi(
     /** The headline figure, in the display (unified) or selected currency. */

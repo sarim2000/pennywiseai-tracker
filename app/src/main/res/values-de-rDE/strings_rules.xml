@@ -8,8 +8,6 @@
     <string name="applock_title">PennyWise ist gesperrt</string>
     <string name="applock_subtitle">Authentifizieren, um auf Ihre Ausgabendaten zuzugreifen</string>
     <string name="applock_unlock">Entsperren</string>
-    <string name="applock_biometric_unavailable">Biometrische Authentifizierung nicht verfügbar</string>
-    <string name="applock_unavailable_hint">Bitte deaktivieren Sie die App-Sperre in den Geräteeinstellungen oder richten Sie die biometrische Authentifizierung ein.</string>
     <string name="applock_protected_immediate">Ihre Daten sind durch sofortiges Sperren geschützt</string>
     <plurals name="applock_protected_timeout">
         <item quantity="one">Ihre Daten sind mit %1$d Minuten-Timeout geschützt</item>

@@ -8,8 +8,6 @@
     <string name="applock_title">PennyWise مغلق</string>
     <string name="applock_subtitle">قم بالمصادقة للوصول إلى بيانات نفقاتك</string>
     <string name="applock_unlock">افتح القفل</string>
-    <string name="applock_biometric_unavailable">المصادقة البيومترية غير متوفرة</string>
-    <string name="applock_unavailable_hint">يرجى تعطيل قفل التطبيق في إعدادات الجهاز أو إعداد المصادقة البيومترية.</string>
     <string name="applock_protected_immediate">البيانات الخاصة بك محمية مع القفل الفوري</string>
     <plurals name="applock_protected_timeout">
         <item quantity="zero">البيانات الخاصة بك محمية مع مهلة %1$d دقيقة</item>

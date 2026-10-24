@@ -77,7 +77,8 @@ fun BalanceCard(
     userName: String = "User",
     totalBalance: BigDecimal,
     monthlyChange: BigDecimal,
-    monthlyChangePercent: Int,
+    /** Null hides the change chip (no last-month spending to compare with). */
+    monthlyChangePercent: Int?,
     currency: String,
     currentMonthIncome: BigDecimal,
     currentMonthExpenses: BigDecimal,
@@ -115,7 +116,9 @@ fun BalanceCard(
     val isDark = isSystemInDarkTheme()
     val isPositive = monthlyChange >= BigDecimal.ZERO
     // Inverted for spending context: more spending (positive) = red, less spending (negative) = green
-    val changeColor = if (isPositive) {
+    val changeColor = if (monthlyChangePercent == 0) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else if (isPositive) {
         if (isDark) expense_dark else expense_light
     } else {
         if (isDark) income_dark else income_light
@@ -123,8 +126,13 @@ fun BalanceCard(
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
 
-    val absPercent = kotlin.math.abs(monthlyChangePercent)
-    val changeText = if (isPositive) stringResource(R.string.balance_card_change_more, absPercent) else stringResource(R.string.balance_card_change_less, absPercent)
+    val changeText = monthlyChangePercent?.let { percent ->
+        when {
+            isBalanceHidden -> "••••"
+            isPositive -> stringResource(R.string.balance_card_change_more, kotlin.math.abs(percent))
+            else -> stringResource(R.string.balance_card_change_less, kotlin.math.abs(percent))
+        }
+    }
 
     Box(modifier = modifier.fillMaxWidth()) {
         PennyWiseCardV2(
@@ -185,7 +193,7 @@ fun BalanceCard(
                             currency = currency,
                             showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
                             onCurrencyClick = onCurrencyClick,
-                            changeText = if (isBalanceHidden) "••••" else changeText,
+                            changeText = changeText,
                             changeColor = changeColor
                         )
                         forecast?.let {
@@ -238,7 +246,7 @@ fun BalanceCard(
                             currency = currency,
                             showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
                             onCurrencyClick = onCurrencyClick,
-                            changeText = if (isBalanceHidden) "••••" else changeText,
+                            changeText = changeText,
                             changeColor = changeColor
                         )
                         forecast?.let {
@@ -552,9 +560,10 @@ private fun SpendingMetaRow(
     currency: String,
     showCurrencyChip: Boolean,
     onCurrencyClick: () -> Unit,
-    changeText: String,
+    changeText: String?,
     changeColor: Color
 ) {
+    if (!showCurrencyChip && changeText == null) return
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -565,7 +574,7 @@ private fun SpendingMetaRow(
                 onClick = onCurrencyClick
             )
         }
-        Surface(
+        if (changeText != null) Surface(
             shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
             color = MaterialTheme.colorScheme.surfaceContainerHighest
         ) {

@@ -171,6 +171,9 @@ open class UserPreferencesRepository @Inject constructor(
         // Home screen section order / visibility (#770) — see HomeSectionLayout
         val HOME_SECTIONS = stringPreferencesKey("home_sections")
 
+        // Accounts left out of Home's "Safe to spend", as "bankName_last4" keys
+        val SAFE_TO_SPEND_EXCLUDED = stringSetPreferencesKey("safe_to_spend_excluded_accounts")
+
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
@@ -1011,6 +1014,17 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             val current = HomeSectionLayout.decode(preferences[PreferencesKeys.HOME_SECTIONS])
             preferences[PreferencesKeys.HOME_SECTIONS] = HomeSectionLayout.encode(transform(current))
+        }
+    }
+
+    /** Accounts left out of "Safe to spend" ("bankName_last4"); empty = every spendable account counts. */
+    val safeToSpendExcludedAccounts: Flow<Set<String>> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet() }
+
+    suspend fun setSafeToSpendAccountIncluded(key: String, included: Boolean) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet()
+            preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] = if (included) current - key else current + key
         }
     }
 

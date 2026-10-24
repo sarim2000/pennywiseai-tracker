@@ -32,6 +32,8 @@ import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.spending.SpendForecast
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -376,6 +378,29 @@ class AnalyticsViewModel @Inject constructor(
             // No valid date range, return empty state
             flowOf(AnalyticsUiState(isLoading = false))
         } else {
+            // Scope a loaded transaction list to the selected profile and exclude
+            // hidden accounts (mirrors the Home screen's account scoping).
+            fun scopeTransactions(
+                txs: List<TransactionWithSplits>
+            ): List<TransactionWithSplits> {
+                val hidden = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
+                    .getStringSet("hidden_accounts", emptySet()) ?: emptySet()
+                val profileKeys = buildProfileAccountKeys(balances)
+                val keptIds = filterTransactionsByProfile(
+                    txs.map { it.transaction },
+                    filterState.profileId,
+                    profileKeys
+                ).mapTo(HashSet()) { it.id }
+                val accountKey = filterState.accountFilter
+                return txs.filter { tw ->
+                    val txAccountKey =
+                        "${tw.transaction.bankName}_${tw.transaction.accountNumber}"
+                    tw.transaction.id in keptIds &&
+                        txAccountKey !in hidden &&
+                        (accountKey.isNullOrBlank() || txAccountKey == accountKey)
+                }
+            }
+
             // First load all transactions for the date range to get available currencies
             transactionRepository.getTransactionsBetweenDates(
                 startDate = dateRange.first,
@@ -392,29 +417,6 @@ class AnalyticsViewModel @Inject constructor(
                 if (!allCurrencies.contains(currentSelectedCurrency) && allCurrencies.isNotEmpty()) {
                     val baseCurrency = _selectedCurrency.value.ifEmpty { allCurrencies.first() }
                     _selectedCurrency.value = if (allCurrencies.contains(baseCurrency)) baseCurrency else allCurrencies.first()
-                }
-
-                // Scope a loaded transaction list to the selected profile and exclude
-                // hidden accounts (mirrors the Home screen's account scoping).
-                fun scopeTransactions(
-                    txs: List<TransactionWithSplits>
-                ): List<TransactionWithSplits> {
-                    val hidden = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
-                        .getStringSet("hidden_accounts", emptySet()) ?: emptySet()
-                    val profileKeys = buildProfileAccountKeys(balances)
-                    val keptIds = filterTransactionsByProfile(
-                        txs.map { it.transaction },
-                        filterState.profileId,
-                        profileKeys
-                    ).mapTo(HashSet()) { it.id }
-                    val accountKey = filterState.accountFilter
-                    return txs.filter { tw ->
-                        val txAccountKey =
-                            "${tw.transaction.bankName}_${tw.transaction.accountNumber}"
-                        tw.transaction.id in keptIds &&
-                            txAccountKey !in hidden &&
-                            (accountKey.isNullOrBlank() || txAccountKey == accountKey)
-                    }
                 }
 
                 // Load transactions with splits for proper category breakdown
@@ -644,6 +646,25 @@ class AnalyticsViewModel @Inject constructor(
                 // Get top category info
                 val topCategory = categoryBreakdown.firstOrNull()
 
+                // Month-end forecast: this cycle only, in a spend view. "Usual" re-runs this
+                // view's total (same filters, refunds netted) over the previous cycles.
+                val forecast = if (filterState.period == TimePeriod.THIS_MONTH && filterState.typeFilter.netsRefunds) {
+                    val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+                    val previous = generateSequence(BudgetCycle.previousCycle(dateRange, startDay)) {
+                        BudgetCycle.previousCycle(it, startDay)
+                    }.take(SpendForecast.USUAL_PERIODS).toList().map { (start, end) ->
+                        val rows = scopeTransactions(
+                            if (isUnified) {
+                                transactionRepository.getTransactionsWithSplitsFiltered(start, end).first()
+                            } else {
+                                transactionRepository.getTransactionsWithSplitsFiltered(start, end, displayCurrency).first()
+                            }
+                        )
+                        if (rows.isEmpty()) null else netSpend(rows, filterState.typeFilter, categoryFilterSet, parentOf, isUnified, displayCurrency)
+                    }
+                    SpendForecast.of(totalSpending, displayCurrency, dateRange.first, dateRange.second, LocalDate.now(), previous)
+                } else null
+
                 AnalyticsUiState(
                     totalSpending = totalSpending,
                     categoryBreakdown = categoryBreakdown,
@@ -662,7 +683,8 @@ class AnalyticsViewModel @Inject constructor(
                     accountBreakdown = accountBreakdown,
                     tagBreakdown = tagBreakdown,
                     tagsOverlap = tagsOverlap,
-                    dayOfWeekBreakdown = dayOfWeekBreakdown
+                    dayOfWeekBreakdown = dayOfWeekBreakdown,
+                    forecast = forecast
                 )
             }
         }
@@ -671,6 +693,29 @@ class AnalyticsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = AnalyticsUiState(isLoading = true)
     )
+
+    /** A view's headline total over [rows] (already scoped), computed like totalSpending. */
+    private suspend fun netSpend(
+        rows: List<TransactionWithSplits>,
+        filter: TransactionTypeFilter,
+        categoryFilter: Set<String>?,
+        parentOf: Map<String, String>,
+        isUnified: Boolean,
+        displayCurrency: String
+    ): BigDecimal {
+        val amountOf: suspend (TransactionEntity) -> BigDecimal? = { tx ->
+            if (isUnified) currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+            else tx.amount
+        }
+        var total = BigDecimal.ZERO
+        for (tw in analyticsRowsFor(rows, filter)) {
+            if (categoryFilter != null &&
+                tw.getAmountByCategory().keys.none { it.ifEmpty { "Others" } in categoryFilter }
+            ) continue
+            total += amountOf(tw.transaction) ?: continue // never-rated pair (#670)
+        }
+        return netOf(total, refundNetting(rows, filter, categoryFilter, parentOf, amountOf).total)
+    }
 
     fun selectPeriod(period: TimePeriod) {
         _selectedPeriod.value = period
@@ -894,7 +939,8 @@ data class AnalyticsUiState(
     // than the total; the tag view says so in a footnote (#422).
     val tagsOverlap: Boolean = false,
     // Mon–Sun in the locale's week order; reuses TagData's name/amount/share shape.
-    val dayOfWeekBreakdown: List<TagData> = emptyList()
+    val dayOfWeekBreakdown: List<TagData> = emptyList(),
+    val forecast: SpendForecast? = null
 )
 
 data class AccountBreakdownData(

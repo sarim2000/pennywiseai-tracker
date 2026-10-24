@@ -303,7 +303,8 @@ fun AnalyticsScreen(
                     topCategory = uiState.topCategory,
                     topCategoryPercentage = uiState.topCategoryPercentage,
                     currency = uiState.currency,
-                    isLoading = uiState.isLoading
+                    isLoading = uiState.isLoading,
+                    forecast = uiState.forecast
                 )
             }
         }

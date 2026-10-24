@@ -336,4 +336,9 @@
         <item quantity="other">%1$d days ago</item>
     </plurals>
     <string name="mark_paid_pick_date">Pick date</string>
+    <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_forecast_for">Forecast for %1$s</string>
+    <string name="analytics_forecast_above_usual">About %1$s above your usual</string>
+    <string name="analytics_forecast_stay_under">Spend under %1$s a day to stay at %2$s.</string>
+
 </resources>

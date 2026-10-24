@@ -11,6 +11,8 @@ struct BudgetItem: Identifiable {
     let currency: String
     let isActive: Bool
     let categoryBreakdowns: [BudgetCategoryBreakdown]
+    var startEpochMillis: Int64 = 0
+    var endEpochMillis: Int64 = 0
     /// From shared, so Home and the budget screens round the same way.
     var percentUsed: Int = 0
 
@@ -154,6 +156,8 @@ class BudgetViewModel: ObservableObject {
                     percentUsed: Int(cat.percentUsed)
                 )
             },
+            startEpochMillis: shared.startEpochMillis,
+            endEpochMillis: shared.endEpochMillis,
             percentUsed: Int(shared.percentUsed)
         )
     }

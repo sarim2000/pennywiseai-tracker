@@ -38,7 +38,10 @@ data class SharedBudgetItem(
     val groupType: String,
     val currency: String,
     val isActive: Boolean,
-    val categoryBreakdowns: List<SharedBudgetCategoryBreakdown>
+    val categoryBreakdowns: List<SharedBudgetCategoryBreakdown>,
+    /** The budget's own period, so its label names that period, not today's month. */
+    val startEpochMillis: Long = 0,
+    val endEpochMillis: Long = 0
 ) {
     val percentUsed: Int get() = MoneyTotals.percentUsed(spentMinor, limitMinor)
 }
@@ -428,7 +431,9 @@ class PennyWiseSharedFacade {
                         groupType = budget.groupType,
                         currency = budget.currency,
                         isActive = budget.isActive,
-                        categoryBreakdowns = breakdowns
+                        categoryBreakdowns = breakdowns,
+                        startEpochMillis = budget.startEpochMillis,
+                        endEpochMillis = budget.endEpochMillis
                     )
                 }
             }

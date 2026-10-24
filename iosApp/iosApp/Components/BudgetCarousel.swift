@@ -72,7 +72,7 @@ private struct BudgetCarouselCard: View {
                 .font(AppTypography.caption2)
                 .foregroundStyle(progressColor)
 
-            if let note = budgetPeriodNote(periodType: budget.periodType) {
+            if let note = budgetPeriodNote(periodType: budget.periodType, startEpochMillis: budget.startEpochMillis, endEpochMillis: budget.endEpochMillis) {
                 Text(note)
                     .font(AppTypography.caption2)
                     .foregroundStyle(.tertiary)

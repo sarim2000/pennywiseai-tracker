@@ -12,7 +12,9 @@ import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
 import com.pennywiseai.shared.domain.money.CurrencyConverter
 import com.pennywiseai.shared.domain.money.MoneyTotals
+import com.pennywiseai.shared.domain.usecase.BankSmsImportResult
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
+import com.pennywiseai.shared.domain.usecase.ImportBankSmsUseCase
 import com.pennywiseai.shared.domain.usecase.ImportStatementUseCase
 import com.pennywiseai.shared.domain.usecase.ManualTransactionInput
 import com.pennywiseai.shared.domain.usecase.TransactionMutationResult
@@ -140,6 +142,24 @@ class PennyWiseSharedFacade {
     private val importStatementUseCase by lazy {
         ImportStatementUseCase(graph.transactionRepository, graph.accountRepository, graph.ruleRepository)
     }
+
+    private val importBankSmsUseCase by lazy {
+        ImportBankSmsUseCase(
+            graph.transactionRepository,
+            graph.accountRepository,
+            graph.merchantMappingRepository,
+            graph.ruleRepository,
+            graph.categoryRepository
+        )
+    }
+
+    /** The Shortcuts "Add bank SMS" action. Can run before the app has ever opened, so it seeds first. */
+    @Throws(Exception::class)
+    fun importBankSms(sender: String?, body: String, receivedAtEpochMillis: Long): BankSmsImportResult =
+        runBlocking {
+            graph.initialize()
+            importBankSmsUseCase.execute(sender, body, receivedAtEpochMillis)
+        }
 
     fun initializeAndLoadHome(): SharedHomeSnapshot = safeSnapshot {
         runBlocking {

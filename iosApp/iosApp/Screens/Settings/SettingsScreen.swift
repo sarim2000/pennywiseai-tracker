@@ -160,6 +160,23 @@ struct SettingsScreen: View {
                 // primary title, secondary subtitle, not accent-tinted text.
                 .tint(.primary)
 
+                NavigationLink {
+                    BankSmsSetupScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Auto-add bank SMS")
+                                .font(AppTypography.body)
+                            Text("Save bank texts with a Shortcuts automation")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "message.fill")
+                            .foregroundStyle(.green)
+                    }
+                }
+
                 Button {
                     exportImportManager.exportBackup()
                 } label: {

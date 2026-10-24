@@ -9,6 +9,7 @@ version = "0.1.0-SNAPSHOT"
 kotlin {
     jvmToolchain(21)
     jvm()
+    iosX64()
     iosArm64()
     iosSimulatorArm64()
 
@@ -18,6 +19,15 @@ kotlin {
         }
         val jvmMain by getting {
             kotlin.srcDir("src/main/kotlin")
+        }
+        // The same parser sources compile for iOS. They import java.math /
+        // java.text / java.util, which src/iosMain stands in for on iOS — so a
+        // parser change needs no iOS-specific edit (see BigDecimal.kt there).
+        iosMain {
+            kotlin.srcDir("src/main/kotlin")
+        }
+        iosTest.dependencies {
+            implementation(kotlin("test"))
         }
         val jvmTest by getting {
             kotlin.srcDir("src/test/kotlin")
@@ -60,6 +70,11 @@ tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
     }
 
     maxParallelForks = maxOf(1, Runtime.getRuntime().availableProcessors() / 2)
+}
+
+// IosParityTest reads the JVM-generated golden file from the host filesystem.
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeSimulatorTest>().configureEach {
+    environment("SIMCTL_CHILD_PARITY_FILE", file("src/test/resources/ios-parity.tsv").absolutePath)
 }
 
 // Keep compatibility with existing CI/scripts that invoke :parser-core:test

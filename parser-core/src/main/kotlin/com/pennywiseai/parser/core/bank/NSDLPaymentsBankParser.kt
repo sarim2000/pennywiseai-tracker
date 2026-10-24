@@ -60,7 +60,11 @@ class NSDLPaymentsBankParser : BaseIndianBankParser() {
         )
         linkedPattern.find(message)?.let { match ->
             var name = match.groupValues[1].trim()
-            if (name.contains("@")) name = name.substringBefore("@")
+            // The linked text can name the payer's bank account before the payee
+            // ("for linked <Bank> A/c XX1234 to payee@axl") — the payee is the VPA, not the bank.
+            if (name.contains("@")) {
+                name = name.split(Regex("""\s+""")).last { it.contains("@") }.substringBefore("@")
+            }
             name = name.trimEnd('.', ',', ';')
             val merchant = cleanMerchantName(name)
             if (isValidMerchantName(merchant)) {

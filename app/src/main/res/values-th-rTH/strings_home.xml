@@ -109,15 +109,12 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">เพิ่มรายการธุรกรรม</string>
-    <string name="widget_add_title">เพิ่ม</string>
-    <string name="widget_add_subtitle">ธุรกรรม</string>
     <!-- Budget widget -->
     <string name="widget_budget_percent_used">%1$d%% ใช้แล้ว</string>
     <!-- Spending pie widget -->
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">อื่นๆ</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">เพิ่มรายการธุรกรรม</string>
     <string name="widget_recent_empty">ยังไม่มีรายการธุรกรรม</string>
     <string name="widget_recent_fallback_title">ธุรกรรม</string>
     <!-- Spending summary widget -->
@@ -133,6 +130,7 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <!-- Evening recap notification -->
     <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">แนวโน้มยอดเงิน</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Goal widgets' empty state, under "No goals yet" and above "Create goal" -->
+    <string name="widget_goals_empty_hint_target">حدّد مبلغًا وموعدًا</string>
+    <!-- Spending pie widget's empty state, under "No spending yet this month" -->
+    <string name="widget_pie_empty_hint">سيظهر هنا إنفاقك حسب الفئة</string>
+</resources>

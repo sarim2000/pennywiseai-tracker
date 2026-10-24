@@ -19,20 +19,24 @@ object PennyWiseWidgetTheme {
         dark = DarkColorScheme
     )
 
+    /** Spending against a limit: the theme's own color until 90%, then amber, and red once over. */
+    @Composable
     fun budgetStatusColor(percentageUsed: Float): ColorProvider = when {
-        percentageUsed > 90f -> ColorProvider(day = budget_danger_light, night = budget_danger_dark)
-        percentageUsed > 70f -> ColorProvider(day = budget_warning_light, night = budget_warning_dark)
-        else -> ColorProvider(day = budget_safe_light, night = budget_safe_dark)
+        percentageUsed > 100f -> ColorProvider(day = budget_danger_light, night = budget_danger_dark)
+        percentageUsed >= 90f -> ColorProvider(day = budget_warning_light, night = budget_warning_dark)
+        else -> GlanceTheme.colors.primary
     }
 
     fun savingsColor(isPositive: Boolean): ColorProvider =
         if (isPositive) ColorProvider(day = budget_safe_light, night = budget_safe_dark)
         else ColorProvider(day = budget_danger_light, night = budget_danger_dark)
 
+    /** A row's amount: income stands out; spending, most rows, stays plain rather than a wall of red. */
+    @Composable
     fun transactionAmountColor(type: TransactionType): ColorProvider = when (type) {
         TransactionType.INCOME -> ColorProvider(day = income_light, night = income_dark)
-        TransactionType.TRANSFER -> ColorProvider(day = transfer_light, night = transfer_dark)
-        else -> ColorProvider(day = expense_light, night = expense_dark)
+        TransactionType.TRANSFER -> GlanceTheme.colors.onSurfaceVariant
+        else -> GlanceTheme.colors.onSurface
     }
 
     /** A goal's status line colour (#914), matching the in-app pill roles. */

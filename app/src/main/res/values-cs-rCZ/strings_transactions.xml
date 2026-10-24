@@ -406,6 +406,9 @@
     <string name="share_banner_dismiss">Odmítnout</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Změnit kategorii</string>
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <!-- %1$s the cash account the spend comes out of -->
+    <!-- %1$s amount with currency, %2$s category -->
     <string name="date_range_title">Vybrat rozsah data</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Zrušit</string>

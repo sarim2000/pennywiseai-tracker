@@ -76,6 +76,19 @@ class TransactionDraftTest {
     }
 
     @Test
+    fun `last4 picks the right one of two same-bank accounts`() {
+        val two = accounts + AccountBalanceEntity(bankName = "HDFC Bank", accountLast4 = "9999", balance = BigDecimal.TEN, timestamp = LocalDateTime.now())
+        val acc = { a: String -> TransactionDraft.fromToolArgs(mapOf("amount" to 1.0, "merchant" to "x", "account" to a), "x 1", cats, two) { null }!! }
+        assertEquals("1234", acc("HDFC 1234").accountLast4)
+        assertEquals("9999", acc("hdfc bank 9999").accountLast4)
+        assertEquals("9999", acc("9999").accountLast4)                 // last-4 alone
+        assertEquals("5678", acc("Salary a/c").accountLast4)           // alias
+        assertNull(acc("HDFC").accountLast4)                           // two HDFCs → ambiguous
+        assertNull(acc("HDFC 5678").accountLast4)                      // 5678 is Kotak, not HDFC
+        assertNull(acc("HDFC 4321").accountLast4)                      // stated digits match nothing
+    }
+
+    @Test
     fun `no usable amount means no draft`() {
         assertNull(draft(mapOf("amount" to 0, "merchant" to "x"), "x"))
         assertNull(draft(mapOf("merchant" to "x"), "x"))

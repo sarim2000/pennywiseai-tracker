@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_recent_header">آخر العمليات</string>
+    <string name="widget_recent_sort">صنّف</string>
+    <string name="widget_recent_empty_add_cash">اضغط + لتسجيل مصروف نقدي</string>
+    <string name="widget_recent_description">أحدث معاملاتك وتصنيفاتها، مع لمسة لتصنيف ما يحتاج إلى ذلك.</string>
+</resources>

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.math.BigDecimal
 
 /**
  * One goal as the goal widgets draw it (#914). Text is pre-built by the worker
@@ -29,23 +30,30 @@ data class GoalWidgetItem(
     val color: String,
     val percent: Int,
     val fraction: Float,
-    /** List row: "₹1,920/mo · 5 months left", "Behind ₹2,000", "Reached", "Missed by ₹X". */
+    /** List row: "JD 1,920/mo · 5 months left", "Behind JD 2,000", "Reached", "Missed by JD X". */
     val line: String,
-    /** 2×2: "₹9,600 left · 5 mo", or Reached / Missed by. */
+    /** 2×2: "JD 9,600 left · 5 mo", or Reached / Missed by. */
     val shortLine: String,
     val tone: GoalTone = GoalTone.NEUTRAL,
 )
 
-fun GoalProgress.toWidgetItem(context: Context) = GoalWidgetItem(
-    id = goal.id,
-    name = goal.name,
-    color = goal.color,
-    percent = percent(),
-    fraction = fraction(),
-    line = statusLine(context),
-    shortLine = shortLine(context),
-    tone = tone(),
-)
+/**
+ * [context] is in the app's language ([inAppLanguage]): amounts are isolated
+ * for Arabic and digits Latin, so "JD 40/شهر · تبقى 12 شهرًا" reads in order.
+ */
+fun GoalProgress.toWidgetItem(context: Context): GoalWidgetItem {
+    val money = { amount: BigDecimal, currency: String -> widgetMoney(context, amount, currency) }
+    return GoalWidgetItem(
+        id = goal.id,
+        name = goal.name,
+        color = goal.color,
+        percent = percent(),
+        fraction = fraction(),
+        line = statusLine(context, money, latinDigits = true),
+        shortLine = shortLine(context, money, latinDigits = true),
+        tone = tone(),
+    )
+}
 
 /** What the 2×2 single-goal widget shows. */
 sealed interface SingleGoalState {

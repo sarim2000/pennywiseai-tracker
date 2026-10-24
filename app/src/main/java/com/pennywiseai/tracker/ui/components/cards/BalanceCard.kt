@@ -67,7 +67,9 @@ import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
+import com.pennywiseai.tracker.domain.spending.SpendForecast
 import java.math.BigDecimal
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -95,6 +97,7 @@ fun BalanceCard(
     accountBalances: List<AccountBalanceEntity> = emptyList(),
     creditCards: List<AccountBalanceEntity> = emptyList(),
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
+    forecast: SpendForecast? = null,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
@@ -185,6 +188,10 @@ fun BalanceCard(
                             changeText = if (isBalanceHidden) "••••" else changeText,
                             changeColor = changeColor
                         )
+                        forecast?.let {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            ForecastRow(it, isBalanceHidden)
+                        }
 
                         // Balance line (only if accounts exist)
                         if (accountBalances.isNotEmpty()) {
@@ -234,6 +241,10 @@ fun BalanceCard(
                             changeText = if (isBalanceHidden) "••••" else changeText,
                             changeColor = changeColor
                         )
+                        forecast?.let {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            ForecastRow(it, isBalanceHidden)
+                        }
                         // Spending sparkline
                         if (spendingHistory.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.md))
@@ -571,6 +582,48 @@ private fun SpendingMetaRow(
         }
     }
 }
+
+/** "On track for ₹42,300 by 31 Oct", plus an "over usual" chip styled like the change chip. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
+    val isDark = isSystemInDarkTheme()
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        itemVerticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(
+                R.string.forecast_on_track,
+                if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
+                forecast.periodEnd.format(SHORT_DATE)
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        forecast.overUsual?.let { over ->
+            Surface(
+                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.forecast_over_usual,
+                        if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(over, forecast.currency)
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDark) expense_dark else expense_light,
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
+                )
+            }
+        }
+    }
+}
+
+/** "31 Oct" — day and short month, in the user's locale. */
+internal val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
 @Composable
 private fun CurrencyChip(

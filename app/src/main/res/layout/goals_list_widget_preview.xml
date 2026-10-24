@@ -6,15 +6,31 @@
     android:background="?android:attr/colorBackground"
     android:orientation="vertical"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="12dp"
+    android:paddingVertical="4dp"
     android:theme="@style/Theme.Pennywisecompose">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/goals_section_title"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="14sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/goals_section_title"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="14sp" />
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:importantForAccessibility="no"
+            android:padding="10dp"
+            android:src="@drawable/ic_widget_add"
+            android:tint="?android:attr/textColorPrimary" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

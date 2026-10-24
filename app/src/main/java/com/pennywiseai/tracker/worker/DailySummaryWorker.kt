@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.presentation.add.QuickAddActivity
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -138,6 +139,17 @@ class DailySummaryWorker @AssistedInject constructor(
                 SmsBroadcastReceiver.pickerIntent(context, latest.id, latest.id.toInt(), requestCode = NOTIFICATION_ID)
             )
         }
+        // Cash never texts: the recap is when the day's cash spend gets remembered.
+        builder.addAction(
+            0,
+            context.getString(R.string.notif_daily_action_cash),
+            PendingIntent.getActivity(
+                context,
+                NOTIFICATION_ID,
+                Intent(context, QuickAddActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        )
         notificationManager.notify(NOTIFICATION_ID, builder.build())
         return Result.success()
     }

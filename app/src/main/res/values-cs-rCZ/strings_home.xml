@@ -244,15 +244,9 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Přidat transakci</string>
-    <string name="widget_add_title">Přidat</string>
-    <string name="widget_add_subtitle">Transakce</string>
     <!-- Budget widget -->
-    <string name="widget_budget_title">Měsíční rozpočet</string>
-    <string name="widget_budget_tap_to_set_up">Klepnutím nastavíte</string>
     <string name="widget_budget_percent_used">%1$d%% použito</string>
     <string name="widget_budget_of_limit">z %1$s</string>
-    <string name="widget_budget_left">%1$s zbývá</string>
-    <string name="widget_budget_over">%1$s nad</string>
     <string name="widget_budget_per_day">%1$s/den</string>
     <string name="widget_budget_saved">Uloženo %1$s</string>
     <string name="widget_budget_overspent">Přes %1$s</string>
@@ -264,11 +258,7 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Ostatní</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Poslední transakce</string>
-    <string name="widget_recent_add">Přidat transakci</string>
-    <string name="widget_recent_total_spend">Celkové výdaje tento měsíc</string>
     <string name="widget_recent_empty">Zatím žádné transakce</string>
-    <string name="widget_recent_empty_hint">Klepněte na + pro ruční přidání</string>
     <string name="widget_recent_fallback_title">Transakce</string>
     <!-- Spending summary widget -->
     <!-- ══ Notifications ══ -->
@@ -295,6 +285,7 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <!-- Evening recap notification -->
     <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Vývoj zůstatku</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

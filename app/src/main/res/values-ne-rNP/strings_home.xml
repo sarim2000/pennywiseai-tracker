@@ -100,14 +100,11 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">लेनदेन थप्नुहोस्</string>
-    <string name="widget_add_title">थप्नुहोस्</string>
-    <string name="widget_add_subtitle">लेनदेन</string>
     <!-- Budget widget -->
     <!-- Spending pie widget -->
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">अन्य</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">लेनदेन थप्नुहोस्</string>
     <string name="widget_recent_empty">अझै कुनै लेनदेन छैन</string>
     <string name="widget_recent_fallback_title">लेनदेन</string>
     <!-- Spending summary widget -->
@@ -123,6 +120,7 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <!-- Evening recap notification -->
     <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">सन्तुलन प्रवृत्ति</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

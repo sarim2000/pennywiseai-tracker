@@ -34,7 +34,16 @@ object Chat
 data class TransactionDetail(val transactionId: Long)
 
 @Serializable
-data class AddTransaction(val sourceTransactionId: Long? = null, val sharedText: String? = null)
+data class AddTransaction(
+    val sourceTransactionId: Long? = null,
+    val sharedText: String? = null,
+    // The quick add sheet's draft ("More details"): what was typed there.
+    val amount: String? = null,
+    val merchant: String? = null,
+    val category: String? = null,
+    val bankName: String? = null,
+    val accountLast4: String? = null
+)
 
 @Serializable
 data class AccountDetail(val bankName: String, val accountLast4: String)

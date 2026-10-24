@@ -23,6 +23,13 @@ class MainActivity : FragmentActivity() {
     companion object {
         const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
 
+        /** The quick add sheet's draft, carried into the full form by "More details". */
+        const val EXTRA_ADD_AMOUNT = "com.pennywiseai.tracker.ADD_AMOUNT"
+        const val EXTRA_ADD_MERCHANT = "com.pennywiseai.tracker.ADD_MERCHANT"
+        const val EXTRA_ADD_CATEGORY = "com.pennywiseai.tracker.ADD_CATEGORY"
+        const val EXTRA_ADD_BANK = "com.pennywiseai.tracker.ADD_BANK"
+        const val EXTRA_ADD_LAST4 = "com.pennywiseai.tracker.ADD_LAST4"
+
         /** Goal widgets (#914): open a goal, the Budgets screen, or "New goal" there. */
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
@@ -46,8 +53,8 @@ class MainActivity : FragmentActivity() {
     var editTransactionId by mutableStateOf<Long?>(null)
         private set
 
-    // Flag to navigate directly to Add Transaction when launched from a shortcut/widget
-    var openAddTransaction by mutableStateOf(false)
+    // Add Transaction to open when launched from a shortcut/widget, with any draft to fill in
+    var openAddTransaction by mutableStateOf<com.pennywiseai.tracker.navigation.AddTransaction?>(null)
         private set
 
     // Screen a goal widget asked for (a nav destination), consumed by PennyWiseApp.
@@ -71,7 +78,7 @@ class MainActivity : FragmentActivity() {
         if (savedInstanceState == null) handleWidgetIntent(intent)
 
         val editCompleteCallback = { editTransactionId = null }
-        val addShortcutCallback = { openAddTransaction = false }
+        val addShortcutCallback = { openAddTransaction = null }
         val sharedTextCallback = { sharedText = null }
 
         registerQuickAddShortcut()
@@ -113,6 +120,8 @@ class MainActivity : FragmentActivity() {
             val transactionId = intent.getLongExtra(SmsBroadcastReceiver.EXTRA_TRANSACTION_ID, -1)
             if (transactionId != -1L) {
                 editTransactionId = transactionId
+                // A tapped alert auto-cancels without a callback; recount the stack's header.
+                SmsBroadcastReceiver.updateAlertGroup(this)
             }
         }
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
@@ -120,7 +129,13 @@ class MainActivity : FragmentActivity() {
             sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
         }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
-            openAddTransaction = true
+            openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(
+                amount = intent?.getStringExtra(EXTRA_ADD_AMOUNT),
+                merchant = intent?.getStringExtra(EXTRA_ADD_MERCHANT),
+                category = intent?.getStringExtra(EXTRA_ADD_CATEGORY),
+                bankName = intent?.getStringExtra(EXTRA_ADD_BANK),
+                accountLast4 = intent?.getStringExtra(EXTRA_ADD_LAST4)
+            )
         }
     }
 

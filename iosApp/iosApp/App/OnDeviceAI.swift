@@ -122,12 +122,15 @@ enum PendingAiSms {
         return dir.appendingPathComponent("pending-ai-sms.json")
     }
 
-    static func enqueue(sender: String?, body: String, receivedAtEpochMillis: Int64) {
+    /// False when the message wasn't stored (queue full or unwritable): the caller
+    /// must not promise it will be read later.
+    @discardableResult
+    static func enqueue(sender: String?, body: String, receivedAtEpochMillis: Int64) -> Bool {
         lock.withLock {
             var queue = load()
-            guard queue.count < 50 else { return }
+            guard queue.count < 50 else { return false }
             queue.append(Entry(sender: sender, body: body, receivedAt: receivedAtEpochMillis))
-            save(queue)
+            return save(queue)
         }
     }
 

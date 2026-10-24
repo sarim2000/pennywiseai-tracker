@@ -135,8 +135,10 @@ enum BankSmsImport {
                 if aiResult is BankSmsImportResult.Saved || aiResult is BankSmsImportResult.Duplicate { result = aiResult }
             } catch {
                 if allowQueue {
-                    PendingAiSms.enqueue(sender: sender, body: body, receivedAtEpochMillis: at)
-                    return Outcome(message: "PennyWise AI will read this message when you next open the app", alert: nil, savedTransactionId: nil)
+                    if PendingAiSms.enqueue(sender: sender, body: body, receivedAtEpochMillis: at) {
+                        return Outcome(message: "PennyWise AI will read this message when you next open the app", alert: nil, savedTransactionId: nil)
+                    }
+                    return Outcome(message: "Couldn't read this message right now. Run the shortcut again later.", alert: nil, savedTransactionId: nil)
                 }
             }
         }

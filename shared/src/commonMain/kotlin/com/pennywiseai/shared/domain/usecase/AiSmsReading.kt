@@ -28,7 +28,11 @@ object AiSmsValidator {
     internal fun validate(body: String, reading: AiSmsReading, knownBank: String?): ParsedBankSms? {
         if (!reading.isBankTransaction || NOT_A_SPEND.containsMatchIn(body)) return null
         val currency = normalizeCurrency(reading.currency) ?: return null
-        val amount = canonicalAmount(reading.amount)?.takeIf { it != "0" && it in amountsIn(body) } ?: return null
+        // The amount must be printed in the SMS next to THIS currency: "INR 318" never
+        // passes as USD 318.
+        val amount = canonicalAmount(reading.amount)
+            ?.takeIf { a -> a != "0" && amountsIn(body).any { it.amount == a && currency in it.currencies } }
+            ?: return null
         val type = TYPES[reading.type.trim().lowercase()] ?: return null
         val (whole, fraction) = amount.split('.').let { it[0] to it.getOrElse(1) { "" } }
         return ParsedBankSms(
@@ -69,14 +73,25 @@ object AiSmsValidator {
         return if (fraction.isEmpty()) whole else "$whole.$fraction"
     }
 
+    /** An amount printed in an SMS and the currencies its symbol or code can mean. */
+    internal data class PrintedAmount(val amount: String, val currencies: Set<String>)
+
     /**
      * Every amount [body] prints next to a currency ("Rs.1,250.50", "₹318", "INR 318",
-     * "75.25 AED"), canonical. A bare number (a date, a spaced "XX 4321") isn't money.
+     * "75.25 AED"), canonical, with the currency it was printed with. A bare number
+     * (a date, a spaced "XX 4321") isn't money.
      */
-    internal fun amountsIn(body: String): Set<String> =
-        MONEY.findAll(body)
-            .mapNotNull { m -> canonicalAmount((m.groups[1] ?: m.groups[2])!!.value.replace(",", "")) }
-            .toSet()
+    internal fun amountsIn(body: String): List<PrintedAmount> =
+        MONEY.findAll(body).mapNotNull { m ->
+            val number = (m.groups[3] ?: m.groups[4])?.value ?: return@mapNotNull null
+            val amount = canonicalAmount(number.replace(",", "")) ?: return@mapNotNull null
+            val code = (m.groups[1] ?: m.groups[5])?.value
+            val currencies = when {
+                code != null -> setOfNotNull(normalizeCurrency(code))
+                else -> SYMBOLS[m.groups[2]?.value].orEmpty()
+            }
+            PrintedAmount(amount, currencies).takeIf { currencies.isNotEmpty() }
+        }.toList()
 
     /** Same SMS, same hash: a second automation run is a duplicate, as for parsed SMS. */
     internal fun aiTransactionHash(body: String): String {
@@ -100,10 +115,18 @@ object AiSmsValidator {
         "QAR", "ILS", "JOD", "ARS", "CLP", "UYU"
     )
 
-    // A number with a currency right before it (group 1) or a code right after it (group 2).
+    // "$" alone could be any dollar; the SMS's other wording can't narrow it, so accept them all.
+    private val SYMBOLS = mapOf(
+        "₹" to setOf("INR"),
+        "€" to setOf("EUR"),
+        "£" to setOf("GBP"),
+        "$" to setOf("USD", "CAD", "AUD", "NZD", "SGD", "HKD", "TWD", "MXN", "ARS", "CLP", "UYU")
+    )
+
+    // A number with a currency code (1) or symbol (2) right before it (3), or a code (5) right after it (4).
     private val MONEY = SUPPORTED_CURRENCIES.joinToString("|").let { codes ->
         val number = """(\d[\d,]*(?:\.\d+)?)"""
         // Codes stay upper case: "try 2 times" must not read as TRY 2.
-        Regex("""(?:\b(?:[Rr][Ss]|$codes)\.?|[₹$€£])\s*$number|$number\s*(?:$codes)\b""")
+        Regex("""(?:\b([Rr][Ss]|$codes)\.?|([₹$€£]))\s*$number|$number\s*($codes)\b""")
     }
 }

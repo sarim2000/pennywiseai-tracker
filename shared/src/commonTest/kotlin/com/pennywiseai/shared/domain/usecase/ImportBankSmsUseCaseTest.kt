@@ -313,7 +313,7 @@ private fun balanceRow(balanceMinor: Long) = SharedAccountBalanceEntity(
     balanceMinor = balanceMinor, currency = "INR", createdAtEpochMillis = 0L
 )
 
-private class FakeTransactions : SharedTransactionRepository {
+internal class FakeTransactions : SharedTransactionRepository {
     val rows = mutableListOf<SharedTransaction>()
     override fun observeTransactions(): Flow<List<SharedTransaction>> = flowOf(rows.toList())
     override suspend fun getById(id: Long) = rows.firstOrNull { it.id == id }
@@ -327,11 +327,17 @@ private class FakeTransactions : SharedTransactionRepository {
         return id
     }
     override suspend fun insertAll(transactions: List<SharedTransaction>) { transactions.forEach { insert(it) } }
-    override suspend fun update(transaction: SharedTransaction) {}
-    override suspend fun softDelete(id: Long, updatedAtEpochMillis: Long) {}
+    override suspend fun update(transaction: SharedTransaction) {
+        val i = rows.indexOfFirst { it.id == transaction.id }
+        if (i >= 0) rows[i] = transaction
+    }
+    override suspend fun softDelete(id: Long, updatedAtEpochMillis: Long) {
+        val i = rows.indexOfFirst { it.id == id }
+        if (i >= 0) rows[i] = rows[i].copy(isDeleted = true)
+    }
 }
 
-private class FakeAccounts : SharedAccountRepository {
+internal class FakeAccounts : SharedAccountRepository {
     val balances = mutableListOf<SharedAccountBalanceEntity>()
     override fun observeBalances(): Flow<List<SharedAccountBalanceEntity>> = flowOf(balances.toList())
     override fun observeCards(): Flow<List<SharedCardEntity>> = flowOf(emptyList())
@@ -349,7 +355,7 @@ private class FakeAccounts : SharedAccountRepository {
     override suspend fun renameAccount(oldBankName: String, newBankName: String, accountLast4: String) {}
 }
 
-private class FakeMappings : SharedMerchantMappingRepository {
+internal class FakeMappings : SharedMerchantMappingRepository {
     val rows = mutableMapOf<String, String>()
     override fun observeAll(): Flow<List<SharedMerchantMappingEntity>> = flowOf(emptyList())
     override suspend fun getByMerchant(merchantName: String) =
@@ -357,7 +363,7 @@ private class FakeMappings : SharedMerchantMappingRepository {
     override suspend fun upsert(mapping: SharedMerchantMappingEntity) {}
 }
 
-private class FakeRules : SharedRuleRepository {
+internal class FakeRules : SharedRuleRepository {
     val rows = mutableListOf<SharedRuleEntity>()
     override fun observeRules(): Flow<List<SharedRuleEntity>> = flowOf(rows.toList())
     override fun observeRuleApplications(): Flow<List<SharedRuleApplicationEntity>> = flowOf(emptyList())
@@ -366,7 +372,7 @@ private class FakeRules : SharedRuleRepository {
     override suspend fun addApplication(application: SharedRuleApplicationEntity) {}
 }
 
-private class FakeCategories : SharedCategoryRepository {
+internal class FakeCategories : SharedCategoryRepository {
     private val categories = listOf("Food & Dining" to false, "Groceries" to false, "Travel" to false, "Salary" to true)
         .map { (name, isIncome) -> SharedCategory(name = name, colorHex = "#000000", isIncome = isIncome, createdAtEpochMillis = 0L, updatedAtEpochMillis = 0L) }
     override fun observeCategories(): Flow<List<SharedCategory>> = flowOf(categories)

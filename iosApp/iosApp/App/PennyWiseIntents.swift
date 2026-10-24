@@ -27,7 +27,7 @@ struct AddBankSmsIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
-        let outcome = BankSmsImport.run(sender: sender, body: message)
+        let outcome = await BankSmsImport.run(sender: sender, body: message)
         if let alert = outcome.alert {
             await BankSmsImport.notify(alert)
         }
@@ -114,16 +114,33 @@ enum BankSmsImport {
         let savedTransactionId: Int64?
     }
 
-    static func run(sender: String?, body: String) -> Outcome {
-        let result: BankSmsImportResult
+    /// A message no parser reads goes to the on-device model (iOS 26+, Apple Intelligence on).
+    /// If the model can't run right now, the message waits for the next app open
+    /// ([allowQueue]) — the background budget is rate-limited.
+    static func run(sender: String?, body: String, receivedAt: Int64? = nil, allowQueue: Bool = true) async -> Outcome {
+        let facade = PennyWiseSharedFacade.companion.shared
+        let at = receivedAt ?? Int64(Date().timeIntervalSince1970 * 1000)
+        var result: BankSmsImportResult
         do {
-            result = try PennyWiseSharedFacade.companion.shared.importBankSms(
-                sender: sender,
-                body: body,
-                receivedAtEpochMillis: Int64(Date().timeIntervalSince1970 * 1000)
-            )
+            result = try facade.importBankSms(sender: sender, body: body, receivedAtEpochMillis: at)
         } catch {
             return Outcome(message: "Couldn't save this message. Try again.", alert: nil, savedTransactionId: nil)
+        }
+
+        let knownBank = (result as? BankSmsImportResult.Unparsed)?.bankName
+        if result is BankSmsImportResult.NotATransaction || knownBank != nil, OnDeviceAI.isAvailable {
+            do {
+                let reading = try await AiSmsReader.read(body)
+                let aiResult = try facade.importAiReadSms(body: body, receivedAtEpochMillis: at, reading: reading, knownBank: knownBank)
+                if aiResult is BankSmsImportResult.Saved || aiResult is BankSmsImportResult.Duplicate { result = aiResult }
+            } catch {
+                if allowQueue {
+                    if PendingAiSms.enqueue(sender: sender, body: body, receivedAtEpochMillis: at) {
+                        return Outcome(message: "PennyWise AI will read this message when you next open the app", alert: nil, savedTransactionId: nil)
+                    }
+                    return Outcome(message: "Couldn't read this message right now. Run the shortcut again later.", alert: nil, savedTransactionId: nil)
+                }
+            }
         }
 
         switch result {
@@ -132,10 +149,16 @@ enum BankSmsImport {
             let amount = CurrencyFormatter.format(amountMinor: txn.amountMinor, currencyCode: txn.currency)
             let isIncome = txn.transactionType.name == "INCOME"
             let place = "\(isIncome ? "from" : "at") \(txn.merchantName)"
+            if txn.note == AiSmsValidator.shared.AI_NOTE {
+                let line = "Read by AI: \(amount) \(place) – check it"
+                return Outcome(message: line, alert: line, savedTransactionId: txn.id)
+            }
             let alert = "\(isIncome ? "Received" : "Spent") \(amount) \(place)"
             return Outcome(message: "Saved \(amount) \(place)", alert: alert, savedTransactionId: txn.id)
         case is BankSmsImportResult.Duplicate:
             return Outcome(message: "Already saved", alert: nil, savedTransactionId: nil)
+        case is BankSmsImportResult.BalanceOnly:
+            return Outcome(message: "Balance updated, no transaction in this message", alert: nil, savedTransactionId: nil)
         case let unparsed as BankSmsImportResult.Unparsed:
             return Outcome(message: "No transaction found in this \(unparsed.bankName) message", alert: nil, savedTransactionId: nil)
         default:

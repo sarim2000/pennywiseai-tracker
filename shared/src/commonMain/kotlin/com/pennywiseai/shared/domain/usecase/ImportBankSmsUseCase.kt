@@ -18,8 +18,10 @@ import kotlinx.coroutines.sync.withLock
 sealed class BankSmsImportResult {
     data class Saved(val transaction: SharedTransaction) : BankSmsImportResult()
     data object Duplicate : BankSmsImportResult()
-    /** Not from a bank PennyWise knows (or a balance-only message). */
+    /** Not from a bank PennyWise knows. */
     data object NotATransaction : BankSmsImportResult()
+    /** A balance-only alert: the account's balance was recorded, no transaction. */
+    data object BalanceOnly : BankSmsImportResult()
     /** From a known bank, but no transaction in it: an OTP, a promo, or a format the parser misses. */
     data class Unparsed(val bankName: String) : BankSmsImportResult()
 }
@@ -51,11 +53,28 @@ class ImportBankSmsUseCase(
         return saveLock.withLock { save(parsed, receivedAtEpochMillis) }
     }
 
-    private suspend fun save(parsed: ParsedBankSms, receivedAt: Long): BankSmsImportResult {
+    /**
+     * Saves what the on-device model read from an SMS [execute] couldn't parse
+     * (NotATransaction or Unparsed), through the same dedupe, mappings and rules,
+     * marked with [AiSmsValidator.AI_NOTE]. [knownBank] is the bank an Unparsed
+     * result named. A reading the validator rejects saves nothing: Unparsed.
+     */
+    suspend fun executeAiReading(
+        body: String,
+        receivedAtEpochMillis: Long,
+        reading: AiSmsReading,
+        knownBank: String?
+    ): BankSmsImportResult {
+        val parsed = AiSmsValidator.validate(body, reading, knownBank)
+            ?: return BankSmsImportResult.Unparsed(knownBank ?: reading.bankName?.trim().orEmpty())
+        return saveLock.withLock { save(parsed, receivedAtEpochMillis, note = AiSmsValidator.AI_NOTE) }
+    }
+
+    private suspend fun save(parsed: ParsedBankSms, receivedAt: Long, note: String? = null): BankSmsImportResult {
         // Federal Bank's balance-only alert has no spend in it (Android books it as a ₹0 expense).
         if (parsed.type == "BALANCE_UPDATE") {
             recordBalance(parsed, receivedAt, transactionId = null)
-            return BankSmsImportResult.NotATransaction
+            return BankSmsImportResult.BalanceOnly
         }
         // A soft-deleted row also matches: the user removed it, so don't bring it back (as Android).
         if (transactionRepository.getByHash(parsed.transactionHash) != null) return BankSmsImportResult.Duplicate
@@ -75,6 +94,7 @@ class ImportBankSmsUseCase(
             category = rule?.category ?: mappedCategory ?: defaultCategory,
             transactionType = finalType,
             occurredAtEpochMillis = receivedAt,
+            note = note,
             currency = parsed.currency,
             transactionHash = parsed.transactionHash,
             reference = parsed.reference,

@@ -12,6 +12,10 @@ import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
 import com.pennywiseai.shared.domain.money.CurrencyConverter
 import com.pennywiseai.shared.domain.money.MoneyTotals
+import com.pennywiseai.shared.domain.chat.ChatAssistant
+import com.pennywiseai.shared.domain.chat.ChatToolResult
+import com.pennywiseai.shared.domain.chat.PendingChatAction
+import com.pennywiseai.shared.domain.usecase.AiSmsReading
 import com.pennywiseai.shared.domain.usecase.BankSmsImportResult
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ImportBankSmsUseCase
@@ -160,6 +164,54 @@ class PennyWiseSharedFacade {
             graph.initialize()
             importBankSmsUseCase.execute(sender, body, receivedAtEpochMillis)
         }
+
+    /** Saves the on-device model's reading of an SMS [importBankSms] couldn't parse, if it validates. */
+    @Throws(Exception::class)
+    fun importAiReadSms(body: String, receivedAtEpochMillis: Long, reading: AiSmsReading, knownBank: String?): BankSmsImportResult =
+        runBlocking {
+            graph.initialize()
+            importBankSmsUseCase.executeAiReading(body, receivedAtEpochMillis, reading, knownBank)
+        }
+
+    // The iOS chat (Foundation Models). Lookups answer directly; adds, updates and deletes
+    // only return a PendingChatAction, and nothing is written until chatConfirm.
+    private val chatAssistant by lazy {
+        ChatAssistant(graph.transactionRepository, graph.accountRepository, graph.categoryRepository)
+    }
+
+    @Throws(Exception::class)
+    fun chatSystemPrompt(): String = runBlocking { graph.initialize(); chatAssistant.systemPrompt() }
+
+    @Throws(Exception::class)
+    fun chatMonthSummary(): String = runBlocking { chatAssistant.monthSummary() }
+
+    @Throws(Exception::class)
+    fun chatSpendingByCategory(category: String): String = runBlocking { chatAssistant.spendingByCategory(category) }
+
+    @Throws(Exception::class)
+    fun chatProposeAdd(
+        amount: Double,
+        merchant: String,
+        category: String,
+        type: String,
+        account: String,
+        userMessage: String,
+        currency: String
+    ): ChatToolResult = runBlocking { chatAssistant.proposeAdd(amount, merchant, category, type, account, userMessage, currency) }
+
+    @Throws(Exception::class)
+    fun chatProposeChange(
+        delete: Boolean,
+        words: String,
+        amount: Double,
+        daysAgo: Int,
+        newCategory: String,
+        newMerchant: String
+    ): ChatToolResult = runBlocking { chatAssistant.proposeChange(delete, words, amount, daysAgo, newCategory, newMerchant) }
+
+    /** The user tapped the card's confirm button. Null when applied, else why it wasn't. */
+    @Throws(Exception::class)
+    fun chatConfirm(action: PendingChatAction): String? = runBlocking { chatAssistant.confirm(action) }
 
     fun initializeAndLoadHome(): SharedHomeSnapshot = safeSnapshot {
         runBlocking {

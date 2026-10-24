@@ -151,10 +151,11 @@ class AppLockViewModel @Inject constructor(
             onError = { error -> onAuthenticationError(error) },
             onFailed = { onAuthenticationFailed() },
             // No screen lock to check against: let the user in, and say why once.
+            // Notice first: unlocking pops the lock screen and clears this ViewModel.
             onNoScreenLock = {
-                onAuthenticationSuccess()
                 viewModelScope.launch {
                     if (appLockRepository.claimNoScreenLockNotice()) onNoScreenLockNotice()
+                    onAuthenticationSuccess()
                 }
             }
         )

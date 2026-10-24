@@ -77,15 +77,17 @@ struct AccountListScreen: View {
     @ViewBuilder
     private var totalBalanceCard: some View {
         VStack(spacing: AppSpacing.sm) {
-            Text("Total Balance")
+            Text("Net Balance")
                 .font(AppTypography.caption)
                 .foregroundStyle(.secondary)
-            Text(AmountFormatter.format(
-                minorUnits: viewModel.totalBalanceMinor,
-                currency: viewModel.accounts.first?.currency ?? CurrencyManager.shared.displayCurrency
-            ))
-            .font(AppTypography.amountLarge)
-            .foregroundStyle(.primary)
+            // One line per currency: ₹ and $ never add up to one figure.
+            ForEach(viewModel.totals, id: \.currency) { total in
+                Text(AmountFormatter.format(minorUnits: total.amountMinor, currency: total.currency))
+                    .font(AppTypography.amountLarge)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
 
             Text("\(viewModel.accounts.count) account\(viewModel.accounts.count == 1 ? "" : "s")")
                 .font(AppTypography.caption2)
@@ -151,8 +153,25 @@ struct AccountListScreen: View {
 
     // MARK: - Cards Section
 
+    /// Cards not already listed as a credit-card account above: same bank and
+    /// last 4 (the card's stored identity) is the same card, shown once.
+    private var unlistedCards: [SharedCardItem] {
+        let cardAccounts = viewModel.accounts.filter(\.isCreditCard)
+        return viewModel.cards.filter { card in
+            !cardAccounts.contains { account in
+                account.bankName == card.bankName && account.accountLast4 == card.cardLast4
+            }
+        }
+    }
+
     @ViewBuilder
     private var cardsSection: some View {
+        if viewModel.cards.isEmpty || !unlistedCards.isEmpty {
+            cardsList
+        }
+    }
+
+    private var cardsList: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             Text("Cards")
                 .font(AppTypography.headline)
@@ -169,7 +188,7 @@ struct AccountListScreen: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.lg)
             } else {
-                ForEach(viewModel.cards, id: \.id) { card in
+                ForEach(unlistedCards, id: \.id) { card in
                     CardRow(card: card)
                         .contextMenu {
                             Button(role: .destructive) {
@@ -242,10 +261,10 @@ private struct CardRow: View {
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                Text("\(card.bankName) ••\(card.cardLast4)")
+                Text(card.bankName)
                     .font(AppTypography.body)
                     .lineLimit(1)
-                Text(card.cardType.capitalized)
+                Text("••\(card.cardLast4) \u{00B7} \(card.cardType.capitalized)")
                     .font(AppTypography.caption2)
                     .foregroundStyle(.secondary)
             }

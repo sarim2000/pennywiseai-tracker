@@ -11,6 +11,10 @@ struct BudgetItem: Identifiable {
     let currency: String
     let isActive: Bool
     let categoryBreakdowns: [BudgetCategoryBreakdown]
+    var startEpochMillis: Int64 = 0
+    var endEpochMillis: Int64 = 0
+    /// From shared, so Home and the budget screens round the same way.
+    var percentUsed: Int = 0
 
     var progress: Double {
         guard limitMinor > 0 else { return 0 }
@@ -27,6 +31,7 @@ struct BudgetCategoryBreakdown: Identifiable {
     let categoryName: String
     let limitMinor: Int64
     let spentMinor: Int64
+    var percentUsed: Int = 0
 
     var progress: Double {
         guard limitMinor > 0 else { return 0 }
@@ -147,9 +152,13 @@ class BudgetViewModel: ObservableObject {
                 BudgetCategoryBreakdown(
                     categoryName: cat.categoryName,
                     limitMinor: cat.limitMinor,
-                    spentMinor: cat.spentMinor
+                    spentMinor: cat.spentMinor,
+                    percentUsed: Int(cat.percentUsed)
                 )
-            }
+            },
+            startEpochMillis: shared.startEpochMillis,
+            endEpochMillis: shared.endEpochMillis,
+            percentUsed: Int(shared.percentUsed)
         )
     }
 }

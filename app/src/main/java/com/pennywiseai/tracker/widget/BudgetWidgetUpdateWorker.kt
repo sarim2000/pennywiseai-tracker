@@ -281,6 +281,8 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
             BudgetWidgetDataStore.update(applicationContext, summary)
             BudgetWidget().updateAll(applicationContext)
+            // The summary widget leads with what's left of this budget.
+            SpendingSummaryWidget().updateAll(applicationContext)
 
             Result.success()
         } catch (e: Exception) {

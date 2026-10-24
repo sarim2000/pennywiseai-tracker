@@ -112,6 +112,8 @@ struct TransactionListView: View {
     @State private var isLoading = true
     @State private var csvFileURL: URL? = nil
     @State private var showShareSheet = false
+    @State private var converter: CurrencyConverter?
+    @Environment(\.isAmoledActive) private var isAmoled
 
     init(facade: PennyWiseSharedFacade) {
         self.facade = facade
@@ -198,36 +200,34 @@ struct TransactionListView: View {
         return order.map { (key: $0, items: groups[$0] ?? []) }
     }
 
-    private var totals: (income: Int64, expense: Int64, net: Int64) {
-        var income: Int64 = 0
-        var expense: Int64 = 0
-        for item in filteredTransactions {
-            // EXPENSE only, mirroring Android and the home snapshot: TRANSFER
-            // moves money between own accounts and CREDIT/INVESTMENT are their
-            // own types — "everything that isn't income" overstated spending.
-            if item.transactionType == "INCOME" {
-                income += item.amountMinor
-            } else if item.transactionType == "EXPENSE" {
-                expense += item.amountMinor
-            }
-        }
-        return (income, expense, income - expense)
+    /// Income / Expense / Net of the filtered rows, per currency and then
+    /// converted to the display currency (never one cross-currency sum).
+    private var totals: (income: ConvertedTotal, expense: ConvertedTotal, net: ConvertedTotal)? {
+        guard let converter else { return nil }
+        // EXPENSE only, mirroring Android and the home snapshot: TRANSFER
+        // moves money between own accounts and CREDIT/INVESTMENT are their
+        // own types.
+        let income = converter.totalOf(transactions: filteredTransactions.filter { $0.transactionType == "INCOME" })
+        let expense = converter.totalOf(transactions: filteredTransactions.filter { $0.transactionType == "EXPENSE" })
+        return (income, expense, converter.net(income: income, expense: expense))
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            filterBar
-            if !filteredTransactions.isEmpty {
-                TransactionTotalsCard(
-                    incomeMinor: totals.income,
-                    expenseMinor: totals.expense,
-                    netMinor: totals.net,
-                    currency: CurrencyManager.shared.displayCurrency
-                )
-                .padding(.horizontal, AppSpacing.md)
-                .padding(.bottom, AppSpacing.sm)
+            // Pinned header: opaque, so the list's sticky month header can't
+            // show through or peek out from under the totals card.
+            VStack(spacing: AppSpacing.xs) {
+                filterBar
+                if !filteredTransactions.isEmpty, let totals {
+                    TransactionTotalsCard(income: totals.income, expense: totals.expense, net: totals.net)
+                        .padding(.horizontal, AppSpacing.md)
+                }
             }
+            .padding(.bottom, AppSpacing.sm)
+            .background(AppColors.background(isAmoled: isAmoled))
+            .zIndex(1)
             transactionList
+                .clipped()
         }
         .searchable(text: $searchText, prompt: "Search transactions")
         .navigationTitle("Transactions")
@@ -438,6 +438,7 @@ struct TransactionListView: View {
             TransactionSkeletonList()
         } else if filteredTransactions.isEmpty {
             emptyState
+                .frame(maxHeight: .infinity)
         } else {
             let groups = groupedByMonth
             List {
@@ -445,7 +446,7 @@ struct TransactionListView: View {
                     Section {
                         ForEach(group.items, id: \.transactionId) { item in
                             NavigationLink(destination: TransactionDetailView(transactionId: item.transactionId, facade: facade, onUpdate: reloadTransactions)) {
-                                TransactionRowView(item: item)
+                                TransactionRow(item: item, isCard: false)
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
@@ -466,6 +467,7 @@ struct TransactionListView: View {
                         }
                     } header: {
                         SectionHeaderView(title: group.key)
+                            .listRowInsets(EdgeInsets())
                     }
                 }
             }
@@ -480,40 +482,25 @@ struct TransactionListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        VStack(spacing: AppSpacing.lg) {
-            Spacer()
-
-            Image(systemName: "tray")
-                .font(.system(size: 64))
-                .foregroundStyle(.tertiary)
-
-            VStack(spacing: AppSpacing.sm) {
-                Text(hasActiveFilters || !searchText.isEmpty ? "No Results" : "No Transactions Yet")
-                    .font(AppTypography.title)
-                    .foregroundStyle(.primary)
-
-                Text(emptyStateMessage)
-                    .font(AppTypography.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, AppSpacing.xl)
-            }
-
-            if !hasActiveFilters && searchText.isEmpty {
-                NavigationLink(destination: AddEditTransactionView(facade: facade, onSave: reloadTransactions)) {
-                    Label("Add Transaction", systemImage: "plus.circle.fill")
-                        .font(AppTypography.headline)
-                        .padding(.horizontal, AppSpacing.lg)
-                        .padding(.vertical, AppSpacing.md)
-                        .background(Color.accentColor)
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
+        let filtered = hasActiveFilters || !searchText.isEmpty
+        EmptyStateView(
+            title: filtered ? "No Results" : "No Transactions Yet",
+            systemImage: filtered ? "magnifyingglass" : "tray",
+            message: emptyStateMessage
+        ) {
+            if filtered {
+                Button("Clear Filters") {
+                    clearAllFilters()
+                    searchText = ""
                 }
+                .buttonStyle(.bordered)
+            } else {
+                NavigationLink("Add Transaction") {
+                    AddEditTransactionView(facade: facade, onSave: reloadTransactions)
+                }
+                .buttonStyle(.borderedProminent)
             }
-
-            Spacer()
         }
-        .frame(maxWidth: .infinity)
     }
 
     private var emptyStateMessage: String {
@@ -568,6 +555,7 @@ struct TransactionListView: View {
 
     private func reloadTransactions() {
         transactions = facade.getAllTransactions()
+        converter = facade.currencyConverter(baseCurrency: CurrencyManager.shared.displayCurrency)
         let snapshot = facade.initializeAndLoadHome()
         let snapshotCategories = snapshot.categories
         categories = snapshotCategories.isEmpty ? ["Others"] : snapshotCategories
@@ -577,8 +565,11 @@ struct TransactionListView: View {
 
 // MARK: - Section Header
 
+/// Opaque, full-width: rows scrolling under the pinned header don't show
+/// through it.
 private struct SectionHeaderView: View {
     let title: String
+    @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
         Text(title)
@@ -586,6 +577,10 @@ private struct SectionHeaderView: View {
             .fontWeight(.semibold)
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
+            .padding(.horizontal, AppSpacing.md)
+            .padding(.vertical, AppSpacing.sm)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColors.background(isAmoled: isAmoled))
     }
 }
 
@@ -628,51 +623,5 @@ private struct FilterMenuChipLabel: View {
                 .strokeBorder(isActive ? Color.accentColor : Color(.separator).opacity(0.5), lineWidth: 1)
         )
         .animation(.easeInOut(duration: 0.2), value: isActive)
-    }
-}
-
-// MARK: - Transaction Row (inline for list)
-
-struct TransactionRowView: View {
-    let item: SharedRecentTransactionItem
-
-    private var iconInfo: CategoryIconInfo {
-        AppColors.categoryIcon(for: item.category)
-    }
-
-    var body: some View {
-        HStack(spacing: AppSpacing.md) {
-            ZStack {
-                Circle()
-                    .fill(iconInfo.color.opacity(0.15))
-                    .frame(width: 42, height: 42)
-                Image(systemName: iconInfo.systemName)
-                    .font(.system(size: 18))
-                    .foregroundColor(iconInfo.color)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.merchantName)
-                    .font(AppTypography.body)
-                    .lineLimit(1)
-                HStack(spacing: AppSpacing.xs) {
-                    Text(item.category)
-                        .font(AppTypography.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(Date(epochMillis: item.occurredAtEpochMillis).formatted(as: "dd MMM yyyy"))
-                        .font(AppTypography.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            AmountText(
-                amountMinor: item.amountMinor,
-                currency: item.currency,
-                transactionType: item.transactionType
-            )
-        }
-        .padding(.vertical, AppSpacing.xs)
     }
 }

@@ -109,17 +109,15 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">เพิ่มรายการธุรกรรม</string>
-    <string name="widget_add_title">เพิ่ม</string>
-    <string name="widget_add_subtitle">ธุรกรรม</string>
     <!-- Budget widget -->
     <string name="widget_budget_percent_used">%1$d%% ใช้แล้ว</string>
     <!-- Spending pie widget -->
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">อื่นๆ</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">เพิ่มรายการธุรกรรม</string>
     <string name="widget_recent_empty">ยังไม่มีรายการธุรกรรม</string>
     <string name="widget_recent_fallback_title">ธุรกรรม</string>
+    <!-- Spending summary widget -->
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <!-- New transaction notification -->
@@ -127,6 +125,12 @@
     <!-- Category • bank name -->
     <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <!-- Evening recap notification -->
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">แนวโน้มยอดเงิน</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

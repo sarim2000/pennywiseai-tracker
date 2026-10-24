@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// The project's GitHub links, in one place so they can't drift apart.
+enum AppLinks {
+    static let repo = "https://github.com/sarim2000/pennywiseai-tracker"
+    static let newIssue = repo + "/issues/new/choose"
+}
+
 struct AboutScreen: View {
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -13,9 +19,11 @@ struct AboutScreen: View {
         List {
             Section {
                 VStack(spacing: AppSpacing.md) {
-                    Image(systemName: "dollarsign.circle.fill")
-                        .font(.system(size: 72))
-                        .foregroundStyle(.tint)
+                    Image("AppLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
 
                     Text("PennyWise")
                         .font(AppTypography.title)
@@ -24,7 +32,7 @@ struct AboutScreen: View {
                         .font(AppTypography.caption)
                         .foregroundStyle(.secondary)
 
-                    Text("AI-powered expense tracker that helps you understand your spending habits.")
+                    Text("Private, on-device expense tracker that helps you understand your spending habits.")
                         .font(AppTypography.body)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
@@ -35,7 +43,7 @@ struct AboutScreen: View {
 
             Section("Links") {
                 Button {
-                    if let url = URL(string: "https://github.com/nicekid1/pennywiseai-tracker") {
+                    if let url = URL(string: AppLinks.repo) {
                         UIApplication.shared.open(url)
                     }
                 } label: {
@@ -50,7 +58,7 @@ struct AboutScreen: View {
                 }
 
                 Button {
-                    if let url = URL(string: "https://github.com/nicekid1/pennywiseai-tracker/issues/new/choose") {
+                    if let url = URL(string: AppLinks.newIssue) {
                         UIApplication.shared.open(url)
                     }
                 } label: {

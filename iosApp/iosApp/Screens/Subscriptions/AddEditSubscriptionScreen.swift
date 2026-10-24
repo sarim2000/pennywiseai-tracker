@@ -12,6 +12,9 @@ struct AddEditSubscriptionScreen: View {
     @State private var merchantName = ""
     @State private var amountText = ""
     @State private var selectedCategory: String?
+    // Starts at the display currency for a new subscription; an edit loads
+    // the subscription's own currency so saving never re-tags it.
+    @State private var selectedCurrency = CurrencyManager.shared.displayCurrency
 
     private var isEditing: Bool { editingSubscription != nil }
 
@@ -35,8 +38,10 @@ struct AddEditSubscriptionScreen: View {
             viewModel.loadCategories()
             if let subscription = editingSubscription {
                 merchantName = subscription.merchantName
-                amountText = String(subscription.amountMinor / 100)
+                // Keep the paise/cents: "2.99", not a truncated "2".
+                amountText = AmountFormatter.format(minorUnits: subscription.amountMinor)
                 selectedCategory = subscription.category
+                selectedCurrency = subscription.currency
             }
         }
     }
@@ -47,10 +52,13 @@ struct AddEditSubscriptionScreen: View {
         Section("Subscription Info") {
             TextField("Service Name", text: $merchantName)
             HStack {
-                Text(currencyManager.currencySymbol)
-                    .foregroundStyle(.secondary)
+                Picker("Currency", selection: $selectedCurrency) {
+                    ForEach(CurrencyPickerScreen.currencies.map(\.code), id: \.self) { Text($0).tag($0) }
+                }
+                .labelsHidden()
+                .fixedSize()
                 TextField("Amount", text: $amountText)
-                    .keyboardType(.numberPad)
+                    .keyboardType(.decimalPad)
             }
         }
     }
@@ -78,10 +86,12 @@ struct AddEditSubscriptionScreen: View {
                             Spacer()
                             if selectedCategory == category {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Color.accentColor)
+                                    .foregroundStyle(ThemeManager.shared.accentColor)
                             }
                         }
                     }
+                    // A primary label, so a selectable row doesn't read as a link.
+                    .tint(.primary)
                 }
             }
         }
@@ -91,12 +101,25 @@ struct AddEditSubscriptionScreen: View {
 
     private var isValid: Bool {
         !merchantName.trimmingCharacters(in: .whitespaces).isEmpty &&
-        (Int64(amountText) ?? 0) > 0
+        amountMinor > 0
+    }
+
+    /// Locale-aware ("2,99" with a comma keyboard; the "2.99" prefill also
+    /// parses). Unparseable or out-of-range input is 0, which keeps Save
+    /// disabled instead of overflowing Int64.
+    private var amountMinor: Int64 {
+        let separator = Locale.current.decimalSeparator ?? "."
+        let normalized = amountText.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: separator, with: ".")
+        // Plain digits with an optional fraction only: "1,234.56", "1e3",
+        // hex or "inf" are rejected, never read as a different amount.
+        guard normalized.range(of: #"^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"#, options: .regularExpression) != nil,
+              let value = Double(normalized), value > 0, value < 1_000_000_000_000 else { return 0 }
+        return Int64((value * 100).rounded())
     }
 
     private func save() {
-        let amountMinor = (Int64(amountText) ?? 0) * 100
-        let currency = currencyManager.displayCurrency
+        let currency = selectedCurrency
 
         if let existing = editingSubscription {
             _ = viewModel.updateSubscription(

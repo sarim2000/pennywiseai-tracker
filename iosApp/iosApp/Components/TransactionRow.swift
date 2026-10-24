@@ -1,14 +1,22 @@
 import Shared
 import SwiftUI
 
+/// The one transaction row: a card on Home / Account detail, plain inside the
+/// Transactions list. Callers wrap it in a Button or NavigationLink.
 struct TransactionRow: View {
     let item: SharedRecentTransactionItem
-    var onViewDetails: (() -> Void)?
-    var onEdit: (() -> Void)?
+    var isCard = true
     @Environment(\.isAmoledActive) private var isAmoled
 
     private var iconInfo: CategoryIconInfo {
         AppColors.categoryIcon(for: item.category)
+    }
+
+    /// "21 Oct", with the year only when it isn't this year.
+    private var dateText: String {
+        let date = Date(epochMillis: item.occurredAtEpochMillis)
+        let thisYear = Calendar.current.isDate(date, equalTo: Date(), toGranularity: .year)
+        return date.formatted(as: thisYear ? "dd MMM" : "dd MMM yyyy")
     }
 
     var body: some View {
@@ -25,17 +33,18 @@ struct TransactionRow: View {
             VStack(alignment: .leading, spacing: AppSpacing.xs) {
                 Text(item.merchantName)
                     .font(AppTypography.body)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 HStack(spacing: AppSpacing.xs) {
                     Text(item.category)
-                        .font(AppTypography.caption2)
-                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     Text("\u{00B7}")
-                        .foregroundStyle(.secondary)
-                    Text(Date(epochMillis: item.occurredAtEpochMillis).formatted(as: "dd MMM"))
-                        .font(AppTypography.caption2)
-                        .foregroundStyle(.secondary)
+                    Text(dateText)
+                        .lineLimit(1)
+                        .fixedSize()
                 }
+                .font(AppTypography.caption2)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -45,23 +54,16 @@ struct TransactionRow: View {
                 currency: item.currency,
                 transactionType: item.transactionType
             )
-
-            if onViewDetails != nil || onEdit != nil {
-                Menu {
-                    if let onViewDetails {
-                        Button("View Details", action: onViewDetails)
-                    }
-                    if let onEdit {
-                        Button("Edit", action: onEdit)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundStyle(.secondary)
-                }
-            }
+            // The amount wins the row's width: the merchant/category truncate
+            // instead of the number wrapping mid-figure.
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .layoutPriority(1)
         }
-        .padding(AppSpacing.md)
-        .background(AppColors.surface(isAmoled: isAmoled))
+        .padding(isCard ? AppSpacing.md : 0)
+        .padding(.vertical, isCard ? 0 : AppSpacing.xs)
+        .background(isCard ? AppColors.surface(isAmoled: isAmoled) : .clear)
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
+        .contentShape(Rectangle())
     }
 }

@@ -112,7 +112,6 @@
     <string name="widget_goal_removed">تمت إزالة الهدف</string>
     <string name="widget_goal_removed_hint">اضغط لاختيار هدف آخر</string>
     <string name="widget_goals_empty">لا توجد أهداف بعد</string>
-    <string name="widget_goals_empty_hint">اضغط لإنشاء هدف</string>
     <string name="widget_goal_config_title">اختر هدفًا</string>
     <string name="widget_goal_config_close">إغلاق</string>
     <!-- Sample content for the widget picker previews only -->

@@ -19,6 +19,7 @@ import java.math.BigDecimal
  *
  * Supported formats (English, multi-line PoS):
  * - "PoS Purchase\nBy:<digits>;<method>\nAmount:SR <number>\nAt:<merchant>\n<date>"
+ * - "Online Purchase\nBy:<digits>;mada\nFrom:<digits>\nAmount:SR <number>\nAt:<merchant>\n<date>"
  *
  * Sender: AlRajhiBank
  */
@@ -32,7 +33,9 @@ class AlRajhiBankParser : BankParser() {
      * Detects the English multi-line PoS purchase format.
      */
     private fun isEnglishPosFormat(message: String): Boolean {
-        return message.contains("PoS Purchase", ignoreCase = true) &&
+        // "Online Purchase" uses the same By:/Amount:/At: layout (plus a From: line).
+        return (message.contains("PoS Purchase", ignoreCase = true) ||
+                message.contains("Online Purchase", ignoreCase = true)) &&
                 POS_DETECT.containsMatchIn(message)
     }
 
@@ -346,7 +349,7 @@ class AlRajhiBankParser : BankParser() {
 
     private fun isRefundOrReversalMessage(message: String): Boolean {
         val explicitTitle = Regex(
-            """(?im)^\s*(?:(?:pos\s+)?purchase\s+|card\s+purchase\s+)?(?:refund|reversal)\b""",
+            """(?im)^\s*(?:(?:pos\s+|online\s+)?purchase\s+|card\s+purchase\s+)?(?:refund|reversal)\b""",
             RegexOption.IGNORE_CASE
         )
         val explicitArabicTitle = Regex(

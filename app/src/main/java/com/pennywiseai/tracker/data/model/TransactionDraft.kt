@@ -71,11 +71,19 @@ data class TransactionDraft(
             val accountText = (args["account"] as? String)?.trim().orEmpty().lowercase()
             // Attach an account only when the words pick exactly one; "hdfc" with two
             // HDFC accounts, or a shared last-4, stays unlinked rather than guessing.
+            // Stated last-4 digits decide first (narrowed by a named bank), then an alias,
+            // then the bank alone. Digits that match no account link nothing.
             val matches = accountText.takeIf { it.isNotEmpty() && it != "cash" && it != "null" && it != "none" }?.let { text ->
-                accounts.filter { acc ->
-                    text.contains(acc.accountLast4) ||
-                        acc.alias?.lowercase()?.let { text.contains(it) } == true ||
-                        acc.bankName.lowercase().split(" ").first().let { bank -> bank.length >= 3 && text.contains(bank) }
+                val namesBank = { acc: AccountBalanceEntity ->
+                    acc.bankName.lowercase().split(" ").first().let { bank -> bank.length >= 3 && text.contains(bank) }
+                }
+                val byLast4 = accounts.filter { it.accountLast4.isNotEmpty() && text.contains(it.accountLast4) }
+                val byAlias = accounts.filter { acc -> acc.alias?.lowercase()?.takeIf { it.isNotBlank() }?.let { text.contains(it) } == true }
+                when {
+                    byLast4.isNotEmpty() -> byLast4.filter(namesBank).ifEmpty { byLast4.takeIf { accounts.none(namesBank) }.orEmpty() }
+                    byAlias.isNotEmpty() -> byAlias
+                    Regex("\\d{4}").containsMatchIn(text) -> emptyList()
+                    else -> accounts.filter(namesBank)
                 }.distinctBy { it.bankName to it.accountLast4 }
             }.orEmpty()
             val account = matches.singleOrNull()

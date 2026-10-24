@@ -20,6 +20,7 @@ object BankParserFactory {
         JuspayParser(),
         CashfreeParser(),  // Cashfree payment gateway (India) — grouped with other aggregators
         SliceParser(),
+        SuryodayBankParser(),  // Suryoday Small Finance Bank (India) — SSFBNK
         CredParser(),
         LazyPayParser(),
         UtkarshBankParser(),

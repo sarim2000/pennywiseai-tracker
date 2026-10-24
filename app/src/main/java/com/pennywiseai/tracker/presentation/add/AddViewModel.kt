@@ -64,6 +64,13 @@ class AddViewModel @Inject constructor(
     // Text shared into the app ("Share to PennyWise"): pre-fills the amount when
     // one is clear and keeps the full text as the note.
     private val sharedText: String? = savedStateHandle.get<String>("sharedText")
+
+    // The quick add sheet's "More details": what was typed there, account included.
+    private val draftAmount: String? = savedStateHandle.get<String>("amount")
+    private val draftMerchant: String? = savedStateHandle.get<String>("merchant")
+    private val draftCategory: String? = savedStateHandle.get<String>("category")
+    private val draftBankName: String? = savedStateHandle.get<String>("bankName")
+    private val draftAccountLast4: String? = savedStateHandle.get<String>("accountLast4")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -111,6 +118,14 @@ class AddViewModel @Inject constructor(
                     )
                 }
             }
+            _transactionUiState.update {
+                it.copy(
+                    amount = draftAmount ?: it.amount,
+                    merchant = draftMerchant ?: it.merchant,
+                    category = draftCategory ?: it.category
+                )
+            }
+            selectAccount(draftBankName, draftAccountLast4)
         }
     }
 
@@ -143,20 +158,24 @@ class AddViewModel @Inject constructor(
             )
         }
 
-        // Best-effort match of the source account to an existing account. `accounts`
-        // is a WhileSubscribed StateFlow whose value is still empty at init time, so
-        // we wait for the first non-empty emission instead of reading .value once
-        // (which always returned emptyList() and left the selector blank).
-        val last4 = source.accountNumber?.takeLast(4)
-        if (source.bankName != null || last4 != null) {
-            viewModelScope.launch {
-                val matched = accounts.first { it.isNotEmpty() }
-                    .firstOrNull { it.bankName == source.bankName && it.accountLast4 == last4 }
-                    ?: return@launch
-                // Don't override a selection the user may have already made.
-                _transactionUiState.update { state ->
-                    if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
-                }
+        selectAccount(source.bankName, source.accountNumber?.takeLast(4))
+    }
+
+    /**
+     * Best-effort match of an account to an existing one. `accounts` is a
+     * WhileSubscribed StateFlow whose value is still empty at init time, so we
+     * wait for the first non-empty emission instead of reading .value once
+     * (which always returned emptyList() and left the selector blank).
+     */
+    private fun selectAccount(bankName: String?, last4: String?) {
+        if (bankName == null && last4 == null) return
+        viewModelScope.launch {
+            val matched = accounts.first { it.isNotEmpty() }
+                .firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
+                ?: return@launch
+            // Don't override a selection the user may have already made.
+            _transactionUiState.update { state ->
+                if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
             }
         }
     }

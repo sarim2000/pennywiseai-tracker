@@ -105,12 +105,20 @@ struct MainTabView: View {
                     set: { showQuickAdd = $0 }
                 )) {
                     NavigationStack {
-                        AddEditTransactionView(facade: PennyWiseSharedFacade.companion.shared)
+                        AddEditTransactionView(facade: PennyWiseSharedFacade.companion.shared, showsCancel: true)
                     }
+                    // Sheets don't inherit the TabView's tint.
+                    .tint(themeManager.accentColor)
                 }
 
                 if appLockManager.isLocked {
                     LockScreenView()
+                } else if appLockManager.appLockEnabled && scenePhase != .active {
+                    // Privacy cover: keeps balances out of the app-switcher
+                    // snapshot while App Lock is on.
+                    Rectangle()
+                        .fill(.ultraThickMaterial)
+                        .ignoresSafeArea()
                 }
             }
             .environment(\.isAmoledActive, isAmoled)

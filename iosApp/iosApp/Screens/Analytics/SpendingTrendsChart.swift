@@ -3,6 +3,8 @@ import Charts
 
 struct SpendingTrendsChart: View {
     let data: [DailySpendingItem]
+    /// .day, .weekOfYear or .month: one bar per bucket.
+    var bucket: Calendar.Component = .day
     @Environment(\.isAmoledActive) private var isAmoled
 
     private var maxAmount: Int64 {
@@ -21,21 +23,21 @@ struct SpendingTrendsChart: View {
             }
         }
         .padding(AppSpacing.md)
-        .background(AppColors.secondaryGroupedBackground(isAmoled: isAmoled))
+        .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.medium))
     }
 
     private var chartView: some View {
         Chart(data) { item in
             BarMark(
-                x: .value("Date", item.date, unit: .day),
+                x: .value("Date", item.date, unit: bucket),
                 y: .value("Amount", Double(item.totalMinor) / 100.0)
             )
             .foregroundStyle(Color.accentColor.gradient)
             .cornerRadius(2)
         }
         .chartXAxis {
-            AxisMarks(values: .stride(by: .day, count: axisStride)) { _ in
+            AxisMarks(values: .stride(by: bucket, count: axisStride)) { _ in
                 AxisGridLine()
                 AxisValueLabel(format: axisDateFormat, centered: true)
             }
@@ -62,31 +64,30 @@ struct SpendingTrendsChart: View {
             .multilineTextAlignment(.center)
     }
 
+    /// Aim for at most ~7 labels whatever the bucket.
     private var axisStride: Int {
-        let count = data.count
-        if count <= 7 { return 1 }
-        if count <= 14 { return 2 }
-        if count <= 31 { return 5 }
-        if count <= 90 { return 10 }
-        return 30
+        max(1, Int((Double(data.count) / 7).rounded(.up)))
     }
 
     private var axisDateFormat: Date.FormatStyle {
-        let count = data.count
-        if count <= 31 {
-            return .dateTime.day()
+        switch bucket {
+        case .day: return .dateTime.day()
+        case .month: return data.count > 12 ? .dateTime.month(.abbreviated).year(.twoDigits) : .dateTime.month(.abbreviated)
+        default: return .dateTime.month(.abbreviated).day()
         }
-        return .dateTime.month(.abbreviated).day()
     }
 
+    /// One unit for the whole axis, picked from the tallest bar, with up to one
+    /// decimal: the 1.5L gridline reads "1.5L" (not a rounded "2L") and the
+    /// 0.5L one reads "0.5L" (not "50K") next to it.
     private func formatCompact(_ value: Double) -> String {
-        if value >= 10_000_000 {
-            return String(format: "%.0fM", value / 1_000_000)
-        } else if value >= 100_000 {
-            return String(format: "%.0fL", value / 100_000)
-        } else if value >= 1_000 {
-            return String(format: "%.0fK", value / 1_000)
+        let top = Double(maxAmount) / 100.0
+        let units: [(size: Double, suffix: String)] = CurrencyManager.shared.displayCurrency == "INR"
+            ? [(1e7, "Cr"), (1e5, "L"), (1e3, "K")]
+            : [(1e9, "B"), (1e6, "M"), (1e3, "K")]
+        guard let unit = units.first(where: { top >= $0.size }) else {
+            return value.formatted(.number.precision(.fractionLength(0)))
         }
-        return String(format: "%.0f", value)
+        return (value / unit.size).formatted(.number.precision(.fractionLength(0...1))) + unit.suffix
     }
 }

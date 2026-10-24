@@ -11,7 +11,7 @@ struct BudgetCarousel: View {
                 .font(AppTypography.headline)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.md) {
+                HStack(alignment: .top, spacing: AppSpacing.md) {
                     ForEach(budgets, id: \.id) { budget in
                         BudgetCarouselCard(budget: budget)
                     }
@@ -30,8 +30,9 @@ private struct BudgetCarouselCard: View {
         return Double(budget.spentMinor) / Double(budget.limitMinor)
     }
 
+    /// Same rounding as the budget screens (computed once in shared).
     private var percentage: Int {
-        Int((spentRatio * 100).rounded())
+        Int(budget.percentUsed)
     }
 
     private var progressColor: Color {
@@ -41,8 +42,10 @@ private struct BudgetCarouselCard: View {
     }
 
     private var remainingMinor: Int64 {
-        max(0, budget.limitMinor - budget.spentMinor)
+        budget.limitMinor - budget.spentMinor
     }
+
+    private var isOver: Bool { remainingMinor < 0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -69,20 +72,34 @@ private struct BudgetCarouselCard: View {
                 .font(AppTypography.caption2)
                 .foregroundStyle(progressColor)
 
+            if let note = budgetPeriodNote(periodType: budget.periodType, startEpochMillis: budget.startEpochMillis, endEpochMillis: budget.endEpochMillis) {
+                Text(note)
+                    .font(AppTypography.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+
             Spacer()
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Remaining")
+                // "₹499 over" rather than "Remaining ₹0" once the limit is passed.
+                Text(isOver ? "Over by" : "Remaining")
                     .font(AppTypography.caption2)
                     .foregroundStyle(.tertiary)
 
-                Text(AmountFormatter.format(minorUnits: remainingMinor, currency: currencyManager.displayCurrency))
+                Text(AmountFormatter.format(minorUnits: abs(remainingMinor), currency: budget.currency))
                     .font(AppTypography.amountSmall)
+                    .foregroundStyle(isOver ? AppColors.budgetDanger : .primary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.md)
-        .frame(width: 160, height: 140)
+        // Min height, not a fixed one: large Dynamic Type grows the card
+        // instead of clipping the title and "Remaining".
+        .frame(width: 160)
+        .frame(minHeight: 140)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
         .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)

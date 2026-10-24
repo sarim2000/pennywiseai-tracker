@@ -1,51 +1,45 @@
+import Shared
 import SwiftUI
 
+/// Income / Expenses / Net in the display currency. Currencies with no stored
+/// rate show as their own small lines under each figure.
 struct TransactionTotalsCard: View {
-    let incomeMinor: Int64
-    let expenseMinor: Int64
-    let netMinor: Int64
-    let currency: String
+    let income: ConvertedTotal
+    let expense: ConvertedTotal
+    let net: ConvertedTotal
 
     @Environment(\.isAmoledActive) private var isAmoled
 
     var body: some View {
-        HStack(spacing: AppSpacing.xs) {
-            TotalColumn(
-                icon: "arrow.down",
-                label: "Income",
-                amountMinor: incomeMinor,
-                currency: currency,
-                color: AppColors.income
-            )
-
-            TotalColumn(
-                icon: "arrow.up",
-                label: "Expenses",
-                amountMinor: expenseMinor,
-                currency: currency,
-                color: AppColors.expense
-            )
-
-            TotalColumn(
-                icon: "plus.forwardslash.minus",
-                label: "Net",
-                amountMinor: netMinor,
-                currency: currency,
-                color: netMinor >= 0 ? AppColors.income : AppColors.expense,
-                prefix: netMinor > 0 ? "+" : ""
-            )
+        // Stacks when the three figures don't fit side by side at full size
+        // (large Dynamic Type), so they can't run into each other.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: AppSpacing.md) { columns }
+            VStack(spacing: AppSpacing.sm) { columns }
         }
         .padding(AppSpacing.sm)
         .background(AppColors.surface(isAmoled: isAmoled))
         .clipShape(RoundedRectangle(cornerRadius: AppCornerRadius.large))
+    }
+
+    @ViewBuilder
+    private var columns: some View {
+        TotalColumn(icon: "arrow.down", label: "Income", total: income, color: AppColors.income)
+        TotalColumn(icon: "arrow.up", label: "Expenses", total: expense, color: AppColors.expense)
+        TotalColumn(
+            icon: "plus.forwardslash.minus",
+            label: "Net",
+            total: net,
+            color: net.amountMinor >= 0 ? AppColors.income : AppColors.expense,
+            prefix: net.amountMinor > 0 ? "+" : ""
+        )
     }
 }
 
 private struct TotalColumn: View {
     let icon: String
     let label: String
-    let amountMinor: Int64
-    let currency: String
+    let total: ConvertedTotal
     let color: Color
     var prefix: String = ""
 
@@ -60,13 +54,15 @@ private struct TotalColumn: View {
                     .foregroundStyle(.secondary)
             }
 
-            Text("\(prefix)\(AmountFormatter.format(minorUnits: amountMinor, currency: currency))")
-                .font(AppTypography.amountSmall)
-                .fontWeight(.semibold)
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            ConvertedAmountText(
+                total: total,
+                font: AppTypography.amountSmall.weight(.semibold),
+                color: color,
+                alignment: .center,
+                prefix: prefix
+            )
         }
+        .fixedSize()
         .frame(maxWidth: .infinity)
     }
 }

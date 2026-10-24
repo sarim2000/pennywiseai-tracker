@@ -48,7 +48,7 @@ struct SettingsScreen: View {
                                 .foregroundStyle(.secondary)
                         }
                     } icon: {
-                        Image(systemName: "coloncurrencysign.circle.fill")
+                        Image(systemName: "banknote.fill")
                             .foregroundStyle(.green)
                     }
                 }
@@ -185,6 +185,26 @@ struct SettingsScreen: View {
                             .foregroundStyle(.orange)
                     }
                 }
+                // Action rows read like the NavigationLink rows around them:
+                // primary title, secondary subtitle, not accent-tinted text.
+                .tint(.primary)
+
+                NavigationLink {
+                    BankSmsSetupScreen()
+                } label: {
+                    Label {
+                        VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                            Text("Auto-add bank SMS")
+                                .font(AppTypography.body)
+                            Text("Save bank texts with a Shortcuts automation")
+                                .font(AppTypography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    } icon: {
+                        Image(systemName: "message.fill")
+                            .foregroundStyle(.green)
+                    }
+                }
 
                 NavigationLink {
                     BankSmsSetupScreen()
@@ -219,6 +239,7 @@ struct SettingsScreen: View {
                             .foregroundStyle(.teal)
                     }
                 }
+                .tint(.primary)
                 .disabled(exportImportManager.isExporting)
 
                 Button {
@@ -237,6 +258,7 @@ struct SettingsScreen: View {
                             .foregroundStyle(.teal)
                     }
                 }
+                .tint(.primary)
                 .disabled(exportImportManager.isImporting)
             }
 
@@ -299,7 +321,7 @@ struct SettingsScreen: View {
                 }
 
                 Button {
-                    if let url = URL(string: "https://github.com/nicekid1/pennywiseai-tracker/issues/new/choose") {
+                    if let url = URL(string: AppLinks.newIssue) {
                         UIApplication.shared.open(url)
                     }
                 } label: {
@@ -317,6 +339,7 @@ struct SettingsScreen: View {
                             .foregroundStyle(.orange)
                     }
                 }
+                .tint(.primary)
             }
 
             // MARK: - About

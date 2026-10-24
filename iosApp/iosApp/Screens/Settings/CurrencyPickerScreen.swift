@@ -24,7 +24,9 @@ struct CurrencyPickerScreen: View {
                 HStack(spacing: AppSpacing.md) {
                     Text(currency.symbol)
                         .font(.title3)
-                        .frame(width: 32)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(width: 40)
 
                     VStack(alignment: .leading, spacing: AppSpacing.xs) {
                         Text(currency.code)
@@ -39,7 +41,7 @@ struct CurrencyPickerScreen: View {
 
                     if currencyManager.displayCurrency == currency.code {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.blue)
+                            .foregroundStyle(ThemeManager.shared.accentColor)
                     }
                 }
                 .contentShape(Rectangle())

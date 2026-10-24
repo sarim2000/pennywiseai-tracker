@@ -1,118 +1,83 @@
 package com.pennywiseai.tracker.widget
 
-import androidx.glance.LocalContext
 import android.content.Context
-import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
+import androidx.glance.LocalSize
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
-import androidx.glance.action.clickable
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.layout.size
 import androidx.glance.layout.width
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 
+/**
+ * The cash button. Cash never texts, so this is the one spend the app can't
+ * catch on its own: one tap opens the quick cash sheet.
+ */
 class AddTransactionWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Responsive(
-        setOf(
-            DpSize(80.dp, 80.dp),
-            DpSize(160.dp, 80.dp)
-        )
-    )
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(ICON, LABELLED, WIDE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val privacy = WidgetPrivacy.load(context)
         provideContent {
-            GlanceTheme(
-                colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-                    GlanceTheme.colors
-                else
-                    PennyWiseWidgetTheme.colors
-            ) {
-                AddTransactionContent()
+            WidgetRoot(privacy) {
+                Content()
             }
         }
     }
 
     @Composable
-    private fun AddTransactionContent() {
+    private fun Content() {
+        val context = LocalContext.current
+        val size = LocalSize.current
+        val add = actionRunCallback<OpenAddTransactionAction>()
+        // No inner padding: the content is centred, and a 1x1 cell has no room to spare.
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .background(GlanceTheme.colors.widgetBackground)
+                .clickable(add),
             contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .cornerRadius(20.dp)
-                    .background(GlanceTheme.colors.primaryContainer)
-                    .clickable(actionRunCallback<OpenAddTransactionAction>())
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = GlanceModifier
-                            .size(36.dp)
-                            .cornerRadius(18.dp)
-                            .background(GlanceTheme.colors.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            provider = ImageProvider(R.drawable.ic_widget_add),
-                            contentDescription = LocalContext.current.getString(R.string.widget_add_content_description),
-                            modifier = GlanceModifier.size(20.dp),
-                            colorFilter = ColorFilter.tint(GlanceTheme.colors.onPrimary)
-                        )
-                    }
-                    Spacer(modifier = GlanceModifier.width(10.dp))
-                    Column {
-                        Text(
-                            text = LocalContext.current.getString(R.string.widget_add_title),
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onPrimaryContainer,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                        Spacer(modifier = GlanceModifier.height(1.dp))
-                        Text(
-                            text = LocalContext.current.getString(R.string.widget_add_subtitle),
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onPrimaryContainer,
-                                fontSize = 11.sp
-                            )
-                        )
+            when {
+                size.width >= WIDE.width -> WidgetRow(verticalAlignment = Alignment.CenterVertically) {
+                    item { AddButton(add, context.getString(R.string.widget_cash_spend), CIRCLE) }
+                    item { Spacer(GlanceModifier.width(Spacing.sm)) }
+                    item { WidgetTitle(context.getString(R.string.widget_cash_spend)) }
+                }
+                else -> Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    AddButton(add, context.getString(R.string.widget_cash_spend), CIRCLE)
+                    if (size.height >= LABELLED.height) {
+                        Spacer(GlanceModifier.height(Spacing.xxs))
+                        WidgetLabel(context.getString(R.string.widget_cash_label), color = GlanceTheme.colors.onSurface)
                     }
                 }
             }
         }
+    }
+
+    private companion object {
+        val CIRCLE = Dimensions.Icon.avatarLarge
+        val ICON = DpSize(40.dp, 40.dp)
+        // Circle (48dp) plus the "Cash" label under it.
+        val LABELLED = DpSize(40.dp, 68.dp)
+        val WIDE = DpSize(140.dp, 40.dp)
     }
 }

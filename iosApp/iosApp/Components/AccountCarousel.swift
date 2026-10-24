@@ -68,7 +68,7 @@ private struct AccountCarouselCard: View {
             HStack(spacing: 4) {
                 Text(isAmountHidden
                     ? "••••••"
-                    : AmountFormatter.format(minorUnits: account.balanceMinor, currency: currencyManager.displayCurrency))
+                    : AmountFormatter.format(minorUnits: account.balanceMinor, currency: account.currency))
                     .font(AppTypography.amountSmall)
                     .lineLimit(1)
 
@@ -84,6 +84,8 @@ private struct AccountCarouselCard: View {
                 .buttonStyle(.plain)
             }
         }
+        // Lead-align the content inside the fixed-width card (IOS-UI-36).
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(AppSpacing.md)
         .frame(width: 160, height: 140)
         .background(.ultraThinMaterial)

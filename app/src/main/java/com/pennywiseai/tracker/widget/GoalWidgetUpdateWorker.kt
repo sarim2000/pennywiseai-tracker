@@ -36,7 +36,8 @@ class GoalWidgetUpdateWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result = try {
-        val items = goalRepository.observeActiveGoals().first().map { it.toWidgetItem(applicationContext) }
+        val ctx = applicationContext.inAppLanguage()
+        val items = goalRepository.observeActiveGoals().first().map { it.toWidgetItem(ctx) }
         GoalWidgetDataStore.update(applicationContext, items)
         GoalWidget().updateAll(applicationContext)
         GoalsListWidget().updateAll(applicationContext)

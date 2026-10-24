@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.widget
 
 import com.pennywiseai.tracker.R
 import android.content.Context
+import android.text.format.DateFormat
+import androidx.compose.ui.graphics.toArgb
 import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -13,6 +15,8 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -22,12 +26,14 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.forTotals
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.TimeUnit
@@ -41,7 +47,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
-    private val loanRepository: LoanRepository
+    private val loanRepository: LoanRepository,
+    private val categoryRepository: CategoryRepository
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -51,6 +58,19 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
 
         fun resolveTargetCurrency(isUnified: Boolean, displayCurrency: String, baseCurrency: String): String {
             return if (isUnified) displayCurrency else baseCurrency
+        }
+
+        /** A row's "when": the time today, "Yesterday", else a short date. */
+        fun whenLabel(
+            at: LocalDateTime,
+            today: LocalDate,
+            yesterday: String,
+            time: DateTimeFormatter,
+            date: DateTimeFormatter
+        ): String = when (at.toLocalDate()) {
+            today -> at.format(time)
+            today.minusDays(1) -> yesterday
+            else -> at.format(date)
         }
 
         fun enqueueOneShot(context: Context) {
@@ -151,7 +171,21 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
             val totalSpent = spentIn(nonLoan) + lossSince(cycleStart)
             val todaySpent = spentIn(nonLoan.filter { it.dateTime.toLocalDate() == now }) + lossSince(now)
 
-            val formatter = DateTimeFormatter.ofPattern("MMM d")
+            // The app's language, not the process's: an Arabic app on an
+            // English phone got "Oct 12" and an English fallback title.
+            val ctx = applicationContext.inAppLanguage()
+            val locale = ctx.appLocale
+            val timeFormat = DateTimeFormatter.ofPattern(
+                DateFormat.getBestDateTimePattern(locale, if (DateFormat.is24HourFormat(ctx)) "Hm" else "hma"),
+                locale
+            )
+            val dateFormat = DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "MMMd"), locale)
+            val yesterday = ctx.getString(R.string.txn_list_group_yesterday)
+            // From the table, not CategoryMapping.userStyles / BuiltinCategoryNames:
+            // a background process may not have mirrored them yet.
+            val categories = categoryRepository.getAllCategories().first()
+            val categoryByName = categories.associateBy { it.name }
+            val unsorted = categories.nameForBuiltin("Others")
 
             val recentItems = allTransactions
                 .take(MAX_ITEMS)
@@ -167,20 +201,26 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                     val itemCurrency = if (converted != null) targetCurrency else tx.currency
                     val title = tx.merchantName.takeIf { it.isNotBlank() }
                         ?: tx.description?.takeIf { it.isNotBlank() }
-                        ?: applicationContext.getString(R.string.widget_recent_fallback_title)
-                    val dateText = tx.dateTime.toLocalDate().format(formatter)
-                    val subtitle = tx.category
-                        .takeIf { it.isNotBlank() }
-                        ?.let { "$it • $dateText" }
-                        ?: dateText
+                        ?: ctx.getString(R.string.widget_recent_fallback_title)
+                    val whenText = whenLabel(tx.dateTime, now, yesterday, timeFormat, dateFormat)
+                    val meta = listOf(tx.category, whenText).filter { it.isNotBlank() }.joinToString(" · ")
+                    val category = categoryByName[tx.category]
+                    val badge = category?.icon?.takeIf { it.isNotBlank() }
+                        ?: tx.category.trim().takeIf { it.isNotEmpty() }
+                            ?.let { String(Character.toChars(it.codePointAt(0))).uppercase(locale) }
+                        ?: ""
 
                     RecentTransactionItem(
                         title = title,
-                        subtitle = subtitle,
+                        // WidgetLabel sets the line's direction, so an English category still reads right to left.
+                        subtitle = meta,
                         amount = amount,
                         currency = itemCurrency,
                         transactionType = tx.transactionType,
-                        transactionId = tx.id
+                        transactionId = tx.id,
+                        needsCategory = tx.category == unsorted,
+                        badge = badge,
+                        colorArgb = CategoryMapping.colorFor(tx.category, category?.color).toArgb().toLong() and 0xFFFFFFFFL
                     )
                 }
 

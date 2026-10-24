@@ -52,6 +52,10 @@ final class AppLockManager: ObservableObject {
     }
 
     private init() {
+        // A cold launch must start locked: willEnterForeground never fires for
+        // the first launch, so the lock would otherwise only engage after a
+        // background/foreground cycle.
+        isLocked = UserDefaults.standard.bool(forKey: "appLockEnabled")
         setupNotifications()
     }
 
@@ -91,11 +95,17 @@ final class AppLockManager: ObservableObject {
     func authenticate() {
         let context = LAContext()
         var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+        // .deviceOwnerAuthentication = biometrics with the device passcode as
+        // fallback, so a failed Face ID (or one removed after App Lock was
+        // turned on) can't lock the user out now that cold launches lock too.
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            // No passcode on the device at all, so nothing can satisfy the
+            // lock; staying locked would shut the user out of their data.
+            isLocked = false
             return
         }
         context.evaluatePolicy(
-            .deviceOwnerAuthenticationWithBiometrics,
+            .deviceOwnerAuthentication,
             localizedReason: "Unlock PennyWise to access your financial data"
         ) { [weak self] success, _ in
             DispatchQueue.main.async {

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spending summary, budget overview and cash widgets. -->
+<resources>
+    <string name="widget_summary_description">Today\'s spending, what\'s left of your budget, and a quick cash add.</string>
+    <string name="widget_summary_left">Left in budget</string>
+    <string name="widget_summary_over">Over budget</string>
+
+    <string name="widget_budget_left_label">Left</string>
+    <string name="widget_budget_over_label">Over by</string>
+    <string name="widget_budget_empty_title">No budget yet</string>
+    <string name="widget_budget_empty_hint">Set a monthly limit to see what\'s left.</string>
+    <string name="widget_budget_create">Create budget</string>
+    <string name="widget_budget_preview_meta">of 3,600 · 120/day</string>
+
+    <string name="widget_cash_label">Cash</string>
+    <string name="widget_cash_spend">Cash spend</string>
+    <string name="widget_cash_description">One tap to log cash you just spent.</string>
+</resources>

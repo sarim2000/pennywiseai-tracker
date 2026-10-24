@@ -1,37 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget picker preview for the spending summary widget. -->
+<!-- Widget picker preview for the spending summary widget: left in budget and +, as it reads at its
+     2x1 default (Today joins it only when wider), so the figure never wraps in a narrow picker cell. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingEnd="12dp"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="4dp"
     android:theme="@style/Theme.Pennywisecompose">
 
-    <TextView
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="@string/widget_summary_today"
-        android:textColor="?android:attr/textColorPrimary"
-        android:textSize="14sp"
-        android:textStyle="bold" />
+        android:orientation="vertical">
 
-    <TextView
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="@string/widget_summary_month"
-        android:textColor="?android:attr/textColorSecondary"
-        android:textSize="14sp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="@string/widget_summary_left"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxLines="1"
+            android:text="1,560"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:layout_marginTop="4dp"
+            android:max="100"
+            android:progress="57"
+            android:progressBackgroundTint="?android:attr/colorControlHighlight"
+            android:progressTint="?android:attr/colorAccent" />
+    </LinearLayout>
 
     <ImageView
         android:layout_width="40dp"
         android:layout_height="40dp"
+        android:layout_marginStart="12dp"
+        android:background="@drawable/widget_preview_add_circle"
         android:contentDescription="@string/widget_add_content_description"
         android:padding="10dp"
         android:src="@drawable/ic_widget_add"
-        android:tint="?android:attr/textColorPrimary" />
+        android:tint="?android:attr/textColorPrimaryInverse" />
 </LinearLayout>

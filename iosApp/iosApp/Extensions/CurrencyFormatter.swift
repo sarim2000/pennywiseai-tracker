@@ -90,16 +90,10 @@ enum CurrencyFormatter {
         formatter.currencyCode = currencyCode
         formatter.locale = localeForCurrency(currencyCode)
         formatter.currencySymbol = symbol(for: currencyCode)
-        formatter.minimumFractionDigits = isZeroDecimal ? 0 : 0
-        formatter.maximumFractionDigits = isZeroDecimal ? 0 : 2
-
-        // Drop trailing .00
-        if !isZeroDecimal {
-            let fraction = abs(amountMinor) % 100
-            if fraction == 0 {
-                formatter.minimumFractionDigits = 0
-            }
-        }
+        // Drop a trailing .00, but keep two digits otherwise ("$12.50", not "$12.5").
+        let hasFraction = !isZeroDecimal && abs(amountMinor) % 100 != 0
+        formatter.minimumFractionDigits = hasFraction ? 2 : 0
+        formatter.maximumFractionDigits = hasFraction ? 2 : 0
 
         return formatter.string(from: NSNumber(value: amount)) ?? "\(currencyCode) \(amount)"
     }

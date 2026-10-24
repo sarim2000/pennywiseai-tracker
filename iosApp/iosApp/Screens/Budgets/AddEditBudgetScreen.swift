@@ -99,10 +99,12 @@ struct AddEditBudgetScreen: View {
                             Spacer()
                             if selectedCategories.contains(category) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Color.accentColor)
+                                    .foregroundStyle(ThemeManager.shared.accentColor)
                             }
                         }
                     }
+                    // A primary label, so a selectable row doesn't read as a link.
+                    .tint(.primary)
                 }
             }
         }

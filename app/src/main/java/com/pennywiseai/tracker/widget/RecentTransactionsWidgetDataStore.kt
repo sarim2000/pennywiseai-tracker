@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -28,6 +29,9 @@ object RecentTransactionsWidgetDataStore {
     private fun currencyKey(index: Int) = stringPreferencesKey("tx_currency_$index")
     private fun typeKey(index: Int) = stringPreferencesKey("tx_type_$index")
     private fun idKey(index: Int) = longPreferencesKey("tx_id_$index")
+    private fun needsCategoryKey(index: Int) = booleanPreferencesKey("tx_needs_category_$index")
+    private fun badgeKey(index: Int) = stringPreferencesKey("tx_badge_$index")
+    private fun colorKey(index: Int) = longPreferencesKey("tx_color_$index")
 
     fun getData(context: Context): Flow<RecentTransactionsWidgetData> {
         return context.recentTransactionsWidgetDataStore.data.map { prefs ->
@@ -46,7 +50,10 @@ object RecentTransactionsWidgetDataStore {
                     amount = amount,
                     currency = currency,
                     transactionType = type,
-                    transactionId = prefs[idKey(index)]
+                    transactionId = prefs[idKey(index)],
+                    needsCategory = prefs[needsCategoryKey(index)] ?: false,
+                    badge = prefs[badgeKey(index)] ?: "",
+                    colorArgb = prefs[colorKey(index)] ?: 0
                 )
             }
 
@@ -76,6 +83,9 @@ object RecentTransactionsWidgetDataStore {
                 prefs.remove(currencyKey(index))
                 prefs.remove(typeKey(index))
                 prefs.remove(idKey(index))
+                prefs.remove(needsCategoryKey(index))
+                prefs.remove(badgeKey(index))
+                prefs.remove(colorKey(index))
             }
 
             val limitedItems = data.transactions.take(MAX_ITEMS)
@@ -88,6 +98,9 @@ object RecentTransactionsWidgetDataStore {
                 prefs[currencyKey(index)] = item.currency
                 prefs[typeKey(index)] = item.transactionType.name
                 item.transactionId?.let { prefs[idKey(index)] = it }
+                prefs[needsCategoryKey(index)] = item.needsCategory
+                prefs[badgeKey(index)] = item.badge
+                prefs[colorKey(index)] = item.colorArgb
             }
         }
     }

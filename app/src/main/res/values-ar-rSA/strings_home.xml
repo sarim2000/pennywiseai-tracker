@@ -296,6 +296,7 @@
     <!-- Recent transactions widget -->
     <string name="widget_recent_empty">لا توجد معاملات بعد</string>
     <string name="widget_recent_fallback_title">معاملة</string>
+    <!-- Spending summary widget -->
     <string name="widget_summary_today">اليوم</string>
     <string name="widget_summary_month">هذا الشهر</string>
     <!-- ══ Notifications ══ -->
@@ -358,6 +359,7 @@
     </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
     <string name="notif_daily_action_cash">+ نقداً</string>
+    <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="zero">لا عمليات جديدة</item>
         <item quantity="one">%d عملية جديدة</item>

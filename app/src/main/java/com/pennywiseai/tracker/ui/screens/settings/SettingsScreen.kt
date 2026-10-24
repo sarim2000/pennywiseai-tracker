@@ -546,7 +546,8 @@ fun SettingsScreen(
                     },
                     checked = appLockUiState.isLockEnabled,
                     onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
-                    enabled = appLockUiState.canUseBiometric,
+                    // Turning it off always works, even after the screen lock was removed.
+                    enabled = appLockUiState.canUseBiometric || appLockUiState.isLockEnabled,
                     position = if (appLockUiState.isLockEnabled) ListItemPosition.Top else ListItemPosition.Single
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {

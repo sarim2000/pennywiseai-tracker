@@ -45,6 +45,9 @@ class AppLockRepository @Inject constructor(
         userPreferencesRepository.setAppLockTimeoutWithTimestamp(minutes)
     }
 
+    /** True the first time only; see [UserPreferencesRepository.claimAppLockNoScreenLockNotice]. */
+    suspend fun claimNoScreenLockNotice(): Boolean = userPreferencesRepository.claimAppLockNoScreenLockNotice()
+
     /**
      * Update the last authentication timestamp to current time
      */

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -17,7 +18,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.domain.security.BiometricCapability
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
@@ -40,8 +40,9 @@ fun AppLockScreen(
     }
 
     // Auto-trigger authentication when screen is shown
+    // (With no screen lock at all, authenticate lets the user straight in.)
     LaunchedEffect(Unit) {
-        if (uiState.canUseBiometric && context is FragmentActivity) {
+        if (context is FragmentActivity) {
             triggerAuthentication(context, viewModel)
         }
     }
@@ -118,53 +119,18 @@ fun AppLockScreen(
                     Spacer(modifier = Modifier.height(Spacing.md))
                 }
 
-                // Show capability-specific message
-                when (uiState.biometricCapability) {
-                    BiometricCapability.Available -> {
-                        // Unlock button
-                        Button(
-                            onClick = {
-                                if (context is FragmentActivity) {
-                                    viewModel.clearAuthError()
-                                    triggerAuthentication(context, viewModel)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(stringResource(R.string.applock_unlock))
+                // Always offered: the prompt falls back to the device PIN, and a
+                // device with no screen lock is let straight in.
+                Button(
+                    onClick = {
+                        if (context is FragmentActivity) {
+                            viewModel.clearAuthError()
+                            triggerAuthentication(context, viewModel)
                         }
-                    }
-                    else -> {
-                        // Show error for unavailable biometric
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.md)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.applock_biometric_unavailable),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Spacer(modifier = Modifier.height(Spacing.sm))
-                                Text(
-                                    text = uiState.biometricCapability.errorMessageRes?.let { stringResource(it) }.orEmpty(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Spacer(modifier = Modifier.height(Spacing.sm))
-                                Text(
-                                    text = stringResource(R.string.applock_unavailable_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                        }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.applock_unlock))
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.md))
@@ -192,6 +158,9 @@ private fun triggerAuthentication(
     activity: FragmentActivity,
     viewModel: AppLockViewModel
 ) {
-    // Trigger authentication through the ViewModel
-    viewModel.triggerAuthentication(activity)
+    // Application context: the notice can land after the lock screen has gone.
+    val appContext = activity.applicationContext
+    viewModel.triggerAuthentication(activity) {
+        Toast.makeText(appContext, R.string.applock_no_screen_lock_notice, Toast.LENGTH_LONG).show()
+    }
 }

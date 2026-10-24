@@ -350,10 +350,7 @@
     <string name="home_section_safe_to_spend">Safe to spend</string>
     <string name="safe_to_spend_title">Safe to spend</string>
     <string name="safe_to_spend_tap_to_show">Tap to show</string>
-    <plurals name="safe_to_spend_per_day">
-        <item quantity="one">About %1$s a day for the next %2$d day</item>
-        <item quantity="other">About %1$s a day for the next %2$d days</item>
-    </plurals>
+    <string name="safe_to_spend_per_day">About %1$s a day until %2$s, including today</string>
     <string name="safe_to_spend_short">Bills due before %1$s are more than your balance</string>
     <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
@@ -361,6 +358,7 @@
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>
     <string name="safe_to_spend_accounts">Bank balance</string>
     <string name="safe_to_spend_excluded">Not counted</string>
+    <string name="safe_to_spend_excluded_negative">Not counted (negative balance)</string>
     <string name="safe_to_spend_bills_due">Bills due before %1$s</string>
     <string name="safe_to_spend_no_bills">No subscriptions due</string>
     <string name="safe_to_spend_choose_accounts">Choose accounts</string>

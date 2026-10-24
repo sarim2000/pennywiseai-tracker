@@ -8,8 +8,6 @@
     <string name="applock_title">PennyWise заблокирован</string>
     <string name="applock_subtitle">Аутентифицируйтесь, чтобы получить доступ к данным о расходах</string>
     <string name="applock_unlock">Разблокировать</string>
-    <string name="applock_biometric_unavailable">Биометрическая аутентификация недоступна</string>
-    <string name="applock_unavailable_hint">Пожалуйста, отключите блокировку приложения в настройках устройства или настройте биометрическую аутентификацию.</string>
     <string name="applock_protected_immediate">Ваши данные защищены немедленной блокировкой</string>
     <plurals name="applock_protected_timeout">
         <item quantity="one">Ваши данные защищены с %1$d минуты таймаута</item>

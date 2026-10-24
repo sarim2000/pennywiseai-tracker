@@ -216,7 +216,9 @@ fun HomeScreen(
     // LazyColumn scroll state for overscroll physics
     val lazyListState = rememberLazyListState()
 
-    // Staggered entrance animation state — only animates on first composition
+    // Staggered entrance animation state — only animates on first composition.
+    // Each item's effect checks its own `visible`, not hasAnimated: an item composed
+    // just before hasAnimated flips would otherwise skip its reveal and stay hidden.
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val density = LocalDensity.current
     val slideOffsetPx = with(density) { ENTRANCE_SLIDE_DISTANCE.roundToPx() }
@@ -455,7 +457,7 @@ fun HomeScreen(
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(0); visible.value = true }
+                    if (!visible.value) { delay(0); visible.value = true }
                 }
                 AnimatedVisibility(
                     visible = visible.value,
@@ -552,7 +554,7 @@ fun HomeScreen(
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
                 LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(25); visible.value = true }
+                    if (!visible.value) { delay(25); visible.value = true }
                 }
                 AnimatedVisibility(
                     visible = visible.value,
@@ -589,7 +591,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -615,7 +617,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -658,7 +660,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -700,7 +702,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -750,7 +752,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -797,7 +799,7 @@ fun HomeScreen(
                         item(key = section.name) {
                             val visible = remember { mutableStateOf(hasAnimated) }
                             LaunchedEffect(Unit) {
-                                if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                if (!visible.value) { delay(delayMs); visible.value = true }
                             }
                             AnimatedVisibility(
                                 visible = visible.value,
@@ -857,7 +859,7 @@ fun HomeScreen(
                             item(key = "${section.name}_body") {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -889,7 +891,7 @@ fun HomeScreen(
                             item(key = "${section.name}_body") {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -935,7 +937,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -989,7 +991,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 val visible = remember { mutableStateOf(hasAnimated) }
                                 LaunchedEffect(Unit) {
-                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                    if (!visible.value) { delay(delayMs); visible.value = true }
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
@@ -1037,7 +1039,7 @@ fun HomeScreen(
                         item(key = section.name) {
                             val visible = remember { mutableStateOf(hasAnimated) }
                             LaunchedEffect(Unit) {
-                                if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                if (!visible.value) { delay(delayMs); visible.value = true }
                             }
                             AnimatedVisibility(
                                 visible = visible.value,

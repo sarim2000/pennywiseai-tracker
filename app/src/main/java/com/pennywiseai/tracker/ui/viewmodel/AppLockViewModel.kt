@@ -144,12 +144,19 @@ class AppLockViewModel @Inject constructor(
      * Trigger biometric authentication
      * This must be called with a FragmentActivity from the UI layer
      */
-    fun triggerAuthentication(activity: FragmentActivity) {
+    fun triggerAuthentication(activity: FragmentActivity, onNoScreenLockNotice: () -> Unit = {}) {
         biometricAuthManager.authenticate(
             activity = activity,
             onSuccess = { onAuthenticationSuccess() },
             onError = { error -> onAuthenticationError(error) },
-            onFailed = { onAuthenticationFailed() }
+            onFailed = { onAuthenticationFailed() },
+            // No screen lock to check against: let the user in, and say why once.
+            onNoScreenLock = {
+                onAuthenticationSuccess()
+                viewModelScope.launch {
+                    if (appLockRepository.claimNoScreenLockNotice()) onNoScreenLockNotice()
+                }
+            }
         )
     }
 }

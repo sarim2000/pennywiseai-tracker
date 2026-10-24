@@ -8,8 +8,7 @@
     <string name="applock_title">PennyWise is Locked</string>
     <string name="applock_subtitle">Authenticate to access your expense data</string>
     <string name="applock_unlock">Unlock</string>
-    <string name="applock_biometric_unavailable">Biometric authentication unavailable</string>
-    <string name="applock_unavailable_hint">Please disable app lock in device settings or set up biometric authentication.</string>
+    <string name="applock_no_screen_lock_notice">App Lock needs a screen lock. Add one in device settings.</string>
     <string name="applock_protected_immediate">Your data is protected with immediate locking</string>
     <plurals name="applock_protected_timeout">
         <item quantity="one">Your data is protected with %1$d minute timeout</item>

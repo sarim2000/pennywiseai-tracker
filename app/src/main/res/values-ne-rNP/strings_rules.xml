@@ -5,8 +5,6 @@
     <string name="applock_title">क्यासिरो लक गरिएको छ</string>
     <string name="applock_subtitle">तपाईंको खर्च डेटा पहुँच गर्न प्रमाणित गर्नुहोस्</string>
     <string name="applock_unlock">अनलक गर्नुहोस्</string>
-    <string name="applock_biometric_unavailable">बायोमेट्रिक प्रमाणीकरण उपलब्ध छैन</string>
-    <string name="applock_unavailable_hint">कृपया उपकरण सेटिङमा एप लक अक्षम गर्नुहोस् वा बायोमेट्रिक प्रमाणीकरण सेट अप गर्नुहोस्।</string>
     <!-- Biometric capability errors (also shown in Settings) -->
     <!-- ══ SMS permission screen ══ -->
     <!-- ══ Unrecognized SMS ══ -->

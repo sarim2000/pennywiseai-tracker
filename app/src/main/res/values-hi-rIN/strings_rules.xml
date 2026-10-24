@@ -5,8 +5,6 @@
     <string name="applock_title">कैशिरो लॉक है</string>
     <string name="applock_subtitle">अपने खर्च डेटा तक पहुँचने के लिए प्रमाणीकरण करें</string>
     <string name="applock_unlock">अनलॉक</string>
-    <string name="applock_biometric_unavailable">बायोमेट्रिक प्रमाणीकरण उपलब्ध नहीं</string>
-    <string name="applock_unavailable_hint">कृपया डिवाइस सेटिंग में ऐप लॉक को अक्षम करें या बायोमेट्रिक प्रमाणीकरण सेट करें।</string>
     <!-- Biometric capability errors (also shown in Settings) -->
     <!-- ══ SMS permission screen ══ -->
     <!-- ══ Unrecognized SMS ══ -->

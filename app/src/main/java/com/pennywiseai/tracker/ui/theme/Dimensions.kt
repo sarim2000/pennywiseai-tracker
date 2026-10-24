@@ -142,6 +142,9 @@ object Dimensions {
 
         val dividerThickness = 1.dp
 
+        /** Divider between the stat blocks of a summary card (Analytics). */
+        val dividerThicknessEmphasis = 1.5.dp
+
         /** Hairline used to outline cards in dark mode. */
         val hairline = 0.5.dp
 

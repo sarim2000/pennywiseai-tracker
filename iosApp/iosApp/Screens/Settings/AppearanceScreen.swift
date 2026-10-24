@@ -62,14 +62,13 @@ struct AppearanceScreen: View {
     // MARK: - Accent Color Picker
 
     private var accentColorPicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.md) {
-                ForEach(AccentColorOption.all) { option in
-                    accentColorCircle(option)
-                }
+        // A wrapping grid: a horizontal strip cut the last swatch in half on SE.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 56), spacing: AppSpacing.sm)], spacing: AppSpacing.sm) {
+            ForEach(AccentColorOption.all) { option in
+                accentColorCircle(option)
             }
-            .padding(.vertical, AppSpacing.sm)
         }
+        .padding(.vertical, AppSpacing.sm)
         .listRowInsets(EdgeInsets(top: 0, leading: AppSpacing.md, bottom: 0, trailing: AppSpacing.md))
     }
 

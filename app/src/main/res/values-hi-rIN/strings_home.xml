@@ -102,16 +102,14 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">लेन-देन जोड़ें</string>
-    <string name="widget_add_title">जोड़ें</string>
-    <string name="widget_add_subtitle">लेन-देन</string>
     <!-- Budget widget -->
     <!-- Spending pie widget -->
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">अन्य</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_add">लेन-देन जोड़ें</string>
     <string name="widget_recent_empty">अभी तक कोई लेनदेन नहीं</string>
     <string name="widget_recent_fallback_title">लेन-देन</string>
+    <!-- Spending summary widget -->
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <!-- New transaction notification -->
@@ -119,6 +117,12 @@
     <!-- Category • bank name -->
     <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <!-- Evening recap notification -->
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">बैलेंस प्रवृत्ति</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

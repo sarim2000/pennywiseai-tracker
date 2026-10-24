@@ -168,6 +168,9 @@
     <!-- %1$s = month name -->
     <string name="share_banner_dismiss">ปิด</string>
     <!-- Shared transaction components -->
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <!-- %1$s the cash account the spend comes out of -->
+    <!-- %1$s amount with currency, %2$s category -->
     <string name="date_range_title">เลือกช่วงวันที่</string>
     <string name="date_range_ok">ตกลง</string>
     <string name="date_range_cancel">ยกเลิก</string>

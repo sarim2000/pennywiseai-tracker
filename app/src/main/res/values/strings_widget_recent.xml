@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_recent_header">Recent</string>
+    <string name="widget_recent_sort">Sort</string>
+    <string name="widget_recent_empty_add_cash">Tap + to add cash</string>
+    <string name="widget_recent_description">Your latest transactions and their categories, with a tap to sort the ones that need it.</string>
+</resources>

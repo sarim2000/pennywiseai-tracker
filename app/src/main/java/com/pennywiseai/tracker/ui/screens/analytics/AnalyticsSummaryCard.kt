@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.domain.spending.SpendForecast
 import java.math.BigDecimal
 
 @Composable
@@ -36,6 +37,7 @@ fun AnalyticsSummaryCard(
     topCategoryPercentage: Float,
     currency: String,
     isLoading: Boolean = false,
+    forecast: SpendForecast? = null,
     modifier: Modifier = Modifier
 ) {
     // Animate alpha on load: 0 → 1
@@ -120,7 +122,7 @@ fun AnalyticsSummaryCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
             HorizontalDivider(
-                thickness = 1.5.dp,
+                thickness = Dimensions.Component.dividerThicknessEmphasis,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -197,6 +199,66 @@ fun AnalyticsSummaryCard(
                     }
                 }
             }
+
+            forecast?.let { ForecastSection(it) }
+        }
+    }
+}
+
+/** Month-end forecast under the summary, with the "above your usual" note when it applies. */
+@Composable
+private fun ForecastSection(forecast: SpendForecast) {
+    Spacer(modifier = Modifier.height(Spacing.md))
+    HorizontalDivider(
+        thickness = Dimensions.Component.dividerThicknessEmphasis,
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+    )
+    Spacer(modifier = Modifier.height(Spacing.md))
+    Text(
+        text = stringResource(
+            R.string.analytics_forecast_for,
+            forecast.periodEnd.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
+        ).uppercase(),
+        style = PennyWiseText.overline,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Text(
+        text = CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+    val over = forecast.overUsual ?: return
+    Spacer(modifier = Modifier.height(Spacing.sm))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                shape = RoundedCornerShape(Spacing.sm)
+            )
+            .padding(horizontal = Spacing.smd, vertical = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+    ) {
+        Text(
+            text = stringResource(
+                R.string.analytics_forecast_above_usual,
+                CurrencyFormatter.formatCurrency(over, forecast.currency)
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.expense
+        )
+        forecast.dailyToStayAtUsual?.let { daily ->
+            Text(
+                text = stringResource(
+                    R.string.analytics_forecast_stay_under,
+                    CurrencyFormatter.formatCurrency(daily, forecast.currency),
+                    CurrencyFormatter.formatCurrency(forecast.usual!!, forecast.currency)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

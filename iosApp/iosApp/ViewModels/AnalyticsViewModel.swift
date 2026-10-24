@@ -39,16 +39,19 @@ enum AnalyticsPeriod: String, CaseIterable {
     }
 }
 
+/// What the charts below the summary total. There is no "everything" view:
+/// adding salary or a transfer into a spending chart is meaningless.
 enum AnalyticsTypeFilter: String, CaseIterable {
-    case all = "All"
-    case debit = "Debit"
-    case credit = "Credit"
+    case spending = "Spending"
+    case expense = "Expense"
+    case income = "Income"
 
-    var transactionTypeFilter: String? {
+    func includes(_ transactionType: String) -> Bool {
         switch self {
-        case .all: return nil
-        case .debit: return "EXPENSE"
-        case .credit: return "INCOME"
+        // Expense + card spend, like Android's Spending view.
+        case .spending: return MoneyTotals.shared.isSpendingType(transactionType: transactionType)
+        case .expense: return transactionType == "EXPENSE"
+        case .income: return transactionType == "INCOME"
         }
     }
 }
@@ -95,7 +98,7 @@ class AnalyticsViewModel: ObservableObject {
     private let facade = PennyWiseSharedFacade.companion.shared
 
     @Published var selectedPeriod: AnalyticsPeriod = .thisMonth
-    @Published var selectedTypeFilter: AnalyticsTypeFilter = .all
+    @Published var selectedTypeFilter: AnalyticsTypeFilter = .spending
     @Published var isLoading = false
 
     @Published var summary = AnalyticsSummaryData(
@@ -121,12 +124,7 @@ class AnalyticsViewModel: ObservableObject {
         let all = facade.getTransactionsForPeriod(
             startDateMs: startMs, endDateMs: endMs, type: nil
         )
-        let filtered: [SharedRecentTransactionItem]
-        if let typeFilter = selectedTypeFilter.transactionTypeFilter {
-            filtered = all.filter { $0.transactionType == typeFilter }
-        } else {
-            filtered = all
-        }
+        let filtered = all.filter { selectedTypeFilter.includes($0.transactionType) }
         periodTransactions = filtered
 
         let previousSpendMinor = previousWindowSpend(range: range)

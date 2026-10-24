@@ -46,6 +46,8 @@ enum AppColors {
     }
 
     // MARK: - Category Icons & Colors
+    // Dark-blue/grey/purple colours get a lighter dark-mode variant: on a 15%
+    // tint over black the light-mode shades are near-invisible.
 
     static func categoryIcon(for name: String) -> CategoryIconInfo {
         switch name.lowercased() {
@@ -54,7 +56,7 @@ enum AppColors {
         case "groceries":
             return CategoryIconInfo(systemName: "cart.fill", color: Color(hex: 0x5AC85A))
         case "transport", "transportation":
-            return CategoryIconInfo(systemName: "car.fill", color: Color(hex: 0x37474F))
+            return CategoryIconInfo(systemName: "car.fill", color: Color(lightHex: 0x37474F, darkHex: 0x90A4AE))
         case "shopping":
             return CategoryIconInfo(systemName: "bag.fill", color: Color(hex: 0xFF9900))
         case "bills", "utilities", "bills & utilities":
@@ -66,25 +68,29 @@ enum AppColors {
         case "investments", "investment":
             return CategoryIconInfo(systemName: "chart.line.uptrend.xyaxis", color: Color(hex: 0x00D09C))
         case "banking":
-            return CategoryIconInfo(systemName: "building.columns.fill", color: Color(hex: 0x004C8F))
+            return CategoryIconInfo(systemName: "building.columns.fill", color: Color(lightHex: 0x004C8F, darkHex: 0x64B5F6))
         case "personal care":
-            return CategoryIconInfo(systemName: "face.smiling.fill", color: Color(hex: 0x6A4C93))
+            return CategoryIconInfo(systemName: "face.smiling.fill", color: Color(lightHex: 0x6A4C93, darkHex: 0xB39DDB))
         case "education":
-            return CategoryIconInfo(systemName: "graduationcap.fill", color: Color(hex: 0x673AB7))
+            return CategoryIconInfo(systemName: "graduationcap.fill", color: Color(lightHex: 0x673AB7, darkHex: 0xB39DDB))
         case "mobile", "mobile & recharge", "recharge":
-            return CategoryIconInfo(systemName: "iphone", color: Color(hex: 0x2A3890))
+            return CategoryIconInfo(systemName: "iphone", color: Color(lightHex: 0x2A3890, darkHex: 0x9FA8DA))
         case "fitness":
             return CategoryIconInfo(systemName: "figure.walk", color: Color(hex: 0xFF3278))
         case "insurance":
-            return CategoryIconInfo(systemName: "shield.fill", color: Color(hex: 0x0066CC))
+            return CategoryIconInfo(systemName: "shield.fill", color: Color(lightHex: 0x0066CC, darkHex: 0x64B5F6))
         case "tax":
             return CategoryIconInfo(systemName: "wallet.pass.fill", color: Color(hex: 0x795548))
         case "bank charges":
             return CategoryIconInfo(systemName: "banknote", color: Color(hex: 0x9E9E9E))
         case "credit card payment":
-            return CategoryIconInfo(systemName: "creditcard.fill", color: Color(hex: 0x1565C0))
+            return CategoryIconInfo(systemName: "creditcard.fill", color: Color(lightHex: 0x1565C0, darkHex: 0x64B5F6))
         case "salary":
-            return CategoryIconInfo(systemName: "indianrupeesign.circle.fill", color: Color(hex: 0x2E7D32))
+            return CategoryIconInfo(systemName: "banknote.fill", color: Color(hex: 0x2E7D32))
+        case "income":
+            return CategoryIconInfo(systemName: "arrow.down.circle.fill", color: Color(hex: 0x388E3C))
+        case "others", "other":
+            return CategoryIconInfo(systemName: "ellipsis.circle.fill", color: Color(hex: 0x757575))
         case "other income":
             return CategoryIconInfo(systemName: "plus.circle.fill", color: Color(hex: 0x388E3C))
         case "travel":

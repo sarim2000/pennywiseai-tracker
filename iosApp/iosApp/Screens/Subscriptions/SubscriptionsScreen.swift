@@ -60,7 +60,8 @@ struct SubscriptionsScreen: View {
             ForEach(viewModel.subscriptions) { subscription in
                 SubscriptionRow(
                     subscription: subscription,
-                    currencyCode: currencyManager.displayCurrency
+                    // The subscription's own currency, never the display one.
+                    currencyCode: subscription.currency
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {

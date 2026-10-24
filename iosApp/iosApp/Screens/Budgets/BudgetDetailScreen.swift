@@ -93,7 +93,7 @@ struct BudgetDetailScreen: View {
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("\(Int(budget.progress * 100))% used")
+                Text("\(budget.percentUsed)% used")
                     .font(AppTypography.caption)
                     .foregroundStyle(budgetColor(for: budget.progress))
             }
@@ -123,13 +123,16 @@ struct BudgetDetailScreen: View {
                     .frame(width: 10, height: 10)
                 Text(cat.categoryName)
                     .font(AppTypography.body)
+                    .lineLimit(1)
                 Spacer()
                 Text(AmountFormatter.format(minorUnits: cat.spentMinor, currency: currency))
                     .font(AppTypography.amountSmall)
                     .foregroundStyle(budgetColor(for: cat.progress))
-                Text("/ \(AmountFormatter.format(minorUnits: cat.limitMinor))")
+                    .fixedSize()
+                Text("/ \(AmountFormatter.format(minorUnits: cat.limitMinor, currency: currency))")
                     .font(AppTypography.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize()
             }
 
             BudgetProgressBar(progress: cat.progress)

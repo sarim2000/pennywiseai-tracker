@@ -279,18 +279,13 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">إضافة معاملة</string>
-    <string name="widget_add_title">إضافة</string>
-    <string name="widget_add_subtitle">المعاملة</string>
     <!-- Budget widget -->
     <string name="widget_budget_title">الميزانية الشهرية</string>
-    <string name="widget_budget_tap_to_set_up">انقر للإعداد</string>
-    <string name="widget_budget_percent_used">%1$d%% مستخدم</string>
+    <string name="widget_budget_percent_used">%1$d%% مستخدَمة</string>
     <string name="widget_budget_of_limit">من %1$s</string>
-    <string name="widget_budget_left">%1$s متبقي</string>
-    <string name="widget_budget_over">أكثر من %1$s</string>
-    <string name="widget_budget_per_day">%1$sيومًا</string>
-    <string name="widget_budget_saved">تم الحفظ %1$s</string>
-    <string name="widget_budget_overspent">أكثر من %1$s</string>
+    <string name="widget_budget_per_day">%1$s لليوم</string>
+    <string name="widget_budget_saved">وفّرت %1$s</string>
+    <string name="widget_budget_overspent">عجز %1$s</string>
     <!-- Spending pie widget -->
     <string name="widget_pie_title">الإنفاق</string>
     <string name="widget_pie_content_description">الإنفاق حسب الفئة</string>
@@ -299,12 +294,9 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">أخرى</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">المعاملات الأخيرة</string>
-    <string name="widget_recent_add">إضافة عملية</string>
-    <string name="widget_recent_total_spend">إجمالي الإنفاق هذا الشهر</string>
     <string name="widget_recent_empty">لا توجد معاملات بعد</string>
-    <string name="widget_recent_empty_hint">انقر + لإضافة يدوياً</string>
-    <string name="widget_recent_fallback_title">المعاملة</string>
+    <string name="widget_recent_fallback_title">معاملة</string>
+    <!-- Spending summary widget -->
     <string name="widget_summary_today">اليوم</string>
     <string name="widget_summary_month">هذا الشهر</string>
     <!-- ══ Notifications ══ -->
@@ -326,11 +318,14 @@
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s معاملة جديدة</string>
     <string name="notif_txn_public_text">%1$s • يحتاج التوازن إلى مظهر</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">صرفت %1$s في %2$s</string>
     <string name="notif_txn_title_received">استلمت %1$s من %2$s</string>
     <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">على ماذا صرفتها؟ · %1$s</string>
     <string name="notif_txn_action_change">تغيير</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">حُفظت في %1$s</string>
     <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>
     <plurals name="notif_txn_learned_moved">
@@ -341,8 +336,10 @@
         <item quantity="many">ونُقلت %d عملية سابقة أيضاً.</item>
         <item quantity="other">ونُقلت %d عملية سابقة أيضاً.</item>
     </plurals>
+    <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">الملخص اليومي</string>
     <string name="notif_daily_channel_description">ملخص قصير لمصاريف اليوم كل مساء</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">صرفت اليوم %1$s</string>
     <plurals name="notif_daily_count">
         <item quantity="zero">لا عمليات</item>
@@ -361,6 +358,16 @@
         <item quantity="other">%d بلا تصنيف</item>
     </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
+    <string name="notif_daily_action_cash">+ نقداً</string>
+    <!-- Header over a stack of transaction alerts -->
+    <plurals name="notif_txn_group_title">
+        <item quantity="zero">لا عمليات جديدة</item>
+        <item quantity="one">%d عملية جديدة</item>
+        <item quantity="two">عمليتان جديدتان</item>
+        <item quantity="few">%d عمليات جديدة</item>
+        <item quantity="many">%d عملية جديدة</item>
+        <item quantity="other">%d عملية جديدة</item>
+    </plurals>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

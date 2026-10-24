@@ -5,6 +5,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.ui.components.cards.SafeToSpendCard
+import com.pennywiseai.tracker.ui.components.cards.SafeToSpendSheet
 import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
@@ -166,6 +168,8 @@ fun HomeScreen(
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
+    val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
+    var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -245,6 +249,12 @@ fun HomeScreen(
         }
     }
     
+    // A new day moves the forecast and Safe to spend on, even with no data change.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
+
     // Refresh hidden accounts whenever this screen becomes visible
     // This ensures changes from ManageAccountsScreen are reflected immediately
     DisposableEffect(Unit) {
@@ -494,6 +504,7 @@ fun HomeScreen(
                             accountBalances = uiState.accountBalances,
                             creditCards = uiState.creditCards,
                             totalAvailableCredit = uiState.totalAvailableCredit,
+                            forecast = uiState.spendForecast,
                             onAccountClick = { bankName, accountLast4 ->
                                 navController.navigate(
                                     com.pennywiseai.tracker.navigation.AccountDetail(
@@ -572,6 +583,32 @@ fun HomeScreen(
             for ((index, section) in visibleSections.withIndex()) {
                 val delayMs = 50L * (index + 1)
                 when (section) {
+                    HomeSection.SAFE_TO_SPEND -> {
+                        // Only once there's a spendable account with a balance.
+                        safeToSpend?.let { state ->
+                            item(key = section.name) {
+                                val visible = remember { mutableStateOf(hasAnimated) }
+                                LaunchedEffect(Unit) {
+                                    if (!hasAnimated) { delay(delayMs); visible.value = true }
+                                }
+                                AnimatedVisibility(
+                                    visible = visible.value,
+                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                        initialOffsetY = { slideOffsetPx },
+                                        animationSpec = tween(300)
+                                    )
+                                ) {
+                                    SafeToSpendCard(
+                                        state = state,
+                                        isBalanceHidden = uiState.isBalanceHidden,
+                                        onReveal = { viewModel.toggleBalanceVisibility() },
+                                        onOpenBreakdown = { showSafeToSpendSheet = true },
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                    )
+                                }
+                            }
+                        }
+                    }
                     HomeSection.BUDGETS -> {
                         // 2. Budget Carousel
                         uiState.budgetSummary?.let { summary ->
@@ -1315,6 +1352,14 @@ fun HomeScreen(
     }
     }
 
+    safeToSpend?.takeIf { showSafeToSpendSheet }?.let { state ->
+        SafeToSpendSheet(
+            state = state,
+            onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
+            onDismiss = { showSafeToSpendSheet = false }
+        )
+    }
+
     // Edit home screen sheet (#770). Every change persists immediately — no Save.
     if (showEditWidgetsSheet) {
         ModalBottomSheet(
@@ -1768,6 +1813,7 @@ private fun MenuListItem(
 
 @StringRes
 private fun HomeSection.titleRes(): Int = when (this) {
+    HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
     HomeSection.BUDGETS -> R.string.home_section_budgets
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans

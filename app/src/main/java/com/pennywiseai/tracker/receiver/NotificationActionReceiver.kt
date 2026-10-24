@@ -182,6 +182,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         if (notificationId != -1) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(notificationId)
+            SmsBroadcastReceiver.updateAlertGroup(context, removedId = notificationId)
         }
     }
 }

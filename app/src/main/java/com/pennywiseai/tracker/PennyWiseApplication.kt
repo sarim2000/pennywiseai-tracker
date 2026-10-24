@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration as ResConfiguration
 import android.os.Bundle
+import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -171,7 +172,10 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         super.onConfigurationChanged(newConfig)
         val locales = newConfig.locales
         if (lastLocales != null && locales != lastLocales) {
+            com.pennywiseai.tracker.widget.WidgetLanguageChanges.value++
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(this)
+            // The cash button has no snapshot or worker; redraw its label directly.
+            applicationScope.launch { com.pennywiseai.tracker.widget.AddTransactionWidget().updateAll(this@PennyWiseApplication) }
         }
         lastLocales = locales
     }

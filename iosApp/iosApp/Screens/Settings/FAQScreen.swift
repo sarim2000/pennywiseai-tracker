@@ -94,7 +94,7 @@ struct FAQScreen: View {
                         .multilineTextAlignment(.center)
 
                     Button {
-                        if let url = URL(string: "https://github.com/nicekid1/pennywiseai-tracker/issues/new/choose") {
+                        if let url = URL(string: AppLinks.newIssue) {
                             UIApplication.shared.open(url)
                         }
                     } label: {

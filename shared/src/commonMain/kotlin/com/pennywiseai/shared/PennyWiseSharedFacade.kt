@@ -10,6 +10,7 @@ import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
+import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.usecase.BankSmsImportResult
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ImportBankSmsUseCase
@@ -39,13 +40,17 @@ data class SharedBudgetItem(
     val currency: String,
     val isActive: Boolean,
     val categoryBreakdowns: List<SharedBudgetCategoryBreakdown>
-)
+) {
+    val percentUsed: Int get() = MoneyTotals.percentUsed(spentMinor, limitMinor)
+}
 
 data class SharedBudgetCategoryBreakdown(
     val categoryName: String,
     val limitMinor: Long,
     val spentMinor: Long
-)
+) {
+    val percentUsed: Int get() = MoneyTotals.percentUsed(spentMinor, limitMinor)
+}
 
 data class SharedAccountItem(
     val bankName: String,
@@ -421,6 +426,8 @@ class PennyWiseSharedFacade {
                             // EXPENSE only (mirrors the home totals): a TRANSFER
                             // between own accounts must not eat budget.
                             txn.transactionType == SharedTransactionType.EXPENSE &&
+                            // Only the budget's own currency counts toward its limit.
+                            txn.currency == budget.currency &&
                             (categoryNames.isEmpty() || txn.category in categoryNames)
                     }
                     val totalSpent = periodTxns.fold(0L) { acc, txn -> acc + txn.amountMinor }
@@ -765,16 +772,17 @@ class PennyWiseSharedFacade {
     ): Boolean {
         return try {
             runBlocking {
-                val now = currentTimeMillis()
+                // Copy the stored row so an edit keeps what the form doesn't
+                // show (state, next payment, bank, created date).
+                val existing = graph.subscriptionRepository.observeAll().first()
+                    .firstOrNull { it.id == id } ?: return@runBlocking false
                 graph.subscriptionRepository.upsert(
-                    SharedSubscriptionEntity(
-                        id = id,
+                    existing.copy(
                         merchantName = merchantName.trim(),
                         amountMinor = amountMinor,
                         category = category,
                         currency = currency,
-                        createdAtEpochMillis = now,
-                        updatedAtEpochMillis = now
+                        updatedAtEpochMillis = currentTimeMillis()
                     )
                 )
                 true

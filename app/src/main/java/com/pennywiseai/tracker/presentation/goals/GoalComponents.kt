@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.goals
 
 import android.content.Context
+import android.content.res.Resources
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -72,8 +73,10 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import java.util.Locale
 
 internal val goalDateFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
@@ -149,35 +152,46 @@ fun goalTimeLabel(progress: GoalProgress): String =
         stringResource(R.string.goals_due_on, progress.goal.dueDate.format(goalDateFormat))
     }
 
+/** How a status line writes money: the app's usual; the widgets pass their own. */
+private val appMoney: (BigDecimal, String) -> String = { amount, currency -> CurrencyFormatter.formatCurrency(amount, currency) }
+
+/**
+ * A month count. [latinDigits] keeps "12" Latin where Arabic resources would
+ * write "١٢": the widgets do, beside their Latin amounts.
+ */
+private fun Resources.months(id: Int, count: Int, latinDigits: Boolean): String =
+    if (latinDigits) String.format(Locale.US, getQuantityString(id, count), count)
+    else getQuantityString(id, count, count)
+
 /**
  * One-line status for compact rows (Home card, goals widget):
  * "₹1,920/mo · 5 months left", "Behind ₹2,000", "Reached" or "Missed by ₹X".
  * Takes a [Context] so the widget worker builds the same text the Home card shows.
  */
-fun GoalProgress.statusLine(context: Context): String {
+fun GoalProgress.statusLine(context: Context, money: (BigDecimal, String) -> String = appMoney, latinDigits: Boolean = false): String {
     val res = context.resources
     val currency = goal.currency
     return when (val pill = pill()) {
         GoalPill.Reached -> res.getString(R.string.goals_reached)
-        is GoalPill.MissedBy -> res.getString(R.string.goals_missed_by, CurrencyFormatter.formatCurrency(pill.amount, currency))
-        is GoalPill.Behind -> res.getString(R.string.goals_behind, CurrencyFormatter.formatCurrency(pill.amount, currency))
+        is GoalPill.MissedBy -> res.getString(R.string.goals_missed_by, money(pill.amount, currency))
+        is GoalPill.Behind -> res.getString(R.string.goals_behind, money(pill.amount, currency))
         is GoalPill.PerMonth -> res.getString(
             R.string.goals_line_join,
-            res.getString(R.string.goals_per_month, CurrencyFormatter.formatCurrency(pill.amount, currency)),
-            res.getQuantityString(R.plurals.goals_months_left, monthsLeft, monthsLeft),
+            res.getString(R.string.goals_per_month, money(pill.amount, currency)),
+            res.months(R.plurals.goals_months_left, monthsLeft, latinDigits),
         )
         GoalPill.Archived -> res.getString(R.string.goals_archived)
     }
 }
 
 /** The 2×2 widget's line: "₹9,600 left · 5 mo" while in progress, else the same as [statusLine]. */
-fun GoalProgress.shortLine(context: Context): String {
-    if (status != GoalStatus.IN_PROGRESS) return statusLine(context)
+fun GoalProgress.shortLine(context: Context, money: (BigDecimal, String) -> String = appMoney, latinDigits: Boolean = false): String {
+    if (status != GoalStatus.IN_PROGRESS) return statusLine(context, money, latinDigits)
     val res = context.resources
     return res.getString(
         R.string.goals_line_join,
-        res.getString(R.string.goals_left, CurrencyFormatter.formatCurrency(left, goal.currency)),
-        res.getQuantityString(R.plurals.goals_months_short, monthsLeft, monthsLeft),
+        res.getString(R.string.goals_left, money(left, goal.currency)),
+        res.months(R.plurals.goals_months_short, monthsLeft, latinDigits),
     )
 }
 

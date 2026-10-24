@@ -191,14 +191,9 @@
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Ajouter une transaction</string>
-    <string name="widget_add_title">Ajouter</string>
-    <string name="widget_add_subtitle">Opération</string>
     <!-- Budget widget -->
-    <string name="widget_budget_title">Budget mensuel</string>
-    <string name="widget_budget_tap_to_set_up">Appuyer pour configurer</string>
     <string name="widget_budget_percent_used">%1$d%% utilisés</string>
     <string name="widget_budget_of_limit">de %1$s</string>
-    <string name="widget_budget_left">%1$s restant</string>
     <string name="widget_budget_per_day">%1$s/jour</string>
     <string name="widget_budget_saved">Enregistré %1$s</string>
     <string name="widget_budget_overspent">Plus de %1$s</string>
@@ -209,12 +204,9 @@
     <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Autre</string>
     <!-- Recent transactions widget -->
-    <string name="widget_recent_title">Transactions récentes</string>
-    <string name="widget_recent_add">Ajouter une transaction</string>
-    <string name="widget_recent_total_spend">Total des dépenses de ce mois</string>
     <string name="widget_recent_empty">Pas encore de transactions</string>
-    <string name="widget_recent_empty_hint">Appuyez sur + pour ajouter manuellement</string>
     <string name="widget_recent_fallback_title">Opération</string>
+    <!-- Spending summary widget -->
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">Scanner SMS</string>
@@ -232,6 +224,12 @@
     <string name="notif_txn_action_more">Plus de…</string>
     <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s Nouvelle transaction</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
+    <!-- After a category is picked from the notification; %1$s is the category -->
+    <!-- Evening recap notification -->
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
+    <!-- Header over a stack of transaction alerts -->
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Tendance du solde</string>
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->

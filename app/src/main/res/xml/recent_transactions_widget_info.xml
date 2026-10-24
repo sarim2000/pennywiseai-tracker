@@ -8,9 +8,9 @@
     android:maxResizeWidth="412dp"
     android:maxResizeHeight="300dp"
     android:minResizeWidth="180dp"
-    android:minResizeHeight="120dp"
+    android:minResizeHeight="128dp"
     android:resizeMode="horizontal|vertical"
     android:previewLayout="@layout/recent_transactions_widget_preview"
-    android:description="@string/widget_description_recent"
+    android:description="@string/widget_recent_description"
     android:updatePeriodMillis="1800000"
     android:widgetCategory="home_screen" />

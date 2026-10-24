@@ -28,6 +28,19 @@ class NSDLPaymentsBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Linked text names a bank account before the payee VPA",
+                message = linkedBankThenVpa,
+                sender = "JD-NSDLPB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("1350.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "testpayee",
+                    reference = "600000000003",
+                    accountLast4 = "1128"
+                )
+            ),
+            ParserTestCase(
                 name = "UPI credit",
                 message = "A/c no XX1234 is credited for Rs.100.00 on 20-Jun-26 (UPI Ref No 617109835321) - NSDLPB",
                 sender = "AD-NSDLPB-S",
@@ -66,4 +79,7 @@ class NSDLPaymentsBankParserTest {
 
         return ParserTestUtils.runTestSuite(parser, cases, handleChecks, "NSDL Payments Bank Parser")
     }
+
+    private val linkedBankThenVpa =
+        "A/c XX1128 debited Rs 1350.00 on 24-Oct-26 for linked Test Bank PPI A/c XX9999 to testpayee@axl. UPI Ref 600000000003 - NSDLPB"
 }

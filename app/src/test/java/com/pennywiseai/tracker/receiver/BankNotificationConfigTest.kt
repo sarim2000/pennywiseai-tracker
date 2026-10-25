@@ -63,6 +63,28 @@ class BankNotificationConfigTest {
     }
 
     @Test
+    fun `title is kept in front of the body`() {
+        assertEquals("Card Transaction Refund\nAmount: AED 5",
+            BankNotificationConfig.withTitle("Card Transaction Refund", "Amount: AED 5"))
+        // Not duplicated when the body already carries it, and no stray newline when absent.
+        assertEquals("Card Transaction\nAmount: AED 5",
+            BankNotificationConfig.withTitle("Card Transaction", "Card Transaction\nAmount: AED 5"))
+        assertEquals("Amount: AED 5", BankNotificationConfig.withTitle(null, "Amount: AED 5"))
+        assertEquals("Title only", BankNotificationConfig.withTitle("Title only", ""))
+    }
+
+    @Test
+    fun `dubai first refund heading from the title stays a refund`() {
+        val alias = BankNotificationConfig.senderAlias("com.bankfab.pbg.ae.dubaifirst")
+        val body = BankNotificationConfig.withTitle(
+            "Card Transaction Refund",
+            "Card ending with: 1111\nAmount: AED 58\nAt: TEST STORE\nDate: 01/01/2030\nAvailable Balance: AED 10585.04"
+        )
+        val parsed = BankParserFactory.getParser(alias)?.parse(body, alias, 0L)
+        assertEquals(com.pennywiseai.parser.core.TransactionType.INCOME, parsed?.type)
+    }
+
+    @Test
     fun `unlisted packages are not read`() {
         assertFalse(BankNotificationConfig.isAllowed("com.whatsapp"))
     }

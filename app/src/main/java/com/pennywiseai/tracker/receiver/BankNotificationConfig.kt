@@ -56,11 +56,21 @@ object BankNotificationConfig {
             extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.let { add(it) }
         }
 
-        if (textParts.isNotEmpty()) {
-            val merged = textParts.joinToString("\n") { it.toString() }.trim()
-            if (merged.isNotBlank()) return merged
-        }
+        val merged = textParts.joinToString("\n") { it.toString() }.trim()
+        return withTitle(extras.getCharSequence(Notification.EXTRA_TITLE)?.toString(), merged)
+    }
 
-        return extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
+    /**
+     * Keeps the title with the body: some apps put the heading ("Card Transaction",
+     * "… Refund") in the title and only the fields in the text, and the heading is
+     * what tells a purchase from a refund.
+     */
+    internal fun withTitle(title: String?, body: String): String {
+        val t = title?.trim().orEmpty()
+        return when {
+            body.isBlank() -> t
+            t.isEmpty() || body.contains(t) -> body
+            else -> "$t\n$body"
+        }
     }
 }

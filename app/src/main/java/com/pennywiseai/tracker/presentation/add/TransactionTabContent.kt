@@ -606,10 +606,11 @@ fun TransactionTabContent(
             // ── Budget Impact (INCOME only) ──
             if (uiState.transactionType == TransactionType.INCOME) {
                 val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsState()
+                val refundCategories by viewModel.refundCategories.collectAsState()
                 AddBudgetImpactSection(
                     budgetImpactType = uiState.budgetImpactType,
                     budgetCategory = uiState.budgetCategory,
-                    activeBudgetCategories = activeBudgetCategories,
+                    activeBudgetCategories = if (uiState.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) refundCategories else activeBudgetCategories,
                     onImpactTypeChange = viewModel::updateBudgetImpactType,
                     onCategoryChange = viewModel::updateBudgetCategory
                 )

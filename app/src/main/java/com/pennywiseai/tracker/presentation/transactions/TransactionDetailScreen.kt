@@ -1740,6 +1740,8 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
     val budgetImpactType by viewModel.budgetImpactType.collectAsStateWithLifecycle()
     val budgetCategory by viewModel.budgetCategory.collectAsStateWithLifecycle()
     val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsStateWithLifecycle()
+    val refundCategories by viewModel.refundCategories.collectAsStateWithLifecycle()
+    val pickable = if (budgetImpactType == BudgetImpactType.DEDUCT_SPENT) refundCategories else activeBudgetCategories
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1793,14 +1795,14 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
-                    if (activeBudgetCategories.isEmpty()) {
+                    if (pickable.isEmpty()) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.txn_detail_budget_no_categories)) },
                             onClick = { expanded = false },
                             enabled = false
                         )
                     } else {
-                        activeBudgetCategories.forEach { category ->
+                        pickable.forEach { category ->
                             DropdownMenuItem(
                                 text = { Text(category) },
                                 onClick = {

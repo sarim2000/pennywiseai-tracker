@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.domain.spending
 
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /**
  * Pure matching rules for "is this charge the same recurring bill?" — shared by
@@ -40,5 +42,22 @@ object RecurringCharge {
         in 175L..190L -> "Semi-Annual"
         in 350L..380L -> "Annual"
         else -> null
+    }
+
+    /**
+     * The bill came due at a new price: the charge lands within 5 days of
+     * [dueDate] at between half and double [billedAmount]. A charge at the same
+     * amount is a plain match ([sameAmount]), not a price change.
+     */
+    fun isPriceChange(
+        billedAmount: BigDecimal,
+        dueDate: LocalDate?,
+        chargeAmount: BigDecimal,
+        chargeDate: LocalDate
+    ): Boolean {
+        if (dueDate == null || sameAmount(billedAmount, chargeAmount)) return false
+        if (Math.abs(ChronoUnit.DAYS.between(dueDate, chargeDate)) > 5) return false
+        return chargeAmount >= billedAmount.multiply(BigDecimal("0.5")) &&
+            chargeAmount <= billedAmount.multiply(BigDecimal("2"))
     }
 }

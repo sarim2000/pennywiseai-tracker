@@ -302,4 +302,40 @@ class SubscriptionRepository @Inject constructor(
         // Use unified category mapping
         return com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CategoryMapping.getCategory(merchantName))
     }
+
+    /**
+     * The active subscription this charge pays at a new price, when it didn't
+     * match exactly: same merchant and currency, due within 5 days of the
+     * charge, at between half and double the old amount.
+     */
+    suspend fun priceChangedSubscriptionFor(
+        merchantName: String,
+        amount: BigDecimal,
+        currency: String,
+        chargeDate: LocalDate
+    ): SubscriptionEntity? =
+        activeExpenseSubscriptionsFor(merchantName, currency).firstOrNull {
+            RecurringCharge.isPriceChange(it.amount, it.nextPaymentDate, amount, chargeDate)
+        }
+
+    /** [recordCharge] for a charge at a new price: the subscription now bills [newAmount]. */
+    suspend fun recordPriceChange(subscription: SubscriptionEntity, newAmount: BigDecimal, chargeDate: LocalDate) {
+        subscriptionDao.updateSubscription(
+            subscription.copy(amount = newAmount, updatedAt = java.time.LocalDateTime.now())
+        )
+        recordCharge(subscription, chargeDate)
+    }
+
+    /**
+     * Whether any subscription — active, hidden or ended — already covers
+     * [merchantName] in [currency], so a dismissed or cancelled one isn't
+     * suggested again.
+     */
+    suspend fun hasAnySubscriptionFor(merchantName: String, currency: String): Boolean =
+        SubscriptionState.entries.any { state ->
+            subscriptionDao.getSubscriptionsByStateList(state).any {
+                it.currency.equals(currency, ignoreCase = true) &&
+                    RecurringCharge.sameMerchant(it.merchantName, merchantName)
+            }
+        }
 }

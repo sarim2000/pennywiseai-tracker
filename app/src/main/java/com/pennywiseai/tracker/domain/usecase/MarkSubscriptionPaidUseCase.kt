@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -70,21 +71,12 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
             ?: return Result.SubscriptionNotFound
         val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
 
-        // Same-cycle re-tap guard, anchored on TODAY not on the schedule.
-        // Earlier version anchored on the (sliding) schedule, which broke
-        // the moment we advanced it — lastPaidAt fell BEHIND the new cycle
-        // window so the guard stopped triggering and the user could keep
-        // tapping forever, marching the schedule forward each time.
-        //
-        // Real semantic: a subscription can't legitimately be paid twice
-        // within one billing cycle. So if today < lastPaidAt + 1 cycle,
-        // it's a re-tap of the cycle we just paid. One day of grace, so paying
-        // from the "due tomorrow" reminder works after an on-time last cycle.
-        sub.lastPaidAt?.let { lastPaid ->
-            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle).minusDays(1)
-            if (LocalDate.now().isBefore(nextLegitMark)) {
-                return Result.AlreadyMarked(nextPaymentDate = scheduled)
-            }
+        // Same-cycle re-tap guard: once a cycle is paid the schedule moves a
+        // full cycle ahead, and today sits in the first half of the run-up to
+        // it — so a second tap is refused instead of marching the schedule
+        // forward. See [RecurringCharge.isRetap].
+        if (isRetap(sub.lastPaidAt, scheduled, sub.billingCycle)) {
+            return Result.AlreadyMarked(nextPaymentDate = scheduled)
         }
 
         val isIncome = sub.direction == SubscriptionDirection.INCOME
@@ -160,11 +152,8 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         val scheduled = sub.nextPaymentDate ?: return Result.NoScheduledDate
 
         // Same-cycle re-tap guard — see [execute] for the semantic.
-        sub.lastPaidAt?.let { lastPaid ->
-            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
-            if (LocalDate.now().isBefore(nextLegitMark)) {
-                return Result.AlreadyMarked(nextPaymentDate = scheduled)
-            }
+        if (isRetap(sub.lastPaidAt, scheduled, sub.billingCycle)) {
+            return Result.AlreadyMarked(nextPaymentDate = scheduled)
         }
 
         val linkedTxn = transactionRepository.getTransactionById(transactionId)
@@ -180,6 +169,13 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         )
         return Result.Linked(transactionId = transactionId, nextPaymentDate = nextDate)
     }
+
+    private fun isRetap(lastPaid: LocalDate?, scheduled: LocalDate, cycle: String): Boolean =
+        lastPaid != null && RecurringCharge.isRetap(
+            previousDue = subscriptionRepository.advance(scheduled, cycle, reverse = true),
+            scheduled = scheduled,
+            today = LocalDate.now()
+        )
 
     private companion object {
         const val TAG = "MarkSubscriptionPaid"

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -9,6 +10,9 @@ import java.time.temporal.ChronoUnit
  * the SMS→subscription matcher and the repeat-charge detector so both agree.
  */
 object RecurringCharge {
+
+    /** Charges that can pay a bill. Refunds (INCOME) and transfers never do. */
+    val SPEND_TYPES = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
 
     /** Lower-cased letters/digits only, so "NETFLIX" and "Netflix.com" compare equal. */
     fun merchantKey(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
@@ -60,4 +64,14 @@ object RecurringCharge {
         return chargeAmount >= billedAmount.multiply(BigDecimal("0.5")) &&
             chargeAmount <= billedAmount.multiply(BigDecimal("2"))
     }
+
+    /**
+     * Marking the cycle due [scheduled] paid is a re-tap of the cycle just paid
+     * while [today] is still in the first half of the run-up from [previousDue].
+     * Anchored on the schedule rather than "last paid + one cycle", so a bill
+     * paid late last cycle can still be paid on time (e.g. from the "due
+     * tomorrow" reminder) this cycle.
+     */
+    fun isRetap(previousDue: LocalDate, scheduled: LocalDate, today: LocalDate): Boolean =
+        today.isBefore(previousDue.plusDays(ChronoUnit.DAYS.between(previousDue, scheduled) / 2))
 }

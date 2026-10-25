@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
@@ -110,25 +111,29 @@ class SubscriptionRepository @Inject constructor(
                 RecurringCharge.sameMerchant(it.merchantName, merchantName)
         }
 
-    /** The active subscription this charge pays, if any — same merchant, currency and amount (±5%). */
-    suspend fun matchTransactionToSubscription(
-        merchantName: String,
-        amount: BigDecimal,
-        currency: String
-    ): SubscriptionEntity? =
-        activeExpenseSubscriptionsFor(merchantName, currency)
-            .firstOrNull { RecurringCharge.sameAmount(it.amount, amount) }
+    /**
+     * The active subscription [charge] pays, if any — a spend (a refund never
+     * pays a bill) at the same merchant, currency and amount (±5%).
+     */
+    suspend fun matchTransactionToSubscription(charge: TransactionEntity): SubscriptionEntity? =
+        if (charge.transactionType !in RecurringCharge.SPEND_TYPES) null
+        else activeExpenseSubscriptionsFor(charge.merchantName, charge.currency)
+            .firstOrNull { RecurringCharge.sameAmount(it.amount, charge.amount) }
 
     /**
      * A bank charge paid [subscription]'s cycle: stamp `lastPaidAt` (drives the
      * "Paid" badge) and advance the schedule by its billing cycle (#371). Both
      * only move forward, so re-scanning an older SMS can't rewind the schedule.
+     * Reads the current row rather than trusting [subscription], which may be a
+     * snapshot taken before a reminder or manual payment moved the dates; call
+     * inside a transaction so the read and write stay together.
      */
     suspend fun recordCharge(subscription: SubscriptionEntity, chargeDate: LocalDate) {
-        val advanced = advance(chargeDate, subscription.billingCycle)
-        val next = subscription.nextPaymentDate?.takeIf { it.isAfter(advanced) } ?: advanced
-        val paidAt = subscription.lastPaidAt?.takeIf { it.isAfter(chargeDate) } ?: chargeDate
-        subscriptionDao.markPaid(subscription.id, paidAt, next)
+        val current = subscriptionDao.getSubscriptionById(subscription.id) ?: return
+        val advanced = advance(chargeDate, current.billingCycle)
+        val next = current.nextPaymentDate?.takeIf { it.isAfter(advanced) } ?: advanced
+        val paidAt = current.lastPaidAt?.takeIf { it.isAfter(chargeDate) } ?: chargeDate
+        subscriptionDao.markPaid(current.id, paidAt, next)
     }
 
     /**
@@ -308,22 +313,19 @@ class SubscriptionRepository @Inject constructor(
      * match exactly: same merchant and currency, due within 5 days of the
      * charge, at between half and double the old amount.
      */
-    suspend fun priceChangedSubscriptionFor(
-        merchantName: String,
-        amount: BigDecimal,
-        currency: String,
-        chargeDate: LocalDate
-    ): SubscriptionEntity? =
-        activeExpenseSubscriptionsFor(merchantName, currency).firstOrNull {
-            RecurringCharge.isPriceChange(it.amount, it.nextPaymentDate, amount, chargeDate)
+    suspend fun priceChangedSubscriptionFor(charge: TransactionEntity): SubscriptionEntity? =
+        if (charge.transactionType !in RecurringCharge.SPEND_TYPES) null
+        else activeExpenseSubscriptionsFor(charge.merchantName, charge.currency).firstOrNull {
+            RecurringCharge.isPriceChange(it.amount, it.nextPaymentDate, charge.amount, charge.dateTime.toLocalDate())
         }
 
     /** [recordCharge] for a charge at a new price: the subscription now bills [newAmount]. */
     suspend fun recordPriceChange(subscription: SubscriptionEntity, newAmount: BigDecimal, chargeDate: LocalDate) {
+        val current = subscriptionDao.getSubscriptionById(subscription.id) ?: return
         subscriptionDao.updateSubscription(
-            subscription.copy(amount = newAmount, updatedAt = java.time.LocalDateTime.now())
+            current.copy(amount = newAmount, updatedAt = java.time.LocalDateTime.now())
         )
-        recordCharge(subscription, chargeDate)
+        recordCharge(current, chargeDate)
     }
 
     /**

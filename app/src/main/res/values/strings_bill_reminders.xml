@@ -7,6 +7,6 @@
     <string name="bill_reminder_title">%1$s due tomorrow</string>
     <!-- %1$s: amount with currency; %2$s: billing cycle, e.g. "Monthly" -->
     <string name="bill_reminder_text">%1$s · %2$s</string>
-    <string name="bill_reminder_action_paid">Paid in cash</string>
+    <string name="bill_reminder_action_paid">Mark paid</string>
     <string name="bill_reminder_action_skip">Skip this time</string>
 </resources>

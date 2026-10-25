@@ -238,18 +238,9 @@ class SmsTransactionProcessor @Inject constructor(
 
             // Check if this transaction matches an active subscription — at its
             // price, or failing that, due now at a new price.
-            val exactSubscription = subscriptionRepository.matchTransactionToSubscription(
-                entityWithRules.merchantName,
-                entityWithRules.amount,
-                entityWithRules.currency
-            )
+            val exactSubscription = subscriptionRepository.matchTransactionToSubscription(entityWithRules)
             val repricedSubscription = if (exactSubscription == null) {
-                subscriptionRepository.priceChangedSubscriptionFor(
-                    entityWithRules.merchantName,
-                    entityWithRules.amount,
-                    entityWithRules.currency,
-                    entityWithRules.dateTime.toLocalDate()
-                )
+                subscriptionRepository.priceChangedSubscriptionFor(entityWithRules)
             } else null
             val matchedSubscription = exactSubscription ?: repricedSubscription
             val finalEntity = if (matchedSubscription != null) {

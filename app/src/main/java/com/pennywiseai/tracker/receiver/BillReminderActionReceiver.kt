@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -19,7 +20,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-/** The "bill due tomorrow" reminder's actions: book it as paid in cash, or skip this cycle. */
+/** The "bill due tomorrow" reminder's actions: mark it paid (as the in-app button does), or skip this cycle. */
 class BillReminderActionReceiver : BroadcastReceiver() {
 
     @EntryPoint
@@ -73,8 +74,9 @@ class BillReminderActionReceiver : BroadcastReceiver() {
             try {
                 val repository = entryPoint.subscriptionRepository()
                 val sub = repository.getSubscriptionById(subscriptionId)
-                // A stale reminder (already paid, skipped or edited since) must not move the schedule again.
-                if (sub == null || sub.nextPaymentDate != dueDate) return@launch
+                // A stale reminder (already paid, skipped, edited, hidden or ended since)
+                // must not move the schedule again.
+                if (sub == null || sub.state != SubscriptionState.ACTIVE || sub.nextPaymentDate != dueDate) return@launch
                 when (intent.action) {
                     ACTION_PAID -> {
                         val result = entryPoint.markSubscriptionPaidUseCase().execute(subscriptionId)

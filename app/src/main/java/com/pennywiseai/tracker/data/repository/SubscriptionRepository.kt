@@ -162,6 +162,15 @@ class SubscriptionRepository @Inject constructor(
     suspend fun updateNextPaymentDate(subscriptionId: Long, nextPaymentDate: LocalDate) =
         subscriptionDao.updateNextPaymentDate(subscriptionId, nextPaymentDate)
 
+    /**
+     * Skips the active bill's cycle due [dueDate]: advances it one cycle, unless it
+     * was paid, skipped, edited or ended since. Returns whether it moved.
+     */
+    suspend fun skipCycle(subscription: SubscriptionEntity, dueDate: LocalDate): Boolean =
+        subscriptionDao.advanceIfDue(
+            subscription.id, dueDate, advance(dueDate, subscription.billingCycle), SubscriptionState.ACTIVE
+        ) > 0
+
     /** See [SubscriptionDao.markPaid]. */
     suspend fun markPaid(subscriptionId: Long, paidAt: LocalDate, nextPaymentDate: LocalDate) =
         subscriptionDao.markPaid(subscriptionId, paidAt, nextPaymentDate)

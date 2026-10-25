@@ -71,6 +71,10 @@ interface SubscriptionDao {
     @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, updated_at = datetime('now') WHERE id = :id")
     suspend fun updateNextPaymentDate(id: Long, nextPaymentDate: LocalDate)
 
+    /** Moves the schedule only if it is still [dueDate] and the bill still [state] — a compare-and-set. */
+    @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, updated_at = datetime('now') WHERE id = :id AND next_payment_date = :dueDate AND state = :state")
+    suspend fun advanceIfDue(id: Long, dueDate: LocalDate, nextPaymentDate: LocalDate, state: SubscriptionState): Int
+
     /**
      * Atomic write of both fields when the user marks-as-paid (#412): we
      * record the date they confirmed payment AND advance the schedule in

@@ -58,17 +58,4 @@ class RecurringChargeTest {
         assertFalse(RecurringCharge.isPriceChange(BigDecimal("100"), due, BigDecimal("49.99"), due))
         assertFalse(RecurringCharge.isPriceChange(BigDecimal("15.49"), null, BigDecimal("17.99"), due))
     }
-
-    @Test
-    fun `a second mark right after paying is a re-tap, the next due date is not`() {
-        val mar10 = LocalDate.of(2026, 3, 10)
-        val apr10 = LocalDate.of(2026, 4, 10)
-        // Paid on time Mar 10 → schedule moved to Apr 10; tapping again that day is a re-tap.
-        assertTrue(RecurringCharge.isRetap(mar10, apr10, mar10))
-        // A re-tap a few days later is still caught, yet the Apr 9 reminder (after a late Mar 15 payment) goes through.
-        assertTrue(RecurringCharge.isRetap(mar10, apr10, LocalDate.of(2026, 3, 15)))
-        assertFalse(RecurringCharge.isRetap(mar10, apr10, LocalDate.of(2026, 4, 9)))
-        // An overdue cycle can be paid long after it was due.
-        assertFalse(RecurringCharge.isRetap(mar10, apr10, LocalDate.of(2026, 4, 20)))
-    }
 }

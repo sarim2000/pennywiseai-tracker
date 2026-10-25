@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -72,19 +71,20 @@ class BillReminderActionReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         receiverScope.launch {
             try {
-                val repository = entryPoint.subscriptionRepository()
-                val sub = repository.getSubscriptionById(subscriptionId)
-                // A stale reminder (already paid, skipped, edited, hidden or ended since)
-                // must not move the schedule again.
-                if (sub == null || sub.state != SubscriptionState.ACTIVE || sub.nextPaymentDate != dueDate) return@launch
+                // Both actions act only on the cycle this reminder was for: a stale
+                // one (already paid, skipped, edited, hidden or ended since) does nothing.
                 when (intent.action) {
                     ACTION_PAID -> {
-                        val result = entryPoint.markSubscriptionPaidUseCase().execute(subscriptionId)
+                        val result = entryPoint.markSubscriptionPaidUseCase()
+                            .execute(subscriptionId, reminderDueDate = dueDate)
                         if (result is MarkSubscriptionPaidUseCase.Result.Created) {
                             WidgetRefresher.refreshTransactionWidgets(context)
                         }
                     }
-                    ACTION_SKIP -> repository.updateNextPaymentDate(subscriptionId, repository.advance(dueDate, sub.billingCycle))
+                    ACTION_SKIP -> {
+                        val repository = entryPoint.subscriptionRepository()
+                        repository.getSubscriptionById(subscriptionId)?.let { repository.skipCycle(it, dueDate) }
+                    }
                     else -> Log.w(TAG, "Unknown action: ${intent.action}")
                 }
             } catch (e: Exception) {

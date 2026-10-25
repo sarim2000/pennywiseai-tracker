@@ -22,18 +22,21 @@ class DubaiFirstParser : UAEBankParser() {
         sender.uppercase().replace(Regex("""[\s_-]"""), "") == "DUBAIFIRST"
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
-        if (!smsBody.contains("Card Transaction", ignoreCase = true)) return null
+        // Gate on the labelled fields, not the "Card Transaction" heading: the heading may sit in
+        // the notification title, which isn't always part of the text we receive.
+        val card = CARD.find(smsBody) ?: return null
         val amount = AMOUNT.find(smsBody) ?: return null
         val value = amount.groupValues[2].replace(",", "").toBigDecimalOrNull() ?: return null
         val currency = amount.groupValues[1].uppercase()
         val available = AVAILABLE.find(smsBody)
-        val refund = REFUND.containsMatchIn(smsBody)
+        // Refund wording only counts in the heading (before the card line), never in the merchant.
+        val refund = REFUND.containsMatchIn(smsBody.substring(0, card.range.first))
         return ParsedTransaction(
             amount = value,
             type = if (refund) TransactionType.INCOME else TransactionType.CREDIT,
             merchant = MERCHANT.find(smsBody)?.groupValues?.get(1)?.trim()?.ifEmpty { null },
             reference = null,
-            accountLast4 = CARD.find(smsBody)?.groupValues?.get(1),
+            accountLast4 = card.groupValues[1],
             balance = null,
             creditLimit = available?.groupValues?.get(2)?.replace(",", "")?.toBigDecimalOrNull(),
             smsBody = smsBody,

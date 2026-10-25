@@ -80,6 +80,29 @@ class DubaiFirstParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Heading in the notification title (body has only the fields)",
+                message = fieldsOnly,
+                sender = "DubaiFirst",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("58"),
+                    currency = "AED",
+                    type = TransactionType.CREDIT,
+                    merchant = "TEST STORE",
+                    accountLast4 = "1111"
+                )
+            ),
+            ParserTestCase(
+                name = "Refund word in the merchant stays a purchase",
+                message = refundWordMerchant,
+                sender = "DubaiFirst",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("40"),
+                    currency = "AED",
+                    type = TransactionType.CREDIT,
+                    merchant = "REVERSAL STORE"
+                )
+            ),
+            ParserTestCase(
                 name = "Non-transaction notification is ignored",
                 message = promo,
                 sender = "DubaiFirst",
@@ -123,6 +146,10 @@ class DubaiFirstParserTest {
         "Card Transaction\nCard ending with: 1111\nAmount: USD 20.00\nAt: TEST ONLINE\nDate: 01/01/2030\nAvailable Balance: AED 8900.00"
     private val refund =
         "Card Transaction Refund\nCard ending with: 1111\nAmount: AED 58\nAt: TEST BURGERS-AL NAHDA\nDate: 01/01/2030\nAvailable Balance: AED 10585.04"
+    private val fieldsOnly =
+        "Card ending with: 1111\nAmount: AED 58\nAt: TEST STORE\nDate: 01/01/2030\nAvailable Balance: AED 10527.04"
+    private val refundWordMerchant =
+        "Card Transaction\nCard ending with: 1111\nAmount: AED 40\nAt: REVERSAL STORE\nDate: 01/01/2030\nAvailable Balance: AED 10487.04"
     private val promo =
         "Earn 5% cashback on dining this weekend with your Dubai First card. T&Cs apply."
 }

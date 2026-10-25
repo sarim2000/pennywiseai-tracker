@@ -103,6 +103,7 @@ object GuideViews {
                 compare("CSV export", "100 rows a month", "Unlimited")
                 compare("Recurring transactions", "1", "Unlimited")
                 compare("Folder backup, merge accounts, tag analytics, webhooks", "No", "Yes")
+                compare("Claude, ChatGPT and the dashboard", "No", "Yes")
             }
             if (it) {
                 p { +"Already have a key from your purchase email? Enter it as shown above. F-Droid builds include every Pro feature for free." }
@@ -358,6 +359,26 @@ object GuideViews {
                 +" reads a PennyWise CSV back in, or any sheet with Date, Amount and Type columns. Free exports are capped at 100 rows a month."
             }
         },
+        Guide(
+            "ai-apps", "Your data", "Use Claude, ChatGPT or the dashboard",
+            "Ask Claude or ChatGPT about your spending, or see it on a computer. Your data stays on your phone.",
+            listOf(
+                Step("settings-ai", "Open AI access", "Settings → Connect Claude / ChatGPT.", 50, 90),
+                Step("ai-access", "Start an AI session", "Pick 15, 30 or 60 minutes, or tap the PennyWise AI tile in Quick Settings. AI apps can only read your data while a session is on.", 43, 34),
+                Step("ai-pairing-code", "Connect Claude or ChatGPT", "In Claude or ChatGPT, add a custom connector with the URL shown. When it asks you to sign in, tap Get pairing code and enter the 6 digits.", 22, 63),
+                Step("ai-pairing-code", "Or open the dashboard", "On a computer, open the dashboard address shown, click Connect to my phone and enter a pairing code.", 35, 95),
+            ),
+            "claude chatgpt mcp connector dashboard computer laptop desktop browser web pairing code session relay",
+            cover = "ai-access",
+        ) {
+            dl(classes = "defs") {
+                def("What they can read", "Transactions, account balances and subscriptions. Never SMS text, full account numbers or notes.")
+                def("Read-only", "AI apps and the dashboard can't add, change or delete anything.")
+                def("Connected apps", "Further down the same screen. Disconnect any app there.")
+                def("Your own relay", "Questions pass through PennyWise's relay, which stores nothing. For full control, run your own and enter it under Use your own relay.")
+            }
+            p { +"AI access is a Pro feature. F-Droid builds include it for free." }
+        },
     )
 
     private class Faq(val q: String, val k: String, val a: P.() -> Unit)
@@ -392,6 +413,11 @@ object GuideViews {
         },
         Faq("The AI model won't download, or chat is slow.", "ai model download slow chat stuck") {
             +"The download is about 1.5 GB, but it needs about 3 GB of free space while downloading, and a steady connection, so try Wi-Fi. Replies take a few seconds, longer on older phones."
+        },
+        Faq("Claude, ChatGPT or the dashboard says PennyWise isn't connected.", "claude chatgpt dashboard not connected session mcp") {
+            +"Pairing connects the app once; it can only read your data while an AI session is on. Start one in "
+            path("Settings → Connect Claude / ChatGPT")
+            +" or with the PennyWise AI tile in Quick Settings, wait for the notification to say Connected, then ask again."
         },
         Faq("A backup won't restore.", "restore import backup failed error") {
             +"Update PennyWise first; new versions always read older backups. If it still fails, ask on Discord with the error."

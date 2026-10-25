@@ -19,7 +19,8 @@ class BankNotificationConfigTest {
         "com.avanza.ambitwizfbl" to "Faysal Bank",
         "finansbank.enpara" to "Enpara",
         "com.enparabank.retail" to "Enpara",
-        "com.huntington.m" to "Huntington Bank"
+        "com.huntington.m" to "Huntington Bank",
+        "com.bankfab.pbg.ae.dubaifirst" to "Dubai First"
     )
 
     @Test
@@ -48,6 +49,39 @@ class BankNotificationConfigTest {
         val parsed = BankParserFactory.getParser(alias)?.parse(body, alias, 0L)
         assertEquals("17.07", parsed?.amount?.toPlainString())
         assertEquals("USD", parsed?.currency)
+    }
+
+    @Test
+    fun `dubai first notification parses`() {
+        val alias = BankNotificationConfig.senderAlias("com.bankfab.pbg.ae.dubaifirst")
+        val body = "Card Transaction\nCard ending with: 1111\nAmount: AED 58\nAt: TEST STORE\n" +
+            "Date: 01/01/2030\nAvailable Balance: AED 10527.04"
+        val parsed = BankParserFactory.getParser(alias)?.parse(body, alias, 0L)
+        assertEquals("58", parsed?.amount?.toPlainString())
+        assertEquals("AED", parsed?.currency)
+        assertEquals("TEST STORE", parsed?.merchant)
+    }
+
+    @Test
+    fun `title is kept in front of the body`() {
+        assertEquals("Card Transaction Refund\nAmount: AED 5",
+            BankNotificationConfig.withTitle("Card Transaction Refund", "Amount: AED 5"))
+        // Not duplicated when the body already carries it, and no stray newline when absent.
+        assertEquals("Card Transaction\nAmount: AED 5",
+            BankNotificationConfig.withTitle("Card Transaction", "Card Transaction\nAmount: AED 5"))
+        assertEquals("Amount: AED 5", BankNotificationConfig.withTitle(null, "Amount: AED 5"))
+        assertEquals("Title only", BankNotificationConfig.withTitle("Title only", ""))
+    }
+
+    @Test
+    fun `dubai first refund heading from the title stays a refund`() {
+        val alias = BankNotificationConfig.senderAlias("com.bankfab.pbg.ae.dubaifirst")
+        val body = BankNotificationConfig.withTitle(
+            "Card Transaction Refund",
+            "Card ending with: 1111\nAmount: AED 58\nAt: TEST STORE\nDate: 01/01/2030\nAvailable Balance: AED 10585.04"
+        )
+        val parsed = BankParserFactory.getParser(alias)?.parse(body, alias, 0L)
+        assertEquals(com.pennywiseai.parser.core.TransactionType.INCOME, parsed?.type)
     }
 
     @Test

@@ -6,11 +6,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
@@ -69,11 +71,16 @@ class SubscriptionsViewModel @Inject constructor(
                 // single figure is honest. Native mode keeps each currency apart —
                 // a ₹ + $ mix can't be one figure — so we expose a per-currency map
                 // the header renders as "₹399 · $30" (no sub silently dropped).
+                // The total is what you pay per month: expenses only (a salary
+                // isn't a cost), each normalized by its billing cycle.
+                val monthlyCosts = subscriptions
+                    .filter { it.direction == SubscriptionDirection.EXPENSE }
+                    .map { it to SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
                 val totalMonthlyAmount = if (isUnified) {
                     var total = BigDecimal.ZERO
-                    for (sub in subscriptions) {
+                    for ((sub, monthly) in monthlyCosts) {
                         total += currencyConversionService.convertAmountOrNull(
-                            sub.amount, sub.currency, displayCurrency
+                            monthly, sub.currency, displayCurrency
                         ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
@@ -83,7 +90,7 @@ class SubscriptionsViewModel @Inject constructor(
                 val totalByCurrency: Map<String, Money> = if (isUnified) {
                     emptyMap()
                 } else {
-                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
+                    monthlyCosts.sumByCurrency({ it.first.currency }, { it.second })
                 }
 
                 val convertedAmounts = if (isUnified) {

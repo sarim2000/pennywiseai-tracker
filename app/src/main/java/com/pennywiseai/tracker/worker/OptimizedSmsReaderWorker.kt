@@ -842,14 +842,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
 
                 val matchedSub = subscriptionRepository.matchTransactionToSubscription(
-                    withRules.merchantName, withRules.amount
+                    withRules.merchantName, withRules.amount, withRules.currency
                 )
-                val finalEntity = if (matchedSub != null) {
-                    subscriptionRepository.updateNextPaymentDateAfterCharge(
-                        matchedSub.id, withRules.dateTime.toLocalDate()
-                    )
-                    withRules.copy(isRecurring = true)
-                } else withRules
+                // The schedule advances only once the row commits (below) — a skipped
+                // duplicate or failed insert must leave next_payment_date alone.
+                val finalEntity = if (matchedSub != null) withRules.copy(isRecurring = true) else withRules
 
                 val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
                 if (duplicate != null) {
@@ -877,6 +874,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
                 val rowId = transactionRepository.insertTransaction(finalEntity)
                 if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
+                matchedSub?.let { subscriptionRepository.recordCharge(it, finalEntity.dateTime.toLocalDate()) }
 
                 saveRuleApplications(rowId, ruleApps)
                 pendingBalance = parsedInput.atEnqueuedAccount(parsed, finalEntity)?.let {

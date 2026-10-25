@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.usecase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -98,6 +99,8 @@ class AddTransactionUseCase @Inject constructor(
                     amount = amount,
                     nextPaymentDate = nextPaymentDate,
                     state = SubscriptionState.ACTIVE,
+                    direction = if (type == TransactionType.INCOME) SubscriptionDirection.INCOME else SubscriptionDirection.EXPENSE,
+                    lastPaidAt = date.toLocalDate(),
                     // Carry the funding account onto the auto-created subscription so
                     // marking it paid later moves that account's balance — otherwise
                     // this whole class of subscriptions silently skips the #570 fix.

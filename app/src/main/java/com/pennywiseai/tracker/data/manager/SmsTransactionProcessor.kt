@@ -234,7 +234,8 @@ class SmsTransactionProcessor @Inject constructor(
             // Check if this transaction matches an active subscription
             val matchedSubscription = subscriptionRepository.matchTransactionToSubscription(
                 entityWithRules.merchantName,
-                entityWithRules.amount
+                entityWithRules.amount,
+                entityWithRules.currency
             )
             val finalEntity = if (matchedSubscription != null) {
                 Log.d(TAG, "Matched subscription ${matchedSubscription.id}")
@@ -251,8 +252,8 @@ class SmsTransactionProcessor @Inject constructor(
                 database.withTransaction {
                     val id = transactionRepository.insertTransaction(finalEntity)
                     if (id != -1L) {
-                        subscriptionRepository.updateNextPaymentDateAfterCharge(
-                            matchedSubscription.id,
+                        subscriptionRepository.recordCharge(
+                            matchedSubscription,
                             finalEntity.dateTime.toLocalDate()
                         )
                     }

@@ -37,15 +37,6 @@ interface SubscriptionDao {
     """)
     suspend fun getDueIncomeSubscriptions(date: LocalDate): List<SubscriptionEntity>
     
-    /**
-     * Used by the SMS-debit matcher only — explicitly filtered to
-     * EXPENSE-direction so an incoming bank-debit SMS doesn't accidentally
-     * match an INCOME-direction subscription (#371). INCOME subs are
-     * advanced by the phantom auto-creator, not by SMS match.
-     */
-    @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'ACTIVE' AND direction = 'EXPENSE' LIMIT 1")
-    suspend fun getActiveSubscriptionByMerchant(merchantName: String): SubscriptionEntity?
-    
     @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'HIDDEN' LIMIT 1")
     suspend fun getHiddenSubscriptionByMerchant(merchantName: String): SubscriptionEntity?
     

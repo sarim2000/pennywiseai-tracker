@@ -4,6 +4,8 @@ import com.pennywiseai.tracker.data.database.entity.currentNameFor
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.parser.core.bank.HDFCBankParser
 import com.pennywiseai.parser.core.bank.IndianBankParser
 import com.pennywiseai.parser.core.bank.SBIBankParser
@@ -94,35 +96,39 @@ class SubscriptionRepository @Inject constructor(
     ): Long = createOrUpdateFromMandate(eMandateInfo, bankName, smsBody)
     
     /**
-     * Checks if a transaction matches any active subscription
+     * Active EXPENSE subscriptions billed by [merchantName] in [currency]. Merchant
+     * names compare loosely ([RecurringCharge.sameMerchant]) because the mandate
+     * SMS and the debit SMS rarely spell the merchant the same way.
      */
+    suspend fun activeExpenseSubscriptionsFor(
+        merchantName: String,
+        currency: String
+    ): List<SubscriptionEntity> =
+        subscriptionDao.getSubscriptionsByStateList(SubscriptionState.ACTIVE).filter {
+            it.direction == SubscriptionDirection.EXPENSE &&
+                it.currency.equals(currency, ignoreCase = true) &&
+                RecurringCharge.sameMerchant(it.merchantName, merchantName)
+        }
+
+    /** The active subscription this charge pays, if any — same merchant, currency and amount (±5%). */
     suspend fun matchTransactionToSubscription(
         merchantName: String,
-        amount: BigDecimal
-    ): SubscriptionEntity? {
-        val activeSubscription = subscriptionDao.getActiveSubscriptionByMerchant(merchantName)
-        
-        // Check if amounts match (with some tolerance for small variations)
-        return if (activeSubscription != null && 
-                   areAmountsEqual(activeSubscription.amount, amount)) {
-            activeSubscription
-        } else {
-            null
-        }
-    }
-    
+        amount: BigDecimal,
+        currency: String
+    ): SubscriptionEntity? =
+        activeExpenseSubscriptionsFor(merchantName, currency)
+            .firstOrNull { RecurringCharge.sameAmount(it.amount, amount) }
+
     /**
-     * Updates the next payment date after a subscription charge fires.
-     * Advances by the subscription's persisted [SubscriptionEntity.billingCycle]
-     * (Weekly / Monthly / Quarterly / Semi-Annual / Annual). Previously this
-     * hard-coded `+30 days`, silently ignoring the user's chosen cycle (#371).
+     * A bank charge paid [subscription]'s cycle: stamp `lastPaidAt` (drives the
+     * "Paid" badge) and advance the schedule by its billing cycle (#371). Both
+     * only move forward, so re-scanning an older SMS can't rewind the schedule.
      */
-    suspend fun updateNextPaymentDateAfterCharge(
-        subscriptionId: Long,
-        chargeDate: LocalDate = LocalDate.now()
-    ) {
-        val sub = subscriptionDao.getSubscriptionById(subscriptionId) ?: return
-        subscriptionDao.updateNextPaymentDate(subscriptionId, advance(chargeDate, sub.billingCycle))
+    suspend fun recordCharge(subscription: SubscriptionEntity, chargeDate: LocalDate) {
+        val advanced = advance(chargeDate, subscription.billingCycle)
+        val next = subscription.nextPaymentDate?.takeIf { it.isAfter(advanced) } ?: advanced
+        val paidAt = subscription.lastPaidAt?.takeIf { it.isAfter(chargeDate) } ?: chargeDate
+        subscriptionDao.markPaid(subscription.id, paidAt, next)
     }
 
     /**
@@ -155,13 +161,6 @@ class SubscriptionRepository @Inject constructor(
     suspend fun markPaid(subscriptionId: Long, paidAt: LocalDate, nextPaymentDate: LocalDate) =
         subscriptionDao.markPaid(subscriptionId, paidAt, nextPaymentDate)
     
-    
-    private fun areAmountsEqual(amount1: BigDecimal, amount2: BigDecimal): Boolean {
-        // Allow for small variations (up to 5%)
-        val tolerance = amount1.multiply(BigDecimal("0.05"))
-        val diff = amount1.subtract(amount2).abs()
-        return diff <= tolerance
-    }
     
     /**
      * Creates or updates a subscription from Indian Bank Mandate info

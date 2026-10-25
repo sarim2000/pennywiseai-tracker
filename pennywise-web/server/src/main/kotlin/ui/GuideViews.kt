@@ -361,7 +361,7 @@ object GuideViews {
         },
         Guide(
             "ai-apps", "Your data", "Use Claude, ChatGPT or the dashboard",
-            "Ask Claude or ChatGPT about your spending, or see it on a computer. Your data stays on your phone.",
+            "Ask Claude or ChatGPT about your spending, or see it on a computer. Your data is stored only on your phone; each answer is sent to the app that asked.",
             listOf(
                 Step("settings-ai", "Open AI access", "Settings → Connect Claude / ChatGPT.", 50, 90),
                 Step("ai-access", "Start an AI session", "Pick 15, 30 or 60 minutes, or tap the PennyWise AI tile in Quick Settings. AI apps can only read your data while a session is on.", 43, 34),
@@ -375,7 +375,8 @@ object GuideViews {
                 def("What they can read", "Transactions, account balances and subscriptions. Never SMS text, full account numbers or notes.")
                 def("Read-only", "AI apps and the dashboard can't add, change or delete anything.")
                 def("Connected apps", "Further down the same screen. Disconnect any app there.")
-                def("Your own relay", "Questions pass through PennyWise's relay, which stores nothing. For full control, run your own and enter it under Use your own relay.")
+                def("Where answers go", "Questions and answers pass through PennyWise's relay, which never stores or logs them; it keeps only a random ID for your phone and the list of connected apps. The AI app's provider, for example Anthropic or OpenAI, sees the answers it receives.")
+                def("Your own relay", "For full control, run the open-source relay yourself and enter its address under Use your own relay.")
             }
             p { +"AI access is a Pro feature. F-Droid builds include it for free." }
         },

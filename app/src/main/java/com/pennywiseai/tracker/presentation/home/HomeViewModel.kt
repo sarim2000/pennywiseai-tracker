@@ -1708,7 +1708,7 @@ class HomeViewModel @Inject constructor(
             val daysElapsed = daysElapsedFor(group.budget)
             val catSpending = group.categories.map { cat ->
                 val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
-                val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
+                val convertedBudget = currencyConversionService.convertAmountOrNull(cat.budgetAmount, baseCurrency, displayCurrency) ?: BigDecimal.ZERO
                 val effectiveBudget = convertedBudget +
                     (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
@@ -1725,9 +1725,9 @@ class HomeViewModel @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val convertedGroupLimit = currencyConversionService.convertAmount(
+            val convertedGroupLimit = currencyConversionService.convertAmountOrNull(
                 group.budget.limitAmount, baseCurrency, displayCurrency
-            )
+            ) ?: BigDecimal.ZERO
             // "Category Limits" are optional — the group-level limit is the
             // source of truth when set (including when isTrackingAll), with
             // the per-cat sum as a fallback for budgets that only define

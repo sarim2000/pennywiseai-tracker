@@ -1,4 +1,4 @@
-• Goals and Budgets — set spending goals, track progress, and add transactions to a goal directly from the transaction detail screen
-• Fixed a crash that prevented launch on Android 13 and older devices after the last database migration
-• New Spending filter in Analytics combines Expense and Card transactions into a single view
-• Fixed Tamilnad Mercantile Bank SMS messages being incorrectly captured by Thailand's TTB parser
+• Import bank statements from Excel or CSV files, with column mapping, a live preview, and a balance check to confirm everything landed correctly
+• Safe-to-spend budget and month-end spending forecast now live on the Home screen
+• On-device AI chat on iOS (Foundation Models) with confirm cards before any change, plus AI fallback for SMS messages from unrecognised banks
+• Connect Claude or ChatGPT to your on-phone data and view a live dashboard — Pro feature

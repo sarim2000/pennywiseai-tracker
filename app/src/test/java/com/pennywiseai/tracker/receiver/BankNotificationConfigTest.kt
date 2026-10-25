@@ -19,7 +19,8 @@ class BankNotificationConfigTest {
         "com.avanza.ambitwizfbl" to "Faysal Bank",
         "finansbank.enpara" to "Enpara",
         "com.enparabank.retail" to "Enpara",
-        "com.huntington.m" to "Huntington Bank"
+        "com.huntington.m" to "Huntington Bank",
+        "com.bankfab.pbg.ae.dubaifirst" to "Dubai First"
     )
 
     @Test
@@ -48,6 +49,17 @@ class BankNotificationConfigTest {
         val parsed = BankParserFactory.getParser(alias)?.parse(body, alias, 0L)
         assertEquals("17.07", parsed?.amount?.toPlainString())
         assertEquals("USD", parsed?.currency)
+    }
+
+    @Test
+    fun `dubai first notification parses`() {
+        val alias = BankNotificationConfig.senderAlias("com.bankfab.pbg.ae.dubaifirst")
+        val body = "Card Transaction\nCard ending with: 1111\nAmount: AED 58\nAt: TEST STORE\n" +
+            "Date: 01/01/2030\nAvailable Balance: AED 10527.04"
+        val parsed = BankParserFactory.getParser(alias)?.parse(body, alias, 0L)
+        assertEquals("58", parsed?.amount?.toPlainString())
+        assertEquals("AED", parsed?.currency)
+        assertEquals("TEST STORE", parsed?.merchant)
     }
 
     @Test

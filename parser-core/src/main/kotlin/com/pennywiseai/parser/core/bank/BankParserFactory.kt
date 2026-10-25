@@ -149,6 +149,7 @@ object BankParserFactory {
         CIMBThaiParser(),  // CIMB Thai (Thailand)
         KTCCreditCardParser(),  // KTC Credit Card (Thailand)
         TBankParser(),  // T-Bank / Tinkoff (Russia)
+        DubaiFirstParser(),  // Dubai First (UAE credit cards, app notifications)
         ChaseUKParser(),  // Chase UK (GBP, app notifications) — before the US Chase parser
         ChaseBankParser(),  // Chase Bank (USA)
         Trading212Parser(),  // Trading 212 (app notifications)

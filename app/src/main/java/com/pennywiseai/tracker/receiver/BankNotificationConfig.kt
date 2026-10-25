@@ -24,7 +24,9 @@ object BankNotificationConfig {
         "com.avuscapital.trading212" to "Trading212",
         // Huntington (USA) – app notifications use the same wording as its texts;
         // alias must match HuntingtonBankParser.canHandle()
-        "com.huntington.m" to "Huntington"    // Huntington Mobile Banking
+        "com.huntington.m" to "Huntington",   // Huntington Mobile Banking
+        // Dubai First (UAE credit cards, a FAB brand) – alias must match DubaiFirstParser.canHandle()
+        "com.bankfab.pbg.ae.dubaifirst" to "DubaiFirst"
     )
 
     /** Sender aliases notification-booked transactions are saved under. */

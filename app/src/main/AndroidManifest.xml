@@ -176,6 +176,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- "Bill due tomorrow" reminder actions: paid in cash / skip this time -->
+        <receiver
+            android:name=".receiver.BillReminderActionReceiver"
+            android:exported="false" />
+
         <!-- Notification listener for bank app notifications -->
         <service
             android:name=".receiver.BankNotificationListenerService"

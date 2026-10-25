@@ -91,6 +91,8 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // off still creates anything that came due while it was down.
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
+        // "Bill due tomorrow" reminders, each morning at 9.
+        com.pennywiseai.tracker.worker.BillReminderWorker.enqueuePeriodic(this)
         // The evening recap is opt-in: scheduled only while its switch is on.
         applicationScope.launch {
             com.pennywiseai.tracker.worker.DailySummaryWorker.sync(

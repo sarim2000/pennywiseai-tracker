@@ -78,9 +78,10 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
         //
         // Real semantic: a subscription can't legitimately be paid twice
         // within one billing cycle. So if today < lastPaidAt + 1 cycle,
-        // it's a re-tap of the cycle we just paid.
+        // it's a re-tap of the cycle we just paid. One day of grace, so paying
+        // from the "due tomorrow" reminder works after an on-time last cycle.
         sub.lastPaidAt?.let { lastPaid ->
-            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
+            val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle).minusDays(1)
             if (LocalDate.now().isBefore(nextLegitMark)) {
                 return Result.AlreadyMarked(nextPaymentDate = scheduled)
             }

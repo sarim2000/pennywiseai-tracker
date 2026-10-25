@@ -1,9 +1,9 @@
-What's new in 1.1:
+What's new in 1.2:
 
-• Import slice small finance bank statement PDFs — including multi-page statements, with pot transfers and round-ups tracked as transfers, not spending
-• Open any statement PDF with PennyWise straight from Files, Mail, or a share sheet
-• New quick-action button on Home: add a transaction or import a statement in one tap
-• Choose your display currency in Settings (plus new currencies: ARS, CLP, UYU)
-• Smarter Analytics: income vs expenses with a trend against the previous period, and tap any category or merchant to see its transactions
-• Cleaner transaction filters — one compact row of dropdown chips
-• Accuracy fixes: transfers no longer count as spending in totals or budgets, and Smart Rules now auto-categorize statement imports
+• Save bank SMS automatically: set up a Shortcuts "Message" automation and PennyWise books the transaction for you. The in-app guide walks you through it
+• Ask PennyWise AI about your money, fully on your iPhone (iOS 26 with Apple Intelligence). It can also draft transactions, which you confirm before anything is saved
+• Messages from banks PennyWise doesn't know yet can be read by on-device AI, then checked before they're saved
+• Back Tap and Shortcuts: log an expense in a couple of taps
+• Totals in different currencies are converted to your display currency instead of being mixed
+• Budgets show how many days are left in the period
+• Fixes: app lock now shows on launch, plus corrected money totals, links and layout

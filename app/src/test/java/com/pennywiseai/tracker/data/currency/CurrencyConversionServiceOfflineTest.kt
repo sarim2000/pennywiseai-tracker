@@ -12,6 +12,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
+import java.util.concurrent.CountDownLatch
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -50,24 +51,41 @@ class CurrencyConversionServiceOfflineTest {
     @Test
     fun `concurrent convert calls do not corrupt the rate cache`() = runBlocking {
         val dao = mockk<ExchangeRateDao>(relaxed = true)
-        val rate = BigDecimal("83.50")
         val now = LocalDateTime.now()
-        val entity = ExchangeRateEntity(
-            fromCurrency = "USD", toCurrency = "INR", rate = rate,
-            provider = "test", updatedAt = now,
-            expiresAt = now.plusDays(1)
+        val usdInr = ExchangeRateEntity(
+            fromCurrency = "USD", toCurrency = "INR", rate = BigDecimal("83.50"),
+            provider = "test", updatedAt = now, expiresAt = now.plusDays(1)
         )
-        coEvery { dao.getExchangeRate("USD", "INR", any()) } returns entity
+        val eurInr = ExchangeRateEntity(
+            fromCurrency = "EUR", toCurrency = "INR", rate = BigDecimal("90.00"),
+            provider = "test", updatedAt = now, expiresAt = now.plusDays(1)
+        )
+        val gbpInr = ExchangeRateEntity(
+            fromCurrency = "GBP", toCurrency = "INR", rate = BigDecimal("105.00"),
+            provider = "test", updatedAt = now, expiresAt = now.plusDays(1)
+        )
+        val pairs = mapOf("USD" to usdInr, "EUR" to eurInr, "GBP" to gbpInr)
+        val latch = CountDownLatch(1)
+        coEvery { dao.getExchangeRate(any(), any(), any()) } answers { latch.await(); pairs[firstArg<String>()]!! }
         coEvery { dao.getExchangeRateIgnoringExpiry(any(), any()) } returns null
         val provider = mockk<ExchangeRateProvider>()
         coEvery { provider.fetchAllExchangeRatesWithMetadata(any()) } returns null // no network needed
         val service = CurrencyConversionService(dao, provider, mockk<UserPreferencesRepository>(relaxed = true))
 
-        val results = withContext(Dispatchers.Default) {
-            (1..100).map { async { service.getExchangeRate("USD", "INR") } }.awaitAll()
+        val jobs = listOf("USD", "EUR", "GBP").flatMap { pair ->
+            (1..33).map { async(Dispatchers.Default) { service.getExchangeRate(pair, "INR") } }
+        }
+        latch.countDown() // release all callers at once so they write to the cache concurrently
+        val results = jobs.awaitAll()
+
+        assertEquals(99, results.size)
+        results.forEachIndexed { i, r ->
+            val expectedPair = pairs.keys.elementAt(i / 33)
+            assertEquals(pairs[expectedPair]?.rate, r)
         }
 
-        assertEquals(100, results.size)
-        assertTrue(results.all { r -> r == rate })
+        coVerify(atLeast = 1) { dao.getExchangeRate("USD", "INR", any()) }
+        coVerify(atLeast = 1) { dao.getExchangeRate("EUR", "INR", any()) }
+        coVerify(atLeast = 1) { dao.getExchangeRate("GBP", "INR", any()) }
     }
 }

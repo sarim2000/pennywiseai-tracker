@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.utils.Money
@@ -117,13 +118,14 @@ class SubscriptionsViewModel @Inject constructor(
                 // Today-anchored cycle check (NOT schedule-anchored — the
                 // schedule slides forward every time we advance, which used
                 // to break this guard once any sub had been marked once).
-                // Semantic: a sub is "paid this cycle" if today is still
-                // within one billing cycle of lastPaidAt.
+                // Same rule as the mark-paid button (RecurringCharge.isRetap),
+                // so a bill the button would accept never reads as paid.
                 val today = java.time.LocalDate.now()
                 val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
                     sub.lastPaidAt?.let { lastPaid ->
                         val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
-                        today.isBefore(nextLegitMark)
+                        sub.nextPaymentDate?.let { RecurringCharge.isRetap(nextLegitMark, it, today) }
+                            ?: today.isBefore(nextLegitMark)
                     } ?: false
                 }
                 val (paid, unpaid) = subscriptions.partition(isPaidThisCycle)

@@ -64,4 +64,15 @@ object RecurringCharge {
         return chargeAmount >= billedAmount.multiply(BigDecimal("0.5")) &&
             chargeAmount <= billedAmount.multiply(BigDecimal("2"))
     }
+
+    /**
+     * An in-app "mark paid" of the cycle due [scheduled] repeats the payment just
+     * made: a full cycle hasn't passed since it ([cycleAfterLastPaid]) and the
+     * cycle isn't due within [EARLY_PAY_DAYS] either. The second check lets a
+     * bill paid late last cycle still be paid on time this one.
+     */
+    fun isRetap(cycleAfterLastPaid: LocalDate, scheduled: LocalDate, today: LocalDate): Boolean =
+        today.isBefore(cycleAfterLastPaid) && today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS))
+
+    const val EARLY_PAY_DAYS = 3L
 }

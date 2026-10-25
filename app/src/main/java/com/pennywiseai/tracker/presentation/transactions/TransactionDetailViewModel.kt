@@ -182,6 +182,19 @@ class TransactionDetailViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    // A refund can give back to any expense category, not only budgeted ones
+    // (#983) — Analytics and Home net it off whichever category it names.
+    // Budget categories stay first since they're the likely pick.
+    val refundCategories: StateFlow<List<String>> = combine(
+        activeBudgetCategories,
+        categoryRepository.getVisibleExpenseCategories()
+    ) { budget, expense -> (budget + expense.map { it.name }).distinct() }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     // Transaction group state
     val availableGroups: StateFlow<List<TransactionGroupEntity>> = transactionGroupRepository.getAllGroups()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -720,8 +733,14 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun updateBudgetImpactType(type: BudgetImpactType?) {
         _budgetImpactType.value = type
-        if (type == null) _budgetCategory.value = null
-        _editableTransaction.update { it?.copy(budgetImpactType = type, budgetCategory = if (type == null) null else it.budgetCategory) }
+        // Extra budget only applies to budgeted categories; drop a refund-only pick on switch.
+        val kept = when {
+            type == null -> null
+            type == BudgetImpactType.ADD_TO_LIMIT && _budgetCategory.value !in activeBudgetCategories.value -> null
+            else -> _budgetCategory.value
+        }
+        _budgetCategory.value = kept
+        _editableTransaction.update { it?.copy(budgetImpactType = type, budgetCategory = kept) }
     }
 
     fun updateBudgetCategory(category: String?) {

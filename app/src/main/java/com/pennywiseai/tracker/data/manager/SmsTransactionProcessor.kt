@@ -72,8 +72,13 @@ class SmsTransactionProcessor @Inject constructor(
          * opposed to a parse or storage failure. Callers that queue a message
          * for retry should treat this as settled, not as something to try again.
          */
-        val intentionallySkipped: Boolean = false
+        val intentionallySkipped: Boolean = false,
+        /** Set when this charge paid a subscription at a new price. */
+        val priceChange: PriceChange? = null
     )
+
+    /** [subscriptionName] used to bill [previousAmount]; the saved charge carries the new amount and currency. */
+    data class PriceChange(val subscriptionName: String, val previousAmount: BigDecimal)
 
     /**
      * Parses and saves a transaction from an SMS message.
@@ -231,12 +236,22 @@ class SmsTransactionProcessor @Inject constructor(
                 Log.d(TAG, "Applied ${ruleApplications.size} rules to transaction")
             }
 
-            // Check if this transaction matches an active subscription
-            val matchedSubscription = subscriptionRepository.matchTransactionToSubscription(
+            // Check if this transaction matches an active subscription — at its
+            // price, or failing that, due now at a new price.
+            val exactSubscription = subscriptionRepository.matchTransactionToSubscription(
                 entityWithRules.merchantName,
                 entityWithRules.amount,
                 entityWithRules.currency
             )
+            val repricedSubscription = if (exactSubscription == null) {
+                subscriptionRepository.priceChangedSubscriptionFor(
+                    entityWithRules.merchantName,
+                    entityWithRules.amount,
+                    entityWithRules.currency,
+                    entityWithRules.dateTime.toLocalDate()
+                )
+            } else null
+            val matchedSubscription = exactSubscription ?: repricedSubscription
             val finalEntity = if (matchedSubscription != null) {
                 Log.d(TAG, "Matched subscription ${matchedSubscription.id}")
                 entityWithRules.copy(isRecurring = true)
@@ -252,10 +267,12 @@ class SmsTransactionProcessor @Inject constructor(
                 database.withTransaction {
                     val id = transactionRepository.insertTransaction(finalEntity)
                     if (id != -1L) {
-                        subscriptionRepository.recordCharge(
-                            matchedSubscription,
-                            finalEntity.dateTime.toLocalDate()
-                        )
+                        val chargeDate = finalEntity.dateTime.toLocalDate()
+                        if (repricedSubscription != null) {
+                            subscriptionRepository.recordPriceChange(repricedSubscription, finalEntity.amount, chargeDate)
+                        } else {
+                            subscriptionRepository.recordCharge(matchedSubscription, chargeDate)
+                        }
                     }
                     id
                 }
@@ -285,7 +302,11 @@ class SmsTransactionProcessor @Inject constructor(
                 // Trigger widget refresh for the transaction-derived widgets
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 
-                return ProcessingResult(true, transactionId = rowId)
+                return ProcessingResult(
+                    true,
+                    transactionId = rowId,
+                    priceChange = repricedSubscription?.let { PriceChange(it.merchantName, it.amount) }
+                )
             } else {
                 Log.d(TAG, "Transaction already exists (duplicate): ${entity.transactionHash}")
                 return ProcessingResult(false, reason = "Duplicate transaction")

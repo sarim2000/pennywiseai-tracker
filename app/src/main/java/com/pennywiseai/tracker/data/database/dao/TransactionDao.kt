@@ -647,4 +647,28 @@ interface TransactionDao {
         dateStart: LocalDateTime,
         dateEnd: LocalDateTime
     ): List<TransactionEntity>
+
+    /**
+     * Live rows of [types] in [currency] from [from] up to (not including)
+     * [before], newest first, minus [excludeId]: the history a repeat-charge
+     * check scans. Merchant and amount compare loosely, so that's done by the
+     * caller.
+     */
+    @Query("""
+        SELECT * FROM transactions
+        WHERE is_deleted = 0
+          AND currency = :currency
+          AND transaction_type IN (:types)
+          AND date_time >= :from
+          AND date_time < :before
+          AND id != :excludeId
+        ORDER BY date_time DESC
+    """)
+    suspend fun getChargesInCurrencyBetween(
+        currency: String,
+        types: List<String>,
+        from: LocalDateTime,
+        before: LocalDateTime,
+        excludeId: Long
+    ): List<TransactionEntity>
 }

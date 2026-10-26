@@ -117,6 +117,7 @@ fun SafeToSpendCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        CappedLine(primary)
         if (state.others.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.safe_to_spend_other_currencies, state.others.formatAmounts()),
@@ -127,9 +128,22 @@ fun SafeToSpendCard(
     }
 }
 
+/** "Capped by your budget: ₹5,000 left", only when the budget sets the figure. */
+@Composable
+private fun CappedLine(s: SafeToSpend) {
+    if (!s.isCapped) return
+    Text(
+        text = stringResource(R.string.safe_to_spend_capped, s.formatAmount()),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
 @Composable
 private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
     val perDay = s.perDay
+    // Budget used up: CappedLine says so, "nothing left after bills" would be wrong.
+    if (perDay == null && s.isCapped) return
     val short = s.amount.signum() < 0
     Text(
         text = when {
@@ -187,6 +201,7 @@ fun SafeToSpendSheet(
                 else MaterialTheme.colorScheme.onSurface
             )
             PerDayLine(primary, until, dueBefore)
+            CappedLine(primary)
 
             SectionHeaderV2(
                 title = stringResource(R.string.safe_to_spend_accounts),

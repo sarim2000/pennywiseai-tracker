@@ -77,7 +77,8 @@ data class Bill(val name: String, val amount: Money, val dueDate: LocalDate)
 
 /**
  * Money free to spend in one currency until the period ends: spendable balance
- * minus the bills due before then. [amount] can be negative (bills exceed balance).
+ * minus the bills due before then, and never more than [budgetLeft]. [amount] can
+ * be negative (bills exceed balance).
  */
 data class SafeToSpend(
     val currency: String,
@@ -85,8 +86,13 @@ data class SafeToSpend(
     val bills: BigDecimal,
     /** Days left in the window, today included. */
     val days: Int,
+    /** What's left in the user's overall budget, never below 0; null when there's none. */
+    val budgetLeft: BigDecimal? = null,
 ) {
-    val amount: BigDecimal get() = balance - bills
+    /** True when the budget, not the balance, sets [amount]. */
+    val isCapped: Boolean get() = budgetLeft != null && budgetLeft < balance - bills
+
+    val amount: BigDecimal get() = budgetLeft?.let { minOf(it, balance - bills) } ?: (balance - bills)
 
     /** Even daily share of [amount]; null when nothing is left. Rounded down, so it never overstates. */
     val perDay: BigDecimal?
@@ -95,13 +101,15 @@ data class SafeToSpend(
     companion object {
         /**
          * One result per currency: amounts are only ever netted within a currency.
-         * Bills outside today..[periodEnd] are ignored.
+         * Bills outside today..[periodEnd] are ignored. [budgetLeft] caps only the
+         * result in its own currency; a negative one caps at 0.
          */
         fun calculate(
             balances: List<Money>,
             bills: List<Bill>,
             today: LocalDate,
             periodEnd: LocalDate,
+            budgetLeft: Money? = null,
         ): List<SafeToSpend> {
             val days = (ChronoUnit.DAYS.between(today, periodEnd) + 1).toInt().coerceAtLeast(1)
             val due = billsInWindow(bills, today, periodEnd)
@@ -112,6 +120,7 @@ data class SafeToSpend(
                     balance = balances.filter { it.currency == c }.fold(BigDecimal.ZERO) { a, m -> a + m.amount },
                     bills = due.filter { it.amount.currency == c }.fold(BigDecimal.ZERO) { a, b -> a + b.amount.amount },
                     days = days,
+                    budgetLeft = budgetLeft?.takeIf { it.currency == c }?.amount?.max(BigDecimal.ZERO),
                 )
             }
         }

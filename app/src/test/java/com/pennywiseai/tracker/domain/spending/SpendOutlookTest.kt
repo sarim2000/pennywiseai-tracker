@@ -5,7 +5,9 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -121,6 +123,50 @@ class SpendOutlookTest {
         val r = SafeToSpend.calculate(listOf(Money(d("300"), "INR")), emptyList(), end, end).single()
         assertEquals(1, r.days)
         assertEquals(d("300"), r.perDay)
+    }
+
+    private fun capped(budgetLeft: Money?) = SafeToSpend.calculate(
+        listOf(Money(d("24000"), "INR")),
+        listOf(Bill("Netflix", Money(d("649"), "INR"), today)),
+        today, end, budgetLeft,
+    ).single()
+
+    @Test
+    fun `budget left caps safe to spend and its daily figure`() {
+        val r = capped(Money(d("5000"), "INR"))
+        assertTrue(r.isCapped)
+        assertEquals(d("5000"), r.amount)
+        // 5000 / 9 days = 555.6, rounded down.
+        assertEquals(d("555"), r.perDay)
+    }
+
+    @Test
+    fun `no budget means no cap`() {
+        val r = capped(null)
+        assertFalse(r.isCapped)
+        assertEquals(d("23351"), r.amount)
+    }
+
+    @Test
+    fun `budget left above the balance does not cap`() {
+        val r = capped(Money(d("50000"), "INR"))
+        assertFalse(r.isCapped)
+        assertEquals(d("23351"), r.amount)
+    }
+
+    @Test
+    fun `budget in another currency is ignored`() {
+        val r = capped(Money(d("50"), "USD"))
+        assertFalse(r.isCapped)
+        assertEquals(d("23351"), r.amount)
+    }
+
+    @Test
+    fun `budget overspent caps at zero`() {
+        val r = capped(Money(d("-1200"), "INR"))
+        assertTrue(r.isCapped)
+        assertEquals(BigDecimal.ZERO, r.amount)
+        assertNull(r.perDay)
     }
 
     @Test

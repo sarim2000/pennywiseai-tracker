@@ -329,4 +329,27 @@ interface AccountBalanceDao {
         AND transaction_id IS NOT NULL
     """)
     suspend fun countTransactionLinkedBalances(bankName: String, accountLast4: String): Int
+
+    /**
+     * One row per distinct (account, source_type, did-the-linked-SMS-state-a-balance)
+     * — the input to [com.pennywiseai.tracker.utils.BalanceCalculator.unanchoredAccounts].
+     * `statedBalance` is the linked transaction's `balance_after IS NOT NULL`, or
+     * null when the row has no (surviving) transaction. (#982)
+     */
+    @Query("""
+        SELECT DISTINCT ab.bank_name AS bankName, ab.account_last4 AS accountLast4,
+            ab.source_type AS sourceType,
+            CASE WHEN t.id IS NULL THEN NULL WHEN t.balance_after IS NULL THEN 0 ELSE 1 END AS statedBalance
+        FROM account_balances ab
+        LEFT JOIN transactions t ON t.id = ab.transaction_id
+    """)
+    fun getBalanceSourceRows(): Flow<List<BalanceSourceRow>>
 }
+
+/** See [AccountBalanceDao.getBalanceSourceRows]. */
+data class BalanceSourceRow(
+    val bankName: String,
+    val accountLast4: String,
+    val sourceType: String?,
+    val statedBalance: Boolean?
+)

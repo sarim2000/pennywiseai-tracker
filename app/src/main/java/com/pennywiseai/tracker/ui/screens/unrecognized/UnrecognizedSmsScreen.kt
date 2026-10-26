@@ -32,6 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.navigation.AddTransaction
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -47,9 +51,11 @@ import java.time.format.DateTimeFormatter
 fun UnrecognizedSmsScreen(
     modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit,
+    onAddSuggestion: (AddTransaction) -> Unit,
     viewModel: UnrecognizedSmsViewModel = hiltViewModel()
 ) {
     val unrecognizedMessages by viewModel.unrecognizedMessages.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showReported by viewModel.showReported.collectAsStateWithLifecycle()
     var selectedMessage by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
@@ -224,6 +230,20 @@ fun UnrecognizedSmsScreen(
                     ) {
                         UnrecognizedSmsItem(
                             message = message,
+                            suggestion = suggestions[message.id],
+                            onAddSuggestion = { tx ->
+                                onAddSuggestion(
+                                    AddTransaction(
+                                        amount = tx.amount.toPlainString(),
+                                        merchant = tx.merchant,
+                                        accountLast4 = tx.accountLast4,
+                                        currency = tx.currency,
+                                        type = tx.type.name,
+                                        dateTime = message.receivedAt.toString(),
+                                        unrecognizedSmsId = message.id
+                                    )
+                                )
+                            },
                             onReport = {
                                 viewModel.reportMessage(message)
                             },
@@ -280,6 +300,8 @@ fun UnrecognizedSmsScreen(
 @Composable
 private fun UnrecognizedSmsItem(
     message: UnrecognizedSmsEntity,
+    suggestion: ParsedTransaction?,
+    onAddSuggestion: (ParsedTransaction) -> Unit,
     onReport: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -333,6 +355,10 @@ private fun UnrecognizedSmsItem(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
+            suggestion?.let { tx ->
+                SuggestionLine(tx, onAdd = { onAddSuggestion(tx) })
+            }
+
             // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -382,6 +408,34 @@ private fun UnrecognizedSmsItem(
                     }
                 }
             }
+        }
+    }
+}
+
+/** "Looks like: ₹500.00 debit · Test Store · ••1234" with an Add action (#994). */
+@Composable
+private fun SuggestionLine(tx: ParsedTransaction, onAdd: () -> Unit) {
+    val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
+    val parts = listOfNotNull(
+        if (tx.type == TransactionType.INCOME) stringResource(R.string.unrecognized_suggestion_credit, amount)
+        else stringResource(R.string.unrecognized_suggestion_debit, amount),
+        tx.merchant,
+        tx.accountLast4?.let { "••$it" }
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = stringResource(R.string.unrecognized_suggestion, parts.joinToString(" · ")),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        TextButton(onClick = onAdd) {
+            Text(stringResource(R.string.unrecognized_suggestion_add))
         }
     }
 }

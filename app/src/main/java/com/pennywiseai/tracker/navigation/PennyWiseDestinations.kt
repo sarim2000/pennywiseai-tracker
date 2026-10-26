@@ -42,7 +42,13 @@ data class AddTransaction(
     val merchant: String? = null,
     val category: String? = null,
     val bankName: String? = null,
-    val accountLast4: String? = null
+    val accountLast4: String? = null,
+    // A suggestion from Unrecognized SMS (#994): its currency, type and SMS time,
+    // and the SMS row to hide once the transaction is saved.
+    val currency: String? = null,
+    val type: String? = null,
+    val dateTime: String? = null,
+    val unrecognizedSmsId: Long? = null
 )
 
 @Serializable

@@ -56,6 +56,10 @@
     <string name="unrecognized_cancel">Cancel</string>
     <string name="unrecognized_reported_badge">Reported</string>
     <string name="unrecognized_report">Report</string>
+    <string name="unrecognized_suggestion">Looks like: %1$s</string>
+    <string name="unrecognized_suggestion_debit">%1$s debit</string>
+    <string name="unrecognized_suggestion_credit">%1$s credit</string>
+    <string name="unrecognized_suggestion_add">Add</string>
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Import Statement</string>
     <string name="import_statement_back">Back</string>

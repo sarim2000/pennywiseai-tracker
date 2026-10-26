@@ -12,7 +12,7 @@
     <string name="ai_access_unlock">Unlock with Pro</string>
 
     <string name="ai_access_session_title">AI session</string>
-    <string name="ai_access_session_off">Off. Pick how long to keep PennyWise connected:</string>
+    <string name="ai_access_session_off">Off. Pick how long to keep PennyWise connected, or use the PennyWise AI tile in Quick Settings.</string>
     <string name="ai_access_session_minutes">%d min</string>
     <string name="ai_access_session_on">On · %1$d:%2$02d left</string>
     <string name="ai_access_session_connecting">Connecting… · %1$d:%2$02d left</string>

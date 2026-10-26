@@ -35,9 +35,9 @@ import java.util.concurrent.TimeUnit
 /**
  * The morning heads-up for a bill due tomorrow: one notification per active
  * expense subscription, with "Mark paid" and "Skip this time" actions so the
- * schedule stays right without opening the app. A bill the bank debits itself
- * gets the heads-up without them: its debit SMS marks it paid, and a manual
- * payment on top would count it twice. Users silence it from the system's
+ * schedule stays right without opening the app. A bill the bank reports paying
+ * (a mandate, or one an SMS charge already paid) gets the heads-up without
+ * them: its SMS marks it paid, and a manual payment on top would count it twice. Users silence it from the system's
  * notification settings (channel "Bill reminders").
  */
 @HiltWorker
@@ -79,16 +79,13 @@ class BillReminderWorker @AssistedInject constructor(
         due.forEach { sub ->
             val notificationId = notificationId(sub.id)
             val dueDate = sub.nextPaymentDate ?: return@forEach
-            val autoDebited = sub.umn != null ||
+            // Paid by a bank debit or a transfer the bank reports: its SMS records
+            // the payment, so a manual one would count it twice.
+            val paidBySms = sub.umn != null ||
                 transactionDao.getBankChargedRecurringMerchants(sub.currency).any { RecurringCharge.sameMerchant(it, sub.merchantName) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(
-                    context.getString(
-                        if (autoDebited) R.string.bill_reminder_title_auto else R.string.bill_reminder_title,
-                        sub.merchantName
-                    )
-                )
+                .setContentTitle(context.getString(R.string.bill_reminder_title, sub.merchantName))
                 .setContentText(
                     context.getString(
                         R.string.bill_reminder_text,
@@ -108,7 +105,7 @@ class BillReminderWorker @AssistedInject constructor(
                 .setOnlyAlertOnce(true)
                 // Figures stay off the lock screen, like the other alerts (#734).
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            if (!autoDebited) {
+            if (!paidBySms) {
                 builder
                     .addAction(
                         0,

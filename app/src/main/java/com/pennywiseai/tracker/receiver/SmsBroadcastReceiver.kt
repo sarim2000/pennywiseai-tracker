@@ -436,15 +436,19 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             }
             Log.d(TAG, "Transaction saved with ID: ${result.transactionId}")
 
-            // The open app shows the new row itself.
-            if (isAppInForeground(context)) return
-
             val entryPoint = EntryPointAccessors.fromApplication(
                 context.applicationContext,
                 SmsBroadcastReceiverEntryPoint::class.java
             )
             val repository = entryPoint.transactionRepository()
             val saved = repository.getTransactionById(result.transactionId) ?: return
+            // The same bill as last month (or week, or year)? Offer to track it.
+            val trackCycle = runCatching { entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved) }
+                .onFailure { Log.e(TAG, "Error checking for a repeat charge", it) }
+                .getOrNull()
+            // The open app shows the new row itself, but has nowhere to ask "Track
+            // as … bill?" or "Update price?", so those still get the alert.
+            if (result.priceChange == null && trackCycle == null && isAppInForeground(context)) return
             // #734: tell the user right away when the bank's balance disagrees
             // with the ledger — the detail screen offers the fix.
             val discrepancyLine = runCatching { entryPoint.detectBalanceDiscrepancy().execute(saved) }
@@ -466,10 +470,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     CurrencyFormatter.formatCurrency(saved.amount, saved.currency)
                 )
             }
-            // The same bill as last month (or week, or year)? Offer to track it.
-            val trackCycle = runCatching { entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved) }
-                .onFailure { Log.e(TAG, "Error checking for a repeat charge", it) }
-                .getOrNull()
             showTransactionNotification(
                 context, saved, repository, entryPoint.categoryRepository(),
                 discrepancyLine, priceLine, trackCycle, offerPriceUpdate = result.priceChange != null

@@ -35,6 +35,15 @@ const mcpHandler = {
 		const { deviceId } = ctx.props;
 		if (!(await env.MCP_LIMIT.limit({ key: deviceId })).success) return rpcError(null, -32000, "Too many requests, slow down.", 429);
 
+		// "Phone offline" is normally the AI session being off, so it stays a tool message. But a phone
+		// that's gone (reset, reinstalled, silent 30 days) never comes back on this connection: drop it
+		// and answer 401, so the AI app takes the user to sign in again with a fresh pairing code.
+		if (await env.PHONE.getByName(deviceId).isStale()) {
+			const oauth = (env as HelperEnv).OAUTH_PROVIDER;
+			for (const grant of await allGrants(oauth, deviceId)) await oauth.revokeGrant(grant.id, deviceId);
+			return signInAgain(request);
+		}
+
 		let msg: { jsonrpc?: string; id?: string | number | null; method?: string; params?: Record<string, unknown> };
 		try {
 			msg = await request.json();
@@ -208,6 +217,20 @@ async function authenticateDevice(request: Request, env: Env): Promise<string | 
 	const m = (request.headers.get("Authorization") ?? "").match(/^Device ([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/);
 	if (!m) return null;
 	return (await env.PHONE.getByName(m[1]).verify(await sha256(m[2]))) ? m[1] : null;
+}
+
+/** The same 401 the OAuth provider sends for a bad token, which makes MCP clients start sign-in. */
+function signInAgain(request: Request): Response {
+	const metadata = `${new URL(request.url).origin}/.well-known/oauth-protected-resource/mcp`;
+	const description = "This connection's phone is no longer linked. Sign in again with a pairing code from PennyWise.";
+	return new Response(JSON.stringify({ error: "invalid_token", error_description: description }), {
+		status: 401,
+		headers: {
+			"Content-Type": "application/json",
+			"Cache-Control": "no-store",
+			"WWW-Authenticate": `Bearer realm="OAuth", resource_metadata="${metadata}", error="invalid_token", scope="read"`,
+		},
+	});
 }
 
 async function allGrants(oauth: OAuthHelpers, userId: string) {

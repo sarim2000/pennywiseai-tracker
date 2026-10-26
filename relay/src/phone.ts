@@ -2,6 +2,8 @@ import { DurableObject } from "cloudflare:workers";
 import { NOT_CONNECTED, textResult, type ToolResult } from "./tools";
 
 const CALL_TIMEOUT_MS = 15_000;
+/** A phone silent this long is treated as gone (reinstalled, data cleared): its AI apps must sign in again. */
+const STALE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
 
 type Pending = { resolve: (r: ToolResult) => void; timer: ReturnType<typeof setTimeout> };
 
@@ -15,7 +17,14 @@ export class Phone extends DurableObject<Env> {
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
 		ctx.blockConcurrencyWhile(async () => {
-			ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS device (secret_hash TEXT NOT NULL)");
+			ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS device (secret_hash TEXT NOT NULL, last_seen INTEGER NOT NULL DEFAULT 0)");
+			try {
+				// Phones registered before last_seen existed: start their 30 days now.
+				ctx.storage.sql.exec("ALTER TABLE device ADD COLUMN last_seen INTEGER NOT NULL DEFAULT 0");
+				ctx.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now());
+			} catch {
+				// Column already there.
+			}
 			ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS pair (code TEXT NOT NULL, expires_at INTEGER NOT NULL)");
 		});
 		// Keepalives from the phone are answered without waking the object.
@@ -24,7 +33,7 @@ export class Phone extends DurableObject<Env> {
 
 	init(secretHash: string): void {
 		this.ctx.storage.sql.exec("DELETE FROM device");
-		this.ctx.storage.sql.exec("INSERT INTO device (secret_hash) VALUES (?)", secretHash);
+		this.ctx.storage.sql.exec("INSERT INTO device (secret_hash, last_seen) VALUES (?, ?)", secretHash, Date.now());
 	}
 
 	verify(secretHash: string): boolean {
@@ -48,6 +57,12 @@ export class Phone extends DurableObject<Env> {
 		return this.ctx.storage.sql.exec("DELETE FROM pair WHERE code = ? AND expires_at > ? RETURNING code", code, Date.now()).toArray().length > 0;
 	}
 
+	/** Reset, never registered, or no AI session for [STALE_AFTER_MS]: its AI connections can't work again. */
+	isStale(): boolean {
+		const row = this.ctx.storage.sql.exec<{ last_seen: number }>("SELECT last_seen FROM device").toArray()[0];
+		return row === undefined || Date.now() - row.last_seen > STALE_AFTER_MS;
+	}
+
 	isOnline(): boolean {
 		return this.ctx.getWebSockets().length > 0;
 	}
@@ -56,6 +71,7 @@ export class Phone extends DurableObject<Env> {
 	async fetch(request: Request): Promise<Response> {
 		if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
 		for (const old of this.ctx.getWebSockets()) old.close(4000, "replaced by a newer connection");
+		this.ctx.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now());
 		const { 0: client, 1: server } = new WebSocketPair();
 		this.ctx.acceptWebSocket(server);
 		return new Response(null, { status: 101, webSocket: client });

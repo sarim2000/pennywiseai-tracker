@@ -26,6 +26,7 @@ object GenericTransactionExtractor {
     fun extract(sender: String, body: String, timestamp: Long = 0L): Suggestion? {
         if (PERSONAL_NUMBER.matches(sender.replace(" ", "")) || Base.isNonTransaction(body)) return null
         // A declined or failed attempt moved no money, so it must never become a suggestion.
+        // ("Reversed" is not in the list: a reversal credit returns real money.)
         if (FAILED.containsMatchIn(body)) return null
 
         val money = MONEY.findAll(body).mapNotNull { printed(it, body) }.toList()
@@ -143,7 +144,7 @@ object GenericTransactionExtractor {
 
     // A phone number sender is a person, not a bank.
     private val FAILED = Regex(
-        """\b(declined|failed|unsuccessful|rejected|reversed|could not be processed|was not processed)\b""",
+        """\b(declined|failed|unsuccessful|rejected|could not be processed|was not processed)\b""",
         RegexOption.IGNORE_CASE
     )
     private val PERSONAL_NUMBER = Regex("""\+?\d{10,}""")

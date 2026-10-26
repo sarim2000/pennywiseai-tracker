@@ -54,6 +54,15 @@ class GenericTransactionExtractorTest {
             )
         ) to 90,
         ParserTestCase(
+            name = "Reversal credit is a real refund",
+            sender = "ZQTMONEY",
+            message = "INR 500 credited to your A/c XX1234 (transaction reversed).",
+            expected = ExpectedTransaction(
+                amount = BigDecimal("500"), currency = "INR", type = TransactionType.INCOME,
+                accountLast4 = "1234"
+            )
+        ) to 70,
+        ParserTestCase(
             name = "Currency code after the amount",
             sender = "ZQTMONEY",
             message = "Your card ending 1111 was charged 150.75 EUR at TEST SHOP.",

@@ -54,6 +54,8 @@ class AiAccessViewModel @Inject constructor(
         _state.update {
             it.copy(pairingCode = code.code, pairingExpiresAtMillis = System.currentTimeMillis() + code.expiresIn * 1000L)
         }
+        // The phone only answers while a session runs, so the first connection needs one.
+        if (session.value == null) startSession(30)
     }
 
     fun refreshConnections() = viewModelScope.launch {

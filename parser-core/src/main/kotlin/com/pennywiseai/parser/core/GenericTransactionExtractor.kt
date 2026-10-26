@@ -31,7 +31,9 @@ object GenericTransactionExtractor {
 
         val money = MONEY.findAll(body).mapNotNull { printed(it, body) }.toList()
         val main = money.firstOrNull { it.figure == null } ?: return null
-        val type = DIRECTION.find(body)
+        // A completed reversal/refund returns money, whatever the original purchase wording says.
+        val type = if (REFUND.containsMatchIn(body)) TransactionType.INCOME
+        else DIRECTION.find(body)
             ?.let { if (it.groups[1] != null) TransactionType.EXPENSE else TransactionType.INCOME }
             ?: return null
 
@@ -143,6 +145,7 @@ object GenericTransactionExtractor {
     private val NOT_MERCHANT = Regex("""^(?:your|you|a/c|ac|acct|account|card|the)\b|\d{3,}""", RegexOption.IGNORE_CASE)
 
     // A phone number sender is a person, not a bank.
+    private val REFUND = Regex("""\b(reversed|refunded|refund of|credited back)\b""", RegexOption.IGNORE_CASE)
     private val FAILED = Regex(
         """\b(declined|failed|unsuccessful|rejected|could not be processed|was not processed)\b""",
         RegexOption.IGNORE_CASE

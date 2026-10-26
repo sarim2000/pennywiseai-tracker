@@ -63,6 +63,15 @@ class GenericTransactionExtractorTest {
             )
         ) to 70,
         ParserTestCase(
+            name = "Reversed purchase is income, not the original expense",
+            sender = "ZQTCARD",
+            message = "Purchase of INR 500 at TEST STORE with card **1234 has been reversed and credited back.",
+            expected = ExpectedTransaction(
+                amount = BigDecimal("500"), currency = "INR", type = TransactionType.INCOME,
+                merchant = "TEST STORE", accountLast4 = "1234"
+            )
+        ) to 90,
+        ParserTestCase(
             name = "Currency code after the amount",
             sender = "ZQTMONEY",
             message = "Your card ending 1111 was charged 150.75 EUR at TEST SHOP.",

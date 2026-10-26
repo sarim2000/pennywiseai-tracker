@@ -1,4 +1,5 @@
-import { exports } from "cloudflare:workers";
+import { runInDurableObject } from "cloudflare:test";
+import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 
 const BASE = "https://relay.test";
@@ -150,6 +151,28 @@ describe("AI relay", () => {
 		expect(connections[0].clientName).toBe("Claude");
 		expect((await call(`/device/connections/${connections[0].id}`, { method: "DELETE", headers: auth })).status).toBe(204);
 		expect((await mcp(token!, { jsonrpc: "2.0", id: 1, method: "tools/list" })).status).toBe(401);
+	});
+
+	it("asks the AI app to sign in again once its phone has been silent for 30 days", async () => {
+		const { deviceId, auth } = await registerDevice();
+		const { token } = await signIn(await pair(auth), "Claude");
+		expect((await mcp(token!, { jsonrpc: "2.0", id: 1, method: "tools/list" })).status).toBe(200); // offline but recent: fine
+
+		await runInDurableObject(env.PHONE.getByName(deviceId), (_phone, state) => {
+			state.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now() - 31 * 24 * 60 * 60 * 1000);
+		});
+		const res = await mcp(token!, { jsonrpc: "2.0", id: 2, method: "tools/list" });
+		expect(res.status).toBe(401);
+		expect(res.headers.get("WWW-Authenticate")).toContain("resource_metadata=");
+		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
+		expect(connections).toHaveLength(0);
+
+		// Pairing again proves the phone is alive, so the new connection works before any AI session.
+		await runInDurableObject(env.PHONE.getByName(deviceId), (_phone, state) => {
+			state.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now() - 31 * 24 * 60 * 60 * 1000);
+		});
+		const again = await signIn(await pair(auth), "Claude");
+		expect((await mcp(again.token!, { jsonrpc: "2.0", id: 3, method: "tools/list" })).status).toBe(200);
 	});
 
 	it("refuses device routes without the device secret", async () => {

@@ -166,6 +166,10 @@ describe("AI relay", () => {
 		expect(res.headers.get("WWW-Authenticate")).toContain("resource_metadata=");
 		const { connections } = (await (await call("/device/connections", { headers: auth })).json()) as any;
 		expect(connections).toHaveLength(0);
+
+		// Pairing again proves the phone is alive, so the new connection works before any AI session.
+		const again = await signIn(await pair(auth), "Claude");
+		expect((await mcp(again.token!, { jsonrpc: "2.0", id: 3, method: "tools/list" })).status).toBe(200);
 	});
 
 	it("refuses device routes without the device secret", async () => {

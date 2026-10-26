@@ -17,7 +17,7 @@ The connection then shows under **Connected apps**, where you can disconnect it 
 
 Outside a session the AI app gets a message telling you to start one. Nothing can reach your data then.
 
-If your phone goes 30 days without an AI session, or you reinstall PennyWise or clear its data, connected apps can't reach it any more: the next time you ask, the AI app asks you to sign in again with a new pairing code.
+If you reinstall PennyWise or clear its data, apps connected before can't reach your phone any more. Remove the PennyWise connector in the AI app and add it again with a new pairing code. If you don't, the AI app asks you to sign in again by itself once the old install has been silent for 30 days.
 
 ## Dashboard on a computer
 

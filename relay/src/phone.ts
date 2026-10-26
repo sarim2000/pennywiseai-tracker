@@ -36,9 +36,12 @@ export class Phone extends DurableObject<Env> {
 		this.ctx.storage.sql.exec("INSERT INTO device (secret_hash, last_seen) VALUES (?, ?)", secretHash, Date.now());
 	}
 
+	/** Checks the device secret. A phone that proves itself (pairing, listing connections, a session) is alive. */
 	verify(secretHash: string): boolean {
 		const row = this.ctx.storage.sql.exec<{ secret_hash: string }>("SELECT secret_hash FROM device").toArray()[0];
-		return row !== undefined && timingSafeEqual(row.secret_hash, secretHash);
+		const ok = row !== undefined && timingSafeEqual(row.secret_hash, secretHash);
+		if (ok) this.ctx.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now());
+		return ok;
 	}
 
 	async wipe(): Promise<void> {
@@ -57,7 +60,7 @@ export class Phone extends DurableObject<Env> {
 		return this.ctx.storage.sql.exec("DELETE FROM pair WHERE code = ? AND expires_at > ? RETURNING code", code, Date.now()).toArray().length > 0;
 	}
 
-	/** Reset, never registered, or no AI session for [STALE_AFTER_MS]: its AI connections can't work again. */
+	/** Reset, never registered, or not heard from for [STALE_AFTER_MS]: its AI connections can't work again. */
 	isStale(): boolean {
 		const row = this.ctx.storage.sql.exec<{ last_seen: number }>("SELECT last_seen FROM device").toArray()[0];
 		return row === undefined || Date.now() - row.last_seen > STALE_AFTER_MS;
@@ -71,7 +74,6 @@ export class Phone extends DurableObject<Env> {
 	async fetch(request: Request): Promise<Response> {
 		if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
 		for (const old of this.ctx.getWebSockets()) old.close(4000, "replaced by a newer connection");
-		this.ctx.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now());
 		const { 0: client, 1: server } = new WebSocketPair();
 		this.ctx.acceptWebSocket(server);
 		return new Response(null, { status: 101, webSocket: client });

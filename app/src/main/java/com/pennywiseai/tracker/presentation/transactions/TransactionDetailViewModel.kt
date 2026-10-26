@@ -674,6 +674,11 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    // Raw while typing; [normalizeReference] trims it on save. Never touches smsSender.
+    fun updateReference(reference: String) {
+        _editableTransaction.update { it?.copy(reference = reference) }
+    }
+
     fun addTag(name: String) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) return
@@ -972,6 +977,7 @@ class TransactionDetailViewModel @Inject constructor(
                 val normalizedTransaction = toSave.copy(
                     // Keep the user's casing: "IRCTC" stays "IRCTC" (#876).
                     merchantName = toSave.merchantName.trim(),
+                    reference = normalizeReference(toSave.reference),
                     bankName = resolvedBankName,
                     receiptPath = newReceiptPath,
                     loanId = if (currentPersisted != null) currentPersisted.loanId else toSave.loanId,
@@ -1341,6 +1347,9 @@ class TransactionDetailViewModel @Inject constructor(
  */
 internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: String): String =
     originalMerchant ?: savedMerchant
+
+/** A typed reference number as stored: trimmed, and null when blank (#996). */
+internal fun normalizeReference(raw: String?): String? = raw?.trim()?.ifEmpty { null }
 
 internal sealed class AliasWrite {
     data class Set(val merchant: String, val alias: String) : AliasWrite()

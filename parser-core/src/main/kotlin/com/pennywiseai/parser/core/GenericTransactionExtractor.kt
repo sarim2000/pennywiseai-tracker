@@ -25,6 +25,8 @@ object GenericTransactionExtractor {
 
     fun extract(sender: String, body: String, timestamp: Long = 0L): Suggestion? {
         if (PERSONAL_NUMBER.matches(sender.replace(" ", "")) || Base.isNonTransaction(body)) return null
+        // A declined or failed attempt moved no money, so it must never become a suggestion.
+        if (FAILED.containsMatchIn(body)) return null
 
         val money = MONEY.findAll(body).mapNotNull { printed(it, body) }.toList()
         val main = money.firstOrNull { it.figure == null } ?: return null
@@ -140,5 +142,9 @@ object GenericTransactionExtractor {
     private val NOT_MERCHANT = Regex("""^(?:your|you|a/c|ac|acct|account|card|the)\b|\d{3,}""", RegexOption.IGNORE_CASE)
 
     // A phone number sender is a person, not a bank.
+    private val FAILED = Regex(
+        """\b(declined|failed|unsuccessful|rejected|reversed|could not be processed|was not processed)\b""",
+        RegexOption.IGNORE_CASE
+    )
     private val PERSONAL_NUMBER = Regex("""\+?\d{10,}""")
 }

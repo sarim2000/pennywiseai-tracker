@@ -87,6 +87,18 @@ class GenericTransactionExtractorTest {
             shouldParse = false
         ) to null,
         ParserTestCase(
+            name = "Declined purchase",
+            sender = "ZQTCARD",
+            message = "Purchase declined: USD 12.50 at TEST CAFE with card **9876.",
+            shouldParse = false
+        ) to null,
+        ParserTestCase(
+            name = "Failed debit",
+            sender = "ZQTMONEY",
+            message = "Transaction of INR 750.00 from A/c XX1234 to TEST STORE has failed.",
+            shouldParse = false
+        ) to null,
+        ParserTestCase(
             name = "OTP",
             sender = "ZQTMONEY",
             message = "Your OTP for the payment of INR 999 at TEST STORE is 482913. Do not share it.",

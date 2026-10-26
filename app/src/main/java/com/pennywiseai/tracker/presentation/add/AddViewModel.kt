@@ -579,6 +579,8 @@ class AddViewModel @Inject constructor(
                     toBankName = to.bankName,
                     toLast4 = to.accountLast4
                 )
+                // A suggestion saved as a transfer is handled too (#994).
+                unrecognizedSmsId?.let { unrecognizedSmsRepository.deleteMessage(it) }
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 

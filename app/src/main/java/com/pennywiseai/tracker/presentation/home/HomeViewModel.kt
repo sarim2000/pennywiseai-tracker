@@ -1038,7 +1038,9 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
                 userPreferencesRepository.baseCurrency,
-                _currentCycleWindow
+                // Re-run on a new day too: a weekly budget can reset inside the same
+                // monthly cycle, and Safe to spend's cap reads this summary's windows.
+                combine(_currentCycleWindow, today) { cycle, _ -> cycle }
             ) { unifiedMode, displayCurrency, baseCurrency, cycle ->
                 Quad(unifiedMode, displayCurrency, baseCurrency, cycle)
             }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency, cycle) ->

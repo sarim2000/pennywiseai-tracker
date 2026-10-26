@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
 import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -407,6 +408,10 @@ class AddViewModel @Inject constructor(
         }
     }
 
+    fun updateTransactionReference(reference: String) {
+        _transactionUiState.update { it.copy(reference = reference) }
+    }
+
     fun addTransactionTag(tag: String) {
         val trimmed = tag.trim()
         if (trimmed.isEmpty()) return
@@ -506,6 +511,7 @@ class AddViewModel @Inject constructor(
                     type = state.transactionType,
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
+                    reference = normalizeReference(state.reference),
                     tags = state.tags,
                     isRecurring = state.isRecurring,
                     bankName = selectedAccount?.bankName,
@@ -544,6 +550,7 @@ class AddViewModel @Inject constructor(
                     amount = BigDecimal(state.amount),
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
+                    reference = normalizeReference(state.reference),
                     tags = state.tags,
                     currency = from.currency,
                     fromBankName = from.bankName,
@@ -764,6 +771,7 @@ data class TransactionUiState(
     val categoryError: UiText? = null,
     val date: LocalDateTime = LocalDateTime.now(),
     val notes: String = "",
+    val reference: String = "",
     val tags: List<String> = emptyList(),
     val isRecurring: Boolean = false,
     val isLoading: Boolean = false,

@@ -1465,6 +1465,7 @@ class TransactionsViewModel @Inject constructor(
                     // Check merchant name and description
                     val matchesMerchant = transaction.merchantName.contains(searchQuery, ignoreCase = true)
                     val matchesDescription = transaction.description?.contains(searchQuery, ignoreCase = true) == true
+                    val matchesReference = transaction.reference?.contains(searchQuery, ignoreCase = true) == true
 
                     // Check user-set tags
                     val matchesTag = transactionTagsMap.value[transaction.id]
@@ -1496,7 +1497,7 @@ class TransactionsViewModel @Inject constructor(
                         false
                     }
                     
-                    matchesMerchant || matchesDescription || matchesTag || matchesAlias || matchesSmsBody || matchesAmount
+                    matchesMerchant || matchesDescription || matchesReference || matchesTag || matchesAlias || matchesSmsBody || matchesAmount
                 }
             }
         }

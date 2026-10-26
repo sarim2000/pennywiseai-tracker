@@ -1415,6 +1415,25 @@ private fun EditableTransactionHeader(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shape = editMiddleShape,
+                colors = editFilledColors()
+            )
+
+            // Only the extracted/typed reference; the view mode's smsSender
+            // fallback is display-only and must never be saved as a reference.
+            TextField(
+                value = transaction.reference ?: "",
+                onValueChange = { viewModel.updateReference(it) },
+                label = { Text(stringResource(R.string.txn_detail_field_reference), fontWeight = FontWeight.SemiBold) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Tag,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
                 shape = editBottomShape,
                 colors = editFilledColors()
             )

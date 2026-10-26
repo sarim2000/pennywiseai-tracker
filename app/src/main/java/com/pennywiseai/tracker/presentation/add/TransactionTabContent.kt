@@ -234,9 +234,9 @@ fun TransactionTabContent(
                 )
             }
 
-            // ── Merchant + Notes (connected cards) ──
+            // ── Merchant + Notes + Reference (connected cards) ──
             // Merchant is meaningless for a TRANSFER (it moves money between own
-            // accounts), so hide it and show Notes on its own.
+            // accounts), so hide it and start the group at Notes.
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(1.5.dp)
@@ -261,8 +261,19 @@ fun TransactionTabContent(
                     onValueChange = viewModel::updateTransactionNotes,
                     label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = if (isTransfer) fullShape else bottomShape,
+                    shape = if (isTransfer) topShape else middleShape,
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                    colors = filledFieldColors()
+                )
+
+                TextField(
+                    value = uiState.reference,
+                    onValueChange = viewModel::updateTransactionReference,
+                    label = { Text(stringResource(R.string.add_field_reference), fontWeight = FontWeight.SemiBold) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = bottomShape,
+                    leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
                     colors = filledFieldColors()
                 )
             }

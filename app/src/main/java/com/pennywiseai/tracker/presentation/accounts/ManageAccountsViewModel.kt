@@ -106,6 +106,11 @@ class ManageAccountsViewModel @Inject constructor(
     private var baseCurrency: String = "INR"
 
     init {
+        // Once, not in loadAccounts(): that runs again after edits and would stack collectors.
+        viewModelScope.launch {
+            accountBalanceRepository.getUnanchoredAccounts()
+                .collect { keys -> _uiState.update { it.copy(unanchoredAccounts = keys) } }
+        }
         loadAccounts()
         loadHiddenAccounts()
         loadCards()
@@ -126,10 +131,6 @@ class ManageAccountsViewModel @Inject constructor(
                 .collect { accounts ->
                     _uiState.update { it.copy(accounts = accounts) }
                 }
-        }
-        viewModelScope.launch {
-            accountBalanceRepository.getUnanchoredAccounts()
-                .collect { keys -> _uiState.update { it.copy(unanchoredAccounts = keys) } }
         }
     }
     

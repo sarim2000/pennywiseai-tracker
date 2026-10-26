@@ -73,11 +73,11 @@ class SmsTransactionProcessor @Inject constructor(
          * for retry should treat this as settled, not as something to try again.
          */
         val intentionallySkipped: Boolean = false,
-        /** Set when this charge paid a subscription at a new price. */
+        /** Set when this charge may be a subscription at a new price; nothing changes until the user confirms. */
         val priceChange: PriceChange? = null
     )
 
-    /** [subscriptionName] used to bill [previousAmount]; the saved charge carries the new amount and currency. */
+    /** [subscriptionName] bills [previousAmount]; the saved charge carries the new amount and currency. */
     data class PriceChange(val subscriptionName: String, val previousAmount: BigDecimal)
 
     /**
@@ -236,13 +236,12 @@ class SmsTransactionProcessor @Inject constructor(
                 Log.d(TAG, "Applied ${ruleApplications.size} rules to transaction")
             }
 
-            // Check if this transaction matches an active subscription — at its
-            // price, or failing that, due now at a new price.
-            val exactSubscription = subscriptionRepository.matchTransactionToSubscription(entityWithRules)
-            val repricedSubscription = if (exactSubscription == null) {
+            // Check if this transaction matches an active subscription. One due
+            // now at a different price is only offered on the alert, never applied.
+            val matchedSubscription = subscriptionRepository.matchTransactionToSubscription(entityWithRules)
+            val repricedSubscription = if (matchedSubscription == null) {
                 subscriptionRepository.priceChangedSubscriptionFor(entityWithRules)
             } else null
-            val matchedSubscription = exactSubscription ?: repricedSubscription
             val finalEntity = if (matchedSubscription != null) {
                 Log.d(TAG, "Matched subscription ${matchedSubscription.id}")
                 entityWithRules.copy(isRecurring = true)
@@ -258,12 +257,7 @@ class SmsTransactionProcessor @Inject constructor(
                 database.withTransaction {
                     val id = transactionRepository.insertTransaction(finalEntity)
                     if (id != -1L) {
-                        val chargeDate = finalEntity.dateTime.toLocalDate()
-                        if (repricedSubscription != null) {
-                            subscriptionRepository.recordPriceChange(repricedSubscription, finalEntity.amount, chargeDate)
-                        } else {
-                            subscriptionRepository.recordCharge(matchedSubscription, chargeDate)
-                        }
+                        subscriptionRepository.recordCharge(matchedSubscription, finalEntity.dateTime.toLocalDate())
                     }
                     id
                 }

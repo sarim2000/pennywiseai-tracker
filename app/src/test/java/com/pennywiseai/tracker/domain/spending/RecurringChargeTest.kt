@@ -11,13 +11,23 @@ import java.time.LocalDate
 class RecurringChargeTest {
 
     @Test
-    fun `merchant match ignores case, punctuation and a trailing suffix`() {
-        assertTrue(RecurringCharge.sameMerchant("NETFLIX", "Netflix Entertainment"))
-        assertTrue(RecurringCharge.sameMerchant("netflix.com", "NETFLIX"))
+    fun `merchant match ignores case and punctuation, not a suffix`() {
+        assertTrue(RecurringCharge.sameMerchant("netflix.com", "NETFLIX.COM"))
+        assertTrue(RecurringCharge.sameMerchant("Swiggy One", "SWIGGYONE"))
+        assertFalse(RecurringCharge.sameMerchant("Swiggy", "Swiggy One"))
         assertFalse(RecurringCharge.sameMerchant("Netflix", "Spotify"))
-        // Too short to prefix-match: would swallow every merchant starting with it.
-        assertFalse(RecurringCharge.sameMerchant("ABC", "ABC Supermarket"))
-        assertFalse(RecurringCharge.sameMerchant("", "Netflix"))
+        assertFalse(RecurringCharge.sameMerchant("", ""))
+    }
+
+    @Test
+    fun `a charge pays the cycle from a few days before it is due`() {
+        val due = LocalDate.of(2026, 12, 1)
+        assertFalse(RecurringCharge.canPayCycle(due, LocalDate.of(2026, 11, 10)))
+        assertFalse(RecurringCharge.canPayCycle(due, LocalDate.of(2026, 11, 25)))
+        assertTrue(RecurringCharge.canPayCycle(due, LocalDate.of(2026, 11, 26)))
+        // Overdue (schedule fell behind) still matches.
+        assertTrue(RecurringCharge.canPayCycle(due, LocalDate.of(2027, 2, 1)))
+        assertTrue(RecurringCharge.canPayCycle(null, LocalDate.of(2026, 11, 10)))
     }
 
     @Test
@@ -62,14 +72,21 @@ class RecurringChargeTest {
     @Test
     fun `re-tap guard refuses a second payment but not the next cycle`() {
         val mar10 = LocalDate.of(2026, 3, 10)
+        val mar15 = LocalDate.of(2026, 3, 15)
+        val mar30 = LocalDate.of(2026, 3, 30)
         val apr10 = LocalDate.of(2026, 4, 10)
         // Due Mar 10, paid late Mar 30 -> next Apr 10. A second tap that day is a re-tap.
-        assertTrue(RecurringCharge.isRetap(LocalDate.of(2026, 4, 30), apr10, LocalDate.of(2026, 3, 30)))
+        assertTrue(RecurringCharge.isRetap(mar30, LocalDate.of(2026, 4, 30), apr10, mar30))
         // Paid late Mar 15: the Apr 10 bill can still be paid on time, or a few days early.
-        assertFalse(RecurringCharge.isRetap(LocalDate.of(2026, 4, 15), apr10, apr10))
-        assertFalse(RecurringCharge.isRetap(LocalDate.of(2026, 4, 15), apr10, LocalDate.of(2026, 4, 7)))
-        assertTrue(RecurringCharge.isRetap(LocalDate.of(2026, 4, 15), apr10, LocalDate.of(2026, 4, 6)))
+        assertFalse(RecurringCharge.isRetap(mar15, LocalDate.of(2026, 4, 15), apr10, apr10))
+        assertFalse(RecurringCharge.isRetap(mar15, LocalDate.of(2026, 4, 15), apr10, LocalDate.of(2026, 4, 7)))
+        assertTrue(RecurringCharge.isRetap(mar15, LocalDate.of(2026, 4, 15), apr10, LocalDate.of(2026, 4, 6)))
         // Paid on time: a tap the same day is a re-tap.
-        assertTrue(RecurringCharge.isRetap(apr10, apr10, mar10))
+        assertTrue(RecurringCharge.isRetap(mar10, apr10, apr10, mar10))
+        // Weekly, due Nov 19, paid Nov 23 -> next Nov 26 is due soon, but a second tap is still a re-tap.
+        val nov23 = LocalDate.of(2026, 11, 23)
+        val nov26 = LocalDate.of(2026, 11, 26)
+        assertTrue(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov23))
+        assertFalse(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov26))
     }
 }

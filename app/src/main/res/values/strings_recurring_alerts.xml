@@ -17,7 +17,10 @@
     <!-- Confirmation after tapping "Track as … bill". %1$s merchant, %2$s billing cycle (recurring_alert_cycle_*), %3$s next due date, e.g. "24 Nov" -->
     <string name="recurring_alert_tracking">Tracking %1$s · %2$s · next on %3$s</string>
 
-    <!-- Transaction alert line when a subscription charge came at a new price. %1$s subscription, %2$s old amount, %3$s new amount -->
-    <string name="recurring_alert_price_up">%1$s price went up: %2$s → %3$s</string>
-    <string name="recurring_alert_price_down">%1$s price went down: %2$s → %3$s</string>
+    <!-- Transaction alert line when a charge may be a subscription at a new price; nothing changes until "Update price". %1$s subscription, %2$s old amount, %3$s new amount -->
+    <string name="recurring_alert_price_up">%1$s price went up? %2$s → %3$s</string>
+    <string name="recurring_alert_price_down">%1$s price went down? %2$s → %3$s</string>
+    <string name="recurring_alert_update_price">Update price</string>
+    <!-- Confirmation after tapping "Update price". %1$s subscription, %2$s new amount, %3$s next due date, e.g. "24 Nov" -->
+    <string name="recurring_alert_price_updated">%1$s now %2$s · next on %3$s</string>
 </resources>

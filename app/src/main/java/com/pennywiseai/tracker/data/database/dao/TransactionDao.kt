@@ -671,4 +671,12 @@ interface TransactionDao {
         before: LocalDateTime,
         excludeId: Long
     ): List<TransactionEntity>
+
+    /**
+     * Merchants the bank itself has charged for a subscription in [currency]:
+     * live rows matched as recurring that came from an SMS or bank alert. Manual
+     * entries and in-app "mark paid" rows carry no `sms_body`.
+     */
+    @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 AND is_recurring = 1 AND sms_body IS NOT NULL AND currency = :currency")
+    suspend fun getBankChargedRecurringMerchants(currency: String): List<String>
 }

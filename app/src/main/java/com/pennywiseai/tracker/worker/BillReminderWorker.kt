@@ -15,10 +15,13 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.receiver.BillReminderActionReceiver
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.assisted.Assisted
@@ -31,15 +34,19 @@ import java.util.concurrent.TimeUnit
 
 /**
  * The morning heads-up for a bill due tomorrow: one notification per active
- * expense subscription, with "Paid in cash" and "Skip this time" actions so
- * the schedule stays right without opening the app. Users silence it from
- * the system's notification settings (channel "Bill reminders").
+ * expense subscription, with "Mark paid" and "Skip this time" actions so the
+ * schedule stays right without opening the app. A bill the bank debits itself
+ * gets the heads-up without them: its debit SMS marks it paid, and a manual
+ * payment on top would count it twice. Users silence it from the system's
+ * notification settings (channel "Bill reminders").
  */
 @HiltWorker
 class BillReminderWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val transactionDao: TransactionDao,
+    private val categoryDao: CategoryDao
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -55,7 +62,10 @@ class BillReminderWorker @AssistedInject constructor(
 
         val context = applicationContext
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return Result.success()
+        // Recurring income added by hand is stored as EXPENSE today; its category
+        // still says income, so it isn't reminded (or booked) as a bill.
         val due = dueTomorrow(subscriptionRepository.getActiveSubscriptions().first(), LocalDate.now())
+            .filterNot { sub -> sub.category?.let { categoryDao.getCategoryByName(it)?.isIncome } == true }
         if (due.isEmpty()) return Result.success()
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -69,9 +79,16 @@ class BillReminderWorker @AssistedInject constructor(
         due.forEach { sub ->
             val notificationId = notificationId(sub.id)
             val dueDate = sub.nextPaymentDate ?: return@forEach
-            val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            val autoDebited = sub.umn != null ||
+                transactionDao.getBankChargedRecurringMerchants(sub.currency).any { RecurringCharge.sameMerchant(it, sub.merchantName) }
+            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(context.getString(R.string.bill_reminder_title, sub.merchantName))
+                .setContentTitle(
+                    context.getString(
+                        if (autoDebited) R.string.bill_reminder_title_auto else R.string.bill_reminder_title,
+                        sub.merchantName
+                    )
+                )
                 .setContentText(
                     context.getString(
                         R.string.bill_reminder_text,
@@ -91,18 +108,20 @@ class BillReminderWorker @AssistedInject constructor(
                 .setOnlyAlertOnce(true)
                 // Figures stay off the lock screen, like the other alerts (#734).
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                .addAction(
-                    0,
-                    context.getString(R.string.bill_reminder_action_paid),
-                    BillReminderActionReceiver.actionIntent(context, BillReminderActionReceiver.ACTION_PAID, sub.id, dueDate, notificationId)
-                )
-                .addAction(
-                    0,
-                    context.getString(R.string.bill_reminder_action_skip),
-                    BillReminderActionReceiver.actionIntent(context, BillReminderActionReceiver.ACTION_SKIP, sub.id, dueDate, notificationId)
-                )
-                .build()
-            notificationManager.notify(notificationId, notification)
+            if (!autoDebited) {
+                builder
+                    .addAction(
+                        0,
+                        context.getString(R.string.bill_reminder_action_paid),
+                        BillReminderActionReceiver.actionIntent(context, BillReminderActionReceiver.ACTION_PAID, sub.id, dueDate, notificationId)
+                    )
+                    .addAction(
+                        0,
+                        context.getString(R.string.bill_reminder_action_skip),
+                        BillReminderActionReceiver.actionIntent(context, BillReminderActionReceiver.ACTION_SKIP, sub.id, dueDate, notificationId)
+                    )
+            }
+            notificationManager.notify(notificationId, builder.build())
         }
         return Result.success()
     }

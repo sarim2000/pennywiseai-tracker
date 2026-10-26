@@ -124,7 +124,7 @@ class SubscriptionsViewModel @Inject constructor(
                 val isPaidThisCycle: (com.pennywiseai.tracker.data.database.entity.SubscriptionEntity) -> Boolean = { sub ->
                     sub.lastPaidAt?.let { lastPaid ->
                         val nextLegitMark = subscriptionRepository.advance(lastPaid, sub.billingCycle)
-                        sub.nextPaymentDate?.let { RecurringCharge.isRetap(nextLegitMark, it, today) }
+                        sub.nextPaymentDate?.let { RecurringCharge.isRetap(lastPaid, nextLegitMark, it, today) }
                             ?: today.isBefore(nextLegitMark)
                     } ?: false
                 }

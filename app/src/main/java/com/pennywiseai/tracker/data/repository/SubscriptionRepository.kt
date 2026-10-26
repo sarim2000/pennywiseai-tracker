@@ -98,8 +98,8 @@ class SubscriptionRepository @Inject constructor(
     
     /**
      * Active EXPENSE subscriptions billed by [merchantName] in [currency]. Merchant
-     * names compare loosely ([RecurringCharge.sameMerchant]) because the mandate
-     * SMS and the debit SMS rarely spell the merchant the same way.
+     * names compare by [RecurringCharge.merchantKey], so case and punctuation
+     * don't matter.
      */
     suspend fun activeExpenseSubscriptionsFor(
         merchantName: String,
@@ -113,12 +113,15 @@ class SubscriptionRepository @Inject constructor(
 
     /**
      * The active subscription [charge] pays, if any — a spend (a refund never
-     * pays a bill) at the same merchant, currency and amount (±5%).
+     * pays a bill) at the same merchant, currency and amount (±5%), landing
+     * close enough to the due date ([RecurringCharge.canPayCycle]).
      */
     suspend fun matchTransactionToSubscription(charge: TransactionEntity): SubscriptionEntity? =
         if (charge.transactionType !in RecurringCharge.SPEND_TYPES) null
-        else activeExpenseSubscriptionsFor(charge.merchantName, charge.currency)
-            .firstOrNull { RecurringCharge.sameAmount(it.amount, charge.amount) }
+        else activeExpenseSubscriptionsFor(charge.merchantName, charge.currency).firstOrNull {
+            RecurringCharge.sameAmount(it.amount, charge.amount) &&
+                RecurringCharge.canPayCycle(it.nextPaymentDate, charge.dateTime.toLocalDate())
+        }
 
     /**
      * A bank charge paid [subscription]'s cycle: stamp `lastPaidAt` (drives the
@@ -318,9 +321,10 @@ class SubscriptionRepository @Inject constructor(
     }
 
     /**
-     * The active subscription this charge pays at a new price, when it didn't
+     * The active subscription this charge may pay at a new price, when it didn't
      * match exactly: same merchant and currency, due within 5 days of the
-     * charge, at between half and double the old amount.
+     * charge, at between half and double the old amount. Only a suggestion: the
+     * user confirms it from the alert before [recordPriceChange] runs.
      */
     suspend fun priceChangedSubscriptionFor(charge: TransactionEntity): SubscriptionEntity? =
         if (charge.transactionType !in RecurringCharge.SPEND_TYPES) null

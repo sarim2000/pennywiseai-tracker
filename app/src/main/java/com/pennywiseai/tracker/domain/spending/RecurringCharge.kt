@@ -18,17 +18,12 @@ object RecurringCharge {
     fun merchantKey(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
 
     /**
-     * Same keys, or one key prefixes the other — a mandate says "NETFLIX", the
-     * debit SMS says "Netflix Entertainment". The 4-char floor stops "ab"
-     * swallowing every merchant starting with "ab".
+     * Same key. No prefix match: "swiggy" would swallow "swiggyone", so a food
+     * order could pay or reprice a Swiggy One bill.
      */
     fun sameMerchant(a: String, b: String): Boolean {
-        val ka = merchantKey(a)
-        val kb = merchantKey(b)
-        if (ka.isEmpty() || kb.isEmpty()) return false
-        if (ka == kb) return true
-        val (short, long) = if (ka.length <= kb.length) ka to kb else kb to ka
-        return short.length >= 4 && long.startsWith(short)
+        val key = merchantKey(a)
+        return key.isNotEmpty() && key == merchantKey(b)
     }
 
     /** Within 5% of the larger amount — symmetric, so match(a, b) == match(b, a). */
@@ -49,6 +44,14 @@ object RecurringCharge {
     }
 
     /**
+     * A charge can pay the cycle due [dueDate] from [DUE_WINDOW_DAYS] before it
+     * on. A same-amount purchase earlier in the cycle doesn't; one any time
+     * after does, so a bill whose schedule fell behind still catches up.
+     */
+    fun canPayCycle(dueDate: LocalDate?, chargeDate: LocalDate): Boolean =
+        dueDate == null || !chargeDate.isBefore(dueDate.minusDays(DUE_WINDOW_DAYS))
+
+    /**
      * The bill came due at a new price: the charge lands within 5 days of
      * [dueDate] at between half and double [billedAmount]. A charge at the same
      * amount is a plain match ([sameAmount]), not a price change.
@@ -60,19 +63,23 @@ object RecurringCharge {
         chargeDate: LocalDate
     ): Boolean {
         if (dueDate == null || sameAmount(billedAmount, chargeAmount)) return false
-        if (Math.abs(ChronoUnit.DAYS.between(dueDate, chargeDate)) > 5) return false
+        if (Math.abs(ChronoUnit.DAYS.between(dueDate, chargeDate)) > DUE_WINDOW_DAYS) return false
         return chargeAmount >= billedAmount.multiply(BigDecimal("0.5")) &&
             chargeAmount <= billedAmount.multiply(BigDecimal("2"))
     }
 
     /**
-     * An in-app "mark paid" of the cycle due [scheduled] repeats the payment just
-     * made: a full cycle hasn't passed since it ([cycleAfterLastPaid]) and the
-     * cycle isn't due within [EARLY_PAY_DAYS] either. The second check lets a
-     * bill paid late last cycle still be paid on time this one.
+     * An in-app "mark paid" of the cycle due [scheduled] repeats the payment made
+     * on [lastPaid]: a full cycle hasn't passed since it ([cycleAfterLastPaid]),
+     * and either the cycle isn't due within [EARLY_PAY_DAYS] or that payment was
+     * under [EARLY_PAY_DAYS] ago. The due-soon check lets a bill paid late last
+     * cycle still be paid on time this one; the paid-just-now check stops a
+     * second tap after a late payment that left the next cycle due soon.
      */
-    fun isRetap(cycleAfterLastPaid: LocalDate, scheduled: LocalDate, today: LocalDate): Boolean =
-        today.isBefore(cycleAfterLastPaid) && today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS))
+    fun isRetap(lastPaid: LocalDate, cycleAfterLastPaid: LocalDate, scheduled: LocalDate, today: LocalDate): Boolean =
+        today.isBefore(cycleAfterLastPaid) &&
+            (today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS)) || today.isBefore(lastPaid.plusDays(EARLY_PAY_DAYS)))
 
     const val EARLY_PAY_DAYS = 3L
+    const val DUE_WINDOW_DAYS = 5L
 }

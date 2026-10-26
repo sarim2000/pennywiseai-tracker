@@ -56,7 +56,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val CHANNEL_ID = "transaction_notifications"
 
-        // Category actions occupy slots 0..1; "Track as … bill" slot 7; the learned note's Undo
+        // Category actions occupy slots 0..1; "Track as … bill" / "Update price" slot 7; the learned note's Undo
         // slot 8; picker reserves slot 9. Codes are unique per (transactionId, slot): txId*10+slot
         // cannot alias across transactions because take(2) bounds slot < 10. This numbering is
         // used ONLY by NotificationActionReceiver broadcasts — one filterEquals space; activity intents
@@ -307,14 +307,16 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         /**
          * Replaces the alert with a short, silent "Tracking Netflix · monthly ·
-         * next on 24 Nov" once "Track as … bill" landed. [tracked] null (the
-         * transaction is gone, or it's already tracked) just clears the alert.
+         * next on 24 Nov" once "Track as … bill" landed, or "Netflix now ₹240 ·
+         * next on 24 Nov" once "Update price" did ([priceUpdated]). [tracked]
+         * null (nothing changed) just clears the alert.
          */
         fun showTrackingNotification(
             context: Context,
             notificationId: Int,
             transactionId: Long,
-            tracked: SubscriptionEntity?
+            tracked: SubscriptionEntity?,
+            priceUpdated: Boolean = false
         ) {
             if (notificationId == -1) return
             val notificationManager = ensureChannel(context)
@@ -322,12 +324,21 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 notificationManager.cancel(notificationId)
             } else {
                 val next = tracked.nextPaymentDate?.format(java.time.format.DateTimeFormatter.ofPattern("d MMM")).orEmpty()
-                val text = context.getString(
-                    R.string.recurring_alert_tracking,
-                    tracked.merchantName,
-                    context.getString(cycleLabel(tracked.billingCycle)),
-                    next
-                )
+                val text = if (priceUpdated) {
+                    context.getString(
+                        R.string.recurring_alert_price_updated,
+                        tracked.merchantName,
+                        CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency),
+                        next
+                    )
+                } else {
+                    context.getString(
+                        R.string.recurring_alert_tracking,
+                        tracked.merchantName,
+                        context.getString(cycleLabel(tracked.billingCycle)),
+                        next
+                    )
+                }
                 notificationManager.notify(
                     notificationId,
                     NotificationCompat.Builder(context, CHANNEL_ID)
@@ -446,7 +457,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         CurrencyFormatter.formatCurrency(d.reported, d.currency)
                     )
                 }
-            // A subscription charged at a new price says so.
+            // Maybe a subscription at a new price: ask, don't apply.
             val priceLine = result.priceChange?.let { change ->
                 context.getString(
                     if (saved.amount > change.previousAmount) R.string.recurring_alert_price_up else R.string.recurring_alert_price_down,
@@ -461,7 +472,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .getOrNull()
             showTransactionNotification(
                 context, saved, repository, entryPoint.categoryRepository(),
-                discrepancyLine, priceLine, trackCycle
+                discrepancyLine, priceLine, trackCycle, offerPriceUpdate = result.priceChange != null
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error processing SMS", e)
@@ -484,7 +495,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         categoryRepository: CategoryRepository,
         discrepancyLine: String? = null,
         priceLine: String? = null,
-        trackCycle: String? = null
+        trackCycle: String? = null,
+        offerPriceUpdate: Boolean = false
     ) {
         try {
             val notificationManager = ensureChannel(context)
@@ -545,8 +557,21 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // so the last opens the full picker and the first two are the
             // user's most-used categories of this type, for one-tap answers. (#303)
             val notificationId = transactionId.toInt()
-            // A repeat charge's "Track as … bill" goes first and takes a quick pick's place.
-            if (trackCycle != null) {
+            // A repeat charge's "Track as … bill", or a repriced bill's "Update price",
+            // goes first and takes a quick pick's place. They never both apply: a
+            // price change needs a subscription, and Track needs there to be none.
+            if (offerPriceUpdate) {
+                notificationBuilder.addAction(
+                    0,
+                    context.getString(R.string.recurring_alert_update_price),
+                    NotificationActionReceiver.updatePriceIntent(
+                        context,
+                        categoryRequestCode(transactionId, TRACK_SLOT),
+                        transactionId,
+                        notificationId
+                    )
+                )
+            } else if (trackCycle != null) {
                 notificationBuilder.addAction(
                     0,
                     context.getString(trackActionLabel(trackCycle)),
@@ -561,7 +586,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             }
             if (uncategorized) {
                 val picks = quickPicksFor(transaction, repository, categoryRepository)
-                    .take(if (trackCycle != null) 1 else 2)
+                    .take(if (trackCycle != null || offerPriceUpdate) 1 else 2)
                 picks.forEachIndexed { index, pick ->
                     val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
                         action = NotificationActionReceiver.ACTION_CHANGE_CATEGORY

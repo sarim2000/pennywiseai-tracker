@@ -80,6 +80,20 @@ class TrackRepeatChargeUseCase @Inject constructor(
         subscription.copy(id = id)
     }
 
+    /**
+     * The alert's "Update price": [transactionId] paid its subscription's cycle
+     * at a new price. The match is re-checked at tap time, so a bill paid, edited
+     * or ended since is left alone. Null when nothing changed.
+     */
+    suspend fun applyPriceChange(transactionId: Long): SubscriptionEntity? = database.withTransaction {
+        val transaction = transactionRepository.getTransactionById(transactionId)
+            ?.takeUnless { it.isDeleted } ?: return@withTransaction null
+        val subscription = subscriptionRepository.priceChangedSubscriptionFor(transaction) ?: return@withTransaction null
+        subscriptionRepository.recordPriceChange(subscription, transaction.amount, transaction.dateTime.toLocalDate())
+        transactionRepository.updateTransaction(transaction.copy(isRecurring = true))
+        subscriptionRepository.getSubscriptionById(subscription.id)
+    }
+
     private companion object {
         // An annual bill's gap tops out at 380 days; a little slack past that.
         const val LOOKBACK_DAYS = 400L

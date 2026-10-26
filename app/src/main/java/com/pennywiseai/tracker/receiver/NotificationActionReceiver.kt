@@ -44,6 +44,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val EXTRA_NEW_CATEGORY = "new_category"
         const val ACTION_UNDO_LEARN = "com.pennywiseai.tracker.ACTION_UNDO_LEARN"
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
+        const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -80,6 +81,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     putExtra(EXTRA_TRANSACTION_ID, transactionId)
                     putExtra(EXTRA_NOTIFICATION_ID, notificationId)
                     putExtra(EXTRA_BILLING_CYCLE, billingCycle)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /** The alert's "Update price": the transaction's subscription now bills its amount. */
+        fun updatePriceIntent(context: Context, requestCode: Int, transactionId: Long, notificationId: Int): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_UPDATE_PRICE
+                    putExtra(EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -147,6 +161,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             cycle?.let { entryPoint.trackRepeatChargeUseCase().track(transactionId, it) }
                         }.onFailure { Log.e(TAG, "Error tracking a repeat charge", it) }.getOrNull()
                         SmsBroadcastReceiver.showTrackingNotification(context, notificationId, transactionId, tracked)
+                    }
+                    ACTION_UPDATE_PRICE -> {
+                        val updated = runCatching {
+                            entryPoint.trackRepeatChargeUseCase().applyPriceChange(transactionId)
+                        }.onFailure { Log.e(TAG, "Error updating a subscription price", it) }.getOrNull()
+                        SmsBroadcastReceiver.showTrackingNotification(context, notificationId, transactionId, updated, priceUpdated = true)
                     }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")

@@ -195,7 +195,7 @@ class MarkSubscriptionPaidUseCase @Inject constructor(
     // the schedule forward one cycle per tap.
     private fun isRetap(lastPaid: LocalDate?, scheduled: LocalDate, cycle: String): Boolean =
         lastPaid != null &&
-            RecurringCharge.isRetap(subscriptionRepository.advance(lastPaid, cycle), scheduled, LocalDate.now())
+            RecurringCharge.isRetap(lastPaid, subscriptionRepository.advance(lastPaid, cycle), scheduled, LocalDate.now())
 
     private companion object {
         const val TAG = "MarkSubscriptionPaid"

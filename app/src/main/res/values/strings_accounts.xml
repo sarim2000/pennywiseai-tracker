@@ -185,6 +185,7 @@
     <string name="manage_accounts_card_updated">Updated: %1$s</string>
     <string name="manage_accounts_unlink_card">Unlink card</string>
     <string name="manage_accounts_update_balance">Update Balance</string>
+    <string name="manage_accounts_estimated_balance_hint">Estimated: your bank\'s SMS don\'t show a balance. Tap to set it once.</string>
     <string name="manage_accounts_low_balance_alert">Low-balance alert</string>
     <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">Flag this account when its balance is at or below this amount. Current balance: %1$s</string>

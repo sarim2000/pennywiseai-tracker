@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.utils
 
+import com.pennywiseai.tracker.data.database.dao.BalanceSourceRow
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
@@ -27,6 +28,25 @@ object BalanceCalculator {
         val hasNonCardType = type != null && !type.equals("CREDIT", ignoreCase = true)
         return if (hasNonCardType) wasCard && existing?.isLoan != true else smsIsCard || wasCard
     }
+
+    /**
+     * Accounts whose balance was never anchored to a real figure: every balance
+     * row is a "TRANSACTION" row whose linked transaction stated no balance, so
+     * the shown figure is just 0 ± every transaction since the first SMS (#982).
+     *
+     * Any other row anchors the account: an SMS that stated a balance (its
+     * transaction's `balance_after` is set), a MANUAL / OPENING row (Update
+     * Balance, statement import, manual accounts), a balance-notification SMS
+     * (null source type), a CARD_LINK copy. A TRANSACTION row with no linked
+     * transaction is ambiguous, so it counts as anchored too: a missed hint
+     * beats nagging an account whose balance is right.
+     *
+     * Doesn't exclude liabilities; callers drop cards and loans themselves.
+     */
+    fun unanchoredAccounts(rows: List<BalanceSourceRow>): Set<Pair<String, String>> =
+        rows.groupBy { it.bankName to it.accountLast4 }
+            .filterValues { group -> group.all { it.sourceType == "TRANSACTION" && it.statedBalance == false } }
+            .keys
 
     /**
      * Balance an account row should carry after a parsed SMS whose amount is in

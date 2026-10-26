@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -54,6 +55,10 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getAllLatestBalances()
     }
     
+    /** (bankName, last4) of accounts with no real balance yet; see [BalanceCalculator.unanchoredAccounts]. */
+    fun getUnanchoredAccounts(): Flow<Set<Pair<String, String>>> =
+        accountBalanceDao.getBalanceSourceRows().map(BalanceCalculator::unanchoredAccounts)
+
     fun getTotalBalance(): Flow<BigDecimal?> {
         return accountBalanceDao.getTotalBalance()
     }

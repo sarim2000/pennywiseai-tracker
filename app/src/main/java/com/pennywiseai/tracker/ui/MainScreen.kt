@@ -597,6 +597,9 @@ fun MainScreen(
                         com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
                             onNavigateBack = {
                                 navController.safePopBackStack()
+                            },
+                            onAddSuggestion = { draft ->
+                                rootNavController?.navigate(draft) { launchSingleTop = true }
                             }
                         )
                     }

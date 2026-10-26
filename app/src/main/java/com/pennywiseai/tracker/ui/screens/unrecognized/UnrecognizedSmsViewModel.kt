@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
+import com.pennywiseai.parser.core.GenericTransactionExtractor
+import com.pennywiseai.parser.core.ParsedTransaction
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 @HiltViewModel
@@ -45,6 +48,18 @@ class UnrecognizedSmsViewModel @Inject constructor(
             initialValue = emptyList()
         )
     
+    /** What each message looks like it says (#994), by message id; only the ones worth suggesting. */
+    val suggestions: StateFlow<Map<Long, ParsedTransaction>> = allMessages
+        .map { messages ->
+            messages.mapNotNull { sms ->
+                GenericTransactionExtractor.extract(sms.sender, sms.smsBody)
+                    ?.takeIf { it.confidence >= GenericTransactionExtractor.SUGGEST_AT }
+                    ?.let { sms.id to it.transaction }
+            }.toMap()
+        }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
     fun toggleShowReported() {
         _showReported.value = !_showReported.value
     }

@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -51,6 +52,7 @@ class AddViewModel @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
+    private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -72,6 +74,14 @@ class AddViewModel @Inject constructor(
     private val draftCategory: String? = savedStateHandle.get<String>("category")
     private val draftBankName: String? = savedStateHandle.get<String>("bankName")
     private val draftAccountLast4: String? = savedStateHandle.get<String>("accountLast4")
+
+    // A suggestion from Unrecognized SMS (#994); its SMS row is hidden once saved.
+    private val draftCurrency: String? = savedStateHandle.get<String>("currency")
+    private val draftType: TransactionType? = savedStateHandle.get<String>("type")
+        ?.let { name -> TransactionType.entries.firstOrNull { it.name == name } }
+    private val draftDateTime: LocalDateTime? = savedStateHandle.get<String>("dateTime")
+        ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+    private val unrecognizedSmsId: Long? = savedStateHandle.get<Long>("unrecognizedSmsId")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -119,11 +129,14 @@ class AddViewModel @Inject constructor(
                     )
                 }
             }
+            draftType?.let { updateTransactionType(it) }
             _transactionUiState.update {
                 it.copy(
                     amount = draftAmount ?: it.amount,
                     merchant = draftMerchant ?: it.merchant,
-                    category = draftCategory ?: it.category
+                    category = draftCategory ?: it.category,
+                    currency = draftCurrency ?: it.currency,
+                    date = draftDateTime ?: it.date
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
@@ -171,9 +184,15 @@ class AddViewModel @Inject constructor(
     private fun selectAccount(bankName: String?, last4: String?) {
         if (bankName == null && last4 == null) return
         viewModelScope.launch {
-            val matched = accounts.first { it.isNotEmpty() }
-                .firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
-                ?: return@launch
+            val all = accounts.first { it.isNotEmpty() }
+            val matched = if (bankName != null) {
+                all.firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
+            } else {
+                // Only the last 4 digits are known (an SMS suggestion): link only when exactly
+                // one account in the entry's currency has them, so no amount lands in another currency.
+                val currency = _transactionUiState.value.currency
+                all.filter { it.accountLast4 == last4 && it.currency == currency }.singleOrNull()
+            } ?: return@launch
             // Don't override a selection the user may have already made.
             _transactionUiState.update { state ->
                 if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
@@ -523,6 +542,8 @@ class AddViewModel @Inject constructor(
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                // Booked from an SMS suggestion: it's no longer an unrecognized message.
+                unrecognizedSmsId?.let { unrecognizedSmsRepository.deleteMessage(it) }
 
                 onSuccess()
             } catch (e: Exception) {

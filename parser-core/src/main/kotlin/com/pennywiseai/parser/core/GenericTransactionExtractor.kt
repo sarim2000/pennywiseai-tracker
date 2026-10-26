@@ -145,7 +145,11 @@ object GenericTransactionExtractor {
     private val NOT_MERCHANT = Regex("""^(?:your|you|a/c|ac|acct|account|card|the)\b|\d{3,}""", RegexOption.IGNORE_CASE)
 
     // A phone number sender is a person, not a bank.
-    private val REFUND = Regex("""\b(reversed|refunded|refund of|credited back)\b""", RegexOption.IGNORE_CASE)
+    // Only wording that says the reversal already happened: "will be reversed if…" is a warning, not a refund.
+    private val REFUND = Regex(
+        """\b(?:has been|have been|was|were|is|got)\s+(?:reversed|refunded)\b|\bcredited back\b|\brefunded to\b""",
+        RegexOption.IGNORE_CASE
+    )
     private val FAILED = Regex(
         """\b(declined|failed|unsuccessful|rejected|could not be processed|was not processed)\b""",
         RegexOption.IGNORE_CASE

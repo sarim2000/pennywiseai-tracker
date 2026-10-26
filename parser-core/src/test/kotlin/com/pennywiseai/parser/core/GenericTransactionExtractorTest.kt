@@ -72,6 +72,15 @@ class GenericTransactionExtractorTest {
             )
         ) to 90,
         ParserTestCase(
+            name = "A reversal that may happen later stays a debit",
+            sender = "ZQTMONEY",
+            message = "INR 500 debited from A/c XX1234 for ATM withdrawal. If cash is not dispensed, amount will be reversed within 24 hours.",
+            expected = ExpectedTransaction(
+                amount = BigDecimal("500"), currency = "INR", type = TransactionType.EXPENSE,
+                accountLast4 = "1234"
+            )
+        ) to 70,
+        ParserTestCase(
             name = "Currency code after the amount",
             sender = "ZQTMONEY",
             message = "Your card ending 1111 was charged 150.75 EUR at TEST SHOP.",

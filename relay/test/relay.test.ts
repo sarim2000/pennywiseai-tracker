@@ -168,6 +168,9 @@ describe("AI relay", () => {
 		expect(connections).toHaveLength(0);
 
 		// Pairing again proves the phone is alive, so the new connection works before any AI session.
+		await runInDurableObject(env.PHONE.getByName(deviceId), (_phone, state) => {
+			state.storage.sql.exec("UPDATE device SET last_seen = ?", Date.now() - 31 * 24 * 60 * 60 * 1000);
+		});
 		const again = await signIn(await pair(auth), "Claude");
 		expect((await mcp(again.token!, { jsonrpc: "2.0", id: 3, method: "tools/list" })).status).toBe(200);
 	});

@@ -39,6 +39,51 @@ open class AccountBalanceRepository @Inject constructor(
     }
 
     /**
+     * Writes the balance row of an SMS transaction stamped [at], the one rule
+     * the live receiver and the inbox scan share (#982). [build] gets the
+     * balance just before [at] (the newest row at or before it, not the newest
+     * row overall) and returns the row to insert. Whatever that row changed is
+     * carried to the derived rows after it, up to the next anchor, so SMS
+     * handled in any order end with the history that time order gives. A row
+     * whose SMS stated a balance keeps that figure and rebases the derived
+     * rows after it.
+     */
+    suspend fun insertSmsTransactionBalance(
+        bankName: String,
+        accountLast4: String,
+        at: LocalDateTime,
+        build: (before: BigDecimal?) -> AccountBalanceEntity
+    ): AccountBalanceEntity = database.withTransaction {
+        val before = accountBalanceDao.getBalanceAtOrBefore(bankName, accountLast4, at)?.balance
+        val row = build(before)
+        accountBalanceDao.insertBalance(row)
+        shiftDerivedRowsAfter(bankName, accountLast4, at, row.balance - (before ?: BigDecimal.ZERO))
+        row
+    }
+
+    /**
+     * Removes [transactionId]'s balance rows before its SMS is applied again,
+     * taking back what each row changed from the derived rows after it, so
+     * [insertSmsTransactionBalance] doesn't count it twice (#982).
+     */
+    suspend fun removeSmsTransactionBalances(transactionId: Long) = database.withTransaction {
+        for (row in accountBalanceDao.getBalancesForTransaction(transactionId)) {
+            accountBalanceDao.deleteBalanceById(row.id)
+            val before = accountBalanceDao.getBalanceAtOrBefore(row.bankName, row.accountLast4, row.timestamp)?.balance
+            shiftDerivedRowsAfter(row.bankName, row.accountLast4, row.timestamp, (before ?: BigDecimal.ZERO) - row.balance)
+        }
+    }
+
+    /** Adds [delta] to the derived rows after [at], up to the next anchor. */
+    private suspend fun shiftDerivedRowsAfter(bankName: String, accountLast4: String, at: LocalDateTime, delta: BigDecimal) {
+        if (delta.signum() == 0) return
+        for (later in accountBalanceDao.getBalanceRowsAfter(bankName, accountLast4, at)) {
+            if (!later.derived) break
+            accountBalanceDao.updateBalanceById(later.id, later.balance + delta)
+        }
+    }
+
+    /**
      * Resolves an account when only the last-4 digits are known — used by the
      * TRANSFER balance-update path where `from_account` / `to_account` only
      * persist the last4. See AccountBalanceDao.getLatestBalanceByLast4.

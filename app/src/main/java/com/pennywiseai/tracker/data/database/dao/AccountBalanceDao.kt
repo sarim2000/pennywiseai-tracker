@@ -20,6 +20,36 @@ interface AccountBalanceDao {
     """)
     suspend fun getLatestBalance(bankName: String, accountLast4: String): AccountBalanceEntity?
     
+    /**
+     * The account's newest row at or before [at]: the balance an SMS stamped
+     * [at] moves from. Not [getLatestBalance], which may postdate it (#982).
+     */
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4 AND timestamp <= :at
+        ORDER BY timestamp DESC
+        LIMIT 1
+    """)
+    suspend fun getBalanceAtOrBefore(bankName: String, accountLast4: String, at: LocalDateTime): AccountBalanceEntity?
+
+    /**
+     * The account's rows after [after], oldest first. `derived` marks a row the
+     * app worked out from the row before it: a "TRANSACTION" row that is a
+     * delta (no `sms_source`) or whose SMS stated no balance. Every other row
+     * (a stated balance, MANUAL, OPENING, a balance notice) is an anchor (#982).
+     */
+    @Query("""
+        SELECT ab.id AS id, ab.balance AS balance,
+            CASE WHEN ab.source_type = 'TRANSACTION'
+                AND (ab.sms_source IS NULL OR (t.id IS NOT NULL AND t.balance_after IS NULL))
+            THEN 1 ELSE 0 END AS derived
+        FROM account_balances ab
+        LEFT JOIN transactions t ON t.id = ab.transaction_id
+        WHERE ab.bank_name = :bankName AND ab.account_last4 = :accountLast4 AND ab.timestamp > :after
+        ORDER BY ab.timestamp ASC
+    """)
+    suspend fun getBalanceRowsAfter(bankName: String, accountLast4: String, after: LocalDateTime): List<BalanceRowAfter>
+
     @Query("""
         SELECT * FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
@@ -200,6 +230,9 @@ interface AccountBalanceDao {
     @Query("DELETE FROM account_balances WHERE id = :id")
     suspend fun deleteBalanceById(id: Long)
 
+    @Query("SELECT * FROM account_balances WHERE transaction_id = :transactionId")
+    suspend fun getBalancesForTransaction(transactionId: Long): List<AccountBalanceEntity>
+
     @Query("DELETE FROM account_balances WHERE transaction_id = :transactionId")
     suspend fun deleteBalancesForTransaction(transactionId: Long): Int
     
@@ -345,6 +378,9 @@ interface AccountBalanceDao {
     """)
     fun getBalanceSourceRows(): Flow<List<BalanceSourceRow>>
 }
+
+/** See [AccountBalanceDao.getBalanceRowsAfter]. */
+data class BalanceRowAfter(val id: Long, val balance: BigDecimal, val derived: Boolean)
 
 /** See [AccountBalanceDao.getBalanceSourceRows]. */
 data class BalanceSourceRow(

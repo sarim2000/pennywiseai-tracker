@@ -865,7 +865,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             lentSharesTotal = duplicate.lentSharesTotal
                         )
                         transactionRepository.updateTransaction(replacement)
-                        accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
+                        accountBalanceRepository.removeSmsTransactionBalances(duplicate.id)
                         replaceRuleApplications(duplicate.id, ruleApps)
                         pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
                             DeferredBalanceUpdate(it, duplicate.id)
@@ -984,50 +984,54 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val accountCurrency = existing?.currency
             ?: parsed.accountCurrency
             ?: parsed.currency
-        val newBalance = BalanceCalculator.balanceAfter(
-            explicitBalance = parsed.balance,
-            // A loan account's balance is owed too: a payment lowers it (#792).
-            isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
-            transactionType = parsed.type.toEntityType(),
-            transactionAmount = parsed.amount,
-            transactionCurrency = parsed.currency,
-            accountCurrency = accountCurrency,
-            currentBalance = existing?.balance
-        )
+        // Moves from the balance just before this SMS in time, not the newest
+        // row: the scan's parallel parsers save out of order (#982).
+        val saved = accountBalanceRepository.insertSmsTransactionBalance(
+            parsed.bankName, targetAccount, current.dateTime
+        ) { before ->
+            val newBalance = BalanceCalculator.balanceAfter(
+                explicitBalance = parsed.balance,
+                // A loan account's balance is owed too: a payment lowers it (#792).
+                isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
+                transactionType = parsed.type.toEntityType(),
+                transactionAmount = parsed.amount,
+                transactionCurrency = parsed.currency,
+                accountCurrency = accountCurrency,
+                currentBalance = before
+            )
 
-        // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
-        // available = creditLimit − balance, so store total = available + outstanding
-        // (the post-transaction balance). Falls back to the existing stored limit when
-        // the SMS carries no limit. (#486)
-        val resolvedCreditLimit = if (resolvedIsCreditCard && parsed.creditLimit != null) {
-            parsed.creditLimit!! + newBalance
-        } else {
-            existing?.creditLimit
+            // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
+            // available = creditLimit − balance, so store total = available + outstanding
+            // (the post-transaction balance). Falls back to the existing stored limit when
+            // the SMS carries no limit. (#486)
+            val resolvedCreditLimit = if (resolvedIsCreditCard && parsed.creditLimit != null) {
+                parsed.creditLimit!! + newBalance
+            } else {
+                existing?.creditLimit
+            }
+
+            AccountBalanceEntity(
+                bankName      = parsed.bankName,
+                accountLast4  = targetAccount,
+                balance       = newBalance,
+                timestamp     = current.dateTime,
+                transactionId = if (rowId != -1L) rowId else null,
+                creditLimit   = resolvedCreditLimit,
+                isCreditCard  = resolvedIsCreditCard,
+                smsSource     = parsed.smsBody.take(500),
+                sourceType    = "TRANSACTION",
+                accountType   = BalanceCalculator.preservedAccountType(typed),
+                currency      = accountCurrency,
+                profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+                alias         = existing?.alias,
+                lowBalanceThreshold = existing?.lowBalanceThreshold
+            )
         }
-
-        val balanceEntity = AccountBalanceEntity(
-            bankName      = parsed.bankName,
-            accountLast4  = targetAccount,
-            balance       = newBalance,
-            timestamp     = current.dateTime,
-            transactionId = if (rowId != -1L) rowId else null,
-            creditLimit   = resolvedCreditLimit,
-            isCreditCard  = resolvedIsCreditCard,
-            smsSource     = parsed.smsBody.take(500),
-            sourceType    = "TRANSACTION",
-            accountType   = BalanceCalculator.preservedAccountType(typed),
-            currency      = accountCurrency,
-            profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
-            alias         = existing?.alias,
-            lowBalanceThreshold = existing?.lowBalanceThreshold
-        )
-
-        accountBalanceRepository.insertBalance(balanceEntity)
 
         val logMsg = if (parsed.creditLimit != null) {
             "Saved balance/limit (${CurrencyFormatter.formatCurrency(parsed.creditLimit!!, parsed.currency)})"
         } else {
-            "Saved balance (${CurrencyFormatter.formatCurrency(newBalance, parsed.currency)})"
+            "Saved balance (${CurrencyFormatter.formatCurrency(saved.balance, saved.currency)})"
         }
         Log.i(TAG, logMsg)
     }

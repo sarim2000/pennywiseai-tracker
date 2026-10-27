@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit
  * The morning heads-up for a bill due tomorrow: one notification per active
  * expense subscription, with "Mark paid" and "Skip this time" actions so the
  * schedule stays right without opening the app. A bill the bank reports paying
- * (a mandate, or one an SMS charge already paid) gets the heads-up without
+ * (one created from a mandate SMS, or one an SMS charge already paid) gets the heads-up without
  * them: its SMS marks it paid, and a manual payment on top would count it twice. Users silence it from the system's
  * notification settings (channel "Bill reminders").
  */
@@ -80,8 +80,12 @@ class BillReminderWorker @AssistedInject constructor(
             val notificationId = notificationId(sub.id)
             val dueDate = sub.nextPaymentDate ?: return@forEach
             // Paid by a bank debit or a transfer the bank reports: its SMS records
-            // the payment, so a manual one would count it twice.
+            // the payment, so a manual one would count it twice. A mandate shows
+            // as its UMN or, for parsers that have none (HDFC, Federal), the SMS
+            // it was created from; a manual bill keeps notes there instead, told
+            // apart the way the Subscriptions screen does ("Manual Entry").
             val paidBySms = sub.umn != null ||
+                (sub.smsBody != null && sub.bankName != "Manual Entry") ||
                 transactionDao.getBankChargedRecurringMerchants(sub.currency).any { RecurringCharge.sameMerchant(it, sub.merchantName) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)

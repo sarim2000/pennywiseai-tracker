@@ -217,6 +217,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
 
+    /**
+     * When this run's force resync wiped the SMS balance rows, or null. Delta rows
+     * created before it survived the wipe already holding the SMS effects being put
+     * back; rows created after it (an expense added mid-rebuild) don't (#982).
+     */
+    private var rebuildStartedAt: LocalDateTime? = null
+
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
     private fun Long.toLocalDateTime(): LocalDateTime =
@@ -370,6 +377,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
 
             if (forceResync) {
+                rebuildStartedAt = LocalDateTime.now()
                 Trace.beginSection("clearDatabase")
                 try {
                     // Delete only what the inbox can rebuild (active SMS rows
@@ -865,7 +873,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             lentSharesTotal = duplicate.lentSharesTotal
                         )
                         transactionRepository.updateTransaction(replacement)
-                        accountBalanceRepository.deleteBalancesForTransaction(duplicate.id)
+                        accountBalanceRepository.removeSmsTransactionBalances(duplicate.id, rebuildStartedAt)
                         replaceRuleApplications(duplicate.id, ruleApps)
                         pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
                             DeferredBalanceUpdate(it, duplicate.id)
@@ -984,50 +992,54 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         val accountCurrency = existing?.currency
             ?: parsed.accountCurrency
             ?: parsed.currency
-        val newBalance = BalanceCalculator.balanceAfter(
-            explicitBalance = parsed.balance,
-            // A loan account's balance is owed too: a payment lowers it (#792).
-            isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
-            transactionType = parsed.type.toEntityType(),
-            transactionAmount = parsed.amount,
-            transactionCurrency = parsed.currency,
-            accountCurrency = accountCurrency,
-            currentBalance = existing?.balance
-        )
+        // Moves from the balance just before this SMS in time, not the newest
+        // row: the scan's parallel parsers save out of order (#982).
+        val saved = accountBalanceRepository.insertSmsTransactionBalance(
+            parsed.bankName, targetAccount, current.dateTime, rebuildStartedAt
+        ) { before ->
+            val newBalance = BalanceCalculator.balanceAfter(
+                explicitBalance = parsed.balance,
+                // A loan account's balance is owed too: a payment lowers it (#792).
+                isCreditCard = resolvedIsCreditCard || typed?.isLoan == true,
+                transactionType = parsed.type.toEntityType(),
+                transactionAmount = parsed.amount,
+                transactionCurrency = parsed.currency,
+                accountCurrency = accountCurrency,
+                currentBalance = before
+            )
 
-        // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
-        // available = creditLimit − balance, so store total = available + outstanding
-        // (the post-transaction balance). Falls back to the existing stored limit when
-        // the SMS carries no limit. (#486)
-        val resolvedCreditLimit = if (resolvedIsCreditCard && parsed.creditLimit != null) {
-            parsed.creditLimit!! + newBalance
-        } else {
-            existing?.creditLimit
+            // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
+            // available = creditLimit − balance, so store total = available + outstanding
+            // (the post-transaction balance). Falls back to the existing stored limit when
+            // the SMS carries no limit. (#486)
+            val resolvedCreditLimit = if (resolvedIsCreditCard && parsed.creditLimit != null) {
+                parsed.creditLimit!! + newBalance
+            } else {
+                existing?.creditLimit
+            }
+
+            AccountBalanceEntity(
+                bankName      = parsed.bankName,
+                accountLast4  = targetAccount,
+                balance       = newBalance,
+                timestamp     = current.dateTime,
+                transactionId = if (rowId != -1L) rowId else null,
+                creditLimit   = resolvedCreditLimit,
+                isCreditCard  = resolvedIsCreditCard,
+                smsSource     = parsed.smsBody.take(500),
+                sourceType    = "TRANSACTION",
+                accountType   = BalanceCalculator.preservedAccountType(typed),
+                currency      = accountCurrency,
+                profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
+                alias         = existing?.alias,
+                lowBalanceThreshold = existing?.lowBalanceThreshold
+            )
         }
-
-        val balanceEntity = AccountBalanceEntity(
-            bankName      = parsed.bankName,
-            accountLast4  = targetAccount,
-            balance       = newBalance,
-            timestamp     = current.dateTime,
-            transactionId = if (rowId != -1L) rowId else null,
-            creditLimit   = resolvedCreditLimit,
-            isCreditCard  = resolvedIsCreditCard,
-            smsSource     = parsed.smsBody.take(500),
-            sourceType    = "TRANSACTION",
-            accountType   = BalanceCalculator.preservedAccountType(typed),
-            currency      = accountCurrency,
-            profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
-            alias         = existing?.alias,
-            lowBalanceThreshold = existing?.lowBalanceThreshold
-        )
-
-        accountBalanceRepository.insertBalance(balanceEntity)
 
         val logMsg = if (parsed.creditLimit != null) {
             "Saved balance/limit (${CurrencyFormatter.formatCurrency(parsed.creditLimit!!, parsed.currency)})"
         } else {
-            "Saved balance (${CurrencyFormatter.formatCurrency(newBalance, parsed.currency)})"
+            "Saved balance (${CurrencyFormatter.formatCurrency(saved.balance, saved.currency)})"
         }
         Log.i(TAG, logMsg)
     }
@@ -1345,7 +1357,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
                 "date >= ?",
                 arrayOf(scanStartSeconds.toString()),
-                "date DESC"
+                // Oldest first like the SMS feed, so a balance row seldom lands
+                // before rows already saved and has to move them (#982).
+                "date ASC"
             )?.use { c ->
                 while (c.moveToNext()) {
                     val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))

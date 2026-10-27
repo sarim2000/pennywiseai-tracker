@@ -50,15 +50,17 @@ class SmsBalanceOrderTest {
             "getBalanceRowsAfter" -> rows.filter { account(it) && it.timestamp > args[2] as LocalDateTime }
                 .sortedBy { it.timestamp }
                 .map {
+                    val rebuilding = args[3] as Boolean
                     val derived = it.sourceType == "TRANSACTION" &&
-                        (it.smsSource == null || stated[it.transactionId] == false)
-                    BalanceRowAfter(it.id, it.balance, derived)
+                        ((it.smsSource == null && !rebuilding) ||
+                            (it.smsSource != null && stated[it.transactionId] == false))
+                    BalanceRowAfter(it.id, it.balance, it.creditLimit, derived)
                 }
             "getBalancesForTransaction" -> rows.filter { it.transactionId == args[0] }
             "deleteBalanceById" -> rows.removeAll { it.id == args[0] }.let { }
-            "updateBalanceById" -> {
+            "updateBalanceAndLimitById" -> {
                 val i = rows.indexOfFirst { it.id == args[0] }
-                rows[i] = rows[i].copy(balance = args[1] as BigDecimal)
+                rows[i] = rows[i].copy(balance = args[1] as BigDecimal, creditLimit = args[2] as BigDecimal?)
                 Unit
             }
             else -> error("unexpected ${method.name}")
@@ -82,26 +84,44 @@ class SmsBalanceOrderTest {
     private fun at(day: Int, h: Int, m: Int) = LocalDateTime.of(2026, 1, day, h, m)
 
     /** What both SMS paths do for a transaction SMS on a debit account. */
-    private fun sms(id: Long, time: LocalDateTime, type: TransactionType, amount: String, statedBalance: String? = null) =
-        runBlocking {
-            stated[id] = statedBalance != null
-            repo.insertSmsTransactionBalance(BANK, ACCT, time) { before ->
-                AccountBalanceEntity(
-                    bankName = BANK, accountLast4 = ACCT, timestamp = time, transactionId = id,
-                    smsSource = "test sms $id", sourceType = "TRANSACTION",
-                    balance = BalanceCalculator.balanceAfter(
-                        statedBalance?.let(::BigDecimal), false, type, BigDecimal(amount), "INR", "INR", before
-                    )
-                )
-            }
+    private fun sms(
+        id: Long, time: LocalDateTime, type: TransactionType, amount: String, statedBalance: String? = null,
+        availableLimit: String? = null, card: Boolean = false, rebuilding: Boolean = false
+    ) = runBlocking {
+        stated[id] = statedBalance != null
+        val latestLimit = rows.filter { it.bankName == BANK && it.accountLast4 == ACCT }
+            .maxByOrNull { it.timestamp }?.creditLimit
+        repo.insertSmsTransactionBalance(BANK, ACCT, time, rebuilding) { before ->
+            val balance = BalanceCalculator.balanceAfter(
+                statedBalance?.let(::BigDecimal), card, type, BigDecimal(amount), "INR", "INR", before
+            )
+            AccountBalanceEntity(
+                bankName = BANK, accountLast4 = ACCT, timestamp = time, transactionId = id,
+                smsSource = "test sms $id", sourceType = "TRANSACTION", balance = balance, isCreditCard = card,
+                // As both SMS paths do (#486): available + outstanding, else the account's limit.
+                creditLimit = availableLimit?.let { BigDecimal(it) + balance } ?: latestLimit
+            )
         }
+    }
 
-    private fun anchor(time: LocalDateTime, balance: String) {
+    /** A signed delta row stamped "now", as a manual add or a delete/edit writes. */
+    private fun delta(time: LocalDateTime, transactionId: Long, balance: String, creditLimit: String? = null) {
         rows += AccountBalanceEntity(
             id = nextId++, bankName = BANK, accountLast4 = ACCT, balance = BigDecimal(balance),
-            timestamp = time, sourceType = AccountBalanceRepository.SOURCE_MANUAL
+            timestamp = time, transactionId = transactionId, sourceType = "TRANSACTION",
+            creditLimit = creditLimit?.let(::BigDecimal)
         )
     }
+
+    private fun anchor(time: LocalDateTime, balance: String, creditLimit: String? = null) {
+        rows += AccountBalanceEntity(
+            id = nextId++, bankName = BANK, accountLast4 = ACCT, balance = BigDecimal(balance),
+            timestamp = time, sourceType = AccountBalanceRepository.SOURCE_MANUAL,
+            creditLimit = creditLimit?.let(::BigDecimal), isCreditCard = creditLimit != null
+        )
+    }
+
+    private fun latest() = rows.filter { it.bankName == BANK && it.accountLast4 == ACCT }.maxBy { it.timestamp }
 
     private fun history() = rows.sortedBy { it.timestamp }.map { it.timestamp.toLocalTime().toString() to it.balance.toPlainString() }
 
@@ -166,6 +186,54 @@ class SmsBalanceOrderTest {
         sms(1, at(1, 10, 1), TransactionType.EXPENSE, "100.00")
 
         assertEquals(listOf("09:00" to "1000.00", "10:01" to "900.00", "11:00" to "850.00"), history())
+    }
+
+    @Test
+    fun `a resync putting SMS back leaves a manual add that already holds them alone`() {
+        sms(1, at(1, 9, 0), TransactionType.EXPENSE, "10.00", statedBalance = "1000.00")
+        sms(2, at(1, 10, 0), TransactionType.EXPENSE, "100.00")
+        delta(at(1, 12, 0), 99, "850.00") // a manual 50 expense, added later
+        // Force resync: the SMS transactions and their rows go; the manual add's row stays.
+        rows.removeAll { it.transactionId == 1L || it.transactionId == 2L }
+        sms(2, at(1, 10, 0), TransactionType.EXPENSE, "100.00", rebuilding = true)
+        sms(1, at(1, 9, 0), TransactionType.EXPENSE, "10.00", statedBalance = "1000.00", rebuilding = true)
+
+        assertEquals(listOf("09:00" to "1000.00", "10:00" to "900.00", "12:00" to "850.00"), history())
+    }
+
+    @Test
+    fun `removing a transaction with an edit row takes each row back once`() {
+        anchor(at(1, 9, 0), "1000.00")
+        sms(1, at(1, 10, 0), TransactionType.EXPENSE, "100.00")
+        sms(2, at(1, 11, 0), TransactionType.EXPENSE, "20.00")
+        delta(at(1, 12, 0), 1, "830.00") // the user edits transaction 1 from 100 to 150
+        sms(3, at(1, 13, 0), TransactionType.EXPENSE, "30.00")
+
+        runBlocking { repo.removeSmsTransactionBalances(1) }
+
+        assertEquals(listOf("09:00" to "1000.00", "11:00" to "980.00", "13:00" to "950.00"), history())
+    }
+
+    @Test
+    fun `a card SMS saved late keeps the available limit the later SMS stated`() {
+        sms(2, at(1, 12, 0), TransactionType.CREDIT, "100.00", availableLimit = "8850.00", card = true)
+        sms(1, at(1, 10, 0), TransactionType.CREDIT, "50.00", availableLimit = "8950.00", card = true)
+
+        val card = latest()
+        assertEquals(BigDecimal("150.00"), card.balance)
+        assertEquals(BigDecimal("8850.00"), card.creditLimit!! - card.balance)
+    }
+
+    @Test
+    fun `a card limit the user set is not moved by an SMS saved late`() {
+        anchor(at(1, 9, 0), "0.00", creditLimit = "10000.00")
+        sms(2, at(1, 12, 0), TransactionType.CREDIT, "100.00", card = true)
+        delta(at(1, 13, 0), 99, "130.00", creditLimit = "10000.00") // a manual 30 card spend
+        sms(1, at(1, 10, 0), TransactionType.CREDIT, "50.00", card = true)
+
+        val card = latest()
+        assertEquals(BigDecimal("180.00"), card.balance)
+        assertEquals(BigDecimal("10000.00"), card.creditLimit)
     }
 
     private companion object {

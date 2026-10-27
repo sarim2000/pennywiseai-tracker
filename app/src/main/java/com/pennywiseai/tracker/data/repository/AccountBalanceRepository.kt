@@ -46,18 +46,23 @@ open class AccountBalanceRepository @Inject constructor(
      * carried to the derived rows after it, up to the next anchor, so SMS
      * handled in any order end with the history that time order gives. A row
      * whose SMS stated a balance keeps that figure and rebases the derived
-     * rows after it.
+     * rows after it. Pass [rebuilding] while a resync puts the SMS history back
+     * (see [AccountBalanceDao.getBalanceRowsAfter]).
      */
     suspend fun insertSmsTransactionBalance(
         bankName: String,
         accountLast4: String,
         at: LocalDateTime,
+        rebuilding: Boolean = false,
         build: (before: BigDecimal?) -> AccountBalanceEntity
     ): AccountBalanceEntity = database.withTransaction {
-        val before = accountBalanceDao.getBalanceAtOrBefore(bankName, accountLast4, at)?.balance
-        val row = build(before)
+        val before = accountBalanceDao.getBalanceAtOrBefore(bankName, accountLast4, at)
+        val row = build(before?.balance)
         accountBalanceDao.insertBalance(row)
-        shiftDerivedRowsAfter(bankName, accountLast4, at, row.balance - (before ?: BigDecimal.ZERO))
+        shiftDerivedRowsAfter(
+            bankName, accountLast4, at, row.balance - (before?.balance ?: BigDecimal.ZERO),
+            before?.creditLimit, row.creditLimit, rebuilding
+        )
         row
     }
 
@@ -66,20 +71,46 @@ open class AccountBalanceRepository @Inject constructor(
      * taking back what each row changed from the derived rows after it, so
      * [insertSmsTransactionBalance] doesn't count it twice (#982).
      */
-    suspend fun removeSmsTransactionBalances(transactionId: Long) = database.withTransaction {
-        for (row in accountBalanceDao.getBalancesForTransaction(transactionId)) {
+    suspend fun removeSmsTransactionBalances(transactionId: Long, rebuilding: Boolean = false) = database.withTransaction {
+        // Newest first: taking back an older row moves the newer ones, which
+        // would leave their figures in this list stale.
+        for (row in accountBalanceDao.getBalancesForTransaction(transactionId).sortedByDescending { it.timestamp }) {
             accountBalanceDao.deleteBalanceById(row.id)
-            val before = accountBalanceDao.getBalanceAtOrBefore(row.bankName, row.accountLast4, row.timestamp)?.balance
-            shiftDerivedRowsAfter(row.bankName, row.accountLast4, row.timestamp, (before ?: BigDecimal.ZERO) - row.balance)
+            val before = accountBalanceDao.getBalanceAtOrBefore(row.bankName, row.accountLast4, row.timestamp)
+            shiftDerivedRowsAfter(
+                row.bankName, row.accountLast4, row.timestamp, (before?.balance ?: BigDecimal.ZERO) - row.balance,
+                row.creditLimit, before?.creditLimit, rebuilding
+            )
         }
     }
 
-    /** Adds [delta] to the derived rows after [at], up to the next anchor. */
-    private suspend fun shiftDerivedRowsAfter(bankName: String, accountLast4: String, at: LocalDateTime, delta: BigDecimal) {
+    /**
+     * Adds [delta] to the derived rows after [at], up to the next anchor. The
+     * row just before them had limit [oldLimit] and now has [newLimit]. A card
+     * row's limit is either copied from the row before it, so it follows that
+     * row, or worked out as "available + balance" (#486), so it moves with the
+     * balance and the available the bank stated stays the same.
+     */
+    private suspend fun shiftDerivedRowsAfter(
+        bankName: String,
+        accountLast4: String,
+        at: LocalDateTime,
+        delta: BigDecimal,
+        oldLimit: BigDecimal?,
+        newLimit: BigDecimal?,
+        rebuilding: Boolean
+    ) {
         if (delta.signum() == 0) return
-        for (later in accountBalanceDao.getBalanceRowsAfter(bankName, accountLast4, at)) {
+        var prevOld = oldLimit
+        var prevNew = newLimit
+        for (later in accountBalanceDao.getBalanceRowsAfter(bankName, accountLast4, at, rebuilding)) {
             if (!later.derived) break
-            accountBalanceDao.updateBalanceById(later.id, later.balance + delta)
+            val copied = if (later.creditLimit == null || prevOld == null) later.creditLimit == prevOld
+                else later.creditLimit.compareTo(prevOld) == 0
+            val limit = if (copied) prevNew else later.creditLimit?.plus(delta)
+            accountBalanceDao.updateBalanceAndLimitById(later.id, later.balance + delta, limit)
+            prevOld = later.creditLimit
+            prevNew = limit
         }
     }
 

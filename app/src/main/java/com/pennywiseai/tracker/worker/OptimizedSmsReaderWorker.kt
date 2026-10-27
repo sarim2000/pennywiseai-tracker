@@ -217,6 +217,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
 
+    /** This run is a force resync putting the wiped SMS balance rows back (#982). */
+    private var rebuilding = false
+
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
     private fun Long.toLocalDateTime(): LocalDateTime =
@@ -370,6 +373,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
 
             if (forceResync) {
+                rebuilding = true
                 Trace.beginSection("clearDatabase")
                 try {
                     // Delete only what the inbox can rebuild (active SMS rows
@@ -865,7 +869,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             lentSharesTotal = duplicate.lentSharesTotal
                         )
                         transactionRepository.updateTransaction(replacement)
-                        accountBalanceRepository.removeSmsTransactionBalances(duplicate.id)
+                        accountBalanceRepository.removeSmsTransactionBalances(duplicate.id, rebuilding)
                         replaceRuleApplications(duplicate.id, ruleApps)
                         pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
                             DeferredBalanceUpdate(it, duplicate.id)
@@ -987,7 +991,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // Moves from the balance just before this SMS in time, not the newest
         // row: the scan's parallel parsers save out of order (#982).
         val saved = accountBalanceRepository.insertSmsTransactionBalance(
-            parsed.bankName, targetAccount, current.dateTime
+            parsed.bankName, targetAccount, current.dateTime, rebuilding
         ) { before ->
             val newBalance = BalanceCalculator.balanceAfter(
                 explicitBalance = parsed.balance,
@@ -1349,7 +1353,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
                 "date >= ?",
                 arrayOf(scanStartSeconds.toString()),
-                "date DESC"
+                // Oldest first like the SMS feed, so a balance row seldom lands
+                // before rows already saved and has to move them (#982).
+                "date ASC"
             )?.use { c ->
                 while (c.moveToNext()) {
                     val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))

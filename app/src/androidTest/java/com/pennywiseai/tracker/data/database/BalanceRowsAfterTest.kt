@@ -41,17 +41,21 @@ class BalanceRowsAfterTest {
         listOf(
             row(1, 1, "sms", "TRANSACTION"), // balance-less SMS -> derived
             row(2, 2, "sms", "TRANSACTION"), // stated balance -> anchor
-            row(3, 3, null, "TRANSACTION"),  // delta row -> derived, but an anchor while rebuilding
+            row(3, 3, null, "TRANSACTION"),  // delta row -> derived, but an anchor if it predates the rebuild
             row(4, null, null, null),        // balance notice -> anchor
             row(5, null, null, "MANUAL"),    // user set -> anchor
             row(6, 99, "sms", "TRANSACTION") // its transaction is gone -> anchor
         ).forEach { dao.insertBalance(it) }
 
-        val normal = dao.getBalanceRowsAfter("Test Bank", "1111", at(0), rebuilding = false)
+        val normal = dao.getBalanceRowsAfter("Test Bank", "1111", at(0), frozenBefore = null)
         assertEquals(listOf(true, false, true, false, false, false), normal.map { it.derived })
         assertEquals(0, BigDecimal("900").compareTo(normal.first().creditLimit))
 
-        val rebuild = dao.getBalanceRowsAfter("Test Bank", "1111", at(0), rebuilding = true)
+        val rebuild = dao.getBalanceRowsAfter("Test Bank", "1111", at(0), frozenBefore = java.time.LocalDateTime.now().plusMinutes(1))
         assertEquals(listOf(true, false, false, false, false, false), rebuild.map { it.derived })
+
+        // A delta row created after the rebuild began is still derived.
+        val midRebuild = dao.getBalanceRowsAfter("Test Bank", "1111", at(0), frozenBefore = java.time.LocalDateTime.now().minusMinutes(1))
+        assertEquals(listOf(true, false, true, false, false, false), midRebuild.map { it.derived })
     }
 }

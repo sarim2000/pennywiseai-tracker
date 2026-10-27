@@ -50,17 +50,17 @@ class SmsBalanceOrderTest {
             "getBalanceRowsAfter" -> rows.filter { account(it) && it.timestamp > args[2] as LocalDateTime }
                 .sortedBy { it.timestamp }
                 .map {
-                    val rebuilding = args[3] as Boolean
+                    val frozenBefore = args[3] as LocalDateTime?
                     val derived = it.sourceType == "TRANSACTION" &&
-                        ((it.smsSource == null && !rebuilding) ||
+                        ((it.smsSource == null && (frozenBefore == null || it.createdAt >= frozenBefore)) ||
                             (it.smsSource != null && stated[it.transactionId] == false))
                     BalanceRowAfter(it.id, it.balance, it.creditLimit, derived)
                 }
             "getBalancesForTransaction" -> rows.filter { it.transactionId == args[0] }
             "deleteBalanceById" -> rows.removeAll { it.id == args[0] }.let { }
-            "updateBalanceAndLimitById" -> {
+            "updateBalanceById" -> {
                 val i = rows.indexOfFirst { it.id == args[0] }
-                rows[i] = rows[i].copy(balance = args[1] as BigDecimal, creditLimit = args[2] as BigDecimal?)
+                rows[i] = rows[i].copy(balance = args[1] as BigDecimal)
                 Unit
             }
             else -> error("unexpected ${method.name}")
@@ -86,12 +86,12 @@ class SmsBalanceOrderTest {
     /** What both SMS paths do for a transaction SMS on a debit account. */
     private fun sms(
         id: Long, time: LocalDateTime, type: TransactionType, amount: String, statedBalance: String? = null,
-        availableLimit: String? = null, card: Boolean = false, rebuilding: Boolean = false
+        availableLimit: String? = null, card: Boolean = false, rebuildStartedAt: LocalDateTime? = null
     ) = runBlocking {
         stated[id] = statedBalance != null
         val latestLimit = rows.filter { it.bankName == BANK && it.accountLast4 == ACCT }
             .maxByOrNull { it.timestamp }?.creditLimit
-        repo.insertSmsTransactionBalance(BANK, ACCT, time, rebuilding) { before ->
+        repo.insertSmsTransactionBalance(BANK, ACCT, time, rebuildStartedAt) { before ->
             val balance = BalanceCalculator.balanceAfter(
                 statedBalance?.let(::BigDecimal), card, type, BigDecimal(amount), "INR", "INR", before
             )
@@ -105,11 +105,14 @@ class SmsBalanceOrderTest {
     }
 
     /** A signed delta row stamped "now", as a manual add or a delete/edit writes. */
-    private fun delta(time: LocalDateTime, transactionId: Long, balance: String, creditLimit: String? = null) {
+    private fun delta(
+        time: LocalDateTime, transactionId: Long, balance: String, creditLimit: String? = null,
+        createdAt: LocalDateTime = CREATED
+    ) {
         rows += AccountBalanceEntity(
             id = nextId++, bankName = BANK, accountLast4 = ACCT, balance = BigDecimal(balance),
             timestamp = time, transactionId = transactionId, sourceType = "TRANSACTION",
-            creditLimit = creditLimit?.let(::BigDecimal)
+            creditLimit = creditLimit?.let(::BigDecimal), createdAt = createdAt
         )
     }
 
@@ -195,8 +198,21 @@ class SmsBalanceOrderTest {
         delta(at(1, 12, 0), 99, "850.00") // a manual 50 expense, added later
         // Force resync: the SMS transactions and their rows go; the manual add's row stays.
         rows.removeAll { it.transactionId == 1L || it.transactionId == 2L }
-        sms(2, at(1, 10, 0), TransactionType.EXPENSE, "100.00", rebuilding = true)
-        sms(1, at(1, 9, 0), TransactionType.EXPENSE, "10.00", statedBalance = "1000.00", rebuilding = true)
+        sms(2, at(1, 10, 0), TransactionType.EXPENSE, "100.00", rebuildStartedAt = REBUILD)
+        sms(1, at(1, 9, 0), TransactionType.EXPENSE, "10.00", statedBalance = "1000.00", rebuildStartedAt = REBUILD)
+
+        assertEquals(listOf("09:00" to "1000.00", "10:00" to "900.00", "12:00" to "850.00"), history())
+    }
+
+    @Test
+    fun `an expense added while a resync runs still takes the SMS put back after it`() {
+        sms(1, at(1, 9, 0), TransactionType.EXPENSE, "10.00", statedBalance = "1000.00")
+        sms(2, at(1, 10, 0), TransactionType.EXPENSE, "100.00")
+        rows.removeAll { it.transactionId == 1L || it.transactionId == 2L } // force resync wipes them
+        sms(1, at(1, 9, 0), TransactionType.EXPENSE, "10.00", statedBalance = "1000.00", rebuildStartedAt = REBUILD)
+        // Mid-rebuild the user adds a 50 expense: its row starts from the partly rebuilt 1000.
+        delta(at(1, 12, 0), 99, "950.00", createdAt = REBUILD.plusSeconds(5))
+        sms(2, at(1, 10, 0), TransactionType.EXPENSE, "100.00", rebuildStartedAt = REBUILD)
 
         assertEquals(listOf("09:00" to "1000.00", "10:00" to "900.00", "12:00" to "850.00"), history())
     }
@@ -215,12 +231,12 @@ class SmsBalanceOrderTest {
     }
 
     @Test
-    fun `a card SMS saved late keeps the available limit the later SMS stated`() {
+    fun `a card SMS saved late doesn't touch the later row, so its stated available stays`() {
         sms(2, at(1, 12, 0), TransactionType.CREDIT, "100.00", availableLimit = "8850.00", card = true)
         sms(1, at(1, 10, 0), TransactionType.CREDIT, "50.00", availableLimit = "8950.00", card = true)
 
         val card = latest()
-        assertEquals(BigDecimal("150.00"), card.balance)
+        assertEquals(BigDecimal("100.00"), card.balance) // cards keep the latest-row behaviour
         assertEquals(BigDecimal("8850.00"), card.creditLimit!! - card.balance)
     }
 
@@ -232,12 +248,15 @@ class SmsBalanceOrderTest {
         sms(1, at(1, 10, 0), TransactionType.CREDIT, "50.00", card = true)
 
         val card = latest()
-        assertEquals(BigDecimal("180.00"), card.balance)
+        assertEquals(BigDecimal("130.00"), card.balance) // not shifted: cards keep the latest-row behaviour
         assertEquals(BigDecimal("10000.00"), card.creditLimit)
     }
 
     private companion object {
         const val BANK = "Test Bank"
         const val ACCT = "1111"
+        /** Rows made before the resync began; [REBUILD] is when it began. */
+        val CREATED: LocalDateTime = LocalDateTime.of(2026, 1, 1, 0, 0)
+        val REBUILD: LocalDateTime = LocalDateTime.of(2026, 1, 2, 0, 0)
     }
 }

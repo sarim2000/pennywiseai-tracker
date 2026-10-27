@@ -217,8 +217,12 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
 
-    /** This run is a force resync putting the wiped SMS balance rows back (#982). */
-    private var rebuilding = false
+    /**
+     * When this run's force resync wiped the SMS balance rows, or null. Delta rows
+     * created before it survived the wipe already holding the SMS effects being put
+     * back; rows created after it (an expense added mid-rebuild) don't (#982).
+     */
+    private var rebuildStartedAt: LocalDateTime? = null
 
     // ─── Extension: DRYs up repeated timestamp conversions ───────────────────
 
@@ -373,7 +377,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
 
             if (forceResync) {
-                rebuilding = true
+                rebuildStartedAt = LocalDateTime.now()
                 Trace.beginSection("clearDatabase")
                 try {
                     // Delete only what the inbox can rebuild (active SMS rows
@@ -869,7 +873,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                             lentSharesTotal = duplicate.lentSharesTotal
                         )
                         transactionRepository.updateTransaction(replacement)
-                        accountBalanceRepository.removeSmsTransactionBalances(duplicate.id, rebuilding)
+                        accountBalanceRepository.removeSmsTransactionBalances(duplicate.id, rebuildStartedAt)
                         replaceRuleApplications(duplicate.id, ruleApps)
                         pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
                             DeferredBalanceUpdate(it, duplicate.id)
@@ -991,7 +995,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // Moves from the balance just before this SMS in time, not the newest
         // row: the scan's parallel parsers save out of order (#982).
         val saved = accountBalanceRepository.insertSmsTransactionBalance(
-            parsed.bankName, targetAccount, current.dateTime, rebuilding
+            parsed.bankName, targetAccount, current.dateTime, rebuildStartedAt
         ) { before ->
             val newBalance = BalanceCalculator.balanceAfter(
                 explicitBalance = parsed.balance,

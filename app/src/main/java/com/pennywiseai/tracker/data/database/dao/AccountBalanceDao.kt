@@ -37,13 +37,14 @@ interface AccountBalanceDao {
      * app worked out from the row before it: a "TRANSACTION" row that is a
      * delta (no `sms_source`) or whose SMS stated no balance. Every other row
      * (a stated balance, MANUAL, OPENING, a balance notice) is an anchor (#982).
-     * While [rebuilding] the SMS history, a delta row is an anchor too: it
-     * survived the wipe already holding the effect of the SMS being put back.
+     * While a resync puts the SMS history back, a delta row created before it
+     * began ([frozenBefore]) is an anchor too: it survived the wipe already
+     * holding the effect of the SMS being put back. One added mid-rebuild isn't.
      */
     @Query("""
         SELECT ab.id AS id, ab.balance AS balance, ab.credit_limit AS creditLimit,
             CASE WHEN ab.source_type = 'TRANSACTION'
-                AND ((ab.sms_source IS NULL AND NOT :rebuilding)
+                AND ((ab.sms_source IS NULL AND (:frozenBefore IS NULL OR ab.created_at >= :frozenBefore))
                     OR (ab.sms_source IS NOT NULL AND t.id IS NOT NULL AND t.balance_after IS NULL))
             THEN 1 ELSE 0 END AS derived
         FROM account_balances ab
@@ -55,7 +56,7 @@ interface AccountBalanceDao {
         bankName: String,
         accountLast4: String,
         after: LocalDateTime,
-        rebuilding: Boolean
+        frozenBefore: LocalDateTime?
     ): List<BalanceRowAfter>
 
     @Query("""
@@ -246,9 +247,6 @@ interface AccountBalanceDao {
     
     @Query("UPDATE account_balances SET balance = :newBalance WHERE id = :id")
     suspend fun updateBalanceById(id: Long, newBalance: BigDecimal)
-
-    @Query("UPDATE account_balances SET balance = :newBalance, credit_limit = :creditLimit WHERE id = :id")
-    suspend fun updateBalanceAndLimitById(id: Long, newBalance: BigDecimal, creditLimit: BigDecimal?)
     
     @Query("""SELECT COUNT(*) FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")

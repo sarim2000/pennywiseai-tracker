@@ -924,6 +924,17 @@
       "reference": null,
       "balance": null
     },
+    "Orange Money": {
+      "sender": "OrangeMoney",
+      "message": "تمت عملية التحويل المالي الى المحفظة TESTWALLET1 بمبلغ 150 دينار بتاريخ 03/06/2026 الساعة ",
+      "currency": "JOD",
+      "amount": "150",
+      "type": "EXPENSE",
+      "merchant": "TESTWALLET1",
+      "accountLast4": null,
+      "reference": null,
+      "balance": null
+    },
     "Parsian Bank": {
       "sender": "PERSIANBANK",
       "message": "مبلغ 150,000 تومان خرید با کارت 1234-5678-9012-3456 انجام شد. مانده: 2,350,000 تومان",

@@ -116,6 +116,7 @@ object BankParserFactory {
         IslamicInternationalArabBankParser(),  // Islamic International Arab Bank (Jordan) — ARABIISLAMI
         BankAlEtihadParser(),  // Bank al Etihad (Jordan) — BankEtihad
         SafwaIslamicBankParser(),  // Safwa Islamic Bank (Jordan)
+        OrangeMoneyJordanParser(),  // Orange Money (Jordan) — OrangeMoney wallet
         DhanlaxmiBankParser(),  // Dhanlaxmi Bank (India)
         DOPBankParser(),  // Department of Post (India)
         HuntingtonBankParser(),  // Huntington Bank (USA)

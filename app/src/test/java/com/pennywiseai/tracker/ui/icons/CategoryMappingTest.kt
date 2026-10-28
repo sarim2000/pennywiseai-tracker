@@ -186,6 +186,7 @@ class CategoryMappingTest {
             assertEquals(com.pennywiseai.tracker.R.string.category_food_dining, CategoryMapping.labelRes("Food & Dining"))
             assertEquals(com.pennywiseai.tracker.R.string.category_tax, CategoryMapping.labelRes("Tax")) // not seeded, still auto-assigned
             assertEquals(null, CategoryMapping.labelRes("Pets"))
+            assertEquals(com.pennywiseai.tracker.R.string.category_subscriptions, CategoryMapping.labelRes("Subscriptions")) // add-subscription default
 
             CategoryMapping.userStyles["Travel"] = CategoryMapping.UserStyle("#00BCD4", null, isBuiltin = true)
             assertEquals(com.pennywiseai.tracker.R.string.category_travel, CategoryMapping.labelRes("Travel"))

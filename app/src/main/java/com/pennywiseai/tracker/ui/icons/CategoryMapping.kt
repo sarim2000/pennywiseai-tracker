@@ -90,7 +90,10 @@ object CategoryMapping {
      */
     @StringRes
     fun labelRes(name: String): Int? =
-        if (userStyles[name]?.isBuiltin == false) null else builtins[name]?.label
+        if (userStyles[name]?.isBuiltin == false) null else builtins[name]?.label ?: labelOnly[name]
+
+    /** Names the app assigns by default but that have no built-in icon or colour of their own. */
+    private val labelOnly = mapOf("Subscriptions" to R.string.category_subscriptions)
 
     /** [labelRes] for non-Compose callers (widgets, workers, notifications). */
     fun label(context: Context, name: String): String =

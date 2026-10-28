@@ -21,4 +21,5 @@
     <string name="category_income">Příjem</string>
     <string name="category_travel">Cestování</string>
     <string name="category_others">Ostatní</string>
+    <string name="category_subscriptions">Předplatné</string>
 </resources>

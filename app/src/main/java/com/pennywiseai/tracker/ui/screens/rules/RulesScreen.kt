@@ -37,6 +37,7 @@ import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -654,7 +655,7 @@ private fun BatchApplyDialog(
                                                 val mod = diff.modified
                                                 if (orig.category != mod.category) {
                                                     Text(
-                                                        text = stringResource(R.string.rules_batch_change_category, orig.category, mod.category),
+                                                        text = stringResource(R.string.rules_batch_change_category, categoryLabel(orig.category), categoryLabel(mod.category)),
                                                         style = MaterialTheme.typography.bodySmall
                                                     )
                                                 }

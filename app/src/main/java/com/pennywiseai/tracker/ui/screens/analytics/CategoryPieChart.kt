@@ -33,6 +33,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
 import ir.ehsannarmani.compose_charts.models.Pie
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @Composable
 fun CategoryPieChart(
@@ -193,7 +194,7 @@ private fun PieLegendItem(
         Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
+                text = categoryLabel(label),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,

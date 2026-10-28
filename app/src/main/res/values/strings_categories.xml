@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Built-in category names, shown in place of the stored English key (CategoryMapping.label). -->
+<resources>
+    <string name="category_food_dining">Food &amp; Dining</string>
+    <string name="category_groceries">Groceries</string>
+    <string name="category_transportation">Transportation</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_bills_utilities">Bills &amp; Utilities</string>
+    <string name="category_entertainment">Entertainment</string>
+    <string name="category_healthcare">Healthcare</string>
+    <string name="category_investments">Investments</string>
+    <string name="category_banking">Banking</string>
+    <string name="category_personal_care">Personal Care</string>
+    <string name="category_education">Education</string>
+    <string name="category_mobile">Mobile</string>
+    <string name="category_fitness">Fitness</string>
+    <string name="category_insurance">Insurance</string>
+    <string name="category_tax">Tax</string>
+    <string name="category_bank_charges">Bank Charges</string>
+    <string name="category_credit_card_payment">Credit Card Payment</string>
+    <string name="category_salary">Salary</string>
+    <string name="category_income">Income</string>
+    <string name="category_travel">Travel</string>
+    <string name="category_others">Others</string>
+</resources>

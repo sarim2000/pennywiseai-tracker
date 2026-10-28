@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 
 /**
  * A user-facing message a ViewModel emits without holding a Context. It is
@@ -20,7 +21,16 @@ sealed interface UiText {
     @Composable
     fun asString(): String = when (this) {
         is Plain -> value
-        is Res -> stringResource(id, *args.toTypedArray())
-        is Plural -> pluralStringResource(id, count, *args.toTypedArray())
+        is Res -> stringResource(id, *args.resolved())
+        is Plural -> pluralStringResource(id, count, *args.resolved())
+    }
+
+    companion object {
+        /** A category name, translated if it's an un-renamed built-in. */
+        fun category(name: String): UiText = CategoryMapping.labelRes(name)?.let { Res(it) } ?: Plain(name)
     }
 }
+
+/** Args may themselves be [UiText] (e.g. a category name) — resolve those too. */
+@Composable
+private fun List<Any>.resolved(): Array<Any> = map { if (it is UiText) it.asString() else it }.toTypedArray()

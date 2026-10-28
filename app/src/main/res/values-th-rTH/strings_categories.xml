@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">อาหารและเครื่องดื่ม</string>
+    <string name="category_groceries">ของชำ</string>
+    <string name="category_transportation">การเดินทาง</string>
+    <string name="category_shopping">ช้อปปิ้ง</string>
+    <string name="category_bills_utilities">ค่าบิลและสาธารณูปโภค</string>
+    <string name="category_entertainment">ความบันเทิง</string>
+    <string name="category_healthcare">สุขภาพ</string>
+    <string name="category_investments">การลงทุน</string>
+    <string name="category_banking">ธนาคาร</string>
+    <string name="category_personal_care">ดูแลตัวเอง</string>
+    <string name="category_education">การศึกษา</string>
+    <string name="category_mobile">มือถือ</string>
+    <string name="category_fitness">ฟิตเนส</string>
+    <string name="category_insurance">ประกันภัย</string>
+    <string name="category_tax">ภาษี</string>
+    <string name="category_bank_charges">ค่าธรรมเนียมธนาคาร</string>
+    <string name="category_credit_card_payment">ชำระบัตรเครดิต</string>
+    <string name="category_salary">เงินเดือน</string>
+    <string name="category_income">รายได้</string>
+    <string name="category_travel">ท่องเที่ยว</string>
+    <string name="category_others">อื่นๆ</string>
+</resources>

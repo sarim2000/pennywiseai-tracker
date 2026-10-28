@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.icons
 
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -39,10 +41,13 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SportsMartialArts
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.tracker.R
 
 /**
  * Category visual properties (icons, colors) for Android UI.
@@ -51,7 +56,7 @@ import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 object CategoryMapping {
 
     data class CategoryInfo(
-        val displayName: String,
+        @StringRes val label: Int,
         val icon: ImageVector,
         val color: Color,
         val fallbackIcon: ImageVector = Icons.Default.Category
@@ -64,7 +69,9 @@ object CategoryMapping {
         /** Original name of a renamed built-in (#823); null otherwise. */
         val builtinKey: String? = null,
         /** True when [colorHex] is the user's choice rather than a built-in's seed. */
-        val customColor: Boolean = true
+        val customColor: Boolean = true,
+        /** A built-in still on its original name — the only kind shown translated. */
+        val isBuiltin: Boolean = false
     )
 
     /**
@@ -74,6 +81,20 @@ object CategoryMapping {
      * custom category without plumbing a map through every screen.
      */
     val userStyles = mutableStateMapOf<String, UserStyle>()
+
+    /**
+     * Translated name of an un-renamed built-in, or null to show [name] as stored.
+     * Storage, rules, budgets and backups all keep the English key; only display
+     * changes. A user's own name (a custom category or a renamed built-in, #823)
+     * is never translated.
+     */
+    @StringRes
+    fun labelRes(name: String): Int? =
+        if (userStyles[name]?.isBuiltin == false) null else builtins[name]?.label
+
+    /** [labelRes] for non-Compose callers (widgets, workers, notifications). */
+    fun label(context: Context, name: String): String =
+        labelRes(name)?.let(context::getString) ?: name
 
     fun emojiFor(name: String): String? = userStyles[name]?.emoji?.takeIf { it.isNotBlank() }
 
@@ -108,127 +129,127 @@ object CategoryMapping {
 
     private val builtins = mapOf(
         "Food & Dining" to CategoryInfo(
-            displayName = "Food & Dining",
+            label = R.string.category_food_dining,
             icon = Icons.Default.Restaurant,
             color = Color(0xFFFC8019),
             fallbackIcon = Icons.Default.Fastfood
         ),
         "Groceries" to CategoryInfo(
-            displayName = "Groceries",
+            label = R.string.category_groceries,
             icon = Icons.Default.ShoppingCart,
             color = Color(0xFF5AC85A),
             fallbackIcon = Icons.Default.LocalGroceryStore
         ),
         "Transportation" to CategoryInfo(
-            displayName = "Transportation",
+            label = R.string.category_transportation,
             icon = Icons.Default.DirectionsCar,
             color = Color(0xFF000000),
             fallbackIcon = Icons.Default.Commute
         ),
         "Shopping" to CategoryInfo(
-            displayName = "Shopping",
+            label = R.string.category_shopping,
             icon = Icons.Default.ShoppingBag,
             color = Color(0xFFFF9900),
             fallbackIcon = Icons.Default.Store
         ),
         "Bills & Utilities" to CategoryInfo(
-            displayName = "Bills & Utilities",
+            label = R.string.category_bills_utilities,
             icon = Icons.Default.Receipt,
             color = Color(0xFF4CAF50),
             fallbackIcon = Icons.Default.Payment
         ),
         "Entertainment" to CategoryInfo(
-            displayName = "Entertainment",
+            label = R.string.category_entertainment,
             icon = Icons.Default.MovieFilter,
             color = Color(0xFFE50914),
             fallbackIcon = Icons.Default.PlayCircle
         ),
         "Healthcare" to CategoryInfo(
-            displayName = "Healthcare",
+            label = R.string.category_healthcare,
             icon = Icons.Default.LocalHospital,
             color = Color(0xFF10847E),
             fallbackIcon = Icons.Default.HealthAndSafety
         ),
         "Investments" to CategoryInfo(
-            displayName = "Investments",
+            label = R.string.category_investments,
             icon = Icons.AutoMirrored.Filled.TrendingUp,
             color = Color(0xFF00D09C),
             fallbackIcon = Icons.AutoMirrored.Filled.ShowChart
         ),
         "Banking" to CategoryInfo(
-            displayName = "Banking",
+            label = R.string.category_banking,
             icon = Icons.Default.AccountBalance,
             color = Color(0xFF004C8F),
             fallbackIcon = Icons.Default.AccountBalanceWallet
         ),
         "Personal Care" to CategoryInfo(
-            displayName = "Personal Care",
+            label = R.string.category_personal_care,
             icon = Icons.Default.Face,
             color = Color(0xFF6A4C93),
             fallbackIcon = Icons.Default.Spa
         ),
         "Education" to CategoryInfo(
-            displayName = "Education",
+            label = R.string.category_education,
             icon = Icons.Default.School,
             color = Color(0xFF673AB7),
             fallbackIcon = Icons.Default.Book
         ),
         "Mobile" to CategoryInfo(
-            displayName = "Mobile & Recharge",
+            label = R.string.category_mobile,
             icon = Icons.Default.Smartphone,
             color = Color(0xFF2A3890),
             fallbackIcon = Icons.Default.PhoneAndroid
         ),
         "Fitness" to CategoryInfo(
-            displayName = "Fitness",
+            label = R.string.category_fitness,
             icon = Icons.Default.FitnessCenter,
             color = Color(0xFFFF3278),
             fallbackIcon = Icons.Default.SportsMartialArts
         ),
         "Insurance" to CategoryInfo(
-            displayName = "Insurance",
+            label = R.string.category_insurance,
             icon = Icons.Default.Shield,
             color = Color(0xFF0066CC),
             fallbackIcon = Icons.Default.Security
         ),
         "Tax" to CategoryInfo(
-            displayName = "Tax",
+            label = R.string.category_tax,
             icon = Icons.Default.AccountBalanceWallet,
             color = Color(0xFF795548),
             fallbackIcon = Icons.Default.Receipt
         ),
         "Bank Charges" to CategoryInfo(
-            displayName = "Bank Charges",
+            label = R.string.category_bank_charges,
             icon = Icons.Default.MoneyOff,
             color = Color(0xFF9E9E9E),
             fallbackIcon = Icons.Default.RemoveCircle
         ),
         "Credit Card Payment" to CategoryInfo(
-            displayName = "Credit Card Payment",
+            label = R.string.category_credit_card_payment,
             icon = Icons.Default.CreditCard,
             color = Color(0xFF1976D2),
             fallbackIcon = Icons.Default.Payment
         ),
         "Salary" to CategoryInfo(
-            displayName = "Salary",
+            label = R.string.category_salary,
             icon = Icons.Default.Payments,
             color = Color(0xFF4CAF50),
             fallbackIcon = Icons.Default.AttachMoney
         ),
         "Income" to CategoryInfo(
-            displayName = "Other Income",
+            label = R.string.category_income,
             icon = Icons.Default.AddCircle,
             color = Color(0xFF4CAF50),
             fallbackIcon = Icons.AutoMirrored.Filled.TrendingUp
         ),
         "Travel" to CategoryInfo(
-            displayName = "Travel",
+            label = R.string.category_travel,
             icon = Icons.Default.Flight,
             color = Color(0xFF00BCD4),
             fallbackIcon = Icons.Default.AirplanemodeActive
         ),
         "Others" to CategoryInfo(
-            displayName = "Others",
+            label = R.string.category_others,
             icon = Icons.Default.Category,
             color = Color(0xFF757575),
             fallbackIcon = Icons.Default.MoreHoriz
@@ -243,6 +264,11 @@ object CategoryMapping {
         return SharedCategoryMapping.getCategory(merchantName)
     }
 }
+
+/** A category name as the user should read it: built-ins in the app's language. */
+@Composable
+fun categoryLabel(name: String): String =
+    CategoryMapping.labelRes(name)?.let { stringResource(it) } ?: name
 
 /**
  * Icon provider with fallback mechanism

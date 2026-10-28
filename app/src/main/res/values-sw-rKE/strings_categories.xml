@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">Chakula na Migahawa</string>
+    <string name="category_groceries">Mboga na Vyakula</string>
+    <string name="category_transportation">Usafiri</string>
+    <string name="category_shopping">Ununuzi</string>
+    <string name="category_bills_utilities">Bili na Huduma</string>
+    <string name="category_entertainment">Burudani</string>
+    <string name="category_healthcare">Afya</string>
+    <string name="category_investments">Uwekezaji</string>
+    <string name="category_banking">Huduma za Benki</string>
+    <string name="category_personal_care">Utunzaji Binafsi</string>
+    <string name="category_education">Elimu</string>
+    <string name="category_mobile">Simu</string>
+    <string name="category_fitness">Mazoezi</string>
+    <string name="category_insurance">Bima</string>
+    <string name="category_tax">Kodi</string>
+    <string name="category_bank_charges">Ada za Benki</string>
+    <string name="category_credit_card_payment">Malipo ya Kadi ya Mkopo</string>
+    <string name="category_salary">Mshahara</string>
+    <string name="category_income">Mapato</string>
+    <string name="category_travel">Safari</string>
+    <string name="category_others">Mengineyo</string>
+</resources>

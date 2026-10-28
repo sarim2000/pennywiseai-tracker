@@ -31,6 +31,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 
 /**
  * BroadcastReceiver that intercepts incoming SMS messages in real-time
@@ -257,7 +258,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, learned.category))
+                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, CategoryMapping.label(context, learned.category)))
                     .setContentText(text)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                     .setContentIntent(openTransactionIntent(context, learned.transactionId))
@@ -437,7 +438,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val summaryLine = if (uncategorized) {
                 context.getString(R.string.notif_txn_ask_category, bankName)
             } else {
-                context.getString(R.string.notif_txn_category_bank, transaction.category, bankName)
+                context.getString(R.string.notif_txn_category_bank, CategoryMapping.label(context, transaction.category), bankName)
             }
             val content = listOfNotNull(summaryLine, discrepancyLine).joinToString("\n")
 
@@ -482,7 +483,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         categoryIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
-                    notificationBuilder.addAction(0, pick, categoryPendingIntent)
+                    notificationBuilder.addAction(0, CategoryMapping.label(context, pick), categoryPendingIntent)
                 }
             }
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">طعام ومطاعم</string>
+    <string name="category_groceries">بقالة</string>
+    <string name="category_transportation">مواصلات</string>
+    <string name="category_shopping">تسوّق</string>
+    <string name="category_bills_utilities">فواتير وخدمات</string>
+    <string name="category_entertainment">ترفيه</string>
+    <string name="category_healthcare">رعاية صحية</string>
+    <string name="category_investments">استثمارات</string>
+    <string name="category_banking">خدمات بنكية</string>
+    <string name="category_personal_care">عناية شخصية</string>
+    <string name="category_education">تعليم</string>
+    <string name="category_mobile">جوال</string>
+    <string name="category_fitness">لياقة بدنية</string>
+    <string name="category_insurance">تأمين</string>
+    <string name="category_tax">ضرائب</string>
+    <string name="category_bank_charges">رسوم بنكية</string>
+    <string name="category_credit_card_payment">سداد بطاقة ائتمان</string>
+    <string name="category_salary">راتب</string>
+    <string name="category_income">دخل</string>
+    <string name="category_travel">سفر</string>
+    <string name="category_others">أخرى</string>
+</resources>

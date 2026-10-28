@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @Composable
 fun TransactionItem(
@@ -83,14 +84,15 @@ fun TransactionItem(
     val description = transaction.description?.takeIf { it.isNotBlank() }
 
     val resources = LocalContext.current.resources
-    val subtitle = remember(transaction, dateTimeText, isEffectivelyBusiness) {
+    val categoryText = categoryLabel(transaction.category)
+    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness) {
         buildList {
             if (description != null) add(description)
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
                 !transaction.category.equals("Uncategorized", ignoreCase = true)
             ) {
-                add(transaction.category)
+                add(categoryText)
             }
 
             if (showTypeLabel) {

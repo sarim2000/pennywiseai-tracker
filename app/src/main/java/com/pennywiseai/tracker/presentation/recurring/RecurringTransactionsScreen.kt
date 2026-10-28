@@ -42,6 +42,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -190,7 +191,7 @@ private fun RecurringItem(
                 )
                 template.category.takeIf { it.isNotBlank() }?.let {
                     Text(
-                        text = it,
+                        text = categoryLabel(it),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -352,7 +353,7 @@ private fun RecurringEditorDialog(
                     onExpandedChange = { categoryExpanded = it }
                 ) {
                     OutlinedTextField(
-                        value = state.category,
+                        value = categoryLabel(state.category),
                         onValueChange = {},
                         readOnly = true,
                         label = { Text(stringResource(R.string.recurring_field_category)) },

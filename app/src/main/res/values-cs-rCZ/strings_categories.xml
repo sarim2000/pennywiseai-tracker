@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">Jídlo a restaurace</string>
+    <string name="category_groceries">Potraviny</string>
+    <string name="category_transportation">Doprava</string>
+    <string name="category_shopping">Nákupy</string>
+    <string name="category_bills_utilities">Účty a energie</string>
+    <string name="category_entertainment">Zábava</string>
+    <string name="category_healthcare">Zdravotní péče</string>
+    <string name="category_investments">Investice</string>
+    <string name="category_banking">Bankovnictví</string>
+    <string name="category_personal_care">Osobní péče</string>
+    <string name="category_education">Vzdělávání</string>
+    <string name="category_mobile">Mobil</string>
+    <string name="category_fitness">Fitness</string>
+    <string name="category_insurance">Pojištění</string>
+    <string name="category_tax">Daně</string>
+    <string name="category_bank_charges">Bankovní poplatky</string>
+    <string name="category_credit_card_payment">Splátka kreditní karty</string>
+    <string name="category_salary">Mzda</string>
+    <string name="category_income">Příjem</string>
+    <string name="category_travel">Cestování</string>
+    <string name="category_others">Ostatní</string>
+</resources>

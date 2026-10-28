@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">Еда и рестораны</string>
+    <string name="category_groceries">Продукты</string>
+    <string name="category_transportation">Транспорт</string>
+    <string name="category_shopping">Покупки</string>
+    <string name="category_bills_utilities">Счета и коммунальные услуги</string>
+    <string name="category_entertainment">Развлечения</string>
+    <string name="category_healthcare">Здоровье</string>
+    <string name="category_investments">Инвестиции</string>
+    <string name="category_banking">Банковские услуги</string>
+    <string name="category_personal_care">Личный уход</string>
+    <string name="category_education">Образование</string>
+    <string name="category_mobile">Мобильная связь</string>
+    <string name="category_fitness">Фитнес</string>
+    <string name="category_insurance">Страхование</string>
+    <string name="category_tax">Налоги</string>
+    <string name="category_bank_charges">Банковские комиссии</string>
+    <string name="category_credit_card_payment">Оплата кредитной карты</string>
+    <string name="category_salary">Зарплата</string>
+    <string name="category_income">Доход</string>
+    <string name="category_travel">Путешествия</string>
+    <string name="category_others">Прочее</string>
+</resources>

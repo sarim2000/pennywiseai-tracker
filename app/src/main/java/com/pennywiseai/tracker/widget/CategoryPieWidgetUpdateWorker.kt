@@ -185,7 +185,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 top.forEach { (name, amount) ->
                     add(
                         CategoryPieSlice(
-                            name = name,
+                            name = CategoryMapping.label(applicationContext.inAppLanguage(), name),
                             colorArgb = CategoryMapping.colorFor(name, colorOverrides[name])
                                 .toArgb().toLong(),
                             percent = percentOf(amount)

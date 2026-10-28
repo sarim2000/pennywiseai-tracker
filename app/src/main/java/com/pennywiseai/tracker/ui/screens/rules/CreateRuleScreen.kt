@@ -30,6 +30,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.util.UUID
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Transaction-type options for rule condition/action pickers: stored enum name → display label.
@@ -674,6 +675,7 @@ fun CreateRuleScreen(
                                     )
                                     val valueText = when (condition.field) {
                                         TransactionField.TYPE -> ruleTransactionTypeLabel(condition.value)
+                                        TransactionField.CATEGORY -> categoryLabel(condition.value)
                                         TransactionField.TRANSACTION_DAY_OF_WEEK ->
                                             condition.value.split(",").map { day ->
                                                 RULE_DAYS_OF_WEEK.firstOrNull { it.first == day.trim() }
@@ -714,6 +716,8 @@ fun CreateRuleScreen(
                                         // Show user-friendly labels for transaction types in actions too
                                         val displayValue = if (action.field == TransactionField.TYPE) {
                                             ruleTransactionTypeLabel(action.value)
+                                        } else if (action.field == TransactionField.CATEGORY) {
+                                            categoryLabel(action.value)
                                         } else {
                                             action.value
                                         }
@@ -1280,7 +1284,7 @@ private fun ActionEditor(
                             FilterChip(
                                 selected = action.value == category,
                                 onClick = { onActionChange(action.copy(value = category)) },
-                                label = { Text(category, style = MaterialTheme.typography.bodySmall) }
+                                label = { Text(categoryLabel(category), style = MaterialTheme.typography.bodySmall) }
                             )
                         }
                     }

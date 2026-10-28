@@ -179,6 +179,28 @@ class CategoryMappingTest {
         }
     }
 
+    // Only an un-renamed built-in is translated; a name the user typed shows as typed.
+    @Test
+    fun testLabelRes_translatesOnlyBuiltins() {
+        try {
+            assertEquals(com.pennywiseai.tracker.R.string.category_food_dining, CategoryMapping.labelRes("Food & Dining"))
+            assertEquals(com.pennywiseai.tracker.R.string.category_tax, CategoryMapping.labelRes("Tax")) // not seeded, still auto-assigned
+            assertEquals(null, CategoryMapping.labelRes("Pets"))
+
+            CategoryMapping.userStyles["Travel"] = CategoryMapping.UserStyle("#00BCD4", null, isBuiltin = true)
+            assertEquals(com.pennywiseai.tracker.R.string.category_travel, CategoryMapping.labelRes("Travel"))
+
+            // Shopping renamed to "Groceries" after the real Groceries was renamed away.
+            CategoryMapping.userStyles["Groceries"] = CategoryMapping.UserStyle("#FF9900", null, builtinKey = "Shopping")
+            assertEquals(null, CategoryMapping.labelRes("Groceries"))
+            // A user's own category that took a freed built-in name.
+            CategoryMapping.userStyles["Salary"] = CategoryMapping.UserStyle("#4CAF50", null)
+            assertEquals(null, CategoryMapping.labelRes("Salary"))
+        } finally {
+            CategoryMapping.userStyles.clear()
+        }
+    }
+
 }
 
 // Helper function to test categorization

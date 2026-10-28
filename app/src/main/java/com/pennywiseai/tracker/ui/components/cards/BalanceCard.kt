@@ -341,24 +341,24 @@ fun BalanceCard(
                             }
 
                             SummaryItem(
-                                label = "Income",
+                                label = stringResource(R.string.balance_card_summary_income),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
                                 accentColor = incomeColor
                             )
                             SummaryItem(
-                                label = "Expenses",
+                                label = stringResource(R.string.balance_card_summary_expenses),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
                                 accentColor = expenseColor
                             )
                             if (currentMonthLent > BigDecimal.ZERO) {
                                 SummaryItem(
-                                    label = "Lent",
+                                    label = stringResource(R.string.balance_card_summary_lent),
                                     value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
                                     accentColor = MaterialTheme.colorScheme.tertiary
                                 )
                             }
                             SummaryItem(
-                                label = "Saved",
+                                label = stringResource(R.string.balance_card_summary_saved),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
                                 accentColor = netColor
                             )

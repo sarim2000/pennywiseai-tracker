@@ -50,6 +50,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.ui.platform.LocalDensity
 
 // Reusable filled text field colors with no indicator
 @Composable
@@ -636,7 +637,7 @@ fun TransactionTabContent(
             )
 
             // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(modifier = Modifier.height(72.dp + Spacing.lg))
         }
 
         // ── Sticky Save Button ──
@@ -644,13 +645,12 @@ fun TransactionTabContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                // Fade in above the button only; behind it stays solid, so a
+                // disabled (translucent) Save never shows the form through it.
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.surface
-                        )
+                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                        endY = with(LocalDensity.current) { Spacing.lg.toPx() }
                     )
                 ),
             contentAlignment = Alignment.BottomCenter
@@ -659,6 +659,7 @@ fun TransactionTabContent(
                 onClick = { viewModel.saveTransaction(onSuccess = onSave) },
                 enabled = uiState.isValid && !uiState.isLoading,
                 modifier = Modifier
+                    .padding(top = Spacing.lg)
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()

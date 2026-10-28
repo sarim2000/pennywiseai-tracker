@@ -178,6 +178,10 @@
     <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
     <string name="balance_card_spent_this_month">Spent this month</string>
     <string name="balance_card_change_currency">Change currency</string>
+    <string name="balance_card_summary_income">Income</string>
+    <string name="balance_card_summary_expenses">Expenses</string>
+    <string name="balance_card_summary_lent">Lent</string>
+    <string name="balance_card_summary_saved">Saved</string>
 
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>

@@ -40,6 +40,8 @@ class UnrecognizedSmsRepository @Inject constructor(
      */
     suspend fun insert(sms: UnrecognizedSmsEntity): Long = dao.insert(sms)
 
+    suspend fun getById(id: Long): UnrecognizedSmsEntity? = dao.getById(id)
+
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
         dao.insertAll(smsList)
     }

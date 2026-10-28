@@ -53,6 +53,7 @@ class AddViewModel @Inject constructor(
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
+    private val learnedSendersStore: com.pennywiseai.tracker.data.preferences.LearnedSendersStore,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -542,8 +543,7 @@ class AddViewModel @Inject constructor(
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
-                // Booked from an SMS suggestion: it's no longer an unrecognized message.
-                unrecognizedSmsId?.let { unrecognizedSmsRepository.deleteMessage(it) }
+                bookedFromSuggestion(selectedAccount?.bankName, selectedAccount?.accountLast4)
 
                 onSuccess()
             } catch (e: Exception) {
@@ -555,6 +555,17 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Booked from an SMS suggestion (#994): it's no longer an unrecognized message,
+     * and its sender is learned, so its next SMS is offered with this account.
+     */
+    private suspend fun bookedFromSuggestion(bankName: String?, accountLast4: String?) {
+        val id = unrecognizedSmsId ?: return
+        unrecognizedSmsRepository.getById(id)?.let { learnedSendersStore.learn(it.sender, bankName, accountLast4) }
+        unrecognizedSmsRepository.deleteMessage(id)
+        com.pennywiseai.tracker.receiver.SmsBroadcastReceiver.cancelSuggestion(appContext, id)
     }
 
     private fun saveTransferInternal(
@@ -580,7 +591,7 @@ class AddViewModel @Inject constructor(
                     toLast4 = to.accountLast4
                 )
                 // A suggestion saved as a transfer is handled too (#994).
-                unrecognizedSmsId?.let { unrecognizedSmsRepository.deleteMessage(it) }
+                bookedFromSuggestion(from.bankName, from.accountLast4)
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 

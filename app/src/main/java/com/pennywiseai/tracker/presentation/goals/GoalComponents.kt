@@ -78,7 +78,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-internal val goalDateFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+internal val goalDateFormat: DateTimeFormatter get() = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 @Composable
 internal fun GoalProgress.color(): Color = goal.color.toColorOr(MaterialTheme.colorScheme.primary)

@@ -631,8 +631,12 @@ private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
     }
 }
 
-/** "31 Oct" — day and short month, in the user's locale. */
-internal val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
+/**
+ * "31 Oct" — day and short month, in the user's locale. A getter, not a cached val: a
+ * formatter built once keeps the locale the process started in, so after switching the
+ * app language the month stayed in the old one.
+ */
+internal val SHORT_DATE: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM")
 
 @Composable
 private fun CurrencyChip(

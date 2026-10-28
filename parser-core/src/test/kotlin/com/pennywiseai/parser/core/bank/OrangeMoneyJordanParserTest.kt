@@ -17,9 +17,7 @@ class OrangeMoneyJordanParserTest {
         val cases = listOf(
             ParserTestCase(
                 name = "Purchase from wallet",
-                message = "تمت عملية شراء من محفظتك 0770000000 بمبلغ 10 دينار بتاريخ 16/09/2026 الساعة 10:39:21 PM " +
-                    "من OJO Payment Channel  بالرقم المرجعي OM20260916223921000000000000 رصيد المحفظة المتاح هو " +
-                    "0.000دينار أردني شكراً لاستخدامك Orange Money",
+                message = "تمت عملية شراء من محفظتك 07XXXXXXXX بمبلغ 10 دينار بتاريخ 16/09/2026 الساعة 10:39:21 PM من OJO Payment Channel  بالرقم المرجعي OM20260916223921000000000000 رصيد المحفظة المتاح هو 0.000دينار أردني شكراً لاستخدامك Orange Money",
                 sender = "OrangeMoney",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("10"),
@@ -67,9 +65,7 @@ class OrangeMoneyJordanParserTest {
             ),
             ParserTestCase(
                 name = "Transfer out to another wallet",
-                message = "تمت عملية التحويل المالي الى المحفظة TESTWALLET1 بمبلغ 150 دينار بتاريخ 03/06/2026 الساعة " +
-                    "08:28:03 PM بالرقم المرجعي OJM-PAY-20260603202803000000000000 رصيد المحفظة المتاح هو 0.000 " +
-                    "دينار أردني شكراً لاستخدامك Orange Money",
+                message = "تمت عملية التحويل المالي الى المحفظة TESTWALLET1 بمبلغ 150 دينار بتاريخ 03/06/2026 الساعة 08:28:03 PM بالرقم المرجعي OJM-PAY-20260603202803000000000000 رصيد المحفظة المتاح هو 25.500 دينار أردني شكراً لاستخدامك Orange Money",
                 sender = "OrangeMoney",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("150"),
@@ -77,7 +73,7 @@ class OrangeMoneyJordanParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "TESTWALLET1",
                     reference = "OJM-PAY-20260603202803000000000000",
-                    balance = BigDecimal("0.000"),
+                    balance = BigDecimal("25.500"),
                     isMobileWallet = true
                 )
             ),

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">व्यक्तिगत</string>
+    <string name="profile_default_business">व्यवसाय</string>
+    <string name="rule_template_small_payments_name">साना भुक्तानी खानामा</string>
+    <string name="rule_template_small_payments_description">साना खर्च भुक्तानी (200 भन्दा कम) लाई खाना र भोजनमा वर्गीकरण गर्नुहोस्</string>
+    <string name="budget_group_default_spending">खर्च</string>
+    <string name="budget_group_default_fixed_costs">निश्चित खर्च</string>
+    <string name="budget_group_default_investments">लगानी</string>
+    <string name="budget_group_default_monthly">मासिक बजेट</string>
+</resources>

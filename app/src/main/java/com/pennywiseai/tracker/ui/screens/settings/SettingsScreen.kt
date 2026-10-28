@@ -860,8 +860,8 @@ fun SettingsScreen(
                     icon = Icons.Default.CloudUpload,
                     iconBgColor = teal_light,
                     iconTint = teal_dark,
-                    title = "Webhooks",
-                    subtitle = if (isProEntitled) "Send selected data to your endpoint" else "Pro · Send selected data to your endpoint",
+                    title = stringResource(R.string.settings_webhooks_title),
+                    subtitle = stringResource(if (isProEntitled) R.string.settings_webhooks_subtitle else R.string.settings_webhooks_subtitle_pro),
                     onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
                     position = ListItemPosition.Top
                 )

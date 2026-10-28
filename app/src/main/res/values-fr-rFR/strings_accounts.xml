@@ -145,14 +145,14 @@
     <string name="manage_accounts_menu_history">Historique</string>
     <!-- Snackbar after ignoring an account; %1$s = account label -->
     <!-- %1$d = day of month -->
-    <string name="manage_accounts_menu_statement_date">Date de la déclaration : %1$d</string>
+    <string name="manage_accounts_menu_statement_date">Date du relevé : %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Définir la date du relevé</string>
     <string name="manage_accounts_menu_mark_personal">Marquer comme personnel</string>
     <string name="manage_accounts_menu_mark_business">Marquer comme entreprise</string>
     <string name="manage_accounts_menu_set_alias">Définir l\'alias</string>
     <string name="manage_accounts_menu_rename">Renommer</string>
     <string name="manage_accounts_menu_edit_low_balance_alert">Modifier l\'alerte de faible solde</string>
-    <string name="manage_accounts_statement_dialog_title">Date de déclaration</string>
+    <string name="manage_accounts_statement_dialog_title">Date du relevé</string>
     <string name="manage_accounts_statement_dialog_description">Jour du mois quand votre relevé de carte de crédit est fermé</string>
     <string name="manage_accounts_decrease">Diminuer</string>
     <string name="manage_accounts_increase">Agrandir</string>
@@ -283,4 +283,33 @@
         <item quantity="one">Voir tous les comptes %1$d</item>
         <item quantity="other">Voir tous les comptes %1$d</item>
     </plurals>
+    <plurals name="balance_history_sms_chars">
+        <item quantity="one">(%1$d caractère)</item>
+        <item quantity="many">(%1$d caractères)</item>
+        <item quantity="other">(%1$d caractères)</item>
+    </plurals>
+    <string name="manage_accounts_section_loan_accounts">Comptes de prêt</string>
+    <string name="manage_accounts_hidden_header">Comptes ignorés (%1$d)</string>
+    <plurals name="manage_accounts_reassign_message">
+        <item quantity="one">%1$d transaction de ce compte est associée à un autre profil. La déplacer aussi vers le nouveau profil ?</item>
+        <item quantity="many">%1$d transactions de ce compte sont associées à un autre profil. Les déplacer aussi vers le nouveau profil ?</item>
+        <item quantity="other">%1$d transactions de ce compte sont associées à un autre profil. Les déplacer aussi vers le nouveau profil ?</item>
+    </plurals>
+    <string name="manage_accounts_hidden_badge">Ignoré</string>
+    <string name="manage_accounts_menu_show">Ne plus ignorer</string>
+    <string name="manage_accounts_menu_hide">Ignorer ce compte</string>
+    <string name="manage_accounts_ignored_snackbar">%1$s ignoré</string>
+    <string name="manage_accounts_undo">Annuler</string>
+    <string name="manage_accounts_estimated_balance_hint">Estimé : les SMS de votre banque n\'indiquent pas de solde. Appuyez pour le définir une fois.</string>
+    <string name="manage_accounts_loan_outstanding_hint">Montant restant dû sur le prêt</string>
+    <string name="manage_accounts_type_note">Changer le type modifie seulement la façon dont le solde est calculé à partir de maintenant. Les transactions passées restent telles quelles.</string>
+    <string name="loans_person_owes_you">Vous doit %1$s</string>
+    <string name="loans_person_you_owe">Vous devez %1$s</string>
+    <string name="loans_person_all_settled">Tout est réglé</string>
+    <string name="loans_person_even">À égalité — personne ne doit rien</string>
+    <string name="loans_settle_up">Solder</string>
+    <string name="loans_settle_up_title">Solder les comptes avec %1$s ?</string>
+    <string name="loans_settle_up_message">Tous les prêts en cours avec %1$s seront marqués comme réglés. Tout montant encore impayé sera pardonné.</string>
+    <string name="loan_detail_percent_repaid">%1$d %% remboursé</string>
+    <string name="loan_detail_amount_remaining">%1$s restant</string>
 </resources>

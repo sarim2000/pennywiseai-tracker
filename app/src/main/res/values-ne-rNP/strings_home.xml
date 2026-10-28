@@ -126,4 +126,215 @@
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_upgrade_pro">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
+    <string name="home_profile_filter">प्रोफाइल फिल्टर</string>
+    <string name="home_view">हेर्नुहोस्</string>
+    <string name="home_manage">व्यवस्थापन</string>
+    <string name="home_section_goals">लक्ष्यहरू</string>
+    <string name="home_section_groups">समूहहरू</string>
+    <string name="home_section_recent_transactions">हालका लेनदेन</string>
+    <string name="home_section_subscriptions">आउँदै गरेका सदस्यताहरू</string>
+    <string name="home_section_activity">गतिविधि</string>
+    <string name="home_empty_description">सुरु गर्न आफ्नो SMS स्क्यान गर्नुहोस् — हामी तपाईंका लेनदेन आफैं भेट्टाउँछौं</string>
+    <string name="home_empty_action">अहिले स्क्यान गर्नुहोस्</string>
+    <string name="home_fab_sync">SMS सिंक गर्नुहोस् (पूरा रिसिंकको लागि लामो थिच्नुहोस्)</string>
+    <string name="home_fab_sync_hint">पूरा रिसिंकको लागि थिचिराख्नुहोस्</string>
+    <string name="home_resync_title">सन्देशहरू फेरि पढ्नुहोस्</string>
+    <string name="home_resync_scan_again">सबै सन्देश फेरि स्क्यान गर्नुहोस्</string>
+    <string name="home_resync_scan_again_desc">छुटेका जति थपिन्छन्। तपाईंका सम्पादन र भइरहेका सबै लेनदेन जस्ताको तस्तै रहन्छन्।</string>
+    <string name="home_resync_rebuild">सुरुदेखि फेरि बनाउनुहोस्</string>
+    <string name="home_resync_rebuild_desc">पार्सर सुधारहरू लागू गर्न SMS लेनदेन फेरि पढिन्छ। SMS लेनदेनमा गरिएका सम्पादन रिसेट हुन्छन्। म्यानुअल, आयात गरिएका, ऋण र समूहमा राखिएका लेनदेन जोगाइन्छन्।</string>
+    <string name="home_menu_title">थप विकल्पहरू</string>
+    <string name="home_menu_monthly_recap">मासिक सारांश</string>
+    <string name="home_menu_edit_home">होम स्क्रिन सम्पादन गर्नुहोस्</string>
+    <string name="home_menu_discord">सुझावको लागि Discord मा जोडिनुहोस्</string>
+    <string name="home_menu_rate">Play Store मा रेटिङ दिनुहोस्</string>
+    <string name="home_version">v%1$s</string>
+    <string name="home_edit_title">होम स्क्रिन सम्पादन गर्नुहोस्</string>
+    <string name="home_edit_move_up">%1$s माथि सार्नुहोस्</string>
+    <string name="home_edit_move_down">%1$s तल सार्नुहोस्</string>
+    <string name="home_breakdown_period">%1$s 1-%2$d</string>
+    <string name="home_breakdown_formula">सूत्र: आम्दानी - खर्च = शुद्ध सम्पत्ति\nहरियो (+) = बचत | रातो (-) = बढी खर्च</string>
+    <plurals name="home_active_subscriptions">
+        <item quantity="one">%1$d सक्रिय सदस्यता</item>
+        <item quantity="other">%1$d सक्रिय सदस्यताहरू</item>
+    </plurals>
+    <string name="home_subscriptions_monthly_total">मासिक कुल: %1$s</string>
+    <plurals name="home_active_loans">
+        <item quantity="one">%1$d सक्रिय ऋण</item>
+        <item quantity="other">%1$d सक्रिय ऋणहरू</item>
+    </plurals>
+    <string name="home_loans_owed_to_you">तपाईंले पाउनुपर्ने %1$s</string>
+    <string name="home_loans_you_owe">तपाईंले तिर्नुपर्ने %1$s</string>
+    <plurals name="greeting_days_left_in_month">
+        <item quantity="one">%2$s मा %1$d दिन बाँकी</item>
+        <item quantity="other">%2$s मा %1$d दिन बाँकी</item>
+    </plurals>
+    <string name="greeting_profile_filter">प्रोफाइल फिल्टर</string>
+    <string name="nav_chat">च्याट</string>
+    <string name="expandable_list_view_less">कम हेर्नुहोस्</string>
+    <string name="expandable_list_view_all_more">सबै हेर्नुहोस् (%1$d थप)</string>
+    <string name="whats_new_got_it">बुझें</string>
+    <string name="whats_new_title">नयाँ के छ</string>
+    <string name="whats_new_version">संस्करण %1$s</string>
+    <string name="spotlight_scan_sms">लेनदेनको लागि आफ्नो SMS सन्देशहरू स्क्यान गर्न यहाँ ट्याप गर्नुहोस्</string>
+    <string name="spotlight_tap_to_dismiss">बन्द गर्न जहाँ पनि ट्याप गर्नुहोस्</string>
+    <string name="type_filter_spending">खर्च</string>
+    <string name="type_filter_investment">लगानी</string>
+    <plurals name="sms_scan_processed_of">
+        <item quantity="one">%2$d मध्ये %1$d सन्देश प्रक्रिया भयो</item>
+        <item quantity="other">%2$d मध्ये %1$d सन्देश प्रक्रिया भयो</item>
+    </plurals>
+    <plurals name="sms_scan_transactions_parsed">
+        <item quantity="one">%1$d लेनदेन पार्स भयो</item>
+        <item quantity="other">%1$d लेनदेन पार्स भए</item>
+    </plurals>
+    <string name="sms_scan_saved">%1$d सुरक्षित भयो</string>
+    <string name="sms_scan_processing">प्रक्रिया हुँदैछ...</string>
+    <string name="duration_hours_minutes">%1$dघ %2$dमि</string>
+    <string name="duration_minutes_seconds">%1$dमि %2$dसे</string>
+    <string name="duration_seconds">%1$dसे</string>
+    <string name="balance_show">बालान्स देखाउनुहोस्</string>
+    <string name="balance_hide">बालान्स लुकाउनुहोस्</string>
+    <string name="account_card_low_balance">कम बालान्स</string>
+    <string name="balance_card_change_more">गत महिनाभन्दा %1$d%% बढी</string>
+    <string name="balance_card_change_less">गत महिनाभन्दा %1$d%% कम</string>
+    <string name="balance_card_balance">बालान्स: %1$s</string>
+    <plurals name="balance_card_account_count">
+        <item quantity="one">" · %1$d खाता"</item>
+        <item quantity="other">" · %1$d खाता"</item>
+    </plurals>
+    <string name="balance_card_last_month_amount">गत महिना: %1$s</string>
+    <string name="balance_card_this_month">यो महिना</string>
+    <string name="balance_card_last_month">गत महिना</string>
+    <string name="balance_card_approximate_note">* केही बालान्स रूपान्तरण गर्न सकिएन र मूल मुद्रामै देखाइएको छ (कुल रकम अनुमानित हो)।</string>
+    <string name="balance_card_spent_this_month">यो महिना खर्च</string>
+    <string name="balance_card_change_currency">मुद्रा बदल्नुहोस्</string>
+    <string name="balance_card_income">आम्दानी</string>
+    <string name="balance_card_expenses">खर्चहरू</string>
+    <string name="balance_card_lent">ऋण दिएको</string>
+    <string name="balance_card_saved">बचत</string>
+    <string name="budget_card_percent">%1$d%%</string>
+    <string name="budget_card_over_budget">बजेटभन्दा %1$s बढी</string>
+    <string name="budget_card_remaining">%1$s बाँकी</string>
+    <string name="budget_card_per_day">%1$s/दिन</string>
+    <string name="budget_card_finished">सकियो</string>
+    <string name="budget_card_tracking_all">सबै खर्च ट्र्याक गर्दै</string>
+    <string name="budget_card_resets_today_weekday">आज रिसेट हुन्छ · %1$s मा नवीकरण</string>
+    <plurals name="budget_card_resets_in_weekday">
+        <item quantity="one">%1$d दिनमा रिसेट हुन्छ · %2$s मा नवीकरण</item>
+        <item quantity="other">%1$d दिनमा रिसेट हुन्छ · %2$s मा नवीकरण</item>
+    </plurals>
+    <string name="budget_card_resets_today_day">आज रिसेट हुन्छ · दिन %1$d</string>
+    <plurals name="budget_card_resets_in_day">
+        <item quantity="one">%1$d दिनमा रिसेट हुन्छ · दिन %2$d</item>
+        <item quantity="other">%1$d दिनमा रिसेट हुन्छ · दिन %2$d</item>
+    </plurals>
+    <string name="budget_card_over_by">%1$s ले बढी</string>
+    <plurals name="budget_card_runs_days_remaining">
+        <item quantity="one">%1$s चल्छ · %2$d दिन बाँकी</item>
+        <item quantity="other">%1$s चल्छ · %2$d दिन बाँकी</item>
+    </plurals>
+    <plurals name="budget_card_days_remaining">
+        <item quantity="one">%1$d दिन बाँकी</item>
+        <item quantity="other">%1$d दिन बाँकी</item>
+    </plurals>
+    <string name="budget_card_spent_of">%2$s मध्ये %1$s खर्च</string>
+    <string name="budget_cadence_one_time">एक पटक</string>
+    <string name="budget_carousel_empty">आफ्नो खर्च ट्र्याक गर्न बजेट सेट गर्नुहोस्</string>
+    <plurals name="group_card_item_count">
+        <item quantity="one">%1$d वस्तु</item>
+        <item quantity="other">%1$d वस्तुहरू</item>
+    </plurals>
+    <string name="group_card_invested">%1$s लगानी गरिएको</string>
+    <plurals name="group_card_transaction_count">
+        <item quantity="one">%1$d लेनदेन</item>
+        <item quantity="other">%1$d लेनदेन</item>
+    </plurals>
+    <string name="group_card_subtitle">%1$s · %2$s</string>
+    <string name="cash_flow_title">चलायमान पैसा</string>
+    <string name="cash_flow_subtitle">यो महिनाको शुद्ध नगद प्रवाहबाहिरका माध्यमहरू</string>
+    <string name="cash_flow_invested">लगानी गरिएको</string>
+    <string name="cash_flow_transferred">स्थानान्तरण गरिएको</string>
+    <string name="txn_item_tag_business">व्यवसाय</string>
+    <string name="txn_item_tag_excluded">बाहेक गरिएको</string>
+    <string name="txn_item_balance_after">बालान्स %1$s</string>
+    <string name="txn_item_transfer_to">स्थानान्तरण → %1$s</string>
+    <string name="txn_item_transfer_from">%1$s बाट स्थानान्तरण</string>
+    <string name="widget_budget_title">मासिक बजेट</string>
+    <string name="widget_budget_percent_used">%1$d%% प्रयोग भयो</string>
+    <string name="widget_budget_of_limit">%1$s मध्ये</string>
+    <string name="widget_budget_per_day">%1$s/दिन</string>
+    <string name="widget_budget_saved">%1$s बचत</string>
+    <string name="widget_budget_overspent">%1$s बढी</string>
+    <string name="widget_pie_title">खर्च</string>
+    <string name="widget_pie_content_description">वर्ग अनुसार खर्च</string>
+    <string name="widget_pie_percent">%1$d%%</string>
+    <string name="widget_pie_empty">यो महिना अझै कुनै खर्च छैन</string>
+    <string name="widget_summary_today">आज</string>
+    <string name="widget_summary_month">यो महिना</string>
+    <string name="notif_sms_scan_channel_name">SMS स्क्यान</string>
+    <string name="notif_sms_scan_title">लेनदेन स्क्यान गर्दै…</string>
+    <string name="notif_sms_scan_progress">%1$d / %2$d प्रक्रिया भयो</string>
+    <string name="notif_sms_scan_reading">SMS पढ्दै…</string>
+    <string name="notif_txn_channel_name">लेनदेन सूचनाहरू</string>
+    <string name="notif_txn_channel_description">नयाँ लेनदेनका सूचनाहरू</string>
+    <string name="notif_txn_unknown_merchant">अज्ञात</string>
+    <string name="notif_txn_category_bank">%1$s • %2$s</string>
+    <string name="notif_txn_balance_discrepancy">⚠ बालान्स %1$s ले मिलेन — अपेक्षित %2$s, बैंक भन्छ %3$s</string>
+    <string name="notif_txn_action_more">थप…</string>
+    <string name="notif_txn_public_title">%1$s नयाँ लेनदेन</string>
+    <string name="notif_txn_public_text">%1$s • बालान्स जाँच्नुपर्छ</string>
+    <string name="notif_txn_title_spent">%2$s मा %1$s खर्च</string>
+    <string name="notif_txn_title_received">%2$s बाट %1$s प्राप्त</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <string name="notif_txn_ask_category">यो केका लागि थियो? · %1$s</string>
+    <string name="notif_txn_action_change">बदल्नुहोस्</string>
+    <string name="notif_txn_learned_title">%1$s को रूपमा सुरक्षित भयो</string>
+    <string name="notif_txn_learned_text">अबदेखि यहाँका भुक्तानीहरू आफैं मिलाइनेछन्।</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">पहिलेको %d वटा पनि सारियो।</item>
+        <item quantity="other">पहिलेका %d वटा पनि सारिए।</item>
+    </plurals>
+    <string name="notif_daily_channel_name">दैनिक सारांश</string>
+    <string name="notif_daily_channel_description">हरेक साँझ दिनभरको खर्चको छोटो सारांश</string>
+    <string name="notif_daily_title">आज तपाईंले %1$s खर्च गर्नुभयो</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d लेनदेन</item>
+        <item quantity="other">%d लेनदेन</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d लाई वर्ग चाहिन्छ</item>
+        <item quantity="other">%d लाई वर्ग चाहिन्छ</item>
+    </plurals>
+    <string name="notif_daily_action_sort">मिलाउनुहोस्</string>
+    <string name="notif_daily_action_cash">+ नगद</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d नयाँ लेनदेन</item>
+        <item quantity="other">%d नयाँ लेनदेन</item>
+    </plurals>
+    <string name="pro_home_card_title">PennyWise मन पर्यो?</string>
+    <string name="pro_home_card_body">Pro ले असीमित नियम, लक्ष्य, निर्यात र स्टेटमेन्ट आयात थप्छ।</string>
+    <string name="pro_home_card_action">Pro हेर्नुहोस्</string>
+    <string name="pro_home_card_dismiss">हटाउनुहोस्</string>
+    <string name="forecast_on_track">%2$s सम्म %1$s को बाटोमा</string>
+    <string name="forecast_over_usual">सधैंभन्दा %1$s बढी</string>
+    <string name="home_section_safe_to_spend">खर्च गर्न मिल्ने</string>
+    <string name="safe_to_spend_title">खर्च गर्न मिल्ने</string>
+    <string name="safe_to_spend_tap_to_show">देखाउन ट्याप गर्नुहोस्</string>
+    <string name="safe_to_spend_per_day">आज सहित %2$s सम्म दिनको करिब %1$s</string>
+    <string name="safe_to_spend_short">%1$s अघि तिर्नुपर्ने बिलहरू तपाईंको बालान्सभन्दा बढी छन्</string>
+    <string name="safe_to_spend_none_left">%1$s अघि तिर्नुपर्ने बिलपछि केही बाँकी छैन</string>
+    <string name="safe_to_spend_breakdown">बैंक बालान्स %1$s − %3$s अघि तिर्नुपर्ने %2$s बिल</string>
+    <string name="safe_to_spend_capped">तपाईंको बजेटले सीमित: %1$s बाँकी</string>
+    <string name="safe_to_spend_other_currencies">साथै %1$s, छुट्टै राखिएको</string>
+    <string name="safe_to_spend_until">%1$s सम्म खर्च गर्न मिल्ने</string>
+    <string name="safe_to_spend_accounts">बैंक बालान्स</string>
+    <string name="safe_to_spend_excluded">गनिएको छैन</string>
+    <string name="safe_to_spend_excluded_negative">गनिएको छैन (ऋणात्मक बालान्स)</string>
+    <string name="safe_to_spend_bills_due">%1$s अघि तिर्नुपर्ने बिलहरू</string>
+    <string name="safe_to_spend_no_bills">कुनै सदस्यता तिर्न बाँकी छैन</string>
+    <string name="safe_to_spend_choose_accounts">खाता छान्नुहोस्</string>
+    <string name="safe_to_spend_done">समाप्त</string>
+    <string name="safe_to_spend_footnote">बिलहरू तपाईंका सक्रिय सदस्यताबाट लिइन्छन्। क्रेडिट कार्ड र ऋणलाई खर्च गर्न मिल्ने पैसामा गनिँदैन।</string>
 </resources>

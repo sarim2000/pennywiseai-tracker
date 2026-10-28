@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Partager avec…</string>
+    <string name="split_menu_edit">Modifier le partage</string>
+    <string name="split_sheet_title">Partager %1$s</string>
+    <string name="split_sheet_hint">Chaque part est ajoutée dans Prêts comme de l\'argent que vous avez prêté. Seule votre part compte comme dépense.</string>
+    <string name="split_people_count">%1$d personnes sur %2$d</string>
+    <string name="split_person_name">Nom de la personne</string>
+    <string name="split_add_person">Ajouter</string>
+    <string name="split_pick_contact">Choisir dans les contacts</string>
+    <string name="split_remove_person">Retirer %1$s</string>
+    <string name="split_mode_equal">Parts égales</string>
+    <string name="split_mode_custom">Montants personnalisés</string>
+    <string name="split_you">Vous</string>
+    <string name="split_your_part">Votre part</string>
+    <string name="split_left_to_assign">%1$s restant à répartir</string>
+    <string name="split_over_total">%1$s de plus que le total</string>
+    <string name="split_adds_up">Total : %1$s</string>
+    <string name="split_save">Enregistrer le partage</string>
+    <string name="split_error_share_positive">Chaque part doit être supérieure à zéro</string>
+    <string name="split_error_over">Les parts dépassent le total</string>
+    <string name="split_error_your_part_negative">Votre part ne peut pas être inférieure à zéro</string>
+    <string name="split_error_failed">Impossible d\'enregistrer le partage : %1$s</string>
+    <string name="split_error_settled">Le prêt de %1$s est réglé. Rouvrez-le dans Prêts pour modifier sa part.</string>
+    <string name="split_error_transfer">Une dépense partagée ne peut pas être un transfert. Retirez d\'abord le partage.</string>
+    <string name="split_error_type_locked">Cette dépense est partagée. Retirez le partage avant de changer son type.</string>
+    <string name="split_error_amount_below_shares">Cette dépense est partagée. Son montant ne peut pas être inférieur aux parts que vous avez prêtées.</string>
+    <string name="split_section_title">Partagé avec</string>
+    <string name="split_settled">Réglé</string>
+    <string name="split_request">Demander %1$s</string>
+    <string name="split_remove">Retirer le partage</string>
+    <string name="split_remove_title">Retirer le partage ?</string>
+    <string name="split_remove_message">La part de chaque personne est retirée de son prêt. Un prêt qui ne contient rien d\'autre est supprimé.</string>
+    <string name="split_remove_confirm">Retirer</string>
+    <string name="split_upi_title">Votre ID UPI</string>
+    <string name="split_upi_message">Les gens paient leur part sur cet ID UPI. Vous pouvez le modifier dans les Réglages.</string>
+    <string name="split_upi_hint">nom@banque</string>
+    <string name="split_upi_invalid">Saisissez un ID UPI comme nom@banque</string>
+    <string name="split_upi_save">Enregistrer</string>
+    <string name="split_request_text">Payer %1$s à %2$s pour %3$s</string>
+    <string name="split_request_failed">Impossible de créer le QR code</string>
+    <string name="settings_upi_title">Votre ID UPI</string>
+    <string name="settings_upi_subtitle">Sert à demander aux gens de payer leur part d\'une dépense partagée</string>
+    <string name="settings_upi_not_set">Non défini</string>
 </resources>

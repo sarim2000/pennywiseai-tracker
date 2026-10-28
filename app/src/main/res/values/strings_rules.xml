@@ -79,6 +79,10 @@
     <string name="import_statement_done">Done</string>
     <string name="import_statement_failed">Import Failed</string>
     <string name="import_statement_try_again">Try Again</string>
+    <string name="import_statement_error_unsupported">Unsupported statement format. Currently supported: Google Pay, PhonePe, Paytm, slice, ICICI Bank. For any other bank, import its Excel (.xlsx) or CSV statement.</string>
+    <string name="import_statement_error_no_transactions">No transactions found in the statement.</string>
+    <string name="import_statement_error_failed">Failed to import statement.</string>
+    <string name="import_statement_error_read">Couldn\'t read this file.</string>
     <string name="import_statement_password_title">Password-protected PDF</string>
     <string name="import_statement_password_body">This statement is locked. Enter the password your bank gave you for it. It\'s only used to open the file and isn\'t saved.</string>
     <string name="import_statement_password_label">PDF password</string>

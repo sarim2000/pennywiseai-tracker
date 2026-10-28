@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">आज का खर्च, बजट में कितना बचा है, और झट से कैश जोड़ें।</string>
+    <string name="widget_summary_left">बजट में बचा</string>
+    <string name="widget_summary_over">बजट से ज़्यादा</string>
+    <string name="widget_budget_left_label">बचा</string>
+    <string name="widget_budget_over_label">ज़्यादा</string>
+    <string name="widget_budget_empty_title">अभी कोई बजट नहीं</string>
+    <string name="widget_budget_empty_hint">कितना बचा है यह देखने के लिए मासिक लिमिट सेट करें।</string>
+    <string name="widget_budget_create">बजट बनाएँ</string>
+    <string name="widget_budget_preview_meta">3,600 में से · 120/दिन</string>
+    <string name="widget_cash_label">कैश</string>
+    <string name="widget_cash_spend">कैश खर्च</string>
+    <string name="widget_cash_description">अभी खर्च किया कैश एक टैप में दर्ज करें।</string>
+</resources>

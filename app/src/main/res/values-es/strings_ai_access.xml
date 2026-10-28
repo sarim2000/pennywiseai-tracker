@@ -1,3 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
-<resources></resources>
+<resources>
+    <string name="ai_access_settings_title">Conectar Claude / ChatGPT</string>
+    <string name="ai_access_settings_subtitle">Deja que apps de AI lean tus datos mientras lo permitas</string>
+    <string name="ai_access_settings_subtitle_pro">Pro · Deja que apps de AI lean tus datos mientras lo permitas</string>
+    <string name="ai_access_title">Acceso de AI</string>
+    <string name="ai_access_back">Atrás</string>
+    <string name="ai_access_intro">Pregúntale a Claude, ChatGPT u otra app de AI sobre tus gastos, o abre el panel en una computadora. Pueden leer tus transacciones, saldos y suscripciones solo mientras haya una sesión de AI activa. No pueden cambiar nada.</string>
+    <string name="ai_access_pro_only">El acceso de AI es una función Pro.</string>
+    <string name="ai_access_unlock">Desbloquear con Pro</string>
+    <string name="ai_access_session_title">Sesión de AI</string>
+    <string name="ai_access_session_off">Desactivada. Elige cuánto tiempo mantener PennyWise conectada o usa el mosaico PennyWise AI en Ajustes rápidos.</string>
+    <string name="ai_access_session_minutes">%d min</string>
+    <string name="ai_access_session_on">Activa · quedan %1$d:%2$02d</string>
+    <string name="ai_access_session_connecting">Conectando… · quedan %1$d:%2$02d</string>
+    <string name="ai_access_extend">+15 min</string>
+    <string name="ai_access_stop">Detener</string>
+    <string name="ai_access_connect_title">Conectar una app de AI</string>
+    <string name="ai_access_connect_step1">1. En Claude o ChatGPT, agrega un conector personalizado con esta URL:</string>
+    <string name="ai_access_connect_step2">2. Cuando te pida iniciar sesión, ingresa un código de vinculación de aquí.</string>
+    <string name="ai_access_copy_url">Copiar URL del conector</string>
+    <string name="ai_access_code_a11y">Código de vinculación %s</string>
+    <string name="ai_access_code_left">Un solo uso · quedan %1$d:%2$02d</string>
+    <string name="ai_access_get_code">Obtener código de vinculación</string>
+    <string name="ai_access_new_code">Nuevo código</string>
+    <string name="ai_access_dashboard_title">Panel en una computadora</string>
+    <string name="ai_access_dashboard_body">Análisis detallados y todo tu historial en una pantalla más grande. Abre esta dirección en una computadora y conéctate con un código de vinculación:</string>
+    <string name="ai_access_copy_dashboard">Copiar dirección del panel</string>
+    <string name="ai_access_connected_title">Apps conectadas</string>
+    <string name="ai_access_refresh">Actualizar</string>
+    <string name="ai_access_loading">Cargando…</string>
+    <string name="ai_access_none_connected">Aún no hay apps de AI conectadas.</string>
+    <string name="ai_access_connected_on">Conectada %s</string>
+    <string name="ai_access_disconnect">Desconectar</string>
+    <string name="ai_access_disconnected">Desconectada.</string>
+    <string name="ai_access_privacy">Tus datos se quedan en tu teléfono. Durante una sesión de AI, las preguntas de la app de AI pasan por el relay hasta tu teléfono y las respuestas vuelven por el mismo camino. El relay nunca las guarda ni las registra. El proveedor de la app de AI (por ejemplo, Anthropic u OpenAI) ve las respuestas que recibe.\n\nLas apps conectadas pueden buscar en todo tu historial de todos los perfiles, incluidos los nombres de los destinatarios de transferencias. Nunca reciben el texto de los SMS, números de cuenta completos ni números de referencia.</string>
+    <string name="ai_access_relay_title">Usa tu propio relay</string>
+    <string name="ai_access_relay_body">Para tener control total, implementa el relay de código abierto (relay/ en el repositorio de GitHub de PennyWise) en tu propia cuenta de Cloudflare e ingresa su dirección. Al cambiar de relay se desconectan todas las apps de AI.</string>
+    <string name="ai_access_relay_label">Dirección del relay</string>
+    <string name="ai_access_relay_save">Usar este relay</string>
+    <string name="ai_access_relay_reset">Usar el relay de PennyWise</string>
+    <string name="ai_access_relay_busy">Detén la sesión de AI antes de cambiar el relay.</string>
+    <string name="ai_access_relay_invalid">Ingresa una dirección https://, por ejemplo https://relay.example.com</string>
+    <string name="ai_access_relay_saved">Relay cambiado. Vuelve a conectar tus apps de AI.</string>
+    <string name="ai_access_disconnect_all">Desconectar todas las apps de AI</string>
+    <string name="ai_access_disconnect_all_title">¿Desconectar todas las apps de AI?</string>
+    <string name="ai_access_disconnect_all_body">Todas las apps de AI conectadas perderán el acceso. Para volver a usar una, conéctala con un nuevo código de vinculación.</string>
+    <string name="ai_access_disconnect_all_confirm">Desconectar todas</string>
+    <string name="ai_access_all_disconnected">Todas las apps de AI están desconectadas.</string>
+    <string name="ai_access_offline">No se pudo contactar con el relay. Revisa tu conexión a internet y vuelve a intentarlo.</string>
+    <string name="ai_session_channel">Sesión de AI</string>
+    <string name="ai_session_channel_description">Se muestra mientras las apps de AI conectadas pueden leer tus datos de PennyWise</string>
+    <string name="ai_session_notification_title">Las apps de AI pueden leer tus datos de PennyWise</string>
+    <string name="ai_session_notification_connected">Conectada · solo lectura</string>
+    <string name="ai_session_notification_connecting">Conectando…</string>
+    <string name="ai_session_tile_on">Activa</string>
+    <string name="ai_session_tile_off">Desactivada</string>
+</resources>

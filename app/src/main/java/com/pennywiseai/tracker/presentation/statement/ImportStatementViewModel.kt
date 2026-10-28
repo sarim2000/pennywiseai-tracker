@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.statement
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.UiText
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.billing.EntitlementGate
@@ -68,7 +70,7 @@ sealed class ImportStatementUiState {
         val balanceApplied: Boolean = false
     ) : ImportStatementUiState()
 
-    data class Error(val message: String) : ImportStatementUiState()
+    data class Error(val message: UiText) : ImportStatementUiState()
 }
 
 @HiltViewModel
@@ -154,7 +156,7 @@ class ImportStatementViewModel @Inject constructor(
                 }
                 showMapping(rows, withNamedAccount(rows, saved ?: StatementTableParser.guessMapping(rows), accounts), accounts)
             } catch (e: Exception) {
-                _uiState.value = ImportStatementUiState.Error(e.message ?: "Couldn't read this file.")
+                _uiState.value = ImportStatementUiState.Error(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.import_statement_error_read))
             }
         }
     }
@@ -260,7 +262,7 @@ class ImportStatementViewModel @Inject constructor(
                 val check = importStatementUseCase.balanceCheck(p.parsed, p.account)
                 _uiState.value = ImportStatementUiState.Success(result, check)
             } catch (e: Exception) {
-                _uiState.value = ImportStatementUiState.Error(e.message ?: "Failed to import statement.")
+                _uiState.value = ImportStatementUiState.Error(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.import_statement_error_failed))
             }
         }
     }

@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Разделить с…</string>
+    <string name="split_menu_edit">Изменить разделение</string>
+    <string name="split_sheet_title">Разделить %1$s</string>
+    <string name="split_sheet_hint">Каждая доля добавляется в «Долги» как деньги, которые вы одолжили. В расходы идет только ваша часть.</string>
+    <string name="split_people_count">%1$d из %2$d человек</string>
+    <string name="split_person_name">Имя человека</string>
+    <string name="split_add_person">Добавить</string>
+    <string name="split_pick_contact">Выбрать из контактов</string>
+    <string name="split_remove_person">Убрать %1$s</string>
+    <string name="split_mode_equal">Поровну</string>
+    <string name="split_mode_custom">Свои суммы</string>
+    <string name="split_you">Вы</string>
+    <string name="split_your_part">Ваша часть</string>
+    <string name="split_left_to_assign">Осталось распределить %1$s</string>
+    <string name="split_over_total">На %1$s больше общей суммы</string>
+    <string name="split_adds_up">В сумме %1$s</string>
+    <string name="split_save">Сохранить</string>
+    <string name="split_error_share_positive">Каждая доля должна быть больше нуля</string>
+    <string name="split_error_over">Доли превышают общую сумму</string>
+    <string name="split_error_your_part_negative">Ваша часть не может быть меньше нуля</string>
+    <string name="split_error_failed">Не удалось сохранить разделение: %1$s</string>
+    <string name="split_error_settled">%1$s: долг погашен. Откройте его снова в разделе «Долги», чтобы изменить долю.</string>
+    <string name="split_error_transfer">Разделенный счет не может быть переводом. Сначала уберите разделение.</string>
+    <string name="split_error_type_locked">Этот счет разделен. Уберите разделение, прежде чем менять тип.</string>
+    <string name="split_error_amount_below_shares">Этот счет разделен. Его сумма не может быть меньше одолженных долей.</string>
+    <string name="split_section_title">Разделено с</string>
+    <string name="split_settled">Погашено</string>
+    <string name="split_request">Запросить %1$s</string>
+    <string name="split_remove">Убрать разделение</string>
+    <string name="split_remove_title">Убрать разделение?</string>
+    <string name="split_remove_message">Доля каждого человека вычитается из его долга. Долг, в котором больше ничего нет, удаляется.</string>
+    <string name="split_remove_confirm">Убрать</string>
+    <string name="split_upi_title">Ваш UPI ID</string>
+    <string name="split_upi_message">Люди оплачивают свою долю на этот UPI ID. Его можно изменить в настройках.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">Введите UPI ID вида name@bank</string>
+    <string name="split_upi_save">Сохранить</string>
+    <string name="split_request_text">Оплатите %1$s получателю %2$s за %3$s</string>
+    <string name="split_request_failed">Не удалось создать QR-код</string>
+    <string name="settings_upi_title">Ваш UPI ID</string>
+    <string name="settings_upi_subtitle">Нужен, чтобы просить людей оплатить их долю разделенного счета</string>
+    <string name="settings_upi_not_set">Не задан</string>
 </resources>

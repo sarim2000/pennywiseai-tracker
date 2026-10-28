@@ -5,7 +5,7 @@
     <string name="analytics_trends">Tendências</string>
     <string name="analytics_chart_line">Linha</string>
     <string name="analytics_chart_bar">Barras</string>
-    <string name="analytics_chart_heatmap">Heatmap</string>
+    <string name="analytics_chart_heatmap">Mapa de calor</string>
     <string name="analytics_chart_line_full">Gráfico de Linhas</string>
     <string name="analytics_chart_bar_full">Gráfico de barras</string>
     <string name="analytics_top_categories">Categorias Principais</string>
@@ -43,8 +43,8 @@
     <!-- Summary card -->
     <string name="analytics_summary_total">TOTAL</string>
     <plurals name="analytics_summary_txns">
-        <item quantity="one">%1$d TXN</item>
-        <item quantity="other">%1$d TXNS</item>
+        <item quantity="one">%1$d TRANSAÇÃO</item>
+        <item quantity="other">%1$d TRANSAÇÕES</item>
     </plurals>
     <string name="analytics_summary_average">MÉDIA</string>
     <string name="analytics_summary_per_day">" /dia"</string>
@@ -148,7 +148,7 @@
     <string name="budget_history_window">Janela: %1$s - %2$s</string>
     <string name="budget_history_per_week">Divisão semanal</string>
     <string name="budget_history_cycle">Ciclo</string>
-    <string name="budget_history_range">Range</string>
+    <string name="budget_history_range">Período</string>
     <string name="budget_history_current">Atual</string>
     <string name="budget_history_live">Ao Vivo · ainda acumulando</string>
     <string name="budget_history_frozen">Congelado a partir de %1$s</string>
@@ -180,7 +180,7 @@
     <string name="categories_msg_deleted">Categoria excluída com sucesso</string>
     <string name="categories_msg_cannot_delete">Não é possível excluir esta categoria</string>
     <string name="categories_msg_delete_error">Erro ao excluir categoria: %1$s</string>
-    <string name="categories_msg_hidden">%1$s hidden</string>
+    <string name="categories_msg_hidden">%1$s oculta</string>
     <string name="categories_msg_shown">%1$s mostrado</string>
     <string name="categories_msg_update_error">Erro ao atualizar categoria: %1$s</string>
     <!-- Category edit dialog -->
@@ -208,7 +208,7 @@
     <string name="subscriptions_add">Adicionar inscrição</string>
     <string name="subscriptions_undo">Desfazer</string>
     <!-- %1$s = merchant name -->
-    <string name="subscriptions_snackbar_hidden">%1$s hidden</string>
+    <string name="subscriptions_snackbar_hidden">%1$s oculta</string>
     <string name="subscriptions_snackbar_ended">%1$s finalizado</string>
     <string name="subscriptions_active_section">Assinaturas Ativas</string>
     <string name="subscriptions_empty_headline">Nenhuma assinatura detectada ainda</string>
@@ -295,4 +295,33 @@
     <string name="mark_paid_yesterday">ontem</string>
     <string name="mark_paid_pick_date">Escolher data</string>
     <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_by_day_of_week">Por dia da semana</string>
+    <string name="analytics_no_tag">Sem tag</string>
+    <string name="analytics_tag_overlap_note">Uma transação com várias tags conta em cada uma delas, então a soma das tags pode passar do total.</string>
+    <string name="analytics_group_by_category">Por categoria</string>
+    <string name="analytics_group_by_merchant">Por comerciante</string>
+    <string name="analytics_group_by_account">Por conta</string>
+    <string name="analytics_group_by_tag">Por tag</string>
+    <string name="analytics_group_by_day_of_week">Por dia da semana</string>
+    <string name="analytics_group_by_pro">Pro</string>
+    <string name="budgets_remaining">Restam %1$s</string>
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="one">Reinicia em %1$d dia · dia %2$d</item>
+        <item quantity="other">Reinicia em %1$d dias · dia %2$d</item>
+    </plurals>
+    <plurals name="budgets_days_remaining">
+        <item quantity="one">Falta %1$d dia</item>
+        <item quantity="other">Faltam %1$d dias</item>
+    </plurals>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="one">%1$d pagamento correspondente encontrado</item>
+        <item quantity="other">%1$d pagamentos correspondentes encontrados</item>
+    </plurals>
+    <plurals name="mark_paid_days_ago">
+        <item quantity="one">Há %1$d dia</item>
+        <item quantity="other">Há %1$d dias</item>
+    </plurals>
+    <string name="analytics_forecast_for">Previsão para %1$s</string>
+    <string name="analytics_forecast_above_usual">Cerca de %1$s acima do normal</string>
+    <string name="analytics_forecast_stay_under">Gaste menos de %1$s por dia para ficar em %2$s.</string>
 </resources>

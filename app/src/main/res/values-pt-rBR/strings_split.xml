@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Dividir com…</string>
+    <string name="split_menu_edit">Editar divisão</string>
+    <string name="split_sheet_title">Dividir %1$s</string>
+    <string name="split_sheet_hint">Cada parte é adicionada em Empréstimos como dinheiro que você emprestou. Só a sua parte conta como gasto.</string>
+    <string name="split_people_count">%1$d de %2$d pessoas</string>
+    <string name="split_person_name">Nome da pessoa</string>
+    <string name="split_add_person">Adicionar</string>
+    <string name="split_pick_contact">Escolher dos contatos</string>
+    <string name="split_remove_person">Remover %1$s</string>
+    <string name="split_mode_equal">Dividir igualmente</string>
+    <string name="split_mode_custom">Valores personalizados</string>
+    <string name="split_you">Você</string>
+    <string name="split_your_part">Sua parte</string>
+    <string name="split_left_to_assign">Faltam %1$s para distribuir</string>
+    <string name="split_over_total">%1$s acima do total</string>
+    <string name="split_adds_up">Soma %1$s</string>
+    <string name="split_save">Salvar divisão</string>
+    <string name="split_error_share_positive">Cada parte precisa ser maior que zero</string>
+    <string name="split_error_over">As partes passam do total</string>
+    <string name="split_error_your_part_negative">Sua parte não pode ser menor que zero</string>
+    <string name="split_error_failed">Não foi possível salvar a divisão: %1$s</string>
+    <string name="split_error_settled">O empréstimo de %1$s está quitado. Reabra em Empréstimos para mudar a parte dessa pessoa.</string>
+    <string name="split_error_transfer">Uma conta dividida não pode ser uma transferência. Remova a divisão primeiro.</string>
+    <string name="split_error_type_locked">Esta conta está dividida. Remova a divisão antes de mudar o tipo.</string>
+    <string name="split_error_amount_below_shares">Esta conta está dividida. O valor não pode ser menor que as partes que você emprestou.</string>
+    <string name="split_section_title">Dividido com</string>
+    <string name="split_settled">Quitado</string>
+    <string name="split_request">Cobrar %1$s</string>
+    <string name="split_remove">Remover divisão</string>
+    <string name="split_remove_title">Remover divisão?</string>
+    <string name="split_remove_message">A parte de cada pessoa sai do empréstimo dela. Um empréstimo que fique vazio é excluído.</string>
+    <string name="split_remove_confirm">Remover</string>
+    <string name="split_upi_title">Seu ID UPI</string>
+    <string name="split_upi_message">As pessoas pagam a parte delas para este ID UPI. Você pode mudar isso nas Configurações.</string>
+    <string name="split_upi_hint">nome@banco</string>
+    <string name="split_upi_invalid">Digite um ID UPI como nome@banco</string>
+    <string name="split_upi_save">Salvar</string>
+    <string name="split_request_text">Pague %1$s para %2$s por %3$s</string>
+    <string name="split_request_failed">Não foi possível criar o QR code</string>
+    <string name="settings_upi_title">Seu ID UPI</string>
+    <string name="settings_upi_subtitle">Usado para pedir que as pessoas paguem a parte delas de uma conta dividida</string>
+    <string name="settings_upi_not_set">Não definido</string>
 </resources>

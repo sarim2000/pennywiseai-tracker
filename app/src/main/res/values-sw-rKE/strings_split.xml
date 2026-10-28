@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Gawanya na…</string>
+    <string name="split_menu_edit">Hariri mgawanyo</string>
+    <string name="split_sheet_title">Gawanya %1$s</string>
+    <string name="split_sheet_hint">Kila sehemu inaongezwa kwenye Mikopo kama pesa uliyokopesha. Sehemu yako tu ndiyo inahesabiwa kama matumizi.</string>
+    <string name="split_people_count">Watu %1$d kati ya %2$d</string>
+    <string name="split_person_name">Jina la mtu</string>
+    <string name="split_add_person">Ongeza</string>
+    <string name="split_pick_contact">Chagua kutoka anwani</string>
+    <string name="split_remove_person">Ondoa %1$s</string>
+    <string name="split_mode_equal">Gawanya sawa</string>
+    <string name="split_mode_custom">Kiasi maalum</string>
+    <string name="split_you">Wewe</string>
+    <string name="split_your_part">Sehemu yako</string>
+    <string name="split_left_to_assign">%1$s bado hazijagawiwa</string>
+    <string name="split_over_total">%1$s zaidi ya jumla</string>
+    <string name="split_adds_up">Jumla ni %1$s</string>
+    <string name="split_save">Hifadhi mgawanyo</string>
+    <string name="split_error_share_positive">Kila sehemu lazima iwe zaidi ya sifuri</string>
+    <string name="split_error_over">Sehemu zimezidi jumla</string>
+    <string name="split_error_your_part_negative">Sehemu yako haiwezi kuwa chini ya sifuri</string>
+    <string name="split_error_failed">Imeshindwa kuhifadhi mgawanyo: %1$s</string>
+    <string name="split_error_settled">Mkopo wa %1$s umelipwa. Ufungue tena kwenye Mikopo ili ubadilishe sehemu yake.</string>
+    <string name="split_error_transfer">Bili iliyogawanywa haiwezi kuwa uhamisho. Ondoa mgawanyo kwanza.</string>
+    <string name="split_error_type_locked">Bili hii imegawanywa. Ondoa mgawanyo kabla ya kubadilisha aina yake.</string>
+    <string name="split_error_amount_below_shares">Bili hii imegawanywa. Kiasi chake hakiwezi kuwa chini ya sehemu ulizokopesha.</string>
+    <string name="split_section_title">Imegawanywa na</string>
+    <string name="split_settled">Imelipwa</string>
+    <string name="split_request">Omba %1$s</string>
+    <string name="split_remove">Ondoa mgawanyo</string>
+    <string name="split_remove_title">Ondoa mgawanyo?</string>
+    <string name="split_remove_message">Sehemu ya kila mtu inaondolewa kwenye mkopo wake. Mkopo usio na kitu kingine utafutwa.</string>
+    <string name="split_remove_confirm">Ondoa</string>
+    <string name="split_upi_title">UPI ID yako</string>
+    <string name="split_upi_message">Watu hulipa sehemu zao kwa UPI ID hii. Unaweza kuibadilisha kwenye Mipangilio.</string>
+    <string name="split_upi_hint">jina@benki</string>
+    <string name="split_upi_invalid">Weka UPI ID kama jina@benki</string>
+    <string name="split_upi_save">Hifadhi</string>
+    <string name="split_request_text">Lipa %1$s kwa %2$s kwa ajili ya %3$s</string>
+    <string name="split_request_failed">Imeshindwa kuunda msimbo wa QR</string>
+    <string name="settings_upi_title">UPI ID yako</string>
+    <string name="settings_upi_subtitle">Inatumika kuwaomba watu walipe sehemu yao ya bili iliyogawanywa</string>
+    <string name="settings_upi_not_set">Haijawekwa</string>
 </resources>

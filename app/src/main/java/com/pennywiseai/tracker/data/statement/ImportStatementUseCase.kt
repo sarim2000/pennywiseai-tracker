@@ -4,12 +4,14 @@ import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +36,7 @@ class ImportStatementUseCase @Inject constructor(
 ) {
     sealed interface PdfRead {
         data class Parsed(val transactions: List<ParsedTransaction>) : PdfRead
-        data class Error(val message: String) : PdfRead
+        data class Error(val message: UiText) : PdfRead
         /** The statement PDF is locked; ask for its password ([wrongPassword]: the last one failed). */
         data class PasswordRequired(val wrongPassword: Boolean) : PdfRead
     }
@@ -43,16 +45,13 @@ class ImportStatementUseCase @Inject constructor(
         try {
             val text = PdfTextExtractor.extractText(context, uri, password)
             val parser = PdfParserFactory.getParser(text)
-                ?: return@withContext PdfRead.Error(
-                    "Unsupported statement format. Currently supported: Google Pay, PhonePe, Paytm, slice, ICICI Bank. " +
-                        "For any other bank, import its Excel (.xlsx) or CSV statement."
-                )
+                ?: return@withContext PdfRead.Error(UiText.Res(R.string.import_statement_error_unsupported))
             val parsed = parser.parse(text)
-            if (parsed.isEmpty()) PdfRead.Error("No transactions found in the statement.") else PdfRead.Parsed(parsed)
+            if (parsed.isEmpty()) PdfRead.Error(UiText.Res(R.string.import_statement_error_no_transactions)) else PdfRead.Parsed(parsed)
         } catch (e: PdfPasswordRequiredException) {
             PdfRead.PasswordRequired(e.wrongPassword)
         } catch (e: Exception) {
-            PdfRead.Error(e.message ?: "Failed to import statement.")
+            PdfRead.Error(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.import_statement_error_failed))
         }
     }
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Pessoal</string>
+    <string name="profile_default_business">Profissional</string>
+    <string name="rule_template_small_payments_name">Pequenos pagamentos para Alimentação</string>
+    <string name="rule_template_small_payments_description">Classifica pequenas despesas (inferiores a 200) na categoria Food &amp; Dining</string>
+    <string name="budget_group_default_spending">Despesas</string>
+    <string name="budget_group_default_fixed_costs">Custos fixos</string>
+    <string name="budget_group_default_investments">Investimentos</string>
+    <string name="budget_group_default_monthly">Orçamento mensal</string>
+</resources>

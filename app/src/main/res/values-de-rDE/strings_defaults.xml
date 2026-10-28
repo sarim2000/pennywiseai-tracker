@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Persönlich</string>
+    <string name="profile_default_business">Geschäftlich</string>
+    <string name="rule_template_small_payments_name">Kleine Zahlungen zu Essen</string>
+    <string name="rule_template_small_payments_description">Kleine Ausgaben (unter 200) als Essen &amp; Gastronomie kategorisieren</string>
+    <string name="budget_group_default_spending">Ausgaben</string>
+    <string name="budget_group_default_fixed_costs">Fixkosten</string>
+    <string name="budget_group_default_investments">Investitionen</string>
+    <string name="budget_group_default_monthly">Monatsbudget</string>
+</resources>

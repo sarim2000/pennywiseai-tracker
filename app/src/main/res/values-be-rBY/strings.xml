@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - Улік выдаткаў</string>
+    <string name="widget_name_budget">Агляд бюджэту</string>
+    <string name="widget_description_budget">Паказвае прагрэс месячнага бюджэту, зберажэнні і дзённы ліміт адным позіркам.</string>
+    <string name="widget_loading">Загрузка віджэта…</string>
+    <string name="widget_name_recent">Апошнія транзакцыі</string>
+    <string name="widget_name_category_pie">Дыяграма выдаткаў</string>
+    <string name="widget_description_category_pie">Выдаткі гэтага месяца па катэгорыях: кругавая дыяграма з легендай.</string>
+    <string name="widget_name_add_transaction">Выдатак наяўнымі</string>
+    <string name="widget_name_summary">Зводка выдаткаў</string>
+    <string name="tile_add_transaction">Дадаць транзакцыю</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">Дадаць</string>
+    <string name="shortcut_add_transaction_long">Дадаць транзакцыю</string>
+    <string name="support_title">Падтрымаць распрацоўку</string>
+    <string name="support_subtitle">Робіць адзін распрацоўшчык — невялікі донат дапамагае працягваць 🦉</string>
+    <string name="support_dialog_body">PennyWise бясплатны і з адкрытым кодам, яго робіць адзін распрацоўшчык. У гэтай зборцы ўжо ўсё адкрыта. Калі праграма вам карысная, невялікі донат дапаможа яе развіваць 🦉</string>
+    <string name="support_pay_via_upi">Аплаціць праз UPI</string>
+    <string name="support_close">Закрыць</string>
+    <string name="support_copy_upi_id">Скапіяваць UPI ID</string>
+    <string name="support_copied_toast">UPI ID скапіяваны</string>
+    <string name="support_no_upi_app">Праграма для UPI не знойдзена. Скапіюйце UPI ID.</string>
+    <string name="support_nudge_body">Падабаецца PennyWise? Падтрымайце распрацоўку 💛</string>
+    <string name="duplicate_accounts_title">Магчымыя дублікаты рахункаў</string>
+    <string name="duplicate_accounts_message">З-за розных фарматаў банкаўскіх SMS ці ранейшага разбору маглі з\'явіцца дублікаты рахункаў з трох- і чатырохзначнымі нумарамі. Калі %1$s і %2$s — адзін і той жа рахунак, аб\'яднаць іх? Транзакцыі пяройдуць на рахунак з чатырма лічбамі, гісторыя яго балансу захаваецца, а новыя SMS будуць аўтаматычна трапляць на яго.</string>
+    <string name="duplicate_accounts_merge">Аб\'яднаць і запомніць</string>
+    <string name="duplicate_accounts_keep">Пакінуць асобна</string>
+</resources>

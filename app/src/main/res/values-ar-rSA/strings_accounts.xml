@@ -337,4 +337,5 @@
         <item quantity="many">عرض جميع حسابات %1$d</item>
         <item quantity="other">عرض جميع حسابات %1$d</item>
     </plurals>
+    <string name="manage_accounts_estimated_balance_hint">رصيد تقديري: رسائل SMS من بنكك لا تذكر الرصيد. اضغط لتحديده مرة واحدة.</string>
 </resources>

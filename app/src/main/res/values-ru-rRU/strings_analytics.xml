@@ -156,7 +156,7 @@
     <string name="budget_history_window">Окно: %1$s – %2$s</string>
     <string name="budget_history_per_week">Разбивка в неделю</string>
     <string name="budget_history_cycle">Цикл</string>
-    <string name="budget_history_range">Range</string>
+    <string name="budget_history_range">Период</string>
     <string name="budget_history_current">Текущее</string>
     <string name="budget_history_live">Live · все еще накопились</string>
     <string name="budget_history_frozen">Замороженный от %1$s</string>
@@ -305,4 +305,47 @@
     <string name="mark_paid_yesterday">Вчера</string>
     <string name="mark_paid_pick_date">Выберите дату</string>
     <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_by_day_of_week">По дням недели</string>
+    <string name="analytics_no_tag">Без тега</string>
+    <string name="analytics_tag_overlap_note">Транзакция с несколькими тегами учитывается в каждом из них, поэтому суммы по тегам могут превышать общую сумму.</string>
+    <string name="analytics_group_by_category">По категориям</string>
+    <string name="analytics_group_by_merchant">По продавцам</string>
+    <string name="analytics_group_by_account">По счетам</string>
+    <string name="analytics_group_by_tag">По тегам</string>
+    <string name="analytics_group_by_day_of_week">По дням недели</string>
+    <string name="analytics_group_by_pro">Pro</string>
+    <string name="budgets_over_budget">Бюджет превышен на %1$s</string>
+    <plurals name="budgets_runs_days_remaining">
+        <item quantity="one">%1$s · остался %2$d день</item>
+        <item quantity="few">%1$s · осталось %2$d дня</item>
+        <item quantity="many">%1$s · осталось %2$d дней</item>
+        <item quantity="other">%1$s · осталось %2$d дня</item>
+    </plurals>
+    <plurals name="budgets_days_remaining">
+        <item quantity="one">Остался %1$d день</item>
+        <item quantity="few">Осталось %1$d дня</item>
+        <item quantity="many">Осталось %1$d дней</item>
+        <item quantity="other">Осталось %1$d дня</item>
+    </plurals>
+    <string name="budget_edit_over_allocated">Лимиты категорий превышают бюджет на %1$s</string>
+    <string name="budget_edit_spent">Потрачено: %1$s</string>
+    <string name="categories_msg_already_exists">Категория «%1$s» уже существует</string>
+    <string name="subscriptions_delete_permanently_message">Удалить «%1$s» навсегда? Это действие нельзя отменить.</string>
+    <string name="subscriptions_summary_some_paid">Оплачено %1$d из %2$d в этом цикле</string>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="one">Оплата через %1$d день</item>
+        <item quantity="few">Оплата через %1$d дня</item>
+        <item quantity="many">Оплата через %1$d дней</item>
+        <item quantity="other">Оплата через %1$d дня</item>
+    </plurals>
+    <string name="mark_paid_helper_income">Мы запишем доход %1$s и перенесем график на следующий цикл.</string>
+    <plurals name="mark_paid_days_ago">
+        <item quantity="one">%1$d день назад</item>
+        <item quantity="few">%1$d дня назад</item>
+        <item quantity="many">%1$d дней назад</item>
+        <item quantity="other">%1$d дня назад</item>
+    </plurals>
+    <string name="analytics_forecast_for">Прогноз на %1$s</string>
+    <string name="analytics_forecast_above_usual">Примерно на %1$s больше обычного</string>
+    <string name="analytics_forecast_stay_under">Тратьте меньше %1$s в день, чтобы уложиться в %2$s.</string>
 </resources>

@@ -20,4 +20,6 @@
     <string name="account_type_current">Actuel</string>
     <string name="account_type_credit_card">Carte de Crédit</string>
     <string name="account_type_cash">Espèces</string>
+    <string name="filter_type_spending">Dépenses (dépense + carte)</string>
+    <string name="account_type_loan">Prêt</string>
 </resources>

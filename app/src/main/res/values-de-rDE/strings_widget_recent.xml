@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>    <string name="widget_recent_header">Zuletzt</string>
+    <string name="widget_recent_sort">Zuordnen</string>
+    <string name="widget_recent_empty_add_cash">Tippen Sie auf +, um Bargeld hinzuzufügen</string>
+    <string name="widget_recent_description">Ihre neuesten Transaktionen mit ihren Kategorien – ein Tippen genügt, um die offenen zuzuordnen.</string>
+</resources>

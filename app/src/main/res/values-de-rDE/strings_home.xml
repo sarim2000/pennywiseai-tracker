@@ -212,7 +212,7 @@
     <string name="txn_item_tag_recurring">Wiederkehrende</string>
     <string name="txn_item_tag_business">Geschäftlich</string>
     <string name="txn_item_tag_excluded">Ausgeschlossen</string>
-    <string name="txn_item_balance_after">Bal %1$s</string>
+    <string name="txn_item_balance_after">Saldo %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Überweisung → %1$s</string>
     <string name="txn_item_transfer_from">Übertragung von %1$s</string>
@@ -266,4 +266,75 @@
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_goals">Ziele</string>
+    <string name="home_resync_title">Nachrichten erneut lesen</string>
+    <string name="home_resync_scan_again">Alle Nachrichten erneut scannen</string>
+    <string name="home_resync_scan_again_desc">Fügt alles hinzu, was übersehen wurde. Ihre Änderungen und alle vorhandenen Transaktionen bleiben unverändert.</string>
+    <string name="home_resync_rebuild">Komplett neu aufbauen</string>
+    <string name="home_resync_rebuild_desc">Liest SMS-Transaktionen neu ein, um Verbesserungen der Erkennung zu übernehmen. Änderungen an SMS-Transaktionen werden zurückgesetzt. Manuelle, importierte, Darlehens- und gruppierte Transaktionen bleiben erhalten.</string>
+    <string name="home_edit_move_up">Bewege %1$s nach oben</string>
+    <string name="whats_new_title">Neuigkeiten</string>
+    <string name="whats_new_version">Version %1$s</string>
+    <string name="type_filter_spending">Ausgaben</string>
+    <string name="balance_card_income">Einkommen</string>
+    <string name="balance_card_expenses">Ausgaben</string>
+    <string name="balance_card_lent">Verliehen</string>
+    <string name="balance_card_saved">Gespart</string>
+    <string name="budget_card_per_day">%1$s/Tag</string>
+    <string name="group_card_invested">%1$s investiert</string>
+    <string name="widget_budget_title">Monatsbudget</string>
+    <string name="widget_summary_today">Heute</string>
+    <string name="widget_summary_month">Diesen Monat</string>
+    <string name="notif_txn_title_spent">%1$s bei %2$s ausgegeben</string>
+    <string name="notif_txn_title_received">%1$s von %2$s erhalten</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <string name="notif_txn_ask_category">Wofür war das? · %1$s</string>
+    <string name="notif_txn_action_change">Ändern</string>
+    <string name="notif_txn_learned_title">Als %1$s gespeichert</string>
+    <string name="notif_txn_learned_text">Zahlungen hier werden ab jetzt automatisch zugeordnet.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">%d frühere Zahlung wurde ebenfalls verschoben.</item>
+        <item quantity="other">%d frühere Zahlungen wurden ebenfalls verschoben.</item>
+    </plurals>
+    <string name="notif_daily_channel_name">Tägliche Zusammenfassung</string>
+    <string name="notif_daily_channel_description">Jeden Abend ein kurzer Rückblick auf die Ausgaben des Tages</string>
+    <string name="notif_daily_title">Heute haben Sie %1$s ausgegeben</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d Transaktion</item>
+        <item quantity="other">%d Transaktionen</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d braucht eine Kategorie</item>
+        <item quantity="other">%d brauchen eine Kategorie</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Zuordnen</string>
+    <string name="notif_daily_action_cash">+ Bargeld</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d neue Transaktion</item>
+        <item quantity="other">%d neue Transaktionen</item>
+    </plurals>
+    <string name="pro_home_card_title">Gefällt Ihnen PennyWise?</string>
+    <string name="pro_home_card_body">Pro bietet unbegrenzte Regeln, Ziele, Exporte und Kontoauszug-Importe.</string>
+    <string name="pro_home_card_action">Pro ansehen</string>
+    <string name="pro_home_card_dismiss">Ausblenden</string>
+    <string name="forecast_on_track">Auf Kurs für %1$s bis %2$s</string>
+    <string name="forecast_over_usual">%1$s über dem Üblichen</string>
+    <string name="home_section_safe_to_spend">Frei verfügbar</string>
+    <string name="safe_to_spend_title">Frei verfügbar</string>
+    <string name="safe_to_spend_tap_to_show">Zum Anzeigen tippen</string>
+    <string name="safe_to_spend_per_day">Etwa %1$s pro Tag bis %2$s, inklusive heute</string>
+    <string name="safe_to_spend_short">Die vor %1$s fälligen Rechnungen übersteigen Ihren Kontostand</string>
+    <string name="safe_to_spend_none_left">Nach den vor %1$s fälligen Rechnungen bleibt nichts übrig</string>
+    <string name="safe_to_spend_breakdown">Bankguthaben %1$s − %2$s an Rechnungen, fällig vor %3$s</string>
+    <string name="safe_to_spend_capped">Durch Ihr Budget begrenzt: noch %1$s</string>
+    <string name="safe_to_spend_other_currencies">Plus %1$s, separat geführt</string>
+    <string name="safe_to_spend_until">Frei verfügbar bis %1$s</string>
+    <string name="safe_to_spend_accounts">Bankguthaben</string>
+    <string name="safe_to_spend_excluded">Nicht berücksichtigt</string>
+    <string name="safe_to_spend_excluded_negative">Nicht berücksichtigt (negativer Kontostand)</string>
+    <string name="safe_to_spend_bills_due">Rechnungen fällig vor %1$s</string>
+    <string name="safe_to_spend_no_bills">Keine Abonnements fällig</string>
+    <string name="safe_to_spend_choose_accounts">Konten auswählen</string>
+    <string name="safe_to_spend_done">Fertig</string>
+    <string name="safe_to_spend_footnote">Die Rechnungen stammen aus Ihren aktiven Abonnements. Kreditkarten und Darlehen zählen nicht als verfügbares Geld.</string>
 </resources>

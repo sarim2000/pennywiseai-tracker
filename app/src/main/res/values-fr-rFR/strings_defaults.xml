@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Personnel</string>
+    <string name="profile_default_business">Professionnel</string>
+    <string name="rule_template_small_payments_name">Petits paiements en alimentation</string>
+    <string name="rule_template_small_payments_description">Classer les petites dépenses (moins de 200) dans la catégorie « Food &amp; Dining »</string>
+    <string name="budget_group_default_spending">Dépenses</string>
+    <string name="budget_group_default_fixed_costs">Charges fixes</string>
+    <string name="budget_group_default_investments">Investissements</string>
+    <string name="budget_group_default_monthly">Budget mensuel</string>
+</resources>

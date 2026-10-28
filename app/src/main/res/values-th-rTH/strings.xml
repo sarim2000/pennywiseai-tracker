@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - บันทึกรายจ่าย</string>
+    <string name="widget_name_budget">ภาพรวมงบประมาณ</string>
+    <string name="widget_description_budget">ดูความคืบหน้างบประมาณรายเดือน เงินออม และยอดใช้ได้ต่อวันได้ในพริบตา</string>
+    <string name="widget_loading">กำลังโหลดวิดเจ็ต…</string>
+    <string name="widget_name_recent">ธุรกรรมล่าสุด</string>
+    <string name="widget_name_category_pie">กราฟวงกลมการใช้จ่าย</string>
+    <string name="widget_description_category_pie">การใช้จ่ายเดือนนี้แยกตามหมวดหมู่ เป็นกราฟวงกลมพร้อมคำอธิบาย</string>
+    <string name="widget_name_add_transaction">จ่ายเงินสด</string>
+    <string name="widget_name_summary">สรุปการใช้จ่าย</string>
+    <string name="tile_add_transaction">เพิ่มธุรกรรม</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">เพิ่ม</string>
+    <string name="shortcut_add_transaction_long">เพิ่มธุรกรรม</string>
+    <string name="support_title">สนับสนุนการพัฒนา</string>
+    <string name="support_subtitle">สร้างโดยนักพัฒนาคนเดียว ทิปเล็กๆ ช่วยให้ไปต่อได้ 🦉</string>
+    <string name="support_dialog_body">PennyWise ใช้ฟรีและเป็นโอเพนซอร์ส สร้างโดยนักพัฒนาคนเดียว ในเวอร์ชันนี้ทุกอย่างปลดล็อกไว้หมดแล้ว ถ้าแอปนี้มีประโยชน์กับคุณ ทิปเล็กๆ ช่วยให้ไปต่อได้ 🦉</string>
+    <string name="support_pay_via_upi">จ่ายผ่าน UPI</string>
+    <string name="support_close">ปิด</string>
+    <string name="support_copy_upi_id">คัดลอก UPI ID</string>
+    <string name="support_copied_toast">คัดลอก UPI ID แล้ว</string>
+    <string name="support_no_upi_app">ไม่พบแอป UPI คัดลอก UPI ID ไปใช้แทนได้</string>
+    <string name="support_nudge_body">ชอบ PennyWise ไหม? ร่วมสนับสนุนการพัฒนา 💛</string>
+    <string name="duplicate_accounts_title">อาจมีบัญชีซ้ำกัน</string>
+    <string name="duplicate_accounts_message">รูปแบบ SMS ของธนาคารที่ต่างกันหรือการอ่านข้อความแบบเก่า อาจทำให้เกิดบัญชีซ้ำที่ลงท้ายด้วยเลข 3 หลักและ 4 หลัก ถ้า %1$s กับ %2$s เป็นบัญชีเดียวกัน จะรวมเข้าด้วยกันไหม? ธุรกรรมจะย้ายไปที่บัญชีเลข 4 หลัก ประวัติยอดคงเหลือจะยังอยู่ และ SMS ต่อจากนี้จะใช้บัญชีนั้นโดยอัตโนมัติ</string>
+    <string name="duplicate_accounts_merge">รวมและจำไว้</string>
+    <string name="duplicate_accounts_keep">แยกไว้เหมือนเดิม</string>
+</resources>

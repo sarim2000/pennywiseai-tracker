@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Les dépenses du jour, ce qui reste de votre budget et un ajout rapide d\'espèces.</string>
+    <string name="widget_summary_left">Reste du budget</string>
+    <string name="widget_summary_over">Budget dépassé</string>
+    <string name="widget_budget_left_label">Reste</string>
+    <string name="widget_budget_over_label">Dépassé de</string>
+    <string name="widget_budget_empty_title">Pas encore de budget</string>
+    <string name="widget_budget_empty_hint">Définissez une limite mensuelle pour voir ce qui reste.</string>
+    <string name="widget_budget_create">Créer un budget</string>
+    <string name="widget_budget_preview_meta">sur 3 600 · 120/jour</string>
+    <string name="widget_cash_label">Espèces</string>
+    <string name="widget_cash_spend">Dépense en espèces</string>
+    <string name="widget_cash_description">Un appui pour noter les espèces que vous venez de dépenser.</string>
+</resources>

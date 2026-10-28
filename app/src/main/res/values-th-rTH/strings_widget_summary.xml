@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">การใช้จ่ายวันนี้ งบประมาณที่เหลือ และปุ่มเพิ่มเงินสดแบบด่วน</string>
+    <string name="widget_summary_left">เหลือในงบ</string>
+    <string name="widget_summary_over">เกินงบ</string>
+    <string name="widget_budget_left_label">เหลือ</string>
+    <string name="widget_budget_over_label">เกินไป</string>
+    <string name="widget_budget_empty_title">ยังไม่มีงบประมาณ</string>
+    <string name="widget_budget_empty_hint">ตั้งวงเงินรายเดือนเพื่อดูว่าเหลือเท่าไหร่</string>
+    <string name="widget_budget_create">สร้างงบประมาณ</string>
+    <string name="widget_budget_preview_meta">จาก 3,600 · 120/วัน</string>
+    <string name="widget_cash_label">เงินสด</string>
+    <string name="widget_cash_spend">จ่ายเงินสด</string>
+    <string name="widget_cash_description">แตะครั้งเดียวเพื่อบันทึกเงินสดที่เพิ่งจ่ายไป</string>
+</resources>

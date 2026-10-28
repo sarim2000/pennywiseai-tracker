@@ -61,9 +61,9 @@
     <string name="unrecognized_reported_badge">Nahlášeno</string>
     <string name="unrecognized_report">Nahlásit</string>
     <!-- ══ Import statement ══ -->
-    <string name="import_statement_title">Prohlášení o importu</string>
+    <string name="import_statement_title">Import výpisu</string>
     <string name="import_statement_back">Zpět</string>
-    <string name="import_statement_select_pdf">Vyberte PDF prohlášení</string>
+    <string name="import_statement_select_pdf">Vyberte PDF výpis</string>
     <string name="import_statement_loading_title">Importuji transakce...</string>
     <string name="import_statement_complete">Import dokončen</string>
     <string name="import_statement_result_imported">Transakce importovány</string>
@@ -396,13 +396,13 @@
     <string name="rules_type_investment">Investice</string>
     <string name="rules_select_transaction_type">Vyberte typ transakce:</string>
     <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
-    <string name="rules_day_mon">Mon</string>
+    <string name="rules_day_mon">Po</string>
     <string name="rules_day_tue">Út</string>
-    <string name="rules_day_wed">Stříl/a</string>
-    <string name="rules_day_thu">Thu</string>
+    <string name="rules_day_wed">St</string>
+    <string name="rules_day_thu">Čt</string>
     <string name="rules_day_fri">Pá</string>
-    <string name="rules_day_sat">Skot</string>
-    <string name="rules_day_sun">Slunce</string>
+    <string name="rules_day_sat">So</string>
+    <string name="rules_day_sun">Ne</string>
     <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">Den (1-31)</string>
     <string name="rules_day_of_month_placeholder">např. 1</string>
@@ -451,8 +451,8 @@
     <string name="rules_preview_field_type">typ</string>
     <string name="rules_preview_field_category">kategorie</string>
     <string name="rules_preview_field_merchant">obchodník</string>
-    <string name="rules_preview_field_description">l 343, 22.12.2009, s. 1).</string>
-    <string name="rules_preview_field_sms_text">SMS text</string>
+    <string name="rules_preview_field_description">popis</string>
+    <string name="rules_preview_field_sms_text">text SMS</string>
     <string name="rules_preview_field_bank">bankovní</string>
     <string name="rules_preview_field_time">čas</string>
     <string name="rules_preview_field_hour">hodina</string>
@@ -481,4 +481,111 @@
     <string name="rules_preview_action_clear">vyčistit %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">nastavit %1$s na %2$s</string>
+    <string name="applock_no_screen_lock_notice">Zámek aplikace vyžaduje zámek obrazovky. Nastavte ho v nastavení zařízení.</string>
+    <string name="unrecognized_suggestion">Vypadá jako: %1$s</string>
+    <string name="unrecognized_suggestion_debit">%1$s výdaj</string>
+    <string name="unrecognized_suggestion_credit">%1$s příjem</string>
+    <string name="unrecognized_suggestion_add">Přidat</string>
+    <string name="import_statement_description">Importujte PDF výpis z Google Pay, PhonePe, Paytm, slice nebo ICICI Bank, případně výpis z jakékoli banky v Excelu (.xlsx) nebo CSV. Než se cokoli přidá, uvidíte, co je nového.</string>
+    <string name="import_statement_loading_body">Čtení výpisu a kontrola duplicit</string>
+    <string name="import_statement_result_total_parsed">Řádky ve výpisu</string>
+    <string name="import_statement_error_unsupported">Nepodporovaný formát výpisu. Aktuálně podporujeme: Google Pay, PhonePe, Paytm, slice, ICICI Bank. U ostatních bank importujte výpis v Excelu (.xlsx) nebo CSV.</string>
+    <string name="import_statement_error_no_transactions">Ve výpisu nebyly nalezeny žádné transakce.</string>
+    <string name="import_statement_error_failed">Import výpisu se nezdařil.</string>
+    <string name="import_statement_error_read">Tento soubor se nepodařilo přečíst.</string>
+    <string name="import_statement_password_title">PDF chráněné heslem</string>
+    <string name="import_statement_password_body">Tento výpis je zamčený. Zadejte heslo, které vám k němu dala banka. Použije se jen k otevření souboru a neukládá se.</string>
+    <string name="import_statement_password_label">Heslo k PDF</string>
+    <string name="import_statement_password_wrong">Špatné heslo. Zkuste to znovu.</string>
+    <string name="import_statement_password_open">Otevřít</string>
+    <string name="import_statement_password_cancel">Zrušit</string>
+    <string name="import_statement_select_spreadsheet">Vybrat výpis v Excelu nebo CSV</string>
+    <string name="import_statement_xls_hint">Starý soubor .xls? Nejdřív ho uložte jako .xlsx nebo .csv.</string>
+    <string name="import_statement_map_title">Přiřadit sloupce</string>
+    <string name="import_statement_map_body">Řekněte PennyWise, který sloupec je který. Zapamatuje si to pro příští výpis se stejnými sloupci.</string>
+    <string name="import_statement_header_row">Řádek záhlaví: %1$d</string>
+    <string name="import_statement_header_row_up">Předchozí řádek</string>
+    <string name="import_statement_header_row_down">Další řádek</string>
+    <string name="import_statement_col_date">Datum</string>
+    <string name="import_statement_col_date_format">Formát data</string>
+    <string name="import_statement_date_auto">Rozpoznat automaticky</string>
+    <string name="import_statement_date_auto_found">Rozpoznat automaticky (%1$s)</string>
+    <string name="import_statement_col_description">Popis</string>
+    <string name="import_statement_amount_split">Výdaje a příjmy</string>
+    <string name="import_statement_amount_single">Jedna částka</string>
+    <string name="import_statement_col_debit">Výdaj (odchozí peníze)</string>
+    <string name="import_statement_col_credit">Příjem (příchozí peníze)</string>
+    <string name="import_statement_col_amount">Částka (záporná nebo Dr = odchozí peníze)</string>
+    <string name="import_statement_col_type">Sloupec Dr/Cr (nepovinné)</string>
+    <string name="import_statement_col_balance">Zůstatek (nepovinné)</string>
+    <string name="import_statement_col_reference">Reference / UTR (nepovinné)</string>
+    <string name="import_statement_date_excel">Datum Excelu</string>
+    <string name="import_statement_col_none">Žádný</string>
+    <string name="import_statement_column_label">Sloupec %1$s</string>
+    <string name="import_statement_account">Účet</string>
+    <string name="import_statement_account_none">Nepropojeno s účtem</string>
+    <string name="import_statement_sample_title">Jak se řádky načtou</string>
+    <string name="import_statement_sample_count">Nalezené transakce: %1$d, přeskočené řádky: %2$d (prázdné, součty, zápatí)</string>
+    <string name="import_statement_sample_empty">S tímto přiřazením zatím nejsou žádné transakce. Zkontrolujte řádek záhlaví, sloupec Datum a jeho formát a sloupce s částkami.</string>
+    <string name="import_statement_preview_button">Náhled importu</string>
+    <string name="import_statement_cancel">Zrušit</string>
+    <string name="import_statement_preview_title">Kontrola před importem</string>
+    <string name="import_statement_preview_new">Nové</string>
+    <string name="import_statement_preview_matched">Už v PennyWise</string>
+    <string name="import_statement_preview_account">Účet: %1$s</string>
+    <string name="import_statement_preview_new_rows">Nové transakce</string>
+    <string name="import_statement_preview_new_rows_hint">Odškrtněte ty, které nechcete přidat.</string>
+    <string name="import_statement_preview_all_matched">Všechny řádky tohoto výpisu už v PennyWise jsou.</string>
+    <plurals name="import_statement_confirm">
+        <item quantity="one">Importovat %1$d transakci</item>
+        <item quantity="few">Importovat %1$d transakce</item>
+        <item quantity="many">Importovat %1$d transakce</item>
+        <item quantity="other">Importovat %1$d transakcí</item>
+    </plurals>
+    <string name="import_statement_confirm_nothing">Pokračovat</string>
+    <string name="import_statement_edit_mapping">Upravit přiřazení sloupců</string>
+    <string name="import_statement_balance_title">Kontrola konečného zůstatku</string>
+    <string name="import_statement_balance_subtitle">%1$s k %2$s</string>
+    <string name="import_statement_balance_statement">Podle výpisu</string>
+    <string name="import_statement_balance_app">Podle PennyWise</string>
+    <string name="import_statement_balance_difference">Rozdíl</string>
+    <string name="import_statement_balance_unknown">—</string>
+    <string name="import_statement_balance_unknown_note">PennyWise nemá pro tento účet žádný zůstatek k %1$s ani dříve, takže zatím není s čím porovnávat.</string>
+    <string name="import_statement_balance_match">Zůstatky se shodují.</string>
+    <string name="import_statement_balance_set">Nastavit zůstatek na %1$s</string>
+    <string name="import_statement_balance_set_note">Zůstatek z výpisu plus to, co PennyWise zaznamenala po konci výpisu.</string>
+    <string name="import_statement_balance_applied">Zůstatek aktualizován na %1$s.</string>
+    <string name="import_statement_balance_newer">Vaše banka od tohoto výpisu nahlásila novější zůstatek, proto PennyWise ponechá ten.</string>
+    <string name="upgrade_feature_statements">Neomezené importy výpisů</string>
+    <string name="onboarding_currency_title">Vaše měna</string>
+    <string name="onboarding_language_device">Jazyk zařízení</string>
+    <string name="onboarding_currency_hint">Používá se pro součty a rozpočty. Změnit ji můžete v Nastavení.</string>
+    <plurals name="onboarding_scan_found">
+        <item quantity="one">Nalezena %1$d transakce</item>
+        <item quantity="few">Nalezeny %1$d transakce</item>
+        <item quantity="many">Nalezeno %1$d transakce</item>
+        <item quantity="other">Nalezeno %1$d transakcí</item>
+    </plurals>
+    <string name="chat_error_download_roaming">Při roamingu nestahujeme. Připojte se k Wi-Fi nebo vypněte roaming a zkuste to znovu.</string>
+    <plurals name="rules_exported">
+        <item quantity="one">Exportováno %1$d pravidlo.</item>
+        <item quantity="few">Exportována %1$d pravidla.</item>
+        <item quantity="many">Exportováno %1$d pravidla.</item>
+        <item quantity="other">Exportováno %1$d pravidel.</item>
+    </plurals>
+    <plurals name="rules_imported">
+        <item quantity="one">Importováno %1$d pravidlo.</item>
+        <item quantity="few">Importována %1$d pravidla.</item>
+        <item quantity="many">Importováno %1$d pravidla.</item>
+        <item quantity="other">Importováno %1$d pravidel.</item>
+    </plurals>
+    <plurals name="rules_batch_scanned">
+        <item quantity="one">Prohledána %1$d transakce:</item>
+        <item quantity="few">Prohledány %1$d transakce:</item>
+        <item quantity="many">Prohledáno %1$d transakce:</item>
+        <item quantity="other">Prohledáno %1$d transakcí:</item>
+    </plurals>
+    <string name="rules_preview_conditions_or">%1$s NEBO %2$s</string>
+    <string name="rules_preview_op_less_than">je menší než</string>
+    <string name="rules_preview_op_greater_than">je větší než</string>
 </resources>

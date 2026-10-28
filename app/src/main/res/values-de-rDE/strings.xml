@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - Ausgaben-Tracker</string>
+    <string name="widget_name_budget">Budgetübersicht</string>
+    <string name="widget_description_budget">Zeigt Ihren monatlichen Budgetfortschritt, Ersparnisse und Ihr Tagesbudget auf einen Blick.</string>
+    <string name="widget_loading">Widget wird geladen…</string>
+    <string name="widget_name_recent">Letzte Transaktionen</string>
+    <string name="widget_name_category_pie">Ausgaben-Kreisdiagramm</string>
+    <string name="widget_description_category_pie">Die Ausgaben dieses Monats nach Kategorie als Kreisdiagramm mit Legende.</string>
+    <string name="widget_name_add_transaction">Barausgabe</string>
+    <string name="widget_name_summary">Ausgabenübersicht</string>
+    <string name="tile_add_transaction">Transaktion hinzufügen</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">Hinzufügen</string>
+    <string name="shortcut_add_transaction_long">Transaktion hinzufügen</string>
+    <string name="support_title">Entwicklung unterstützen</string>
+    <string name="support_subtitle">Von einem einzelnen Entwickler gebaut – ein kleines Trinkgeld hält das Projekt am Laufen 🦉</string>
+    <string name="support_dialog_body">PennyWise ist kostenlos und Open Source, gebaut von einem einzelnen Entwickler. In dieser Version ist bereits alles freigeschaltet. Wenn Ihnen die App hilft, hält ein Trinkgeld sie am Laufen 🦉</string>
+    <string name="support_pay_via_upi">Per UPI bezahlen</string>
+    <string name="support_close">Schließen</string>
+    <string name="support_copy_upi_id">UPI-ID kopieren</string>
+    <string name="support_copied_toast">UPI-ID kopiert</string>
+    <string name="support_no_upi_app">Keine UPI-App gefunden. Kopieren Sie stattdessen die UPI-ID.</string>
+    <string name="support_nudge_body">Gefällt Ihnen PennyWise? Unterstützen Sie die Entwicklung 💛</string>
+    <string name="duplicate_accounts_title">Mögliche doppelte Konten</string>
+    <string name="duplicate_accounts_message">Unterschiedliche SMS-Formate der Bank oder eine frühere Auswertung haben möglicherweise doppelte Konten mit drei und vier Ziffern angelegt. Wenn %1$s und %2$s dasselbe Konto sind, sollen sie zusammengeführt werden? Die Transaktionen werden auf das vierstellige Konto verschoben, dessen Saldoverlauf bleibt erhalten und künftige SMS werden automatisch diesem Konto zugeordnet.</string>
+    <string name="duplicate_accounts_merge">Zusammenführen und merken</string>
+    <string name="duplicate_accounts_keep">Getrennt lassen</string>
+</resources>

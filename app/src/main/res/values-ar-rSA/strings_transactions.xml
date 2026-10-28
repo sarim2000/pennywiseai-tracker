@@ -472,4 +472,12 @@
     <string name="tag_input_remove">إزالة %1$s</string>
     <string name="tag_input_add">إضافة علامة</string>
     <string name="tag_input_create">إنشاء \"%1$s\"</string>
+    <string name="txn_detail_error_loan_type_locked">هذه المعاملة جزء من قرض. أزلها من القرض قبل تحويلها بين الدخل والإنفاق.</string>
+    <string name="txn_detail_adjustment_title_expense">مصروف غير مسجّل</string>
+    <string name="txn_detail_adjustment_title_income">دخل غير مسجّل</string>
+    <string name="txn_detail_adjustment_what">ما هو؟</string>
+    <string name="txn_detail_adjustment_what_placeholder">تسوية الرصيد</string>
+    <string name="txn_detail_adjustment_add">إضافة</string>
+    <string name="txn_detail_field_reference">الرقم المرجعي (اختياري)</string>
+    <string name="add_field_reference">الرقم المرجعي (اختياري)</string>
 </resources>

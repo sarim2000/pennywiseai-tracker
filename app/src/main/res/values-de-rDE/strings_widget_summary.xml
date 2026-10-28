@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Die heutigen Ausgaben, der Rest Ihres Budgets und schnelles Erfassen von Bargeld.</string>
+    <string name="widget_summary_left">Übrig im Budget</string>
+    <string name="widget_summary_over">Budget überschritten</string>
+    <string name="widget_budget_left_label">Übrig</string>
+    <string name="widget_budget_over_label">Überschritten um</string>
+    <string name="widget_budget_empty_title">Noch kein Budget</string>
+    <string name="widget_budget_empty_hint">Legen Sie ein Monatslimit fest, um zu sehen, was übrig ist.</string>
+    <string name="widget_budget_create">Budget erstellen</string>
+    <string name="widget_budget_preview_meta">von 3.600 · 120/Tag</string>
+    <string name="widget_cash_label">Bargeld</string>
+    <string name="widget_cash_spend">Barausgabe</string>
+    <string name="widget_cash_description">Mit einem Tippen gerade ausgegebenes Bargeld erfassen.</string>
+</resources>

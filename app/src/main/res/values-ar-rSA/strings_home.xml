@@ -377,4 +377,28 @@
     <string name="pro_home_card_dismiss">إخفاء</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <!-- Safe to spend card + breakdown sheet -->
+    <string name="balance_card_income">الدخل</string>
+    <string name="balance_card_expenses">النفقات</string>
+    <string name="balance_card_lent">مُقرَض</string>
+    <string name="balance_card_saved">المدخرات</string>
+    <string name="forecast_on_track">في طريقك إلى %1$s بحلول %2$s</string>
+    <string name="forecast_over_usual">أعلى من المعتاد بـ %1$s</string>
+    <string name="home_section_safe_to_spend">المتاح للإنفاق</string>
+    <string name="safe_to_spend_title">المتاح للإنفاق</string>
+    <string name="safe_to_spend_tap_to_show">اضغط للعرض</string>
+    <string name="safe_to_spend_per_day">حوالي %1$s يوميًا حتى %2$s، بما في ذلك اليوم</string>
+    <string name="safe_to_spend_short">الفواتير المستحقة قبل %1$s أكبر من رصيدك</string>
+    <string name="safe_to_spend_none_left">لا يتبقى شيء بعد الفواتير المستحقة قبل %1$s</string>
+    <string name="safe_to_spend_breakdown">رصيد البنك %1$s − %2$s فواتير مستحقة قبل %3$s</string>
+    <string name="safe_to_spend_capped">محدود بميزانيتك: يتبقى %1$s</string>
+    <string name="safe_to_spend_other_currencies">بالإضافة إلى %1$s، محسوبة بشكل منفصل</string>
+    <string name="safe_to_spend_until">المتاح للإنفاق حتى %1$s</string>
+    <string name="safe_to_spend_accounts">رصيد البنك</string>
+    <string name="safe_to_spend_excluded">غير محتسب</string>
+    <string name="safe_to_spend_excluded_negative">غير محتسب (رصيد سالب)</string>
+    <string name="safe_to_spend_bills_due">الفواتير المستحقة قبل %1$s</string>
+    <string name="safe_to_spend_no_bills">لا توجد اشتراكات مستحقة</string>
+    <string name="safe_to_spend_choose_accounts">اختيار الحسابات</string>
+    <string name="safe_to_spend_done">تم</string>
+    <string name="safe_to_spend_footnote">تأتي الفواتير من اشتراكاتك النشطة. لا تُحتسب بطاقات الائتمان والقروض أموالًا قابلة للإنفاق.</string>
 </resources>

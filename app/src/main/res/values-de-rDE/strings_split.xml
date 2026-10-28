@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Teilen mit…</string>
+    <string name="split_menu_edit">Aufteilung bearbeiten</string>
+    <string name="split_sheet_title">%1$s aufteilen</string>
+    <string name="split_sheet_hint">Jeder Anteil wird unter Darlehen als verliehenes Geld eingetragen. Nur Ihr Anteil zählt als Ausgabe.</string>
+    <string name="split_people_count">%1$d von %2$d Personen</string>
+    <string name="split_person_name">Name der Person</string>
+    <string name="split_add_person">Hinzufügen</string>
+    <string name="split_pick_contact">Aus Kontakten wählen</string>
+    <string name="split_remove_person">%1$s entfernen</string>
+    <string name="split_mode_equal">Gleichmäßig aufteilen</string>
+    <string name="split_mode_custom">Eigene Beträge</string>
+    <string name="split_you">Sie</string>
+    <string name="split_your_part">Ihr Anteil</string>
+    <string name="split_left_to_assign">Noch %1$s zu verteilen</string>
+    <string name="split_over_total">%1$s mehr als die Gesamtsumme</string>
+    <string name="split_adds_up">Ergibt %1$s</string>
+    <string name="split_save">Aufteilung speichern</string>
+    <string name="split_error_share_positive">Jeder Anteil muss größer als null sein</string>
+    <string name="split_error_over">Die Anteile übersteigen die Gesamtsumme</string>
+    <string name="split_error_your_part_negative">Ihr Anteil kann nicht kleiner als null sein</string>
+    <string name="split_error_failed">Aufteilung konnte nicht gespeichert werden: %1$s</string>
+    <string name="split_error_settled">Das Darlehen von %1$s ist beglichen. Öffnen Sie es unter Darlehen erneut, um den Anteil zu ändern.</string>
+    <string name="split_error_transfer">Eine geteilte Rechnung kann keine Überweisung sein. Entfernen Sie zuerst die Aufteilung.</string>
+    <string name="split_error_type_locked">Diese Rechnung ist aufgeteilt. Entfernen Sie die Aufteilung, bevor Sie den Typ ändern.</string>
+    <string name="split_error_amount_below_shares">Diese Rechnung ist aufgeteilt. Der Betrag kann nicht kleiner sein als die Anteile, die Sie verliehen haben.</string>
+    <string name="split_section_title">Geteilt mit</string>
+    <string name="split_settled">Beglichen</string>
+    <string name="split_request">%1$s anfordern</string>
+    <string name="split_remove">Aufteilung entfernen</string>
+    <string name="split_remove_title">Aufteilung entfernen?</string>
+    <string name="split_remove_message">Der Anteil jeder Person wird von ihrem Darlehen abgezogen. Ein Darlehen, das sonst nichts enthält, wird gelöscht.</string>
+    <string name="split_remove_confirm">Entfernen</string>
+    <string name="split_upi_title">Ihre UPI-ID</string>
+    <string name="split_upi_message">Andere zahlen ihren Anteil an diese UPI-ID. Sie können sie in den Einstellungen ändern.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">Geben Sie eine UPI-ID wie name@bank ein</string>
+    <string name="split_upi_save">Speichern</string>
+    <string name="split_request_text">Zahle %1$s an %2$s für %3$s</string>
+    <string name="split_request_failed">Der QR-Code konnte nicht erstellt werden</string>
+    <string name="settings_upi_title">Ihre UPI-ID</string>
+    <string name="settings_upi_subtitle">Wird verwendet, um andere um ihren Anteil an einer geteilten Rechnung zu bitten</string>
+    <string name="settings_upi_not_set">Nicht festgelegt</string>
 </resources>

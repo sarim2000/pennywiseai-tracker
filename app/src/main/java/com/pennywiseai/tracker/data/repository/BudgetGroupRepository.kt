@@ -236,7 +236,17 @@ class BudgetGroupRepository @Inject constructor(
 
     }
 
-    suspend fun createSmartDefaults(baseCurrency: String) {
+    /**
+     * Group names are the user's once created, so the caller passes them in
+     * the app's language. Bucket names stay English: they are category keys
+     * (and "Investments" below is the type bucket's key).
+     */
+    suspend fun createSmartDefaults(
+        baseCurrency: String,
+        spendingName: String,
+        fixedCostsName: String,
+        investmentsName: String
+    ) {
         // Defaults name built-ins by their original names; resolve each by identity
         // so a renamed built-in gets its own allocation (#823).
         val categories = categoryDao.getAllCategoriesList()
@@ -254,7 +264,7 @@ class BudgetGroupRepository @Inject constructor(
 
         // Group 1: Spending (LIMIT) - discretionary spending you want to cap
         createGroup(
-            name = "Spending",
+            name = spendingName,
             groupType = BudgetGroupType.LIMIT,
             color = "#1565C0",
             currency = baseCurrency,
@@ -273,7 +283,7 @@ class BudgetGroupRepository @Inject constructor(
 
         // Group 2: Fixed Costs (EXPECTED) - recurring bills
         createGroup(
-            name = "Fixed Costs",
+            name = fixedCostsName,
             groupType = BudgetGroupType.EXPECTED,
             color = "#4CAF50",
             currency = baseCurrency,
@@ -290,7 +300,7 @@ class BudgetGroupRepository @Inject constructor(
         // directly, so every investment counts regardless of its category and
         // nothing leaks into Spending.
         createGroup(
-            name = "Investments",
+            name = investmentsName,
             groupType = BudgetGroupType.TARGET,
             color = "#00D09C",
             currency = baseCurrency,

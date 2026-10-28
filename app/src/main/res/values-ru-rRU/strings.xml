@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - учёт расходов</string>
+    <string name="widget_name_budget">Обзор бюджета</string>
+    <string name="widget_description_budget">Показывает прогресс месячного бюджета, сбережения и дневной лимит с одного взгляда.</string>
+    <string name="widget_loading">Загрузка виджета…</string>
+    <string name="widget_name_recent">Последние транзакции</string>
+    <string name="widget_name_category_pie">Диаграмма расходов</string>
+    <string name="widget_description_category_pie">Расходы за этот месяц по категориям — круговая диаграмма с легендой.</string>
+    <string name="widget_name_add_transaction">Расход наличными</string>
+    <string name="widget_name_summary">Сводка расходов</string>
+    <string name="tile_add_transaction">Добавить транзакцию</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">Добавить</string>
+    <string name="shortcut_add_transaction_long">Добавить транзакцию</string>
+    <string name="support_title">Поддержать разработку</string>
+    <string name="support_subtitle">Делает один разработчик — небольшой донат помогает продолжать 🦉</string>
+    <string name="support_dialog_body">PennyWise — бесплатное приложение с открытым исходным кодом, которое делает один разработчик. В этой сборке уже всё разблокировано. Если оно вам полезно, небольшой донат помогает продолжать 🦉</string>
+    <string name="support_pay_via_upi">Оплатить через UPI</string>
+    <string name="support_close">Закрыть</string>
+    <string name="support_copy_upi_id">Копировать UPI ID</string>
+    <string name="support_copied_toast">UPI ID скопирован</string>
+    <string name="support_no_upi_app">Приложение UPI не найдено. Скопируйте UPI ID.</string>
+    <string name="support_nudge_body">Нравится PennyWise? Поддержите разработку 💛</string>
+    <string name="duplicate_accounts_title">Возможные дубли счетов</string>
+    <string name="duplicate_accounts_message">Из-за разных форматов SMS банка или прежнего распознавания могли появиться дубли счетов с тремя и четырьмя цифрами. Если %1$s и %2$s — один и тот же счет, объединить их? Транзакции перейдут на счет с четырьмя цифрами, его история баланса сохранится, а будущие SMS будут автоматически относиться к нему.</string>
+    <string name="duplicate_accounts_merge">Объединить и запомнить</string>
+    <string name="duplicate_accounts_keep">Оставить раздельно</string>
+</resources>

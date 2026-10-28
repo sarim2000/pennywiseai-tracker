@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">यससँग बाँड्नुहोस्…</string>
+    <string name="split_menu_edit">बाँडफाँड सम्पादन गर्नुहोस्</string>
+    <string name="split_sheet_title">%1$s बाँड्नुहोस्</string>
+    <string name="split_sheet_hint">हरेक भाग ऋणहरूमा तपाईंले दिएको पैसाको रूपमा थपिन्छ। तपाईंको भाग मात्र खर्चमा गनिन्छ।</string>
+    <string name="split_people_count">%2$d मध्ये %1$d जना</string>
+    <string name="split_person_name">व्यक्तिको नाम</string>
+    <string name="split_add_person">थप्नुहोस्</string>
+    <string name="split_pick_contact">सम्पर्कबाट छान्नुहोस्</string>
+    <string name="split_remove_person">%1$s हटाउनुहोस्</string>
+    <string name="split_mode_equal">बराबर बाँड्नुहोस्</string>
+    <string name="split_mode_custom">आफ्नै रकम</string>
+    <string name="split_you">तपाईं</string>
+    <string name="split_your_part">तपाईंको भाग</string>
+    <string name="split_left_to_assign">%1$s बाँड्न बाँकी</string>
+    <string name="split_over_total">कुलभन्दा %1$s बढी</string>
+    <string name="split_adds_up">जम्मा %1$s हुन्छ</string>
+    <string name="split_save">बाँडफाँड सुरक्षित गर्नुहोस्</string>
+    <string name="split_error_share_positive">हरेक भाग शून्यभन्दा बढी हुनुपर्छ</string>
+    <string name="split_error_over">भागहरू कुलभन्दा बढी छन्</string>
+    <string name="split_error_your_part_negative">तपाईंको भाग शून्यभन्दा कम हुन सक्दैन</string>
+    <string name="split_error_failed">बाँडफाँड सुरक्षित गर्न सकिएन: %1$s</string>
+    <string name="split_error_settled">%1$s को ऋण चुक्ता भइसक्यो। उहाँको भाग बदल्न ऋणहरूमा गएर यसलाई फेरि खोल्नुहोस्।</string>
+    <string name="split_error_transfer">बाँडिएको बिल स्थानान्तरण हुन सक्दैन। पहिले बाँडफाँड हटाउनुहोस्।</string>
+    <string name="split_error_type_locked">यो बिल बाँडिएको छ। प्रकार बदल्नुअघि बाँडफाँड हटाउनुहोस्।</string>
+    <string name="split_error_amount_below_shares">यो बिल बाँडिएको छ। यसको रकम तपाईंले दिएका भागहरूभन्दा कम हुन सक्दैन।</string>
+    <string name="split_section_title">यससँग बाँडियो</string>
+    <string name="split_settled">चुक्ता</string>
+    <string name="split_request">%1$s माग्नुहोस्</string>
+    <string name="split_remove">बाँडफाँड हटाउनुहोस्</string>
+    <string name="split_remove_title">बाँडफाँड हटाउने?</string>
+    <string name="split_remove_message">हरेक व्यक्तिको भाग उसको ऋणबाट घटाइन्छ। अरू केही नभएको ऋण मेटाइन्छ।</string>
+    <string name="split_remove_confirm">हटाउनुहोस्</string>
+    <string name="split_upi_title">तपाईंको UPI ID</string>
+    <string name="split_upi_message">मानिसहरूले आफ्नो भाग यो UPI ID मा तिर्छन्। सेटिङ्समा यसलाई बदल्न सक्नुहुन्छ।</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank जस्तो UPI ID हाल्नुहोस्</string>
+    <string name="split_upi_save">सुरक्षित गर्नुहोस्</string>
+    <string name="split_request_text">%3$s का लागि %2$s लाई %1$s तिर्नुहोस्</string>
+    <string name="split_request_failed">QR कोड बनाउन सकिएन</string>
+    <string name="settings_upi_title">तपाईंको UPI ID</string>
+    <string name="settings_upi_subtitle">बाँडिएको बिलमा मानिसहरूलाई आफ्नो भाग तिर्न भन्न प्रयोग हुन्छ</string>
+    <string name="settings_upi_not_set">सेट गरिएको छैन</string>
 </resources>

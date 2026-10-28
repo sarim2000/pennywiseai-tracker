@@ -20,4 +20,6 @@
     <string name="account_type_current">Aktuální</string>
     <string name="account_type_credit_card">Platební karta</string>
     <string name="account_type_cash">Hotovost</string>
+    <string name="filter_type_spending">Útrata (výdaje + karta)</string>
+    <string name="account_type_loan">Půjčka</string>
 </resources>

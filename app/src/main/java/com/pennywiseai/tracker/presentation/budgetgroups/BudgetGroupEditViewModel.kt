@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.budgetgroups
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.widget.inAppLanguage
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -182,7 +184,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                 val initialMonthStart = cycleStartDay
                 val (initialStart, initialEnd) = defaultMonthlyWindow(today, initialMonthStart)
                 _uiState.value = BudgetGroupEditUiState(
-                    name = "Monthly Budget",
+                    name = context.inAppLanguage().getString(R.string.budget_group_default_monthly),
                     currency = currency,
                     categorySpending = categorySpending,
                     typeSpending = typeSpending,

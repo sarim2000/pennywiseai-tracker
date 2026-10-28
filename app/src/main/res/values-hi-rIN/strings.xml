@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - खर्च ट्रैकर</string>
+    <string name="widget_name_budget">बजट का हाल</string>
+    <string name="widget_description_budget">आपके मासिक बजट की प्रगति, बचत और रोज़ का खर्च एक नज़र में दिखाता है।</string>
+    <string name="widget_loading">विजेट लोड हो रहा है…</string>
+    <string name="widget_name_recent">हाल के लेन-देन</string>
+    <string name="widget_name_category_pie">खर्च पाई चार्ट</string>
+    <string name="widget_description_category_pie">इस महीने का श्रेणी के हिसाब से खर्च, लेजेंड के साथ पाई चार्ट में।</string>
+    <string name="widget_name_add_transaction">कैश खर्च</string>
+    <string name="widget_name_summary">खर्च का सारांश</string>
+    <string name="tile_add_transaction">लेन-देन जोड़ें</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">जोड़ें</string>
+    <string name="shortcut_add_transaction_long">लेन-देन जोड़ें</string>
+    <string name="support_title">डेवलपमेंट में मदद करें</string>
+    <string name="support_subtitle">एक अकेले डेवलपर ने बनाया है — छोटी-सी टिप से काम चलता रहता है 🦉</string>
+    <string name="support_dialog_body">PennyWise मुफ़्त और ओपन सोर्स है, जिसे एक अकेले डेवलपर ने बनाया है। इस बिल्ड में सब कुछ पहले से अनलॉक है। अगर यह आपके काम आता है, तो एक टिप से यह चलता रहेगा 🦉</string>
+    <string name="support_pay_via_upi">UPI से भुगतान करें</string>
+    <string name="support_close">बंद करें</string>
+    <string name="support_copy_upi_id">UPI ID कॉपी करें</string>
+    <string name="support_copied_toast">UPI ID कॉपी हो गई</string>
+    <string name="support_no_upi_app">कोई UPI ऐप नहीं मिला। इसकी जगह UPI ID कॉपी कर लें।</string>
+    <string name="support_nudge_body">PennyWise पसंद आ रहा है? डेवलपमेंट में मदद करें 💛</string>
+    <string name="duplicate_accounts_title">शायद डुप्लिकेट खाते</string>
+    <string name="duplicate_accounts_message">बैंक SMS के अलग-अलग फ़ॉर्मेट या पहले की पार्सिंग की वजह से तीन और चार अंकों वाले डुप्लिकेट खाते बन गए हो सकते हैं। अगर %1$s और %2$s एक ही खाता है, तो इन्हें मिला दें? लेन-देन चार अंकों वाले खाते में चले जाएँगे, उसकी बाकी राशि की हिस्ट्री बनी रहेगी, और आगे के SMS अपने-आप उसी में जाएँगे।</string>
+    <string name="duplicate_accounts_merge">मिलाएँ और याद रखें</string>
+    <string name="duplicate_accounts_keep">अलग रखें</string>
+</resources>

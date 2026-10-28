@@ -31,7 +31,7 @@
     <!-- More options sheet -->
     <string name="home_menu_title">Mais opções</string>
     <string name="home_menu_monthly_recap">Resumo mensal</string>
-    <string name="home_menu_settings">Confirgurações</string>
+    <string name="home_menu_settings">Definições</string>
     <string name="home_menu_edit_home">Editar tela inicial</string>
     <string name="home_menu_discord">Junte-se ao Discord para feedback</string>
     <string name="home_menu_rate">Avalie na Play Store</string>
@@ -77,7 +77,7 @@
     <string name="error_state_retry">Repetir</string>
     <string name="color_swatch_selected">Selecionado</string>
     <string name="profile_filter_all_accounts">Todas as Contas</string>
-    <string name="whats_new_got_it">Eu tenho que</string>
+    <string name="whats_new_got_it">Percebi</string>
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Toque aqui para verificar suas mensagens SMS para transações</string>
     <string name="spotlight_tap_to_dismiss">Toque em qualquer lugar para descartar</string>
@@ -105,7 +105,7 @@
     <!-- %1$s is a duration such as "2m 5s" -->
     <string name="sms_scan_time_left">~%1$s restantes</string>
     <string name="sms_scan_batch">Lote %1$d de %2$d</string>
-    <string name="sms_scan_processing">Processandochar@@0</string>
+    <string name="sms_scan_processing">A processar...</string>
     <string name="sms_scan_completed">Escaneamento concluído com sucesso!</string>
     <string name="sms_scan_failed">Falha na varredura. Por favor, tente novamente.</string>
     <string name="sms_scan_cancelled">Verificação cancelada</string>
@@ -197,7 +197,7 @@
     <string name="txn_item_tag_recurring">Recorrentes</string>
     <string name="txn_item_tag_business">Empresas</string>
     <string name="txn_item_tag_excluded">Excluído</string>
-    <string name="txn_item_balance_after">Bal %1$s</string>
+    <string name="txn_item_balance_after">Saldo %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Transferência → %1$s</string>
     <string name="txn_item_transfer_from">Transferência de %1$s</string>
@@ -250,4 +250,91 @@
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_goals">Objetivos</string>
+    <string name="home_resync_title">Voltar a ler as mensagens</string>
+    <string name="home_resync_scan_again">Analisar novamente todas as mensagens</string>
+    <string name="home_resync_scan_again_desc">Acrescenta o que tiver ficado de fora. As suas edições e todas as transações existentes ficam como estão.</string>
+    <string name="home_resync_rebuild">Reconstruir de raiz</string>
+    <string name="home_resync_rebuild_desc">Volta a ler as transações das SMS para aplicar correções de leitura. As edições a transações de SMS são repostas. As transações manuais, importadas, de empréstimo e agrupadas são mantidas.</string>
+    <plurals name="home_active_loans">
+        <item quantity="one">%1$d empréstimo ativo</item>
+        <item quantity="other">%1$d empréstimos ativos</item>
+    </plurals>
+    <plurals name="greeting_days_left_in_month">
+        <item quantity="one">Falta %1$d dia para acabar %2$s</item>
+        <item quantity="other">Faltam %1$d dias para acabar %2$s</item>
+    </plurals>
+    <string name="whats_new_title">Novidades</string>
+    <string name="whats_new_version">Versão %1$s</string>
+    <string name="type_filter_spending">Gastos</string>
+    <string name="sms_scan_saved">%1$d guardadas</string>
+    <string name="duration_minutes_seconds">%1$d min %2$d s</string>
+    <string name="duration_seconds">%1$d s</string>
+    <string name="balance_card_income">Rendimento</string>
+    <string name="balance_card_expenses">Despesas</string>
+    <string name="balance_card_lent">Emprestado</string>
+    <string name="balance_card_saved">Poupado</string>
+    <string name="budget_card_remaining">Restam %1$s</string>
+    <string name="budget_card_per_day">%1$s/dia</string>
+    <plurals name="budget_card_resets_in_day">
+        <item quantity="one">Recomeça daqui a %1$d dia · dia %2$d</item>
+        <item quantity="other">Recomeça daqui a %1$d dias · dia %2$d</item>
+    </plurals>
+    <string name="group_card_invested">%1$s investido</string>
+    <string name="widget_budget_title">Orçamento mensal</string>
+    <string name="widget_budget_overspent">Excedido em %1$s</string>
+    <string name="widget_summary_today">Hoje</string>
+    <string name="widget_summary_month">Este mês</string>
+    <string name="notif_txn_title_spent">Gastou %1$s em %2$s</string>
+    <string name="notif_txn_title_received">Recebeu %1$s de %2$s</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <string name="notif_txn_ask_category">Para que foi? · %1$s</string>
+    <string name="notif_txn_action_change">Alterar</string>
+    <string name="notif_txn_learned_title">Guardado como %1$s</string>
+    <string name="notif_txn_learned_text">A partir de agora, os pagamentos aqui serão classificados automaticamente.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">%d anterior também foi mudada.</item>
+        <item quantity="other">%d anteriores também foram mudadas.</item>
+    </plurals>
+    <string name="notif_daily_channel_name">Resumo diário</string>
+    <string name="notif_daily_channel_description">Um breve resumo das despesas do dia, todas as noites</string>
+    <string name="notif_daily_title">Hoje gastou %1$s</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d transação</item>
+        <item quantity="other">%d transações</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d precisa de categoria</item>
+        <item quantity="other">%d precisam de categoria</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Classificar</string>
+    <string name="notif_daily_action_cash">+ Dinheiro</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d nova transação</item>
+        <item quantity="other">%d novas transações</item>
+    </plurals>
+    <string name="pro_home_card_title">Está a gostar do PennyWise?</string>
+    <string name="pro_home_card_body">O Pro acrescenta regras, objetivos, exportações e importações de extratos ilimitados.</string>
+    <string name="pro_home_card_action">Ver o Pro</string>
+    <string name="pro_home_card_dismiss">Ignorar</string>
+    <string name="forecast_on_track">A caminho de %1$s até %2$s</string>
+    <string name="forecast_over_usual">%1$s acima do habitual</string>
+    <string name="home_section_safe_to_spend">Disponível para gastar</string>
+    <string name="safe_to_spend_title">Disponível para gastar</string>
+    <string name="safe_to_spend_tap_to_show">Toque para mostrar</string>
+    <string name="safe_to_spend_per_day">Cerca de %1$s por dia até %2$s, a contar com hoje</string>
+    <string name="safe_to_spend_short">As faturas a pagar antes de %1$s ultrapassam o seu saldo</string>
+    <string name="safe_to_spend_none_left">Não sobra nada depois das faturas a pagar antes de %1$s</string>
+    <string name="safe_to_spend_breakdown">Saldo bancário %1$s − %2$s em faturas a pagar antes de %3$s</string>
+    <string name="safe_to_spend_capped">Limitado pelo orçamento: restam %1$s</string>
+    <string name="safe_to_spend_other_currencies">Mais %1$s, contados à parte</string>
+    <string name="safe_to_spend_until">Disponível para gastar até %1$s</string>
+    <string name="safe_to_spend_accounts">Saldo bancário</string>
+    <string name="safe_to_spend_excluded">Não contabilizadas</string>
+    <string name="safe_to_spend_excluded_negative">Não contabilizadas (saldo negativo)</string>
+    <string name="safe_to_spend_bills_due">Faturas a pagar antes de %1$s</string>
+    <string name="safe_to_spend_no_bills">Nenhuma assinatura a vencer</string>
+    <string name="safe_to_spend_choose_accounts">Escolher contas</string>
+    <string name="safe_to_spend_done">Concluído</string>
+    <string name="safe_to_spend_footnote">As faturas vêm das suas assinaturas ativas. Os cartões de crédito e os empréstimos não contam como dinheiro disponível.</string>
 </resources>

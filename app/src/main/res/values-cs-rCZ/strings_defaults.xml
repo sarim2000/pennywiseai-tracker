@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Osobní</string>
+    <string name="profile_default_business">Pracovní</string>
+    <string name="rule_template_small_payments_name">Drobné platby do Jídla</string>
+    <string name="rule_template_small_payments_description">Zařadit drobné výdaje (do 200) do kategorie Jídlo a stravování</string>
+    <string name="budget_group_default_spending">Výdaje</string>
+    <string name="budget_group_default_fixed_costs">Fixní náklady</string>
+    <string name="budget_group_default_investments">Investice</string>
+    <string name="budget_group_default_monthly">Měsíční rozpočet</string>
+</resources>

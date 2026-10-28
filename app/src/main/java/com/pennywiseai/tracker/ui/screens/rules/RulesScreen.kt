@@ -353,6 +353,22 @@ fun RulesScreen(
     }
 }
 
+// The starter rule is stored in English: RuleTemplateService seeds it and the
+// grouping above matches on its name. Show it in the app's language until the
+// user edits it.
+private const val STARTER_RULE_NAME = "Small Payments to Food"
+private const val STARTER_RULE_DESCRIPTION = "Categorize small expense payments (under 200) as Food & Dining"
+
+@Composable
+private fun com.pennywiseai.tracker.domain.model.rule.TransactionRule.displayName(): String =
+    if (isSystemTemplate && name == STARTER_RULE_NAME) stringResource(R.string.rule_template_small_payments_name) else name
+
+@Composable
+private fun com.pennywiseai.tracker.domain.model.rule.TransactionRule.displayDescription(): String? =
+    if (isSystemTemplate && name == STARTER_RULE_NAME && description == STARTER_RULE_DESCRIPTION)
+        stringResource(R.string.rule_template_small_payments_description)
+    else description
+
 @Composable
 private fun RuleCard(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
@@ -378,12 +394,12 @@ private fun RuleCard(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 Text(
-                    text = rule.name,
+                    text = rule.displayName(),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
 
-                rule.description?.let { description ->
+                rule.displayDescription()?.let { description ->
                     Text(
                         text = description,
                         style = MaterialTheme.typography.bodySmall,
@@ -527,7 +543,7 @@ private fun RuleCard(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(stringResource(R.string.rules_delete_title)) },
-            text = { Text(stringResource(R.string.rules_delete_body, rule.name)) },
+            text = { Text(stringResource(R.string.rules_delete_body, rule.displayName())) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -565,7 +581,7 @@ private fun BatchApplyDialog(
     val title = when {
         progress != null -> stringResource(R.string.rules_batch_applying)
         isLoading && dryRunResult == null -> stringResource(R.string.rules_batch_previewing)
-        dryRunResult != null && result == null -> stringResource(R.string.rules_batch_preview_title, rule.name)
+        dryRunResult != null && result == null -> stringResource(R.string.rules_batch_preview_title, rule.displayName())
         else -> stringResource(R.string.rules_batch_title)
     }
 
@@ -704,7 +720,7 @@ private fun BatchApplyDialog(
                     // Initial state — show options with preview button
                     progress == null && result == null -> {
                         Text(
-                            text = stringResource(R.string.rules_batch_confirm, rule.name),
+                            text = stringResource(R.string.rules_batch_confirm, rule.displayName()),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(

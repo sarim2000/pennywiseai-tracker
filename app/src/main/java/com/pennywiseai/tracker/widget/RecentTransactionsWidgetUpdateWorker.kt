@@ -203,7 +203,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                         ?: tx.description?.takeIf { it.isNotBlank() }
                         ?: ctx.getString(R.string.widget_recent_fallback_title)
                     val whenText = whenLabel(tx.dateTime, now, yesterday, timeFormat, dateFormat)
-                    val categoryText = CategoryMapping.label(ctx, tx.category)
+                    val categoryText = CategoryMapping.label(ctx, tx.category, categories)
                     val meta = listOf(categoryText, whenText).filter { it.isNotBlank() }.joinToString(" · ")
                     val category = categoryByName[tx.category]
                     val badge = category?.icon?.takeIf { it.isNotBlank() }

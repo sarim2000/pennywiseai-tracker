@@ -48,6 +48,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 
 /**
  * Category visual properties (icons, colors) for Android UI.
@@ -89,8 +91,12 @@ object CategoryMapping {
      * is never translated.
      */
     @StringRes
-    fun labelRes(name: String): Int? =
-        if (userStyles[name]?.isBuiltin == false) null else builtins[name]?.label ?: labelOnly[name]
+    fun labelRes(name: String): Int? = labelRes(name, userStyles[name]?.isBuiltin)
+
+    /** [isBuiltin] null = no category row by that name (e.g. the non-seeded "Tax"). */
+    @StringRes
+    private fun labelRes(name: String, isBuiltin: Boolean?): Int? =
+        if (isBuiltin == false) null else builtins[name]?.label ?: labelOnly[name]
 
     /** Names the app assigns by default but that have no built-in icon or colour of their own. */
     private val labelOnly = mapOf("Subscriptions" to R.string.category_subscriptions)
@@ -98,6 +104,18 @@ object CategoryMapping {
     /** [labelRes] for non-Compose callers (widgets, workers, notifications). */
     fun label(context: Context, name: String): String =
         labelRes(name)?.let(context::getString) ?: name
+
+    /**
+     * [label] decided from rows the caller already loaded. A background process
+     * (widget refresh, incoming SMS) may run before [userStyles] is mirrored, and
+     * an unmirrored custom "Groceries" would otherwise be shown translated.
+     */
+    fun label(context: Context, name: String, categories: List<CategoryEntity>): String =
+        labelRes(name, categories)?.let(context::getString) ?: name
+
+    @StringRes
+    fun labelRes(name: String, categories: List<CategoryEntity>): Int? =
+        labelRes(name, categories.firstOrNull { it.name == name }?.let { it.builtinKey == it.name })
 
     fun emojiFor(name: String): String? = userStyles[name]?.emoji?.takeIf { it.isNotBlank() }
 

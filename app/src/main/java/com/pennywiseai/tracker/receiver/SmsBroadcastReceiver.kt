@@ -433,12 +433,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     context.getString(R.string.notif_txn_title_spent, amount, merchant)
                 else -> context.getString(R.string.notif_txn_title_other, amount, merchant)
             }
+            // From the table: a process started for this SMS may not have mirrored CategoryMapping.userStyles yet.
+            val categories = categoryRepository.getAllCategories().first()
             // Unsorted: ask, with one-tap answers. Sorted: just say where it went.
             val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
             val summaryLine = if (uncategorized) {
                 context.getString(R.string.notif_txn_ask_category, bankName)
             } else {
-                context.getString(R.string.notif_txn_category_bank, CategoryMapping.label(context, transaction.category), bankName)
+                context.getString(R.string.notif_txn_category_bank, CategoryMapping.label(context, transaction.category, categories), bankName)
             }
             val content = listOfNotNull(summaryLine, discrepancyLine).joinToString("\n")
 
@@ -483,7 +485,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         categoryIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
-                    notificationBuilder.addAction(0, CategoryMapping.label(context, pick), categoryPendingIntent)
+                    notificationBuilder.addAction(0, CategoryMapping.label(context, pick, categories), categoryPendingIntent)
                 }
             }
 

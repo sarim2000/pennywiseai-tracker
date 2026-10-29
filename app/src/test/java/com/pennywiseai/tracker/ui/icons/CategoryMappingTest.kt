@@ -1,4 +1,5 @@
 import org.junit.Test
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
@@ -200,6 +201,21 @@ class CategoryMappingTest {
         } finally {
             CategoryMapping.userStyles.clear()
         }
+    }
+
+    // Background callers decide from loaded rows, so an unmirrored userStyles can't mistranslate.
+    @Test
+    fun testLabelRes_fromRows() {
+        val rows = listOf(
+            CategoryEntity(name = "Travel", color = "#00BCD4", isSystem = true, systemName = "Travel"),
+            CategoryEntity(name = "Groceries", color = "#FF9900"), // user's own, on a freed built-in name
+            CategoryEntity(name = "Salary", color = "#4CAF50", isSystem = true, systemName = "Shopping") // renamed built-in
+        )
+        assertEquals(com.pennywiseai.tracker.R.string.category_travel, CategoryMapping.labelRes("Travel", rows))
+        assertEquals(null, CategoryMapping.labelRes("Groceries", rows))
+        assertEquals(null, CategoryMapping.labelRes("Salary", rows))
+        assertEquals(com.pennywiseai.tracker.R.string.category_tax, CategoryMapping.labelRes("Tax", rows)) // no row, still auto-assigned
+        assertEquals(null, CategoryMapping.labelRes("Pets", rows))
     }
 
 }

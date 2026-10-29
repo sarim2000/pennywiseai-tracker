@@ -170,8 +170,8 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
             val othersCategory = byCategory.remove("Others") ?: BigDecimal.ZERO
             val ranked = byCategory.entries.sortedByDescending { it.value }
             val total = ranked.fold(othersCategory) { acc, e -> acc + e.value }
-            val colorOverrides = categoryRepository.getAllCategories().first()
-                .associate { it.name to it.color }
+            val categories = categoryRepository.getAllCategories().first()
+            val colorOverrides = categories.associate { it.name to it.color }
 
             val top = ranked.take(MAX_SLICES)
             val otherTotal = ranked.drop(MAX_SLICES)
@@ -185,7 +185,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 top.forEach { (name, amount) ->
                     add(
                         CategoryPieSlice(
-                            name = CategoryMapping.label(applicationContext.inAppLanguage(), name),
+                            name = CategoryMapping.label(applicationContext.inAppLanguage(), name, categories),
                             colorArgb = CategoryMapping.colorFor(name, colorOverrides[name])
                                 .toArgb().toLong(),
                             percent = percentOf(amount)

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
 import android.Manifest
+import android.content.Intent
 import android.app.LocaleConfig
 import android.app.LocaleManager
 import android.os.Build
@@ -81,6 +82,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 // TextFieldDefaults already imported above
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -116,9 +118,8 @@ fun OnBoardingScreen(
                         OnBoardingStep.PROFILE -> viewModel.goToNextStep()
                         OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
                         OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
-                        OnBoardingStep.ACCOUNT_SETUP -> {
-                            viewModel.completeOnboarding(onOnboardingComplete)
-                        }
+                        OnBoardingStep.ACCOUNT_SETUP -> viewModel.goToNextStep()
+                        OnBoardingStep.QUICK_SETUP -> viewModel.completeOnboarding(onOnboardingComplete)
                     }
                 },
                 onSkip = {
@@ -127,9 +128,8 @@ fun OnBoardingScreen(
                             viewModel.skipSmsPermission()
                             viewModel.goToNextStep()
                         }
-                        OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
-                        OnBoardingStep.ACCOUNT_SETUP -> {
-                            viewModel.completeOnboarding(onOnboardingComplete)
+                        OnBoardingStep.QUICK_SETUP -> {
+                            viewModel.completeOnboarding(onOnboardingComplete, withQuickSetup = false)
                         }
                         else -> viewModel.goToNextStep()
                     }
@@ -171,6 +171,10 @@ fun OnBoardingScreen(
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
                     onSelectAccount = { viewModel.selectAccount(it) }
+                )
+                OnBoardingStep.QUICK_SETUP -> QuickSetupStep(
+                    uiState = uiState,
+                    viewModel = viewModel
                 )
             }
         }
@@ -303,7 +307,7 @@ private fun LanguagePicker() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T> OnboardingPicker(
+internal fun <T> OnboardingPicker(
     options: List<T>,
     selected: T,
     label: (T) -> String,
@@ -652,6 +656,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -741,6 +746,8 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                MissingBankCard()
             }
         } else {
             // Not started yet
@@ -768,6 +775,39 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+/** Nothing parsed usually means an unsupported bank: point to the bank-support request. */
+@Composable
+private fun MissingBankCard() {
+    val context = LocalContext.current
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(Spacing.md)) {
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            TextButton(
+                onClick = {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri()))
+                },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.onboarding_bank_missing_action))
+            }
         }
     }
 }
@@ -1034,28 +1074,33 @@ private fun OnBoardingBottomBar(
                 }
 
                 OnBoardingStep.ACCOUNT_SETUP -> {
-                    if (uiState.accounts.isEmpty()) {
-                        Button(onClick = onNext) {
+                    if (uiState.accounts.isNotEmpty() && uiState.selectedAccountKey == null) {
+                        TextButton(onClick = onSkip) {
+                            Text(stringResource(R.string.onboarding_skip))
+                        }
+                    }
+                    Button(
+                        onClick = onNext,
+                        enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty()
+                    ) {
+                        Text(stringResource(R.string.onboarding_continue))
+                    }
+                }
+
+                OnBoardingStep.QUICK_SETUP -> {
+                    if (!uiState.isCompleting) {
+                        TextButton(onClick = onSkip) {
+                            Text(stringResource(R.string.onboarding_skip))
+                        }
+                    }
+                    Button(onClick = onNext, enabled = !uiState.isCompleting) {
+                        if (uiState.isCompleting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(Dimensions.Icon.medium),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
                             Text(stringResource(R.string.onboarding_finish))
-                        }
-                    } else {
-                        if (uiState.selectedAccountKey == null) {
-                            TextButton(onClick = onSkip) {
-                                Text(stringResource(R.string.onboarding_skip))
-                            }
-                        }
-                        Button(
-                            onClick = onNext,
-                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty()
-                        ) {
-                            if (uiState.isCompleting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(Dimensions.Icon.medium),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Text(stringResource(R.string.onboarding_finish))
-                            }
                         }
                     }
                 }
@@ -1076,6 +1121,8 @@ private fun currencyLabel(code: String): String {
 // Onboarding-only geometry. These are intentionally larger than any in-app
 // token: full-screen illustrative moments, not list chrome.
 private val HERO_ICON_SIZE = 100.dp
+private const val BANK_REQUEST_URL =
+    "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md"
 private val PSEUDO_REGIONS = setOf("XA", "XB")
 private val HERO_ICON_SIZE_SMALL = 80.dp
 private val OPTION_TILE_SIZE = 72.dp

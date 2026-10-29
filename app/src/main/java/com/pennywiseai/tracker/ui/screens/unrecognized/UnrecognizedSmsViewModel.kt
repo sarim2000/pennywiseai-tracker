@@ -122,7 +122,7 @@ data class Suggestion(
 ) {
     /** The Add form, pre-filled; saving it hides [sms] and teaches its sender. */
     fun draft(): AddTransaction {
-        val account = LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4)
+        val account = LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)
         return AddTransaction(
             amount = transaction.amount.toPlainString(),
             merchant = transaction.merchant,

@@ -18,16 +18,21 @@ class LearnedSendersStoreTest {
         assertEquals("REVOLUT", normalize("Revolut"))
     }
 
-    private val card = Account("Test Bank", "1234")
+    private val card = Account("Test Bank", "1234", "INR")
 
     @Test
     fun `the learned account fills in when the SMS names none or the same digits`() {
-        assertEquals(card, accountToUse(card, null))
-        assertEquals(card, accountToUse(card, "1234"))
+        assertEquals(card, accountToUse(card, null, "INR"))
+        assertEquals(card, accountToUse(card, "1234", "INR"))
     }
 
     @Test
     fun `a second card at the same bank is not booked to the first`() {
-        assertNull(accountToUse(card, "9876"))
+        assertNull(accountToUse(card, "9876", "INR"))
+    }
+
+    @Test
+    fun `another currency never lands in the learned account`() {
+        assertNull(accountToUse(card, null, "USD"))
     }
 }

@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -53,7 +54,7 @@ class AddViewModel @Inject constructor(
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
-    private val learnedSendersStore: com.pennywiseai.tracker.data.preferences.LearnedSendersStore,
+    private val learnedSendersStore: LearnedSendersStore,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -543,7 +544,7 @@ class AddViewModel @Inject constructor(
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
-                bookedFromSuggestion(selectedAccount?.bankName, selectedAccount?.accountLast4)
+                bookedFromSuggestion(selectedAccount)
 
                 onSuccess()
             } catch (e: Exception) {
@@ -561,11 +562,14 @@ class AddViewModel @Inject constructor(
      * Booked from an SMS suggestion (#994): it's no longer an unrecognized message,
      * and its sender is learned, so its next SMS is offered with this account.
      */
-    private suspend fun bookedFromSuggestion(bankName: String?, accountLast4: String?) {
+    private suspend fun bookedFromSuggestion(account: AccountBalanceEntity?) {
         val id = unrecognizedSmsId ?: return
-        unrecognizedSmsRepository.getById(id)?.let { learnedSendersStore.learn(it.sender, bankName, accountLast4) }
+        // An account whose digits differ from the ones the SMS named isn't the SMS's account.
+        val learned = account
+            ?.takeIf { draftAccountLast4 == null || it.accountLast4 == draftAccountLast4 }
+            ?.let { LearnedSendersStore.Account(it.bankName, it.accountLast4, it.currency) }
+        unrecognizedSmsRepository.getById(id)?.let { learnedSendersStore.learn(it.sender, learned) }
         unrecognizedSmsRepository.deleteMessage(id)
-        com.pennywiseai.tracker.receiver.SmsBroadcastReceiver.cancelSuggestion(appContext, id)
     }
 
     private fun saveTransferInternal(
@@ -591,7 +595,8 @@ class AddViewModel @Inject constructor(
                     toLast4 = to.accountLast4
                 )
                 // A suggestion saved as a transfer is handled too (#994).
-                bookedFromSuggestion(from.bankName, from.accountLast4)
+                // The SMS speaks for one leg: the receiving account for a credit, the paying one otherwise.
+                bookedFromSuggestion(if (draftType == TransactionType.INCOME) to else from)
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 

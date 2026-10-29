@@ -20,7 +20,7 @@ import javax.inject.Singleton
 class LearnedSendersStore @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    data class Account(val bankName: String, val accountLast4: String)
+    data class Account(val bankName: String, val accountLast4: String, val currency: String)
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -39,8 +39,8 @@ class LearnedSendersStore @Inject constructor(
     fun accountFor(sender: String): Account? = decode(prefs.getString(normalize(sender), null))
 
     /** The latest booking wins, so moving a sender to another account just takes one more Add. */
-    fun learn(sender: String, bankName: String?, accountLast4: String?) {
-        val value = if (bankName != null && accountLast4 != null) "$bankName$SEP$accountLast4" else ""
+    fun learn(sender: String, account: Account?) {
+        val value = account?.run { "$bankName$SEP$accountLast4$SEP$currency" } ?: ""
         prefs.edit().putString(normalize(sender), value).apply()
     }
 
@@ -56,13 +56,13 @@ class LearnedSendersStore @Inject constructor(
             sender.trim().uppercase().replace(DLT_PREFIX, "").replace(DLT_SUFFIX, "")
 
         /**
-         * The learned account, unless the SMS names other digits: a second card
-         * at the same bank must not be booked to the first one.
+         * The learned account, unless the SMS names other digits (a second card
+         * at the same bank) or another currency (USD must not land in an INR account).
          */
-        fun accountToUse(learned: Account?, smsLast4: String?): Account? =
-            learned?.takeIf { smsLast4 == null || smsLast4 == it.accountLast4 }
+        fun accountToUse(learned: Account?, smsLast4: String?, smsCurrency: String): Account? =
+            learned?.takeIf { (smsLast4 == null || smsLast4 == it.accountLast4) && smsCurrency == it.currency }
 
         private fun decode(value: String?): Account? =
-            value?.split(SEP)?.takeIf { it.size == 2 }?.let { (bank, last4) -> Account(bank, last4) }
+            value?.split(SEP)?.takeIf { it.size == 3 }?.let { (bank, last4, currency) -> Account(bank, last4, currency) }
     }
 }

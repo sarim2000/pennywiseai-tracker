@@ -107,9 +107,19 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         // Suggestion alerts share the transaction channel; the tag keeps their ids apart from transaction ids.
         private const val SUGGESTION_TAG = "sms_suggestion"
 
+        // Its own action keeps the alert's PendingIntent from matching (and overwriting) another MainActivity one.
+        private const val ACTION_ADD_SUGGESTION = "com.pennywiseai.tracker.ACTION_ADD_SUGGESTION"
+
         fun cancelSuggestion(context: Context, unrecognizedSmsId: Long) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.cancel(SUGGESTION_TAG, unrecognizedSmsId.toInt())
+        }
+
+        fun cancelAllSuggestions(context: Context) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.activeNotifications
+                .filter { it.tag == SUGGESTION_TAG }
+                .forEach { notificationManager.cancel(it.tag, it.id) }
         }
 
         fun ensureChannel(context: Context): NotificationManager {
@@ -427,7 +437,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         if (!learned.isLearned(sender) || BankParserFactory.getParsers(sender).isNotEmpty()) return
         val transaction = GenericTransactionExtractor.extract(sender, body)?.transaction ?: return
         val learnedAccount = learned.accountFor(sender)
-        LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4)?.let {
+        LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)?.let {
             if (entryPoint.ignoredAccountsStore().isIgnored(it.bankName, it.accountLast4)) return
         }
         val sms = UnrecognizedSmsEntity(
@@ -453,6 +463,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             context.getString(R.string.notif_suggestion_title_spent, amount, merchant)
         }
         val intent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_ADD_SUGGESTION
             putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
             putExtra(MainActivity.EXTRA_ADD_AMOUNT, draft.amount)
             putExtra(MainActivity.EXTRA_ADD_MERCHANT, draft.merchant)
@@ -474,10 +485,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .setContentText(context.getString(R.string.notif_suggestion_text, suggestion.sms.sender))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(
-                    // Its own request-code lane (negative) so it never shares a PendingIntent with a transaction alert.
                     PendingIntent.getActivity(
                         context,
-                        -notificationId,
+                        notificationId,
                         intent,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )

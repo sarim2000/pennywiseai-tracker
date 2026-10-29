@@ -67,7 +67,7 @@
     <string name="unrecognized_reported_badge">تم الإبلاغ</string>
     <string name="unrecognized_report">الإبلاغ</string>
     <!-- ══ Import statement ══ -->
-    <string name="import_statement_title">استيراد كشف حساب</string>
+    <string name="import_statement_title">بيان الاستيراد</string>
     <string name="import_statement_back">الرجوع</string>
     <string name="import_statement_description">استورد كشف حساب PDF من Google Pay أو PhonePe أو Paytm أو slice أو ICICI Bank، أو كشف حساب Excel (.xlsx) أو CSV من أي بنك. سترى ما هو جديد قبل إضافة أي شيء.</string>
     <string name="import_statement_select_pdf">حدد بيان PDF</string>
@@ -96,7 +96,7 @@
     <string name="upgrade_subtitle_member">جميع القدرات المحترفة نشطة</string>
     <string name="upgrade_subtitle_upgrade">تم فتح كل شيء باستخدام مفتاح الترخيص</string>
     <string name="upgrade_enter_license_key">أدخل مفتاح الترخيص</string>
-    <string name="upgrade_support_note">يطوّره مطوّر واحد، واشتراكك في Pro يموّل ما هو قادم. شكراً لك.</string>
+    <string name="upgrade_support_note">بنيت بواسطة ديف فردي - برو أموال ما يلي. شكرا لكم.</string>
     <string name="upgrade_available_at">PennyWise Pro متاح على %1$s</string>
     <string name="upgrade_copied">منسوخ</string>
     <string name="upgrade_copy_address">نسخ العنوان</string>
@@ -550,7 +550,7 @@
     <string name="rules_preview_action_clear">مسح %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">تعيين %1$s إلى %2$s</string>
-    <string name="applock_no_screen_lock_notice">قفل التطبيق يحتاج إلى قفل للشاشة. أضِفه من إعدادات الجهاز.</string>
+    <string name="applock_no_screen_lock_notice">قفل التطبيق يحتاج إلى قفل للشاشة. أضف واحدًا من إعدادات الجهاز.</string>
     <string name="unrecognized_suggestion">يبدو أنها: %1$s</string>
     <string name="unrecognized_suggestion_debit">خصم %1$s</string>
     <string name="unrecognized_suggestion_credit">إيداع %1$s</string>
@@ -561,8 +561,8 @@
     <string name="import_statement_error_read">تعذّرت قراءة هذا الملف.</string>
     <string name="import_statement_select_spreadsheet">اختر كشف حساب Excel أو CSV</string>
     <string name="import_statement_xls_hint">ملف .xls قديم؟ احفظه بصيغة .xlsx أو .csv أولًا.</string>
-    <string name="import_statement_map_title">تحديد الأعمدة</string>
-    <string name="import_statement_map_body">أخبر PennyWise ما محتوى كل عمود. سيتذكر ذلك لكشف الحساب التالي الذي يحمل الأعمدة نفسها.</string>
+    <string name="import_statement_map_title">مطابقة الأعمدة</string>
+    <string name="import_statement_map_body">حدّد لـ PennyWise وظيفة كل عمود. سيتذكّر ذلك في الكشف التالي الذي يحمل الأعمدة نفسها.</string>
     <string name="import_statement_header_row">صف العناوين: %1$d</string>
     <string name="import_statement_header_row_up">الصف السابق</string>
     <string name="import_statement_header_row_down">الصف التالي</string>
@@ -571,10 +571,10 @@
     <string name="import_statement_date_auto">اكتشاف تلقائي</string>
     <string name="import_statement_date_auto_found">اكتشاف تلقائي (%1$s)</string>
     <string name="import_statement_col_description">الوصف</string>
-    <string name="import_statement_amount_split">خصم وإيداع</string>
+    <string name="import_statement_amount_split">مدين ودائن</string>
     <string name="import_statement_amount_single">مبلغ واحد</string>
-    <string name="import_statement_col_debit">خصم (أموال خارجة)</string>
-    <string name="import_statement_col_credit">إيداع (أموال داخلة)</string>
+    <string name="import_statement_col_debit">مدين (أموال خارجة)</string>
+    <string name="import_statement_col_credit">دائن (أموال داخلة)</string>
     <string name="import_statement_col_amount">المبلغ (السالب أو Dr = أموال خارجة)</string>
     <string name="import_statement_col_type">عمود Dr/Cr (اختياري)</string>
     <string name="import_statement_col_balance">الرصيد (اختياري)</string>
@@ -586,36 +586,36 @@
     <string name="import_statement_account_none">غير مرتبط بحساب</string>
     <string name="import_statement_sample_title">كيف تُقرأ الصفوف</string>
     <string name="import_statement_sample_count">تم العثور على %1$d معاملة، وتخطي %2$d صف (فارغة، مجاميع، تذييلات)</string>
-    <string name="import_statement_sample_empty">لا توجد معاملات بهذا التحديد بعد. تحقق من صف العناوين وعمود التاريخ وصيغته وأعمدة المبالغ.</string>
+    <string name="import_statement_sample_empty">لا توجد معاملات بهذه المطابقة بعد. تحقّق من صف العناوين وعمود التاريخ وصيغته وأعمدة المبالغ.</string>
     <string name="import_statement_preview_button">معاينة الاستيراد</string>
     <string name="import_statement_cancel">إلغاء</string>
-    <string name="import_statement_preview_title">راجِع قبل الاستيراد</string>
-    <string name="import_statement_preview_new">جديد</string>
+    <string name="import_statement_preview_title">راجع قبل الاستيراد</string>
+    <string name="import_statement_preview_new">جديدة</string>
     <string name="import_statement_preview_matched">موجودة في PennyWise</string>
     <string name="import_statement_preview_account">الحساب: %1$s</string>
     <string name="import_statement_preview_new_rows">معاملات جديدة</string>
-    <string name="import_statement_preview_new_rows_hint">أزِل التحديد عن أي معاملة لا تريد إضافتها.</string>
-    <string name="import_statement_preview_all_matched">كل صفوف كشف الحساب هذا موجودة في PennyWise.</string>
+    <string name="import_statement_preview_new_rows_hint">ألغِ تحديد ما لا تريد إضافته.</string>
+    <string name="import_statement_preview_all_matched">كل صفوف هذا الكشف موجودة في PennyWise.</string>
+    <string name="import_statement_confirm_nothing">متابعة</string>
+    <string name="import_statement_edit_mapping">تعديل مطابقة الأعمدة</string>
+    <string name="import_statement_balance_title">التحقق من رصيد الإغلاق</string>
+    <string name="import_statement_balance_subtitle">%1$s في %2$s</string>
+    <string name="import_statement_balance_statement">حسب الكشف</string>
+    <string name="import_statement_balance_app">حسب PennyWise</string>
+    <string name="import_statement_balance_difference">الفرق</string>
+    <string name="import_statement_balance_unknown">—</string>
+    <string name="import_statement_balance_unknown_note">لا يملك PennyWise رصيدًا لهذا الحساب في %1$s أو قبله، لذا لا يوجد ما يُقارن به بعد.</string>
+    <string name="import_statement_balance_match">الأرصدة متطابقة.</string>
+    <string name="import_statement_balance_set">تعيين الرصيد إلى %1$s</string>
+    <string name="import_statement_balance_set_note">رصيد الكشف مضافًا إليه ما سجّله PennyWise بعد نهاية الكشف.</string>
+    <string name="import_statement_balance_applied">تم تحديث الرصيد إلى %1$s.</string>
+    <string name="import_statement_balance_newer">أبلغ بنكك عن رصيد أحدث بعد هذا الكشف، لذا يحتفظ PennyWise به.</string>
     <plurals name="import_statement_confirm">
         <item quantity="zero">استيراد %1$d معاملة</item>
         <item quantity="one">استيراد %1$d معاملة</item>
-        <item quantity="two">استيراد معاملتين</item>
+        <item quantity="two">استيراد %1$d معاملة</item>
         <item quantity="few">استيراد %1$d معاملات</item>
         <item quantity="many">استيراد %1$d معاملة</item>
         <item quantity="other">استيراد %1$d معاملة</item>
     </plurals>
-    <string name="import_statement_confirm_nothing">متابعة</string>
-    <string name="import_statement_edit_mapping">تعديل تحديد الأعمدة</string>
-    <string name="import_statement_balance_title">التحقق من الرصيد الختامي</string>
-    <string name="import_statement_balance_subtitle">%1$s في %2$s</string>
-    <string name="import_statement_balance_statement">حسب كشف الحساب</string>
-    <string name="import_statement_balance_app">حسب PennyWise</string>
-    <string name="import_statement_balance_difference">الفرق</string>
-    <string name="import_statement_balance_unknown">—</string>
-    <string name="import_statement_balance_unknown_note">لا يوجد لدى PennyWise رصيد لهذا الحساب في %1$s أو قبله، لذا لا يوجد ما يُقارن به بعد.</string>
-    <string name="import_statement_balance_match">الرصيدان متطابقان.</string>
-    <string name="import_statement_balance_set">تعيين الرصيد إلى %1$s</string>
-    <string name="import_statement_balance_set_note">رصيد كشف الحساب مضافًا إليه ما سجّله PennyWise بعد انتهاء فترة الكشف.</string>
-    <string name="import_statement_balance_applied">تم تحديث الرصيد إلى %1$s.</string>
-    <string name="import_statement_balance_newer">أبلغ بنكك عن رصيد أحدث منذ كشف الحساب هذا، لذا يحتفظ PennyWise به.</string>
 </resources>

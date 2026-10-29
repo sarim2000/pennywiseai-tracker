@@ -270,10 +270,10 @@
     <string name="sms_scan_saved">%1$d guardadas</string>
     <string name="duration_minutes_seconds">%1$d min %2$d s</string>
     <string name="duration_seconds">%1$d s</string>
-    <string name="balance_card_income">Rendimento</string>
-    <string name="balance_card_expenses">Despesas</string>
-    <string name="balance_card_lent">Emprestado</string>
-    <string name="balance_card_saved">Poupado</string>
+    <string name="balance_card_summary_income">Rendimento</string>
+    <string name="balance_card_summary_expenses">Despesas</string>
+    <string name="balance_card_summary_lent">Emprestado</string>
+    <string name="balance_card_summary_saved">Poupado</string>
     <string name="budget_card_remaining">Restam %1$s</string>
     <string name="budget_card_per_day">%1$s/dia</string>
     <plurals name="budget_card_resets_in_day">

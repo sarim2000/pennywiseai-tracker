@@ -195,10 +195,10 @@
     <string name="balance_card_approximate_note">* Algunos saldos no se pudieron convertir y se muestran en su moneda original (el total es aproximado).</string>
     <string name="balance_card_spent_this_month">Gastado este mes</string>
     <string name="balance_card_change_currency">Cambiar moneda</string>
-    <string name="balance_card_income">Ingresos</string>
-    <string name="balance_card_expenses">Gastos</string>
-    <string name="balance_card_lent">Prestado</string>
-    <string name="balance_card_saved">Ahorrado</string>
+    <string name="balance_card_summary_income">Ingresos</string>
+    <string name="balance_card_summary_expenses">Gastos</string>
+    <string name="balance_card_summary_lent">Prestado</string>
+    <string name="balance_card_summary_saved">Ahorrado</string>
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s por encima del presupuesto</string>
     <string name="budget_card_remaining">Quedan %1$s</string>

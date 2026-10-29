@@ -210,10 +210,10 @@
     <string name="balance_card_approximate_note">* केही बालान्स रूपान्तरण गर्न सकिएन र मूल मुद्रामै देखाइएको छ (कुल रकम अनुमानित हो)।</string>
     <string name="balance_card_spent_this_month">यो महिना खर्च</string>
     <string name="balance_card_change_currency">मुद्रा बदल्नुहोस्</string>
-    <string name="balance_card_income">आम्दानी</string>
-    <string name="balance_card_expenses">खर्चहरू</string>
-    <string name="balance_card_lent">ऋण दिएको</string>
-    <string name="balance_card_saved">बचत</string>
+    <string name="balance_card_summary_income">आम्दानी</string>
+    <string name="balance_card_summary_expenses">खर्चहरू</string>
+    <string name="balance_card_summary_lent">ऋण दिएको</string>
+    <string name="balance_card_summary_saved">बचत</string>
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">बजेटभन्दा %1$s बढी</string>
     <string name="budget_card_remaining">%1$s बाँकी</string>

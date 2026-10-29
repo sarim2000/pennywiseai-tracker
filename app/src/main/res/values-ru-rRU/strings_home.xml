@@ -287,10 +287,10 @@
     <string name="whats_new_title">Что нового</string>
     <string name="whats_new_version">Версия %1$s</string>
     <string name="type_filter_spending">Траты</string>
-    <string name="balance_card_income">Доход</string>
-    <string name="balance_card_expenses">Расходы</string>
-    <string name="balance_card_lent">Одолжено</string>
-    <string name="balance_card_saved">Накоплено</string>
+    <string name="balance_card_summary_income">Доход</string>
+    <string name="balance_card_summary_expenses">Расходы</string>
+    <string name="balance_card_summary_lent">Одолжено</string>
+    <string name="balance_card_summary_saved">Накоплено</string>
     <string name="budget_card_over_budget">Бюджет превышен на %1$s</string>
     <string name="budget_card_per_day">%1$s/день</string>
     <plurals name="budget_card_runs_days_remaining">

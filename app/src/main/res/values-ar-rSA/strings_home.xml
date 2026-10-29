@@ -186,6 +186,10 @@
     <string name="balance_card_approximate_note">* بعض الأرصدة لا يمكن تحويلها وهي مبينة بالعملة الأصلية (المبلغ الإجمالي تقريبي).</string>
     <string name="balance_card_spent_this_month">أنفق هذا الشهر</string>
     <string name="balance_card_change_currency">تغيير العملة</string>
+    <string name="balance_card_summary_income">الدخل</string>
+    <string name="balance_card_summary_expenses">المصروفات</string>
+    <string name="balance_card_summary_lent">المُقرَض</string>
+    <string name="balance_card_summary_saved">المدّخر</string>
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s زيادة على الميزانية</string>
@@ -376,29 +380,25 @@
     <string name="pro_home_card_action">اكتشف Pro</string>
     <string name="pro_home_card_dismiss">إخفاء</string>
     <!-- Month-end forecast on the "Spent this month" card -->
+    <string name="forecast_on_track">في الطريق إلى %1$s بحلول %2$s</string>
+    <string name="forecast_over_usual">%1$s فوق المعتاد</string>
     <!-- Safe to spend card + breakdown sheet -->
-    <string name="balance_card_income">الدخل</string>
-    <string name="balance_card_expenses">النفقات</string>
-    <string name="balance_card_lent">مُقرَض</string>
-    <string name="balance_card_saved">المدخرات</string>
-    <string name="forecast_on_track">في طريقك إلى %1$s بحلول %2$s</string>
-    <string name="forecast_over_usual">أعلى من المعتاد بـ %1$s</string>
     <string name="home_section_safe_to_spend">المتاح للإنفاق</string>
     <string name="safe_to_spend_title">المتاح للإنفاق</string>
-    <string name="safe_to_spend_tap_to_show">اضغط للعرض</string>
-    <string name="safe_to_spend_per_day">حوالي %1$s يوميًا حتى %2$s، بما في ذلك اليوم</string>
-    <string name="safe_to_spend_short">الفواتير المستحقة قبل %1$s أكبر من رصيدك</string>
+    <string name="safe_to_spend_tap_to_show">اضغط للإظهار</string>
+    <string name="safe_to_spend_per_day">حوالي %1$s يوميًا حتى %2$s، بما فيها اليوم</string>
+    <string name="safe_to_spend_short">الفواتير المستحقة قبل %1$s أكثر من رصيدك</string>
     <string name="safe_to_spend_none_left">لا يتبقى شيء بعد الفواتير المستحقة قبل %1$s</string>
     <string name="safe_to_spend_breakdown">رصيد البنك %1$s − %2$s فواتير مستحقة قبل %3$s</string>
-    <string name="safe_to_spend_capped">محدود بميزانيتك: يتبقى %1$s</string>
-    <string name="safe_to_spend_other_currencies">بالإضافة إلى %1$s، محسوبة بشكل منفصل</string>
+    <string name="safe_to_spend_capped">محدود بميزانيتك: متبقٍ %1$s</string>
+    <string name="safe_to_spend_other_currencies">بالإضافة إلى %1$s، محسوبة على حدة</string>
     <string name="safe_to_spend_until">المتاح للإنفاق حتى %1$s</string>
     <string name="safe_to_spend_accounts">رصيد البنك</string>
-    <string name="safe_to_spend_excluded">غير محتسب</string>
-    <string name="safe_to_spend_excluded_negative">غير محتسب (رصيد سالب)</string>
+    <string name="safe_to_spend_excluded">غير محسوب</string>
+    <string name="safe_to_spend_excluded_negative">غير محسوب (رصيد سالب)</string>
     <string name="safe_to_spend_bills_due">الفواتير المستحقة قبل %1$s</string>
     <string name="safe_to_spend_no_bills">لا توجد اشتراكات مستحقة</string>
     <string name="safe_to_spend_choose_accounts">اختيار الحسابات</string>
     <string name="safe_to_spend_done">تم</string>
-    <string name="safe_to_spend_footnote">تأتي الفواتير من اشتراكاتك النشطة. لا تُحتسب بطاقات الائتمان والقروض أموالًا قابلة للإنفاق.</string>
+    <string name="safe_to_spend_footnote">تأتي الفواتير من اشتراكاتك النشطة. لا تُحتسب البطاقات الائتمانية والقروض أموالًا قابلة للإنفاق.</string>
 </resources>

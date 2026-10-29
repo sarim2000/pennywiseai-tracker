@@ -211,10 +211,10 @@
     <string name="balance_card_approximate_note">* ยอดเงินบางรายการแปลงสกุลไม่ได้ จึงแสดงเป็นสกุลเงินเดิม (ยอดรวมเป็นค่าโดยประมาณ)</string>
     <string name="balance_card_spent_this_month">ใช้ไปเดือนนี้</string>
     <string name="balance_card_change_currency">เปลี่ยนสกุลเงิน</string>
-    <string name="balance_card_income">รายได้</string>
-    <string name="balance_card_expenses">ค่าใช้จ่าย</string>
-    <string name="balance_card_lent">ให้ยืม</string>
-    <string name="balance_card_saved">เก็บได้</string>
+    <string name="balance_card_summary_income">รายได้</string>
+    <string name="balance_card_summary_expenses">ค่าใช้จ่าย</string>
+    <string name="balance_card_summary_lent">ให้ยืม</string>
+    <string name="balance_card_summary_saved">เก็บได้</string>
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">เกินงบ %1$s</string>
     <string name="budget_card_remaining">เหลือ %1$s</string>

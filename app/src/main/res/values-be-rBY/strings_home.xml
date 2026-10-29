@@ -207,10 +207,10 @@
     <string name="balance_card_approximate_note">* Некаторыя балансы не ўдалося канвертаваць, і яны паказаны ў зыходнай валюце (агульная сума прыблізная).</string>
     <string name="balance_card_spent_this_month">Выдаткавана ў гэтым месяцы</string>
     <string name="balance_card_change_currency">Змяніць валюту</string>
-    <string name="balance_card_income">Даходы</string>
-    <string name="balance_card_expenses">Выдаткі</string>
-    <string name="balance_card_lent">Пазычана</string>
-    <string name="balance_card_saved">Адкладзена</string>
+    <string name="balance_card_summary_income">Даходы</string>
+    <string name="balance_card_summary_expenses">Выдаткі</string>
+    <string name="balance_card_summary_lent">Пазычана</string>
+    <string name="balance_card_summary_saved">Адкладзена</string>
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s звыш бюджэту</string>
     <string name="budget_card_remaining">Засталося %1$s</string>

@@ -300,10 +300,10 @@
     <string name="whats_new_title">Co je nového</string>
     <string name="whats_new_version">Verze %1$s</string>
     <string name="type_filter_spending">Útrata</string>
-    <string name="balance_card_income">Příjmy</string>
-    <string name="balance_card_expenses">Výdaje</string>
-    <string name="balance_card_lent">Půjčeno</string>
-    <string name="balance_card_saved">Ušetřeno</string>
+    <string name="balance_card_summary_income">Příjmy</string>
+    <string name="balance_card_summary_expenses">Výdaje</string>
+    <string name="balance_card_summary_lent">Půjčeno</string>
+    <string name="balance_card_summary_saved">Ušetřeno</string>
     <string name="budget_card_per_day">%1$s/den</string>
     <string name="group_card_invested">Investováno %1$s</string>
     <string name="widget_budget_title">Měsíční rozpočet</string>

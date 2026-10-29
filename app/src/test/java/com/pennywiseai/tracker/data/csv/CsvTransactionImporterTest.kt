@@ -128,6 +128,21 @@ class CsvTransactionImporterTest {
     }
 
     @Test
+    fun `UTF-8 BOM before the first header is ignored`() {
+        // Excel's "CSV UTF-8" save option writes a BOM before "Date".
+        val csv = "﻿" + buildString {
+            appendLine(header)
+            appendLine("2026-01-15,09:30:00,Coffee Shop,Food,Expense,250.00,INR,DemoBank,1234,,,")
+        }
+
+        val result = importer.parse(StringReader(csv))
+
+        assertTrue(result.failureReasons.isEmpty())
+        assertEquals(1, result.transactions.size)
+        assertEquals(LocalDateTime.of(2026, 1, 15, 9, 30, 0), result.transactions[0].dateTime)
+    }
+
+    @Test
     fun `identical rows produce identical dedup hashes`() {
         val csv = buildString {
             appendLine(header)

@@ -210,10 +210,10 @@
     <string name="balance_card_approximate_note">* कुछ बैलेंस बदले नहीं जा सके और अपनी मूल मुद्रा में दिखाए गए हैं (कुल जोड़ अनुमानित है)।</string>
     <string name="balance_card_spent_this_month">इस महीने खर्च</string>
     <string name="balance_card_change_currency">मुद्रा बदलें</string>
-    <string name="balance_card_income">आय</string>
-    <string name="balance_card_expenses">खर्च</string>
-    <string name="balance_card_lent">उधार दिया</string>
-    <string name="balance_card_saved">बचत</string>
+    <string name="balance_card_summary_income">आय</string>
+    <string name="balance_card_summary_expenses">खर्च</string>
+    <string name="balance_card_summary_lent">उधार दिया</string>
+    <string name="balance_card_summary_saved">बचत</string>
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">बजट से %1$s ज़्यादा</string>
     <string name="budget_card_remaining">%1$s बाकी</string>

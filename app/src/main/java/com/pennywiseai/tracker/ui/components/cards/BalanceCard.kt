@@ -341,24 +341,24 @@ fun BalanceCard(
                             }
 
                             SummaryItem(
-                                label = stringResource(R.string.balance_card_income),
+                                label = stringResource(R.string.balance_card_summary_income),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
                                 accentColor = incomeColor
                             )
                             SummaryItem(
-                                label = stringResource(R.string.balance_card_expenses),
+                                label = stringResource(R.string.balance_card_summary_expenses),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
                                 accentColor = expenseColor
                             )
                             if (currentMonthLent > BigDecimal.ZERO) {
                                 SummaryItem(
-                                    label = stringResource(R.string.balance_card_lent),
+                                    label = stringResource(R.string.balance_card_summary_lent),
                                     value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
                                     accentColor = MaterialTheme.colorScheme.tertiary
                                 )
                             }
                             SummaryItem(
-                                label = stringResource(R.string.balance_card_saved),
+                                label = stringResource(R.string.balance_card_summary_saved),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
                                 accentColor = netColor
                             )
@@ -631,8 +631,12 @@ private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
     }
 }
 
-/** "31 Oct" — day and short month, in the user's locale. */
-internal val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
+/**
+ * "31 Oct" — day and short month, in the user's locale. A getter, not a cached val: a
+ * formatter built once keeps the locale the process started in, so after switching the
+ * app language the month stayed in the old one.
+ */
+internal val SHORT_DATE: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM")
 
 @Composable
 private fun CurrencyChip(

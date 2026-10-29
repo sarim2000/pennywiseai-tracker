@@ -195,10 +195,10 @@
     <string name="balance_card_approximate_note">* Baadhi ya salio hazikuweza kubadilishwa na zimeonyeshwa kwa sarafu yake asili (jumla ni ya kukadiria).</string>
     <string name="balance_card_spent_this_month">Matumizi mwezi huu</string>
     <string name="balance_card_change_currency">Badilisha sarafu</string>
-    <string name="balance_card_income">Mapato</string>
-    <string name="balance_card_expenses">Matumizi</string>
-    <string name="balance_card_lent">Uliyokopesha</string>
-    <string name="balance_card_saved">Akiba</string>
+    <string name="balance_card_summary_income">Mapato</string>
+    <string name="balance_card_summary_expenses">Matumizi</string>
+    <string name="balance_card_summary_lent">Uliyokopesha</string>
+    <string name="balance_card_summary_saved">Akiba</string>
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s juu ya bajeti</string>
     <string name="budget_card_remaining">%1$s imebaki</string>

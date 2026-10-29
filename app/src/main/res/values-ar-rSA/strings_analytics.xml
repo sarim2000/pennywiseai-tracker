@@ -194,7 +194,7 @@
     <string name="budget_history_window">النافذة: %1$s – %2$s</string>
     <string name="budget_history_per_week">تحليل كل أسبوع</string>
     <string name="budget_history_cycle">دورة</string>
-    <string name="budget_history_range">الفترة</string>
+    <string name="budget_history_range">Range</string>
     <string name="budget_history_current">الحالي</string>
     <string name="budget_history_live">· لا يزال يتراكم</string>
     <string name="budget_history_frozen">متجمدة اعتباراً من %1$s</string>
@@ -369,7 +369,7 @@
     </plurals>
     <string name="mark_paid_pick_date">اختيار تاريخ</string>
     <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_forecast_for">التوقع لـ %1$s</string>
+    <string name="analytics_forecast_for">التوقع حتى %1$s</string>
     <string name="analytics_forecast_above_usual">أعلى من المعتاد بحوالي %1$s</string>
     <string name="analytics_forecast_stay_under">أنفق أقل من %1$s يوميًا لتبقى عند %2$s.</string>
 </resources>

@@ -56,7 +56,9 @@ fun Application.configureRouting() {
             BancoCuscatlanParser(), BancoPromericaParser(), BancoAgricolaParser(),
             // Jordan (#955) — the web tester advertises JIB and Safwa samples.
             JordanIslamicBankParser(), IslamicInternationalArabBankParser(),
-            BankAlEtihadParser(), SafwaIslamicBankParser()
+            BankAlEtihadParser(), SafwaIslamicBankParser(),
+            // Orange Money (Jordan) — the web tester advertises its samples.
+            OrangeMoneyJordanParser()
         )
     )
 

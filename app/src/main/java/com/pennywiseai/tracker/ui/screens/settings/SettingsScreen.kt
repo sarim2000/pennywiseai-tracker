@@ -1002,7 +1002,7 @@ fun SettingsScreen(
             onDismissRequest = { showDateFormatDialog = false },
             title = { Text(stringResource(R.string.settings_date_format_title)) },
             text = {
-                Column {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     DateFormatStyle.entries.forEach { style ->
                         val choose = {
                             settingsViewModel.updateDateFormatStyle(style)

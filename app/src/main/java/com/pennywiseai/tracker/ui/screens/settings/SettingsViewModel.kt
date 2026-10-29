@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
@@ -780,6 +781,10 @@ class SettingsViewModel @Inject constructor(
     fun updateDateFormatStyle(style: DateFormatStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateDateFormatStyle(style)
+            // Widgets store pre-formatted dates. Set the style before refreshing so
+            // the worker doesn't race the app-level collector and render the old one.
+            AppDates.dateFormatStyle = style
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 

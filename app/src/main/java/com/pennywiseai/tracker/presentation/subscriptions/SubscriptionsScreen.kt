@@ -617,7 +617,7 @@ private fun SwipeableSubscriptionItem(
                                                 daysUntilNext.toInt()
                                             )
                                             else -> nextPaymentDate.format(
-                                                AppDates.pattern("MMM d")
+                                                AppDates.dayMonthFormatter()
                                             )
                                         },
                                         style = MaterialTheme.typography.bodySmall,
@@ -652,7 +652,7 @@ private fun SwipeableSubscriptionItem(
                                     Text(
                                         text = stringResource(
                                             R.string.subscriptions_paid_on,
-                                            "${subscription.lastPaidAt?.format(AppDates.pattern("MMM d"))}"
+                                            "${subscription.lastPaidAt?.format(AppDates.dayMonthFormatter())}"
                                         ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary,
@@ -929,7 +929,7 @@ private fun EditSubscriptionDialog(
                     isError = parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO)
                 )
                 OutlinedTextField(
-                    value = nextDate?.format(AppDates.pattern("d MMM yyyy")) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
+                    value = nextDate?.format(AppDates.dateFormatter()) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.subscriptions_edit_next_date)) },

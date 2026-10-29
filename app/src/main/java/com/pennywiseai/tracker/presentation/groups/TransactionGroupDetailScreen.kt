@@ -384,7 +384,7 @@ private fun GroupTransactionItem(
                         append(transaction.merchantName)
                         append(" · ")
                     }
-                    append(transaction.dateTime.format(AppDates.pattern("d MMM yyyy")))
+                    append(transaction.dateTime.format(AppDates.dateFormatter()))
                 }
                 Text(
                     secondary,
@@ -513,7 +513,7 @@ private fun AddTransactionToGroupSheet(
                                             append(txn.merchantName)
                                             append(" · ")
                                         }
-                                        append(txn.dateTime.format(AppDates.pattern("d MMM")))
+                                        append(txn.dateTime.format(AppDates.dayMonthFormatter()))
                                     }
                                     Text(
                                         pickerSecondary,

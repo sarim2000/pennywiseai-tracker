@@ -319,7 +319,7 @@ private fun UnrecognizedSmsItem(
                     )
                     Text(
                         text = message.receivedAt.format(
-                            AppDates.pattern("MMM dd, yyyy • HH:mm")
+                            AppDates.dateTimeFormatter()
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

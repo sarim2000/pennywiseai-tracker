@@ -252,7 +252,7 @@ private fun BalanceHistoryItem(
                         )
                         Text(
                             text = balance.timestamp.format(
-                                AppDates.pattern("MMM d, yyyy h:mm a")
+                                AppDates.dateTimeFormatter()
                             ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

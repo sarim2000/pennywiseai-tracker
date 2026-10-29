@@ -574,7 +574,7 @@ private fun AccountTransactionItem(
                     ) {
                         Text(
                             text = transaction.dateTime.format(
-                                AppDates.pattern("MMM d, h:mm a")
+                                AppDates.dayMonthTimeFormatter()
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

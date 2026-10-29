@@ -36,13 +36,15 @@
     <string name="settings_main_account_not_set">Non défini</string>
     <string name="settings_currency_field_label">Devise</string>
     <string name="settings_number_format_title">Format de nombre</string>
-    <string name="settings_number_format_subtitle">Combien de montants sont regroupés</string>
+    <string name="settings_number_format_subtitle">Regroupement des chiffres des gros montants</string>
     <string name="settings_number_format_auto">Automatique</string>
     <string name="settings_number_format_indian">Indien</string>
     <string name="settings_number_format_international">International</string>
     <string name="settings_number_format_auto_example">Correspond à chaque devise (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50.000 (lac/croûte)</string>
     <string name="settings_number_format_international_example">150 000 (mille / millions)</string>
+    <string name="settings_date_format_title">Format de date</string>
+    <string name="settings_date_format_subtitle">Affichage des dates</string>
     <!-- Budget -->
     <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Journée de début du cycle budgétaire</string>

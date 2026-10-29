@@ -8,7 +8,7 @@ import java.time.format.DateTimeFormatter
  */
 object DateRangeUtils {
 
-    private val defaultFormatter get() = AppDates.pattern("MMM d")
+    private val defaultFormatter get() = AppDates.dayMonthFormatter()
 
     /**
      * Formats a date range as a compact label string.

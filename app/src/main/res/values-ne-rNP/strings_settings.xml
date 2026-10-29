@@ -41,6 +41,8 @@
     <string name="settings_number_format_auto_example">हरेक मुद्रा अनुसार (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (लाख / करोड)</string>
     <string name="settings_number_format_international_example">150,000 (हजार / मिलियन)</string>
+    <string name="settings_date_format_title">मिति ढाँचा</string>
+    <string name="settings_date_format_subtitle">मितिहरू कसरी देखाइन्छन्</string>
     <!-- Budget -->
     <string name="settings_budget_section">बजेट</string>
     <string name="settings_budget_cycle_title">बजेट चक्र सुरु हुने दिन</string>

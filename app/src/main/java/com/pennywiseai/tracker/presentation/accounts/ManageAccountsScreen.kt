@@ -1311,7 +1311,7 @@ private fun AccountItem(
                                         // Show last transaction date if available
                                         if (card.lastBalanceDate != null) {
                                             Text(
-                                                text = stringResource(R.string.manage_accounts_card_updated, card.lastBalanceDate.format(AppDates.pattern("MMM dd"))),
+                                                text = stringResource(R.string.manage_accounts_card_updated, card.lastBalanceDate.format(AppDates.dayMonthFormatter())),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )

@@ -304,6 +304,10 @@
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Spent %1$s at %2$s</string>
     <string name="notif_txn_title_received">Received %1$s from %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <string name="notif_suggestion_title_spent">Spent %1$s at %2$s?</string>
+    <string name="notif_suggestion_title_received">Received %1$s from %2$s?</string>
+    <string name="notif_suggestion_text">From %1$s. Tap to add it.</string>
     <string name="notif_txn_title_other">%1$s · %2$s</string>
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">What was this for? · %1$s</string>

@@ -22,6 +22,8 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -53,6 +55,7 @@ class AddViewModel @Inject constructor(
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
+    private val learnedSendersStore: LearnedSendersStore,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -184,7 +187,9 @@ class AddViewModel @Inject constructor(
     private fun selectAccount(bankName: String?, last4: String?) {
         if (bankName == null && last4 == null) return
         viewModelScope.launch {
-            val all = accounts.first { it.isNotEmpty() }
+            // From the repository, not [accounts]: init can run this before that
+            // property (declared further down) exists.
+            val all = accountBalanceRepository.getAllLatestBalances().first { it.isNotEmpty() }
             val matched = if (bankName != null) {
                 all.firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
             } else {
@@ -542,8 +547,7 @@ class AddViewModel @Inject constructor(
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
-                // Booked from an SMS suggestion: it's no longer an unrecognized message.
-                unrecognizedSmsId?.let { unrecognizedSmsRepository.deleteMessage(it) }
+                bookedFromSuggestion(selectedAccount)
 
                 onSuccess()
             } catch (e: Exception) {
@@ -555,6 +559,24 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Booked from an SMS suggestion (#994): it's no longer an unrecognized message,
+     * and its sender is learned, so its next SMS is offered with this account.
+     */
+    private suspend fun bookedFromSuggestion(account: AccountBalanceEntity?) {
+        val id = unrecognizedSmsId ?: return
+        unrecognizedSmsRepository.getById(id)?.let { sms ->
+            // Only digits the SMS itself names rule an account out; the pre-filled
+            // ones may be the learned guess the user just corrected.
+            val smsLast4 = GenericTransactionExtractor.extract(sms.sender, sms.smsBody)?.transaction?.accountLast4
+            val learned = account
+                ?.takeIf { smsLast4 == null || it.accountLast4 == smsLast4 }
+                ?.let { LearnedSendersStore.Account(it.bankName, it.accountLast4, it.currency) }
+            learnedSendersStore.learn(sms.sender, learned)
+        }
+        unrecognizedSmsRepository.deleteMessage(id)
     }
 
     private fun saveTransferInternal(
@@ -580,7 +602,8 @@ class AddViewModel @Inject constructor(
                     toLast4 = to.accountLast4
                 )
                 // A suggestion saved as a transfer is handled too (#994).
-                unrecognizedSmsId?.let { unrecognizedSmsRepository.deleteMessage(it) }
+                // The SMS speaks for one leg: the receiving account for a credit, the paying one otherwise.
+                bookedFromSuggestion(if (draftType == TransactionType.INCOME) to else from)
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 

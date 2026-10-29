@@ -230,19 +230,9 @@ fun UnrecognizedSmsScreen(
                     ) {
                         UnrecognizedSmsItem(
                             message = message,
-                            suggestion = suggestions[message.id],
-                            onAddSuggestion = { tx ->
-                                onAddSuggestion(
-                                    AddTransaction(
-                                        amount = tx.amount.toPlainString(),
-                                        merchant = tx.merchant,
-                                        accountLast4 = tx.accountLast4,
-                                        currency = tx.currency,
-                                        type = tx.type.name,
-                                        dateTime = message.receivedAt.toString(),
-                                        unrecognizedSmsId = message.id
-                                    )
-                                )
+                            suggestion = suggestions[message.id]?.transaction,
+                            onAddSuggestion = {
+                                suggestions[message.id]?.let { onAddSuggestion(it.draft()) }
                             },
                             onReport = {
                                 viewModel.reportMessage(message)

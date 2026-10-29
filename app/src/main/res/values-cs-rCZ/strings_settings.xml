@@ -36,13 +36,15 @@
     <string name="settings_main_account_not_set">Nenastaveno</string>
     <string name="settings_currency_field_label">Měna</string>
     <string name="settings_number_format_title">Formát čísla</string>
-    <string name="settings_number_format_subtitle">Jak velké částky jsou seskupeny</string>
+    <string name="settings_number_format_subtitle">Jak se seskupují číslice velkých částek</string>
     <string name="settings_number_format_auto">Automaticky</string>
     <string name="settings_number_format_indian">Indický</string>
     <string name="settings_number_format_international">Mezinárodní</string>
     <string name="settings_number_format_auto_example">Odpovídá každé měně (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (jezero/koridor)</string>
     <string name="settings_number_format_international_example">150,000 (v tisících za milion)</string>
+    <string name="settings_date_format_title">Formát data</string>
+    <string name="settings_date_format_subtitle">Jak se zobrazují data</string>
     <!-- Budget -->
     <string name="settings_budget_section">Rozpočet</string>
     <string name="settings_budget_cycle_title">Den začátku rozpočtového cyklu</string>

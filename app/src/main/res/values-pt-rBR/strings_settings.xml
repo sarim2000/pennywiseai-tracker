@@ -36,13 +36,15 @@
     <string name="settings_main_account_not_set">Não definido</string>
     <string name="settings_currency_field_label">moeda</string>
     <string name="settings_number_format_title">Formato do número</string>
-    <string name="settings_number_format_subtitle">Quão grandes quantidades são agrupadas</string>
+    <string name="settings_number_format_subtitle">Como os valores grandes são agrupados</string>
     <string name="settings_number_format_auto">Automático</string>
     <string name="settings_number_format_indian">Indiano</string>
     <string name="settings_number_format_international">Internacional</string>
     <string name="settings_number_format_auto_example">Corresponde a cada moeda (├1.50.000 · US$50.000)</string>
     <string name="settings_number_format_indian_example">1,50.000 (lakh / crore)</string>
     <string name="settings_number_format_international_example">150.000 (mil / milhões)</string>
+    <string name="settings_date_format_title">Formato de data</string>
+    <string name="settings_date_format_subtitle">Como as datas são exibidas</string>
     <!-- Budget -->
     <string name="settings_budget_section">Orçamento</string>
     <string name="settings_budget_cycle_title">Dia Inicial do Ciclo de Orçamento</string>

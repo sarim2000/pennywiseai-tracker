@@ -35,14 +35,16 @@
     <string name="settings_main_account_subtitle">تعيين عملتك الافتراضية</string>
     <string name="settings_main_account_not_set">لم يتم تعيينه</string>
     <string name="settings_currency_field_label">العملة</string>
-    <string name="settings_number_format_title">تنسيق الرقم</string>
-    <string name="settings_number_format_subtitle">باء - حجم المبالغ المجمعة</string>
+    <string name="settings_number_format_title">تنسيق الأرقام</string>
+    <string name="settings_number_format_subtitle">طريقة تجميع خانات المبالغ الكبيرة</string>
     <string name="settings_number_format_auto">تلقائي</string>
     <string name="settings_number_format_indian">الهندية</string>
     <string name="settings_number_format_international">الدولية</string>
     <string name="settings_number_format_auto_example">يطابق كل عملة (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (لاخ / محرر)</string>
     <string name="settings_number_format_international_example">150,000 (ألف/مليون)</string>
+    <string name="settings_date_format_title">تنسيق التاريخ</string>
+    <string name="settings_date_format_subtitle">طريقة عرض التواريخ</string>
     <!-- Budget -->
     <string name="settings_budget_section">الميزانية</string>
     <string name="settings_budget_cycle_title">يوم بداية دورة الميزانية</string>

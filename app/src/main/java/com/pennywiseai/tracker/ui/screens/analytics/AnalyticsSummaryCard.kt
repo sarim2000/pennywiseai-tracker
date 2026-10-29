@@ -220,7 +220,7 @@ private fun ForecastSection(forecast: SpendForecast) {
     Text(
         text = stringResource(
             R.string.analytics_forecast_for,
-            forecast.periodEnd.format(AppDates.pattern("d MMM"))
+            forecast.periodEnd.format(AppDates.dayMonthFormatter())
         ).uppercase(),
         style = PennyWiseText.overline,
         color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -425,7 +425,7 @@ private fun LoanTransactionItem(
                     }
                 }
                 Text(
-                    transaction.dateTime.format(AppDates.pattern("d MMM yyyy")),
+                    transaction.dateTime.format(AppDates.dateFormatter()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -513,7 +513,7 @@ private fun RecordPaymentBottomSheet(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    txn.dateTime.format(AppDates.pattern("d MMM")),
+                                    txn.dateTime.format(AppDates.dayMonthFormatter()),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

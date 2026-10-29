@@ -80,6 +80,8 @@
     <string name="settings_number_format_auto_example">Па валюце (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (лакхі / кроры)</string>
     <string name="settings_number_format_international_example">150,000 (тысячы / мільёны)</string>
+    <string name="settings_date_format_title">Фармат даты</string>
+    <string name="settings_date_format_subtitle">Як паказваюцца даты</string>
     <string name="settings_budget_section">Бюджэт</string>
     <string name="settings_budget_cycle_title">Дзень пачатку бюджэтнага цыкла</string>
     <string name="settings_budget_cycle_subtitle">Зрушвае пачатак кожнага месячнага перыяду бюджэту; напр. 25 азначае, што цыкл ідзе з 25-га па 24-е</string>

@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.webhook.WebhookSyncScheduler
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -116,6 +117,11 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         applicationScope.launch {
             userPreferencesRepository.numberFormatStyle.collectLatest { style ->
                 CurrencyFormatter.numberFormatStyle = style
+            }
+        }
+        applicationScope.launch {
+            userPreferencesRepository.dateFormatStyle.collectLatest { style ->
+                AppDates.dateFormatStyle = style
             }
         }
 

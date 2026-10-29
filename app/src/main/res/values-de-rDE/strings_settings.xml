@@ -43,6 +43,8 @@
     <string name="settings_number_format_auto_example">Passt zu jeder Währung (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1.50.000 (Sek / Kror)</string>
     <string name="settings_number_format_international_example">150.000 (Tausend / Millionen)</string>
+    <string name="settings_date_format_title">Datumsformat</string>
+    <string name="settings_date_format_subtitle">Wie Daten angezeigt werden</string>
     <!-- Budget -->
     <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Budgetzyklus-Starttag</string>

@@ -189,7 +189,7 @@ fun BudgetCard(
         // window comes from the per-budget current window (Weekly's
         // Jun 29..Jul 5 even when the user is on the July page), so the
         // number is consistent across month views.
-        val dateFormatter = remember { AppDates.pattern("d MMM") }
+        val dateFormatter = AppDates.dayMonthFormatter()
         val subtitleText = when {
             groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays ->
                 stringResource(R.string.budget_card_finished)

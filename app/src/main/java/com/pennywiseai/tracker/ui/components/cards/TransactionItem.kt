@@ -60,9 +60,7 @@ fun TransactionItem(
         }
     }
 
-    val dateTimeFormatter = remember(showDate) {
-        AppDates.pattern(if (showDate) "d MMM \u00B7 h:mm a" else "h:mm a")
-    }
+    val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
         transaction.dateTime.format(dateTimeFormatter)
     }

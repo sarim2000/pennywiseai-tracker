@@ -132,7 +132,7 @@ fun BudgetHistoryScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         )
-                        val longFormatter = AppDates.pattern("d MMM yyyy")
+                        val longFormatter = AppDates.dateFormatter()
                         Text(
                             text = stringResource(
                                 R.string.budget_history_window,
@@ -201,7 +201,7 @@ private fun HistoryRow(
     isCurrentPeriod: Boolean,
     onClick: () -> Unit
 ) {
-    val shortFormatter = remember { AppDates.pattern("d MMM") }
+    val shortFormatter = AppDates.dayMonthFormatter()
     PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
@@ -275,7 +275,7 @@ private fun LiveBadge() {
 
 @Composable
 private fun FrozenBadge(capDate: LocalDate) {
-    val formatter = remember { AppDates.pattern("d MMM yyyy") }
+    val formatter = AppDates.dateFormatter()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -308,7 +308,7 @@ private fun BreakdownSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val longFormatter = remember { AppDates.pattern("d MMM yyyy") }
+    val longFormatter = AppDates.dateFormatter()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState

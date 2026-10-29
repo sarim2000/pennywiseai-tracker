@@ -158,7 +158,7 @@ fun ExportTransactionsDialog(
                                 if (transactions.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
 
-                                    val dateFormatter = AppDates.pattern("MMM d, yyyy")
+                                    val dateFormatter = AppDates.dateFormatter()
                                     val startDate = transactions.last().dateTime.format(dateFormatter)
                                     val endDate = transactions.first().dateTime.format(dateFormatter)
 

@@ -910,7 +910,7 @@ private fun TransactionReceipt(
                 icon = Icons.Default.CalendarToday,
                 label = stringResource(R.string.txn_detail_label_date_time),
                 value = transaction.dateTime.format(
-                    AppDates.pattern("EEE, MMM d, yyyy \u00b7 h:mm a")
+                    AppDates.dateTimeFormatter(weekday = true)
                 )
             )
 

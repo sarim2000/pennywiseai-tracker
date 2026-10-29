@@ -243,8 +243,8 @@ fun BudgetGroupEditScreen(
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        val dateFormatter = remember { AppDates.pattern("d MMM yyyy") }
-                        val longDateFormatter = remember { AppDates.pattern("d MMM") }
+                        val dateFormatter = AppDates.dateFormatter()
+                        val longDateFormatter = AppDates.dayMonthFormatter()
 
                         // Cadence chip row — Weekly / Monthly / One-time.
                         // FlowRow wraps the "One-time" chip onto a new line

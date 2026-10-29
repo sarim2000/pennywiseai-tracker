@@ -132,7 +132,7 @@ fun ExchangeRatesScreen(
                     uiState.lastUpdated?.let { lastUpdated ->
                         item {
                             Text(
-                                text = stringResource(R.string.exchange_rates_last_updated, lastUpdated.format(AppDates.pattern("MMM d, yyyy h:mm a"))),
+                                text = stringResource(R.string.exchange_rates_last_updated, lastUpdated.format(AppDates.dateTimeFormatter())),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

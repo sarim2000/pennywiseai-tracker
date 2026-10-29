@@ -32,6 +32,8 @@ object XlsxReader {
     private const val MAX_EXPANDED_BYTES = 32L * 1024 * 1024
     const val MAX_ROWS = 20_000
 
+    class Date1904Exception : IllegalArgumentException("This workbook uses the 1904 date system. Save it as .csv and import that.")
+
     fun readRows(input: InputStream): List<List<String>> {
         val parts = HashMap<String, ByteArray>()
         var budget = MAX_EXPANDED_BYTES
@@ -50,7 +52,7 @@ object XlsxReader {
         }
         if (parts[WORKBOOK]?.let(::usesDate1904) == true) {
             // Its day numbers count from 1904; read as 1900 dates they'd land four years early.
-            throw IllegalArgumentException("This workbook uses the 1904 date system. Save it as .csv and import that.")
+            throw Date1904Exception()
         }
         val sheet = parts[firstSheetPath(parts)]
             ?: parts.keys.filter { it.startsWith("xl/worksheets/") }.minOrNull()?.let { parts[it] }

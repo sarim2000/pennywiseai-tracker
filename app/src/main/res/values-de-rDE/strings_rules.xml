@@ -487,6 +487,10 @@
     <string name="import_statement_error_no_transactions">Keine Transaktionen im Kontoauszug gefunden.</string>
     <string name="import_statement_error_failed">Import des Kontoauszugs fehlgeschlagen.</string>
     <string name="import_statement_error_read">Diese Datei konnte nicht gelesen werden.</string>
+    <string name="import_statement_error_too_large">Diese Datei ist zu groß für den Import.</string>
+    <string name="import_statement_error_no_rows">Diese Datei enthält keine Zeilen.</string>
+    <string name="import_statement_error_too_many_rows">Dieser Kontoauszug hat mehr als %1$d Zeilen. Exportieren Sie einen kürzeren Zeitraum und importieren Sie diesen.</string>
+    <string name="import_statement_error_date_1904">Diese Arbeitsmappe verwendet das 1904-Datumssystem. Speichern Sie sie als .csv und importieren Sie diese.</string>
     <string name="import_statement_password_title">Passwortgeschützte PDF</string>
     <string name="import_statement_password_body">Dieser Kontoauszug ist geschützt. Geben Sie das Passwort ein, das Sie von Ihrer Bank dafür erhalten haben. Es wird nur zum Öffnen der Datei verwendet und nicht gespeichert.</string>
     <string name="import_statement_password_label">PDF-Passwort</string>

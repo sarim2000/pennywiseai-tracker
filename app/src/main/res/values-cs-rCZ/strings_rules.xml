@@ -493,6 +493,10 @@
     <string name="import_statement_error_no_transactions">Ve výpisu nebyly nalezeny žádné transakce.</string>
     <string name="import_statement_error_failed">Import výpisu se nezdařil.</string>
     <string name="import_statement_error_read">Tento soubor se nepodařilo přečíst.</string>
+    <string name="import_statement_error_too_large">Tento soubor je na import příliš velký.</string>
+    <string name="import_statement_error_no_rows">Tento soubor neobsahuje žádné řádky.</string>
+    <string name="import_statement_error_too_many_rows">Tento výpis má více než %1$d řádků. Exportujte kratší období a importujte ho.</string>
+    <string name="import_statement_error_date_1904">Tento sešit používá kalendářní systém 1904. Uložte ho jako .csv a importujte.</string>
     <string name="import_statement_password_title">PDF chráněné heslem</string>
     <string name="import_statement_password_body">Tento výpis je zamčený. Zadejte heslo, které vám k němu dala banka. Použije se jen k otevření souboru a neukládá se.</string>
     <string name="import_statement_password_label">Heslo k PDF</string>

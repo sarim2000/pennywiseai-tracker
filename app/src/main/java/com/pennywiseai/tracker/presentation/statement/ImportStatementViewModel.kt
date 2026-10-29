@@ -155,8 +155,10 @@ class ImportStatementViewModel @Inject constructor(
                     return@launch
                 }
                 showMapping(rows, withNamedAccount(rows, saved ?: StatementTableParser.guessMapping(rows), accounts), accounts)
+            } catch (e: ImportStatementUseCase.UnreadableFileException) {
+                _uiState.value = ImportStatementUiState.Error(e.text)
             } catch (e: Exception) {
-                _uiState.value = ImportStatementUiState.Error(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.import_statement_error_read))
+                _uiState.value = ImportStatementUiState.Error(UiText.Res(R.string.import_statement_error_read))
             }
         }
     }

@@ -501,6 +501,10 @@
     <string name="import_statement_error_no_transactions">В выписке не найдено транзакций.</string>
     <string name="import_statement_error_failed">Не удалось импортировать выписку.</string>
     <string name="import_statement_error_read">Не удалось прочитать этот файл.</string>
+    <string name="import_statement_error_too_large">Этот файл слишком большой для импорта.</string>
+    <string name="import_statement_error_no_rows">В этом файле нет строк.</string>
+    <string name="import_statement_error_too_many_rows">В этой выписке больше %1$d строк. Экспортируйте более короткий период и импортируйте его.</string>
+    <string name="import_statement_error_date_1904">Эта книга использует систему дат 1904. Сохраните её как .csv и импортируйте.</string>
     <string name="import_statement_password_title">PDF с паролем</string>
     <string name="import_statement_password_body">Эта выписка защищена. Введите пароль, который выдал банк. Он нужен только чтобы открыть файл и не сохраняется.</string>
     <string name="import_statement_password_label">Пароль PDF</string>

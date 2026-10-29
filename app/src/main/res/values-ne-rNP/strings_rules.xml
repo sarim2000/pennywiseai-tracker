@@ -222,6 +222,10 @@
     <string name="import_statement_error_no_transactions">स्टेटमेन्टमा कुनै लेनदेन भेटिएन।</string>
     <string name="import_statement_error_failed">स्टेटमेन्ट आयात गर्न असफल।</string>
     <string name="import_statement_error_read">यो फाइल पढ्न सकिएन।</string>
+    <string name="import_statement_error_too_large">यो फाइल आयात गर्न धेरै ठूलो छ।</string>
+    <string name="import_statement_error_no_rows">यो फाइलमा कुनै पङ्क्ति छैन।</string>
+    <string name="import_statement_error_too_many_rows">यो स्टेटमेन्टमा %1$d भन्दा बढी पङ्क्तिहरू छन्। छोटो अवधि निर्यात गरेर त्यसलाई आयात गर्नुहोस्।</string>
+    <string name="import_statement_error_date_1904">यो वर्कबुकले 1904 मिति प्रणाली प्रयोग गर्छ। यसलाई .csv मा सेभ गरेर आयात गर्नुहोस्।</string>
     <string name="import_statement_password_title">पासवर्ड भएको PDF</string>
     <string name="import_statement_password_body">यो स्टेटमेन्ट लक छ। तपाईंको बैंकले यसका लागि दिएको पासवर्ड हाल्नुहोस्। यो फाइल खोल्न मात्र प्रयोग हुन्छ र सुरक्षित गरिँदैन।</string>
     <string name="import_statement_password_label">PDF पासवर्ड</string>

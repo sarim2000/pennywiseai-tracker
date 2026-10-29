@@ -482,6 +482,10 @@
     <string name="import_statement_error_no_transactions">Aucune transaction trouvée dans le relevé.</string>
     <string name="import_statement_error_failed">Échec de l\'importation du relevé.</string>
     <string name="import_statement_error_read">Impossible de lire ce fichier.</string>
+    <string name="import_statement_error_too_large">Ce fichier est trop volumineux pour être importé.</string>
+    <string name="import_statement_error_no_rows">Ce fichier ne contient aucune ligne.</string>
+    <string name="import_statement_error_too_many_rows">Ce relevé contient plus de %1$d lignes. Exportez une période plus courte et importez-la.</string>
+    <string name="import_statement_error_date_1904">Ce classeur utilise le système de dates 1904. Enregistrez-le en .csv et importez-le.</string>
     <string name="import_statement_password_title">PDF protégé par mot de passe</string>
     <string name="import_statement_password_body">Ce relevé est verrouillé. Saisissez le mot de passe que votre banque vous a donné pour ce fichier. Il sert uniquement à ouvrir le fichier et n\'est pas enregistré.</string>
     <string name="import_statement_password_label">Mot de passe du PDF</string>

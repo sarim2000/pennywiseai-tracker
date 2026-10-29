@@ -105,6 +105,10 @@
     <string name="import_statement_error_no_transactions">No se encontraron transacciones en el estado de cuenta.</string>
     <string name="import_statement_error_failed">No se pudo importar el estado de cuenta.</string>
     <string name="import_statement_error_read">No se pudo leer este archivo.</string>
+    <string name="import_statement_error_too_large">Este archivo es demasiado grande para importarlo.</string>
+    <string name="import_statement_error_no_rows">Este archivo no tiene filas.</string>
+    <string name="import_statement_error_too_many_rows">Este estado de cuenta tiene más de %1$d filas. Exporta un periodo más corto e impórtalo.</string>
+    <string name="import_statement_error_date_1904">Este libro usa el sistema de fechas 1904. Guárdalo como .csv e impórtalo.</string>
     <string name="import_statement_password_title">PDF protegido con contraseña</string>
     <string name="import_statement_password_body">Este estado de cuenta está bloqueado. Ingresa la contraseña que te dio tu banco. Solo se usa para abrir el archivo y no se guarda.</string>
     <string name="import_statement_password_label">Contraseña del PDF</string>

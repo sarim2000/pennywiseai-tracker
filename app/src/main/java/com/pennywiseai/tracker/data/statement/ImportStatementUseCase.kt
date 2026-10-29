@@ -51,26 +51,35 @@ class ImportStatementUseCase @Inject constructor(
         } catch (e: PdfPasswordRequiredException) {
             PdfRead.PasswordRequired(e.wrongPassword)
         } catch (e: Exception) {
-            PdfRead.Error(e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.import_statement_error_failed))
+            // The exception's own text is English and technical (and can hold the file's URI).
+            PdfRead.Error(UiText.Res(R.string.import_statement_error_read))
         }
     }
 
-    /** The spreadsheet's rows; throws with a user-facing message when it can't be read. */
+    /** A spreadsheet the user can fix; [text] says what's wrong, in the app's language. */
+    class UnreadableFileException(val text: UiText) : Exception()
+
+    /** The spreadsheet's rows; throws [UnreadableFileException] for a file the user can fix. */
     suspend fun readTable(uri: Uri): List<List<String>> = withContext(Dispatchers.IO) {
+        fun unreadable(id: Int, vararg args: Any) = UnreadableFileException(UiText.Res(id, args.toList()))
         val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
-            val buffer = input.readNBytesCompat(MAX_FILE_BYTES + 1)
-            require(buffer.size <= MAX_FILE_BYTES) { "This file is too large to import." }
-            buffer
-        } ?: throw IllegalArgumentException("Couldn't open the file.")
+            input.readNBytesCompat(MAX_FILE_BYTES + 1).takeIf { it.size <= MAX_FILE_BYTES }
+                ?: throw unreadable(R.string.import_statement_error_too_large)
+        } ?: throw unreadable(R.string.import_statement_error_read)
         val rows = try {
             StatementTableParser.readTable(bytes)
         } catch (e: OutOfMemoryError) {
             // A hostile or enormous file: tell the user rather than crash the app.
-            throw IllegalArgumentException("This file is too large to import.")
+            throw unreadable(R.string.import_statement_error_too_large)
+        } catch (e: StatementTableParser.LegacyXlsException) {
+            throw unreadable(R.string.import_statement_xls_hint)
+        } catch (e: StatementTableParser.TooManyRowsException) {
+            throw unreadable(R.string.import_statement_error_too_many_rows, XlsxReader.MAX_ROWS)
+        } catch (e: XlsxReader.Date1904Exception) {
+            throw unreadable(R.string.import_statement_error_date_1904)
         }
-        rows.also {
-            require(it.any { row -> row.any(String::isNotBlank) }) { "This file has no rows." }
-        }
+        if (rows.none { row -> row.any(String::isNotBlank) }) throw unreadable(R.string.import_statement_error_no_rows)
+        rows
     }
 
     suspend fun savedMappings(): Map<String, StatementColumnMapping> =

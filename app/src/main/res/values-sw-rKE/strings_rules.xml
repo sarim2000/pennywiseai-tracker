@@ -105,6 +105,10 @@
     <string name="import_statement_error_no_transactions">Hakuna miamala iliyopatikana kwenye taarifa.</string>
     <string name="import_statement_error_failed">Imeshindwa kuingiza taarifa.</string>
     <string name="import_statement_error_read">Imeshindwa kusoma faili hili.</string>
+    <string name="import_statement_error_too_large">Faili hili ni kubwa mno kuingizwa.</string>
+    <string name="import_statement_error_no_rows">Faili hili halina safu zozote.</string>
+    <string name="import_statement_error_too_many_rows">Taarifa hii ina zaidi ya safu %1$d. Hamisha kipindi kifupi zaidi kisha ukiingize.</string>
+    <string name="import_statement_error_date_1904">Kitabu hiki kinatumia mfumo wa tarehe wa 1904. Kihifadhi kama .csv kisha ukiingize.</string>
     <string name="import_statement_password_title">PDF yenye nenosiri</string>
     <string name="import_statement_password_body">Taarifa hii imefungwa. Weka nenosiri ulilopewa na benki yako. Linatumika kufungua faili tu na halihifadhiwi.</string>
     <string name="import_statement_password_label">Nenosiri la PDF</string>

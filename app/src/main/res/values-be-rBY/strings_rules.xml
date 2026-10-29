@@ -111,6 +111,10 @@
     <string name="import_statement_error_no_transactions">У выпісцы не знойдзена транзакцый.</string>
     <string name="import_statement_error_failed">Не ўдалося імпартаваць выпіску.</string>
     <string name="import_statement_error_read">Не ўдалося прачытаць гэты файл.</string>
+    <string name="import_statement_error_too_large">Гэты файл занадта вялікі для імпарту.</string>
+    <string name="import_statement_error_no_rows">У гэтым файле няма радкоў.</string>
+    <string name="import_statement_error_too_many_rows">У гэтай выпісцы больш за %1$d радкоў. Экспартуйце карацейшы перыяд і імпартуйце яго.</string>
+    <string name="import_statement_error_date_1904">Гэтая кніга выкарыстоўвае сістэму дат 1904. Захавайце яе як .csv і імпартуйце.</string>
     <string name="import_statement_password_title">PDF з паролем</string>
     <string name="import_statement_password_body">Гэтая выпіска заблакіравана. Увядзіце пароль, які даў вам банк. Ён патрэбны толькі каб адкрыць файл і не захоўваецца.</string>
     <string name="import_statement_password_label">Пароль PDF</string>

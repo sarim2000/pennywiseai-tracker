@@ -220,6 +220,10 @@
     <string name="import_statement_error_no_transactions">ไม่พบธุรกรรมใน Statement</string>
     <string name="import_statement_error_failed">นำเข้า Statement ไม่สำเร็จ</string>
     <string name="import_statement_error_read">อ่านไฟล์นี้ไม่ได้</string>
+    <string name="import_statement_error_too_large">ไฟล์นี้ใหญ่เกินกว่าจะนำเข้าได้</string>
+    <string name="import_statement_error_no_rows">ไฟล์นี้ไม่มีแถวข้อมูล</string>
+    <string name="import_statement_error_too_many_rows">Statement นี้มีมากกว่า %1$d แถว ส่งออกช่วงเวลาที่สั้นลงแล้วนำเข้าไฟล์นั้น</string>
+    <string name="import_statement_error_date_1904">เวิร์กบุ๊กนี้ใช้ระบบวันที่แบบ 1904 บันทึกเป็น .csv แล้วนำเข้าไฟล์นั้น</string>
     <string name="import_statement_password_title">PDF มีรหัสผ่าน</string>
     <string name="import_statement_password_body">Statement นี้ถูกล็อกไว้ ใส่รหัสผ่านที่ธนาคารให้มา ใช้แค่เปิดไฟล์และจะไม่ถูกบันทึก</string>
     <string name="import_statement_password_label">รหัสผ่าน PDF</string>

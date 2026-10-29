@@ -484,6 +484,10 @@
     <string name="import_statement_error_no_transactions">Nenhuma transação encontrada no extrato.</string>
     <string name="import_statement_error_failed">Falha ao importar o extrato.</string>
     <string name="import_statement_error_read">Não foi possível ler este arquivo.</string>
+    <string name="import_statement_error_too_large">Este arquivo é grande demais para importar.</string>
+    <string name="import_statement_error_no_rows">Este arquivo não tem linhas.</string>
+    <string name="import_statement_error_too_many_rows">Este extrato tem mais de %1$d linhas. Exporte um período mais curto e importe-o.</string>
+    <string name="import_statement_error_date_1904">Esta pasta de trabalho usa o sistema de datas 1904. Salve como .csv e importe.</string>
     <string name="import_statement_password_title">PDF protegido por senha</string>
     <string name="import_statement_password_body">Este extrato está bloqueado. Digite a senha que o banco forneceu para ele. Ela só é usada para abrir o arquivo e não é salva.</string>
     <string name="import_statement_password_label">Senha do PDF</string>

@@ -44,8 +44,13 @@ class BackupExporter @Inject constructor(
         return try {
             val backup = createBackup(privacy, includeReceipts)
             val file = createBackupFile()
-            // Streamed so the photos aren't held twice more as one big JSON string.
-            withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
+            try {
+                // Streamed so the photos aren't held twice more as one big JSON string.
+                withContext(Dispatchers.IO) { file.outputStream().buffered().use { backupJson.encodeToStream(backup, it) } }
+            } catch (e: Throwable) {
+                file.delete() // don't leave a partial backup in cache
+                throw e
+            }
             ExportResult.Success(file)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
@@ -295,8 +300,8 @@ class BackupExporter @Inject constructor(
         val timestamp = LocalDateTime.now().format(
             DateTimeFormatter.ofPattern("yyyy_MM_dd_HHmmss")
         )
-        val fileName = "PennyWise_Backup_$timestamp.pennywisebackup"
-        
-        return File(exportDir, fileName)
+        // Unique per call: a folder backup and a manual export in the same second must
+        // not share (and then delete) one file.
+        return File.createTempFile("PennyWise_Backup_${timestamp}_", ".pennywisebackup", exportDir)
     }
 }

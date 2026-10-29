@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">किसके साथ बाँटें…</string>
+    <string name="split_menu_edit">बँटवारा बदलें</string>
+    <string name="split_sheet_title">%1$s बाँटें</string>
+    <string name="split_sheet_hint">हर हिस्सा उधार में आपके दिए गए पैसे की तरह जुड़ता है। सिर्फ़ आपका हिस्सा खर्च में गिना जाता है।</string>
+    <string name="split_people_count">%2$d में से %1$d लोग</string>
+    <string name="split_person_name">व्यक्ति का नाम</string>
+    <string name="split_add_person">जोड़ें</string>
+    <string name="split_pick_contact">कॉन्टैक्ट से चुनें</string>
+    <string name="split_remove_person">%1$s को हटाएँ</string>
+    <string name="split_mode_equal">बराबर बाँटें</string>
+    <string name="split_mode_custom">अपनी राशि</string>
+    <string name="split_you">आप</string>
+    <string name="split_your_part">आपका हिस्सा</string>
+    <string name="split_left_to_assign">%1$s बाँटना बाकी</string>
+    <string name="split_over_total">कुल से %1$s ज़्यादा</string>
+    <string name="split_adds_up">जोड़ %1$s है</string>
+    <string name="split_save">बँटवारा सेव करें</string>
+    <string name="split_error_share_positive">हर हिस्सा 0 से ज़्यादा होना चाहिए</string>
+    <string name="split_error_over">हिस्से कुल राशि से ज़्यादा हैं</string>
+    <string name="split_error_your_part_negative">आपका हिस्सा 0 से कम नहीं हो सकता</string>
+    <string name="split_error_failed">बँटवारा सेव नहीं हो पाया: %1$s</string>
+    <string name="split_error_settled">%1$s का उधार चुक गया है। उनका हिस्सा बदलने के लिए उधार में जाकर इसे फिर से खोलें।</string>
+    <string name="split_error_transfer">बँटा हुआ बिल स्थानांतरण नहीं हो सकता। पहले बँटवारा हटाएँ।</string>
+    <string name="split_error_type_locked">यह बिल बँटा हुआ है। इसका प्रकार बदलने से पहले बँटवारा हटाएँ।</string>
+    <string name="split_error_amount_below_shares">यह बिल बँटा हुआ है। इसकी राशि आपके दिए गए हिस्सों से कम नहीं हो सकती।</string>
+    <string name="split_section_title">किसके साथ बँटा</string>
+    <string name="split_settled">चुक गया</string>
+    <string name="split_request">%1$s माँगें</string>
+    <string name="split_remove">बँटवारा हटाएँ</string>
+    <string name="split_remove_title">बँटवारा हटाएँ?</string>
+    <string name="split_remove_message">हर व्यक्ति का हिस्सा उसके उधार से हट जाएगा। जिस उधार में और कुछ नहीं है, वह हट जाएगा।</string>
+    <string name="split_remove_confirm">हटाएँ</string>
+    <string name="split_upi_title">आपकी UPI ID</string>
+    <string name="split_upi_message">लोग अपना हिस्सा इस UPI ID पर भेजेंगे। आप इसे सेटिंग्स में बदल सकते हैं।</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">name@bank जैसी UPI ID डालें</string>
+    <string name="split_upi_save">सेव करें</string>
+    <string name="split_request_text">%3$s के लिए %2$s को %1$s भेजें</string>
+    <string name="split_request_failed">QR कोड नहीं बन पाया</string>
+    <string name="settings_upi_title">आपकी UPI ID</string>
+    <string name="settings_upi_subtitle">बँटे हुए बिल में लोगों से उनका हिस्सा माँगने के लिए</string>
+    <string name="settings_upi_not_set">सेट नहीं है</string>
 </resources>

@@ -35,6 +35,8 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import androidx.compose.ui.platform.LocalDensity
 
 private val subTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
 private val subBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
@@ -329,7 +331,7 @@ fun SubscriptionTabContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = uiState.category,
+                        value = categoryLabel(uiState.category),
                         onValueChange = {},
                         label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
                         readOnly = true,
@@ -508,7 +510,7 @@ fun SubscriptionTabContent(
             }
 
             // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(modifier = Modifier.height(72.dp + Spacing.lg))
         }
 
         // Sticky Save Button
@@ -516,13 +518,12 @@ fun SubscriptionTabContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                // Fade in above the button only; behind it stays solid, so a
+                // disabled (translucent) Save never shows the form through it.
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.surface
-                        )
+                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                        endY = with(LocalDensity.current) { Spacing.lg.toPx() }
                     )
                 ),
             contentAlignment = Alignment.BottomCenter
@@ -531,6 +532,7 @@ fun SubscriptionTabContent(
                 onClick = { viewModel.saveSubscription(onSuccess = onSave) },
                 enabled = uiState.isValid && !uiState.isLoading,
                 modifier = Modifier
+                    .padding(top = Spacing.lg)
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()

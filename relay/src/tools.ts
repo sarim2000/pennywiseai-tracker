@@ -72,4 +72,4 @@ export type ToolResult = { content: { type: "text"; text: string }[]; isError?: 
 export const textResult = (text: string, isError = false): ToolResult => ({ content: [{ type: "text", text }], isError });
 
 export const NOT_CONNECTED =
-	"PennyWise isn't connected right now. On your phone, open PennyWise → Settings → Connect Claude / ChatGPT and start an AI session (or tap the PennyWise AI tile in Quick Settings), then ask again.";
+	"PennyWise isn't connected right now. On your phone, open PennyWise → Settings → Connect Claude / ChatGPT and start an AI session (or tap the PennyWise AI tile in Quick Settings), then ask again. If the session is on and the phone is online but this keeps happening, the connection may belong to an earlier install of PennyWise (for example after reinstalling): remove the PennyWise connector here and add it again.";

@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Matumizi ya leo, kilichobaki kwenye bajeti yako, na kuongeza pesa taslimu haraka.</string>
+    <string name="widget_summary_left">Kilichobaki kwenye bajeti</string>
+    <string name="widget_summary_over">Umezidi bajeti</string>
+    <string name="widget_budget_left_label">Kimebaki</string>
+    <string name="widget_budget_over_label">Umezidi kwa</string>
+    <string name="widget_budget_empty_title">Bado hakuna bajeti</string>
+    <string name="widget_budget_empty_hint">Weka kikomo cha mwezi ili uone kilichobaki.</string>
+    <string name="widget_budget_create">Unda bajeti</string>
+    <string name="widget_budget_preview_meta">kati ya 3,600 · 120/siku</string>
+    <string name="widget_cash_label">Pesa taslimu</string>
+    <string name="widget_cash_spend">Matumizi ya pesa taslimu</string>
+    <string name="widget_cash_description">Gusa mara moja kurekodi pesa taslimu uliyotumia sasa hivi.</string>
+</resources>

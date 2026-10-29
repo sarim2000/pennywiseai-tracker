@@ -18,4 +18,8 @@
     <!-- Account types -->
     <string name="account_type_savings">बचत</string>
     <string name="account_type_credit_card">क्रेडिट कार्ड</string>
+    <string name="filter_type_spending">खर्च (व्यय + कार्ड)</string>
+    <string name="account_type_current">करंट</string>
+    <string name="account_type_cash">कैश</string>
+    <string name="account_type_loan">लोन</string>
 </resources>

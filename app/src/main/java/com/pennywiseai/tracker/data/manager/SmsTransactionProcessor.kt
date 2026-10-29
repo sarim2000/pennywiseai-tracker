@@ -382,45 +382,49 @@ class SmsTransactionProcessor @Inject constructor(
             val accountCurrency = existingAccount?.currency
                 ?: parsedTransaction.accountCurrency
                 ?: parsedTransaction.currency
-            val newBalance = BalanceCalculator.balanceAfter(
-                explicitBalance = parsedTransaction.balance,
-                // A loan account's balance is owed too: a payment lowers it (#792).
-                isCreditCard = resolvedIsCreditCard || existingAccount?.isLoan == true,
-                transactionType = parsedTransaction.type.toEntityType(),
-                transactionAmount = parsedTransaction.amount,
-                transactionCurrency = parsedTransaction.currency,
-                accountCurrency = accountCurrency,
-                currentBalance = existingAccount?.balance
-            )
+            // Moves from the balance just before this SMS in time, not the newest
+            // row, the same rule as the inbox scan (#982).
+            accountBalanceRepository.insertSmsTransactionBalance(
+                parsedTransaction.bankName, targetAccountLast4, entity.dateTime
+            ) { before ->
+                val newBalance = BalanceCalculator.balanceAfter(
+                    explicitBalance = parsedTransaction.balance,
+                    // A loan account's balance is owed too: a payment lowers it (#792).
+                    isCreditCard = resolvedIsCreditCard || existingAccount?.isLoan == true,
+                    transactionType = parsedTransaction.type.toEntityType(),
+                    transactionAmount = parsedTransaction.amount,
+                    transactionCurrency = parsedTransaction.currency,
+                    accountCurrency = accountCurrency,
+                    currentBalance = before
+                )
 
-            // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
-            // available = creditLimit − balance, so store total = available + outstanding
-            // (the post-transaction balance) to keep that math correct. Falls back to the
-            // existing stored limit when the SMS carries no limit. (#486)
-            val resolvedCreditLimit = if (resolvedIsCreditCard && parsedTransaction.creditLimit != null) {
-                parsedTransaction.creditLimit!! + newBalance
-            } else {
-                existingAccount?.creditLimit
+                // Credit-card SMS report the AVAILABLE limit, not the total. The UI derives
+                // available = creditLimit − balance, so store total = available + outstanding
+                // (the post-transaction balance) to keep that math correct. Falls back to the
+                // existing stored limit when the SMS carries no limit. (#486)
+                val resolvedCreditLimit = if (resolvedIsCreditCard && parsedTransaction.creditLimit != null) {
+                    parsedTransaction.creditLimit!! + newBalance
+                } else {
+                    existingAccount?.creditLimit
+                }
+
+                AccountBalanceEntity(
+                    bankName = parsedTransaction.bankName,
+                    accountLast4 = targetAccountLast4,
+                    balance = newBalance,
+                    timestamp = entity.dateTime,
+                    transactionId = if (rowId != -1L) rowId else null,
+                    creditLimit = resolvedCreditLimit,
+                    isCreditCard = resolvedIsCreditCard,
+                    smsSource = parsedTransaction.smsBody.take(500),
+                    sourceType = "TRANSACTION",
+                    accountType = BalanceCalculator.preservedAccountType(existingAccount),
+                    currency = accountCurrency,
+                    profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
+                    alias = existingAccount?.alias,
+                    lowBalanceThreshold = existingAccount?.lowBalanceThreshold
+                )
             }
-
-            val balanceEntity = AccountBalanceEntity(
-                bankName = parsedTransaction.bankName,
-                accountLast4 = targetAccountLast4,
-                balance = newBalance,
-                timestamp = entity.dateTime,
-                transactionId = if (rowId != -1L) rowId else null,
-                creditLimit = resolvedCreditLimit,
-                isCreditCard = resolvedIsCreditCard,
-                smsSource = parsedTransaction.smsBody.take(500),
-                sourceType = "TRANSACTION",
-                accountType = BalanceCalculator.preservedAccountType(existingAccount),
-                currency = accountCurrency,
-                profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
-                alias = existingAccount?.alias,
-                lowBalanceThreshold = existingAccount?.lowBalanceThreshold
-            )
-
-            accountBalanceRepository.insertBalance(balanceEntity)
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
         }
     }

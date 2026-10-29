@@ -135,7 +135,8 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                         builtinKey = key?.takeIf { k -> k != it.name },
                         // A built-in still on its seeded colour uses the palette; one the
                         // user recoloured (now possible, #823) uses theirs.
-                        customColor = key == null || !it.color.equals(seedColors[key], ignoreCase = true)
+                        customColor = key == null || !it.color.equals(seedColors[key], ignoreCase = true),
+                        isBuiltin = key == it.name
                     )
                 }
                 CategoryMapping.userStyles.keys.retainAll(styles.keys)

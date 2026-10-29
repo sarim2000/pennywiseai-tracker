@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Names the app seeds or prefills. Profiles are translated at display
+         time only while the row still holds its seeded name; the rest are
+         written in the app's language when created and are the user's after. -->
+
+    <!-- ══ Seeded profiles ══ -->
+    <string name="profile_default_personal">Personal</string>
+    <string name="profile_default_business">Business</string>
+
+    <!-- ══ Starter rule (stored in the app's language when seeded) ══ -->
+    <string name="rule_template_small_payments_name">Small Payments to Food</string>
+    <string name="rule_template_small_payments_description">Categorize small expense payments (under 200) as Food &amp; Dining</string>
+
+    <!-- ══ Budget group defaults (stored in the app's language when created) ══ -->
+    <string name="budget_group_default_spending">Spending</string>
+    <string name="budget_group_default_fixed_costs">Fixed Costs</string>
+    <string name="budget_group_default_investments">Investments</string>
+    <string name="budget_group_default_monthly">Monthly Budget</string>
+</resources>

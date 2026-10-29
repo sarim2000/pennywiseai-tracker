@@ -56,7 +56,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
 
-private val ROW_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
+private val ROW_DATE: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM yyyy")
 
 /** MIME types the spreadsheet picker offers (.xls is listed so it can be refused with a hint). */
 private val SPREADSHEET_TYPES = arrayOf(
@@ -218,7 +218,7 @@ fun ImportStatementScreen(
                     )
                 }
                 is ImportStatementUiState.Error -> ErrorContent(
-                    message = state.message,
+                    message = state.message.asString(),
                     onTryAgain = {
                         viewModel.resetState()
                     }

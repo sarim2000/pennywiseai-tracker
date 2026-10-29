@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - Controle de Gastos</string>
+    <string name="widget_name_budget">Visão do orçamento</string>
+    <string name="widget_description_budget">Mostra o progresso do seu orçamento mensal, a economia e quanto dá para gastar por dia, num relance.</string>
+    <string name="widget_loading">Carregando widget…</string>
+    <string name="widget_name_recent">Transações recentes</string>
+    <string name="widget_name_category_pie">Gráfico de gastos</string>
+    <string name="widget_description_category_pie">Gastos do mês por categoria em um gráfico de pizza com legenda.</string>
+    <string name="widget_name_add_transaction">Gasto em dinheiro</string>
+    <string name="widget_name_summary">Resumo de gastos</string>
+    <string name="tile_add_transaction">Adicionar transação</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">Adicionar</string>
+    <string name="shortcut_add_transaction_long">Adicionar transação</string>
+    <string name="support_title">Apoie o desenvolvimento</string>
+    <string name="support_subtitle">Feito por um dev solo — uma pequena gorjeta ajuda a continuar 🦉</string>
+    <string name="support_dialog_body">O PennyWise é gratuito e de código aberto, feito por um único desenvolvedor. Tudo já está liberado nesta versão. Se o app for útil para você, uma gorjeta ajuda a manter o projeto 🦉</string>
+    <string name="support_pay_via_upi">Pagar via UPI</string>
+    <string name="support_close">Fechar</string>
+    <string name="support_copy_upi_id">Copiar ID UPI</string>
+    <string name="support_copied_toast">ID UPI copiado</string>
+    <string name="support_no_upi_app">Nenhum app de UPI encontrado. Copie o ID UPI.</string>
+    <string name="support_nudge_body">Curtindo o PennyWise? Apoie o desenvolvimento 💛</string>
+    <string name="duplicate_accounts_title">Possíveis contas duplicadas</string>
+    <string name="duplicate_accounts_message">Diferenças no formato dos SMS do banco ou leituras antigas podem ter criado contas duplicadas com três e quatro dígitos. Se %1$s e %2$s forem a mesma conta, quer juntá-las? As transações vão para a conta de quatro dígitos, o histórico de saldo dela é mantido e os próximos SMS vão usá-la automaticamente.</string>
+    <string name="duplicate_accounts_merge">Juntar e lembrar</string>
+    <string name="duplicate_accounts_keep">Manter separadas</string>
+</resources>

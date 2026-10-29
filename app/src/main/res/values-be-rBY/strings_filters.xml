@@ -5,4 +5,21 @@
     <!-- Transaction type filter -->
     <!-- Analytics only: expense + credit-card spend shown together -->
     <!-- Account types -->
+    <string name="filter_period_this_month">Гэты месяц</string>
+    <string name="filter_period_last_month">Мінулы месяц</string>
+    <string name="filter_period_current_fy">Бягучы фін. год</string>
+    <string name="filter_period_all_time">Увесь час</string>
+    <string name="filter_period_custom_range">Свой перыяд</string>
+    <string name="filter_type_all">Усе</string>
+    <string name="filter_type_income">Даход</string>
+    <string name="filter_type_expense">Выдатак</string>
+    <string name="filter_type_credit">Крэдыт</string>
+    <string name="filter_type_spending">Выдаткі (выдатак + картка)</string>
+    <string name="filter_type_transfer">Перавод</string>
+    <string name="filter_type_investment">Інвестыцыя</string>
+    <string name="account_type_savings">Ашчадны</string>
+    <string name="account_type_current">Бягучы</string>
+    <string name="account_type_credit_card">Крэдытная картка</string>
+    <string name="account_type_cash">Наяўныя</string>
+    <string name="account_type_loan">Пазыка</string>
 </resources>

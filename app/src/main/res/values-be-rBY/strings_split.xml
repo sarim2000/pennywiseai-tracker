@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Падзяліць з…</string>
+    <string name="split_menu_edit">Змяніць падзел</string>
+    <string name="split_sheet_title">Падзяліць %1$s</string>
+    <string name="split_sheet_hint">Кожная доля дадаецца ў «Пазыкі» як грошы, якія вы далі ў доўг. У выдаткі ідзе толькі ваша частка.</string>
+    <string name="split_people_count">%1$d з %2$d чал.</string>
+    <string name="split_person_name">Імя чалавека</string>
+    <string name="split_add_person">Дадаць</string>
+    <string name="split_pick_contact">Выбраць з кантактаў</string>
+    <string name="split_remove_person">Выдаліць %1$s</string>
+    <string name="split_mode_equal">Пароўну</string>
+    <string name="split_mode_custom">Свае сумы</string>
+    <string name="split_you">Вы</string>
+    <string name="split_your_part">Ваша частка</string>
+    <string name="split_left_to_assign">Засталося размеркаваць %1$s</string>
+    <string name="split_over_total">На %1$s больш за агульную суму</string>
+    <string name="split_adds_up">Разам %1$s</string>
+    <string name="split_save">Захаваць падзел</string>
+    <string name="split_error_share_positive">Кожная доля павінна быць больш за нуль</string>
+    <string name="split_error_over">Долі перавышаюць агульную суму</string>
+    <string name="split_error_your_part_negative">Ваша частка не можа быць менш за нуль</string>
+    <string name="split_error_failed">Не ўдалося захаваць падзел: %1$s</string>
+    <string name="split_error_settled">Пазыка %1$s ужо пагашана. Адкрыйце яе зноў у «Пазыках», каб змяніць долю.</string>
+    <string name="split_error_transfer">Падзелены выдатак не можа быць пераводам. Спачатку выдаліце падзел.</string>
+    <string name="split_error_type_locked">Гэты выдатак падзелены. Выдаліце падзел, перш чым мяняць яго тып.</string>
+    <string name="split_error_amount_below_shares">Гэты выдатак падзелены. Яго сума не можа быць меншай за долі, якія вы далі ў доўг.</string>
+    <string name="split_section_title">Падзелена з</string>
+    <string name="split_settled">Пагашана</string>
+    <string name="split_request">Запытаць %1$s</string>
+    <string name="split_remove">Выдаліць падзел</string>
+    <string name="split_remove_title">Выдаліць падзел?</string>
+    <string name="split_remove_message">Доля кожнага чалавека будзе знята з яго пазыкі. Пазыка, у якой больш нічога няма, будзе выдалена.</string>
+    <string name="split_remove_confirm">Выдаліць</string>
+    <string name="split_upi_title">Ваш UPI ID</string>
+    <string name="split_upi_message">Людзі плацяць сваю долю на гэты UPI ID. Змяніць яго можна ў наладах.</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">Увядзіце UPI ID у выглядзе name@bank</string>
+    <string name="split_upi_save">Захаваць</string>
+    <string name="split_request_text">Заплаціце %1$s на %2$s за %3$s</string>
+    <string name="split_request_failed">Не ўдалося стварыць QR-код</string>
+    <string name="settings_upi_title">Ваш UPI ID</string>
+    <string name="settings_upi_subtitle">Каб прасіць людзей заплаціць сваю долю падзеленага выдатку</string>
+    <string name="settings_upi_not_set">Не зададзены</string>
 </resources>

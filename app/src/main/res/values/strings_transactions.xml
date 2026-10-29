@@ -127,6 +127,7 @@
     <string name="txn_detail_field_alias">Display alias (Optional)</string>
     <string name="txn_detail_field_alias_placeholder">Show a friendlier name instead</string>
     <string name="txn_detail_field_description">Description (Optional)</string>
+    <string name="txn_detail_field_reference">Reference number (Optional)</string>
     <string name="txn_detail_apply_tags_to_merchant">Apply tags to all future from %1$s</string>
     <string name="txn_detail_field_from_account">From Account</string>
     <string name="txn_detail_field_from_account_placeholder">Select or enter source account</string>
@@ -260,6 +261,7 @@
     <string name="add_field_amount">Amount *</string>
     <string name="add_field_merchant">Merchant</string>
     <string name="add_field_notes">Notes (Optional)</string>
+    <string name="add_field_reference">Reference number (Optional)</string>
     <string name="add_field_category">Category</string>
     <string name="add_clear">Clear</string>
     <string name="add_selected">Selected</string>

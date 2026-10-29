@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
 import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.R
 import android.content.Context
@@ -20,6 +21,9 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -50,6 +54,8 @@ class AddViewModel @Inject constructor(
     private val merchantMappingRepository: MerchantMappingRepository,
     private val tagRepository: TagRepository,
     private val receiptManager: ReceiptManager,
+    private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
+    private val learnedSendersStore: LearnedSendersStore,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -71,6 +77,14 @@ class AddViewModel @Inject constructor(
     private val draftCategory: String? = savedStateHandle.get<String>("category")
     private val draftBankName: String? = savedStateHandle.get<String>("bankName")
     private val draftAccountLast4: String? = savedStateHandle.get<String>("accountLast4")
+
+    // A suggestion from Unrecognized SMS (#994); its SMS row is hidden once saved.
+    private val draftCurrency: String? = savedStateHandle.get<String>("currency")
+    private val draftType: TransactionType? = savedStateHandle.get<String>("type")
+        ?.let { name -> TransactionType.entries.firstOrNull { it.name == name } }
+    private val draftDateTime: LocalDateTime? = savedStateHandle.get<String>("dateTime")
+        ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+    private val unrecognizedSmsId: Long? = savedStateHandle.get<Long>("unrecognizedSmsId")
     
     // General UI State
     private val _uiState = MutableStateFlow(AddUiState())
@@ -118,11 +132,14 @@ class AddViewModel @Inject constructor(
                     )
                 }
             }
+            draftType?.let { updateTransactionType(it) }
             _transactionUiState.update {
                 it.copy(
                     amount = draftAmount ?: it.amount,
                     merchant = draftMerchant ?: it.merchant,
-                    category = draftCategory ?: it.category
+                    category = draftCategory ?: it.category,
+                    currency = draftCurrency ?: it.currency,
+                    date = draftDateTime ?: it.date
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
@@ -170,9 +187,17 @@ class AddViewModel @Inject constructor(
     private fun selectAccount(bankName: String?, last4: String?) {
         if (bankName == null && last4 == null) return
         viewModelScope.launch {
-            val matched = accounts.first { it.isNotEmpty() }
-                .firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
-                ?: return@launch
+            // From the repository, not [accounts]: init can run this before that
+            // property (declared further down) exists.
+            val all = accountBalanceRepository.getAllLatestBalances().first { it.isNotEmpty() }
+            val matched = if (bankName != null) {
+                all.firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
+            } else {
+                // Only the last 4 digits are known (an SMS suggestion): link only when exactly
+                // one account in the entry's currency has them, so no amount lands in another currency.
+                val currency = _transactionUiState.value.currency
+                all.filter { it.accountLast4 == last4 && it.currency == currency }.singleOrNull()
+            } ?: return@launch
             // Don't override a selection the user may have already made.
             _transactionUiState.update { state ->
                 if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
@@ -407,6 +432,10 @@ class AddViewModel @Inject constructor(
         }
     }
 
+    fun updateTransactionReference(reference: String) {
+        _transactionUiState.update { it.copy(reference = reference) }
+    }
+
     fun addTransactionTag(tag: String) {
         val trimmed = tag.trim()
         if (trimmed.isEmpty()) return
@@ -506,6 +535,7 @@ class AddViewModel @Inject constructor(
                     type = state.transactionType,
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
+                    reference = normalizeReference(state.reference),
                     tags = state.tags,
                     isRecurring = state.isRecurring,
                     bankName = selectedAccount?.bankName,
@@ -517,6 +547,7 @@ class AddViewModel @Inject constructor(
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                bookedFromSuggestion(selectedAccount)
 
                 onSuccess()
             } catch (e: Exception) {
@@ -528,6 +559,24 @@ class AddViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Booked from an SMS suggestion (#994): it's no longer an unrecognized message,
+     * and its sender is learned, so its next SMS is offered with this account.
+     */
+    private suspend fun bookedFromSuggestion(account: AccountBalanceEntity?) {
+        val id = unrecognizedSmsId ?: return
+        unrecognizedSmsRepository.getById(id)?.let { sms ->
+            // Only digits the SMS itself names rule an account out; the pre-filled
+            // ones may be the learned guess the user just corrected.
+            val smsLast4 = GenericTransactionExtractor.extract(sms.sender, sms.smsBody)?.transaction?.accountLast4
+            val learned = account
+                ?.takeIf { smsLast4 == null || it.accountLast4 == smsLast4 }
+                ?.let { LearnedSendersStore.Account(it.bankName, it.accountLast4, it.currency) }
+            learnedSendersStore.learn(sms.sender, learned)
+        }
+        unrecognizedSmsRepository.deleteMessage(id)
     }
 
     private fun saveTransferInternal(
@@ -544,6 +593,7 @@ class AddViewModel @Inject constructor(
                     amount = BigDecimal(state.amount),
                     date = state.date,
                     notes = state.notes.takeIf { it.isNotBlank() },
+                    reference = normalizeReference(state.reference),
                     tags = state.tags,
                     currency = from.currency,
                     fromBankName = from.bankName,
@@ -551,6 +601,9 @@ class AddViewModel @Inject constructor(
                     toBankName = to.bankName,
                     toLast4 = to.accountLast4
                 )
+                // A suggestion saved as a transfer is handled too (#994).
+                // The SMS speaks for one leg: the receiving account for a credit, the paying one otherwise.
+                bookedFromSuggestion(if (draftType == TransactionType.INCOME) to else from)
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
 
@@ -764,6 +817,7 @@ data class TransactionUiState(
     val categoryError: UiText? = null,
     val date: LocalDateTime = LocalDateTime.now(),
     val notes: String = "",
+    val reference: String = "",
     val tags: List<String> = emptyList(),
     val isRecurring: Boolean = false,
     val isLoading: Boolean = false,

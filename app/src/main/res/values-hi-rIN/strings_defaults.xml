@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">निजी</string>
+    <string name="profile_default_business">बिज़नेस</string>
+    <string name="rule_template_small_payments_name">छोटे भुगतान → खाना</string>
+    <string name="rule_template_small_payments_description">छोटे खर्च (200 से कम) को Food &amp; Dining श्रेणी में डालें</string>
+    <string name="budget_group_default_spending">खर्च</string>
+    <string name="budget_group_default_fixed_costs">तय खर्च</string>
+    <string name="budget_group_default_investments">निवेश</string>
+    <string name="budget_group_default_monthly">मासिक बजट</string>
+</resources>

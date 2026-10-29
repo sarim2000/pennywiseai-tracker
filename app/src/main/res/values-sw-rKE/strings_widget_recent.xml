@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>    <string name="widget_recent_header">Hivi Karibuni</string>
+    <string name="widget_recent_sort">Panga</string>
+    <string name="widget_recent_empty_add_cash">Gusa + kuongeza pesa taslimu</string>
+    <string name="widget_recent_description">Miamala yako ya hivi karibuni na kategoria zake, ukigusa mara moja kupanga zinazohitaji.</string>
+</resources>

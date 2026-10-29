@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 private enum class CategoryViewType { CHART, LIST }
 
@@ -798,7 +799,7 @@ private fun AnalyticsFilterBar(
 
         if (profiles.isNotEmpty()) {
             item {
-                val selectedProfileLabel = profiles.find { it.id == selectedProfileId }?.name
+                val selectedProfileLabel = profiles.find { it.id == selectedProfileId }?.displayName()
                 Box {
                     ExpressiveFilterChip(
                         colors = analyticsFilterChipColors(),
@@ -930,7 +931,7 @@ private fun AnalyticsFilterBar(
                         colors = analyticsFilterChipColors(),
                         border = analyticsFilterChipBorder(selected = categoryFilter != null),
                         selected = categoryFilter != null,
-                        text = categoryFilter ?: stringResource(R.string.analytics_filter_category),
+                        text = categoryFilter?.let { categoryLabel(it) } ?: stringResource(R.string.analytics_filter_category),
                         icon = Icons.Default.Category,
                         onClick = onCategoryClick
                     )
@@ -956,7 +957,7 @@ private fun AnalyticsFilterBar(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        category,
+                                        categoryLabel(category),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -1097,7 +1098,7 @@ private fun CategoryListItem(
                 )
             }
         },
-        title = category.name,
+        title = categoryLabel(category.name),
         subtitle = pluralStringResource(
             R.plurals.analytics_transaction_count,
             category.transactionCount,

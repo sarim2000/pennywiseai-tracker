@@ -2,4 +2,6 @@
 <resources>
     <!-- Goal widgets' empty state, under "No goals yet" and above "Create goal" -->
     <!-- Spending pie widget's empty state, under "No spending yet this month" -->
+    <string name="widget_goals_empty_hint_target">एक राशि और तारीख चुनें</string>
+    <string name="widget_pie_empty_hint">श्रेणी के हिसाब से आपका खर्च यहाँ दिखेगा</string>
 </resources>

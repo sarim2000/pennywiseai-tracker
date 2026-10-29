@@ -10,7 +10,7 @@
         <item quantity="other">Exportar transações %1$d para formato CSV</item>
     </plurals>
     <string name="txn_export_total_transactions">Total de transações:</string>
-    <string name="txn_export_date_range">Date range:</string>
+    <string name="txn_export_date_range">Período:</string>
     <string name="txn_export_date_range_value">%1$s - %2$s</string>
     <string name="txn_export_free_limit_notice">Exportação livre: as primeiras linhas %1$d de %2$d</string>
     <string name="txn_export_unlock_all">Desbloquear tudo</string>
@@ -65,13 +65,13 @@
     <string name="txn_detail_action_confirm">Confirmar</string>
     <string name="txn_detail_more_actions">Mais ações</string>
     <string name="txn_detail_menu_add_to_group">Adicionar ao grupo</string>
-    <string name="txn_detail_menu_duplicate">Duplicate</string>
+    <string name="txn_detail_menu_duplicate">Duplicar</string>
     <string name="txn_detail_menu_report_issue">Reportar problema</string>
     <string name="txn_detail_delete_title">Excluir Transação</string>
     <string name="txn_detail_delete_message">Tem certeza que deseja apagar esta transação? Esta ação não pode ser desfeita.</string>
     <string name="txn_detail_unmark_loan_title">Desmarcar como empréstimo?</string>
     <string name="txn_detail_unmark_loan_message">Isto remove o link do empréstimo desta transação. Se nenhuma outra transação estiver ligada, o empréstimo também será excluído.</string>
-    <string name="txn_detail_unmark_loan_confirm">Unmark</string>
+    <string name="txn_detail_unmark_loan_confirm">Desmarcar</string>
     <string name="txn_detail_unmark_loan">Desmarcar como empréstimo</string>
     <string name="txn_detail_mark_as_loan">Marcar como empréstimo</string>
     <string name="txn_detail_loan_lent_to">Empréstimo para %1$s</string>
@@ -410,4 +410,26 @@
     <string name="tag_input_remove">Remover %1$s</string>
     <string name="tag_input_add">Adicionar tag</string>
     <string name="tag_input_create">Criar \"%1$s\"</string>
+    <string name="txn_detail_error_category_exists_other_parent">Já existe uma categoria chamada \"%1$s\" em outra categoria principal</string>
+    <string name="txn_detail_error_loan_type_locked">Esta transação faz parte de um empréstimo. Remova-a do empréstimo antes de trocar entre rendimento e gasto.</string>
+    <string name="txn_detail_error_loan_currency_locked">Esta transação faz parte de um empréstimo. Remova-a do empréstimo antes de mudar a moeda.</string>
+    <string name="txn_detail_exclude_analytics_subtitle">Continua no histórico e no saldo, mas fica fora das estatísticas de gastos</string>
+    <string name="txn_detail_adjustment_title_expense">Despesa não registrada</string>
+    <string name="txn_detail_adjustment_title_income">Rendimento não registrado</string>
+    <string name="txn_detail_adjustment_what">O que foi?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Ajuste de saldo</string>
+    <string name="txn_detail_adjustment_add">Adicionar</string>
+    <string name="txn_detail_receipt_missing">Foto do recibo não incluída neste backup</string>
+    <string name="txn_detail_field_reference">Número de referência (opcional)</string>
+    <string name="txn_detail_loan_sheet_lent">Emprestou %1$s</string>
+    <string name="txn_totals_transfer">Transferência</string>
+    <string name="txn_totals_invest">Investimento</string>
+    <string name="add_field_reference">Número de referência (opcional)</string>
+    <string name="group_detail_invested">Investido</string>
+    <string name="quick_add_title">Gasto em dinheiro</string>
+    <string name="quick_add_more_details">Mais detalhes</string>
+    <string name="quick_add_where_hint">Onde? (opcional)</string>
+    <string name="quick_add_from">De: %1$s</string>
+    <string name="quick_add_saved">Salvo: %1$s · %2$s</string>
+    <string name="split_editor_remaining">Restam %1$s</string>
 </resources>

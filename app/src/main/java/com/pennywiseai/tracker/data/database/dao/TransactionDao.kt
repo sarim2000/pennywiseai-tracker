@@ -137,6 +137,7 @@ interface TransactionDao {
         WHERE is_deleted = 0 
         AND (merchant_name LIKE '%' || :searchQuery || '%' 
         OR description LIKE '%' || :searchQuery || '%'
+        OR reference LIKE '%' || :searchQuery || '%'
         OR sms_body LIKE '%' || :searchQuery || '%') 
         ORDER BY date_time DESC
     """)

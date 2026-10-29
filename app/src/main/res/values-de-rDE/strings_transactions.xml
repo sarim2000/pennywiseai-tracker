@@ -65,13 +65,13 @@
     <string name="txn_detail_action_confirm">Bestätigen</string>
     <string name="txn_detail_more_actions">Weitere Aktionen</string>
     <string name="txn_detail_menu_add_to_group">Zur Gruppe hinzufügen</string>
-    <string name="txn_detail_menu_duplicate">Duplicate</string>
+    <string name="txn_detail_menu_duplicate">Duplizieren</string>
     <string name="txn_detail_menu_report_issue">Problem melden</string>
     <string name="txn_detail_delete_title">Transaktion löschen</string>
     <string name="txn_detail_delete_message">Sind Sie sicher, dass Sie diese Transaktion löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="txn_detail_unmark_loan_title">Als Darlehen aufheben?</string>
     <string name="txn_detail_unmark_loan_message">Dies entfernt die Darlehensverbindung aus dieser Transaktion. Wenn keine anderen Transaktionen miteinander verbunden sind, wird auch das Darlehen gelöscht.</string>
-    <string name="txn_detail_unmark_loan_confirm">Unmark</string>
+    <string name="txn_detail_unmark_loan_confirm">Markierung entfernen</string>
     <string name="txn_detail_unmark_loan">Als Darlehen aufheben</string>
     <string name="txn_detail_mark_as_loan">Als Darlehen markieren</string>
     <string name="txn_detail_loan_lent_to">Verspätet auf %1$s</string>
@@ -338,7 +338,7 @@
     <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
     <string name="recurring_item_schedule">%1$s · Nächstes %2$s</string>
     <string name="recurring_more_options">Weitere Optionen</string>
-    <string name="recurring_pause">Pause</string>
+    <string name="recurring_pause">Pausieren</string>
     <string name="recurring_resume">Fortsetzen</string>
     <string name="recurring_edit">Bearbeiten</string>
     <string name="recurring_delete">Löschen</string>
@@ -413,4 +413,23 @@
     <string name="tag_input_remove">%1$s entfernen</string>
     <string name="tag_input_add">Tag hinzufügen</string>
     <string name="tag_input_create">\"%1$s \" erstellen</string>
+    <string name="txn_detail_error_category_exists_other_parent">Eine Kategorie namens \"%1$s\" existiert bereits unter einer anderen übergeordneten Kategorie</string>
+    <string name="txn_detail_error_loan_type_locked">Diese Transaktion gehört zu einem Darlehen. Entfernen Sie sie aus dem Darlehen, bevor Sie zwischen Einkommen und Ausgabe wechseln.</string>
+    <string name="txn_detail_error_loan_currency_locked">Diese Transaktion gehört zu einem Darlehen. Entfernen Sie sie aus dem Darlehen, bevor Sie die Währung ändern.</string>
+    <string name="txn_detail_adjustment_title_expense">Nicht erfasste Ausgabe</string>
+    <string name="txn_detail_adjustment_title_income">Nicht erfasstes Einkommen</string>
+    <string name="txn_detail_adjustment_what">Was war das?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Saldokorrektur</string>
+    <string name="txn_detail_adjustment_add">Hinzufügen</string>
+    <string name="txn_detail_receipt_missing">Belegfoto ist in diesem Backup nicht enthalten</string>
+    <string name="txn_detail_field_reference">Referenznummer (optional)</string>
+    <string name="txn_totals_transfer">Überweisung</string>
+    <string name="txn_totals_invest">Investition</string>
+    <string name="add_field_reference">Referenznummer (optional)</string>
+    <string name="group_detail_invested">Investiert</string>
+    <string name="quick_add_title">Barausgabe</string>
+    <string name="quick_add_more_details">Weitere Details</string>
+    <string name="quick_add_where_hint">Wo? (optional)</string>
+    <string name="quick_add_from">Von: %1$s</string>
+    <string name="quick_add_saved">Gespeichert: %1$s · %2$s</string>
 </resources>

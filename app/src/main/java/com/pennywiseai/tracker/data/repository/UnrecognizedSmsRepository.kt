@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.data.repository
 
+import android.content.Context
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
+import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
@@ -12,6 +15,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class UnrecognizedSmsRepository @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val dao: UnrecognizedSmsDao
 ) {
     
@@ -40,6 +44,8 @@ class UnrecognizedSmsRepository @Inject constructor(
      */
     suspend fun insert(sms: UnrecognizedSmsEntity): Long = dao.insert(sms)
 
+    suspend fun getById(id: Long): UnrecognizedSmsEntity? = dao.getById(id)
+
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
         dao.insertAll(smsList)
     }
@@ -66,6 +72,8 @@ class UnrecognizedSmsRepository @Inject constructor(
      */
     suspend fun deleteAll() {
         dao.deleteAll()
+        // A discarded message's suggestion alert must not reopen it (#994).
+        SmsBroadcastReceiver.cancelAllSuggestions(context)
     }
     
     /**
@@ -73,6 +81,7 @@ class UnrecognizedSmsRepository @Inject constructor(
      */
     suspend fun deleteMessage(id: Long) {
         dao.softDeleteById(id)
+        SmsBroadcastReceiver.cancelSuggestion(context, id)
     }
     
     /**

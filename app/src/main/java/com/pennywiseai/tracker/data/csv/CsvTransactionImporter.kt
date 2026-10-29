@@ -75,10 +75,11 @@ class CsvTransactionImporter @Inject constructor() {
             val header = csvReader.readNext()
                 ?: return ImportParseResult(emptyList(), 0)
 
-            // Map normalized header label -> column index.
+            // Map normalized header label -> column index. Excel's "CSV UTF-8" prefixes
+            // the first header with a BOM, which trim() keeps, so strip it explicitly.
             val columnIndex = HashMap<String, Int>()
             header.forEachIndexed { index, name ->
-                columnIndex[name.trim().lowercase()] = index
+                columnIndex[name.removePrefix("\uFEFF").trim().lowercase()] = index
             }
 
             fun indexOf(label: String): Int? = columnIndex[label.lowercase()]

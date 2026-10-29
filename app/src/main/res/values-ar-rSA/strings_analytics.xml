@@ -369,4 +369,7 @@
     </plurals>
     <string name="mark_paid_pick_date">اختيار تاريخ</string>
     <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_forecast_for">التوقع حتى %1$s</string>
+    <string name="analytics_forecast_above_usual">أعلى من المعتاد بحوالي %1$s</string>
+    <string name="analytics_forecast_stay_under">أنفق أقل من %1$s يوميًا لتبقى عند %2$s.</string>
 </resources>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Settings screen ══ -->
-    <string name="settings_title">Confirgurações</string>
+    <string name="settings_title">Configurações</string>
     <string name="settings_back">Anterior</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">cancelar</string>
@@ -211,7 +211,7 @@
     <string name="settings_report_issue_title">Relatar um problema</string>
     <string name="settings_report_issue_subtitle">Enviar relatórios de erros no GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
-    <string name="settings_app_version">PennyWise v%1$s</string>
+    <string name="settings_app_version">PennyWise versão %1$s</string>
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Aparência</string>
     <string name="appearance_back">Anterior</string>
@@ -230,7 +230,7 @@
     <string name="appearance_blur_title">Efeitos de Desfoque</string>
     <string name="appearance_blur_subtitle">Ativar efeitos de desfocagem de vidro nos componentes UI</string>
     <!-- Navigation -->
-    <string name="appearance_navigation_section">Navigation</string>
+    <string name="appearance_navigation_section">Navegação</string>
     <string name="appearance_nav_floating">Flutuante</string>
     <string name="appearance_nav_floating_subtitle">Moderno &amp; Lustrado</string>
     <string name="appearance_nav_normal">normal</string>
@@ -289,4 +289,127 @@
     <string name="faq_still_need_help_section">Ainda precisa de ajuda?</string>
     <string name="faq_report_issue_title">Relatar um problema</string>
     <string name="faq_report_issue_subtitle">Enviar relatórios de bugs, pedidos bancários ou melhorias em recursos no GitHub</string>
+    <plurals name="settings_lock_timeout_option_minutes">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <string name="settings_export_include_receipts_title">Incluir fotos de recibos</string>
+    <string name="settings_export_include_receipts_subtitle">Adiciona as fotos de recibos anexadas aos backups exportados (arquivo maior)</string>
+    <string name="settings_folder_backup_include_receipts_title">Incluir fotos de recibos nos backups automáticos</string>
+    <string name="settings_folder_backup_include_receipts_subtitle">Deixa cada backup diário maior</string>
+    <string name="settings_import_statement_subtitle">Extratos bancários (Excel, CSV) ou PDFs de apps de UPI</string>
+    <plurals name="settings_sms_scan_months_short">
+        <item quantity="one">%1$d mês</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <plurals name="settings_sms_scan_option_months">
+        <item quantity="one">%1$d mês</item>
+        <item quantity="other">%1$d meses</item>
+    </plurals>
+    <plurals name="settings_delete_all_result_arrived">
+        <item quantity="one">%1$d nova transação chegou durante a exclusão.</item>
+        <item quantity="other">%1$d novas transações chegaram durante a exclusão.</item>
+    </plurals>
+    <string name="settings_import_csv_success">%1$d transações importadas, %2$d duplicatas ignoradas</string>
+    <string name="settings_daily_summary_title">Resumo diário</string>
+    <string name="settings_daily_summary_subtitle">Um resumo dos gastos de hoje às 21h</string>
+    <string name="settings_daily_summary_needs_permission">Permita notificações do PennyWise para receber o resumo diário.</string>
+    <string name="settings_webhooks_title">Webhooks</string>
+    <string name="settings_webhooks_subtitle">Envie os dados escolhidos para o seu endpoint</string>
+    <string name="settings_webhooks_subtitle_pro">Pro · Envie os dados escolhidos para o seu endpoint</string>
+    <string name="settings_user_guide_title">Guia do usuário</string>
+    <string name="settings_user_guide_subtitle">Guias passo a passo com capturas de tela</string>
+    <string name="appearance_bottom_bar_section">Barra inferior</string>
+    <string name="appearance_bottom_bar_subtitle">Escolha quais abas mostrar. A tela inicial sempre fica.</string>
+    <string name="webhooks_title">Webhooks</string>
+    <string name="webhooks_title_add">Adicionar webhook</string>
+    <string name="webhooks_title_edit">Editar webhook</string>
+    <string name="webhooks_title_history">Histórico de entregas</string>
+    <string name="webhooks_back">Voltar</string>
+    <string name="webhooks_pro_body">A sincronização por webhook é um recurso Pro. Envie automaticamente os dados financeiros escolhidos para o seu próprio endpoint.</string>
+    <string name="webhooks_unlock_pro">Desbloquear com Pro</string>
+    <string name="webhooks_intro">Os webhooks enviam os dados financeiros escolhidos para fora deste aparelho, para um endpoint que você define. Ative apenas endpoints em que você confia. Use HTTPS para proteger os dados e as credenciais.</string>
+    <string name="webhooks_add">Adicionar webhook</string>
+    <string name="webhooks_interval_label">Intervalo de sincronização em horas</string>
+    <string name="webhooks_interval_hint">De 1 a 24 horas. O Android pode atrasar entregas em segundo plano.</string>
+    <string name="webhooks_interval_apply">Aplicar</string>
+    <string name="webhooks_sync_all_now">Sincronizar webhooks ativos agora</string>
+    <string name="webhooks_empty">Nenhum webhook salvo</string>
+    <string name="webhooks_auto_sync_on">Sincronização automática ativada</string>
+    <string name="webhooks_auto_sync_off">Sincronização automática desativada</string>
+    <string name="webhooks_last_sync">Última sincronização: %1$s</string>
+    <string name="webhooks_action_edit">Editar</string>
+    <string name="webhooks_action_test">Testar</string>
+    <string name="webhooks_action_sync">Sincronizar</string>
+    <string name="webhooks_action_history">Histórico</string>
+    <string name="webhooks_action_delete_cd">Excluir %1$s</string>
+    <string name="webhooks_delete_title">Excluir webhook?</string>
+    <string name="webhooks_delete_body">Excluir %1$s e o histórico de entregas?</string>
+    <string name="webhooks_delete_confirm">Excluir</string>
+    <string name="webhooks_delete_cancel">Cancelar</string>
+    <string name="webhooks_history_empty">Nenhuma entrega ainda. Envios na fila esperam uma conexão de rede.</string>
+    <string name="webhooks_history_delivered">Entregue</string>
+    <string name="webhooks_history_failed">Falhou</string>
+    <string name="webhooks_history_meta">%1$s · %2$s</string>
+    <plurals name="webhooks_history_batches">
+        <item quantity="one">A entrega tem %1$d lote</item>
+        <item quantity="other">A entrega tem %1$d lotes</item>
+    </plurals>
+    <string name="webhooks_reason_manual">Manual</string>
+    <string name="webhooks_reason_interval">Intervalo</string>
+    <string name="webhooks_reason_scheduled">Agendada</string>
+    <string name="webhooks_reason_test">Teste</string>
+    <string name="webhooks_editor_name">Nome</string>
+    <string name="webhooks_editor_url">URL do endpoint HTTPS</string>
+    <plurals name="webhooks_editor_auto_on_warning">
+        <item quantity="one">O PennyWise vai enviar os dados financeiros escolhidos para fora deste celular, para esta URL, a cada %1$d hora. O Android pode atrasar entregas em segundo plano. Use só uma URL em que você confia.</item>
+        <item quantity="other">O PennyWise vai enviar os dados financeiros escolhidos para fora deste celular, para esta URL, a cada %1$d horas. O Android pode atrasar entregas em segundo plano. Use só uma URL em que você confia.</item>
+    </plurals>
+    <string name="webhooks_editor_auto_off_warning">A entrega automática está desativada. A sincronização manual envia os dados financeiros escolhidos para fora deste celular, para esta URL. Use só uma URL em que você confia.</string>
+    <string name="webhooks_editor_http_warning">HTTP envia os dados e as credenciais dos cabeçalhos sem criptografia.</string>
+    <string name="webhooks_editor_currency">Código da moeda</string>
+    <string name="webhooks_editor_enable_auto">Ativar entrega automática</string>
+    <string name="webhooks_editor_data_section">Dados a enviar</string>
+    <string name="webhooks_data_summary">Resumo</string>
+    <string name="webhooks_data_transactions">Transações</string>
+    <string name="webhooks_data_budgets">Orçamentos</string>
+    <string name="webhooks_data_accounts">Contas</string>
+    <string name="webhooks_data_subscriptions">Assinaturas</string>
+    <string name="webhooks_editor_range">Período: %1$s</string>
+    <string name="webhooks_editor_range_hint">Desde o último sucesso envia edições de transações e registros de exclusão. Orçamentos, contas e assinaturas são enviados como estão no momento.</string>
+    <string name="webhooks_editor_start_date">Data de início (AAAA-MM-DD)</string>
+    <string name="webhooks_editor_end_date">Data de fim (AAAA-MM-DD)</string>
+    <string name="webhooks_editor_headers_section">Cabeçalhos personalizados</string>
+    <string name="webhooks_editor_headers_hint">Os valores dos cabeçalhos ficam ocultos e só são enviados para este endpoint. Os testes usam dados financeiros fictícios e os cabeçalhos que você configurou.</string>
+    <string name="webhooks_editor_header_name">Nome do cabeçalho</string>
+    <string name="webhooks_editor_header_value">Valor do cabeçalho</string>
+    <string name="webhooks_editor_remove_header">Remover cabeçalho</string>
+    <string name="webhooks_editor_add_header">Adicionar cabeçalho</string>
+    <string name="webhooks_editor_save">Salvar webhook</string>
+    <string name="webhooks_range_since_last_success">Desde o último sucesso</string>
+    <string name="webhooks_range_today">Hoje</string>
+    <string name="webhooks_range_current_week">Semana atual</string>
+    <string name="webhooks_range_current_month">Mês atual</string>
+    <string name="webhooks_range_previous_month">Mês anterior</string>
+    <string name="webhooks_range_last_30_days">Últimos 30 dias</string>
+    <string name="webhooks_range_custom">Datas personalizadas</string>
+    <string name="webhooks_msg_saved">Webhook salvo</string>
+    <string name="webhooks_msg_interval_saved">Intervalo de sincronização salvo</string>
+    <string name="webhooks_msg_test_queued">Teste fictício na fila. O resultado da entrega aparece no histórico.</string>
+    <string name="webhooks_msg_sync_queued">Sincronização na fila. A entrega acontece quando houver conexão.</string>
+    <string name="webhooks_msg_deleted">Webhook excluído</string>
+    <string name="webhooks_msg_action_failed">Não foi possível concluir a ação do webhook. Tente de novo.</string>
+    <string name="webhooks_error_name_required">O nome do webhook é obrigatório</string>
+    <string name="webhooks_error_url_required">A URL do webhook é obrigatória</string>
+    <string name="webhooks_error_url_invalid">Digite uma URL HTTP ou HTTPS válida</string>
+    <string name="webhooks_error_url_https">Use HTTPS para endpoints remotos. HTTP só é aceito para localhost.</string>
+    <string name="webhooks_error_url_userinfo">A URL não pode conter dados de usuário nem fragmentos</string>
+    <string name="webhooks_error_currency">Digite um código de moeda válido</string>
+    <string name="webhooks_error_data_types">Selecione pelo menos um tipo de dado</string>
+    <string name="webhooks_error_date_range">Digite um período personalizado válido</string>
+    <string name="webhooks_error_header_name">Digite um nome de cabeçalho válido</string>
+    <string name="webhooks_error_header_line_breaks">Os valores dos cabeçalhos não podem ter quebras de linha</string>
+    <string name="webhooks_error_header_managed">Este cabeçalho é gerenciado automaticamente</string>
+    <string name="webhooks_error_header_unique">Os nomes dos cabeçalhos não podem se repetir</string>
+    <string name="webhooks_error_interval">Digite um número entre %1$d e %2$d</string>
 </resources>

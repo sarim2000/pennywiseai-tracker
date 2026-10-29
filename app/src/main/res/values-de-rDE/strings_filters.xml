@@ -20,4 +20,6 @@
     <string name="account_type_current">Aktuell</string>
     <string name="account_type_credit_card">Kreditkarte</string>
     <string name="account_type_cash">Bargeld</string>
+    <string name="filter_type_spending">Ausgaben (Ausgabe + Karte)</string>
+    <string name="account_type_loan">Darlehen</string>
 </resources>

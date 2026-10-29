@@ -178,6 +178,10 @@
     <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
     <string name="balance_card_spent_this_month">Spent this month</string>
     <string name="balance_card_change_currency">Change currency</string>
+    <string name="balance_card_summary_income">Income</string>
+    <string name="balance_card_summary_expenses">Expenses</string>
+    <string name="balance_card_summary_lent">Lent</string>
+    <string name="balance_card_summary_saved">Saved</string>
 
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
@@ -300,6 +304,10 @@
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Spent %1$s at %2$s</string>
     <string name="notif_txn_title_received">Received %1$s from %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <string name="notif_suggestion_title_spent">Spent %1$s at %2$s?</string>
+    <string name="notif_suggestion_title_received">Received %1$s from %2$s?</string>
+    <string name="notif_suggestion_text">From %1$s. Tap to add it.</string>
     <string name="notif_txn_title_other">%1$s · %2$s</string>
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">What was this for? · %1$s</string>
@@ -354,6 +362,7 @@
     <string name="safe_to_spend_short">Bills due before %1$s are more than your balance</string>
     <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
+    <string name="safe_to_spend_capped">Capped by your budget: %1$s left</string>
     <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>
     <string name="safe_to_spend_accounts">Bank balance</string>

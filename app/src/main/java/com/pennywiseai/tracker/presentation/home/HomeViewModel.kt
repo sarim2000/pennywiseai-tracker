@@ -239,7 +239,8 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
-     * out) less active subscriptions due before the cycle ends. Netted per currency;
+     * out) less active subscriptions due before the cycle ends, capped at what's left
+     * in the overall budget ([safeToSpendCap]). Netted per currency;
      * in unified mode each figure is converted to the display currency first, and one
      * with no rate stays in its own currency as a separate line. Null hides the card.
      */
@@ -247,14 +248,18 @@ class HomeViewModel @Inject constructor(
         spendableRaw,
         subscriptionRepository.getActiveSubscriptions(),
         userPreferencesRepository.safeToSpendExcludedAccounts,
-        _currentCycleWindow.combine(today) { window, day -> window.second to day },
+        combine(
+            _currentCycleWindow,
+            today,
+            _uiState.map { it.budgetSummary }.distinctUntilChanged(),
+        ) { window, day, budgets -> Triple(window.second, day, budgets?.safeToSpendCap(day)) },
         combine(
             userPreferencesRepository.unifiedCurrencyMode,
             userPreferencesRepository.displayCurrency,
             _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
             currencyConversionService.getAllRatesFlow(),
         ) { unified, display, selected, _ -> if (unified) display to true else selected to false },
-    ) { accounts, subscriptions, excluded, (periodEnd, today), (primaryCurrency, unified) ->
+    ) { accounts, subscriptions, excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
         if (accounts.isEmpty()) return@combine null
         suspend fun Money.forTotal(): Money =
             if (!unified || currency == primaryCurrency) this
@@ -266,6 +271,7 @@ class HomeViewModel @Inject constructor(
             bills = bills.map { it.copy(amount = it.amount.forTotal()) },
             today = today,
             periodEnd = periodEnd,
+            budgetLeft = budgetLeft,
         )
         val primary = results.firstOrNull { it.currency == primaryCurrency }
             ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
@@ -1041,7 +1047,9 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.unifiedCurrencyMode,
                 userPreferencesRepository.displayCurrency,
                 userPreferencesRepository.baseCurrency,
-                _currentCycleWindow
+                // Re-run on a new day too: a weekly budget can reset inside the same
+                // monthly cycle, and Safe to spend's cap reads this summary's windows.
+                combine(_currentCycleWindow, today) { cycle, _ -> cycle }
             ) { unifiedMode, displayCurrency, baseCurrency, cycle ->
                 Quad(unifiedMode, displayCurrency, baseCurrency, cycle)
             }.flatMapLatest { (unifiedMode, displayCurrency, baseCurrency, cycle) ->
@@ -1704,6 +1712,7 @@ class HomeViewModel @Inject constructor(
 
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
             val isTrackingAll = group.categories.isEmpty()
+            val window = raw.currentWindows[group.budget.id]
             val daysRemaining = daysRemainingFor(group.budget)
             val daysElapsed = daysElapsedFor(group.budget)
             val catSpending = group.categories.map { cat ->
@@ -1759,7 +1768,12 @@ class HomeViewModel @Inject constructor(
                 dailyAllowance = dailyAllowance,
                 daysRemaining = daysRemaining,
                 daysElapsed = daysElapsed,
-                isTrackingAllExpenses = isTrackingAll
+                isTrackingAllExpenses = isTrackingAll,
+                // The window the repo resolved, as the single-currency path sets it;
+                // without it the window defaults to today..today with 0 days.
+                windowStart = window?.start ?: LocalDate.now(),
+                windowEnd = window?.end ?: LocalDate.now(),
+                windowDays = window?.days ?: 0
             )
         }
 
@@ -1895,6 +1909,17 @@ internal fun isUncountedNegative(account: AccountBalanceEntity): Boolean =
 /** The accounts Safe to spend adds up: not left out by the user, not [isUncountedNegative]. */
 internal fun countedInSafeToSpend(accounts: List<AccountBalanceEntity>, excluded: Set<String>) =
     accounts.filter { safeToSpendKey(it) !in excluded && !isUncountedNegative(it) }
+
+/**
+ * What's left in the overall budget for Safe to spend: a spending limit that tracks
+ * all expenses and runs today, with its "remaining" exactly as the Home budget card
+ * shows it. Several such budgets (say weekly and monthly): the tightest one wins.
+ */
+internal fun BudgetOverallSummary.safeToSpendCap(today: LocalDate): Money? =
+    groups.filter {
+        it.isTrackingAllExpenses && it.group.budget.groupType == BudgetGroupType.LIMIT &&
+            it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
+    }.minOfOrNull { it.remaining }?.let { Money(it, currency) }
 
 /** Whole-percent change vs last month; null when last month had no spending to compare with. */
 internal fun monthlyChangePercent(current: BigDecimal, last: BigDecimal): Int? =

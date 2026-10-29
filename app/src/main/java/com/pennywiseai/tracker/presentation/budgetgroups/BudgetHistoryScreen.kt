@@ -50,6 +50,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Per-budget history drill-down. Opened from the Budgets page via the
@@ -377,7 +378,7 @@ private fun BreakdownSheet(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = cat.categoryName,
+                            text = categoryLabel(cat.categoryName),
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f)
                         )

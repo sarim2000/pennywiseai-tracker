@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 data class SplitItem(
     val id: Long = 0,
@@ -227,7 +228,7 @@ private fun SplitRow(
             modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
-                value = split.category,
+                value = categoryLabel(split.category),
                 onValueChange = {},
                 readOnly = true,
                 singleLine = true,
@@ -253,7 +254,7 @@ private fun SplitRow(
                     DropdownMenuItem(
                         text = {
                             Text(
-                                text = category,
+                                text = categoryLabel(category),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -356,7 +357,7 @@ fun SplitBreakdownCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = split.category,
+                        text = categoryLabel(split.category),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(

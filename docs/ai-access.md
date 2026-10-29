@@ -17,6 +17,8 @@ The connection then shows under **Connected apps**, where you can disconnect it 
 
 Outside a session the AI app gets a message telling you to start one. Nothing can reach your data then.
 
+If you reinstall PennyWise or clear its data, apps connected before can't reach your phone any more. Remove the PennyWise connector in the AI app and add it again with a new pairing code. If you don't, the AI app asks you to sign in again by itself once the old install has been silent for 30 days.
+
 ## Dashboard on a computer
 
 Open `https://ai.pennywise.zynth.dev/dashboard/` on a computer, click **Connect to my phone**, and enter a pairing code. It shows your spending over time, a category-by-month view, comparisons with the previous period, spending by account and weekday, your full transaction history with filters and CSV download, and your accounts and subscriptions. It needs an AI session on, like any AI app, and appears as “PennyWise dashboard” in your connected apps.

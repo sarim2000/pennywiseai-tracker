@@ -30,6 +30,12 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_ADD_BANK = "com.pennywiseai.tracker.ADD_BANK"
         const val EXTRA_ADD_LAST4 = "com.pennywiseai.tracker.ADD_LAST4"
 
+        /** An SMS suggestion's notification (#994): what [AddTransaction] carries beyond the draft. */
+        const val EXTRA_ADD_CURRENCY = "com.pennywiseai.tracker.ADD_CURRENCY"
+        const val EXTRA_ADD_TYPE = "com.pennywiseai.tracker.ADD_TYPE"
+        const val EXTRA_ADD_DATE_TIME = "com.pennywiseai.tracker.ADD_DATE_TIME"
+        const val EXTRA_ADD_SMS_ID = "com.pennywiseai.tracker.ADD_SMS_ID"
+
         /** Goal widgets (#914): open a goal, the Budgets screen, or "New goal" there. */
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
@@ -134,7 +140,11 @@ class MainActivity : FragmentActivity() {
                 merchant = intent?.getStringExtra(EXTRA_ADD_MERCHANT),
                 category = intent?.getStringExtra(EXTRA_ADD_CATEGORY),
                 bankName = intent?.getStringExtra(EXTRA_ADD_BANK),
-                accountLast4 = intent?.getStringExtra(EXTRA_ADD_LAST4)
+                accountLast4 = intent?.getStringExtra(EXTRA_ADD_LAST4),
+                currency = intent?.getStringExtra(EXTRA_ADD_CURRENCY),
+                type = intent?.getStringExtra(EXTRA_ADD_TYPE),
+                dateTime = intent?.getStringExtra(EXTRA_ADD_DATE_TIME),
+                unrecognizedSmsId = intent?.getLongExtra(EXTRA_ADD_SMS_ID, -1L)?.takeIf { it > 0 }
             )
         }
     }

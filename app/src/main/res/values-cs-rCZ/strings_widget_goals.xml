@@ -2,4 +2,6 @@
 <resources>
     <!-- Goal widgets' empty state, under "No goals yet" and above "Create goal" -->
     <!-- Spending pie widget's empty state, under "No spending yet this month" -->
+    <string name="widget_goals_empty_hint_target">Zvolte částku a datum</string>
+    <string name="widget_pie_empty_hint">Tady uvidíte své výdaje podle kategorií</string>
 </resources>

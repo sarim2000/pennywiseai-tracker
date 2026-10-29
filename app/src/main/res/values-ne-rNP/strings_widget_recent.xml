@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>    <string name="widget_recent_header">हालका</string>
+    <string name="widget_recent_sort">मिलाउनुहोस्</string>
+    <string name="widget_recent_empty_add_cash">नगद थप्न + थिच्नुहोस्</string>
+    <string name="widget_recent_description">तपाईंका पछिल्ला लेनदेन र तिनका वर्गहरू, वर्ग चाहिनेलाई एक ट्यापमा मिलाउने सुविधासहित।</string>
+</resources>

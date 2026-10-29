@@ -17,7 +17,14 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.ui.screens.unrecognized.Suggestion
+import com.pennywiseai.parser.core.GenericTransactionExtractor
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
@@ -33,6 +40,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 
 /**
  * BroadcastReceiver that intercepts incoming SMS messages in real-time
@@ -48,6 +56,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun categoryRepository(): CategoryRepository
         fun detectBalanceDiscrepancy(): com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
+        fun learnedSendersStore(): LearnedSendersStore
+        fun ignoredAccountsStore(): IgnoredAccountsStore
+        fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
     }
 
     companion object {
@@ -96,6 +107,24 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             }.getOrDefault(emptyList())
             val used = runCatching { transactionRepository.getCategoriesByUsage() }.getOrDefault(emptyList())
             return quickPicks(used, offered, exclude = transaction.category)
+        }
+
+        // Suggestion alerts share the transaction channel; the tag keeps their ids apart from transaction ids.
+        private const val SUGGESTION_TAG = "sms_suggestion"
+
+        // Its own action keeps the alert's PendingIntent from matching (and overwriting) another MainActivity one.
+        private const val ACTION_ADD_SUGGESTION = "com.pennywiseai.tracker.ACTION_ADD_SUGGESTION"
+
+        fun cancelSuggestion(context: Context, unrecognizedSmsId: Long) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(SUGGESTION_TAG, unrecognizedSmsId.toInt())
+        }
+
+        fun cancelAllSuggestions(context: Context) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.activeNotifications
+                .filter { it.tag == SUGGESTION_TAG }
+                .forEach { notificationManager.cancel(it.tag, it.id) }
         }
 
         fun ensureChannel(context: Context): NotificationManager {
@@ -261,7 +290,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, learned.category))
+                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, CategoryMapping.label(context, learned.category)))
                     .setContentText(text)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                     .setContentIntent(openTransactionIntent(context, learned.transactionId))
@@ -432,6 +461,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val result = processor.processAndSaveTransaction(sender, body, timestamp)
             if (!result.success || result.transactionId == null) {
                 Log.d(TAG, "Transaction not saved: ${result.reason}")
+                suggestFromLearnedSender(context, sender, body, timestamp)
                 return
             }
             Log.d(TAG, "Transaction saved with ID: ${result.transactionId}")
@@ -479,6 +509,81 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         }
     }
 
+    /**
+     * #994: an SMS from a sender the user has added a suggestion from is offered
+     * right away, in Unrecognized SMS and as an alert that opens Add pre-filled.
+     * It is never saved on its own; the user's Add is the confirmation.
+     */
+    private suspend fun suggestFromLearnedSender(context: Context, sender: String, body: String, timestamp: Long) {
+        val entryPoint = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            SmsBroadcastReceiverEntryPoint::class.java
+        )
+        val learned = entryPoint.learnedSendersStore()
+        // A parser that turned this SMS down (an OTP, a promo) knows the sender better than we do.
+        if (!learned.isLearned(sender) || BankParserFactory.getParsers(sender).isNotEmpty()) return
+        val transaction = GenericTransactionExtractor.extract(sender, body)?.transaction ?: return
+        val learnedAccount = learned.accountFor(sender)
+        LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)?.let {
+            if (entryPoint.ignoredAccountsStore().isIgnored(it.bankName, it.accountLast4)) return
+        }
+        val sms = UnrecognizedSmsEntity(
+            sender = sender,
+            smsBody = body,
+            receivedAt = java.time.LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
+            )
+        )
+        // Already offered (the same SMS delivered twice): -1, no second alert.
+        val id = entryPoint.unrecognizedSmsRepository().insert(sms).takeIf { it > 0 } ?: return
+        showSuggestionNotification(context, Suggestion(sms.copy(id = id), transaction, learnedAccount))
+    }
+
+    private fun showSuggestionNotification(context: Context, suggestion: Suggestion) {
+        val draft = suggestion.draft()
+        val tx = suggestion.transaction
+        val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
+        val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
+        val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
+            context.getString(R.string.notif_suggestion_title_received, amount, merchant)
+        } else {
+            context.getString(R.string.notif_suggestion_title_spent, amount, merchant)
+        }
+        val intent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_ADD_SUGGESTION
+            putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
+            putExtra(MainActivity.EXTRA_ADD_AMOUNT, draft.amount)
+            putExtra(MainActivity.EXTRA_ADD_MERCHANT, draft.merchant)
+            putExtra(MainActivity.EXTRA_ADD_BANK, draft.bankName)
+            putExtra(MainActivity.EXTRA_ADD_LAST4, draft.accountLast4)
+            putExtra(MainActivity.EXTRA_ADD_CURRENCY, draft.currency)
+            putExtra(MainActivity.EXTRA_ADD_TYPE, draft.type)
+            putExtra(MainActivity.EXTRA_ADD_DATE_TIME, draft.dateTime)
+            putExtra(MainActivity.EXTRA_ADD_SMS_ID, suggestion.sms.id)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val notificationId = suggestion.sms.id.toInt()
+        ensureChannel(context).notify(
+            SUGGESTION_TAG,
+            notificationId,
+            NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(title)
+                .setContentText(context.getString(R.string.notif_suggestion_text, suggestion.sms.sender))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(
+                    PendingIntent.getActivity(
+                        context,
+                        notificationId,
+                        intent,
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    )
+                )
+                .setAutoCancel(true)
+                .build()
+        )
+    }
+
     private fun isAppInForeground(context: Context): Boolean {
         return try {
             val application = context.applicationContext as? PennyWiseApplication
@@ -521,12 +626,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     context.getString(R.string.notif_txn_title_spent, amount, merchant)
                 else -> context.getString(R.string.notif_txn_title_other, amount, merchant)
             }
+            // From the table: a process started for this SMS may not have mirrored CategoryMapping.userStyles yet.
+            val categories = categoryRepository.getAllCategories().first()
             // Unsorted: ask, with one-tap answers. Sorted: just say where it went.
             val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
             val summaryLine = if (uncategorized) {
                 context.getString(R.string.notif_txn_ask_category, bankName)
             } else {
-                context.getString(R.string.notif_txn_category_bank, transaction.category, bankName)
+                context.getString(R.string.notif_txn_category_bank, CategoryMapping.label(context, transaction.category, categories), bankName)
             }
             val content = listOfNotNull(summaryLine, priceLine, discrepancyLine).joinToString("\n")
 
@@ -600,7 +707,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         categoryIntent,
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
-                    notificationBuilder.addAction(0, pick, categoryPendingIntent)
+                    notificationBuilder.addAction(0, CategoryMapping.label(context, pick, categories), categoryPendingIntent)
                 }
             }
 

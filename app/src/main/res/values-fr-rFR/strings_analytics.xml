@@ -146,7 +146,7 @@
     <string name="budget_history_window">Fenêtre : %1$s – %2$s</string>
     <string name="budget_history_per_week">Répartition par semaine</string>
     <string name="budget_history_cycle">Cycle</string>
-    <string name="budget_history_range">Range</string>
+    <string name="budget_history_range">Période</string>
     <string name="budget_history_current">Actuel</string>
     <string name="budget_history_live">Live · toujours en cours d\'accumulation</string>
     <string name="budget_history_frozen">Gelé à partir de %1$s</string>
@@ -285,4 +285,47 @@
     <string name="mark_paid_yesterday">Hier</string>
     <string name="mark_paid_pick_date">Choisir la date</string>
     <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_by_day_of_week">Par jour de la semaine</string>
+    <string name="analytics_no_tag">Sans étiquette</string>
+    <string name="analytics_tag_overlap_note">Une transaction avec plusieurs étiquettes compte sous chacune d\'elles, donc la somme des étiquettes peut dépasser le total.</string>
+    <string name="analytics_group_by_category">Par catégorie</string>
+    <string name="analytics_group_by_merchant">Par marchand</string>
+    <string name="analytics_group_by_account">Par compte</string>
+    <string name="analytics_group_by_tag">Par étiquette</string>
+    <string name="analytics_group_by_day_of_week">Par jour de la semaine</string>
+    <string name="analytics_group_by_pro">Pro</string>
+    <string name="analytics_percent">%1$d %%</string>
+    <string name="analytics_summary_percent_of_total">%1$d %% du total</string>
+    <string name="budgets_percent">%1$d %%</string>
+    <string name="budgets_over_budget">%1$s au-delà du budget</string>
+    <string name="budgets_remaining">%1$s restant</string>
+    <string name="budgets_date_range">%1$s – %2$s</string>
+    <plurals name="budgets_days_remaining">
+        <item quantity="one">%1$d jour restant</item>
+        <item quantity="many">%1$d jours restants</item>
+        <item quantity="other">%1$d jours restants</item>
+    </plurals>
+    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <string name="subscriptions_snackbar_ended">%1$s terminé</string>
+    <plurals name="subscriptions_summary_active">
+        <item quantity="one">%1$d abonnement actif</item>
+        <item quantity="many">%1$d abonnements actifs</item>
+        <item quantity="other">%1$d abonnements actifs</item>
+    </plurals>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="one">Échéance dans %1$d jour</item>
+        <item quantity="many">Échéance dans %1$d jours</item>
+        <item quantity="other">Échéance dans %1$d jours</item>
+    </plurals>
+    <string name="subscriptions_msg_linked">%1$s associé · prochain cycle le %2$s</string>
+    <string name="subscriptions_msg_linked_existing">%1$s associé à un paiement existant · prochain cycle le %2$s</string>
+    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <plurals name="mark_paid_days_ago">
+        <item quantity="one">Il y a %1$d jour</item>
+        <item quantity="many">Il y a %1$d jours</item>
+        <item quantity="other">Il y a %1$d jours</item>
+    </plurals>
+    <string name="analytics_forecast_for">Prévision pour %1$s</string>
+    <string name="analytics_forecast_above_usual">Environ %1$s de plus que d\'habitude</string>
+    <string name="analytics_forecast_stay_under">Dépensez moins de %1$s par jour pour rester à %2$s.</string>
 </resources>

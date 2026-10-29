@@ -334,6 +334,7 @@ fun ManageAccountsScreen(
                             account = account,
                             linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
                             isHidden = false,
+                            isUnanchored = (account.bankName to account.accountLast4) in uiState.unanchoredAccounts,
                             onToggleVisibility = { ignoreAccount(account) },
                             onUpdateBalance = {
                                 selectedAccount = account.bankName to account.accountLast4
@@ -488,6 +489,7 @@ fun ManageAccountsScreen(
                                 account = account,
                                 linkedCards = uiState.linkedCards[account.accountLast4] ?: emptyList(),
                                 isHidden = true,
+                                isUnanchored = (account.bankName to account.accountLast4) in uiState.unanchoredAccounts,
                                 onToggleVisibility = {
                                     viewModel.toggleAccountVisibility(account.bankName, account.accountLast4)
                                 },
@@ -1072,6 +1074,7 @@ private fun AccountItem(
     account: com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity,
     linkedCards: List<com.pennywiseai.tracker.data.database.entity.CardEntity> = emptyList(),
     isHidden: Boolean,
+    isUnanchored: Boolean = false,
     onToggleVisibility: () -> Unit,
     onUpdateBalance: () -> Unit,
     onViewHistory: () -> Unit,
@@ -1216,6 +1219,37 @@ private fun AccountItem(
                             MaterialTheme.colorScheme.onSurfaceVariant
                         }
                     )
+                }
+            }
+
+            // No SMS for this account ever stated a balance, so the figure is
+            // 0 ± its transactions. Point at Update Balance; it goes once set (#982).
+            if (isUnanchored && !account.isLiability) {
+                Surface(
+                    onClick = onUpdateBalance,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small),
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = stringResource(R.string.manage_accounts_estimated_balance_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
                 }
             }
 

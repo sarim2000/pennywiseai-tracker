@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">ส่วนตัว</string>
+    <string name="profile_default_business">ธุรกิจ</string>
+    <string name="rule_template_small_payments_name">จ่ายเงินเล็กน้อยเป็นค่าอาหาร</string>
+    <string name="rule_template_small_payments_description">จัดการจ่ายเงินเล็กน้อย (ต่ำกว่า 200) เข้าหมวด Food &amp; Dining</string>
+    <string name="budget_group_default_spending">การใช้จ่าย</string>
+    <string name="budget_group_default_fixed_costs">ค่าใช้จ่ายคงที่</string>
+    <string name="budget_group_default_investments">การลงทุน</string>
+    <string name="budget_group_default_monthly">งบประมาณรายเดือน</string>
+</resources>

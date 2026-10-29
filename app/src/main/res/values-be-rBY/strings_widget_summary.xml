@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Сённяшнія выдаткі, рэшта бюджэту і хуткае даданне наяўных.</string>
+    <string name="widget_summary_left">Засталося ў бюджэце</string>
+    <string name="widget_summary_over">Бюджэт перавышаны</string>
+    <string name="widget_budget_left_label">Засталося</string>
+    <string name="widget_budget_over_label">Перавышэнне</string>
+    <string name="widget_budget_empty_title">Бюджэту пакуль няма</string>
+    <string name="widget_budget_empty_hint">Задайце месячны ліміт, каб бачыць рэшту.</string>
+    <string name="widget_budget_create">Стварыць бюджэт</string>
+    <string name="widget_budget_preview_meta">з 3,600 · 120/дзень</string>
+    <string name="widget_cash_label">Наяўныя</string>
+    <string name="widget_cash_spend">Выдатак наяўнымі</string>
+    <string name="widget_cash_description">Адзін дотык, каб запісаць толькі што выдаткаваныя наяўныя.</string>
+</resources>

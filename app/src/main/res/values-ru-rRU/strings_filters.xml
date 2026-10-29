@@ -20,4 +20,6 @@
     <string name="account_type_current">Текущее</string>
     <string name="account_type_credit_card">Кредитная карта</string>
     <string name="account_type_cash">Наличные</string>
+    <string name="filter_type_spending">Траты (расход + карта)</string>
+    <string name="account_type_loan">Кредит</string>
 </resources>

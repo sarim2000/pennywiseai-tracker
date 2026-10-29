@@ -84,6 +84,7 @@ import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -437,7 +438,7 @@ fun TransactionsScreen(
                 ?: categoryFilter?.let { setOf(it) }
                 ?: availableCategories.toSet(),
             onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
-            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.name ?: stringResource(R.string.txn_list_filter_profile),
+            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.displayName() ?: stringResource(R.string.txn_list_filter_profile),
             hasProfileFilter = selectedProfileId != null,
             hasAnyActiveFilter = hasAnyActiveFilter,
             showSortMenu = showSortMenu,
@@ -1279,7 +1280,7 @@ private fun TransactionFilterHeader(
                             // open so several can be changed in one go.
                             availableCategories.forEach { category ->
                                 DropdownMenuItem(
-                                    text = { Text(category, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    text = { Text(categoryLabel(category), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     leadingIcon = {
                                         Checkbox(
                                             checked = category in selectedCategories,
@@ -1308,7 +1309,7 @@ private fun TransactionFilterHeader(
                             )
                             profiles.forEach { profile ->
                                 DropdownMenuItem(
-                                    text = { Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    text = { Text(profile.displayName(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     leadingIcon = {
                                         if (selectedProfileId == profile.id) {
                                             Icon(Icons.Default.Check, contentDescription = null)
@@ -1475,7 +1476,7 @@ private fun TransactionSearchBar(
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
                             Text(
-                                text = if (categoryFilter != null) stringResource(R.string.txn_list_search_in_category, categoryFilter)
+                                text = if (categoryFilter != null) stringResource(R.string.txn_list_search_in_category, categoryLabel(categoryFilter))
                                 else stringResource(R.string.txn_list_search_placeholder),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1551,12 +1552,12 @@ private fun categoryFilterLabel(
     selected: List<String>?,
     available: List<String>
 ): String? {
-    if (single != null) return single
+    if (single != null) return categoryLabel(single)
     if (selected == null) return null
     val excluded = available - selected.toSet()
     return when {
-        selected.size == 1 -> selected.first()
-        excluded.size in 1..2 && selected.size >= 2 -> stringResource(R.string.txn_list_categories_all_except, excluded.joinToString(", "))
+        selected.size == 1 -> categoryLabel(selected.first())
+        excluded.size in 1..2 && selected.size >= 2 -> stringResource(R.string.txn_list_categories_all_except, excluded.map { categoryLabel(it) }.joinToString(", "))
         else -> pluralStringResource(R.plurals.txn_list_categories_count, selected.size, selected.size)
     }
 }

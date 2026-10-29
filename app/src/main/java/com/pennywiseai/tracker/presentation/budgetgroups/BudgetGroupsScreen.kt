@@ -72,6 +72,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -829,7 +830,7 @@ private fun BudgetCard(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = catSpending.categoryName,
+                                        text = categoryLabel(catSpending.categoryName),
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         // Explicit: the card's tinted container doesn't supply a

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - Kifuatiliaji cha Matumizi</string>
+    <string name="widget_name_budget">Muhtasari wa Bajeti</string>
+    <string name="widget_description_budget">Inaonyesha maendeleo ya bajeti yako ya mwezi, akiba, na kiasi cha kutumia kwa siku kwa haraka.</string>
+    <string name="widget_loading">Inapakia wijeti…</string>
+    <string name="widget_name_recent">Miamala ya Hivi Karibuni</string>
+    <string name="widget_name_category_pie">Chati ya Matumizi</string>
+    <string name="widget_description_category_pie">Matumizi ya mwezi huu kwa kategoria kama chati ya duara yenye ufunguo.</string>
+    <string name="widget_name_add_transaction">Matumizi ya pesa taslimu</string>
+    <string name="widget_name_summary">Muhtasari wa Matumizi</string>
+    <string name="tile_add_transaction">Ongeza Muamala</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">Ongeza</string>
+    <string name="shortcut_add_transaction_long">Ongeza muamala</string>
+    <string name="support_title">Saidia maendeleo</string>
+    <string name="support_subtitle">Imetengenezwa na msanidi mmoja — mchango mdogo unaiendeleza 🦉</string>
+    <string name="support_dialog_body">PennyWise ni bure na ya chanzo huria, imetengenezwa na msanidi mmoja. Kila kitu tayari kimefunguliwa katika toleo hili. Ikiwa inakusaidia, mchango mdogo unaiendeleza 🦉</string>
+    <string name="support_pay_via_upi">Lipa kwa UPI</string>
+    <string name="support_close">Funga</string>
+    <string name="support_copy_upi_id">Nakili UPI ID</string>
+    <string name="support_copied_toast">UPI ID imenakiliwa</string>
+    <string name="support_no_upi_app">Hakuna app ya UPI iliyopatikana. Nakili UPI ID badala yake.</string>
+    <string name="support_nudge_body">Unaifurahia PennyWise? Saidia maendeleo 💛</string>
+    <string name="duplicate_accounts_title">Huenda kuna akaunti zilizojirudia</string>
+    <string name="duplicate_accounts_message">Tofauti za miundo ya SMS za benki au usomaji wa awali huenda zimeunda akaunti zilizojirudia zenye tarakimu tatu na nne. Ikiwa %1$s na %2$s ni akaunti moja, ziunganishwe? Miamala itahamia kwenye akaunti ya tarakimu nne, historia ya salio lake itahifadhiwa, na SMS zijazo zitaitumia moja kwa moja.</string>
+    <string name="duplicate_accounts_merge">Unganisha na ukumbuke</string>
+    <string name="duplicate_accounts_keep">Ziache tofauti</string>
+</resources>

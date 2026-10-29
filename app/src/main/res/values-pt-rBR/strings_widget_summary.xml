@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Gastos de hoje, o que resta do orçamento e um atalho para gastos em dinheiro.</string>
+    <string name="widget_summary_left">Resta no orçamento</string>
+    <string name="widget_summary_over">Acima do orçamento</string>
+    <string name="widget_budget_left_label">Resta</string>
+    <string name="widget_budget_over_label">Passou</string>
+    <string name="widget_budget_empty_title">Nenhum orçamento ainda</string>
+    <string name="widget_budget_empty_hint">Defina um limite mensal para ver quanto resta.</string>
+    <string name="widget_budget_create">Criar orçamento</string>
+    <string name="widget_budget_preview_meta">de 3.600 · 120/dia</string>
+    <string name="widget_cash_label">Dinheiro</string>
+    <string name="widget_cash_spend">Gasto em dinheiro</string>
+    <string name="widget_cash_description">Um toque para registrar o dinheiro que você acabou de gastar.</string>
+</resources>

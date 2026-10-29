@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -38,6 +39,68 @@ open class AccountBalanceRepository @Inject constructor(
     }
 
     /**
+     * Writes the balance row of an SMS transaction stamped [at], the one rule
+     * the live receiver and the inbox scan share (#982). [build] gets the
+     * balance just before [at] (the newest row at or before it, not the newest
+     * row overall) and returns the row to insert. Whatever that row changed is
+     * carried to the derived rows after it, up to the next anchor, so SMS
+     * handled in any order end with the history that time order gives. A row
+     * whose SMS stated a balance keeps that figure and rebases the derived
+     * rows after it. Pass [rebuildStartedAt] while a resync puts the SMS history
+     * back (see [AccountBalanceDao.getBalanceRowsAfter]). Card and loan accounts
+     * aren't shifted: their rows carry a limit the bank reported (#486) that a
+     * shift can't keep right, so they keep the latest-row behaviour.
+     */
+    suspend fun insertSmsTransactionBalance(
+        bankName: String,
+        accountLast4: String,
+        at: LocalDateTime,
+        rebuildStartedAt: LocalDateTime? = null,
+        build: (before: BigDecimal?) -> AccountBalanceEntity
+    ): AccountBalanceEntity = database.withTransaction {
+        val before = accountBalanceDao.getBalanceAtOrBefore(bankName, accountLast4, at)
+        val row = build(before?.balance)
+        accountBalanceDao.insertBalance(row)
+        if (!row.isLiability) {
+            shiftDerivedRowsAfter(bankName, accountLast4, at, row.balance - (before?.balance ?: BigDecimal.ZERO), rebuildStartedAt)
+        }
+        row
+    }
+
+    /**
+     * Removes [transactionId]'s balance rows before its SMS is applied again,
+     * taking back what each row changed from the derived rows after it, so
+     * [insertSmsTransactionBalance] doesn't count it twice (#982).
+     */
+    suspend fun removeSmsTransactionBalances(transactionId: Long, rebuildStartedAt: LocalDateTime? = null) = database.withTransaction {
+        // Newest first: taking back an older row moves the newer ones, which
+        // would leave their figures in this list stale.
+        for (row in accountBalanceDao.getBalancesForTransaction(transactionId).sortedByDescending { it.timestamp }) {
+            accountBalanceDao.deleteBalanceById(row.id)
+            if (row.isLiability) continue
+            val before = accountBalanceDao.getBalanceAtOrBefore(row.bankName, row.accountLast4, row.timestamp)
+            shiftDerivedRowsAfter(
+                row.bankName, row.accountLast4, row.timestamp, (before?.balance ?: BigDecimal.ZERO) - row.balance, rebuildStartedAt
+            )
+        }
+    }
+
+    /** Adds [delta] to the derived rows after [at], up to the next anchor. */
+    private suspend fun shiftDerivedRowsAfter(
+        bankName: String,
+        accountLast4: String,
+        at: LocalDateTime,
+        delta: BigDecimal,
+        rebuildStartedAt: LocalDateTime?
+    ) {
+        if (delta.signum() == 0) return
+        for (later in accountBalanceDao.getBalanceRowsAfter(bankName, accountLast4, at, rebuildStartedAt)) {
+            if (!later.derived) break
+            accountBalanceDao.updateBalanceById(later.id, later.balance + delta)
+        }
+    }
+
+    /**
      * Resolves an account when only the last-4 digits are known — used by the
      * TRANSFER balance-update path where `from_account` / `to_account` only
      * persist the last4. See AccountBalanceDao.getLatestBalanceByLast4.
@@ -54,6 +117,10 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.getAllLatestBalances()
     }
     
+    /** (bankName, last4) of accounts with no real balance yet; see [BalanceCalculator.unanchoredAccounts]. */
+    fun getUnanchoredAccounts(): Flow<Set<Pair<String, String>>> =
+        accountBalanceDao.getBalanceSourceRows().map(BalanceCalculator::unanchoredAccounts)
+
     fun getTotalBalance(): Flow<BigDecimal?> {
         return accountBalanceDao.getTotalBalance()
     }

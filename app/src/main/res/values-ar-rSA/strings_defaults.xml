@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">شخصي</string>
+    <string name="profile_default_business">العمل</string>
+    <string name="rule_template_small_payments_name">المدفوعات الصغيرة إلى الطعام</string>
+    <string name="rule_template_small_payments_description">تصنيف المصروفات الصغيرة (أقل من 200) ضمن الطعام والمطاعم</string>
+    <string name="budget_group_default_spending">الإنفاق</string>
+    <string name="budget_group_default_fixed_costs">التكاليف الثابتة</string>
+    <string name="budget_group_default_investments">الاستثمارات</string>
+    <string name="budget_group_default_monthly">الميزانية الشهرية</string>
+</resources>

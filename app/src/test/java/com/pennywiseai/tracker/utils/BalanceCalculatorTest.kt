@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.utils
 
+import com.pennywiseai.tracker.data.database.dao.BalanceSourceRow
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
@@ -269,5 +270,25 @@ class BalanceCalculatorTest {
         val a = BigDecimal("100.00")
         assertEquals(a.negate(), BalanceCalculator.transferLegEffect(true, incoming = true, a))
         assertEquals(a, BalanceCalculator.transferLegEffect(true, incoming = false, a))
+    }
+
+    @Test
+    fun `unanchoredAccounts flags only accounts whose rows are all transaction deltas`() {
+        fun row(acct: String, source: String?, stated: Boolean?) = BalanceSourceRow("Bank", acct, source, stated)
+        val rows = listOf(
+            // Every SMS stated no balance: running total from 0 (#982).
+            row("1111", "TRANSACTION", false),
+            // One SMS stated the balance.
+            row("2222", "TRANSACTION", false), row("2222", "TRANSACTION", true),
+            // The user set it via Update Balance.
+            row("3333", "TRANSACTION", false), row("3333", "MANUAL", null),
+            // A balance-notification SMS.
+            row("4444", "TRANSACTION", false), row("4444", null, null),
+            // A TRANSACTION row whose transaction is gone: ambiguous, not flagged.
+            row("5555", "TRANSACTION", null),
+            // A manual account.
+            row("6666", "OPENING", null), row("6666", "MANUAL", null)
+        )
+        assertEquals(setOf("Bank" to "1111"), BalanceCalculator.unanchoredAccounts(rows))
     }
 }

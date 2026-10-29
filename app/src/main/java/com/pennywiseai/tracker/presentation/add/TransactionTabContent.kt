@@ -50,6 +50,8 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import androidx.compose.ui.platform.LocalDensity
 
 // Reusable filled text field colors with no indicator
 @Composable
@@ -234,9 +236,9 @@ fun TransactionTabContent(
                 )
             }
 
-            // ── Merchant + Notes (connected cards) ──
+            // ── Merchant + Notes + Reference (connected cards) ──
             // Merchant is meaningless for a TRANSFER (it moves money between own
-            // accounts), so hide it and show Notes on its own.
+            // accounts), so hide it and start the group at Notes.
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(1.5.dp)
@@ -261,8 +263,19 @@ fun TransactionTabContent(
                     onValueChange = viewModel::updateTransactionNotes,
                     label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = if (isTransfer) fullShape else bottomShape,
+                    shape = if (isTransfer) topShape else middleShape,
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                    colors = filledFieldColors()
+                )
+
+                TextField(
+                    value = uiState.reference,
+                    onValueChange = viewModel::updateTransactionReference,
+                    label = { Text(stringResource(R.string.add_field_reference), fontWeight = FontWeight.SemiBold) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = bottomShape,
+                    leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
                     colors = filledFieldColors()
                 )
             }
@@ -468,7 +481,7 @@ fun TransactionTabContent(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TextField(
-                            value = uiState.category,
+                            value = categoryLabel(uiState.category),
                             onValueChange = {},
                             label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
                             readOnly = true,
@@ -625,7 +638,7 @@ fun TransactionTabContent(
             )
 
             // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(72.dp))
+            Spacer(modifier = Modifier.height(72.dp + Spacing.lg))
         }
 
         // ── Sticky Save Button ──
@@ -633,13 +646,12 @@ fun TransactionTabContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
+                // Fade in above the button only; behind it stays solid, so a
+                // disabled (translucent) Save never shows the form through it.
                 .background(
                     brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            MaterialTheme.colorScheme.surface,
-                            MaterialTheme.colorScheme.surface
-                        )
+                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                        endY = with(LocalDensity.current) { Spacing.lg.toPx() }
                     )
                 ),
             contentAlignment = Alignment.BottomCenter
@@ -648,6 +660,7 @@ fun TransactionTabContent(
                 onClick = { viewModel.saveTransaction(onSuccess = onSave) },
                 enabled = uiState.isValid && !uiState.isLoading,
                 modifier = Modifier
+                    .padding(top = Spacing.lg)
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
@@ -885,7 +898,7 @@ private fun AddBudgetImpactSection(
                     } else {
                         activeBudgetCategories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category) },
+                                text = { Text(categoryLabel(category)) },
                                 onClick = {
                                     onCategoryChange(category)
                                     expanded = false

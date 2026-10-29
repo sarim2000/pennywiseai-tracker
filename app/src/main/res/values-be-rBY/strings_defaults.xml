@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Асабісты</string>
+    <string name="profile_default_business">Бізнес</string>
+    <string name="rule_template_small_payments_name">Дробныя плацяжы → Ежа</string>
+    <string name="rule_template_small_payments_description">Адносіць дробныя выдаткі (да 200) да катэгорыі «Ежа і рэстараны»</string>
+    <string name="budget_group_default_spending">Выдаткі</string>
+    <string name="budget_group_default_fixed_costs">Сталыя выдаткі</string>
+    <string name="budget_group_default_investments">Інвестыцыі</string>
+    <string name="budget_group_default_monthly">Месячны бюджэт</string>
+</resources>

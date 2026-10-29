@@ -13,6 +13,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * A composable that displays a category with a colored dot indicator.
@@ -45,7 +46,7 @@ fun CategoryChip(
         // Category name
         if (showText) {
             Text(
-                text = category.name,
+                text = categoryLabel(category.name),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -98,7 +99,7 @@ fun CategoryChip(
         // Category name
         if (showText) {
             Text(
-                text = categoryName,
+                text = categoryLabel(categoryName),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

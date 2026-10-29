@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.screens.analytics.CategoryData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @Composable
 fun CategoryBreakdownCard(
@@ -97,7 +98,7 @@ private fun CategoryBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = category.name,
+                text = categoryLabel(category.name),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,

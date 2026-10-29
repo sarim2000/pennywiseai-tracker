@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Personal</string>
+    <string name="profile_default_business">Negocio</string>
+    <string name="rule_template_small_payments_name">Pagos pequeños a Comida</string>
+    <string name="rule_template_small_payments_description">Clasifica los gastos pequeños (menos de 200) como Comida y restaurantes</string>
+    <string name="budget_group_default_spending">Gastos</string>
+    <string name="budget_group_default_fixed_costs">Gastos fijos</string>
+    <string name="budget_group_default_investments">Inversiones</string>
+    <string name="budget_group_default_monthly">Presupuesto mensual</string>
+</resources>

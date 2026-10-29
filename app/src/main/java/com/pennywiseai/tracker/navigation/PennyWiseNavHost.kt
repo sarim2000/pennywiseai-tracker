@@ -225,6 +225,9 @@ fun PennyWiseNavHost(
             com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
+                },
+                onAddSuggestion = { draft ->
+                    navController.navigate(draft) { launchSingleTop = true }
                 }
             )
         }

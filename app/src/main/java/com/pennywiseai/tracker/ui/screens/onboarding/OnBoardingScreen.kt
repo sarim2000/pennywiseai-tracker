@@ -988,7 +988,7 @@ private fun OnBoardingBottomBar(
     onStartScan: () -> Unit
 ) {
     val isFirstStep = uiState.currentStep == OnBoardingStep.WELCOME
-    val canGoBack = !isFirstStep && !uiState.isScanning
+    val canGoBack = !isFirstStep && !uiState.isScanning && !uiState.isCompleting
 
     // Keep the controls above the system navigation bar under edge-to-edge (#563):
     // the Scaffold's bottomBar slot doesn't apply navigation-bar insets on its own,

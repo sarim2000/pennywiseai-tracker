@@ -258,6 +258,8 @@ class OnBoardingViewModel @Inject constructor(
     }
 
     fun goToPreviousStep() {
+        // Finish is saving the answers of the step it was pressed on.
+        if (_uiState.value.isCompleting) return
         val currentStep = _uiState.value.currentStep
         val previousStep = when (currentStep) {
             OnBoardingStep.WELCOME -> OnBoardingStep.WELCOME
@@ -414,8 +416,9 @@ class OnBoardingViewModel @Inject constructor(
             today.plusMonths(1).let { it.withDayOfMonth(day.coerceIn(1, it.lengthOfMonth())) }
         } else thisMonth
         _uiState.update { state ->
-            state.copy(subscriptions = state.subscriptions.filterNot { it.name == name && it.existingId == null } +
-                SubscriptionChoice(name, amount, state.baseCurrency, category, next, selected = true, fromScan = false))
+            state.copy(subscriptions = state.subscriptions.withChoice(
+                SubscriptionChoice(name, amount, state.baseCurrency, category, next, selected = true, fromScan = false)
+            ))
         }
     }
 
@@ -486,9 +489,11 @@ class OnBoardingViewModel @Inject constructor(
 
     /** [withQuickSetup] false (Skip) finishes without saving the quick-setup answers. */
     fun completeOnboarding(onComplete: () -> Unit, withQuickSetup: Boolean = true) {
+        // Decided now: the step can't change while saving, but don't depend on that.
+        val saveQuickSetup = withQuickSetup && _uiState.value.currentStep == OnBoardingStep.QUICK_SETUP
         _uiState.update { it.copy(isCompleting = true) }
         viewModelScope.launch {
-            if (withQuickSetup) quickSetupLoad?.join()
+            if (saveQuickSetup) quickSetupLoad?.join()
             val state = _uiState.value
             userPreferencesRepository.updateUserName(state.userName.trim())
             if (state.profileImageUri != null) {
@@ -509,7 +514,7 @@ class OnBoardingViewModel @Inject constructor(
                 // Won't override a currency the user explicitly picked in Settings.
                 userPreferencesRepository.applyMainAccountCurrency(state.baseCurrency)
             }
-            if (withQuickSetup && state.currentStep == OnBoardingStep.QUICK_SETUP) applyQuickSetup(state)
+            if (saveQuickSetup) applyQuickSetup(state)
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }
             onComplete()
@@ -523,18 +528,32 @@ private const val QUICK_SETUP_HISTORY_DAYS = 120L
 private const val CASH = "CASH"
 private const val BUDGET_COLOR = "#1565C0"
 
+private fun SubscriptionChoice.sameAs(other: SubscriptionChoice) = name.equals(other.name, ignoreCase = true)
+
+/**
+ * Adds [added]. A name already listed is the same bill: a tracked one (already saved)
+ * just stays ticked, so it isn't saved twice; an untracked one is replaced.
+ */
+internal fun List<SubscriptionChoice>.withChoice(added: SubscriptionChoice): List<SubscriptionChoice> {
+    val same = firstOrNull { it.sameAs(added) } ?: return this + added
+    return map { if (it !== same) it else if (same.existingId != null) same.copy(selected = true) else added }
+}
+
 /**
  * Merges the quick-setup pre-fill into what the user already did on the step: a payday
- * they picked stays, and found subscriptions go first without duplicating one they added.
+ * they picked stays, and found subscriptions go first. A tracked one the user re-typed
+ * before it loaded replaces their copy (it's already saved); otherwise their copy wins.
  */
 internal fun OnBoardingUiState.withScanFindings(
     payday: Int?,
     cycleDay: Int,
     found: List<SubscriptionChoice>
 ): OnBoardingUiState {
-    val fresh = found.filter { c -> subscriptions.none { it.name.equals(c.name, ignoreCase = true) } }
-    return if (paydayPicked) copy(subscriptions = fresh + subscriptions)
-    else copy(paydayDay = payday ?: cycleDay, paydayDetected = payday != null, subscriptions = fresh + subscriptions)
+    val tracked = found.filter { it.existingId != null }
+    val mine = subscriptions.filterNot { m -> tracked.any { it.sameAs(m) } }
+    val merged = found.filter { f -> mine.none { it.sameAs(f) } } + mine
+    return if (paydayPicked) copy(subscriptions = merged)
+    else copy(paydayDay = payday ?: cycleDay, paydayDetected = payday != null, subscriptions = merged)
 }
 
 /**

@@ -104,6 +104,25 @@ class QuickSetupMergeTest {
     }
 
     @Test
+    fun `a tracked bill the user re-typed before it loaded is kept once, as the saved one`() {
+        val typed = choice("Netflix", selected = true, fromScan = false)
+        val tracked = choice("NETFLIX", selected = true).copy(existingId = 7)
+        val merged = OnBoardingUiState(subscriptions = listOf(typed)).withScanFindings(null, 1, listOf(tracked))
+        assertEquals(listOf(tracked), merged.subscriptions)
+    }
+
+    @Test
+    fun `adding a tracked name re-ticks it instead of saving it twice`() {
+        val tracked = choice("Netflix").copy(existingId = 7)
+        val typed = choice("netflix", selected = true, fromScan = false)
+        assertEquals(listOf(tracked.copy(selected = true)), listOf(tracked).withChoice(typed))
+        // An untracked one with the name is replaced; a new name is appended.
+        val gym = choice("Gym", fromScan = false)
+        assertEquals(listOf(typed), listOf(choice("Netflix", fromScan = false)).withChoice(typed))
+        assertEquals(listOf(tracked, gym), listOf(tracked).withChoice(gym))
+    }
+
+    @Test
     fun `untouched payday takes the detected day, else the current cycle day`() {
         assertEquals(25, OnBoardingUiState().withScanFindings(25, cycleDay = 1, found = emptyList()).paydayDay)
         val none = OnBoardingUiState().withScanFindings(null, cycleDay = 10, found = emptyList())

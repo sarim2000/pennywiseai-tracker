@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -156,7 +158,7 @@ fun ExportTransactionsDialog(
                                 if (transactions.isNotEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
 
-                                    val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+                                    val dateFormatter = AppDates.pattern("MMM d, yyyy")
                                     val startDate = transactions.last().dateTime.format(dateFormatter)
                                     val endDate = transactions.first().dateTime.format(dateFormatter)
 

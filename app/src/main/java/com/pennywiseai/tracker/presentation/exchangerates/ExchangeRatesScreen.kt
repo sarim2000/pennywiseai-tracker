@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -130,7 +132,7 @@ fun ExchangeRatesScreen(
                     uiState.lastUpdated?.let { lastUpdated ->
                         item {
                             Text(
-                                text = stringResource(R.string.exchange_rates_last_updated, lastUpdated.format(DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))),
+                                text = stringResource(R.string.exchange_rates_last_updated, lastUpdated.format(AppDates.pattern("MMM d, yyyy h:mm a"))),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

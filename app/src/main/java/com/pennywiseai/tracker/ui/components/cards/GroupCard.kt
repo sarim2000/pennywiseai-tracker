@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -70,7 +72,7 @@ fun GroupCard(
     }
 
     val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }
-    val dateText = latestDate?.format(DateTimeFormatter.ofPattern("d MMM")) ?: ""
+    val dateText = latestDate?.format(AppDates.pattern("d MMM")) ?: ""
     val currency = displayCurrency ?: transactions.firstOrNull()?.currency ?: "INR"
 
     val countText = pluralStringResource(R.plurals.group_card_transaction_count, transactions.size, transactions.size)

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import android.content.Context
 import android.text.format.DateFormat
@@ -179,7 +181,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 DateFormat.getBestDateTimePattern(locale, if (DateFormat.is24HourFormat(ctx)) "Hm" else "hma"),
                 locale
             )
-            val dateFormat = DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "MMMd"), locale)
+            val dateFormat = AppDates.pattern(DateFormat.getBestDateTimePattern(locale, "MMMd"), locale)
             val yesterday = ctx.getString(R.string.txn_list_group_yesterday)
             // From the table, not CategoryMapping.userStyles / BuiltinCategoryNames:
             // a background process may not have mirrored them yet.

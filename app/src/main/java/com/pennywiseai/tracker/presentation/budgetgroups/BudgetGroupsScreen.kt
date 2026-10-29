@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import java.time.format.TextStyle
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
@@ -391,7 +393,7 @@ private fun MonthSelector(
     onNext: () -> Unit
 ) {
     val yearMonth = YearMonth.of(year, month)
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+    val formatter = AppDates.pattern("MMMM yyyy")
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -676,7 +678,7 @@ private fun BudgetCard(
                 // budget's own current window (Jun 29..Jul 5 even when
                 // the page is the July view) so this number is
                 // consistent across month views.
-                val dateFormatter = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+                val dateFormatter = AppDates.pattern("d MMM")
                 val locale = LocalConfiguration.current.locales[0]
                 val subtitleText = when {
                     groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)

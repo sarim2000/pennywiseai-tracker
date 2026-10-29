@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.domain.model.icon
 
 import com.pennywiseai.tracker.R
@@ -572,7 +574,7 @@ private fun AccountTransactionItem(
                     ) {
                         Text(
                             text = transaction.dateTime.format(
-                                DateTimeFormatter.ofPattern("MMM d, h:mm a")
+                                AppDates.pattern("MMM d, h:mm a")
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

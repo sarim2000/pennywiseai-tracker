@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -296,7 +298,7 @@ fun SubscriptionTabContent(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("dd MMMM")),
+                                text = uiState.nextPaymentDate.format(AppDates.pattern("dd MMMM")),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,

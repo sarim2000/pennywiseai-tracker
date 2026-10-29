@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.Context
 import android.content.res.Resources
 import androidx.compose.animation.core.animateFloatAsState
@@ -78,7 +80,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.Locale
 
-internal val goalDateFormat: DateTimeFormatter get() = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+internal val goalDateFormat: DateTimeFormatter get() = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(AppDates.locale())
 
 @Composable
 internal fun GoalProgress.color(): Color = goal.color.toColorOr(MaterialTheme.colorScheme.primary)

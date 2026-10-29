@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -130,7 +132,7 @@ fun BudgetHistoryScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         )
-                        val longFormatter = DateTimeFormatter.ofPattern("d MMM yyyy")
+                        val longFormatter = AppDates.pattern("d MMM yyyy")
                         Text(
                             text = stringResource(
                                 R.string.budget_history_window,
@@ -199,7 +201,7 @@ private fun HistoryRow(
     isCurrentPeriod: Boolean,
     onClick: () -> Unit
 ) {
-    val shortFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+    val shortFormatter = remember { AppDates.pattern("d MMM") }
     PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
@@ -273,7 +275,7 @@ private fun LiveBadge() {
 
 @Composable
 private fun FrozenBadge(capDate: LocalDate) {
-    val formatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()) }
+    val formatter = remember { AppDates.pattern("d MMM yyyy") }
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -293,7 +295,7 @@ private fun FrozenBadge(capDate: LocalDate) {
 }
 
 private fun monthLabel(yearMonth: YearMonth): String {
-    val formatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())
+    val formatter = AppDates.pattern("MMMM yyyy")
     return yearMonth.format(formatter)
 }
 
@@ -306,7 +308,7 @@ private fun BreakdownSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val longFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
+    val longFormatter = remember { AppDates.pattern("d MMM yyyy") }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState

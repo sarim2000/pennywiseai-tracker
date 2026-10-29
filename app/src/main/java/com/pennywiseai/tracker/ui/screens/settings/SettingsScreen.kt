@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -689,7 +691,7 @@ fun SettingsScreen(
                         subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
                             val formatted = java.time.Instant.ofEpochMilli(timestamp)
                                 .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                                .format(AppDates.pattern("MMM d, yyyy h:mm a"))
                             stringResource(R.string.settings_backup_now_last_backup, formatted)
                         } ?: stringResource(R.string.settings_backup_now_subtitle),
                         onClick = { settingsViewModel.backupToFolderNow() },
@@ -1826,12 +1828,12 @@ private fun formatSmsScanCustomDate(dateMillis: Long): String {
     return java.time.Instant.ofEpochMilli(dateMillis)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        .format(AppDates.pattern("MMM d, yyyy"))
 }
 
 private fun formatSmsScanCustomDateShort(dateMillis: Long): String {
     return java.time.Instant.ofEpochMilli(dateMillis)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
+        .format(AppDates.pattern("MMM d"))
 }

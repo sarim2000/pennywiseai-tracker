@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings.aiaccess
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -183,7 +185,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                         Column(Modifier.weight(1f)) {
                             Text(c.clientName, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                stringResource(R.string.ai_access_connected_on, DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(c.createdAt * 1000))),
+                                stringResource(R.string.ai_access_connected_on, DateFormat.getDateInstance(DateFormat.MEDIUM, AppDates.locale()).format(Date(c.createdAt * 1000))),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }

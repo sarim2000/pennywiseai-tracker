@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -250,7 +252,7 @@ private fun BalanceHistoryItem(
                         )
                         Text(
                             text = balance.timestamp.format(
-                                DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a")
+                                AppDates.pattern("MMM d, yyyy h:mm a")
                             ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

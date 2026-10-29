@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import com.pennywiseai.tracker.R
@@ -1309,7 +1311,7 @@ private fun AccountItem(
                                         // Show last transaction date if available
                                         if (card.lastBalanceDate != null) {
                                             Text(
-                                                text = stringResource(R.string.manage_accounts_card_updated, card.lastBalanceDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd"))),
+                                                text = stringResource(R.string.manage_accounts_card_updated, card.lastBalanceDate.format(AppDates.pattern("MMM dd"))),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )

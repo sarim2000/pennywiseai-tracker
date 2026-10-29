@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.unrecognized
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -317,7 +319,7 @@ private fun UnrecognizedSmsItem(
                     )
                     Text(
                         text = message.receivedAt.format(
-                            DateTimeFormatter.ofPattern("MMM dd, yyyy • HH:mm")
+                            AppDates.pattern("MMM dd, yyyy • HH:mm")
                         ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -89,12 +89,25 @@ class QuickSetupDetectionTest {
     }
 }
 
-class QuickSetupAmountInputTest {
+class QuickSetupMergeTest {
+    private fun choice(name: String, selected: Boolean = false, fromScan: Boolean = true) = SubscriptionChoice(
+        name, BigDecimal("5"), "JOD", "Others", LocalDate.parse("2026-11-01"), selected, fromScan = fromScan
+    )
+
     @Test
-    fun `comma is the decimal point only in decimal-comma locales`() {
-        assertEquals("7.99", "7,99".filterAmount(decimalComma = true))
-        assertEquals("1000", "1,000".filterAmount(decimalComma = false))
-        assertEquals("12.50", "12.5.0".filterAmount(decimalComma = false))
-        assertEquals("30", "JD 30".filterAmount(decimalComma = false))
+    fun `scan findings arriving late keep what the user already did`() {
+        val typed = choice("Netflix", selected = true, fromScan = false)
+        val state = OnBoardingUiState(paydayDay = 27, paydayPicked = true, subscriptions = listOf(typed))
+        val merged = state.withScanFindings(payday = 25, cycleDay = 1, found = listOf(choice("netflix"), choice("Gym")))
+        assertEquals(27, merged.paydayDay)
+        assertEquals(listOf(choice("Gym"), typed), merged.subscriptions)
+    }
+
+    @Test
+    fun `untouched payday takes the detected day, else the current cycle day`() {
+        assertEquals(25, OnBoardingUiState().withScanFindings(25, cycleDay = 1, found = emptyList()).paydayDay)
+        val none = OnBoardingUiState().withScanFindings(null, cycleDay = 10, found = emptyList())
+        assertEquals(10, none.paydayDay)
+        assertEquals(false, none.paydayDetected)
     }
 }

@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,7 +42,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.math.BigDecimal
-import java.text.DecimalFormatSymbols
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Currency
@@ -106,9 +106,10 @@ data class OnBoardingUiState(
     val selectedAccountKey: String? = null,
     val isCompleting: Boolean = false,
     // Quick setup
-    val quickSetupLoaded: Boolean = false,
     val paydayDay: Int = 1,
     val paydayDetected: Boolean = false,
+    /** True once the user picks a payday; the scan's guess, arriving later, then leaves it alone. */
+    val paydayPicked: Boolean = false,
     val subscriptions: List<SubscriptionChoice> = emptyList(),
     val usesCash: Boolean = false,
     val cashBalance: String = "",
@@ -252,7 +253,7 @@ class OnBoardingViewModel @Inject constructor(
             OnBoardingStep.ACCOUNT_SETUP -> OnBoardingStep.QUICK_SETUP
             OnBoardingStep.QUICK_SETUP -> OnBoardingStep.QUICK_SETUP // Already last
         }
-        if (nextStep == OnBoardingStep.QUICK_SETUP && !_uiState.value.quickSetupLoaded) loadQuickSetup()
+        if (nextStep == OnBoardingStep.QUICK_SETUP && quickSetupLoad == null) loadQuickSetup()
         _uiState.update { it.copy(currentStep = nextStep) }
     }
 
@@ -351,9 +352,16 @@ class OnBoardingViewModel @Inject constructor(
         _uiState.update { it.copy(selectedAccountKey = accountKey) }
     }
 
-    /** Pre-fills the quick-setup step from what the scan found. */
+    /** The one quick-setup pre-fill; Finish waits for it so the scan's findings aren't lost. */
+    private var quickSetupLoad: Job? = null
+
+    /**
+     * Pre-fills the quick-setup step from what the scan found. The step is usable while
+     * this runs, so the results merge into the state rather than replace what the user did.
+     */
     private fun loadQuickSetup() {
-        viewModelScope.launch {
+        _uiState.update { it.copy(appLockAvailable = biometricAuthManager.isBiometricAvailable()) }
+        quickSetupLoad = viewModelScope.launch {
             val today = LocalDate.now()
             val transactions = transactionRepository.getTransactionsBetweenDatesList(
                 today.minusDays(QUICK_SETUP_HISTORY_DAYS).atStartOfDay(),
@@ -381,26 +389,19 @@ class OnBoardingViewModel @Inject constructor(
                 SubscriptionChoice(it.name, it.amount, it.currency, it.category, it.nextPaymentDate, selected = false)
             }
             val cycleDay = userPreferencesRepository.getBudgetCycleStartDay()
-            _uiState.update {
-                it.copy(
-                    quickSetupLoaded = true,
-                    paydayDay = payday ?: cycleDay,
-                    paydayDetected = payday != null,
-                    subscriptions = trackedChoices + detected,
-                    appLockAvailable = biometricAuthManager.isBiometricAvailable()
-                )
-            }
+            _uiState.update { it.withScanFindings(payday, cycleDay, trackedChoices + detected) }
         }
     }
 
     fun setPayday(day: Int) {
-        _uiState.update { it.copy(paydayDay = day, paydayDetected = false) }
+        _uiState.update { it.copy(paydayDay = day, paydayDetected = false, paydayPicked = true) }
     }
 
-    fun toggleSubscription(index: Int) {
+    /** By value, not index: the scan's findings can be prepended between a render and the tap. */
+    fun toggleSubscription(choice: SubscriptionChoice) {
         _uiState.update { state ->
-            state.copy(subscriptions = state.subscriptions.mapIndexed { i, c ->
-                if (i == index) c.copy(selected = !c.selected) else c
+            state.copy(subscriptions = state.subscriptions.map {
+                if (it == choice) it.copy(selected = !it.selected) else it
             })
         }
     }
@@ -423,11 +424,11 @@ class OnBoardingViewModel @Inject constructor(
     }
 
     fun updateCashBalance(value: String) {
-        _uiState.update { it.copy(cashBalance = value.filterAmount()) }
+        _uiState.update { it.copy(cashBalance = value) }
     }
 
     fun updateMonthlyBudget(value: String) {
-        _uiState.update { it.copy(monthlyBudget = value.filterAmount()) }
+        _uiState.update { it.copy(monthlyBudget = value) }
     }
 
     fun setAppLock(enabled: Boolean) {
@@ -487,6 +488,7 @@ class OnBoardingViewModel @Inject constructor(
     fun completeOnboarding(onComplete: () -> Unit, withQuickSetup: Boolean = true) {
         _uiState.update { it.copy(isCompleting = true) }
         viewModelScope.launch {
+            if (withQuickSetup) quickSetupLoad?.join()
             val state = _uiState.value
             userPreferencesRepository.updateUserName(state.userName.trim())
             if (state.profileImageUri != null) {
@@ -516,22 +518,24 @@ class OnBoardingViewModel @Inject constructor(
 
 }
 
-/**
- * Digits and one decimal point — what an amount field accepts. A comma is the decimal
- * point where the locale writes 7,99 (as Quick Add reads it), else a grouping separator.
- */
-internal fun String.filterAmount(
-    decimalComma: Boolean = DecimalFormatSymbols.getInstance().decimalSeparator == ','
-): String {
-    val digits = (if (decimalComma) replace(',', '.') else this).filter { it.isDigit() || it == '.' }
-    val dot = digits.indexOf('.')
-    return if (dot < 0) digits else digits.substring(0, dot + 1) + digits.substring(dot + 1).replace(".", "")
-}
-
 private const val QUICK_SETUP_HISTORY_DAYS = 120L
 /** Last-4 placeholder and account type of the cash account, as Manage Accounts creates it. */
 private const val CASH = "CASH"
 private const val BUDGET_COLOR = "#1565C0"
+
+/**
+ * Merges the quick-setup pre-fill into what the user already did on the step: a payday
+ * they picked stays, and found subscriptions go first without duplicating one they added.
+ */
+internal fun OnBoardingUiState.withScanFindings(
+    payday: Int?,
+    cycleDay: Int,
+    found: List<SubscriptionChoice>
+): OnBoardingUiState {
+    val fresh = found.filter { c -> subscriptions.none { it.name.equals(c.name, ignoreCase = true) } }
+    return if (paydayPicked) copy(subscriptions = fresh + subscriptions)
+    else copy(paydayDay = payday ?: cycleDay, paydayDetected = payday != null, subscriptions = fresh + subscriptions)
+}
 
 /**
  * The state once the scan has finished. Reads the worker's output, falling back

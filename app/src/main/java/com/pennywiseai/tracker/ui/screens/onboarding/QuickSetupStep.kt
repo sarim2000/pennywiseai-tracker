@@ -31,10 +31,12 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -42,11 +44,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.add.QuickAddActivity
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
+import java.text.DecimalFormatSymbols
 import java.time.LocalDate
 
 /** A one-tap subscription: brand names stay as is, generic ones are translated. Category is a built-in key. */
@@ -116,7 +120,7 @@ internal fun QuickSetupStep(
                 else R.string.onboarding_subs_body_empty
             )
         ) {
-            uiState.subscriptions.forEachIndexed { index, choice ->
+            uiState.subscriptions.forEach { choice ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
@@ -124,7 +128,7 @@ internal fun QuickSetupStep(
                         .toggleable(
                             value = choice.selected,
                             role = Role.Checkbox,
-                            onValueChange = { viewModel.toggleSubscription(index) }
+                            onValueChange = { viewModel.toggleSubscription(choice) }
                         )
                 ) {
                     Checkbox(checked = choice.selected, onCheckedChange = null)
@@ -255,11 +259,16 @@ private fun QuickSetupSection(
     }
 }
 
+/** Amount entry read as Quick Add reads it: any-script digits, "٫" and the locale's decimal comma. */
 @Composable
 private fun AmountField(value: String, onValueChange: (String) -> Unit, label: String, currency: String) {
+    val configuration = LocalConfiguration.current
+    val decimalComma = remember(configuration) {
+        DecimalFormatSymbols.getInstance(configuration.locales[0]).decimalSeparator == ','
+    }
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = { typed -> QuickAddActivity.normalizeAmount(typed, decimalComma)?.let(onValueChange) },
         label = { Text(label) },
         prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency) + " ") },
         singleLine = true,
@@ -283,7 +292,11 @@ private fun AddSubscriptionDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.onboarding_subs_add_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Scrolls so a large font or the keyboard can't push the fields out of reach.
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
                 if (presetName.isEmpty()) {
                     OutlinedTextField(
                         value = name,
@@ -297,7 +310,7 @@ private fun AddSubscriptionDialog(
                 }
                 AmountField(
                     value = amount,
-                    onValueChange = { amount = it.filterAmount() },
+                    onValueChange = { amount = it },
                     label = stringResource(R.string.onboarding_subs_amount_label),
                     currency = currency
                 )

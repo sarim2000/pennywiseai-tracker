@@ -1,5 +1,5 @@
 {
-  "totalBanks": 169,
+  "totalBanks": 170,
   "totalCountries": 26,
   "countries": [
     {
@@ -87,8 +87,8 @@
       "flag": "🇯🇴",
       "currency": "JOD",
       "symbol": "JD",
-      "bankCount": 4,
-      "banks": ["Bank al Etihad", "Islamic International Arab Bank", "Jordan Islamic Bank", "Safwa Islamic Bank"]
+      "bankCount": 5,
+      "banks": ["Bank al Etihad", "Islamic International Arab Bank", "Jordan Islamic Bank", "Orange Money", "Safwa Islamic Bank"]
     },
     {
       "country": "Mozambique",

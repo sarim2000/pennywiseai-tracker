@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Dnešní výdaje, kolik zbývá z rozpočtu a rychlé přidání hotovosti.</string>
+    <string name="widget_summary_left">Zbývá v rozpočtu</string>
+    <string name="widget_summary_over">Nad rozpočtem</string>
+    <string name="widget_budget_left_label">Zbývá</string>
+    <string name="widget_budget_over_label">Přečerpáno o</string>
+    <string name="widget_budget_empty_title">Zatím žádný rozpočet</string>
+    <string name="widget_budget_empty_hint">Nastavte měsíční limit a uvidíte, kolik zbývá.</string>
+    <string name="widget_budget_create">Vytvořit rozpočet</string>
+    <string name="widget_budget_preview_meta">z 3 600 · 120/den</string>
+    <string name="widget_cash_label">Hotovost</string>
+    <string name="widget_cash_spend">Platba hotově</string>
+    <string name="widget_cash_description">Jedním klepnutím zapíšete hotovost, kterou jste právě utratili.</string>
+</resources>

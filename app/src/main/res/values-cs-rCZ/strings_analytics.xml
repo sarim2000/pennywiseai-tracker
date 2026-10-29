@@ -168,10 +168,10 @@
     <string name="budget_history_title">Historie rozpočtu</string>
     <string name="budget_history_loading">Načítání…</string>
     <string name="budget_history_not_found">Rozpočet nenalezen</string>
-    <string name="budget_history_window">Window: %1$s – %2$s</string>
+    <string name="budget_history_window">Období: %1$s – %2$s</string>
     <string name="budget_history_per_week">Členění podle jednotlivých týdnů</string>
     <string name="budget_history_cycle">Cyklus</string>
-    <string name="budget_history_range">Range</string>
+    <string name="budget_history_range">Rozsah</string>
     <string name="budget_history_current">Aktuální</string>
     <string name="budget_history_live">Živá · stále se hromadí</string>
     <string name="budget_history_frozen">Zmrazené od %1$s</string>
@@ -336,4 +336,16 @@
     </plurals>
     <string name="mark_paid_pick_date">Vybrat datum</string>
     <!-- Month-end forecast row in the summary card -->
+    <string name="analytics_by_day_of_week">Podle dne v týdnu</string>
+    <string name="analytics_no_tag">Bez štítku</string>
+    <string name="analytics_tag_overlap_note">Transakce s více štítky se započítá pod každý z nich, takže součty štítků mohou přesáhnout celkovou částku.</string>
+    <string name="analytics_group_by_category">Podle kategorie</string>
+    <string name="analytics_group_by_merchant">Podle obchodníka</string>
+    <string name="analytics_group_by_account">Podle účtu</string>
+    <string name="analytics_group_by_tag">Podle štítku</string>
+    <string name="analytics_group_by_day_of_week">Podle dne v týdnu</string>
+    <string name="analytics_group_by_pro">Pro</string>
+    <string name="analytics_forecast_for">Odhad na %1$s</string>
+    <string name="analytics_forecast_above_usual">Asi o %1$s víc než obvykle</string>
+    <string name="analytics_forecast_stay_under">Utrácejte méně než %1$s denně, abyste zůstali na %2$s.</string>
 </resources>

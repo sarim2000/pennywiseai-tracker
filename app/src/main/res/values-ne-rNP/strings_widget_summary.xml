@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">आजको खर्च, बजेटमा कति बाँकी छ, र छिटो नगद थप्ने सुविधा।</string>
+    <string name="widget_summary_left">बजेटमा बाँकी</string>
+    <string name="widget_summary_over">बजेटभन्दा बढी</string>
+    <string name="widget_budget_left_label">बाँकी</string>
+    <string name="widget_budget_over_label">बढी</string>
+    <string name="widget_budget_empty_title">अझै बजेट छैन</string>
+    <string name="widget_budget_empty_hint">कति बाँकी छ हेर्न मासिक सीमा सेट गर्नुहोस्।</string>
+    <string name="widget_budget_create">बजेट बनाउनुहोस्</string>
+    <string name="widget_budget_preview_meta">3,600 मध्ये · 120/दिन</string>
+    <string name="widget_cash_label">नगद</string>
+    <string name="widget_cash_spend">नगद खर्च</string>
+    <string name="widget_cash_description">भर्खरै खर्च गरेको नगद एक ट्यापमा लेख्नुहोस्।</string>
+</resources>

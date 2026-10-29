@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">หารกับ…</string>
+    <string name="split_menu_edit">แก้ไขการหาร</string>
+    <string name="split_sheet_title">หาร %1$s</string>
+    <string name="split_sheet_hint">แต่ละส่วนจะถูกเพิ่มไว้ในเงินกู้เป็นเงินที่คุณให้ยืม เฉพาะส่วนของคุณเท่านั้นที่นับเป็นการใช้จ่าย</string>
+    <string name="split_people_count">%1$d จาก %2$d คน</string>
+    <string name="split_person_name">ชื่อคน</string>
+    <string name="split_add_person">เพิ่ม</string>
+    <string name="split_pick_contact">เลือกจากรายชื่อติดต่อ</string>
+    <string name="split_remove_person">ลบ %1$s</string>
+    <string name="split_mode_equal">หารเท่ากัน</string>
+    <string name="split_mode_custom">กำหนดจำนวนเอง</string>
+    <string name="split_you">คุณ</string>
+    <string name="split_your_part">ส่วนของคุณ</string>
+    <string name="split_left_to_assign">เหลือ %1$s ที่ยังไม่ได้แบ่ง</string>
+    <string name="split_over_total">เกินยอดรวม %1$s</string>
+    <string name="split_adds_up">รวมเป็น %1$s</string>
+    <string name="split_save">บันทึกการหาร</string>
+    <string name="split_error_share_positive">ทุกส่วนต้องมากกว่า 0</string>
+    <string name="split_error_over">ส่วนที่แบ่งรวมกันเกินยอดรวม</string>
+    <string name="split_error_your_part_negative">ส่วนของคุณต้องไม่ติดลบ</string>
+    <string name="split_error_failed">บันทึกการหารไม่ได้: %1$s</string>
+    <string name="split_error_settled">เงินกู้ของ %1$s ชำระครบแล้ว เปิดใหม่ในเงินกู้ก่อนเพื่อเปลี่ยนส่วนของเขา</string>
+    <string name="split_error_transfer">บิลที่หารแล้วเป็นการโอนไม่ได้ ลบการหารก่อน</string>
+    <string name="split_error_type_locked">บิลนี้หารแล้ว ลบการหารก่อนเปลี่ยนประเภท</string>
+    <string name="split_error_amount_below_shares">บิลนี้หารแล้ว จำนวนเงินต้องไม่น้อยกว่าส่วนที่คุณให้ยืม</string>
+    <string name="split_section_title">หารกับ</string>
+    <string name="split_settled">ชำระครบแล้ว</string>
+    <string name="split_request">เรียกเก็บ %1$s</string>
+    <string name="split_remove">ลบการหาร</string>
+    <string name="split_remove_title">ลบการหารไหม?</string>
+    <string name="split_remove_message">ส่วนของแต่ละคนจะถูกหักออกจากเงินกู้ของเขา เงินกู้ที่ไม่มีรายการอื่นเหลืออยู่จะถูกลบ</string>
+    <string name="split_remove_confirm">ลบ</string>
+    <string name="split_upi_title">UPI ID ของคุณ</string>
+    <string name="split_upi_message">คนอื่นจะจ่ายส่วนของเขาไปที่ UPI ID นี้ เปลี่ยนได้ในการตั้งค่า</string>
+    <string name="split_upi_hint">name@bank</string>
+    <string name="split_upi_invalid">ใส่ UPI ID แบบ name@bank</string>
+    <string name="split_upi_save">บันทึก</string>
+    <string name="split_request_text">จ่าย %1$s ให้ %2$s ค่า %3$s</string>
+    <string name="split_request_failed">สร้าง QR โค้ดไม่ได้</string>
+    <string name="settings_upi_title">UPI ID ของคุณ</string>
+    <string name="settings_upi_subtitle">ใช้เรียกเก็บเงินส่วนของแต่ละคนเมื่อหารบิล</string>
+    <string name="settings_upi_not_set">ยังไม่ได้ตั้ง</string>
 </resources>

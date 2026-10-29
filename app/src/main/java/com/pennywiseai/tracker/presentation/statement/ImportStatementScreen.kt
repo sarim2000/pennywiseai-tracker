@@ -218,7 +218,7 @@ fun ImportStatementScreen(
                     )
                 }
                 is ImportStatementUiState.Error -> ErrorContent(
-                    message = state.message,
+                    message = state.message.asString(),
                     onTryAgain = {
                         viewModel.resetState()
                     }

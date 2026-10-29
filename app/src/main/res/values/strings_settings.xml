@@ -244,6 +244,9 @@
     <string name="settings_developer_section">Developer</string>
     <string name="settings_developer_mode_title">Developer Mode</string>
     <string name="settings_developer_mode_subtitle">Show technical information in chat</string>
+    <string name="settings_webhooks_title">Webhooks</string>
+    <string name="settings_webhooks_subtitle">Send selected data to your endpoint</string>
+    <string name="settings_webhooks_subtitle_pro">Pro · Send selected data to your endpoint</string>
 
     <!-- Support & Community -->
     <string name="settings_support_section">Support &amp; Community</string>
@@ -296,6 +299,119 @@
     <string name="appearance_font_default">Default</string>
     <string name="appearance_font_default_subtitle">System</string>
     <string name="appearance_font_sn_pro_subtitle">Modern Mono</string>
+
+    <!-- ══ Webhooks screen ══ -->
+    <string name="webhooks_title">Webhooks</string>
+    <string name="webhooks_title_add">Add webhook</string>
+    <string name="webhooks_title_edit">Edit webhook</string>
+    <string name="webhooks_title_history">Delivery history</string>
+    <string name="webhooks_back">Back</string>
+    <string name="webhooks_pro_body">Webhook sync is a Pro feature. Send selected financial data to your own endpoint automatically.</string>
+    <string name="webhooks_unlock_pro">Unlock with Pro</string>
+    <string name="webhooks_intro">Webhooks send your selected financial data outside this device to an endpoint you choose. Only enable endpoints you trust. Use HTTPS to protect data and credentials.</string>
+    <string name="webhooks_add">Add webhook</string>
+    <string name="webhooks_interval_label">Sync interval in hours</string>
+    <string name="webhooks_interval_hint">1–24 hours. Android may delay background delivery.</string>
+    <string name="webhooks_interval_apply">Apply</string>
+    <string name="webhooks_sync_all_now">Sync enabled webhooks now</string>
+    <string name="webhooks_empty">No webhooks saved</string>
+
+    <!-- Webhook card -->
+    <string name="webhooks_auto_sync_on">Automatic sync enabled</string>
+    <string name="webhooks_auto_sync_off">Automatic sync disabled</string>
+    <!-- %1$s = date and time of the last sync -->
+    <string name="webhooks_last_sync">Last sync: %1$s</string>
+    <string name="webhooks_action_edit">Edit</string>
+    <string name="webhooks_action_test">Test</string>
+    <string name="webhooks_action_sync">Sync</string>
+    <string name="webhooks_action_history">History</string>
+    <!-- %1$s = webhook name -->
+    <string name="webhooks_action_delete_cd">Delete %1$s</string>
+
+    <!-- Delete dialog -->
+    <string name="webhooks_delete_title">Delete webhook?</string>
+    <!-- %1$s = webhook name -->
+    <string name="webhooks_delete_body">Delete %1$s and its delivery history?</string>
+    <string name="webhooks_delete_confirm">Delete</string>
+    <string name="webhooks_delete_cancel">Cancel</string>
+
+    <!-- Delivery history -->
+    <string name="webhooks_history_empty">No deliveries yet. Queued work waits for a network connection.</string>
+    <string name="webhooks_history_delivered">Delivered</string>
+    <string name="webhooks_history_failed">Failed</string>
+    <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
+    <string name="webhooks_history_meta">%1$s · %2$s</string>
+    <plurals name="webhooks_history_batches">
+        <item quantity="one">Delivery has %1$d batch</item>
+        <item quantity="other">Delivery has %1$d batches</item>
+    </plurals>
+    <string name="webhooks_reason_manual">Manual</string>
+    <string name="webhooks_reason_interval">Interval</string>
+    <string name="webhooks_reason_scheduled">Scheduled</string>
+    <string name="webhooks_reason_test">Test</string>
+
+    <!-- Editor -->
+    <string name="webhooks_editor_name">Name</string>
+    <string name="webhooks_editor_url">HTTPS endpoint URL</string>
+    <plurals name="webhooks_editor_auto_on_warning">
+        <item quantity="one">PennyWise will send the selected financial data outside this phone to this URL every %1$d hour. Android may delay background delivery. Only use a URL you trust.</item>
+        <item quantity="other">PennyWise will send the selected financial data outside this phone to this URL every %1$d hours. Android may delay background delivery. Only use a URL you trust.</item>
+    </plurals>
+    <string name="webhooks_editor_auto_off_warning">Automatic delivery is off. Manual sync sends the selected financial data outside this phone to this URL. Only use a URL you trust.</string>
+    <string name="webhooks_editor_http_warning">HTTP sends data and header credentials without encryption.</string>
+    <string name="webhooks_editor_currency">Currency code</string>
+    <string name="webhooks_editor_enable_auto">Enable automatic delivery</string>
+    <string name="webhooks_editor_data_section">Data to send</string>
+    <string name="webhooks_data_summary">Summary</string>
+    <string name="webhooks_data_transactions">Transactions</string>
+    <string name="webhooks_data_budgets">Budgets</string>
+    <string name="webhooks_data_accounts">Accounts</string>
+    <string name="webhooks_data_subscriptions">Subscriptions</string>
+    <!-- %1$s = selected date range, e.g. Today -->
+    <string name="webhooks_editor_range">Range: %1$s</string>
+    <string name="webhooks_editor_range_hint">Since last success sends transaction edits and deletion records. Budgets, accounts, and subscriptions are current snapshots.</string>
+    <string name="webhooks_editor_start_date">Start date (YYYY-MM-DD)</string>
+    <string name="webhooks_editor_end_date">End date (YYYY-MM-DD)</string>
+    <string name="webhooks_editor_headers_section">Custom headers</string>
+    <string name="webhooks_editor_headers_hint">Header values are hidden and sent only to this endpoint. Tests use synthetic financial data and your configured headers.</string>
+    <string name="webhooks_editor_header_name">Header name</string>
+    <string name="webhooks_editor_header_value">Header value</string>
+    <string name="webhooks_editor_remove_header">Remove header</string>
+    <string name="webhooks_editor_add_header">Add header</string>
+    <string name="webhooks_editor_save">Save webhook</string>
+
+    <!-- Date ranges -->
+    <string name="webhooks_range_since_last_success">Since last success</string>
+    <string name="webhooks_range_today">Today</string>
+    <string name="webhooks_range_current_week">Current week</string>
+    <string name="webhooks_range_current_month">Current month</string>
+    <string name="webhooks_range_previous_month">Previous month</string>
+    <string name="webhooks_range_last_30_days">Last 30 days</string>
+    <string name="webhooks_range_custom">Custom dates</string>
+
+    <!-- Status messages -->
+    <string name="webhooks_msg_saved">Webhook saved</string>
+    <string name="webhooks_msg_interval_saved">Sync interval saved</string>
+    <string name="webhooks_msg_test_queued">Synthetic test queued. Delivery results appear in history.</string>
+    <string name="webhooks_msg_sync_queued">Sync queued. Delivery runs when online.</string>
+    <string name="webhooks_msg_deleted">Webhook deleted</string>
+    <string name="webhooks_msg_action_failed">Could not complete the webhook action. Try again.</string>
+
+    <!-- Validation errors -->
+    <string name="webhooks_error_name_required">Webhook name is required</string>
+    <string name="webhooks_error_url_required">Webhook URL is required</string>
+    <string name="webhooks_error_url_invalid">Enter a valid HTTP or HTTPS URL</string>
+    <string name="webhooks_error_url_https">Use HTTPS for remote endpoints. HTTP is only supported for localhost.</string>
+    <string name="webhooks_error_url_userinfo">URLs cannot contain user information or fragments</string>
+    <string name="webhooks_error_currency">Enter a valid currency code</string>
+    <string name="webhooks_error_data_types">Select at least one data type</string>
+    <string name="webhooks_error_date_range">Enter a valid custom date range</string>
+    <string name="webhooks_error_header_name">Enter a valid header name</string>
+    <string name="webhooks_error_header_line_breaks">Header values cannot contain line breaks</string>
+    <string name="webhooks_error_header_managed">This header is managed automatically</string>
+    <string name="webhooks_error_header_unique">Header names must be unique</string>
+    <!-- %1$d = minimum hours, %2$d = maximum hours -->
+    <string name="webhooks_error_interval">Enter a number between %1$d and %2$d</string>
 
     <!-- ══ FAQ screen ══ -->
     <string name="faq_title">FAQ</string>

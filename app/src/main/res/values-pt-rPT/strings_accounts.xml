@@ -21,7 +21,7 @@
     <string name="account_detail_expenses">Despesas</string>
     <string name="account_detail_net">Líquido</string>
     <!-- %1$s = formatted amount; marks an estimate across currencies -->
-    <string name="account_detail_estimated_amount">est. %1$s</string>
+    <string name="account_detail_estimated_amount">aprox. %1$s</string>
     <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• Saldo: %1$s</string>
     <string name="account_detail_type_credit">Crédito</string>
@@ -170,7 +170,7 @@
     <!-- %1$s = currency code -->
     <string name="manage_accounts_threshold_label">Limite (%1$s)</string>
     <string name="manage_accounts_rename_title">Renomear conta</string>
-    <string name="manage_accounts_alias_label">Alias</string>
+    <string name="manage_accounts_alias_label">Nome personalizado</string>
     <string name="manage_accounts_alias_placeholder">p.ex. Conta Salária</string>
     <string name="manage_accounts_alias_hint">Deixe em branco para limpar o pseudônimo.</string>
     <string name="manage_accounts_new_balance">Novo Saldo</string>
@@ -185,7 +185,7 @@
     <!-- %1$s = formatted balance -->
     <string name="manage_accounts_last_balance">Último Saldo: %1$s</string>
     <!-- %1$s = SMS text -->
-    <string name="manage_accounts_card_sms">SMS: %1$s</string>
+    <string name="manage_accounts_card_sms">Mensagem SMS: %1$s</string>
     <string name="manage_accounts_card_sms_truncated">SMS: %1$s... (toque para expandir)</string>
     <string name="manage_accounts_edit_card_title">Editar cartão</string>
     <string name="manage_accounts_bank_label">Banco</string>
@@ -240,7 +240,7 @@
     <string name="loan_detail_expected_return_label">Valor esperado para trás</string>
     <string name="loan_detail_delete_title">Excluir empréstimo</string>
     <string name="loan_detail_delete_message">Excluir este empréstimo? Transações vinculadas serão desvinculadas, mas não excluídas.</string>
-    <string name="loan_detail_original_chip">Original</string>
+    <string name="loan_detail_original_chip">Montante inicial</string>
     <!-- %1$s = person name -->
     <string name="loan_detail_record_payment_from">Registro de pagamento de %1$s</string>
     <!-- %1$s = formatted remaining amount -->
@@ -280,4 +280,34 @@
     <string name="accounts_overview_used">Usado: %1$s (%2$d%%)</string>
     <string name="accounts_overview_available_limit">Limite disponível</string>
     <string name="accounts_overview_show_less">Mostrar menos</string>
+    <plurals name="manage_accounts_msg_account_deleted">
+        <item quantity="one">Conta eliminada (%1$d registo de saldo removido)</item>
+        <item quantity="other">Conta eliminada (%1$d registos de saldo removidos)</item>
+    </plurals>
+    <plurals name="manage_accounts_msg_merged">
+        <item quantity="one">%1$d transação passou para %2$s</item>
+        <item quantity="other">%1$d transações passaram para %2$s</item>
+    </plurals>
+    <string name="manage_accounts_section_loan_accounts">Contas de empréstimo</string>
+    <string name="manage_accounts_hidden_header">Contas ignoradas (%1$d)</string>
+    <string name="manage_accounts_hidden_badge">Ignorada</string>
+    <string name="manage_accounts_menu_show">Deixar de ignorar</string>
+    <string name="manage_accounts_menu_hide">Ignorar esta conta</string>
+    <string name="manage_accounts_ignored_snackbar">%1$s ignorada</string>
+    <string name="manage_accounts_undo">Desfazer</string>
+    <string name="manage_accounts_estimated_balance_hint">Estimado: as SMS do seu banco não indicam o saldo. Toque para o definir uma vez.</string>
+    <string name="manage_accounts_loan_outstanding_hint">Montante do empréstimo ainda em dívida</string>
+    <string name="manage_accounts_type_note">Alterar o tipo só muda a forma como o saldo é contado a partir de agora. As transações anteriores ficam como estão.</string>
+    <string name="loans_person_owes_you">Deve-lhe %1$s</string>
+    <string name="loans_person_you_owe">Deve %1$s</string>
+    <string name="loans_person_all_settled">Tudo liquidado</string>
+    <string name="loans_person_even">Contas certas — ninguém deve nada</string>
+    <string name="loans_settle_up">Acertar contas</string>
+    <string name="loans_settle_up_title">Acertar contas com %1$s?</string>
+    <string name="loans_settle_up_message">Todos os empréstimos em aberto com %1$s serão marcados como liquidados. O montante que ainda estiver por pagar é perdoado.</string>
+    <string name="loan_detail_amount_remaining">Faltam %1$s</string>
+    <plurals name="accounts_overview_view_all">
+        <item quantity="one">Ver %1$d conta</item>
+        <item quantity="other">Ver as %1$d contas</item>
+    </plurals>
 </resources>

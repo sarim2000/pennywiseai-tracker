@@ -555,6 +555,14 @@
     <string name="unrecognized_suggestion_debit">خصم %1$s</string>
     <string name="unrecognized_suggestion_credit">إيداع %1$s</string>
     <string name="unrecognized_suggestion_add">إضافة</string>
+    <string name="import_statement_error_unsupported">صيغة كشف الحساب غير مدعومة. المدعوم حاليًا: Google Pay وPhonePe وPaytm وslice وICICI Bank. لأي بنك آخر، استورد كشف الحساب بصيغة Excel (.xlsx) أو CSV.</string>
+    <string name="import_statement_error_no_transactions">لم يتم العثور على معاملات في كشف الحساب.</string>
+    <string name="import_statement_error_failed">فشل استيراد كشف الحساب.</string>
+    <string name="import_statement_error_read">تعذّرت قراءة هذا الملف.</string>
+    <string name="import_statement_error_too_large">هذا الملف أكبر من أن يُستورد.</string>
+    <string name="import_statement_error_no_rows">هذا الملف لا يحتوي على أي صفوف.</string>
+    <string name="import_statement_error_too_many_rows">يحتوي كشف الحساب هذا على أكثر من %1$d صف. صدّر فترة أقصر واستوردها.</string>
+    <string name="import_statement_error_date_1904">يستخدم هذا المصنّف نظام التاريخ 1904. احفظه بصيغة .csv واستورده.</string>
     <string name="import_statement_select_spreadsheet">اختر كشف حساب Excel أو CSV</string>
     <string name="import_statement_xls_hint">ملف .xls قديم؟ احفظه بصيغة .xlsx أو .csv أولًا.</string>
     <string name="import_statement_map_title">مطابقة الأعمدة</string>

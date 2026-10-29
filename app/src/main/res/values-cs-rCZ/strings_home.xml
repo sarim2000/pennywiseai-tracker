@@ -84,7 +84,7 @@
     <string name="nav_home">Domů</string>
     <string name="nav_transactions">Časová osa</string>
     <string name="nav_analytics">Analytici</string>
-    <string name="nav_chat">Chat</string>
+    <string name="nav_chat">Konverzace</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Zobrazit méně</string>
     <string name="expandable_list_view_all_more">Zobrazit vše (%1$d další)</string>
@@ -237,7 +237,7 @@
     <string name="txn_item_tag_recurring">Opakování</string>
     <string name="txn_item_tag_business">Podniky</string>
     <string name="txn_item_tag_excluded">Vyloučeny</string>
-    <string name="txn_item_balance_after">Bal %1$s</string>
+    <string name="txn_item_balance_after">Zůst. %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Převod → %1$s</string>
     <string name="txn_item_transfer_from">Převod z %1$s</string>
@@ -291,4 +291,82 @@
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_goals">Cíle</string>
+    <string name="home_resync_title">Znovu načíst zprávy</string>
+    <string name="home_resync_scan_again">Znovu naskenovat všechny zprávy</string>
+    <string name="home_resync_scan_again_desc">Doplní vše, co chybělo. Vaše úpravy i všechny stávající transakce zůstanou beze změny.</string>
+    <string name="home_resync_rebuild">Sestavit znovu od začátku</string>
+    <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
+    <string name="whats_new_title">Co je nového</string>
+    <string name="whats_new_version">Verze %1$s</string>
+    <string name="type_filter_spending">Útrata</string>
+    <string name="balance_card_summary_income">Příjmy</string>
+    <string name="balance_card_summary_expenses">Výdaje</string>
+    <string name="balance_card_summary_lent">Půjčeno</string>
+    <string name="balance_card_summary_saved">Ušetřeno</string>
+    <string name="budget_card_per_day">%1$s/den</string>
+    <string name="group_card_invested">Investováno %1$s</string>
+    <string name="widget_budget_title">Měsíční rozpočet</string>
+    <string name="widget_summary_today">Dnes</string>
+    <string name="widget_summary_month">Tento měsíc</string>
+    <string name="notif_txn_title_spent">Utraceno %1$s · %2$s</string>
+    <string name="notif_txn_title_received">Přijato %1$s od %2$s</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <string name="notif_txn_ask_category">Za co to bylo? · %1$s</string>
+    <string name="notif_txn_action_change">Změnit</string>
+    <string name="notif_txn_learned_title">Uloženo jako %1$s</string>
+    <string name="notif_txn_learned_text">Platby tady se od teď budou třídit automaticky.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">Přesunuta byla i %d dřívější.</item>
+        <item quantity="few">Přesunuty byly i %d dřívější.</item>
+        <item quantity="many">Přesunuto bylo i %d dřívějších.</item>
+        <item quantity="other">Přesunuto bylo i %d dřívějších.</item>
+    </plurals>
+    <string name="notif_daily_channel_name">Denní souhrn</string>
+    <string name="notif_daily_channel_description">Každý večer krátké shrnutí denních výdajů</string>
+    <string name="notif_daily_title">Dnes jste utratili %1$s</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d transakce</item>
+        <item quantity="few">%d transakce</item>
+        <item quantity="many">%d transakce</item>
+        <item quantity="other">%d transakcí</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d potřebuje kategorii</item>
+        <item quantity="few">%d potřebují kategorii</item>
+        <item quantity="many">%d potřebuje kategorii</item>
+        <item quantity="other">%d potřebuje kategorii</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Roztřídit</string>
+    <string name="notif_daily_action_cash">+ Hotovost</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d nová transakce</item>
+        <item quantity="few">%d nové transakce</item>
+        <item quantity="many">%d nové transakce</item>
+        <item quantity="other">%d nových transakcí</item>
+    </plurals>
+    <string name="pro_home_card_title">Líbí se vám PennyWise?</string>
+    <string name="pro_home_card_body">Pro přidává neomezená pravidla, cíle, exporty a importy výpisů.</string>
+    <string name="pro_home_card_action">Zobrazit Pro</string>
+    <string name="pro_home_card_dismiss">Zavřít</string>
+    <string name="forecast_on_track">Směřujete k %1$s do %2$s</string>
+    <string name="forecast_over_usual">%1$s nad obvyklou úrovní</string>
+    <string name="home_section_safe_to_spend">Bezpečně utratit</string>
+    <string name="safe_to_spend_title">Bezpečně utratit</string>
+    <string name="safe_to_spend_tap_to_show">Klepnutím zobrazíte</string>
+    <string name="safe_to_spend_per_day">Asi %1$s denně do %2$s, včetně dneška</string>
+    <string name="safe_to_spend_short">Platby splatné před %1$s převyšují váš zůstatek</string>
+    <string name="safe_to_spend_none_left">Po platbách splatných před %1$s nic nezbývá</string>
+    <string name="safe_to_spend_breakdown">Zůstatek na účtu %1$s − %2$s v platbách splatných před %3$s</string>
+    <string name="safe_to_spend_capped">Omezeno rozpočtem: zbývá %1$s</string>
+    <string name="safe_to_spend_other_currencies">Plus %1$s, vedeno zvlášť</string>
+    <string name="safe_to_spend_until">Bezpečně utratit do %1$s</string>
+    <string name="safe_to_spend_accounts">Zůstatek na účtu</string>
+    <string name="safe_to_spend_excluded">Nezapočítáno</string>
+    <string name="safe_to_spend_excluded_negative">Nezapočítáno (záporný zůstatek)</string>
+    <string name="safe_to_spend_bills_due">Platby splatné před %1$s</string>
+    <string name="safe_to_spend_no_bills">Žádné splatné předplatné</string>
+    <string name="safe_to_spend_choose_accounts">Vybrat účty</string>
+    <string name="safe_to_spend_done">Hotovo</string>
+    <string name="safe_to_spend_footnote">Platby vycházejí z vašich aktivních předplatných. Kreditní karty a půjčky se nepočítají jako peníze k utracení.</string>
 </resources>

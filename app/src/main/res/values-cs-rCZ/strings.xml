@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI – sledování výdajů</string>
+    <string name="widget_name_budget">Přehled rozpočtu</string>
+    <string name="widget_description_budget">Ukazuje průběh měsíčního rozpočtu, úspory a denní limit na první pohled.</string>
+    <string name="widget_loading">Načítání widgetu…</string>
+    <string name="widget_name_recent">Poslední transakce</string>
+    <string name="widget_name_category_pie">Koláč výdajů</string>
+    <string name="widget_description_category_pie">Výdaje tohoto měsíce podle kategorií jako koláčový graf s legendou.</string>
+    <string name="widget_name_add_transaction">Platba hotově</string>
+    <string name="widget_name_summary">Souhrn výdajů</string>
+    <string name="tile_add_transaction">Přidat transakci</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">Přidat</string>
+    <string name="shortcut_add_transaction_long">Přidat transakci</string>
+    <string name="support_title">Podpořit vývoj</string>
+    <string name="support_subtitle">Vyvíjí jeden vývojář – malé spropitné pomáhá 🦉</string>
+    <string name="support_dialog_body">PennyWise je zdarma a open source a vyvíjí ho jeden vývojář. V této verzi je už vše odemčené. Pokud vám aplikace pomáhá, malé spropitné ji udrží v chodu 🦉</string>
+    <string name="support_pay_via_upi">Zaplatit přes UPI</string>
+    <string name="support_close">Zavřít</string>
+    <string name="support_copy_upi_id">Kopírovat UPI ID</string>
+    <string name="support_copied_toast">UPI ID zkopírováno</string>
+    <string name="support_no_upi_app">Nenašla se žádná UPI aplikace. Zkopírujte si raději UPI ID.</string>
+    <string name="support_nudge_body">Líbí se vám PennyWise? Podpořte vývoj 💛</string>
+    <string name="duplicate_accounts_title">Možné duplicitní účty</string>
+    <string name="duplicate_accounts_message">Kvůli rozdílným formátům bankovních SMS nebo dřívějšímu zpracování mohly vzniknout duplicitní účty s třemi a čtyřmi číslicemi. Pokud jsou %1$s a %2$s stejný účet, chcete je sloučit? Transakce se přesunou na čtyřmístný účet, jeho historie zůstatku zůstane zachována a budoucí SMS ho budou používat automaticky.</string>
+    <string name="duplicate_accounts_merge">Sloučit a zapamatovat</string>
+    <string name="duplicate_accounts_keep">Ponechat zvlášť</string>
+</resources>

@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>    <string name="widget_recent_header">Poslední</string>
+    <string name="widget_recent_sort">Roztřídit</string>
+    <string name="widget_recent_empty_add_cash">Klepnutím na + přidáte hotovost</string>
+    <string name="widget_recent_description">Vaše nejnovější transakce a jejich kategorie. Ty, které to potřebují, roztřídíte jedním klepnutím.</string>
+</resources>

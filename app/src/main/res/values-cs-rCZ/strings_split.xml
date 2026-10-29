@@ -1,4 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Split a bill (#346) -->
+    <string name="split_menu_split">Rozdělit s…</string>
+    <string name="split_menu_edit">Upravit rozdělení</string>
+    <string name="split_sheet_title">Rozdělit %1$s</string>
+    <string name="split_sheet_hint">Každý podíl se přidá do Půjček jako peníze, které jste půjčili. Do výdajů se počítá jen vaše část.</string>
+    <string name="split_people_count">%1$d z %2$d osob</string>
+    <string name="split_person_name">Jméno osoby</string>
+    <string name="split_add_person">Přidat</string>
+    <string name="split_pick_contact">Vybrat z kontaktů</string>
+    <string name="split_remove_person">Odebrat %1$s</string>
+    <string name="split_mode_equal">Rozdělit rovným dílem</string>
+    <string name="split_mode_custom">Vlastní částky</string>
+    <string name="split_you">Vy</string>
+    <string name="split_your_part">Vaše část</string>
+    <string name="split_left_to_assign">Zbývá rozdělit %1$s</string>
+    <string name="split_over_total">O %1$s víc, než je celkem</string>
+    <string name="split_adds_up">Celkem %1$s</string>
+    <string name="split_save">Uložit rozdělení</string>
+    <string name="split_error_share_positive">Každý podíl musí být větší než nula</string>
+    <string name="split_error_over">Podíly jsou vyšší než celková částka</string>
+    <string name="split_error_your_part_negative">Vaše část nemůže být menší než nula</string>
+    <string name="split_error_failed">Rozdělení se nepodařilo uložit: %1$s</string>
+    <string name="split_error_settled">Půjčka pro %1$s je vyrovnaná. Chcete-li změnit podíl, znovu ji otevřete v Půjčkách.</string>
+    <string name="split_error_transfer">Rozdělená platba nemůže být převod. Nejdřív rozdělení odeberte.</string>
+    <string name="split_error_type_locked">Tato platba je rozdělená. Před změnou typu rozdělení odeberte.</string>
+    <string name="split_error_amount_below_shares">Tato platba je rozdělená. Její částka nemůže být nižší než podíly, které jste půjčili.</string>
+    <string name="split_section_title">Rozděleno s</string>
+    <string name="split_settled">Vyrovnáno</string>
+    <string name="split_request">Vyžádat %1$s</string>
+    <string name="split_remove">Odebrat rozdělení</string>
+    <string name="split_remove_title">Odebrat rozdělení?</string>
+    <string name="split_remove_message">Podíl každé osoby se odečte z její půjčky. Půjčka, ve které nic jiného není, se smaže.</string>
+    <string name="split_remove_confirm">Odebrat</string>
+    <string name="split_upi_title">Vaše UPI ID</string>
+    <string name="split_upi_message">Lidé vám pošlou svůj podíl na toto UPI ID. Změnit ho můžete v Nastavení.</string>
+    <string name="split_upi_hint">jmeno@banka</string>
+    <string name="split_upi_invalid">Zadejte UPI ID ve tvaru jmeno@banka</string>
+    <string name="split_upi_save">Uložit</string>
+    <string name="split_request_text">Zaplaťte %1$s pro %2$s za %3$s</string>
+    <string name="split_request_failed">QR kód se nepodařilo vytvořit</string>
+    <string name="settings_upi_title">Vaše UPI ID</string>
+    <string name="settings_upi_subtitle">Slouží k žádosti o zaplacení podílu na rozdělené platbě</string>
+    <string name="settings_upi_not_set">Nenastaveno</string>
 </resources>

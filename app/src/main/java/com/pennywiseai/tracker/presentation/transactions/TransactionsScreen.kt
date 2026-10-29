@@ -438,7 +438,7 @@ fun TransactionsScreen(
                 ?: categoryFilter?.let { setOf(it) }
                 ?: availableCategories.toSet(),
             onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
-            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.name ?: stringResource(R.string.txn_list_filter_profile),
+            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.displayName() ?: stringResource(R.string.txn_list_filter_profile),
             hasProfileFilter = selectedProfileId != null,
             hasAnyActiveFilter = hasAnyActiveFilter,
             showSortMenu = showSortMenu,
@@ -1309,7 +1309,7 @@ private fun TransactionFilterHeader(
                             )
                             profiles.forEach { profile ->
                                 DropdownMenuItem(
-                                    text = { Text(profile.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    text = { Text(profile.displayName(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                     leadingIcon = {
                                         if (selectedProfileId == profile.id) {
                                             Icon(Icons.Default.Check, contentDescription = null)

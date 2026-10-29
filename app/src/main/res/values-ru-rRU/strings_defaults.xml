@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Личный</string>
+    <string name="profile_default_business">Бизнес</string>
+    <string name="rule_template_small_payments_name">Мелкие платежи в Еду</string>
+    <string name="rule_template_small_payments_description">Относить мелкие расходы (до 200) к категории «Еда и рестораны»</string>
+    <string name="budget_group_default_spending">Расходы</string>
+    <string name="budget_group_default_fixed_costs">Постоянные расходы</string>
+    <string name="budget_group_default_investments">Инвестиции</string>
+    <string name="budget_group_default_monthly">Месячный бюджет</string>
+</resources>

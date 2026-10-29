@@ -1,3 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>    <string name="widget_summary_description">Расходы за сегодня, остаток бюджета и быстрое добавление наличных.</string>
+    <string name="widget_summary_left">Осталось в бюджете</string>
+    <string name="widget_summary_over">Сверх бюджета</string>
+    <string name="widget_budget_left_label">Осталось</string>
+    <string name="widget_budget_over_label">Превышение</string>
+    <string name="widget_budget_empty_title">Бюджета пока нет</string>
+    <string name="widget_budget_empty_hint">Задайте месячный лимит, чтобы видеть остаток.</string>
+    <string name="widget_budget_create">Создать бюджет</string>
+    <string name="widget_budget_preview_meta">из 3 600 · 120/день</string>
+    <string name="widget_cash_label">Наличные</string>
+    <string name="widget_cash_spend">Расход наличными</string>
+    <string name="widget_cash_description">Одно нажатие, чтобы записать только что потраченные наличные.</string>
+</resources>

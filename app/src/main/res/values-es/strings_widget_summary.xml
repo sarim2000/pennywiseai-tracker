@@ -1,3 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources></resources>
+<resources>
+    <string name="widget_summary_description">Lo que gastaste hoy, lo que te queda del presupuesto y un acceso rápido para agregar efectivo.</string>
+    <string name="widget_summary_left">Queda en el presupuesto</string>
+    <string name="widget_summary_over">Presupuesto excedido</string>
+    <string name="widget_budget_left_label">Queda</string>
+    <string name="widget_budget_over_label">Excedido por</string>
+    <string name="widget_budget_empty_title">Aún no hay presupuesto</string>
+    <string name="widget_budget_empty_hint">Fija un límite mensual para ver cuánto te queda.</string>
+    <string name="widget_budget_create">Crear presupuesto</string>
+    <string name="widget_budget_preview_meta">de 3,600 · 120/día</string>
+    <string name="widget_cash_label">Efectivo</string>
+    <string name="widget_cash_spend">Gasto en efectivo</string>
+    <string name="widget_cash_description">Un toque para registrar el efectivo que acabas de gastar.</string>
+</resources>

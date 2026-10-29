@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="profile_default_personal">Binafsi</string>
+    <string name="profile_default_business">Biashara</string>
+    <string name="rule_template_small_payments_name">Malipo Madogo kwa Chakula</string>
+    <string name="rule_template_small_payments_description">Weka malipo madogo ya matumizi (chini ya 200) kwenye Chakula &amp; Mikahawa</string>
+    <string name="budget_group_default_spending">Matumizi</string>
+    <string name="budget_group_default_fixed_costs">Gharama za Kudumu</string>
+    <string name="budget_group_default_investments">Uwekezaji</string>
+    <string name="budget_group_default_monthly">Bajeti ya Mwezi</string>
+</resources>

@@ -459,7 +459,7 @@ class StatementTableParserTest {
         }
     }
 
-    @Test(expected = IllegalArgumentException::class)
+    @Test(expected = XlsxReader.Date1904Exception::class)
     fun `1904 date system workbooks are refused`() {
         StatementTableParser.readTable(
             zip(

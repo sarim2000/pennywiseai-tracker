@@ -270,4 +270,103 @@
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <!-- Safe to spend card + breakdown sheet -->
+    <string name="home_section_goals">Цели</string>
+    <string name="home_resync_title">Прочитать сообщения заново</string>
+    <string name="home_resync_scan_again">Сканировать все сообщения заново</string>
+    <string name="home_resync_scan_again_desc">Добавит всё, что было пропущено. Ваши правки и все существующие транзакции не изменятся.</string>
+    <string name="home_resync_rebuild">Пересобрать с нуля</string>
+    <string name="home_resync_rebuild_desc">Заново читает транзакции из SMS, чтобы применить исправления распознавания. Правки SMS-транзакций будут сброшены. Ручные, импортированные, долговые и сгруппированные транзакции сохранятся.</string>
+    <string name="home_breakdown_formula">Формула: Доход - Расходы = Чистая стоимость\nЗеленый (+) = Сбережения | Красный (-) = Перерасход</string>
+    <string name="home_loans_owed_to_you">Вам должны %1$s</string>
+    <plurals name="greeting_days_left_in_month">
+        <item quantity="one">Остался %1$d день · %2$s</item>
+        <item quantity="few">Осталось %1$d дня · %2$s</item>
+        <item quantity="many">Осталось %1$d дней · %2$s</item>
+        <item quantity="other">Осталось %1$d дня · %2$s</item>
+    </plurals>
+    <string name="whats_new_title">Что нового</string>
+    <string name="whats_new_version">Версия %1$s</string>
+    <string name="type_filter_spending">Траты</string>
+    <string name="balance_card_summary_income">Доход</string>
+    <string name="balance_card_summary_expenses">Расходы</string>
+    <string name="balance_card_summary_lent">Одолжено</string>
+    <string name="balance_card_summary_saved">Накоплено</string>
+    <string name="budget_card_over_budget">Бюджет превышен на %1$s</string>
+    <string name="budget_card_per_day">%1$s/день</string>
+    <plurals name="budget_card_runs_days_remaining">
+        <item quantity="one">%1$s · остался %2$d день</item>
+        <item quantity="few">%1$s · осталось %2$d дня</item>
+        <item quantity="many">%1$s · осталось %2$d дней</item>
+        <item quantity="other">%1$s · осталось %2$d дня</item>
+    </plurals>
+    <plurals name="budget_card_days_remaining">
+        <item quantity="one">Остался %1$d день</item>
+        <item quantity="few">Осталось %1$d дня</item>
+        <item quantity="many">Осталось %1$d дней</item>
+        <item quantity="other">Осталось %1$d дня</item>
+    </plurals>
+    <string name="group_card_invested">Вложено %1$s</string>
+    <string name="widget_budget_title">Месячный бюджет</string>
+    <string name="widget_summary_today">Сегодня</string>
+    <string name="widget_summary_month">Этот месяц</string>
+    <string name="notif_txn_title_spent">Потрачено %1$s · %2$s</string>
+    <string name="notif_txn_title_received">Получено %1$s от %2$s</string>
+    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <string name="notif_txn_ask_category">На что это было? · %1$s</string>
+    <string name="notif_txn_action_change">Изменить</string>
+    <string name="notif_txn_learned_title">Сохранено как %1$s</string>
+    <string name="notif_txn_learned_text">Платежи здесь теперь будут распределяться автоматически.</string>
+    <plurals name="notif_txn_learned_moved">
+        <item quantity="one">Также перенесена %d прежняя транзакция.</item>
+        <item quantity="few">Также перенесены %d прежние транзакции.</item>
+        <item quantity="many">Также перенесено %d прежних транзакций.</item>
+        <item quantity="other">Также перенесено %d прежней транзакции.</item>
+    </plurals>
+    <string name="notif_daily_channel_name">Итоги дня</string>
+    <string name="notif_daily_channel_description">Короткая сводка расходов за день каждый вечер</string>
+    <string name="notif_daily_title">Сегодня вы потратили %1$s</string>
+    <plurals name="notif_daily_count">
+        <item quantity="one">%d транзакция</item>
+        <item quantity="few">%d транзакции</item>
+        <item quantity="many">%d транзакций</item>
+        <item quantity="other">%d транзакции</item>
+    </plurals>
+    <plurals name="notif_daily_uncategorized">
+        <item quantity="one">%d без категории</item>
+        <item quantity="few">%d без категории</item>
+        <item quantity="many">%d без категории</item>
+        <item quantity="other">%d без категории</item>
+    </plurals>
+    <string name="notif_daily_action_sort">Разобрать</string>
+    <string name="notif_daily_action_cash">+ Наличные</string>
+    <plurals name="notif_txn_group_title">
+        <item quantity="one">%d новая транзакция</item>
+        <item quantity="few">%d новые транзакции</item>
+        <item quantity="many">%d новых транзакций</item>
+        <item quantity="other">%d новой транзакции</item>
+    </plurals>
+    <string name="pro_home_card_title">Нравится PennyWise?</string>
+    <string name="pro_home_card_body">Pro добавляет неограниченные правила, цели, экспорт и импорт выписок.</string>
+    <string name="pro_home_card_action">Подробнее о Pro</string>
+    <string name="pro_home_card_dismiss">Скрыть</string>
+    <string name="forecast_on_track">По плану: %1$s к %2$s</string>
+    <string name="forecast_over_usual">На %1$s больше обычного</string>
+    <string name="home_section_safe_to_spend">Можно потратить</string>
+    <string name="safe_to_spend_title">Можно потратить</string>
+    <string name="safe_to_spend_tap_to_show">Нажмите, чтобы показать</string>
+    <string name="safe_to_spend_per_day">Около %1$s в день до %2$s, включая сегодня</string>
+    <string name="safe_to_spend_short">Счета к оплате до %1$s превышают ваш баланс</string>
+    <string name="safe_to_spend_none_left">После оплаты счетов до %1$s ничего не останется</string>
+    <string name="safe_to_spend_breakdown">Баланс банка %1$s − %2$s по счетам к оплате до %3$s</string>
+    <string name="safe_to_spend_capped">Ограничено бюджетом: осталось %1$s</string>
+    <string name="safe_to_spend_other_currencies">Плюс %1$s отдельно</string>
+    <string name="safe_to_spend_until">Можно потратить до %1$s</string>
+    <string name="safe_to_spend_accounts">Баланс банка</string>
+    <string name="safe_to_spend_excluded">Не учитывается</string>
+    <string name="safe_to_spend_excluded_negative">Не учитывается (отрицательный баланс)</string>
+    <string name="safe_to_spend_bills_due">Счета к оплате до %1$s</string>
+    <string name="safe_to_spend_no_bills">Нет подписок к оплате</string>
+    <string name="safe_to_spend_choose_accounts">Выбрать счета</string>
+    <string name="safe_to_spend_done">Готово</string>
+    <string name="safe_to_spend_footnote">Счета к оплате берутся из ваших активных подписок. Кредитные карты и кредиты не считаются деньгами, которые можно потратить.</string>
 </resources>

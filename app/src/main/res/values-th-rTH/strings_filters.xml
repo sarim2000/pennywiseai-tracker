@@ -18,4 +18,8 @@
     <!-- Account types -->
     <string name="account_type_savings">การออม</string>
     <string name="account_type_credit_card">บัตรเครดิต</string>
+    <string name="filter_type_spending">การใช้จ่าย (ค่าใช้จ่าย + บัตร)</string>
+    <string name="account_type_current">กระแสรายวัน</string>
+    <string name="account_type_cash">เงินสด</string>
+    <string name="account_type_loan">เงินกู้</string>
 </resources>

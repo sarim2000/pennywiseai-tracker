@@ -5,4 +5,21 @@
     <!-- Transaction type filter -->
     <!-- Analytics only: expense + credit-card spend shown together -->
     <!-- Account types -->
+    <string name="filter_period_this_month">Este mes</string>
+    <string name="filter_period_last_month">Mes pasado</string>
+    <string name="filter_period_current_fy">Año fiscal actual</string>
+    <string name="filter_period_all_time">Todo</string>
+    <string name="filter_period_custom_range">Rango personalizado</string>
+    <string name="filter_type_all">Todo</string>
+    <string name="filter_type_income">Ingreso</string>
+    <string name="filter_type_expense">Gasto</string>
+    <string name="filter_type_credit">Crédito</string>
+    <string name="filter_type_spending">Gastos (Gasto + Tarjeta)</string>
+    <string name="filter_type_transfer">Transferencia</string>
+    <string name="filter_type_investment">Inversión</string>
+    <string name="account_type_savings">Ahorros</string>
+    <string name="account_type_current">Corriente</string>
+    <string name="account_type_credit_card">Tarjeta de crédito</string>
+    <string name="account_type_cash">Efectivo</string>
+    <string name="account_type_loan">Préstamo</string>
 </resources>

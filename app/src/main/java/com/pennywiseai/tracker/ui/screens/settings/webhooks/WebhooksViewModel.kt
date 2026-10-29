@@ -1,11 +1,13 @@
 package com.pennywiseai.tracker.ui.screens.settings.webhooks
 
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.webhook.*
+import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
 import javax.inject.Inject
@@ -35,7 +37,7 @@ data class WebhooksUiState(
     val interval: String = "6",
     val intervalHours: Int = 6,
     val busy: Boolean = false,
-    val message: String? = null
+    val message: UiText? = null
 )
 
 @HiltViewModel
@@ -84,7 +86,7 @@ class WebhooksViewModel @Inject constructor(
         val error = WebhookValidation.validateDraft(draft)
         if (error != null) { message(error); return@action }
         repository.save(draft)
-        _state.update { it.copy(editor = null, message = "Webhook saved") }
+        _state.update { it.copy(editor = null, message = UiText.Res(R.string.webhooks_msg_saved)) }
     }
 
     fun setInterval(value: String) = _state.update { it.copy(interval = value) }
@@ -92,24 +94,24 @@ class WebhooksViewModel @Inject constructor(
         val error = WebhookValidation.validateIntervalHours(_state.value.interval)
         if (error != null) { message(error); return@action }
         preferences.setInterval(_state.value.interval.toInt())
-        message("Sync interval saved")
+        message(UiText.Res(R.string.webhooks_msg_interval_saved))
     }
 
     fun sendTest(id: String) = action {
         scheduler.enqueue(WebhookSyncReason.TEST, test = true, profileId = id)
         showHistory(id)
-        message("Synthetic test queued. Delivery results appear in history.")
+        message(UiText.Res(R.string.webhooks_msg_test_queued))
     }
     fun syncNow(id: String? = null) = action {
         scheduler.enqueue(WebhookSyncReason.MANUAL, profileId = id)
         if (id != null) showHistory(id)
-        message("Sync queued. Delivery runs when online.")
+        message(UiText.Res(R.string.webhooks_msg_sync_queued))
     }
     fun setEnabled(id: String, enabled: Boolean) = action { repository.setEnabled(id, enabled) }
     fun delete(id: String) = action(requiresPro = false) {
         repository.delete(id)
         if (_state.value.historyId == id) closeHistory()
-        message("Webhook deleted")
+        message(UiText.Res(R.string.webhooks_msg_deleted))
     }
 
     fun showHistory(id: String) {
@@ -123,14 +125,14 @@ class WebhooksViewModel @Inject constructor(
         historyJob?.cancel()
         _state.update { it.copy(historyId = null, logs = emptyList(), message = null) }
     }
-    private fun message(value: String) = _state.update { it.copy(message = value) }
+    private fun message(value: UiText) = _state.update { it.copy(message = value) }
     private fun action(requiresPro: Boolean = true, block: suspend () -> Unit) {
         if (_state.value.busy || (requiresPro && !isProEntitled.value)) return
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
             try { if (!requiresPro || isProEntitled.value) block() }
             catch (e: CancellationException) { throw e }
-            catch (e: Exception) { message("Could not complete the webhook action. Try again.") }
+            catch (e: Exception) { message(UiText.Res(R.string.webhooks_msg_action_failed)) }
             finally { _state.update { it.copy(busy = false) } }
         }
     }

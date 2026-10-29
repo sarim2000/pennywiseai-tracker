@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PennyWise AI - खर्च ट्र्याकर</string>
+    <string name="widget_name_budget">बजेट सारांश</string>
+    <string name="widget_description_budget">तपाईंको मासिक बजेटको प्रगति, बचत र दैनिक खर्च सीमा एकै नजरमा देखाउँछ।</string>
+    <string name="widget_loading">विजेट लोड हुँदै…</string>
+    <string name="widget_name_recent">हालका लेनदेन</string>
+    <string name="widget_name_category_pie">खर्च पाई चार्ट</string>
+    <string name="widget_description_category_pie">यो महिनाको खर्च वर्गअनुसार, संकेतसहितको पाई चार्टमा।</string>
+    <string name="widget_name_add_transaction">नगद खर्च</string>
+    <string name="widget_name_summary">खर्च सारांश</string>
+    <string name="tile_add_transaction">लेनदेन थप्नुहोस्</string>
+    <string name="ai_session_tile">PennyWise AI</string>
+    <string name="shortcut_add_transaction_short">थप्नुहोस्</string>
+    <string name="shortcut_add_transaction_long">लेनदेन थप्नुहोस्</string>
+    <string name="support_title">विकासमा सहयोग गर्नुहोस्</string>
+    <string name="support_subtitle">एक्लो developer ले बनाएको — सानो टिपले यसलाई अघि बढाउँछ 🦉</string>
+    <string name="support_dialog_body">PennyWise निःशुल्क र open source हो, एक्लो developer ले बनाएको। यो build मा सबै कुरा पहिले नै अनलक छ। यदि यो तपाईंलाई काम लाग्छ भने, एउटा टिपले यसलाई अघि बढाउँछ 🦉</string>
+    <string name="support_pay_via_upi">UPI बाट तिर्नुहोस्</string>
+    <string name="support_close">बन्द गर्नुहोस्</string>
+    <string name="support_copy_upi_id">UPI ID कपी गर्नुहोस्</string>
+    <string name="support_copied_toast">UPI ID कपी भयो</string>
+    <string name="support_no_upi_app">कुनै UPI app भेटिएन। बरु UPI ID कपी गर्नुहोस्।</string>
+    <string name="support_nudge_body">PennyWise मन पर्‍यो? विकासमा सहयोग गर्नुहोस् 💛</string>
+    <string name="duplicate_accounts_title">सम्भावित दोहोरिएका खाता</string>
+    <string name="duplicate_accounts_message">बैंक SMS को ढाँचामा फरक वा पहिलेको पार्सिङले गर्दा तीन र चार अङ्कका दोहोरिएका खाता बनेका हुन सक्छन्। यदि %1$s र %2$s एउटै खाता हुन् भने, गाभ्ने? लेनदेनहरू चार अङ्कको खातामा सर्नेछन्, यसको बालान्स इतिहास राखिनेछ, र आउँदा SMS ले स्वतः यही खाता प्रयोग गर्नेछन्।</string>
+    <string name="duplicate_accounts_merge">गाभ्नुहोस् र सम्झनुहोस्</string>
+    <string name="duplicate_accounts_keep">छुट्टै राख्नुहोस्</string>
+</resources>

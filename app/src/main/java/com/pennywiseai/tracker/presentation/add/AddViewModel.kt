@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
@@ -186,7 +187,9 @@ class AddViewModel @Inject constructor(
     private fun selectAccount(bankName: String?, last4: String?) {
         if (bankName == null && last4 == null) return
         viewModelScope.launch {
-            val all = accounts.first { it.isNotEmpty() }
+            // From the repository, not [accounts]: init can run this before that
+            // property (declared further down) exists.
+            val all = accountBalanceRepository.getAllLatestBalances().first { it.isNotEmpty() }
             val matched = if (bankName != null) {
                 all.firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
             } else {
@@ -564,11 +567,15 @@ class AddViewModel @Inject constructor(
      */
     private suspend fun bookedFromSuggestion(account: AccountBalanceEntity?) {
         val id = unrecognizedSmsId ?: return
-        // An account whose digits differ from the ones the SMS named isn't the SMS's account.
-        val learned = account
-            ?.takeIf { draftAccountLast4 == null || it.accountLast4 == draftAccountLast4 }
-            ?.let { LearnedSendersStore.Account(it.bankName, it.accountLast4, it.currency) }
-        unrecognizedSmsRepository.getById(id)?.let { learnedSendersStore.learn(it.sender, learned) }
+        unrecognizedSmsRepository.getById(id)?.let { sms ->
+            // Only digits the SMS itself names rule an account out; the pre-filled
+            // ones may be the learned guess the user just corrected.
+            val smsLast4 = GenericTransactionExtractor.extract(sms.sender, sms.smsBody)?.transaction?.accountLast4
+            val learned = account
+                ?.takeIf { smsLast4 == null || it.accountLast4 == smsLast4 }
+                ?.let { LearnedSendersStore.Account(it.bankName, it.accountLast4, it.currency) }
+            learnedSendersStore.learn(sms.sender, learned)
+        }
         unrecognizedSmsRepository.deleteMessage(id)
     }
 

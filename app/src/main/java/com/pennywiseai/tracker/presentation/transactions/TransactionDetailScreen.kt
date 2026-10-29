@@ -106,6 +106,7 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 // Reusable filled field colors for edit mode
 @Composable
@@ -917,7 +918,7 @@ private fun TransactionReceipt(
             val categoryValue = if (hasSplits && splits.isNotEmpty()) {
                 pluralStringResource(R.plurals.txn_detail_split_categories, splits.size, splits.size)
             } else {
-                transaction.category
+                categoryLabel(transaction.category)
             }
             DetailInfoRow(
                 icon = Icons.Default.Category,
@@ -1823,7 +1824,7 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
                     } else {
                         pickable.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category) },
+                                text = { Text(categoryLabel(category)) },
                                 onClick = {
                                     viewModel.updateBudgetCategory(category)
                                     expanded = false
@@ -1857,7 +1858,7 @@ private fun CategoryDropdown(
         onExpandedChange = { expanded = it }
     ) {
         TextField(
-            value = selectedCategory,
+            value = categoryLabel(selectedCategory),
             onValueChange = { },
             label = { Text(stringResource(R.string.txn_detail_label_category), fontWeight = FontWeight.SemiBold) },
             leadingIcon = { SelectedCategoryIcon(selectedCategoryEntity) },
@@ -2543,7 +2544,7 @@ private fun BalanceAdjustmentSheet(
                 onExpandedChange = { expanded = it }
             ) {
                 TextField(
-                    value = shownCategory,
+                    value = categoryLabel(shownCategory),
                     onValueChange = { },
                     label = { Text(stringResource(R.string.txn_detail_label_category)) },
                     leadingIcon = { SelectedCategoryIcon(categories.find { it.name == shownCategory }) },

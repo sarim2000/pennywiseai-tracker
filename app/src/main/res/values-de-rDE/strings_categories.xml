@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">Essen &amp; Trinken</string>
+    <string name="category_groceries">Lebensmittel</string>
+    <string name="category_transportation">Verkehr</string>
+    <string name="category_shopping">Einkaufen</string>
+    <string name="category_bills_utilities">Rechnungen &amp; Nebenkosten</string>
+    <string name="category_entertainment">Unterhaltung</string>
+    <string name="category_healthcare">Gesundheit</string>
+    <string name="category_investments">Investitionen</string>
+    <string name="category_banking">Bankwesen</string>
+    <string name="category_personal_care">Körperpflege</string>
+    <string name="category_education">Bildung</string>
+    <string name="category_mobile">Mobilfunk</string>
+    <string name="category_fitness">Fitness</string>
+    <string name="category_insurance">Versicherung</string>
+    <string name="category_tax">Steuern</string>
+    <string name="category_bank_charges">Bankgebühren</string>
+    <string name="category_credit_card_payment">Kreditkartenzahlung</string>
+    <string name="category_salary">Gehalt</string>
+    <string name="category_income">Einkommen</string>
+    <string name="category_travel">Reisen</string>
+    <string name="category_others">Sonstiges</string>
+    <string name="category_subscriptions">Abonnements</string>
+</resources>

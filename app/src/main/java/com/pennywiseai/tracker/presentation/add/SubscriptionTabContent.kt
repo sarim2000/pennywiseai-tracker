@@ -35,6 +35,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import androidx.compose.ui.platform.LocalDensity
 
 private val subTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
@@ -330,7 +331,7 @@ fun SubscriptionTabContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     TextField(
-                        value = uiState.category,
+                        value = categoryLabel(uiState.category),
                         onValueChange = {},
                         label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
                         readOnly = true,

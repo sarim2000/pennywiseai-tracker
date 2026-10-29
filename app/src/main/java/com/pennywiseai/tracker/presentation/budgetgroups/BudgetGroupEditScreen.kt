@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -454,7 +455,7 @@ fun BudgetGroupEditScreen(
                                                 ) {
                                                     CategoryIcon(category = categoryName, size = 18.dp)
                                                 }
-                                                Text(categoryName)
+                                                Text(categoryLabel(categoryName))
                                             }
                                         },
                                         onClick = {
@@ -483,7 +484,7 @@ fun BudgetGroupEditScreen(
                                                 ) {
                                                     CategoryIcon(category = option.displayName, size = 18.dp)
                                                 }
-                                                Text(stringResource(R.string.budget_edit_type_bucket_all, option.displayName))
+                                                Text(stringResource(R.string.budget_edit_type_bucket_all, categoryLabel(option.displayName)))
                                             }
                                         },
                                         onClick = {
@@ -773,7 +774,7 @@ private fun CategoryBudgetRow(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = categoryName,
+                text = categoryLabel(categoryName),
                 style = MaterialTheme.typography.bodyMedium
             )
             if (currentSpending > BigDecimal.ZERO) {

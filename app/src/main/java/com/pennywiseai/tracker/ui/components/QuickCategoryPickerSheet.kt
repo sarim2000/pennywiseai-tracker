@@ -31,6 +31,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Modal bottom-sheet picker for changing a transaction's category. Used both
@@ -128,7 +129,7 @@ fun QuickCategoryPickerSheet(
                 ) {
                     CategoryChip(category = category, showText = false)
                     Text(
-                        text = category.name,
+                        text = categoryLabel(category.name),
                         modifier = Modifier.weight(1f),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal

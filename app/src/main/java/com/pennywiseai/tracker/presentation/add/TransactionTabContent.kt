@@ -50,6 +50,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import androidx.compose.ui.platform.LocalDensity
 
 // Reusable filled text field colors with no indicator
@@ -480,7 +481,7 @@ fun TransactionTabContent(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TextField(
-                            value = uiState.category,
+                            value = categoryLabel(uiState.category),
                             onValueChange = {},
                             label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
                             readOnly = true,
@@ -897,7 +898,7 @@ private fun AddBudgetImpactSection(
                     } else {
                         activeBudgetCategories.forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category) },
+                                text = { Text(categoryLabel(category)) },
                                 onClick = {
                                     onCategoryChange(category)
                                     expanded = false

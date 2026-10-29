@@ -62,6 +62,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Bottom sheet for confirming a subscription payment / receipt (#412).
@@ -164,7 +165,7 @@ fun MarkAsPaidSheet(
                     )
                     subscription.category?.let { cat ->
                         Text(
-                            text = cat,
+                            text = categoryLabel(cat),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

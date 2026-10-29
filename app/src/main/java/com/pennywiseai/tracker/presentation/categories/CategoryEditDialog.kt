@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -142,7 +143,7 @@ fun CategoryEditDialog(
                     var parentMenu by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = parentMenu, onExpandedChange = { parentMenu = it }) {
                         TextField(
-                            value = parentCandidates.firstOrNull { it.id == parentId }?.name ?: stringResource(R.string.category_edit_parent_none),
+                            value = parentCandidates.firstOrNull { it.id == parentId }?.name?.let { categoryLabel(it) } ?: stringResource(R.string.category_edit_parent_none),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.category_edit_parent_label), fontWeight = FontWeight.SemiBold) },
@@ -300,7 +301,7 @@ fun CategoryEditDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text(stringResource(R.string.category_edit_delete_title)) },
             text = {
-                Text(stringResource(R.string.category_edit_delete_message, category.name))
+                Text(stringResource(R.string.category_edit_delete_message, categoryLabel(category.name)))
             },
             confirmButton = {
                 TextButton(

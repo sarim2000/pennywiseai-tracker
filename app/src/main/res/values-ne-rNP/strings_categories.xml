@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="category_food_dining">खानपान</string>
+    <string name="category_groceries">किराना</string>
+    <string name="category_transportation">यातायात</string>
+    <string name="category_shopping">किनमेल</string>
+    <string name="category_bills_utilities">बिल र उपयोगिता</string>
+    <string name="category_entertainment">मनोरञ्जन</string>
+    <string name="category_healthcare">स्वास्थ्य सेवा</string>
+    <string name="category_investments">लगानी</string>
+    <string name="category_banking">बैंकिङ</string>
+    <string name="category_personal_care">व्यक्तिगत हेरचाह</string>
+    <string name="category_education">शिक्षा</string>
+    <string name="category_mobile">मोबाइल</string>
+    <string name="category_fitness">फिटनेस</string>
+    <string name="category_insurance">बीमा</string>
+    <string name="category_tax">कर</string>
+    <string name="category_bank_charges">बैंक शुल्क</string>
+    <string name="category_credit_card_payment">क्रेडिट कार्ड भुक्तानी</string>
+    <string name="category_salary">तलब</string>
+    <string name="category_income">आम्दानी</string>
+    <string name="category_travel">यात्रा</string>
+    <string name="category_others">अन्य</string>
+    <string name="category_subscriptions">सदस्यताहरू</string>
+</resources>

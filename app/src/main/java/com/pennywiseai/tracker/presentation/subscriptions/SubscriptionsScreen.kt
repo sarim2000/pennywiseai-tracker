@@ -61,6 +61,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -665,7 +666,7 @@ private fun SwipeableSubscriptionItem(
                             // mid-word against a narrow column.
                             subscription.category?.let { category ->
                                 Text(
-                                    text = category,
+                                    text = categoryLabel(category),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,

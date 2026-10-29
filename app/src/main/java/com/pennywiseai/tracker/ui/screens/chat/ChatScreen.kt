@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -946,7 +947,7 @@ private fun PendingActionCard(
             listOf(
                 stringResource(if (d.type == income) R.string.chat_action_add_income else R.string.chat_action_add_expense),
                 "${fmt(d.amount)} · ${d.merchant}",
-                stringResource(R.string.chat_action_add_detail, d.category, d.accountLabel),
+                stringResource(R.string.chat_action_add_detail, categoryLabel(d.category), d.accountLabel),
                 stringResource(R.string.chat_action_add)
             )
         }
@@ -955,7 +956,7 @@ private fun PendingActionCard(
             listOf(
                 stringResource(R.string.chat_action_delete_title),
                 "${own(t)} · ${t.merchantName}",
-                "${t.category} · ${t.dateTime.toLocalDate()}",
+                "${categoryLabel(t.category)} · ${t.dateTime.toLocalDate()}",
                 stringResource(R.string.chat_action_delete)
             )
         }
@@ -963,12 +964,12 @@ private fun PendingActionCard(
             val t = action.transaction
             val changes = listOfNotNull(
                 action.newMerchant?.let { stringResource(R.string.chat_action_change_merchant, it) },
-                action.newCategory?.let { stringResource(R.string.chat_action_change_category, it) }
+                action.newCategory?.let { stringResource(R.string.chat_action_change_category, categoryLabel(it)) }
             ).joinToString(", ")
             listOf(
                 stringResource(R.string.chat_action_update_title),
                 "${own(t)} · ${t.merchantName}",
-                "${t.category} · ${t.dateTime.toLocalDate()}\n$changes",
+                "${categoryLabel(t.category)} · ${t.dateTime.toLocalDate()}\n$changes",
                 stringResource(R.string.chat_action_update)
             )
         }

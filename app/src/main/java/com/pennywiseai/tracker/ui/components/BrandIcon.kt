@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
 import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Displays a brand icon with intelligent fallback
@@ -143,7 +144,7 @@ fun CategoryIcon(
 
     Icon(
         imageVector = categoryInfo.icon,
-        contentDescription = category,
+        contentDescription = categoryLabel(category),
         tint = tint ?: CategoryMapping.colorFor(category),
         modifier = modifier.size(size)
     )

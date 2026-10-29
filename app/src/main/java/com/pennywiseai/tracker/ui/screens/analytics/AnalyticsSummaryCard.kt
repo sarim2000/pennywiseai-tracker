@@ -27,6 +27,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @Composable
 fun AnalyticsSummaryCard(
@@ -190,7 +191,7 @@ fun AnalyticsSummaryCard(
                                 tint = CategoryMapping.colorFor(topCategory)
                             )
                             Text(
-                                text = topCategory,
+                                text = categoryLabel(topCategory),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.onSurface

@@ -80,6 +80,8 @@ import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
 import java.time.LocalDateTime
 import javax.inject.Inject
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 
 /**
  * The quick add for what no SMS reports — cash: type the amount, tap a
@@ -255,7 +257,7 @@ class QuickAddActivity : FragmentActivity() {
                             // Typing is done once the category is picked; on a short phone the keyboard hides Save.
                             focusManager.clearFocus()
                         },
-                        label = { Text(c.name) },
+                        label = { Text(categoryLabel(c.name)) },
                         leadingIcon = { CategoryChip(category = c, showText = false) }
                     )
                 }
@@ -322,7 +324,7 @@ class QuickAddActivity : FragmentActivity() {
             // expense as failed and have it entered twice.
             if (saved) runCatching { WidgetRefresher.refreshTransactionWidgets(app) }.onFailure { Log.w(TAG, "Widget refresh failed", it) }
             val message = if (saved) {
-                app.getString(R.string.quick_add_saved, CurrencyFormatter.formatCurrency(amount, currency), category)
+                app.getString(R.string.quick_add_saved, CurrencyFormatter.formatCurrency(amount, currency), CategoryMapping.label(app, category))
             } else {
                 app.getString(R.string.add_error_save_transaction)
             }

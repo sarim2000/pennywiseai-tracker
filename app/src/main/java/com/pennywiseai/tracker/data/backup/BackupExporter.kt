@@ -14,7 +14,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.encodeToStream
 import java.io.File
 import java.time.LocalDate
@@ -52,22 +51,6 @@ class BackupExporter @Inject constructor(
             ExportResult.Error("Export failed: ${e.message}")
         } catch (e: OutOfMemoryError) {
             ExportResult.Error(TOO_LARGE)
-        }
-    }
-
-    suspend fun exportBackupBytes(
-        privacy: ExportPrivacy = ExportPrivacy.FULL,
-        includeReceipts: Boolean = false
-    ): ExportBytesResult {
-        return try {
-            val backup = createBackup(privacy, includeReceipts)
-            // Off the main thread: "Back up now" calls this from viewModelScope.
-            val bytes = withContext(Dispatchers.Default) { backupJson.encodeToString(backup).toByteArray(Charsets.UTF_8) }
-            ExportBytesResult.Success(bytes)
-        } catch (e: Exception) {
-            ExportBytesResult.Error("Export failed: ${e.message}")
-        } catch (e: OutOfMemoryError) {
-            ExportBytesResult.Error(TOO_LARGE)
         }
     }
 

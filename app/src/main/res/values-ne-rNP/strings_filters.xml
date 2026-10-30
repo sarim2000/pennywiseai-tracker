@@ -13,13 +13,13 @@
     <string name="filter_type_expense">खर्च</string>
     <string name="filter_type_credit">क्रेडिट</string>
     <!-- Analytics only: expense + credit-card spend shown together -->
+    <string name="filter_type_spending">खर्च (खर्च + कार्ड)</string>
     <string name="filter_type_transfer">स्थानान्तरण</string>
     <string name="filter_type_investment">लगानी</string>
     <!-- Account types -->
     <string name="account_type_savings">बचत</string>
-    <string name="account_type_credit_card">क्रेडिट कार्ड</string>
-    <string name="filter_type_spending">खर्च (खर्च + कार्ड)</string>
     <string name="account_type_current">चल्ती</string>
+    <string name="account_type_credit_card">क्रेडिट कार्ड</string>
     <string name="account_type_cash">नगद</string>
     <string name="account_type_loan">ऋण</string>
 </resources>

@@ -35,7 +35,6 @@
     <string name="split_remove_confirm">हटाउनुहोस्</string>
     <string name="split_upi_title">तपाईंको UPI ID</string>
     <string name="split_upi_message">मानिसहरूले आफ्नो भाग यो UPI ID मा तिर्छन्। सेटिङ्समा यसलाई बदल्न सक्नुहुन्छ।</string>
-    <string name="split_upi_hint">name@bank</string>
     <string name="split_upi_invalid">name@bank जस्तो UPI ID हाल्नुहोस्</string>
     <string name="split_upi_save">सुरक्षित गर्नुहोस्</string>
     <string name="split_request_text">%3$s का लागि %2$s लाई %1$s तिर्नुहोस्</string>

@@ -14,6 +14,7 @@
     <string name="home_close">Zavřít</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Rozpočty</string>
+    <string name="home_section_goals">Cíle</string>
     <string name="home_section_loans">Půjčky</string>
     <string name="home_section_groups">Skupiny</string>
     <string name="home_section_recent_transactions">Poslední transakce</string>
@@ -28,6 +29,11 @@
     <string name="home_fab_add">Přidat transakci nebo předplatné</string>
     <string name="home_fab_sync">Synchronizovat SMS (dlouhý stisk pro kompletní opětovné uložení)</string>
     <string name="home_fab_sync_hint">Podržte pro kompletní resynchronizaci</string>
+    <string name="home_resync_title">Znovu načíst zprávy</string>
+    <string name="home_resync_scan_again">Znovu naskenovat všechny zprávy</string>
+    <string name="home_resync_scan_again_desc">Doplní vše, co chybělo. Vaše úpravy i všechny stávající transakce zůstanou beze změny.</string>
+    <string name="home_resync_rebuild">Sestavit znovu od začátku</string>
+    <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Další možnosti</string>
     <string name="home_menu_monthly_recap">Měsíční repatriace</string>
@@ -92,6 +98,8 @@
     <string name="color_swatch_selected">Vybrané</string>
     <string name="profile_filter_all_accounts">Všechny účty</string>
     <string name="whats_new_got_it">Rozumím</string>
+    <string name="whats_new_title">Co je nového</string>
+    <string name="whats_new_version">Verze %1$s</string>
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Klepnutím sem skenujete vaše SMS zprávy pro transakce</string>
     <string name="spotlight_tap_to_dismiss">Klepněte kdekoliv pro zamítnutí</string>
@@ -100,6 +108,7 @@
     <string name="type_filter_income">Výnosy</string>
     <string name="type_filter_expense">Výdaje</string>
     <string name="type_filter_credit">Kredit</string>
+    <string name="type_filter_spending">Útrata</string>
     <string name="type_filter_transfer">Převod</string>
     <string name="type_filter_investment">Investovat</string>
     <!-- ══ SMS scan progress dialog ══ -->
@@ -165,11 +174,16 @@
     <string name="balance_card_approximate_note">* Některé zůstatky nelze převést a jsou zobrazeny v původní měně (součet je přibližný).</string>
     <string name="balance_card_spent_this_month">Tento měsíc utraceno</string>
     <string name="balance_card_change_currency">Změnit měnu</string>
+    <string name="balance_card_summary_income">Příjmy</string>
+    <string name="balance_card_summary_expenses">Výdaje</string>
+    <string name="balance_card_summary_lent">Půjčeno</string>
+    <string name="balance_card_summary_saved">Ušetřeno</string>
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s nad rozpočtem</string>
     <string name="budget_card_remaining">Zbývá %1$s</string>
     <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <string name="budget_card_per_day">%1$s/den</string>
     <string name="budget_card_finished">Dokončeno</string>
     <string name="budget_card_tracking_all">Sledování všech výdajů</string>
     <!-- %1$s is a weekday name -->
@@ -216,6 +230,7 @@
         <item quantity="other">%1$d položek</item>
     </plurals>
     <string name="group_card_no_transactions">Zatím žádné transakce</string>
+    <string name="group_card_invested">Investováno %1$s</string>
     <plurals name="group_card_transaction_count">
         <item quantity="one">%1$d transakce</item>
         <item quantity="few">%1$d transakcí</item>
@@ -245,6 +260,7 @@
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Přidat transakci</string>
     <!-- Budget widget -->
+    <string name="widget_budget_title">Měsíční rozpočet</string>
     <string name="widget_budget_percent_used">%1$d%% použito</string>
     <string name="widget_budget_of_limit">z %1$s</string>
     <string name="widget_budget_per_day">%1$s/den</string>
@@ -261,6 +277,8 @@
     <string name="widget_recent_empty">Zatím žádné transakce</string>
     <string name="widget_recent_fallback_title">Transakce</string>
     <!-- Spending summary widget -->
+    <string name="widget_summary_today">Dnes</string>
+    <string name="widget_summary_month">Tento měsíc</string>
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">Skenování SMS</string>
@@ -281,39 +299,13 @@
     <string name="notif_txn_public_title">%1$s Nová transakce</string>
     <string name="notif_txn_public_text">%1$s • zůstatek potřebuje vzhled</string>
     <!-- %1$s amount with currency, %2$s merchant -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <!-- After a category is picked from the notification; %1$s is the category -->
-    <!-- Evening recap notification -->
-    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
-    <!-- Header over a stack of transaction alerts -->
-    <!-- Balance chart legend -->
-    <string name="balance_chart_label">Vývoj zůstatku</string>
-    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <!-- Month-end forecast on the "Spent this month" card -->
-    <!-- Safe to spend card + breakdown sheet -->
-    <string name="home_section_goals">Cíle</string>
-    <string name="home_resync_title">Znovu načíst zprávy</string>
-    <string name="home_resync_scan_again">Znovu naskenovat všechny zprávy</string>
-    <string name="home_resync_scan_again_desc">Doplní vše, co chybělo. Vaše úpravy i všechny stávající transakce zůstanou beze změny.</string>
-    <string name="home_resync_rebuild">Sestavit znovu od začátku</string>
-    <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
-    <string name="whats_new_title">Co je nového</string>
-    <string name="whats_new_version">Verze %1$s</string>
-    <string name="type_filter_spending">Útrata</string>
-    <string name="balance_card_summary_income">Příjmy</string>
-    <string name="balance_card_summary_expenses">Výdaje</string>
-    <string name="balance_card_summary_lent">Půjčeno</string>
-    <string name="balance_card_summary_saved">Ušetřeno</string>
-    <string name="budget_card_per_day">%1$s/den</string>
-    <string name="group_card_invested">Investováno %1$s</string>
-    <string name="widget_budget_title">Měsíční rozpočet</string>
-    <string name="widget_summary_today">Dnes</string>
-    <string name="widget_summary_month">Tento měsíc</string>
     <string name="notif_txn_title_spent">Utraceno %1$s · %2$s</string>
     <string name="notif_txn_title_received">Přijato %1$s od %2$s</string>
-    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">Za co to bylo? · %1$s</string>
     <string name="notif_txn_action_change">Změnit</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Uloženo jako %1$s</string>
     <string name="notif_txn_learned_text">Platby tady se od teď budou třídit automaticky.</string>
     <plurals name="notif_txn_learned_moved">
@@ -322,8 +314,10 @@
         <item quantity="many">Přesunuto bylo i %d dřívějších.</item>
         <item quantity="other">Přesunuto bylo i %d dřívějších.</item>
     </plurals>
+    <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">Denní souhrn</string>
     <string name="notif_daily_channel_description">Každý večer krátké shrnutí denních výdajů</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">Dnes jste utratili %1$s</string>
     <plurals name="notif_daily_count">
         <item quantity="one">%d transakce</item>
@@ -339,18 +333,24 @@
     </plurals>
     <string name="notif_daily_action_sort">Roztřídit</string>
     <string name="notif_daily_action_cash">+ Hotovost</string>
+    <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d nová transakce</item>
         <item quantity="few">%d nové transakce</item>
         <item quantity="many">%d nové transakce</item>
         <item quantity="other">%d nových transakcí</item>
     </plurals>
+    <!-- Balance chart legend -->
+    <string name="balance_chart_label">Vývoj zůstatku</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">Líbí se vám PennyWise?</string>
     <string name="pro_home_card_body">Pro přidává neomezená pravidla, cíle, exporty a importy výpisů.</string>
     <string name="pro_home_card_action">Zobrazit Pro</string>
     <string name="pro_home_card_dismiss">Zavřít</string>
+    <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Směřujete k %1$s do %2$s</string>
     <string name="forecast_over_usual">%1$s nad obvyklou úrovní</string>
+    <!-- Safe to spend card + breakdown sheet -->
     <string name="home_section_safe_to_spend">Bezpečně utratit</string>
     <string name="safe_to_spend_title">Bezpečně utratit</string>
     <string name="safe_to_spend_tap_to_show">Klepnutím zobrazíte</string>

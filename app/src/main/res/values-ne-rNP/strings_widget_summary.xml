@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">आजको खर्च, बजेटमा कति बाँकी छ, र छिटो नगद थप्ने सुविधा।</string>
+<resources>
+    <string name="widget_summary_description">आजको खर्च, बजेटमा कति बाँकी छ, र छिटो नगद थप्ने सुविधा।</string>
     <string name="widget_summary_left">बजेटमा बाँकी</string>
     <string name="widget_summary_over">बजेटभन्दा बढी</string>
     <string name="widget_budget_left_label">बाँकी</string>

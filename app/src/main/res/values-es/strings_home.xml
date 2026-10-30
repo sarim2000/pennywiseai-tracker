@@ -1,59 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Home screen ══ -->
-    <!-- Home sections (headers + edit-home sheet) -->
-    <!-- Empty state -->
-    <!-- FABs + full resync -->
-    <!-- More options sheet -->
-    <!-- Edit home screen sheet -->
-    <!-- Calculation breakdown dialog -->
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <!-- Subscriptions + loans summary cards -->
-    <!-- ══ Greeting card (home header) ══ -->
-    <!-- ══ Bottom navigation ══ -->
-    <!-- ══ Shared components ══ -->
-    <!-- Spotlight tutorial -->
-    <!-- Transaction type filter (short labels) -->
-    <!-- ══ SMS scan progress dialog ══ -->
-    <!-- %1$s is a duration such as "2m 5s" -->
-    <!-- Short elapsed/remaining durations -->
-    <!-- ══ Shared cards ══ -->
-    <!-- Account carousel -->
-    <!-- Balance / spending card -->
-    <!-- %1$s is a formatted (or masked) amount -->
-    <!-- Budget card -->
-    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
-    <!-- %1$s is a weekday name -->
-    <!-- %1$d is the day of month the budget starts on -->
-    <!-- %1$s is a date range -->
-    <!-- Group cards -->
-    <!-- Transaction count · latest date -->
-    <!-- Cash flow card -->
-    <!-- Transaction row -->
-    <!-- %1$s is the last 4 digits of the other account -->
-    <!-- ══ Home-screen widgets ══ -->
-    <!-- Add transaction widget -->
-    <!-- Budget widget -->
-    <!-- Spending pie widget -->
-    <!-- Slice that groups the smallest categories -->
-    <!-- Recent transactions widget -->
-    <!-- Spending summary widget -->
-    <!-- ══ Notifications ══ -->
-    <!-- SMS scan progress (foreground worker) -->
-    <!-- New transaction notification -->
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <!-- After a category is picked from the notification; %1$s is the category -->
-    <!-- Evening recap notification -->
-    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
-    <!-- Header over a stack of transaction alerts -->
-    <!-- Balance chart legend -->
-    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <!-- Month-end forecast on the "Spent this month" card -->
-    <!-- Safe to spend card + breakdown sheet -->
     <string name="home_transaction_deleted">Transacción eliminada</string>
     <string name="home_undo">Deshacer</string>
     <string name="home_upgrade_pro">Pásate a PennyWise Pro</string>
@@ -65,6 +12,7 @@
     <string name="home_search_transactions">Buscar transacciones</string>
     <string name="home_cancel">Cancelar</string>
     <string name="home_close">Cerrar</string>
+    <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Presupuestos</string>
     <string name="home_section_goals">Metas</string>
     <string name="home_section_loans">Préstamos</string>
@@ -73,9 +21,11 @@
     <string name="home_section_accounts">Cuentas bancarias</string>
     <string name="home_section_subscriptions">Próximas suscripciones</string>
     <string name="home_section_activity">Actividad</string>
+    <!-- Empty state -->
     <string name="home_empty_headline">Aún no hay transacciones</string>
     <string name="home_empty_description">Escanea tus SMS para empezar: encontraremos tus transacciones automáticamente</string>
     <string name="home_empty_action">Escanear ahora</string>
+    <!-- FABs + full resync -->
     <string name="home_fab_add">Agregar transacción o suscripción</string>
     <string name="home_fab_sync">Sincronizar SMS (mantén presionado para resincronizar todo)</string>
     <string name="home_fab_sync_hint">Mantén presionado para resincronizar todo</string>
@@ -84,23 +34,26 @@
     <string name="home_resync_scan_again_desc">Agrega lo que se haya pasado por alto. Tus cambios y todas las transacciones existentes se quedan como están.</string>
     <string name="home_resync_rebuild">Reconstruir desde cero</string>
     <string name="home_resync_rebuild_desc">Vuelve a leer las transacciones de SMS para aplicar correcciones del lector. Se restablecen los cambios en transacciones de SMS. Se conservan las transacciones manuales, importadas, de préstamos y agrupadas.</string>
+    <!-- More options sheet -->
     <string name="home_menu_title">Más opciones</string>
     <string name="home_menu_monthly_recap">Resumen mensual</string>
     <string name="home_menu_settings">Ajustes</string>
     <string name="home_menu_edit_home">Editar pantalla de inicio</string>
     <string name="home_menu_discord">Únete a Discord para dar tu opinión</string>
     <string name="home_menu_rate">Califica en Play Store</string>
-    <string name="home_version">v%1$s</string>
+    <!-- Edit home screen sheet -->
     <string name="home_edit_title">Editar pantalla de inicio</string>
     <string name="home_edit_description">Reordena u oculta secciones de tu pantalla de inicio.</string>
     <string name="home_edit_move_up">Subir %1$s</string>
     <string name="home_edit_move_down">Bajar %1$s</string>
+    <!-- Calculation breakdown dialog -->
     <string name="home_breakdown_title">Desglose del cálculo</string>
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
+    <!-- Month name, then day range, e.g. "March 1-15" -->
     <string name="home_breakdown_formula">Fórmula: Ingresos - Gastos = Patrimonio neto\nVerde (+) = Ahorro | Rojo (-) = Gasto excesivo</string>
     <string name="home_breakdown_income">Ingresos</string>
     <string name="home_breakdown_expenses">Gastos</string>
     <string name="home_breakdown_net_worth">Patrimonio neto</string>
+    <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d suscripción activa</item>
         <item quantity="other">%1$d suscripciones activas</item>
@@ -112,6 +65,7 @@
     </plurals>
     <string name="home_loans_owed_to_you">Te deben %1$s</string>
     <string name="home_loans_you_owe">Debes %1$s</string>
+    <!-- ══ Greeting card (home header) ══ -->
     <string name="greeting_last_day_of_month">Último día de %1$s</string>
     <plurals name="greeting_days_left_in_month">
         <item quantity="one">Queda %1$d día de %2$s</item>
@@ -124,10 +78,11 @@
     <string name="greeting_default_user_name">Usuario</string>
     <string name="greeting_profile_filter">Filtro de perfil</string>
     <string name="greeting_more_options">Más opciones</string>
+    <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Inicio</string>
     <string name="nav_transactions">Transacciones</string>
     <string name="nav_analytics">Análisis</string>
-    <string name="nav_chat">Chat</string>
+    <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Ver menos</string>
     <string name="expandable_list_view_all_more">Ver todo (%1$d más)</string>
     <string name="error_state_retry">Reintentar</string>
@@ -136,8 +91,10 @@
     <string name="whats_new_got_it">Entendido</string>
     <string name="whats_new_title">Novedades</string>
     <string name="whats_new_version">Versión %1$s</string>
+    <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Toca aquí para buscar transacciones en tus SMS</string>
     <string name="spotlight_tap_to_dismiss">Toca en cualquier lugar para cerrar</string>
+    <!-- Transaction type filter (short labels) -->
     <string name="type_filter_all">Todo</string>
     <string name="type_filter_income">Ingresos</string>
     <string name="type_filter_expense">Gastos</string>
@@ -145,6 +102,7 @@
     <string name="type_filter_spending">Gasto total</string>
     <string name="type_filter_transfer">Transferencia</string>
     <string name="type_filter_investment">Inversión</string>
+    <!-- ══ SMS scan progress dialog ══ -->
     <string name="sms_scan_title">Escaneando SMS</string>
     <string name="sms_scan_cancel">Cancelar escaneo</string>
     <string name="sms_scan_done">Listo</string>
@@ -159,6 +117,7 @@
         <item quantity="other">%1$d transacciones leídas</item>
     </plurals>
     <string name="sms_scan_saved">%1$d guardadas</string>
+    <!-- %1$s is a duration such as "2m 5s" -->
     <string name="sms_scan_time_left">Faltan ~%1$s</string>
     <string name="sms_scan_batch">Lote %1$d de %2$d</string>
     <string name="sms_scan_processing">Procesando…</string>
@@ -167,20 +126,25 @@
     <string name="sms_scan_cancelled">Escaneo cancelado</string>
     <string name="sms_scan_starting">Iniciando escaneo…</string>
     <string name="sms_scan_indicator">Escaneando SMS: %1$d/%2$d</string>
+    <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="duration_minutes_seconds">%1$d min %2$d s</string>
     <string name="duration_seconds">%1$d s</string>
+    <!-- ══ Shared cards ══ -->
     <string name="balance_show">Mostrar saldo</string>
     <string name="balance_hide">Ocultar saldo</string>
     <string name="card_collapse">Contraer</string>
     <string name="card_expand">Expandir</string>
+    <!-- Account carousel -->
     <string name="account_card_type_credit">Crédito</string>
     <string name="account_card_type_savings">Ahorros</string>
     <string name="account_card_low_balance">Saldo bajo</string>
     <string name="account_card_outstanding">Pendiente</string>
     <string name="account_card_balance">Saldo</string>
+    <!-- Balance / spending card -->
     <string name="balance_card_change_more">%1$d%% más que el mes pasado</string>
     <string name="balance_card_change_less">%1$d%% menos que el mes pasado</string>
+    <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Saldo: %1$s</string>
     <plurals name="balance_card_account_count">
         <item quantity="one">" · %1$d cuenta"</item>
@@ -191,7 +155,6 @@
     <string name="balance_card_last_month">Mes pasado</string>
     <string name="balance_card_accounts">Cuentas</string>
     <string name="balance_card_credit_cards">Tarjetas de crédito</string>
-    <string name="balance_card_total">Total</string>
     <string name="balance_card_approximate_note">* Algunos saldos no se pudieron convertir y se muestran en su moneda original (el total es aproximado).</string>
     <string name="balance_card_spent_this_month">Gastado este mes</string>
     <string name="balance_card_change_currency">Cambiar moneda</string>
@@ -199,23 +162,27 @@
     <string name="balance_card_summary_expenses">Gastos</string>
     <string name="balance_card_summary_lent">Prestado</string>
     <string name="balance_card_summary_saved">Ahorrado</string>
-    <string name="budget_card_percent">%1$d%%</string>
+    <!-- Budget card -->
     <string name="budget_card_over_budget">%1$s por encima del presupuesto</string>
     <string name="budget_card_remaining">Quedan %1$s</string>
+    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
     <string name="budget_card_per_day">%1$s/día</string>
     <string name="budget_card_finished">Finalizado</string>
     <string name="budget_card_tracking_all">Siguiendo todos los gastos</string>
+    <!-- %1$s is a weekday name -->
     <string name="budget_card_resets_today_weekday">Se reinicia hoy · cada %1$s</string>
     <plurals name="budget_card_resets_in_weekday">
         <item quantity="one">Se reinicia en %1$d día · cada %2$s</item>
         <item quantity="other">Se reinicia en %1$d días · cada %2$s</item>
     </plurals>
+    <!-- %1$d is the day of month the budget starts on -->
     <string name="budget_card_resets_today_day">Se reinicia hoy · día %1$d</string>
     <plurals name="budget_card_resets_in_day">
         <item quantity="one">Se reinicia en %1$d día · día %2$d</item>
         <item quantity="other">Se reinicia en %1$d días · día %2$d</item>
     </plurals>
     <string name="budget_card_over_by">Excedido por %1$s</string>
+    <!-- %1$s is a date range -->
     <plurals name="budget_card_runs_days_remaining">
         <item quantity="one">Vigente %1$s · queda %2$d día</item>
         <item quantity="other">Vigente %1$s · quedan %2$d días</item>
@@ -230,6 +197,7 @@
     <string name="budget_cadence_one_time">Única vez</string>
     <string name="budget_carousel_empty">Crea un presupuesto para seguir tus gastos</string>
     <string name="budget_carousel_create">Crear presupuesto</string>
+    <!-- Group cards -->
     <plurals name="group_card_item_count">
         <item quantity="one">%1$d elemento</item>
         <item quantity="other">%1$d elementos</item>
@@ -240,12 +208,14 @@
         <item quantity="one">%1$d transacción</item>
         <item quantity="other">%1$d transacciones</item>
     </plurals>
-    <string name="group_card_subtitle">%1$s · %2$s</string>
+    <!-- Transaction count · latest date -->
+    <!-- Cash flow card -->
     <string name="cash_flow_title">Dinero en movimiento</string>
     <string name="cash_flow_subtitle">Movimientos fuera de tu flujo de efectivo neto este mes</string>
     <string name="cash_flow_credit">Crédito</string>
     <string name="cash_flow_invested">Invertido</string>
     <string name="cash_flow_transferred">Transferido</string>
+    <!-- Transaction row -->
     <string name="txn_item_tag_credit">Crédito</string>
     <string name="txn_item_tag_transfer">Transferencia</string>
     <string name="txn_item_tag_investment">Inversión</string>
@@ -253,50 +223,67 @@
     <string name="txn_item_tag_business">Negocio</string>
     <string name="txn_item_tag_excluded">Excluida</string>
     <string name="txn_item_balance_after">Saldo %1$s</string>
+    <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Transferencia → %1$s</string>
     <string name="txn_item_transfer_from">Transferencia de %1$s</string>
+    <!-- ══ Home-screen widgets ══ -->
+    <!-- Add transaction widget -->
     <string name="widget_add_content_description">Agregar transacción</string>
+    <!-- Budget widget -->
     <string name="widget_budget_title">Presupuesto mensual</string>
     <string name="widget_budget_percent_used">%1$d%% usado</string>
     <string name="widget_budget_of_limit">de %1$s</string>
     <string name="widget_budget_per_day">%1$s/día</string>
     <string name="widget_budget_saved">Ahorrado %1$s</string>
     <string name="widget_budget_overspent">Excedido %1$s</string>
+    <!-- Spending pie widget -->
     <string name="widget_pie_title">Gastos</string>
     <string name="widget_pie_content_description">Gastos por categoría</string>
-    <string name="widget_pie_percent">%1$d%%</string>
     <string name="widget_pie_empty">Aún no hay gastos este mes</string>
+    <!-- Slice that groups the smallest categories -->
     <string name="widget_pie_other">Otros</string>
+    <!-- Recent transactions widget -->
     <string name="widget_recent_empty">Aún no hay transacciones</string>
     <string name="widget_recent_fallback_title">Transacción</string>
+    <!-- Spending summary widget -->
     <string name="widget_summary_today">Hoy</string>
     <string name="widget_summary_month">Este mes</string>
+    <!-- ══ Notifications ══ -->
+    <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">Escaneo de SMS</string>
     <string name="notif_sms_scan_title">Escaneando transacciones…</string>
     <string name="notif_sms_scan_progress">Procesados %1$d / %2$d</string>
     <string name="notif_sms_scan_reading">Leyendo SMS…</string>
+    <!-- New transaction notification -->
     <string name="notif_txn_channel_name">Notificaciones de transacciones</string>
     <string name="notif_txn_channel_description">Notificaciones de nuevas transacciones</string>
     <string name="notif_txn_unknown_merchant">Desconocido</string>
     <string name="notif_txn_unknown_bank">Banco</string>
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
+    <!-- Category • bank name -->
+    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
     <string name="notif_txn_balance_discrepancy">⚠ El saldo no cuadra por %1$s: se esperaba %2$s, el banco dice %3$s</string>
     <string name="notif_txn_action_more">Más…</string>
+    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s Nueva transacción</string>
     <string name="notif_txn_public_text">%1$s • hay que revisar el saldo</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Gastaste %1$s en %2$s</string>
     <string name="notif_txn_title_received">Recibiste %1$s de %2$s</string>
-    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">¿Para qué fue esto? · %1$s</string>
     <string name="notif_txn_action_change">Cambiar</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Guardado como %1$s</string>
     <string name="notif_txn_learned_text">A partir de ahora, los pagos aquí se clasificarán automáticamente.</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">También se movió %d anterior.</item>
         <item quantity="other">También se movieron %d anteriores.</item>
     </plurals>
+    <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">Resumen diario</string>
     <string name="notif_daily_channel_description">Un breve resumen de los gastos del día cada noche</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">Hoy gastaste %1$s</string>
     <plurals name="notif_daily_count">
         <item quantity="one">%d transacción</item>
@@ -308,17 +295,22 @@
     </plurals>
     <string name="notif_daily_action_sort">Clasificar</string>
     <string name="notif_daily_action_cash">+ Efectivo</string>
+    <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d transacción nueva</item>
         <item quantity="other">%d transacciones nuevas</item>
     </plurals>
+    <!-- Balance chart legend -->
     <string name="balance_chart_label">Evolución del saldo</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">¿Te gusta PennyWise?</string>
     <string name="pro_home_card_body">Pro agrega reglas, metas, exportaciones e importaciones de estados de cuenta ilimitadas.</string>
     <string name="pro_home_card_action">Ver Pro</string>
     <string name="pro_home_card_dismiss">Descartar</string>
+    <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Vas camino a %1$s para el %2$s</string>
     <string name="forecast_over_usual">%1$s más de lo habitual</string>
+    <!-- Safe to spend card + breakdown sheet -->
     <string name="home_section_safe_to_spend">Disponible para gastar</string>
     <string name="safe_to_spend_title">Disponible para gastar</string>
     <string name="safe_to_spend_tap_to_show">Toca para mostrar</string>

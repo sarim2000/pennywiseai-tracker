@@ -8,7 +8,12 @@
     <string name="applock_title">PennyWise est verrouillé</string>
     <string name="applock_subtitle">Authentifiez-vous pour accéder à vos données de dépenses</string>
     <string name="applock_unlock">Déverrouiller</string>
+    <string name="applock_no_screen_lock_notice">Le verrouillage de l\'app nécessite un verrouillage d\'écran. Ajoutez-en un dans les paramètres de l\'appareil.</string>
     <string name="applock_protected_immediate">Vos données sont protégées par un verrouillage immédiat</string>
+    <plurals name="applock_protected_timeout">
+        <item quantity="one">Vos données sont protégées avec un délai de %1$d minute</item>
+        <item quantity="other">Vos données sont protégées avec un délai de %1$d minutes</item>
+    </plurals>
     <string name="applock_auth_failed">L\'authentification a échoué. Veuillez réessayer.</string>
     <!-- Biometric capability errors (also shown in Settings) -->
     <string name="biometric_error_no_hardware">Cet appareil n\'a pas de matériel biométrique</string>
@@ -50,14 +55,21 @@
     <string name="unrecognized_cancel">Abandonner</string>
     <string name="unrecognized_reported_badge">Signalé</string>
     <string name="unrecognized_report">Rapporter</string>
+    <string name="unrecognized_suggestion">Ressemble à : %1$s</string>
+    <string name="unrecognized_suggestion_debit">Débit de %1$s</string>
+    <string name="unrecognized_suggestion_credit">Crédit de %1$s</string>
+    <string name="unrecognized_suggestion_add">Ajouter</string>
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Importer un relevé</string>
     <string name="import_statement_back">Précédent</string>
+    <string name="import_statement_description">Importez un relevé PDF de Google Pay, PhonePe, Paytm, slice ou ICICI Bank, ou le relevé Excel (.xlsx) ou CSV de n\'importe quelle banque. Vous verrez les nouveautés avant que quoi que ce soit soit ajouté.</string>
     <string name="import_statement_select_pdf">Sélectionner le relevé PDF</string>
     <string name="import_statement_loading_title">Importation des transactions...</string>
+    <string name="import_statement_loading_body">Lecture du relevé et recherche des doublons</string>
     <string name="import_statement_complete">Importation terminée</string>
     <string name="import_statement_result_imported">Transactions importées</string>
     <string name="import_statement_result_enriched">Transactions enrichies</string>
+    <string name="import_statement_result_total_parsed">Lignes du relevé</string>
     <string name="import_statement_result_duplicates">Doublons ignorés : %1$d</string>
     <string name="import_statement_result_exact">Réimportations exactes</string>
     <string name="import_statement_result_by_reference">Par référence UPI</string>
@@ -66,6 +78,73 @@
     <string name="import_statement_done">Fait</string>
     <string name="import_statement_failed">Importation échouée</string>
     <string name="import_statement_try_again">Réessayez</string>
+    <string name="import_statement_error_unsupported">Format de relevé non pris en charge. Actuellement pris en charge : Google Pay, PhonePe, Paytm, slice, ICICI Bank. Pour toute autre banque, importez son relevé Excel (.xlsx) ou CSV.</string>
+    <string name="import_statement_error_no_transactions">Aucune transaction trouvée dans le relevé.</string>
+    <string name="import_statement_error_failed">Échec de l\'importation du relevé.</string>
+    <string name="import_statement_error_read">Impossible de lire ce fichier.</string>
+    <string name="import_statement_error_too_large">Ce fichier est trop volumineux pour être importé.</string>
+    <string name="import_statement_error_no_rows">Ce fichier ne contient aucune ligne.</string>
+    <string name="import_statement_error_too_many_rows">Ce relevé contient plus de %1$d lignes. Exportez une période plus courte et importez-la.</string>
+    <string name="import_statement_error_date_1904">Ce classeur utilise le système de dates 1904. Enregistrez-le en .csv et importez-le.</string>
+    <string name="import_statement_password_title">PDF protégé par mot de passe</string>
+    <string name="import_statement_password_body">Ce relevé est verrouillé. Saisissez le mot de passe que votre banque vous a donné pour ce fichier. Il sert uniquement à ouvrir le fichier et n\'est pas enregistré.</string>
+    <string name="import_statement_password_label">Mot de passe du PDF</string>
+    <string name="import_statement_password_wrong">Mot de passe incorrect. Réessayez.</string>
+    <string name="import_statement_password_open">Ouvrir</string>
+    <string name="import_statement_password_cancel">Abandonner</string>
+    <string name="import_statement_select_spreadsheet">Sélectionner un relevé Excel ou CSV</string>
+    <string name="import_statement_xls_hint">Ancien fichier .xls ? Enregistrez-le d\'abord en .xlsx ou .csv.</string>
+    <string name="import_statement_map_title">Associer les colonnes</string>
+    <string name="import_statement_map_body">Indiquez à PennyWise à quoi correspond chaque colonne. Il s\'en souviendra pour le prochain relevé avec les mêmes colonnes.</string>
+    <string name="import_statement_header_row">Ligne d\'en-tête : %1$d</string>
+    <string name="import_statement_header_row_up">Ligne précédente</string>
+    <string name="import_statement_header_row_down">Ligne suivante</string>
+    <string name="import_statement_col_date_format">Format de date</string>
+    <string name="import_statement_date_auto">Détection auto</string>
+    <string name="import_statement_date_auto_found">Détection auto (%1$s)</string>
+    <string name="import_statement_col_description">Libellé</string>
+    <string name="import_statement_amount_split">Débit et crédit</string>
+    <string name="import_statement_amount_single">Montant unique</string>
+    <string name="import_statement_col_debit">Débit (sorties)</string>
+    <string name="import_statement_col_credit">Crédit (entrées)</string>
+    <string name="import_statement_col_amount">Montant (négatif ou Dr = sortie)</string>
+    <string name="import_statement_col_type">Colonne Dr/Cr (facultatif)</string>
+    <string name="import_statement_col_balance">Solde (facultatif)</string>
+    <string name="import_statement_col_reference">Référence / UTR (facultatif)</string>
+    <string name="import_statement_date_excel">Date Excel</string>
+    <string name="import_statement_col_none">Aucune</string>
+    <string name="import_statement_column_label">Colonne %1$s</string>
+    <string name="import_statement_account">Compte</string>
+    <string name="import_statement_account_none">Non lié à un compte</string>
+    <string name="import_statement_sample_title">Lecture des lignes</string>
+    <string name="import_statement_sample_count">%1$d transactions trouvées, %2$d lignes ignorées (vides, totaux, pieds de page)</string>
+    <string name="import_statement_sample_empty">Aucune transaction avec cette association pour l\'instant. Vérifiez la ligne d\'en-tête, la colonne Date et son format, ainsi que les colonnes de montant.</string>
+    <string name="import_statement_preview_button">Aperçu de l\'import</string>
+    <string name="import_statement_cancel">Abandonner</string>
+    <string name="import_statement_preview_title">Vérifier avant d\'importer</string>
+    <string name="import_statement_preview_new">Nouveau</string>
+    <string name="import_statement_preview_matched">Déjà dans PennyWise</string>
+    <string name="import_statement_preview_account">Compte : %1$s</string>
+    <string name="import_statement_preview_new_rows">Nouvelles transactions</string>
+    <string name="import_statement_preview_new_rows_hint">Décochez celles que vous ne voulez pas ajouter.</string>
+    <string name="import_statement_preview_all_matched">Toutes les lignes de ce relevé sont déjà dans PennyWise.</string>
+    <plurals name="import_statement_confirm">
+        <item quantity="one">Importer %1$d transaction</item>
+        <item quantity="other">Importer %1$d transactions</item>
+    </plurals>
+    <string name="import_statement_confirm_nothing">Continuer</string>
+    <string name="import_statement_edit_mapping">Modifier l\'association des colonnes</string>
+    <string name="import_statement_balance_title">Vérification du solde de clôture</string>
+    <string name="import_statement_balance_subtitle">%1$s au %2$s</string>
+    <string name="import_statement_balance_statement">Selon le relevé</string>
+    <string name="import_statement_balance_app">Selon PennyWise</string>
+    <string name="import_statement_balance_difference">Écart</string>
+    <string name="import_statement_balance_unknown_note">PennyWise n\'a aucun solde pour ce compte au %1$s ou avant, il n\'y a donc encore rien à comparer.</string>
+    <string name="import_statement_balance_match">Les soldes correspondent.</string>
+    <string name="import_statement_balance_set">Définir le solde à %1$s</string>
+    <string name="import_statement_balance_set_note">Solde du relevé plus ce que PennyWise a enregistré après la fin du relevé.</string>
+    <string name="import_statement_balance_applied">Solde mis à jour : %1$s.</string>
+    <string name="import_statement_balance_newer">Votre banque a indiqué un solde plus récent depuis ce relevé, PennyWise conserve donc celui-ci.</string>
     <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_title">PennyWise Pro</string>
     <string name="upgrade_subtitle_member">Toutes les fonctionnalités Pro sont activées</string>
@@ -77,6 +156,7 @@
     <string name="upgrade_copy_address">Copier l\'adresse</string>
     <string name="upgrade_includes">Inclus</string>
     <string name="upgrade_feature_rules">Règles personnalisées illimitées</string>
+    <string name="upgrade_feature_statements">Imports de relevés illimités</string>
     <string name="upgrade_feature_csv">Export CSV illimité</string>
     <string name="upgrade_feature_merge_accounts">Fusionner les comptes en double</string>
     <string name="upgrade_restoring">Restauration de…</string>
@@ -111,6 +191,9 @@
     <string name="onboarding_setup_steps">1. Votre profil\n2. Autorisations SMS pour l\'auto-détection\n3. Analyse initiale des transactions\n4. Votre compte bancaire principal</string>
     <string name="onboarding_name_title">Comment devrions-nous vous appeler ?</string>
     <string name="onboarding_name_label">Votre nom</string>
+    <string name="onboarding_currency_title">Votre devise</string>
+    <string name="onboarding_language_device">Langue de l\'appareil</string>
+    <string name="onboarding_currency_hint">Utilisée pour les totaux et les budgets. Vous pouvez la changer dans les Réglages.</string>
     <string name="onboarding_avatar_title">Choisir un avatar</string>
     <string name="onboarding_avatar_cd">Avatar %1$d</string>
     <string name="onboarding_photo_selected_cd">Photo sélectionnée</string>
@@ -154,6 +237,7 @@
     <string name="chat_downloading_model">Téléchargement du modèle...</string>
     <string name="chat_model_required_title">Modèle IA requis</string>
     <string name="chat_model_required_body">Télécharger le modèle IA pour commencer à discuter</string>
+    <string name="chat_download_progress">%1$d Mo / %2$d Mo</string>
     <string name="chat_download_with_size">Télécharger (%1$d MB)</string>
     <string name="chat_download">Télécharger</string>
     <string name="chat_cancel">Abandonner</string>
@@ -178,6 +262,7 @@
     <string name="chat_stats_tokens_of_max">Jetons %1$s / %2$s</string>
     <string name="chat_stats_system_tokens">Système: %1$s</string>
     <string name="chat_context_usage">Contexte d\'utilisation</string>
+    <string name="chat_context_percent">%1$d %%</string>
     <string name="chat_collapse">Réduire</string>
     <string name="chat_expand">Développer</string>
     <string name="chat_thinking_reading">Lecture de ce…</string>
@@ -195,6 +280,7 @@
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">Ajouter un revenu?</string>
     <string name="chat_action_add_expense">Ajouter une dépense?</string>
+    <string name="chat_action_add_detail">%1$s · %2$s · aujourd\'hui</string>
     <string name="chat_action_add">Ajouter</string>
     <string name="chat_action_delete_title">Supprimer cette transaction ?</string>
     <string name="chat_action_delete">Supprimez</string>
@@ -214,6 +300,7 @@
     <string name="chat_error_download_start_failed">Impossible de démarrer le téléchargement. Veuillez réessayer.</string>
     <string name="chat_error_integrity_failed">Le modèle téléchargé a échoué à sa vérification d\'intégrité et a été supprimé. Veuillez essayer de télécharger à nouveau.</string>
     <string name="chat_error_download_failed">Échec du téléchargement. Veuillez réessayer.</string>
+    <string name="chat_error_download_roaming">Pas de téléchargement en itinérance. Connectez-vous au Wi-Fi ou désactivez l\'itinérance, puis réessayez.</string>
     <string name="chat_download_notification_title">Modèle de chat AI</string>
     <string name="chat_download_notification_description">Téléchargement de l\'assistant de chat AI pour PennyWise</string>
     <!-- ══ Smart Rules list ══ -->
@@ -272,6 +359,10 @@
         <item quantity="one">%1$d existe déjà.</item>
         <item quantity="other">%1$d existe déjà.</item>
     </plurals>
+    <plurals name="rules_import_collapsed">
+        <item quantity="one">%1$d nom en double dans le fichier a été regroupé.</item>
+        <item quantity="other">%1$d noms en double dans le fichier ont été regroupés.</item>
+    </plurals>
     <plurals name="rules_import_blocked_by_limit">
         <item quantity="one">%1$d besoin de plus de Pro — vous êtes à la limite gratuite de %2$d.</item>
         <item quantity="other">%1$d besoin de plus de Pro — vous êtes à la limite gratuite de %2$d.</item>
@@ -298,6 +389,7 @@
     <string name="rules_batch_change_description">Description : %1$s → %2$s</string>
     <string name="rules_batch_none">(aucun)</string>
     <string name="rules_batch_change_tags">Tags : %1$s</string>
+    <string name="rules_batch_and_more">…et %1$d de plus</string>
     <string name="rules_batch_confirm">Appliquer «%1$s» aux transactions existantes ?</string>
     <string name="rules_batch_preview_hint">Utilisez l\'aperçu pour voir ce qui changerait avant de postuler.</string>
     <plurals name="rules_batch_processing">
@@ -427,6 +519,7 @@
     <string name="rules_preview_title">Aperçu de la règle</string>
     <string name="rules_preview_sentence">Quand %1$s, %2$s</string>
     <string name="rules_preview_conditions_and">%1$s ET %2$s</string>
+    <string name="rules_preview_conditions_or">%1$s OU %2$s</string>
     <string name="rules_preview_actions_and">%1$set %2$s</string>
     <!-- field, operator, value -->
     <string name="rules_preview_condition">%1$s %2$s %3$s</string>
@@ -447,6 +540,8 @@
     <string name="rules_preview_field_generic">champ</string>
     <string name="rules_preview_op_before">est avant</string>
     <string name="rules_preview_op_after">est après</string>
+    <string name="rules_preview_op_less_than">est inférieur à</string>
+    <string name="rules_preview_op_greater_than">est supérieur à</string>
     <string name="rules_preview_op_at_or_before">est à ou avant</string>
     <string name="rules_preview_op_at_or_after">est à ou après</string>
     <string name="rules_preview_op_is">est</string>
@@ -464,104 +559,4 @@
     <string name="rules_preview_action_clear">effacer %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">définir %1$s à %2$s</string>
-    <string name="applock_no_screen_lock_notice">Le verrouillage de l\'app nécessite un verrouillage d\'écran. Ajoutez-en un dans les paramètres de l\'appareil.</string>
-    <plurals name="applock_protected_timeout">
-        <item quantity="one">Vos données sont protégées avec un délai de %1$d minute</item>
-        <item quantity="many">Vos données sont protégées avec un délai de %1$d minutes</item>
-        <item quantity="other">Vos données sont protégées avec un délai de %1$d minutes</item>
-    </plurals>
-    <string name="unrecognized_suggestion">Ressemble à : %1$s</string>
-    <string name="unrecognized_suggestion_debit">Débit de %1$s</string>
-    <string name="unrecognized_suggestion_credit">Crédit de %1$s</string>
-    <string name="unrecognized_suggestion_add">Ajouter</string>
-    <string name="import_statement_description">Importez un relevé PDF de Google Pay, PhonePe, Paytm, slice ou ICICI Bank, ou le relevé Excel (.xlsx) ou CSV de n\'importe quelle banque. Vous verrez les nouveautés avant que quoi que ce soit soit ajouté.</string>
-    <string name="import_statement_loading_body">Lecture du relevé et recherche des doublons</string>
-    <string name="import_statement_result_total_parsed">Lignes du relevé</string>
-    <string name="import_statement_error_unsupported">Format de relevé non pris en charge. Actuellement pris en charge : Google Pay, PhonePe, Paytm, slice, ICICI Bank. Pour toute autre banque, importez son relevé Excel (.xlsx) ou CSV.</string>
-    <string name="import_statement_error_no_transactions">Aucune transaction trouvée dans le relevé.</string>
-    <string name="import_statement_error_failed">Échec de l\'importation du relevé.</string>
-    <string name="import_statement_error_read">Impossible de lire ce fichier.</string>
-    <string name="import_statement_error_too_large">Ce fichier est trop volumineux pour être importé.</string>
-    <string name="import_statement_error_no_rows">Ce fichier ne contient aucune ligne.</string>
-    <string name="import_statement_error_too_many_rows">Ce relevé contient plus de %1$d lignes. Exportez une période plus courte et importez-la.</string>
-    <string name="import_statement_error_date_1904">Ce classeur utilise le système de dates 1904. Enregistrez-le en .csv et importez-le.</string>
-    <string name="import_statement_password_title">PDF protégé par mot de passe</string>
-    <string name="import_statement_password_body">Ce relevé est verrouillé. Saisissez le mot de passe que votre banque vous a donné pour ce fichier. Il sert uniquement à ouvrir le fichier et n\'est pas enregistré.</string>
-    <string name="import_statement_password_label">Mot de passe du PDF</string>
-    <string name="import_statement_password_wrong">Mot de passe incorrect. Réessayez.</string>
-    <string name="import_statement_password_open">Ouvrir</string>
-    <string name="import_statement_password_cancel">Abandonner</string>
-    <string name="import_statement_select_spreadsheet">Sélectionner un relevé Excel ou CSV</string>
-    <string name="import_statement_xls_hint">Ancien fichier .xls ? Enregistrez-le d\'abord en .xlsx ou .csv.</string>
-    <string name="import_statement_map_title">Associer les colonnes</string>
-    <string name="import_statement_map_body">Indiquez à PennyWise à quoi correspond chaque colonne. Il s\'en souviendra pour le prochain relevé avec les mêmes colonnes.</string>
-    <string name="import_statement_header_row">Ligne d\'en-tête : %1$d</string>
-    <string name="import_statement_header_row_up">Ligne précédente</string>
-    <string name="import_statement_header_row_down">Ligne suivante</string>
-    <string name="import_statement_col_date">Date</string>
-    <string name="import_statement_col_date_format">Format de date</string>
-    <string name="import_statement_date_auto">Détection auto</string>
-    <string name="import_statement_date_auto_found">Détection auto (%1$s)</string>
-    <string name="import_statement_col_description">Libellé</string>
-    <string name="import_statement_amount_split">Débit et crédit</string>
-    <string name="import_statement_amount_single">Montant unique</string>
-    <string name="import_statement_col_debit">Débit (sorties)</string>
-    <string name="import_statement_col_credit">Crédit (entrées)</string>
-    <string name="import_statement_col_amount">Montant (négatif ou Dr = sortie)</string>
-    <string name="import_statement_col_type">Colonne Dr/Cr (facultatif)</string>
-    <string name="import_statement_col_balance">Solde (facultatif)</string>
-    <string name="import_statement_col_reference">Référence / UTR (facultatif)</string>
-    <string name="import_statement_date_excel">Date Excel</string>
-    <string name="import_statement_col_none">Aucune</string>
-    <string name="import_statement_column_label">Colonne %1$s</string>
-    <string name="import_statement_account">Compte</string>
-    <string name="import_statement_account_none">Non lié à un compte</string>
-    <string name="import_statement_sample_title">Lecture des lignes</string>
-    <string name="import_statement_sample_count">%1$d transactions trouvées, %2$d lignes ignorées (vides, totaux, pieds de page)</string>
-    <string name="import_statement_sample_empty">Aucune transaction avec cette association pour l\'instant. Vérifiez la ligne d\'en-tête, la colonne Date et son format, ainsi que les colonnes de montant.</string>
-    <string name="import_statement_preview_button">Aperçu de l\'import</string>
-    <string name="import_statement_cancel">Abandonner</string>
-    <string name="import_statement_preview_title">Vérifier avant d\'importer</string>
-    <string name="import_statement_preview_new">Nouveau</string>
-    <string name="import_statement_preview_matched">Déjà dans PennyWise</string>
-    <string name="import_statement_preview_account">Compte : %1$s</string>
-    <string name="import_statement_preview_new_rows">Nouvelles transactions</string>
-    <string name="import_statement_preview_new_rows_hint">Décochez celles que vous ne voulez pas ajouter.</string>
-    <string name="import_statement_preview_all_matched">Toutes les lignes de ce relevé sont déjà dans PennyWise.</string>
-    <plurals name="import_statement_confirm">
-        <item quantity="one">Importer %1$d transaction</item>
-        <item quantity="many">Importer %1$d transactions</item>
-        <item quantity="other">Importer %1$d transactions</item>
-    </plurals>
-    <string name="import_statement_confirm_nothing">Continuer</string>
-    <string name="import_statement_edit_mapping">Modifier l\'association des colonnes</string>
-    <string name="import_statement_balance_title">Vérification du solde de clôture</string>
-    <string name="import_statement_balance_subtitle">%1$s au %2$s</string>
-    <string name="import_statement_balance_statement">Selon le relevé</string>
-    <string name="import_statement_balance_app">Selon PennyWise</string>
-    <string name="import_statement_balance_difference">Écart</string>
-    <string name="import_statement_balance_unknown">—</string>
-    <string name="import_statement_balance_unknown_note">PennyWise n\'a aucun solde pour ce compte au %1$s ou avant, il n\'y a donc encore rien à comparer.</string>
-    <string name="import_statement_balance_match">Les soldes correspondent.</string>
-    <string name="import_statement_balance_set">Définir le solde à %1$s</string>
-    <string name="import_statement_balance_set_note">Solde du relevé plus ce que PennyWise a enregistré après la fin du relevé.</string>
-    <string name="import_statement_balance_applied">Solde mis à jour : %1$s.</string>
-    <string name="import_statement_balance_newer">Votre banque a indiqué un solde plus récent depuis ce relevé, PennyWise conserve donc celui-ci.</string>
-    <string name="upgrade_feature_statements">Imports de relevés illimités</string>
-    <string name="onboarding_currency_title">Votre devise</string>
-    <string name="onboarding_language_device">Langue de l\'appareil</string>
-    <string name="onboarding_currency_hint">Utilisée pour les totaux et les budgets. Vous pouvez la changer dans les Réglages.</string>
-    <string name="chat_download_progress">%1$d Mo / %2$d Mo</string>
-    <string name="chat_context_percent">%1$d %%</string>
-    <string name="chat_action_add_detail">%1$s · %2$s · aujourd\'hui</string>
-    <string name="chat_error_download_roaming">Pas de téléchargement en itinérance. Connectez-vous au Wi-Fi ou désactivez l\'itinérance, puis réessayez.</string>
-    <plurals name="rules_import_collapsed">
-        <item quantity="one">%1$d nom en double dans le fichier a été regroupé.</item>
-        <item quantity="many">%1$d noms en double dans le fichier ont été regroupés.</item>
-        <item quantity="other">%1$d noms en double dans le fichier ont été regroupés.</item>
-    </plurals>
-    <string name="rules_batch_and_more">…et %1$d de plus</string>
-    <string name="rules_preview_conditions_or">%1$s OU %2$s</string>
-    <string name="rules_preview_op_less_than">est inférieur à</string>
-    <string name="rules_preview_op_greater_than">est supérieur à</string>
 </resources>

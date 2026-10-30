@@ -1,13 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ App lock ══ -->
+    <string name="applock_prompt_title">PennyWise अनलक गर्नुहोस्</string>
     <string name="applock_prompt_subtitle">तपाईंको खर्च डेटा पहुँच गर्न प्रमाणित गर्नुहोस्</string>
+    <string name="applock_prompt_description">आफ्नो बायोमेट्रिक वा डिभाइस PIN प्रयोग गर्नुहोस्</string>
+    <string name="applock_icon_cd">App लक गरिएको छ</string>
     <string name="applock_title">क्यासिरो लक गरिएको छ</string>
     <string name="applock_subtitle">तपाईंको खर्च डेटा पहुँच गर्न प्रमाणित गर्नुहोस्</string>
     <string name="applock_unlock">अनलक गर्नुहोस्</string>
+    <string name="applock_no_screen_lock_notice">App लकका लागि स्क्रिन लक चाहिन्छ। डिभाइस सेटिङ्समा एउटा थप्नुहोस्।</string>
+    <string name="applock_protected_immediate">तपाईंको डेटा तुरुन्तै लक हुने गरी सुरक्षित छ</string>
+    <plurals name="applock_protected_timeout">
+        <item quantity="one">तपाईंको डेटा %1$d मिनेटको टाइमआउटसहित सुरक्षित छ</item>
+        <item quantity="other">तपाईंको डेटा %1$d मिनेटको टाइमआउटसहित सुरक्षित छ</item>
+    </plurals>
+    <string name="applock_auth_failed">प्रमाणीकरण असफल भयो। कृपया फेरि प्रयास गर्नुहोस्।</string>
     <!-- Biometric capability errors (also shown in Settings) -->
+    <string name="biometric_error_no_hardware">यो डिभाइसमा बायोमेट्रिक हार्डवेयर छैन</string>
+    <string name="biometric_error_hw_unavailable">बायोमेट्रिक हार्डवेयर अहिले उपलब्ध छैन</string>
+    <string name="biometric_error_none_enrolled">कुनै बायोमेट्रिक दर्ता गरिएको छैन। कृपया डिभाइस सेटिङ्समा फिंगरप्रिन्ट वा फेस अनलक सेट गर्नुहोस्</string>
+    <string name="biometric_error_security_update">बायोमेट्रिक प्रमाणीकरणका लागि सुरक्षा अपडेट आवश्यक छ</string>
+    <string name="biometric_error_unsupported">यो डिभाइसमा बायोमेट्रिक प्रमाणीकरण समर्थित छैन</string>
+    <string name="biometric_error_unknown">बायोमेट्रिक स्थिति थाहा भएन</string>
     <!-- ══ SMS permission screen ══ -->
+    <string name="permission_title">लेनदेन आफैं पत्ता लगाउने सुविधा सक्षम गर्नुहोस्</string>
+    <string name="permission_description">PennyWise ले SMS सन्देशबाट तपाईंका बैंक लेनदेन आफैं पत्ता लगाएर वर्गीकरण गर्न सक्छ, जसले तपाईंको समय र मेहनत बचाउँछ।</string>
+    <string name="permission_privacy_title">तपाईंको गोपनीयता महत्त्वपूर्ण छ</string>
+    <string name="permission_privacy_points">• लेनदेनका सन्देश मात्र प्रक्रिया गरिन्छ\n• सबै डेटा तपाईंकै डिभाइसमा रहन्छ\n• कुनै व्यक्तिगत सन्देश पढिँदैन\n• सेटिङ्समा जुनसुकै बेला पहुँच फिर्ता लिन सक्नुहुन्छ</string>
+    <string name="permission_notification_title">बैंक सूचना पहुँच सक्षम गर्नुहोस्</string>
+    <string name="permission_notification_description">समर्थित बैंकिङ app का लेनदेन सूचनाहरू पढ्न PennyWise लाई अनुमति दिनुहोस्। SMS ढिलो आउँदा वा नआउँदा पनि खरिदहरू समेट्न यसले मद्दत गर्छ।</string>
+    <string name="permission_notification_enabled">सूचना पहुँच सक्षम छ</string>
+    <string name="permission_notification_open_settings">सूचना पहुँच सेटिङ्स खोल्नुहोस्</string>
+    <string name="permission_rationale">SMS पहुँच बिना, तपाईंले सबै लेनदेन आफैं थप्नुपर्छ। हामी बैंक लेनदेनका सन्देश मात्र पढ्छौं, व्यक्तिगत कुराकानी होइन।</string>
+    <string name="permission_enable_button">आफैं पत्ता लगाउने सक्षम गर्नुहोस्</string>
     <!-- ══ Unrecognized SMS ══ -->
+    <string name="unrecognized_title">नचिनिएका SMS</string>
+    <string name="unrecognized_back">पछाडि</string>
     <string name="unrecognized_header_title">अचिन्तित बैंक सन्देशहरू</string>
     <string name="unrecognized_header_body">संभावित बैंकहरूबाट आएका यी सन्देशहरू स्वचालित रुपमा पार्स गर्न सकिएन। कृपया तिनीहरूलाई रिपोर्ट गरेर PennyWise सुधार गर्न मद्दत गर्नुहोस् ताकि हामी थप बैंकहरूको समर्थन थप्न सकौं।</string>
     <string name="unrecognized_show_reported">रिपोर्ट गरिएको देखाउनुहोस्</string>
@@ -19,187 +47,19 @@
         <item quantity="one">%1$d प्रतिवेदन</item>
         <item quantity="other">%1$d प्रतिवेदन</item>
     </plurals>
+    <string name="unrecognized_empty_title">सबै सन्देश चिनियो</string>
+    <string name="unrecognized_empty_body">कुनै नचिनिएको बैंक सन्देश भेटिएन</string>
     <string name="unrecognized_delete_title">सन्देश मेट्नुहोस्</string>
     <string name="unrecognized_delete_body">तपाईँ यो नचिनिएको सन्देश मेट्न निश्चित हुनुहुन्छ? यो कार्य पूर्ववत गर्न सकिँदैन ।</string>
     <string name="unrecognized_delete">हटाउनुहोस्</string>
     <string name="unrecognized_cancel">रद्द गर्नुहोस्</string>
     <string name="unrecognized_reported_badge">रिपोर्ट गरिएको</string>
     <string name="unrecognized_report">प्रतिवेदन</string>
-    <!-- ══ Import statement ══ -->
-    <string name="import_statement_done">समाप्त</string>
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <string name="upgrade_restore">पुनःस्थापना गर्नुहोस्</string>
-    <string name="upgrade_continue">जारी राख्नुहोस्</string>
-    <string name="upgrade_cancel">रद्द गर्नुहोस्</string>
-    <!-- License key dialog -->
-    <!-- ══ Onboarding ══ -->
-    <string name="onboarding_name_title">हामी तपाईंलाई के भनेर बोलाउँौं?</string>
-    <string name="onboarding_selected_cd">छानिएको</string>
-    <string name="onboarding_get_started">शुरु गर्नुहोस्</string>
-    <string name="onboarding_continue">जारी राख्नुहोस्</string>
-    <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_download">डाउनलोड</string>
-    <string name="chat_cancel">रद्द गर्नुहोस्</string>
-    <string name="chat_settings">सेटिङ्स</string>
-    <string name="chat_model_required_short">मोडेल आवश्यक</string>
-    <string name="chat_initializing_model">एआई मोडेल प्रारम्भ गर्दै...</string>
-    <string name="chat_initializing_hint">यसमा केही सेकेन्ड लाग्न सक्छ</string>
-    <string name="chat_clear_chat">च्याट खाली गर्नुहोस्</string>
-    <string name="chat_clear">खाली गर्नुहोस्</string>
-    <string name="chat_dismiss">रद्ध गर्नुहोस्</string>
-    <string name="chat_send">पठाउनुहोस्</string>
-    <string name="chat_memory_almost_full">च्याट मेमोरी लगभग भरिएको छ! जारी राख्न च्याट खाली गर्नुहोस्.</string>
-    <string name="chat_memory_warning">च्याट मेमोरी %1$d%% भरिएको छ। चाँडै खाली गर्न विचार गर्नुहोस्।</string>
-    <string name="chat_memory_usage">च्याट मेमोरी %1$d%% भरिएको छ।</string>
-    <string name="chat_stats_tokens">%1$s टोकनहरू</string>
-    <string name="chat_stats_tokens_of_max">%1$s / %2$s टोकनहरू</string>
-    <string name="chat_stats_system_tokens">प्रणाली: %1$s</string>
-    <string name="chat_context_usage">सन्दर्भ प्रयोग</string>
-    <string name="chat_collapse">सङ्कुचन गर्नुहोस्</string>
-    <string name="chat_expand">विस्तार गर्नुहोस्</string>
-    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <!-- Chat confirm card for an AI-proposed action -->
-    <string name="chat_action_add">थप्नुहोस्</string>
-    <string name="chat_action_delete">हटाउनुहोस्</string>
-    <!-- Chat errors -->
-    <!-- ══ Smart Rules list ══ -->
-    <string name="rules_title">स्मार्ट नियमहरू</string>
-    <string name="rules_more_options">थप विकल्पहरू</string>
-    <string name="rules_menu_reset">पूर्वनिर्धारितमा रिसेट गर्नुहोस्</string>
-    <string name="rules_create_cd">नियम सिर्जना गर्नुहोस्</string>
-    <string name="rules_ok">ठीक छ</string>
-    <string name="rules_cancel">रद्द गर्नुहोस्</string>
-    <string name="rules_close">बन्द गर्नुहोस्</string>
-    <string name="rules_reset_title">नियम रिसेट गर्नुहोस्</string>
-    <string name="rules_reset_body">सबै नियमहरू पूर्वनिर्धारित सेटिङ्समा रिसेट गर्न चाहनुहुन्छ? तपाइँका अनुकूलन सेटिङ्स हराउनेछन्।</string>
-    <string name="rules_reset">रीसेट गर्नुहोस्</string>
-    <string name="rules_auto_categorization_title">स्वचालित वर्गीकरण</string>
-    <string name="rules_auto_categorization_body">नियमहरू सक्षम गर्नुहोस् ताकि तपाईंका लेनदेनहरू ढाँचाको आधारमा स्वचालित रूपमा वर्गीकृत हुन्छन्</string>
-    <string name="rules_group_daily">दैनिकी खर्चहरू</string>
-    <string name="rules_group_recurring">पुनरावृत्त तिर्ने रकमहरू</string>
-    <string name="rules_group_healthcare">स्वास्थ्य सेवा</string>
-    <string name="rules_group_other">अन्य</string>
-    <string name="rules_footer_info">नियमहरू नयाँ लेनदेनहरूमा स्वतः लागु हुन्छन्। उच्च प्राथमिकताका नियमहरू पहिलो चल्छन्।</string>
-    <string name="rules_summary_salary">तलब कुञ्जीशब्दसहित क्रेडिटहरू</string>
-    <string name="rules_summary_rent">भाडा कुञ्जीशब्दसहित भुक्तानीहरू</string>
-    <string name="rules_summary_emi">EMI/ऋण कुञ्जीशब्दहरू</string>
-    <string name="rules_summary_investment">म्युचुअल फन्ड, सेयर कुञ्जीशब्दहरू</string>
-    <string name="rules_summary_subscription">Netflix, Spotify, आदि</string>
-    <string name="rules_summary_fuel">पेट्रोल पम्प लेनदेनहरू</string>
-    <string name="rules_summary_healthcare">अस्पताल, फार्मेसी कुञ्जीशब्दहरू</string>
-    <string name="rules_summary_transfer">आफ्नै स्थानान्तरणहरू, कन्त्रा</string>
-    <string name="rules_priority_badge">प्राथमिकता: %1$d</string>
-    <string name="rules_menu_edit">नियम सम्पादन गर्नुहोस्</string>
-    <string name="rules_menu_apply_past">अतीतका लेनदेनहरूमा लागू गर्नुहोस्</string>
-    <string name="rules_delete_title">नियम मेटाउने</string>
-    <string name="rules_delete">हटाउनुहोस्</string>
-    <!-- Rule sharing (export / import) results -->
-    <!-- Apply rule to past transactions -->
-    <string name="rules_batch_applying">नियम लागू गर्दै...</string>
-    <string name="rules_batch_title">पुराना लेनदेनमा नियम लागू गर्नुहोस्</string>
-    <string name="rules_batch_none">(कुनै छैन)</string>
-    <string name="rules_batch_completed">सम्पन्न</string>
-    <string name="rules_batch_result_processed">प्रक्रियामा आएको लेनदेन: %1$d</string>
-    <string name="rules_batch_result_updated">अपडेट गरिएको लेनदेन: %1$d</string>
-    <string name="rules_batch_result_errors">त्रुटिहरू: %1$d</string>
-    <string name="rules_batch_apply_uncategorized">वर्गविहीन</string>
-    <string name="rules_batch_preview">पूर्वावलोकन</string>
-    <!-- ══ Create / edit rule ══ -->
-    <string name="rules_create_title">नियम सिर्जना गर्नुहोस्</string>
-    <string name="rules_edit_title">नियम सम्पादन गर्नुहोस्</string>
-    <string name="rules_save">सुरक्षित गर्नुहोस्</string>
-    <string name="rules_quick_templates">छिटो टेम्पलेटहरू</string>
-    <string name="rules_preset_block_otps">ओटीपीहरू अवरोध गर्नुहोस्</string>
-    <string name="rules_preset_block_small">साना रकमहरू अवरोध गर्नुहोस्</string>
-    <string name="rules_preset_small_food">साना रकमहरू → खाना</string>
-    <string name="rules_preset_standardize_merchant">व्यापारीलाई मानकीकृत गर्नुहोस्</string>
-    <string name="rules_preset_mark_income">आयको रूपमा मार्क गर्नुहोस्</string>
-    <string name="rules_name_label">नियमको नाम</string>
-    <string name="rules_description_label">विवरण (वैकल्पिक)</string>
-    <string name="rules_description_placeholder">यो नियमले के गर्छ?</string>
-    <string name="rules_then">त्यसपछि</string>
-    <string name="rules_action">क्रिया</string>
-    <string name="rules_block_explainer">यस नियमसँग मेल खाने लेनदेन अवरोध गरिनेछ र सुरक्षित गरिने छैन</string>
-    <!-- Rule fields (pickers) -->
-    <string name="rules_field_label">फील्ड</string>
-    <string name="rules_field_amount">रकम</string>
-    <string name="rules_field_transaction_type">लेनदेन प्रकार</string>
-    <string name="rules_field_category">वर्ग</string>
-    <string name="rules_field_merchant">व्यापारी</string>
-    <string name="rules_field_sms_text">SMS पाठ</string>
-    <string name="rules_field_bank_name">बैंकको नाम</string>
-    <string name="rules_field_date">मिति</string>
-    <string name="rules_field_account">खाता</string>
-    <string name="rules_field_description">विवरण</string>
-    <!-- Rule operators (condition chips) -->
-    <!-- Transaction type labels (stored value stays the enum name) -->
-    <string name="rules_type_income">आम्दानी</string>
-    <string name="rules_type_expense">खर्च</string>
-    <string name="rules_type_credit">क्रेडिट</string>
-    <string name="rules_type_transfer">स्थानान्तरण</string>
-    <string name="rules_type_investment">लगानी</string>
-    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
-    <!-- Condition value inputs -->
-    <!-- The rule stores HH:mm; keep that pattern in the label. -->
-    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
-    <string name="rules_account_type_credit">क्रेडिट</string>
-    <string name="rules_value_label">मान</string>
-    <string name="rules_value_placeholder_amount">जस्तै, 200</string>
-    <string name="rules_value_placeholder_bank">जस्तै, HDFC बैंक</string>
-    <!-- Action editor -->
-    <string name="rules_action_type_label">कार्य प्रकार</string>
-    <string name="rules_action_type_block">लेनदेन ब्लक गर्नुहोस्</string>
-    <string name="rules_action_type_set">फील्ड सेट गर्नुहोस्</string>
-    <string name="rules_action_type_clear">फील्ड खाली गर्नुहोस्</string>
-    <string name="rules_category_name_label">वर्गको नाम</string>
-    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
-    <!-- field, operator, value -->
-    <string name="rules_preview_field_amount">रकम</string>
-    <string name="rules_preview_field_type">प्रकार</string>
-    <string name="rules_preview_field_category">वर्ग</string>
-    <string name="rules_preview_field_merchant">व्यापारी</string>
-    <string name="rules_preview_field_description">विवरण</string>
-    <string name="rules_preview_field_bank">बैंक</string>
-    <string name="rules_preview_field_time">समय</string>
-    <string name="rules_preview_field_date">मिति</string>
-    <string name="rules_preview_field_account">खाता</string>
-    <string name="rules_preview_field_generic">फील्ड</string>
-    <!-- value, field -->
-    <!-- field, value -->
-    <string name="applock_prompt_title">PennyWise अनलक गर्नुहोस्</string>
-    <string name="applock_prompt_description">आफ्नो बायोमेट्रिक वा डिभाइस PIN प्रयोग गर्नुहोस्</string>
-    <string name="applock_icon_cd">App लक गरिएको छ</string>
-    <string name="applock_no_screen_lock_notice">App लकका लागि स्क्रिन लक चाहिन्छ। डिभाइस सेटिङ्समा एउटा थप्नुहोस्।</string>
-    <string name="applock_protected_immediate">तपाईंको डेटा तुरुन्तै लक हुने गरी सुरक्षित छ</string>
-    <plurals name="applock_protected_timeout">
-        <item quantity="one">तपाईंको डेटा %1$d मिनेटको टाइमआउटसहित सुरक्षित छ</item>
-        <item quantity="other">तपाईंको डेटा %1$d मिनेटको टाइमआउटसहित सुरक्षित छ</item>
-    </plurals>
-    <string name="applock_auth_failed">प्रमाणीकरण असफल भयो। कृपया फेरि प्रयास गर्नुहोस्।</string>
-    <string name="biometric_error_no_hardware">यो डिभाइसमा बायोमेट्रिक हार्डवेयर छैन</string>
-    <string name="biometric_error_hw_unavailable">बायोमेट्रिक हार्डवेयर अहिले उपलब्ध छैन</string>
-    <string name="biometric_error_none_enrolled">कुनै बायोमेट्रिक दर्ता गरिएको छैन। कृपया डिभाइस सेटिङ्समा फिंगरप्रिन्ट वा फेस अनलक सेट गर्नुहोस्</string>
-    <string name="biometric_error_security_update">बायोमेट्रिक प्रमाणीकरणका लागि सुरक्षा अपडेट आवश्यक छ</string>
-    <string name="biometric_error_unsupported">यो डिभाइसमा बायोमेट्रिक प्रमाणीकरण समर्थित छैन</string>
-    <string name="biometric_error_unknown">बायोमेट्रिक स्थिति थाहा भएन</string>
-    <string name="permission_title">लेनदेन आफैं पत्ता लगाउने सुविधा सक्षम गर्नुहोस्</string>
-    <string name="permission_description">PennyWise ले SMS सन्देशबाट तपाईंका बैंक लेनदेन आफैं पत्ता लगाएर वर्गीकरण गर्न सक्छ, जसले तपाईंको समय र मेहनत बचाउँछ।</string>
-    <string name="permission_privacy_title">तपाईंको गोपनीयता महत्त्वपूर्ण छ</string>
-    <string name="permission_privacy_points">• लेनदेनका सन्देश मात्र प्रक्रिया गरिन्छ\n• सबै डेटा तपाईंकै डिभाइसमा रहन्छ\n• कुनै व्यक्तिगत सन्देश पढिँदैन\n• सेटिङ्समा जुनसुकै बेला पहुँच फिर्ता लिन सक्नुहुन्छ</string>
-    <string name="permission_notification_title">बैंक सूचना पहुँच सक्षम गर्नुहोस्</string>
-    <string name="permission_notification_description">समर्थित बैंकिङ app का लेनदेन सूचनाहरू पढ्न PennyWise लाई अनुमति दिनुहोस्। SMS ढिलो आउँदा वा नआउँदा पनि खरिदहरू समेट्न यसले मद्दत गर्छ।</string>
-    <string name="permission_notification_enabled">सूचना पहुँच सक्षम छ</string>
-    <string name="permission_notification_open_settings">सूचना पहुँच सेटिङ्स खोल्नुहोस्</string>
-    <string name="permission_rationale">SMS पहुँच बिना, तपाईंले सबै लेनदेन आफैं थप्नुपर्छ। हामी बैंक लेनदेनका सन्देश मात्र पढ्छौं, व्यक्तिगत कुराकानी होइन।</string>
-    <string name="permission_enable_button">आफैं पत्ता लगाउने सक्षम गर्नुहोस्</string>
-    <string name="unrecognized_title">नचिनिएका SMS</string>
-    <string name="unrecognized_back">पछाडि</string>
-    <string name="unrecognized_empty_title">सबै सन्देश चिनियो</string>
-    <string name="unrecognized_empty_body">कुनै नचिनिएको बैंक सन्देश भेटिएन</string>
     <string name="unrecognized_suggestion">यस्तो देखिन्छ: %1$s</string>
     <string name="unrecognized_suggestion_debit">%1$s डेबिट</string>
     <string name="unrecognized_suggestion_credit">%1$s क्रेडिट</string>
     <string name="unrecognized_suggestion_add">थप्नुहोस्</string>
+    <!-- ══ Import statement ══ -->
     <string name="import_statement_title">स्टेटमेन्ट आयात गर्नुहोस्</string>
     <string name="import_statement_back">पछाडि</string>
     <string name="import_statement_description">Google Pay, PhonePe, Paytm, slice वा ICICI Bank को PDF स्टेटमेन्ट, वा जुनसुकै बैंकको Excel (.xlsx) वा CSV स्टेटमेन्ट आयात गर्नुहोस्। केही थपिनुअघि के नयाँ छ भनेर तपाईंले देख्नुहुनेछ।</string>
@@ -215,6 +75,7 @@
     <string name="import_statement_result_by_reference">UPI रेफरेन्सद्वारा</string>
     <string name="import_statement_result_by_amount_date">रकम र मितिद्वारा</string>
     <string name="import_statement_import_another">अर्को आयात गर्नुहोस्</string>
+    <string name="import_statement_done">समाप्त</string>
     <string name="import_statement_failed">आयात असफल भयो</string>
     <string name="import_statement_try_again">फेरि प्रयास गर्नुहोस्</string>
     <string name="import_statement_error_unsupported">यो स्टेटमेन्ट ढाँचा समर्थित छैन। हाल समर्थित: Google Pay, PhonePe, Paytm, slice, ICICI Bank। अरू बैंकका लागि, त्यसको Excel (.xlsx) वा CSV स्टेटमेन्ट आयात गर्नुहोस्।</string>
@@ -279,14 +140,13 @@
     <string name="import_statement_balance_statement">स्टेटमेन्ट अनुसार</string>
     <string name="import_statement_balance_app">PennyWise अनुसार</string>
     <string name="import_statement_balance_difference">फरक</string>
-    <string name="import_statement_balance_unknown">—</string>
     <string name="import_statement_balance_unknown_note">PennyWise सँग यो खाताको %1$s वा त्योभन्दा अघिको बालान्स छैन, त्यसैले अहिले तुलना गर्ने केही छैन।</string>
     <string name="import_statement_balance_match">बालान्स मिल्छ।</string>
     <string name="import_statement_balance_set">बालान्स %1$s मा सेट गर्नुहोस्</string>
     <string name="import_statement_balance_set_note">स्टेटमेन्टको बालान्स र स्टेटमेन्ट सकिएपछि PennyWise ले रेकर्ड गरेको रकम।</string>
     <string name="import_statement_balance_applied">बालान्स %1$s मा अपडेट भयो।</string>
     <string name="import_statement_balance_newer">यो स्टेटमेन्टपछि तपाईंको बैंकले नयाँ बालान्स पठाएको छ, त्यसैले PennyWise ले त्यही राख्छ।</string>
-    <string name="upgrade_title">PennyWise Pro</string>
+    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_subtitle_member">सबै Pro सुविधा सक्रिय छन्</string>
     <string name="upgrade_subtitle_upgrade">लाइसेन्स कीले सबै कुरा अनलक</string>
     <string name="upgrade_enter_license_key">लाइसेन्स की हाल्नुहोस्</string>
@@ -300,16 +160,20 @@
     <string name="upgrade_feature_csv">असीमित CSV निर्यात</string>
     <string name="upgrade_feature_merge_accounts">दोहोरिएका खाता गाभ्नुहोस्</string>
     <string name="upgrade_restoring">पुनःस्थापना गर्दै…</string>
+    <string name="upgrade_restore">पुनःस्थापना गर्नुहोस्</string>
     <string name="upgrade_get_help">मद्दत लिनुहोस्</string>
     <string name="upgrade_welcome_eyebrow">स्वागत छ</string>
     <string name="upgrade_celebration_title">तपाईं Pro सदस्य हुनुहुन्छ</string>
     <string name="upgrade_celebration_body">PennyWise लाई साथ दिनुभएकोमा धन्यवाद — सूचीका सबै सुविधा अब तपाईंका हुन्।</string>
+    <string name="upgrade_continue">जारी राख्नुहोस्</string>
     <string name="upgrade_active_eyebrow">सक्रिय</string>
     <string name="upgrade_active_title">सबै Pro सुविधा अनलक भए</string>
     <string name="upgrade_via_license_key">लाइसेन्स कीद्वारा · %1$s</string>
     <string name="upgrade_remove_license_key">लाइसेन्स की हटाउनुहोस्</string>
     <string name="upgrade_manage_subscription">सदस्यता व्यवस्थापन गर्नुहोस्</string>
     <string name="upgrade_error_play_unavailable">Play Store सम्म पुग्न सकिएन। पछि फेरि प्रयास गर्नुहोस्।</string>
+    <string name="upgrade_cancel">रद्द गर्नुहोस्</string>
+    <!-- License key dialog -->
     <string name="upgrade_license_dialog_title">लाइसेन्स की सक्रिय गर्नुहोस्</string>
     <string name="upgrade_license_dialog_body">खरिदको इमेलबाट की पेस्ट गर्नुहोस्। यो डिभाइसमा Pro तुरुन्तै सक्रिय हुन्छ।</string>
     <string name="upgrade_license_email_label">खरिद गर्दाको इमेल</string>
@@ -319,11 +183,12 @@
     <string name="upgrade_license_error_invalid">त्यो की मान्य छैन। टाइपिङ गल्ती जाँचेर फेरि प्रयास गर्नुहोस्।</string>
     <string name="upgrade_license_error_active_elsewhere">यो की अर्को डिभाइसमा पहिले नै सक्रिय छ।</string>
     <string name="upgrade_license_error_offline">लाइसेन्स सर्भरसम्म पुग्न सकिएन। जडान जाँचेर फेरि प्रयास गर्नुहोस्।</string>
-    <string name="onboarding_logo_cd">PennyWise</string>
+    <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">PennyWise मा स्वागत छ</string>
     <string name="onboarding_welcome_body">SMS सन्देशबाट लेनदेन आफैं पत्ता लगाउने तपाईंको AI-संचालित खर्च ट्र्याकर।</string>
     <string name="onboarding_setup_heading">तपाईंले के सेट गर्नुहुनेछ:</string>
     <string name="onboarding_setup_steps">1. तपाईंको प्रोफाइल\n2. आफैं पत्ता लगाउन SMS अनुमति\n3. सुरुको लेनदेन स्क्यान\n4. तपाईंको मुख्य बैंक खाता</string>
+    <string name="onboarding_name_title">हामी तपाईंलाई के भनेर बोलाउँौं?</string>
     <string name="onboarding_name_label">तपाईंको नाम</string>
     <string name="onboarding_currency_title">तपाईंको मुद्रा</string>
     <string name="onboarding_language_device">डिभाइसको भाषा</string>
@@ -332,6 +197,7 @@
     <string name="onboarding_avatar_cd">अवतार %1$d</string>
     <string name="onboarding_photo_selected_cd">फोटो छानियो</string>
     <string name="onboarding_background_color_title">पृष्ठभूमिको रङ छान्नुहोस्</string>
+    <string name="onboarding_selected_cd">छानिएको</string>
     <string name="onboarding_permission_title">आफैं पत्ता लगाउने सक्षम गर्नुहोस्</string>
     <string name="onboarding_permission_body">PennyWise ले SMS सन्देशबाट तपाईंका बैंक लेनदेन आफैं पत्ता लगाएर वर्गीकरण गर्न सक्छ।</string>
     <string name="onboarding_permission_granted">अनुमति दिइयो! अघि बढ्न जारी राख्नुहोस् थिच्नुहोस्।</string>
@@ -360,22 +226,42 @@
     <string name="onboarding_main_account_title">आफ्नो मुख्य खाता छान्नुहोस्</string>
     <string name="onboarding_main_account_body">तपाईंले सबैभन्दा धेरै प्रयोग गर्ने खाता छान्नुहोस्। यो तपाईंको होम स्क्रिनमा देखिनेछ।</string>
     <string name="onboarding_back">पछाडि</string>
+    <string name="onboarding_get_started">शुरु गर्नुहोस्</string>
     <string name="onboarding_save_continue">सुरक्षित गरेर जारी राख्नुहोस्</string>
     <string name="onboarding_skip">छोड्नुहोस्</string>
+    <string name="onboarding_continue">जारी राख्नुहोस्</string>
     <string name="onboarding_start_scanning">स्क्यान सुरु गर्नुहोस्</string>
     <string name="onboarding_finish">सकियो</string>
+    <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">मोडेल डाउनलोड हुँदै...</string>
     <string name="chat_model_required_title">AI मोडेल आवश्यक छ</string>
     <string name="chat_model_required_body">च्याट सुरु गर्न AI मोडेल डाउनलोड गर्नुहोस्</string>
-    <string name="chat_download_progress">%1$d MB / %2$d MB</string>
     <string name="chat_download_with_size">डाउनलोड (%1$d MB)</string>
+    <string name="chat_download">डाउनलोड</string>
+    <string name="chat_cancel">रद्द गर्नुहोस्</string>
+    <string name="chat_settings">सेटिङ्स</string>
+    <string name="chat_model_required_short">मोडेल आवश्यक</string>
     <string name="chat_model_size_hint">1.6 GB · Wi-Fi प्रयोग गर्नुहोस्</string>
+    <string name="chat_initializing_model">एआई मोडेल प्रारम्भ गर्दै...</string>
+    <string name="chat_initializing_hint">यसमा केही सेकेन्ड लाग्न सक्छ</string>
+    <string name="chat_clear_chat">च्याट खाली गर्नुहोस्</string>
+    <string name="chat_clear">खाली गर्नुहोस्</string>
+    <string name="chat_dismiss">रद्ध गर्नुहोस्</string>
     <string name="chat_input_placeholder">सोध्नुहोस्, वा के खर्च गर्नुभयो भन्नुहोस्…</string>
+    <string name="chat_send">पठाउनुहोस्</string>
+    <string name="chat_memory_almost_full">च्याट मेमोरी लगभग भरिएको छ! जारी राख्न च्याट खाली गर्नुहोस्.</string>
+    <string name="chat_memory_warning">च्याट मेमोरी %1$d%% भरिएको छ। चाँडै खाली गर्न विचार गर्नुहोस्।</string>
+    <string name="chat_memory_usage">च्याट मेमोरी %1$d%% भरिएको छ।</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d सन्देश</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d सन्देश</item>
     </plurals>
-    <string name="chat_context_percent">%1$d%%</string>
+    <string name="chat_stats_tokens">%1$s टोकनहरू</string>
+    <string name="chat_stats_tokens_of_max">%1$s / %2$s टोकनहरू</string>
+    <string name="chat_stats_system_tokens">प्रणाली: %1$s</string>
+    <string name="chat_context_usage">सन्दर्भ प्रयोग</string>
+    <string name="chat_collapse">सङ्कुचन गर्नुहोस्</string>
+    <string name="chat_expand">विस्तार गर्नुहोस्</string>
     <string name="chat_thinking_reading">पढ्दै छु…</string>
     <string name="chat_thinking_working">हिसाब गर्दै छु…</string>
     <string name="chat_thinking_checking">तपाईंका लेनदेन हेर्दै छु…</string>
@@ -383,18 +269,23 @@
     <string name="chat_thinking_one_moment">एकछिन…</string>
     <string name="chat_empty_title">खर्च थप्नुहोस् वा त्यसबारे सोध्नुहोस्</string>
     <string name="chat_empty_body">यीमध्ये एउटा प्रयास गर्नुहोस्</string>
+    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
     <string name="chat_example_prompt_coffee">Starbucks मा कफी 120</string>
     <string name="chat_example_prompt_salary">आज 50000 तलब आयो</string>
     <string name="chat_example_prompt_groceries">यो महिना किराना सामानमा कति खर्च भयो?</string>
     <string name="chat_example_prompt_spent">यो महिना मैले कति खर्च गरें?</string>
+    <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">आम्दानी थप्ने?</string>
     <string name="chat_action_add_expense">खर्च थप्ने?</string>
     <string name="chat_action_add_detail">%1$s · %2$s · आज</string>
+    <string name="chat_action_add">थप्नुहोस्</string>
     <string name="chat_action_delete_title">यो लेनदेन मेटाउने?</string>
+    <string name="chat_action_delete">हटाउनुहोस्</string>
     <string name="chat_action_update_title">यो लेनदेन अपडेट गर्ने?</string>
     <string name="chat_action_update">अपडेट गर्नुहोस्</string>
     <string name="chat_action_change_merchant">व्यापारी → %1$s</string>
     <string name="chat_action_change_category">वर्ग → %1$s</string>
+    <!-- Chat errors -->
     <string name="chat_error_apply_failed">त्यो लागू गर्न सकिएन: %1$s</string>
     <string name="chat_error_memory_full">च्याट मेमोरी भरियो। जारी राख्न कृपया च्याट खाली गर्नुहोस्।</string>
     <string name="chat_error_model_downloading">मोडेल डाउनलोड हुँदैछ। कृपया पर्खनुहोस्।</string>
@@ -409,16 +300,48 @@
     <string name="chat_error_download_roaming">रोमिङमा हुँदा डाउनलोड गरिँदैन। Wi-Fi मा जोड्नुहोस् वा रोमिङ बन्द गर्नुहोस्, अनि फेरि प्रयास गर्नुहोस्।</string>
     <string name="chat_download_notification_title">AI च्याट मोडेल</string>
     <string name="chat_download_notification_description">PennyWise का लागि AI च्याट सहायक डाउनलोड हुँदै</string>
+    <!-- ══ Smart Rules list ══ -->
+    <string name="rules_title">स्मार्ट नियमहरू</string>
     <string name="rules_navigate_back">पछाडि जानुहोस्</string>
+    <string name="rules_more_options">थप विकल्पहरू</string>
     <string name="rules_menu_export">नियमहरू निर्यात गर्नुहोस्</string>
     <string name="rules_menu_import">नियमहरू आयात गर्नुहोस्</string>
+    <string name="rules_menu_reset">पूर्वनिर्धारितमा रिसेट गर्नुहोस्</string>
+    <string name="rules_create_cd">नियम सिर्जना गर्नुहोस्</string>
+    <string name="rules_ok">ठीक छ</string>
+    <string name="rules_cancel">रद्द गर्नुहोस्</string>
+    <string name="rules_close">बन्द गर्नुहोस्</string>
+    <string name="rules_reset_title">नियम रिसेट गर्नुहोस्</string>
+    <string name="rules_reset_body">सबै नियमहरू पूर्वनिर्धारित सेटिङ्समा रिसेट गर्न चाहनुहुन्छ? तपाइँका अनुकूलन सेटिङ्स हराउनेछन्।</string>
+    <string name="rules_reset">रीसेट गर्नुहोस्</string>
+    <string name="rules_auto_categorization_title">स्वचालित वर्गीकरण</string>
+    <string name="rules_auto_categorization_body">नियमहरू सक्षम गर्नुहोस् ताकि तपाईंका लेनदेनहरू ढाँचाको आधारमा स्वचालित रूपमा वर्गीकृत हुन्छन्</string>
+    <string name="rules_group_daily">दैनिकी खर्चहरू</string>
     <string name="rules_group_income">आम्दानी र क्यासब्याक</string>
+    <string name="rules_group_recurring">पुनरावृत्त तिर्ने रकमहरू</string>
     <string name="rules_group_banking">बैंकिङ र लगानी</string>
+    <string name="rules_group_healthcare">स्वास्थ्य सेवा</string>
+    <string name="rules_group_other">अन्य</string>
+    <string name="rules_footer_info">नियमहरू नयाँ लेनदेनहरूमा स्वतः लागु हुन्छन्। उच्च प्राथमिकताका नियमहरू पहिलो चल्छन्।</string>
     <string name="rules_summary_small_payments">रकम &lt; 200</string>
     <string name="rules_summary_upi_cashback">NPCI बाट रकम &lt; 10</string>
+    <string name="rules_summary_salary">तलब कुञ्जीशब्दसहित क्रेडिटहरू</string>
+    <string name="rules_summary_rent">भाडा कुञ्जीशब्दसहित भुक्तानीहरू</string>
+    <string name="rules_summary_emi">EMI/ऋण कुञ्जीशब्दहरू</string>
+    <string name="rules_summary_investment">म्युचुअल फन्ड, सेयर कुञ्जीशब्दहरू</string>
+    <string name="rules_summary_subscription">Netflix, Spotify, आदि</string>
+    <string name="rules_summary_fuel">पेट्रोल पम्प लेनदेनहरू</string>
+    <string name="rules_summary_healthcare">अस्पताल, फार्मेसी कुञ्जीशब्दहरू</string>
+    <string name="rules_summary_transfer">आफ्नै स्थानान्तरणहरू, कन्त्रा</string>
+    <string name="rules_priority_badge">प्राथमिकता: %1$d</string>
     <string name="rules_more_actions">थप कार्यहरू</string>
+    <string name="rules_menu_edit">नियम सम्पादन गर्नुहोस्</string>
     <string name="rules_menu_duplicate">नियमको नक्कल बनाउनुहोस्</string>
+    <string name="rules_menu_apply_past">अतीतका लेनदेनहरूमा लागू गर्नुहोस्</string>
+    <string name="rules_delete_title">नियम मेटाउने</string>
     <string name="rules_delete_body">\"%1$s\" मेटाउने? यो कार्य पूर्ववत गर्न सकिँदैन।</string>
+    <string name="rules_delete">हटाउनुहोस्</string>
+    <!-- Rule sharing (export / import) results -->
     <string name="rules_export_nothing">निर्यात गर्न तपाईंसँग अझै कुनै आफ्नै नियम छैन।</string>
     <plurals name="rules_exported">
         <item quantity="one">%1$d नियम निर्यात भयो।</item>
@@ -442,8 +365,11 @@
         <item quantity="other">थप %1$d का लागि Pro चाहिन्छ — तपाईं %2$d को निःशुल्क सीमामा पुग्नुभयो।</item>
     </plurals>
     <string name="rules_import_failed">आयात असफल भयो।</string>
+    <!-- Apply rule to past transactions -->
+    <string name="rules_batch_applying">नियम लागू गर्दै...</string>
     <string name="rules_batch_previewing">पूर्वावलोकन गर्दै...</string>
     <string name="rules_batch_preview_title">पूर्वावलोकन: %1$s</string>
+    <string name="rules_batch_title">पुराना लेनदेनमा नियम लागू गर्नुहोस्</string>
     <string name="rules_batch_scanning">लेनदेन स्क्यान गर्दै...</string>
     <string name="rules_batch_no_matches">कुनै लेनदेन यो नियमसँग मेल खाएन (%1$d स्क्यान गरियो)।</string>
     <plurals name="rules_batch_scanned">
@@ -458,6 +384,7 @@
     <string name="rules_batch_change_merchant">व्यापारी: %1$s → %2$s</string>
     <string name="rules_batch_change_type">प्रकार: %1$s → %2$s</string>
     <string name="rules_batch_change_description">विवरण: %1$s → %2$s</string>
+    <string name="rules_batch_none">(कुनै छैन)</string>
     <string name="rules_batch_change_tags">ट्यागहरू: %1$s</string>
     <string name="rules_batch_and_more">...र थप %1$d</string>
     <string name="rules_batch_confirm">\"%1$s\" भइरहेका लेनदेनमा लागू गर्ने?</string>
@@ -466,15 +393,36 @@
         <item quantity="one">%2$d मध्ये %1$d लेनदेन प्रक्रिया गर्दै</item>
         <item quantity="other">%2$d मध्ये %1$d लेनदेन प्रक्रिया गर्दै</item>
     </plurals>
+    <string name="rules_batch_completed">सम्पन्न</string>
+    <string name="rules_batch_result_processed">प्रक्रियामा आएको लेनदेन: %1$d</string>
+    <string name="rules_batch_result_updated">अपडेट गरिएको लेनदेन: %1$d</string>
     <string name="rules_batch_result_blocked">ब्लक गरिएका लेनदेन: %1$d</string>
+    <string name="rules_batch_result_errors">त्रुटिहरू: %1$d</string>
+    <string name="rules_batch_apply_uncategorized">वर्गविहीन</string>
     <string name="rules_batch_apply_all">सबैमा लागू गर्नुहोस्</string>
+    <string name="rules_batch_preview">पूर्वावलोकन</string>
+    <!-- ══ Create / edit rule ══ -->
+    <string name="rules_create_title">नियम सिर्जना गर्नुहोस्</string>
+    <string name="rules_edit_title">नियम सम्पादन गर्नुहोस्</string>
+    <string name="rules_save">सुरक्षित गर्नुहोस्</string>
+    <string name="rules_quick_templates">छिटो टेम्पलेटहरू</string>
+    <string name="rules_preset_block_otps">ओटीपीहरू अवरोध गर्नुहोस्</string>
+    <string name="rules_preset_block_small">साना रकमहरू अवरोध गर्नुहोस्</string>
+    <string name="rules_preset_small_food">साना रकमहरू → खाना</string>
+    <string name="rules_preset_standardize_merchant">व्यापारीलाई मानकीकृत गर्नुहोस्</string>
+    <string name="rules_preset_mark_income">आयको रूपमा मार्क गर्नुहोस्</string>
     <string name="rules_preset_daily_investment">दैनिक लगानी</string>
+    <string name="rules_name_label">नियमको नाम</string>
     <string name="rules_name_placeholder">जस्तै, 200 भन्दा कमको खाना खर्च</string>
+    <string name="rules_description_label">विवरण (वैकल्पिक)</string>
+    <string name="rules_description_placeholder">यो नियमले के गर्छ?</string>
     <string name="rules_when">जब</string>
+    <string name="rules_then">त्यसपछि</string>
     <string name="rules_add_condition">सर्त थप्नुहोस्</string>
     <string name="rules_condition">सर्त</string>
     <string name="rules_remove_condition">सर्त हटाउनुहोस्</string>
     <string name="rules_add_action">कार्य थप्नुहोस्</string>
+    <string name="rules_action">क्रिया</string>
     <string name="rules_action_numbered">कार्य %1$d</string>
     <string name="rules_remove_action">कार्य हटाउनुहोस्</string>
     <string name="rules_logical_and">र</string>
@@ -482,12 +430,25 @@
     <string name="rules_block_confirm_title">लेनदेन ब्लक गर्ने?</string>
     <string name="rules_block_confirm_body">ब्लक गर्दा मेल खाने लेनदेन सुरक्षित हुँदैन, त्यसैले यो नियमका अरू कार्यहरू चल्दैनन्। अरू कार्य हटाएर ब्लक मात्र राख्ने?</string>
     <string name="rules_block_confirm_action">ब्लक गरेर हटाउनुहोस्</string>
+    <string name="rules_block_explainer">यस नियमसँग मेल खाने लेनदेन अवरोध गरिनेछ र सुरक्षित गरिने छैन</string>
+    <!-- Rule fields (pickers) -->
+    <string name="rules_field_label">फील्ड</string>
+    <string name="rules_field_amount">रकम</string>
+    <string name="rules_field_transaction_type">लेनदेन प्रकार</string>
+    <string name="rules_field_category">वर्ग</string>
+    <string name="rules_field_merchant">व्यापारी</string>
     <string name="rules_field_merchant_name">व्यापारीको नाम</string>
+    <string name="rules_field_sms_text">SMS पाठ</string>
+    <string name="rules_field_bank_name">बैंकको नाम</string>
     <string name="rules_field_time_of_day">दिनको समय</string>
     <string name="rules_field_hour">घण्टा</string>
     <string name="rules_field_day_of_week">हप्ताको दिन</string>
     <string name="rules_field_day_of_month">महिनाको दिन</string>
+    <string name="rules_field_date">मिति</string>
+    <string name="rules_field_account">खाता</string>
+    <string name="rules_field_description">विवरण</string>
     <string name="rules_field_tags">ट्यागहरू</string>
+    <!-- Rule operators (condition chips) -->
     <string name="rules_op_before">अघि</string>
     <string name="rules_op_after">पछि</string>
     <string name="rules_op_at_or_after">त्यही वा पछि</string>
@@ -499,7 +460,14 @@
     <string name="rules_op_equals">बराबर</string>
     <string name="rules_op_starts_with">बाट सुरु</string>
     <string name="rules_op_contains">समावेश छ</string>
+    <!-- Transaction type labels (stored value stays the enum name) -->
+    <string name="rules_type_income">आम्दानी</string>
+    <string name="rules_type_expense">खर्च</string>
+    <string name="rules_type_credit">क्रेडिट</string>
+    <string name="rules_type_transfer">स्थानान्तरण</string>
+    <string name="rules_type_investment">लगानी</string>
     <string name="rules_select_transaction_type">लेनदेन प्रकार छान्नुहोस्:</string>
+    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
     <string name="rules_day_mon">सोम</string>
     <string name="rules_day_tue">मंगल</string>
     <string name="rules_day_wed">बुध</string>
@@ -507,41 +475,66 @@
     <string name="rules_day_fri">शुक्र</string>
     <string name="rules_day_sat">शनि</string>
     <string name="rules_day_sun">आइत</string>
+    <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">दिन (1-31)</string>
     <string name="rules_day_of_month_placeholder">जस्तै, 1</string>
+    <!-- The rule stores HH:mm; keep that pattern in the label. -->
     <string name="rules_time_label">समय (HH:mm)</string>
     <string name="rules_time_placeholder">समय छान्न ट्याप गर्नुहोस्</string>
     <string name="rules_pick_time">समय छान्नुहोस्</string>
     <string name="rules_hour_label">घण्टा (0-23)</string>
     <string name="rules_hour_placeholder">जस्तै, 9</string>
+    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
     <string name="rules_date_label">मिति (yyyy-MM-dd)</string>
     <string name="rules_date_placeholder">जस्तै, 2026-03-21</string>
     <string name="rules_select_account">खाता छान्नुहोस्</string>
+    <string name="rules_account_type_credit">क्रेडिट</string>
     <string name="rules_no_accounts">कुनै खाता भेटिएन। पहिले खाता थप्नुहोस्।</string>
+    <string name="rules_value_label">मान</string>
+    <string name="rules_value_placeholder_amount">जस्तै, 200</string>
     <string name="rules_value_placeholder_merchant">जस्तै, Swiggy</string>
     <string name="rules_value_placeholder_sms_text">जस्तै, salary</string>
     <string name="rules_value_placeholder_category">जस्तै, खाना र भोजन</string>
+    <string name="rules_value_placeholder_bank">जस्तै, HDFC बैंक</string>
     <string name="rules_value_placeholder_generic">मान हाल्नुहोस्</string>
+    <!-- Action editor -->
+    <string name="rules_action_type_label">कार्य प्रकार</string>
+    <string name="rules_action_type_block">लेनदेन ब्लक गर्नुहोस्</string>
+    <string name="rules_action_type_set">फील्ड सेट गर्नुहोस्</string>
     <string name="rules_action_type_append">फील्डको अन्त्यमा जोड्नुहोस्</string>
     <string name="rules_action_type_prepend">फील्डको सुरुमा जोड्नुहोस्</string>
+    <string name="rules_action_type_clear">फील्ड खाली गर्नुहोस्</string>
     <string name="rules_action_type_add_tag">ट्याग थप्नुहोस्</string>
     <string name="rules_action_type_remove_tag">ट्याग हटाउनुहोस्</string>
+    <string name="rules_category_name_label">वर्गको नाम</string>
     <string name="rules_category_name_placeholder">जस्तै, भाडा</string>
     <string name="rules_merchant_placeholder">जस्तै, Amazon</string>
     <string name="rules_description_value_placeholder">जस्तै, मासिक सदस्यता भुक्तानी</string>
     <string name="rules_account_bank_label">खाता / बैंकको नाम</string>
     <string name="rules_tag_name_label">ट्यागको नाम</string>
+    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">नियमको पूर्वावलोकन</string>
     <string name="rules_preview_sentence">यदि %1$s भने, %2$s</string>
     <string name="rules_preview_conditions_and">%1$s र %2$s</string>
     <string name="rules_preview_conditions_or">%1$s वा %2$s</string>
     <string name="rules_preview_actions_and">%1$s, र %2$s</string>
+    <!-- field, operator, value -->
     <string name="rules_preview_condition">%1$s %3$s %2$s</string>
+    <string name="rules_preview_field_amount">रकम</string>
+    <string name="rules_preview_field_type">प्रकार</string>
+    <string name="rules_preview_field_category">वर्ग</string>
+    <string name="rules_preview_field_merchant">व्यापारी</string>
+    <string name="rules_preview_field_description">विवरण</string>
     <string name="rules_preview_field_sms_text">SMS पाठ</string>
+    <string name="rules_preview_field_bank">बैंक</string>
+    <string name="rules_preview_field_time">समय</string>
     <string name="rules_preview_field_hour">घण्टा</string>
     <string name="rules_preview_field_day_of_week">हप्ताको दिन</string>
     <string name="rules_preview_field_day_of_month">महिनाको दिन</string>
+    <string name="rules_preview_field_date">मिति</string>
+    <string name="rules_preview_field_account">खाता</string>
     <string name="rules_preview_field_tags">ट्यागहरू</string>
+    <string name="rules_preview_field_generic">फील्ड</string>
     <string name="rules_preview_op_before">भन्दा अघि हो</string>
     <string name="rules_preview_op_after">भन्दा पछि हो</string>
     <string name="rules_preview_op_less_than">भन्दा कम छ</string>
@@ -557,8 +550,10 @@
     <string name="rules_preview_action_block">लेनदेन ब्लक गर्ने</string>
     <string name="rules_preview_action_add_tag">ट्याग %1$s थप्ने</string>
     <string name="rules_preview_action_remove_tag">ट्याग %1$s हटाउने</string>
+    <!-- value, field -->
     <string name="rules_preview_action_append">%2$s को अन्त्यमा %1$s जोड्ने</string>
     <string name="rules_preview_action_prepend">%2$s को सुरुमा %1$s जोड्ने</string>
     <string name="rules_preview_action_clear">%1$s खाली गर्ने</string>
+    <!-- field, value -->
     <string name="rules_preview_action_set">%1$s लाई %2$s बनाउने</string>
 </resources>

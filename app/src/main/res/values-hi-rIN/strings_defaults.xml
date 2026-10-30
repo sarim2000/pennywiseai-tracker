@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Names the app seeds or prefills. Profiles are translated at display
+         time only while the row still holds its seeded name; the rest are
+         written in the app's language when created and are the user's after. -->
+    <!-- ══ Seeded profiles ══ -->
     <string name="profile_default_personal">निजी</string>
     <string name="profile_default_business">बिज़नेस</string>
+    <!-- ══ Starter rule (stored in the app's language when seeded) ══ -->
     <string name="rule_template_small_payments_name">छोटे भुगतान → खाना</string>
     <string name="rule_template_small_payments_description">छोटे खर्च (200 से कम) को Food &amp; Dining श्रेणी में डालें</string>
+    <!-- ══ Budget group defaults (stored in the app's language when created) ══ -->
     <string name="budget_group_default_spending">खर्च</string>
     <string name="budget_group_default_fixed_costs">तय खर्च</string>
     <string name="budget_group_default_investments">निवेश</string>

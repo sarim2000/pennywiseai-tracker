@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Time period filter chips (Transactions, Analytics) -->
-    <!-- FY = financial year (India: April to March) -->
-    <!-- Transaction type filter -->
-    <!-- Analytics only: expense + credit-card spend shown together -->
-    <!-- Account types -->
     <string name="filter_period_this_month">Mwezi Huu</string>
     <string name="filter_period_last_month">Mwezi Uliopita</string>
+    <!-- FY = financial year (India: April to March) -->
     <string name="filter_period_current_fy">Mwaka wa Fedha Huu</string>
     <string name="filter_period_all_time">Muda Wote</string>
     <string name="filter_period_custom_range">Kipindi Maalum</string>
+    <!-- Transaction type filter -->
     <string name="filter_type_all">Zote</string>
     <string name="filter_type_income">Mapato</string>
     <string name="filter_type_expense">Matumizi</string>
     <string name="filter_type_credit">Mkopo</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">Matumizi (Matumizi + Kadi)</string>
     <string name="filter_type_transfer">Uhamisho</string>
     <string name="filter_type_investment">Uwekezaji</string>
+    <!-- Account types -->
     <string name="account_type_savings">Akiba</string>
     <string name="account_type_current">Ya Sasa</string>
     <string name="account_type_credit_card">Kadi ya Mkopo</string>

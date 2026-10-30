@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Names the app seeds or prefills. Profiles are translated at display
+         time only while the row still holds its seeded name; the rest are
+         written in the app's language when created and are the user's after. -->
+    <!-- ══ Seeded profiles ══ -->
     <string name="profile_default_personal">Pessoal</string>
     <string name="profile_default_business">Profissional</string>
+    <!-- ══ Starter rule (stored in the app's language when seeded) ══ -->
     <string name="rule_template_small_payments_name">Pequenos pagamentos para Alimentação</string>
     <string name="rule_template_small_payments_description">Classifica pequenas despesas (inferiores a 200) na categoria Food &amp; Dining</string>
+    <!-- ══ Budget group defaults (stored in the app's language when created) ══ -->
     <string name="budget_group_default_spending">Despesas</string>
     <string name="budget_group_default_fixed_costs">Custos fixos</string>
     <string name="budget_group_default_investments">Investimentos</string>

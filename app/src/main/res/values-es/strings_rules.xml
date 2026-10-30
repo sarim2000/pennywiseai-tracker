@@ -1,33 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ App lock ══ -->
-    <!-- Biometric capability errors (also shown in Settings) -->
-    <!-- ══ SMS permission screen ══ -->
-    <!-- ══ Unrecognized SMS ══ -->
-    <!-- ══ Import statement ══ -->
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <!-- License key dialog -->
-    <!-- ══ Onboarding ══ -->
-    <!-- ══ Chat (PennyWise AI) ══ -->
-    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <!-- Chat confirm card for an AI-proposed action -->
-    <!-- Chat errors -->
-    <!-- ══ Smart Rules list ══ -->
-    <!-- Rule sharing (export / import) results -->
-    <!-- Apply rule to past transactions -->
-    <!-- ══ Create / edit rule ══ -->
-    <!-- Rule fields (pickers) -->
-    <!-- Rule operators (condition chips) -->
-    <!-- Transaction type labels (stored value stays the enum name) -->
-    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
-    <!-- Condition value inputs -->
-    <!-- The rule stores HH:mm; keep that pattern in the label. -->
-    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
-    <!-- Action editor -->
-    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
-    <!-- field, operator, value -->
-    <!-- value, field -->
-    <!-- field, value -->
     <string name="applock_prompt_title">Desbloquear PennyWise</string>
     <string name="applock_prompt_subtitle">Autentícate para acceder a tus datos de gastos</string>
     <string name="applock_prompt_description">Usa tu biometría o el PIN del dispositivo</string>
@@ -42,12 +15,14 @@
         <item quantity="other">Tus datos están protegidos con un tiempo de espera de %1$d minutos</item>
     </plurals>
     <string name="applock_auth_failed">La autenticación falló. Vuelve a intentarlo.</string>
+    <!-- Biometric capability errors (also shown in Settings) -->
     <string name="biometric_error_no_hardware">Este dispositivo no tiene hardware biométrico</string>
     <string name="biometric_error_hw_unavailable">El hardware biométrico no está disponible en este momento</string>
     <string name="biometric_error_none_enrolled">No hay datos biométricos registrados. Configura el desbloqueo con huella o rostro en los ajustes del dispositivo</string>
     <string name="biometric_error_security_update">Se necesita una actualización de seguridad para la autenticación biométrica</string>
     <string name="biometric_error_unsupported">La autenticación biométrica no es compatible con este dispositivo</string>
     <string name="biometric_error_unknown">Estado biométrico desconocido</string>
+    <!-- ══ SMS permission screen ══ -->
     <string name="permission_title">Activa la detección automática de transacciones</string>
     <string name="permission_description">PennyWise puede detectar y clasificar automáticamente tus transacciones bancarias a partir de los SMS, y así ahorrarte tiempo y esfuerzo.</string>
     <string name="permission_privacy_title">Tu privacidad importa</string>
@@ -58,6 +33,7 @@
     <string name="permission_notification_open_settings">Abrir ajustes de acceso a notificaciones</string>
     <string name="permission_rationale">Sin acceso a los SMS, tendrás que agregar todas tus transacciones a mano. Solo leemos los mensajes de transacciones bancarias, no tus conversaciones personales.</string>
     <string name="permission_enable_button">Activar detección automática</string>
+    <!-- ══ Unrecognized SMS ══ -->
     <string name="unrecognized_title">SMS no reconocidos</string>
     <string name="unrecognized_back">Atrás</string>
     <string name="unrecognized_header_title">Mensajes bancarios no reconocidos</string>
@@ -83,6 +59,7 @@
     <string name="unrecognized_suggestion_debit">Débito de %1$s</string>
     <string name="unrecognized_suggestion_credit">Crédito de %1$s</string>
     <string name="unrecognized_suggestion_add">Agregar</string>
+    <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Importar estado de cuenta</string>
     <string name="import_statement_back">Atrás</string>
     <string name="import_statement_description">Importa un estado de cuenta en PDF de Google Pay, PhonePe, Paytm, slice o ICICI Bank, o el estado de cuenta en Excel (.xlsx) o CSV de cualquier banco. Verás lo que es nuevo antes de que se agregue nada.</string>
@@ -163,14 +140,13 @@
     <string name="import_statement_balance_statement">Según el estado de cuenta</string>
     <string name="import_statement_balance_app">Según PennyWise</string>
     <string name="import_statement_balance_difference">Diferencia</string>
-    <string name="import_statement_balance_unknown">—</string>
     <string name="import_statement_balance_unknown_note">PennyWise no tiene un saldo para esta cuenta en o antes del %1$s, así que aún no hay con qué compararlo.</string>
     <string name="import_statement_balance_match">Los saldos coinciden.</string>
     <string name="import_statement_balance_set">Fijar saldo en %1$s</string>
     <string name="import_statement_balance_set_note">Saldo del estado de cuenta más lo que PennyWise registró después de que terminó el estado de cuenta.</string>
     <string name="import_statement_balance_applied">Saldo actualizado a %1$s.</string>
     <string name="import_statement_balance_newer">Tu banco informó un saldo más reciente después de este estado de cuenta, así que PennyWise conserva ese.</string>
-    <string name="upgrade_title">PennyWise Pro</string>
+    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_subtitle_member">Todas las funciones Pro activas</string>
     <string name="upgrade_subtitle_upgrade">Todo desbloqueado con una clave de licencia</string>
     <string name="upgrade_enter_license_key">Ingresar clave de licencia</string>
@@ -197,6 +173,7 @@
     <string name="upgrade_manage_subscription">Administrar suscripción</string>
     <string name="upgrade_error_play_unavailable">No se pudo conectar con Play Store. Inténtalo más tarde.</string>
     <string name="upgrade_cancel">Cancelar</string>
+    <!-- License key dialog -->
     <string name="upgrade_license_dialog_title">Activar clave de licencia</string>
     <string name="upgrade_license_dialog_body">Pega la clave del correo de tu compra. Pro se activa en este dispositivo al instante.</string>
     <string name="upgrade_license_email_label">Correo de la compra</string>
@@ -206,7 +183,7 @@
     <string name="upgrade_license_error_invalid">Esa clave no es válida. Revisa si hay errores y vuelve a intentarlo.</string>
     <string name="upgrade_license_error_active_elsewhere">Esta clave ya está activa en otro dispositivo.</string>
     <string name="upgrade_license_error_offline">No se pudo conectar con el servidor de licencias. Revisa tu conexión y vuelve a intentarlo.</string>
-    <string name="onboarding_logo_cd">PennyWise</string>
+    <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">Te damos la bienvenida a PennyWise</string>
     <string name="onboarding_welcome_body">Tu control de gastos con AI que detecta automáticamente las transacciones de tus SMS.</string>
     <string name="onboarding_setup_heading">Lo que vas a configurar:</string>
@@ -217,7 +194,6 @@
     <string name="onboarding_language_device">Idioma del dispositivo</string>
     <string name="onboarding_currency_hint">Se usa para totales y presupuestos. Puedes cambiarla en Ajustes.</string>
     <string name="onboarding_avatar_title">Elige un avatar</string>
-    <string name="onboarding_avatar_cd">Avatar %1$d</string>
     <string name="onboarding_photo_selected_cd">Foto seleccionada</string>
     <string name="onboarding_background_color_title">Elige un color de fondo</string>
     <string name="onboarding_selected_cd">Seleccionado</string>
@@ -255,10 +231,10 @@
     <string name="onboarding_continue">Continuar</string>
     <string name="onboarding_start_scanning">Empezar a escanear</string>
     <string name="onboarding_finish">Finalizar</string>
+    <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">Descargando modelo...</string>
     <string name="chat_model_required_title">Se necesita el modelo de AI</string>
     <string name="chat_model_required_body">Descarga el modelo de AI para empezar a chatear</string>
-    <string name="chat_download_progress">%1$d MB / %2$d MB</string>
     <string name="chat_download_with_size">Descargar (%1$d MB)</string>
     <string name="chat_download">Descargar</string>
     <string name="chat_cancel">Cancelar</string>
@@ -279,11 +255,8 @@
         <item quantity="one">Qwen 2.5 1.5B • %1$d mensaje</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d mensajes</item>
     </plurals>
-    <string name="chat_stats_tokens">%1$s tokens</string>
-    <string name="chat_stats_tokens_of_max">%1$s / %2$s tokens</string>
     <string name="chat_stats_system_tokens">Sistema: %1$s</string>
     <string name="chat_context_usage">Uso del contexto</string>
-    <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Contraer</string>
     <string name="chat_expand">Expandir</string>
     <string name="chat_thinking_reading">Leyendo…</string>
@@ -293,10 +266,12 @@
     <string name="chat_thinking_one_moment">Un momento…</string>
     <string name="chat_empty_title">Agrega un gasto o pregunta por él</string>
     <string name="chat_empty_body">Prueba una de estas frases</string>
+    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
     <string name="chat_example_prompt_coffee">café 120 en Starbucks</string>
     <string name="chat_example_prompt_salary">hoy recibí 50000 de sueldo</string>
     <string name="chat_example_prompt_groceries">¿Cuánto gasté en el súper este mes?</string>
     <string name="chat_example_prompt_spent">¿Cuánto he gastado este mes?</string>
+    <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">¿Agregar ingreso?</string>
     <string name="chat_action_add_expense">¿Agregar gasto?</string>
     <string name="chat_action_add_detail">%1$s · %2$s · hoy</string>
@@ -307,6 +282,7 @@
     <string name="chat_action_update">Actualizar</string>
     <string name="chat_action_change_merchant">comercio → %1$s</string>
     <string name="chat_action_change_category">categoría → %1$s</string>
+    <!-- Chat errors -->
     <string name="chat_error_apply_failed">No se pudo aplicar: %1$s</string>
     <string name="chat_error_memory_full">La memoria del chat está llena. Borra el chat para continuar.</string>
     <string name="chat_error_model_downloading">El modelo se está descargando. Espera un momento.</string>
@@ -321,6 +297,7 @@
     <string name="chat_error_download_roaming">No se descarga con roaming. Conéctate a Wi-Fi o desactiva el roaming y vuelve a intentarlo.</string>
     <string name="chat_download_notification_title">Modelo de chat de AI</string>
     <string name="chat_download_notification_description">Descargando el asistente de chat de AI para PennyWise</string>
+    <!-- ══ Smart Rules list ══ -->
     <string name="rules_title">Reglas inteligentes</string>
     <string name="rules_navigate_back">Volver</string>
     <string name="rules_more_options">Más opciones</string>
@@ -349,7 +326,6 @@
     <string name="rules_summary_rent">Pagos con palabras clave de alquiler</string>
     <string name="rules_summary_emi">Palabras clave de EMI/préstamo</string>
     <string name="rules_summary_investment">Palabras clave de fondos de inversión y acciones</string>
-    <string name="rules_summary_subscription">Netflix, Spotify, etc.</string>
     <string name="rules_summary_fuel">Transacciones en gasolineras</string>
     <string name="rules_summary_healthcare">Palabras clave de hospital y farmacia</string>
     <string name="rules_summary_transfer">Transferencias propias, contra</string>
@@ -361,6 +337,7 @@
     <string name="rules_delete_title">Eliminar regla</string>
     <string name="rules_delete_body">¿Eliminar \"%1$s\"? Esta acción no se puede deshacer.</string>
     <string name="rules_delete">Eliminar</string>
+    <!-- Rule sharing (export / import) results -->
     <string name="rules_export_nothing">Aún no tienes reglas personalizadas para exportar.</string>
     <plurals name="rules_exported">
         <item quantity="one">Se exportó %1$d regla.</item>
@@ -384,6 +361,7 @@
         <item quantity="other">%1$d más necesitan Pro: llegaste al límite gratuito de %2$d.</item>
     </plurals>
     <string name="rules_import_failed">La importación falló.</string>
+    <!-- Apply rule to past transactions -->
     <string name="rules_batch_applying">Aplicando regla...</string>
     <string name="rules_batch_previewing">Generando vista previa...</string>
     <string name="rules_batch_preview_title">Vista previa: %1$s</string>
@@ -419,6 +397,7 @@
     <string name="rules_batch_apply_uncategorized">Sin categoría</string>
     <string name="rules_batch_apply_all">Aplicar a todas</string>
     <string name="rules_batch_preview">Vista previa</string>
+    <!-- ══ Create / edit rule ══ -->
     <string name="rules_create_title">Crear regla</string>
     <string name="rules_edit_title">Editar regla</string>
     <string name="rules_save">Guardar</string>
@@ -448,6 +427,7 @@
     <string name="rules_block_confirm_body">Bloquear impide que se guarde una transacción que coincida, así que las otras acciones de esta regla no se ejecutarán. ¿Quitar las otras acciones y dejar solo Bloquear?</string>
     <string name="rules_block_confirm_action">Bloquear y quitar</string>
     <string name="rules_block_explainer">Las transacciones que coincidan con esta regla se bloquearán y no se guardarán</string>
+    <!-- Rule fields (pickers) -->
     <string name="rules_field_label">Campo</string>
     <string name="rules_field_amount">Monto</string>
     <string name="rules_field_transaction_type">Tipo de transacción</string>
@@ -464,6 +444,7 @@
     <string name="rules_field_account">Cuenta</string>
     <string name="rules_field_description">Descripción</string>
     <string name="rules_field_tags">Etiquetas</string>
+    <!-- Rule operators (condition chips) -->
     <string name="rules_op_before">antes de</string>
     <string name="rules_op_after">después de</string>
     <string name="rules_op_at_or_after">a partir de</string>
@@ -475,12 +456,14 @@
     <string name="rules_op_equals">es igual a</string>
     <string name="rules_op_starts_with">empieza con</string>
     <string name="rules_op_contains">contiene</string>
+    <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Ingreso</string>
     <string name="rules_type_expense">Gasto</string>
     <string name="rules_type_credit">Crédito</string>
     <string name="rules_type_transfer">Transferencia</string>
     <string name="rules_type_investment">Inversión</string>
     <string name="rules_select_transaction_type">Selecciona el tipo de transacción:</string>
+    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
     <string name="rules_day_mon">Lun</string>
     <string name="rules_day_tue">Mar</string>
     <string name="rules_day_wed">Mié</string>
@@ -488,13 +471,16 @@
     <string name="rules_day_fri">Vie</string>
     <string name="rules_day_sat">Sáb</string>
     <string name="rules_day_sun">Dom</string>
+    <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">Día (1-31)</string>
     <string name="rules_day_of_month_placeholder">p. ej., 1</string>
+    <!-- The rule stores HH:mm; keep that pattern in the label. -->
     <string name="rules_time_label">Hora (HH:mm)</string>
     <string name="rules_time_placeholder">Toca para elegir la hora</string>
     <string name="rules_pick_time">Elegir hora</string>
     <string name="rules_hour_label">Hora (0-23)</string>
     <string name="rules_hour_placeholder">p. ej., 9</string>
+    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
     <string name="rules_date_label">Fecha (yyyy-MM-dd)</string>
     <string name="rules_date_placeholder">p. ej., 2026-03-21</string>
     <string name="rules_select_account">Selecciona una cuenta</string>
@@ -507,6 +493,7 @@
     <string name="rules_value_placeholder_category">p. ej., Comida y restaurantes</string>
     <string name="rules_value_placeholder_bank">p. ej., HDFC Bank</string>
     <string name="rules_value_placeholder_generic">Ingresa un valor</string>
+    <!-- Action editor -->
     <string name="rules_action_type_label">Tipo de acción</string>
     <string name="rules_action_type_block">Bloquear transacción</string>
     <string name="rules_action_type_set">Establecer campo</string>
@@ -521,12 +508,13 @@
     <string name="rules_description_value_placeholder">p. ej., Pago mensual de suscripción</string>
     <string name="rules_account_bank_label">Cuenta / nombre del banco</string>
     <string name="rules_tag_name_label">Nombre de la etiqueta</string>
+    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Vista previa de la regla</string>
     <string name="rules_preview_sentence">Si %1$s, %2$s</string>
     <string name="rules_preview_conditions_and">%1$s Y %2$s</string>
     <string name="rules_preview_conditions_or">%1$s O %2$s</string>
     <string name="rules_preview_actions_and">%1$s y %2$s</string>
-    <string name="rules_preview_condition">%1$s %2$s %3$s</string>
+    <!-- field, operator, value -->
     <string name="rules_preview_field_amount">monto</string>
     <string name="rules_preview_field_type">tipo</string>
     <string name="rules_preview_field_category">categoría</string>
@@ -557,8 +545,10 @@
     <string name="rules_preview_action_block">bloquear la transacción</string>
     <string name="rules_preview_action_add_tag">agregar la etiqueta %1$s</string>
     <string name="rules_preview_action_remove_tag">quitar la etiqueta %1$s</string>
+    <!-- value, field -->
     <string name="rules_preview_action_append">agregar %1$s al final de %2$s</string>
     <string name="rules_preview_action_prepend">agregar %1$s al inicio de %2$s</string>
     <string name="rules_preview_action_clear">vaciar %1$s</string>
+    <!-- field, value -->
     <string name="rules_preview_action_set">cambiar %1$s a %2$s</string>
 </resources>

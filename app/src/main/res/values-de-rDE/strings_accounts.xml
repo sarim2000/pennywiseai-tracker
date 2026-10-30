@@ -132,6 +132,8 @@
     <string name="manage_accounts_section_unlinked_cards">Nicht verknüpfte Karten</string>
     <string name="manage_accounts_section_credit_cards">Kreditkarten</string>
     <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
+    <string name="manage_accounts_section_loan_accounts">Darlehenskonten</string>
+    <string name="manage_accounts_hidden_header">Ignorierte Konten (%1$d)</string>
     <string name="manage_accounts_reassign_title">Vorhandene Transaktionen verschieben?</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="one">%1$d Transaktion von diesem Konto ist auf ein anderes Profil gesetzt. Verschieben Sie es auch in das neue Profil?</item>
@@ -139,6 +141,7 @@
     </plurals>
     <string name="manage_accounts_reassign_move">Bewegen</string>
     <string name="manage_accounts_reassign_keep">Behalten wie</string>
+    <string name="manage_accounts_hidden_badge">Ignoriert</string>
     <string name="manage_accounts_business_badge">Geschäftlich</string>
     <string name="manage_accounts_outstanding">Ausstehend</string>
     <string name="manage_accounts_available">Verfügbar</string>
@@ -151,7 +154,11 @@
     <string name="manage_accounts_action_clear">Leeren</string>
     <string name="manage_accounts_action_link">Verknüpfen</string>
     <string name="manage_accounts_menu_history">Verlauf</string>
+    <string name="manage_accounts_menu_show">Nicht mehr ignorieren</string>
+    <string name="manage_accounts_menu_hide">Dieses Konto ignorieren</string>
     <!-- Snackbar after ignoring an account; %1$s = account label -->
+    <string name="manage_accounts_ignored_snackbar">%1$s ignoriert</string>
+    <string name="manage_accounts_undo">Rückgängig</string>
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Abrechnungsdatum: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Anweisungsdatum festlegen</string>
@@ -172,6 +179,7 @@
     <string name="manage_accounts_card_updated">Aktualisiert: %1$s</string>
     <string name="manage_accounts_unlink_card">Karte entfernen</string>
     <string name="manage_accounts_update_balance">Guthaben aktualisieren</string>
+    <string name="manage_accounts_estimated_balance_hint">Geschätzt: Die SMS Ihrer Bank enthalten keinen Kontostand. Tippen Sie, um ihn einmalig festzulegen.</string>
     <string name="manage_accounts_low_balance_alert">Niedrigbilanzalarm</string>
     <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">Dieses Konto markieren, wenn sein Kontostand diesen Betrag beträgt oder unterschreitet. Aktueller Kontostand: %1$s</string>
@@ -185,6 +193,7 @@
     <string name="manage_accounts_update_credit_card">Kreditkarte aktualisieren</string>
     <string name="manage_accounts_outstanding_balance">Ausstehender Saldo</string>
     <string name="manage_accounts_outstanding_balance_hint">Betrag der derzeit auf der Karte schuldet</string>
+    <string name="manage_accounts_loan_outstanding_hint">Noch offener Darlehensbetrag</string>
     <string name="manage_accounts_credit_limit_hint">Gesamtes Kreditlimit der Karte</string>
     <string name="manage_accounts_available_credit_label">Verfügbares Guthaben:</string>
     <string name="manage_accounts_utilization_label">Verwendung:</string>
@@ -211,6 +220,7 @@
     <string name="manage_accounts_account_ending_in">Konto endet in %1$s</string>
     <string name="manage_accounts_delete_warning">Dies wird den gesamten Kontostand für dieses Konto dauerhaft löschen. Alle verknüpften Karten werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="manage_accounts_edit_account_title">Konto bearbeiten</string>
+    <string name="manage_accounts_type_note">Eine Änderung des Typs wirkt sich nur darauf aus, wie der Kontostand ab jetzt berechnet wird. Frühere Transaktionen bleiben unverändert.</string>
     <string name="manage_accounts_bank_name_label">Bankname</string>
     <string name="manage_accounts_account_number_label">Kundennummer</string>
     <string name="manage_accounts_read_only">Nur lesen</string>
@@ -229,7 +239,14 @@
     <!-- %1$s = formatted original loan amount -->
     <string name="loans_of_original">von %1$s</string>
     <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <string name="loans_person_owes_you">Schuldet Ihnen %1$s</string>
+    <string name="loans_person_you_owe">Sie schulden %1$s</string>
+    <string name="loans_person_all_settled">Alles beglichen</string>
     <!-- Open loans both ways that cancel out exactly -->
+    <string name="loans_person_even">Ausgeglichen – niemand schuldet etwas</string>
+    <string name="loans_settle_up">Begleichen</string>
+    <string name="loans_settle_up_title">Mit %1$s abrechnen?</string>
+    <string name="loans_settle_up_message">Alle offenen Darlehen mit %1$s werden als beglichen markiert. Noch offene Beträge werden erlassen.</string>
     <!-- ══ Loan detail ══ -->
     <string name="loan_detail_title_fallback">Darlehen</string>
     <string name="loan_detail_more">Mehr</string>
@@ -281,7 +298,9 @@
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">Kundenübersicht</string>
     <string name="accounts_overview_bank_balance">Bankguthaben</string>
+    <string name="accounts_overview_bank_balance_count">Bankguthaben • %1$d</string>
     <string name="accounts_overview_available_credit">Verfügbares Guthaben</string>
+    <string name="accounts_overview_available_credit_count">Verfügbarer Kredit • %1$d</string>
     <string name="accounts_overview_balance">Saldo</string>
     <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
     <string name="accounts_overview_used">Verwendet: %1$s (%2$d%%)</string>
@@ -291,23 +310,4 @@
         <item quantity="one">Alle %1$d Konto anzeigen</item>
         <item quantity="other">Alle %1$d Konten anzeigen</item>
     </plurals>
-    <string name="manage_accounts_section_loan_accounts">Darlehenskonten</string>
-    <string name="manage_accounts_hidden_header">Ignorierte Konten (%1$d)</string>
-    <string name="manage_accounts_hidden_badge">Ignoriert</string>
-    <string name="manage_accounts_menu_show">Nicht mehr ignorieren</string>
-    <string name="manage_accounts_menu_hide">Dieses Konto ignorieren</string>
-    <string name="manage_accounts_ignored_snackbar">%1$s ignoriert</string>
-    <string name="manage_accounts_undo">Rückgängig</string>
-    <string name="manage_accounts_estimated_balance_hint">Geschätzt: Die SMS Ihrer Bank enthalten keinen Kontostand. Tippen Sie, um ihn einmalig festzulegen.</string>
-    <string name="manage_accounts_loan_outstanding_hint">Noch offener Darlehensbetrag</string>
-    <string name="manage_accounts_type_note">Eine Änderung des Typs wirkt sich nur darauf aus, wie der Kontostand ab jetzt berechnet wird. Frühere Transaktionen bleiben unverändert.</string>
-    <string name="loans_person_owes_you">Schuldet Ihnen %1$s</string>
-    <string name="loans_person_you_owe">Sie schulden %1$s</string>
-    <string name="loans_person_all_settled">Alles beglichen</string>
-    <string name="loans_person_even">Ausgeglichen – niemand schuldet etwas</string>
-    <string name="loans_settle_up">Begleichen</string>
-    <string name="loans_settle_up_title">Mit %1$s abrechnen?</string>
-    <string name="loans_settle_up_message">Alle offenen Darlehen mit %1$s werden als beglichen markiert. Noch offene Beträge werden erlassen.</string>
-    <string name="accounts_overview_bank_balance_count">Bankguthaben • %1$d</string>
-    <string name="accounts_overview_available_credit_count">Verfügbarer Kredit • %1$d</string>
 </resources>

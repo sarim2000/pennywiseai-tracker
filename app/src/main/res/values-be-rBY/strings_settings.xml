@@ -1,62 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Settings screen ══ -->
-    <!-- Shared dialog actions -->
-    <!-- PennyWise Pro -->
-    <!-- Personalization -->
-    <!-- Currency -->
-    <!-- Budget -->
-    <!-- Contacts -->
-    <!-- Security -->
-    <!-- Data Management -->
-    <!-- %1$s = date and time of the last backup -->
-    <!-- Data Management → SMS Scan Period -->
-    <!-- %1$s = custom start date -->
-    <!-- Short badge next to the row, e.g. "3 mo" -->
-    <!-- %1$s = custom start date -->
-    <!-- Data Management → Delete all transactions dialog -->
-    <!-- %1$s = the confirmation word the user must type; it is not translated -->
-    <!-- %1$d = current number of transactions -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Backup / import status -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Save backup dialog -->
-    <!-- Notifications -->
-    <!-- AI Features -->
-    <!-- %1$d = model size in megabytes -->
-    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
-    <!-- Developer -->
-    <!-- Support & Community -->
-    <!-- %1$s = app version, e.g. 2.18.0 -->
-    <!-- ══ Appearance screen ══ -->
-    <!-- Theme mode -->
-    <!-- Theme style -->
-    <!-- Toggles -->
-    <!-- Navigation -->
-    <!-- Cover style -->
-    <!-- Fonts -->
-    <!-- ══ FAQ screen ══ -->
-    <!-- Transaction Types -->
-    <!-- SMS Parsing -->
-    <!-- Privacy & Data -->
-    <!-- AI Features -->
-    <!-- Account Management -->
-    <!-- Still need help -->
     <string name="settings_title">Налады</string>
     <string name="settings_back">Назад</string>
+    <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Скасаваць</string>
-    <string name="settings_action_ok">OK</string>
     <string name="settings_action_done">Гатова</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">Перайсці на PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Актыўна · усе пашыраныя функцыі адкрыты</string>
     <string name="settings_pro_subtitle_upgrade">Неабмежаваныя правілы, выпіскі, экспарт і іншае</string>
+    <!-- Personalization -->
     <string name="settings_personalization_section">Персаналізацыя</string>
     <string name="settings_appearance_title">Знешні выгляд</string>
     <string name="settings_appearance_subtitle">Тэма, колеры, шрыфты і навігацыя</string>
     <string name="settings_language_title">Мова</string>
     <string name="settings_language_subtitle">Абярыце мову праграмы</string>
+    <!-- Currency -->
     <string name="settings_currency_section">Валюта</string>
     <string name="settings_unified_currency_title">Адзіная валюта</string>
     <string name="settings_unified_currency_subtitle">Канвертаваць усе транзакцыі ў валюту адлюстравання</string>
@@ -80,13 +40,16 @@
     <string name="settings_number_format_auto_example">Па валюце (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (лакхі / кроры)</string>
     <string name="settings_number_format_international_example">150,000 (тысячы / мільёны)</string>
+    <!-- Budget -->
     <string name="settings_budget_section">Бюджэт</string>
     <string name="settings_budget_cycle_title">Дзень пачатку бюджэтнага цыкла</string>
     <string name="settings_budget_cycle_subtitle">Зрушвае пачатак кожнага месячнага перыяду бюджэту; напр. 25 азначае, што цыкл ідзе з 25-га па 24-е</string>
     <string name="settings_budget_cycle_dialog_body">Абярыце дзень, з якога пачынаецца кожны месячны цыкл бюджэту. Напр. 25 азначае, што цыкл ідзе з 25-га па 24-е наступнага месяца.</string>
+    <!-- Contacts -->
     <string name="settings_contacts_section">Кантакты</string>
     <string name="settings_contacts_vpa_title">Замяняць UPI VPA імёнамі кантактаў</string>
     <string name="settings_contacts_vpa_subtitle">Паказваць \'John Doe\' замест \'9876543210@paytm\'. Патрабуецца доступ да кантактаў.</string>
+    <!-- Security -->
     <string name="settings_security_section">Бяспека</string>
     <string name="settings_app_lock_title">Блакіроўка праграмы</string>
     <string name="settings_app_lock_subtitle">Абараніце свае даныя біяметрычнай аўтэнтыфікацыяй</string>
@@ -106,6 +69,7 @@
         <item quantity="many">%1$d хвілін</item>
         <item quantity="other">%1$d хвіліны</item>
     </plurals>
+    <!-- Data Management -->
     <string name="settings_data_section">Кіраванне данымі</string>
     <string name="settings_manage_accounts_title">Кіраванне рахункамі</string>
     <string name="settings_manage_accounts_subtitle">Прагляд і кіраванне банкаўскімі рахункамі</string>
@@ -132,6 +96,7 @@
     <string name="settings_folder_backup_include_receipts_title">Уключаць фота чэкаў у аўтаматычныя копіі</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Кожная штодзённая копія будзе большай</string>
     <string name="settings_backup_now_title">Стварыць копію зараз</string>
+    <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Апошняя копія: %1$s</string>
     <string name="settings_backup_now_subtitle">Зрабіць рэзервовую копію ў папку зараз</string>
     <string name="settings_change_backup_folder_title">Змяніць папку для копій</string>
@@ -146,8 +111,10 @@
     <string name="settings_unrecognized_sms_subtitle">Праглядайце непадтрымліваемыя банкаўскія паведамленні і дасылайце іх нам</string>
     <string name="settings_delete_all_title">Выдаліць усе транзакцыі</string>
     <string name="settings_delete_all_subtitle">Ачысціць гісторыю транзакцый — рахункі і бюджэты застануцца</string>
+    <!-- Data Management → SMS Scan Period -->
     <string name="settings_sms_scan_title">Перыяд сканавання SMS</string>
     <string name="settings_sms_scan_subtitle_all_time">Сканаваць усе SMS</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_subtitle_from_date">Сканаваць з %1$s па сёння</string>
     <string name="settings_sms_scan_subtitle_custom">Сканаваць са сваёй даты па сёння</string>
     <plurals name="settings_sms_scan_subtitle_months">
@@ -158,6 +125,7 @@
     </plurals>
     <string name="settings_sms_scan_all_time">Увесь час</string>
     <string name="settings_sms_scan_custom_short">Свой</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
     <plurals name="settings_sms_scan_months_short">
         <item quantity="one">%1$d мес.</item>
         <item quantity="few">%1$d мес.</item>
@@ -166,6 +134,7 @@
     </plurals>
     <string name="settings_sms_scan_dialog_body">Абярыце, за які перыяд шукаць транзакцыі ў SMS</string>
     <string name="settings_sms_scan_option_custom">Свая дата</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_option_custom_with_date">Свая дата (%1$s)</string>
     <plurals name="settings_sms_scan_option_months">
         <item quantity="one">%1$d месяц</item>
@@ -179,6 +148,7 @@
         <item quantity="many">%1$d гадоў</item>
         <item quantity="other">%1$d года</item>
     </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
     <string name="settings_delete_all_dialog_title">Выдаліць усе транзакцыі?</string>
     <plurals name="settings_delete_all_dialog_body">
         <item quantity="one">Гэта назаўсёды выдаліць %1$d транзакцыю разам з падзеламі і тэгамі. Гэта нельга адрабіць.</item>
@@ -187,6 +157,7 @@
         <item quantity="other">Гэта назаўсёды выдаліць усе %1$d транзакцыі разам з падзеламі і тэгамі. Гэта нельга адрабіць.</item>
     </plurals>
     <string name="settings_delete_all_dialog_kept">Вашы рахункі, бюджэты, пазыкі, катэгорыі і правілы захаваюцца. Калі гэтая гісторыя можа спатрэбіцца, спачатку зрабіце экспарт даных.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
     <string name="settings_delete_all_dialog_type_to_confirm">Увядзіце %1$s для пацверджання</string>
     <string name="settings_delete_all_dialog_deleting">Выдаленне…</string>
     <string name="settings_delete_all_dialog_confirm">Выдаліць усё</string>
@@ -204,10 +175,14 @@
         <item quantity="many">За гэты час прыйшло %1$d новых транзакцый.</item>
         <item quantity="other">За гэты час прыйшло %1$d новай транзакцыі.</item>
     </plurals>
+    <!-- %1$d = current number of transactions -->
     <string name="settings_delete_all_result_count_changed">Пакуль вы пацвярджалі, прыйшлі новыя транзакцыі, таму нічога не выдалена. Цяпер іх %1$d. Праверце колькасць і паспрабуйце зноў.</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_delete_all_result_error">Не ўдалося выдаліць транзакцыі: %1$s</string>
+    <!-- Data Management → Backup / import status -->
     <string name="settings_backup_status_title">Стан рэзервовага капіявання</string>
     <string name="settings_backup_created_choose">Рэзервовая копія створана! Абярыце, куды яе захаваць.</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">Не ўдалося экспартаваць: %1$s</string>
     <string name="settings_export_error">Памылка экспарту: %1$s</string>
     <string name="settings_backup_saved">Рэзервовая копія захавана!</string>
@@ -226,6 +201,7 @@
     <string name="settings_folder_not_writable">Нельга запісаць у абраную папку для копій</string>
     <string name="settings_folder_backup_saved">Копія захавана ў папку</string>
     <string name="settings_folder_backup_enabled">Аўтаматычная копія ў папку ўключана. Копіі ствараюцца штодня ў 2:00.</string>
+    <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Захаваць копію</string>
     <string name="settings_save_backup_created">Рэзервовая копія створана!</string>
     <string name="settings_save_backup_choose">Абярыце, як яе захаваць:</string>
@@ -233,6 +209,7 @@
     <string name="settings_save_backup_share">Падзяліцца</string>
     <string name="settings_share_backup_subject">Рэзервовая копія PennyWise</string>
     <string name="settings_share_backup_chooser">Падзяліцца копіяй</string>
+    <!-- Notifications -->
     <string name="settings_notifications_section">Апавяшчэнні</string>
     <string name="settings_notification_access_title">Доступ да апавяшчэнняў банка</string>
     <string name="settings_notification_access_enabled">Уключана</string>
@@ -242,8 +219,10 @@
     <string name="settings_daily_summary_title">Штодзённая зводка</string>
     <string name="settings_daily_summary_subtitle">Зводка сённяшніх выдаткаў у 21:00</string>
     <string name="settings_daily_summary_needs_permission">Дазвольце апавяшчэнні для PennyWise, каб атрымліваць штодзённую зводку.</string>
+    <!-- AI Features -->
     <string name="settings_ai_section">Функцыі AI</string>
     <string name="settings_ai_chat_title">AI-памочнік у чаце</string>
+    <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Спампаваць мадэль AI (%1$d МБ)</string>
     <string name="settings_ai_status_downloading">Спампоўваецца мадэль AI...</string>
     <string name="settings_ai_status_paused">Спампоўванне перапынена</string>
@@ -255,17 +234,20 @@
     <string name="settings_ai_downloaded">Спампавана</string>
     <string name="settings_ai_delete">Выдаліць</string>
     <string name="settings_ai_error">Памылка</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_download_progress">%1$d МБ / %2$d МБ</string>
     <string name="settings_ai_cancel_download">Скасаваць спампоўванне</string>
     <string name="settings_ai_info">Размаўляйце з AI пра свае выдаткі і атрымлівайце фінансавыя парады. Усе размовы застаюцца прыватнымі на вашай прыладзе.</string>
     <string name="settings_ai_download_notification_title">Мадэль AI-чата</string>
     <string name="settings_ai_download_notification_description">Спампоўваецца AI-памочнік для PennyWise</string>
+    <!-- Developer -->
     <string name="settings_developer_section">Для распрацоўшчыкаў</string>
     <string name="settings_developer_mode_title">Рэжым распрацоўшчыка</string>
     <string name="settings_developer_mode_subtitle">Паказваць тэхнічную інфармацыю ў чаце</string>
     <string name="settings_webhooks_title">Вэбхукі</string>
     <string name="settings_webhooks_subtitle">Адпраўляць абраныя даныя на ваш сервер</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Адпраўляць абраныя даныя на ваш сервер</string>
+    <!-- Support & Community -->
     <string name="settings_support_section">Падтрымка і супольнасць</string>
     <string name="settings_help_faq_title">Даведка і FAQ</string>
     <string name="settings_help_faq_subtitle">Частыя пытанні і дапамога</string>
@@ -273,20 +255,25 @@
     <string name="settings_user_guide_subtitle">Пакрокавыя інструкцыі са здымкамі экрана</string>
     <string name="settings_report_issue_title">Паведаміць пра праблему</string>
     <string name="settings_report_issue_subtitle">Адпраўце паведамленне пра памылку на GitHub</string>
-    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Знешні выгляд</string>
     <string name="appearance_back">Назад</string>
+    <!-- Theme mode -->
     <string name="appearance_mode_system">Сістэмная</string>
     <string name="appearance_mode_light">Светлая</string>
     <string name="appearance_mode_dark">Цёмная</string>
+    <!-- Theme style -->
     <string name="appearance_style_dynamic">Дынамічныя</string>
     <string name="appearance_style_dynamic_subtitle">Колеры шпалер</string>
     <string name="appearance_style_default">Стандартныя</string>
     <string name="appearance_style_default_subtitle">Колеры Rose Pine</string>
+    <!-- Toggles -->
     <string name="appearance_amoled_title">Чорны AMOLED</string>
     <string name="appearance_amoled_subtitle">Чыста чорны фон для глыбейшага кантрасту</string>
     <string name="appearance_blur_title">Эфекты размыцця</string>
     <string name="appearance_blur_subtitle">Уключыць эфект матавага шкла ў элементах інтэрфейсу</string>
+    <!-- Navigation -->
     <string name="appearance_navigation_section">Навігацыя</string>
     <string name="appearance_bottom_bar_section">Ніжняя панэль</string>
     <string name="appearance_bottom_bar_subtitle">Абярыце, якія ўкладкі паказваць. Галоўная застаецца заўсёды.</string>
@@ -294,13 +281,16 @@
     <string name="appearance_nav_floating_subtitle">Сучасная і лёгкая</string>
     <string name="appearance_nav_normal">Звычайная</string>
     <string name="appearance_nav_normal_subtitle">Стандартная M3</string>
+    <!-- Cover style -->
     <string name="appearance_cover_section">Стыль вокладкі</string>
     <string name="appearance_cover_none">Няма</string>
     <string name="appearance_cover_selected">Абрана</string>
+    <!-- Fonts -->
     <string name="appearance_fonts_section">Шрыфты</string>
     <string name="appearance_font_default">Стандартны</string>
     <string name="appearance_font_default_subtitle">Сістэмны</string>
     <string name="appearance_font_sn_pro_subtitle">Сучасны монашырынны</string>
+    <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Вэбхукі</string>
     <string name="webhooks_title_add">Дадаць вэбхук</string>
     <string name="webhooks_title_edit">Змяніць вэбхук</string>
@@ -315,22 +305,28 @@
     <string name="webhooks_interval_apply">Ужыць</string>
     <string name="webhooks_sync_all_now">Сінхранізаваць уключаныя вэбхукі зараз</string>
     <string name="webhooks_empty">Няма захаваных вэбхукаў</string>
+    <!-- Webhook card -->
     <string name="webhooks_auto_sync_on">Аўтасінхранізацыя ўключана</string>
     <string name="webhooks_auto_sync_off">Аўтасінхранізацыя адключана</string>
+    <!-- %1$s = date and time of the last sync -->
     <string name="webhooks_last_sync">Апошняя сінхранізацыя: %1$s</string>
     <string name="webhooks_action_edit">Змяніць</string>
     <string name="webhooks_action_test">Тэст</string>
     <string name="webhooks_action_sync">Сінхранізаваць</string>
     <string name="webhooks_action_history">Гісторыя</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_action_delete_cd">Выдаліць %1$s</string>
+    <!-- Delete dialog -->
     <string name="webhooks_delete_title">Выдаліць вэбхук?</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_delete_body">Выдаліць %1$s і гісторыю яго адправак?</string>
     <string name="webhooks_delete_confirm">Выдаліць</string>
     <string name="webhooks_delete_cancel">Скасаваць</string>
+    <!-- Delivery history -->
     <string name="webhooks_history_empty">Адправак пакуль няма. Задачы ў чарзе чакаюць падключэння да сеткі.</string>
     <string name="webhooks_history_delivered">Дастаўлена</string>
     <string name="webhooks_history_failed">Памылка</string>
-    <string name="webhooks_history_meta">%1$s · %2$s</string>
+    <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
     <plurals name="webhooks_history_batches">
         <item quantity="one">Адпраўка складаецца з %1$d пакета</item>
         <item quantity="few">Адпраўка складаецца з %1$d пакетаў</item>
@@ -341,6 +337,7 @@
     <string name="webhooks_reason_interval">Па інтэрвале</string>
     <string name="webhooks_reason_scheduled">Па раскладзе</string>
     <string name="webhooks_reason_test">Тэст</string>
+    <!-- Editor -->
     <string name="webhooks_editor_name">Назва</string>
     <string name="webhooks_editor_url">URL-адрас HTTPS</string>
     <plurals name="webhooks_editor_auto_on_warning">
@@ -359,6 +356,7 @@
     <string name="webhooks_data_budgets">Бюджэты</string>
     <string name="webhooks_data_accounts">Рахункі</string>
     <string name="webhooks_data_subscriptions">Падпіскі</string>
+    <!-- %1$s = selected date range, e.g. Today -->
     <string name="webhooks_editor_range">Перыяд: %1$s</string>
     <string name="webhooks_editor_range_hint">«З апошняй паспяховай» адпраўляе змены транзакцый і запісы пра выдаленні. Бюджэты, рахункі і падпіскі адпраўляюцца ў бягучым стане.</string>
     <string name="webhooks_editor_start_date">Дата пачатку (ГГГГ-ММ-ДД)</string>
@@ -370,6 +368,7 @@
     <string name="webhooks_editor_remove_header">Выдаліць загаловак</string>
     <string name="webhooks_editor_add_header">Дадаць загаловак</string>
     <string name="webhooks_editor_save">Захаваць вэбхук</string>
+    <!-- Date ranges -->
     <string name="webhooks_range_since_last_success">З апошняй паспяховай</string>
     <string name="webhooks_range_today">Сёння</string>
     <string name="webhooks_range_current_week">Бягучы тыдзень</string>
@@ -377,12 +376,14 @@
     <string name="webhooks_range_previous_month">Мінулы месяц</string>
     <string name="webhooks_range_last_30_days">Апошнія 30 дзён</string>
     <string name="webhooks_range_custom">Свае даты</string>
+    <!-- Status messages -->
     <string name="webhooks_msg_saved">Вэбхук захаваны</string>
     <string name="webhooks_msg_interval_saved">Інтэрвал сінхранізацыі захаваны</string>
     <string name="webhooks_msg_test_queued">Тэст пастаўлены ў чаргу. Вынікі адпраўкі з\'явяцца ў гісторыі.</string>
     <string name="webhooks_msg_sync_queued">Сінхранізацыя ў чарзе. Адпраўка адбудзецца, калі з\'явіцца сетка.</string>
     <string name="webhooks_msg_deleted">Вэбхук выдалены</string>
     <string name="webhooks_msg_action_failed">Не ўдалося выканаць дзеянне з вэбхукам. Паспрабуйце зноў.</string>
+    <!-- Validation errors -->
     <string name="webhooks_error_name_required">Увядзіце назву вэбхука</string>
     <string name="webhooks_error_url_required">Увядзіце URL вэбхука</string>
     <string name="webhooks_error_url_invalid">Увядзіце правільны URL з HTTP або HTTPS</string>
@@ -395,11 +396,13 @@
     <string name="webhooks_error_header_line_breaks">Значэнні загалоўкаў не могуць змяшчаць пераносы радкоў</string>
     <string name="webhooks_error_header_managed">Гэты загаловак задаецца аўтаматычна</string>
     <string name="webhooks_error_header_unique">Назвы загалоўкаў не павінны паўтарацца</string>
+    <!-- %1$d = minimum hours, %2$d = maximum hours -->
     <string name="webhooks_error_interval">Увядзіце лік ад %1$d да %2$d</string>
-    <string name="faq_title">FAQ</string>
+    <!-- ══ FAQ screen ══ -->
     <string name="faq_back">Назад</string>
     <string name="faq_collapse">Згарнуць</string>
     <string name="faq_expand">Разгарнуць</string>
+    <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Тыпы транзакцый</string>
     <string name="faq_wallet_credit_question">Чаму транзакцыі з кашалькоў пазначаны як «Крэдыт»?</string>
     <string name="faq_wallet_credit_answer">Транзакцыі з кашалькоў (Amazon Pay, Paytm і інш.) пазначаюцца як «Крэдыт», бо спачатку яны спісваюцца з вашага банкаўскага рахунку або крэдытнай карткі, а не наўпрост з банка. Так прасцей адсочваць, якім спосабам вы фактычна плацілі.</string>
@@ -407,6 +410,7 @@
     <string name="faq_transaction_types_answer">• Выдатак: грошы, якія сыходзяць з рахунку (спісанні, пакупкі, аплата рахункаў)\n• Даход: грошы, якія паступаюць на рахунак (зарплата, вяртанні, кэшбэк)\n• Інвестыцыя: паявыя фонды, акцыі, SIP, брокерскія рахункі\n• Крэдыт: транзакцыі па крэдытнай картцы і аплаты праз кашалькі (грошы, якія вы заплаціце пазней)\n• Перавод: грошы, перакладзеныя паміж вашымі ўласнымі рахункамі</string>
     <string name="faq_transfer_vs_expense_question">Калі выкарыстоўваць «Перавод», а калі «Выдатак»?</string>
     <string name="faq_transfer_vs_expense_answer">Выкарыстоўвайце «Перавод», калі перамяшчаеце грошы паміж уласнымі рахункамі (напр. з ашчаднага на бягучы). Гэта не ўплывае на ваш чысты капітал. «Выдатак» — для сапраўдных трат.</string>
+    <!-- SMS Parsing -->
     <string name="faq_sms_parsing_section">Распазнаванне SMS</string>
     <string name="faq_sms_not_detected_question">Чаму не распазнаюцца SMS майго банка?</string>
     <string name="faq_sms_not_detected_answer">Праверце, ці ёсць ваш банк у спісе падтрымліваемых. Калі няма, паведаміце пра гэта на GitHub. Пераканайцеся, што дазвол на SMS выдадзены і фармат адпраўніка адпавядае стандартным банкаўскім SMS.</string>
@@ -414,6 +418,7 @@
     <string name="faq_unrecognized_sms_answer">Яны захоўваюцца ў раздзеле «Нераспазнаныя паведамленні», дзе іх можна праглядзець уручную або даслаць нам, каб палепшыць распазнаванне.</string>
     <string name="faq_duplicates_question">Чаму некаторыя транзакцыі дублююцца?</string>
     <string name="faq_duplicates_answer">Некаторыя банкі дасылаюць некалькі SMS пра адну транзакцыю. Праграма спрабуе знаходзіць дублікаты, але тыя, што праскочылі, можна выдаліць уручную.</string>
+    <!-- Privacy & Data -->
     <string name="faq_privacy_section">Прыватнасць і даныя</string>
     <string name="faq_data_secure_question">Ці ў бяспецы мае фінансавыя даныя?</string>
     <string name="faq_data_secure_answer">Так! Усе даныя застаюцца на вашай прыладзе. У нас няма сервераў або воблачнага сховішча. Мадэль AI працуе лакальна, каб забяспечыць поўную прыватнасць.</string>
@@ -421,16 +426,19 @@
     <string name="faq_backup_answer">Пакуль даныя захоўваюцца толькі лакальна. Функцыі экспарту і рэзервовага капіявання плануюцца ў наступных абнаўленнях.</string>
     <string name="faq_data_access_question">Да якіх даных праграма мае доступ?</string>
     <string name="faq_data_access_answer">Толькі да SMS ад вядомых банкаўскіх адпраўнікоў. Мы не чытаем асабістыя паведамленні і не маем доступу да даных іншых праграм.</string>
+    <!-- AI Features -->
     <string name="faq_ai_section">Функцыі AI</string>
     <string name="faq_ai_download_question">Навошта спампоўваць мадэль AI?</string>
     <string name="faq_ai_download_answer">Мадэль памерам 750 МБ дазваляе размаўляць пра вашы выдаткі прама на прыладзе, не адпраўляючы даныя ні на які сервер, — гэта поўная прыватнасць.</string>
     <string name="faq_ai_ask_question">Што можна спытаць у AI-памочніка?</string>
     <string name="faq_ai_ask_answer">Можна пытацца пра заканамернасці ў выдатках, парады па бюджэце, зводкі транзакцый і агульныя фінансавыя пытанні на аснове вашых даных.</string>
+    <!-- Account Management -->
     <string name="faq_accounts_section">Кіраванне рахункамі</string>
     <string name="faq_manual_accounts_question">Што такое ручныя рахункі?</string>
     <string name="faq_manual_accounts_answer">Ручныя рахункі дазваляюць улічваць наяўныя, інвестыцыі або рахункі ў непадтрымліваемых банках. Балансы вы абнаўляеце ўручную.</string>
     <string name="faq_multiple_accounts_question">Як улічваць некалькі рахункаў у адным банку?</string>
     <string name="faq_multiple_accounts_answer">Праграма аўтаматычна адрознівае рахункі па апошніх 4 лічбах у SMS.</string>
+    <!-- Still need help -->
     <string name="faq_still_need_help_section">Патрэбна дапамога?</string>
     <string name="faq_report_issue_title">Паведаміць пра праблему</string>
     <string name="faq_report_issue_subtitle">Дасылайце паведамленні пра памылкі, запыты на банкі або ідэі паляпшэнняў на GitHub</string>

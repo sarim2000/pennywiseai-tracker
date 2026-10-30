@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">Gastos de hoje, o que resta do orçamento e um atalho para gastos em dinheiro.</string>
+<resources>
+    <string name="widget_summary_description">Gastos de hoje, o que resta do orçamento e um atalho para gastos em dinheiro.</string>
     <string name="widget_summary_left">Resta no orçamento</string>
     <string name="widget_summary_over">Acima do orçamento</string>
     <string name="widget_budget_left_label">Resta</string>

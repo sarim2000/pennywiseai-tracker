@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">Malengo</string>
     <string name="upgrade_feature_goals">Malengo bila kikomo</string>
     <string name="goals_new">Lengo jipya</string>
@@ -30,6 +23,7 @@
         <item quantity="one">Umebaki mwezi %d</item>
         <item quantity="other">Zimebaki miezi %d</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">Lengo jipya</string>
     <string name="goal_edit_title_edit">Hariri lengo</string>
     <string name="goal_back">Rudi</string>
@@ -52,6 +46,7 @@
     <string name="goal_edit_save">Hifadhi</string>
     <string name="goal_action_ok">Sawa</string>
     <string name="goal_action_cancel">Ghairi</string>
+    <!-- Detail -->
     <string name="goal_detail_left">Kilichobaki</string>
     <string name="goal_detail_per_month">Kwa mwezi</string>
     <string name="goal_detail_over">Zaidi kwa %1$s</string>
@@ -70,6 +65,7 @@
     <string name="goal_converted_from">Kutoka %1$s</string>
     <string name="goal_withdrawal">Utoaji</string>
     <string name="goal_contribution">Mchango</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">Kiasi</string>
     <string name="goal_money_date">Tarehe</string>
     <string name="goal_money_note">Maelezo (si lazima)</string>
@@ -83,6 +79,7 @@
     <string name="goal_edit_contribution">Hariri mchango</string>
     <string name="goal_edit_withdrawal">Hariri utoaji</string>
     <string name="goal_contribution_delete">Futa</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">Ongeza kwenye lengo</string>
     <string name="goal_add_to_goal_left">%1$s ya muamala huu inaweza kwenda kwenye malengo</string>
     <string name="goal_add_to_goal_none_left">Muamala huu wote tayari unaenda kwenye malengo</string>
@@ -92,12 +89,13 @@
     <string name="goal_toward_goals">Kwa malengo</string>
     <string name="goal_toward_remove">Ondoa kwenye %1$s</string>
     <string name="goal_currency_locked_by_goal">Ondoa muamala huu kwenye malengo yake kabla ya kubadilisha sarafu yake</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">%1$s imebaki</string>
     <plurals name="goals_months_short">
         <item quantity="one">mwezi %d</item>
         <item quantity="other">miezi %d</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">Lengo</string>
     <string name="widget_name_goals">Malengo</string>
     <string name="widget_description_goal">Lengo moja pamoja na pete ya maendeleo na kiasi kilichobaki kuweka akiba</string>
@@ -107,4 +105,5 @@
     <string name="widget_goals_empty">Bado hakuna malengo</string>
     <string name="widget_goal_config_title">Chagua lengo</string>
     <string name="widget_goal_config_close">Funga</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

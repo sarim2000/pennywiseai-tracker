@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">Мэты</string>
     <string name="upgrade_feature_goals">Неабмежаваная колькасць мэт</string>
     <string name="goals_new">Новая мэта</string>
@@ -32,6 +25,7 @@
         <item quantity="many">Засталося %d месяцаў</item>
         <item quantity="other">Засталося %d месяца</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">Новая мэта</string>
     <string name="goal_edit_title_edit">Змяніць мэту</string>
     <string name="goal_back">Назад</string>
@@ -52,8 +46,8 @@
     <string name="goal_edit_failed">Не ўдалося захаваць мэту. Праверце даныя і паспрабуйце зноў.</string>
     <string name="goal_edit_create">Стварыць мэту</string>
     <string name="goal_edit_save">Захаваць</string>
-    <string name="goal_action_ok">OK</string>
     <string name="goal_action_cancel">Скасаваць</string>
+    <!-- Detail -->
     <string name="goal_detail_left">Засталося</string>
     <string name="goal_detail_per_month">У месяц</string>
     <string name="goal_detail_over">Больш на %1$s</string>
@@ -72,6 +66,7 @@
     <string name="goal_converted_from">З %1$s</string>
     <string name="goal_withdrawal">Зняцце</string>
     <string name="goal_contribution">Унёсак</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">Сума</string>
     <string name="goal_money_date">Дата</string>
     <string name="goal_money_note">Нататка (неабавязкова)</string>
@@ -85,6 +80,7 @@
     <string name="goal_edit_contribution">Змяніць унёсак</string>
     <string name="goal_edit_withdrawal">Змяніць зняцце</string>
     <string name="goal_contribution_delete">Выдаліць</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">Дадаць да мэты</string>
     <string name="goal_add_to_goal_left">%1$s з гэтай транзакцыі можна накіраваць на мэты</string>
     <string name="goal_add_to_goal_none_left">Уся гэтая транзакцыя ўжо накіравана на мэты</string>
@@ -94,7 +90,7 @@
     <string name="goal_toward_goals">На мэты</string>
     <string name="goal_toward_remove">Прыбраць з %1$s</string>
     <string name="goal_currency_locked_by_goal">Каб змяніць валюту, спачатку прыберыце гэтую транзакцыю з мэт</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">Засталося %1$s</string>
     <plurals name="goals_months_short">
         <item quantity="one">%d мес.</item>
@@ -102,6 +98,7 @@
         <item quantity="many">%d мес.</item>
         <item quantity="other">%d мес.</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">Мэта</string>
     <string name="widget_name_goals">Мэты</string>
     <string name="widget_description_goal">Адна мэта з кальцом прагрэсу і рэштай, якую трэба адкласці</string>
@@ -111,4 +108,5 @@
     <string name="widget_goals_empty">Мэт пакуль няма</string>
     <string name="widget_goal_config_title">Абярыце мэту</string>
     <string name="widget_goal_config_close">Закрыць</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

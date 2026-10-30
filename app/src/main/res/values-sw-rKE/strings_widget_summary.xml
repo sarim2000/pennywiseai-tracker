@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">Matumizi ya leo, kilichobaki kwenye bajeti yako, na kuongeza pesa taslimu haraka.</string>
+<resources>
+    <string name="widget_summary_description">Matumizi ya leo, kilichobaki kwenye bajeti yako, na kuongeza pesa taslimu haraka.</string>
     <string name="widget_summary_left">Kilichobaki kwenye bajeti</string>
     <string name="widget_summary_over">Umezidi bajeti</string>
     <string name="widget_budget_left_label">Kimebaki</string>

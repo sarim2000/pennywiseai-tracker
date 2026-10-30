@@ -50,6 +50,7 @@
     <string name="txn_detail_error_merchant_required">اسم التاجر مطلوب</string>
     <string name="txn_detail_error_amount_positive">يجب أن يكون المبلغ موجباً</string>
     <string name="txn_detail_error_same_accounts">يجب أن تكون حسابات المصدر والوجهة مختلفة</string>
+    <string name="txn_detail_error_loan_type_locked">هذه المعاملة جزء من قرض. أزلها من القرض قبل تحويلها بين دخل وإنفاق.</string>
     <string name="txn_detail_error_loan_currency_locked">هذه المعاملة جزء من قرض. أزلها من القرض قبل تغيير عملتها.</string>
     <string name="txn_detail_error_tag_rule">تم الحفظ، ولكن تعذر إنشاء قاعدة العلامة: %1$s</string>
     <string name="txn_detail_error_save">فشل في حفظ التغييرات: %1$s</string>
@@ -123,6 +124,11 @@
     <string name="txn_detail_balance_mismatch_value">معطلة من قبل %1$s · %2$s المتوقعة</string>
     <string name="txn_detail_add_untracked_expense">إضافة %1$s مصروفات غير متبوعة</string>
     <string name="txn_detail_add_untracked_income">إضافة %1$s دخل غير متبوع</string>
+    <string name="txn_detail_adjustment_title_expense">مصروف غير مسجّل</string>
+    <string name="txn_detail_adjustment_title_income">دخل غير مسجّل</string>
+    <string name="txn_detail_adjustment_what">ما هو؟</string>
+    <string name="txn_detail_adjustment_what_placeholder">تسوية الرصيد</string>
+    <string name="txn_detail_adjustment_add">إضافة</string>
     <string name="txn_detail_label_reference">مرجع</string>
     <string name="txn_detail_receipt">إيصال</string>
     <string name="txn_detail_receipt_tap_to_view">انقر لعرض</string>
@@ -134,6 +140,7 @@
     <string name="txn_detail_field_alias">عرض الاسم المستعار (اختياري)</string>
     <string name="txn_detail_field_alias_placeholder">إظهار اسم صديق بدلاً من ذلك</string>
     <string name="txn_detail_field_description">الوصف (اختياري)</string>
+    <string name="txn_detail_field_reference">الرقم المرجعي (اختياري)</string>
     <string name="txn_detail_apply_tags_to_merchant">تطبيق العلامات على كل المستقبل من %1$s</string>
     <string name="txn_detail_field_from_account">من الحساب</string>
     <string name="txn_detail_field_from_account_placeholder">حدد أو أدخل حساب المصدر</string>
@@ -284,6 +291,7 @@
     <string name="add_field_amount">المبلغ *</string>
     <string name="add_field_merchant">التاجر</string>
     <string name="add_field_notes">ملاحظات (اختياري)</string>
+    <string name="add_field_reference">الرقم المرجعي (اختياري)</string>
     <string name="add_field_category">الفئة</string>
     <string name="add_clear">مسح</string>
     <string name="add_selected">المحدد</string>
@@ -472,12 +480,4 @@
     <string name="tag_input_remove">إزالة %1$s</string>
     <string name="tag_input_add">إضافة علامة</string>
     <string name="tag_input_create">إنشاء \"%1$s\"</string>
-    <string name="txn_detail_error_loan_type_locked">هذه المعاملة جزء من قرض. أزلها من القرض قبل تحويلها بين دخل وإنفاق.</string>
-    <string name="txn_detail_adjustment_title_expense">مصروف غير مسجّل</string>
-    <string name="txn_detail_adjustment_title_income">دخل غير مسجّل</string>
-    <string name="txn_detail_adjustment_what">ما هو؟</string>
-    <string name="txn_detail_adjustment_what_placeholder">تسوية الرصيد</string>
-    <string name="txn_detail_adjustment_add">إضافة</string>
-    <string name="txn_detail_field_reference">الرقم المرجعي (اختياري)</string>
-    <string name="add_field_reference">الرقم المرجعي (اختياري)</string>
 </resources>

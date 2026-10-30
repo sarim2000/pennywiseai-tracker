@@ -1,62 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Settings screen ══ -->
-    <!-- Shared dialog actions -->
-    <!-- PennyWise Pro -->
-    <!-- Personalization -->
-    <!-- Currency -->
-    <!-- Budget -->
-    <!-- Contacts -->
-    <!-- Security -->
-    <!-- Data Management -->
-    <!-- %1$s = date and time of the last backup -->
-    <!-- Data Management → SMS Scan Period -->
-    <!-- %1$s = custom start date -->
-    <!-- Short badge next to the row, e.g. "3 mo" -->
-    <!-- %1$s = custom start date -->
-    <!-- Data Management → Delete all transactions dialog -->
-    <!-- %1$s = the confirmation word the user must type; it is not translated -->
-    <!-- %1$d = current number of transactions -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Backup / import status -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Save backup dialog -->
-    <!-- Notifications -->
-    <!-- AI Features -->
-    <!-- %1$d = model size in megabytes -->
-    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
-    <!-- Developer -->
-    <!-- Support & Community -->
-    <!-- %1$s = app version, e.g. 2.18.0 -->
-    <!-- ══ Appearance screen ══ -->
-    <!-- Theme mode -->
-    <!-- Theme style -->
-    <!-- Toggles -->
-    <!-- Navigation -->
-    <!-- Cover style -->
-    <!-- Fonts -->
-    <!-- ══ FAQ screen ══ -->
-    <!-- Transaction Types -->
-    <!-- SMS Parsing -->
-    <!-- Privacy & Data -->
-    <!-- AI Features -->
-    <!-- Account Management -->
-    <!-- Still need help -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_back">Atrás</string>
+    <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Cancelar</string>
     <string name="settings_action_ok">Aceptar</string>
     <string name="settings_action_done">Listo</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
+    <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">Pásate a PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Activo · todas las funciones avanzadas desbloqueadas</string>
     <string name="settings_pro_subtitle_upgrade">Reglas, estados de cuenta, exportaciones ilimitadas y más</string>
+    <!-- Personalization -->
     <string name="settings_personalization_section">Personalización</string>
     <string name="settings_appearance_title">Apariencia</string>
     <string name="settings_appearance_subtitle">Tema, colores, fuentes y navegación</string>
     <string name="settings_language_title">Idioma</string>
     <string name="settings_language_subtitle">Elige el idioma de la app</string>
+    <!-- Currency -->
     <string name="settings_currency_section">Moneda</string>
     <string name="settings_unified_currency_title">Modo de moneda unificada</string>
     <string name="settings_unified_currency_subtitle">Convierte todas las transacciones a la moneda de visualización</string>
@@ -78,15 +39,17 @@
     <string name="settings_number_format_indian">Indio</string>
     <string name="settings_number_format_international">Internacional</string>
     <string name="settings_number_format_auto_example">Según cada moneda (₹1,50,000 · $150,000)</string>
-    <string name="settings_number_format_indian_example">1,50,000 (lakh / crore)</string>
     <string name="settings_number_format_international_example">150,000 (miles / millones)</string>
+    <!-- Budget -->
     <string name="settings_budget_section">Presupuesto</string>
     <string name="settings_budget_cycle_title">Día de inicio del ciclo del presupuesto</string>
     <string name="settings_budget_cycle_subtitle">Mueve el inicio de cada período mensual del presupuesto; p. ej., 25 significa que tu ciclo va del 25 al 24</string>
     <string name="settings_budget_cycle_dialog_body">Elige el día en que empieza cada ciclo mensual del presupuesto. P. ej., 25 significa que el ciclo va del 25 al 24 del mes siguiente.</string>
+    <!-- Contacts -->
     <string name="settings_contacts_section">Contactos</string>
     <string name="settings_contacts_vpa_title">Reemplazar VPA de UPI con nombres de contactos</string>
     <string name="settings_contacts_vpa_subtitle">Muestra \'John Doe\' en lugar de \'9876543210@paytm\'. Requiere permiso de contactos.</string>
+    <!-- Security -->
     <string name="settings_security_section">Seguridad</string>
     <string name="settings_app_lock_title">Bloqueo de la app</string>
     <string name="settings_app_lock_subtitle">Protege tus datos con autenticación biométrica</string>
@@ -102,6 +65,7 @@
         <item quantity="one">%1$d minuto</item>
         <item quantity="other">%1$d minutos</item>
     </plurals>
+    <!-- Data Management -->
     <string name="settings_data_section">Gestión de datos</string>
     <string name="settings_manage_accounts_title">Administrar cuentas</string>
     <string name="settings_manage_accounts_subtitle">Consulta y administra tus cuentas bancarias</string>
@@ -128,6 +92,7 @@
     <string name="settings_folder_backup_include_receipts_title">Incluir fotos de recibos en las copias automáticas</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Hace que cada copia diaria sea más grande</string>
     <string name="settings_backup_now_title">Hacer copia ahora</string>
+    <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Última copia: %1$s</string>
     <string name="settings_backup_now_subtitle">Guarda una copia de seguridad en tu carpeta ahora</string>
     <string name="settings_change_backup_folder_title">Cambiar carpeta de copias</string>
@@ -142,8 +107,10 @@
     <string name="settings_unrecognized_sms_subtitle">Consulta y reporta mensajes bancarios no compatibles</string>
     <string name="settings_delete_all_title">Eliminar todas las transacciones</string>
     <string name="settings_delete_all_subtitle">Borra tu historial de transacciones; las cuentas y los presupuestos se conservan</string>
+    <!-- Data Management → SMS Scan Period -->
     <string name="settings_sms_scan_title">Período de escaneo de SMS</string>
     <string name="settings_sms_scan_subtitle_all_time">Escanear todos los SMS</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_subtitle_from_date">Escanear desde el %1$s hasta hoy</string>
     <string name="settings_sms_scan_subtitle_custom">Escanear desde una fecha personalizada hasta hoy</string>
     <plurals name="settings_sms_scan_subtitle_months">
@@ -152,12 +119,14 @@
     </plurals>
     <string name="settings_sms_scan_all_time">Todo</string>
     <string name="settings_sms_scan_custom_short">Personalizado</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
     <plurals name="settings_sms_scan_months_short">
         <item quantity="one">%1$d mes</item>
         <item quantity="other">%1$d meses</item>
     </plurals>
     <string name="settings_sms_scan_dialog_body">Elige hasta qué fecha atrás buscar transacciones en los SMS</string>
     <string name="settings_sms_scan_option_custom">Fecha personalizada</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_option_custom_with_date">Fecha personalizada (%1$s)</string>
     <plurals name="settings_sms_scan_option_months">
         <item quantity="one">%1$d mes</item>
@@ -167,12 +136,14 @@
         <item quantity="one">%1$d año</item>
         <item quantity="other">%1$d años</item>
     </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
     <string name="settings_delete_all_dialog_title">¿Eliminar todas las transacciones?</string>
     <plurals name="settings_delete_all_dialog_body">
         <item quantity="one">Se eliminará para siempre tu %1$d transacción, junto con sus divisiones y etiquetas. No se puede deshacer.</item>
         <item quantity="other">Se eliminarán para siempre tus %1$d transacciones, junto con sus divisiones y etiquetas. No se puede deshacer.</item>
     </plurals>
     <string name="settings_delete_all_dialog_kept">Se conservan tus cuentas, presupuestos, préstamos, categorías y reglas. Primero usa Exportar datos si quizá quieras recuperar este historial.</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
     <string name="settings_delete_all_dialog_type_to_confirm">Escribe %1$s para confirmar</string>
     <string name="settings_delete_all_dialog_deleting">Eliminando…</string>
     <string name="settings_delete_all_dialog_confirm">Eliminar todo</string>
@@ -186,10 +157,14 @@
         <item quantity="one">Llegó %1$d transacción nueva mientras se ejecutaba.</item>
         <item quantity="other">Llegaron %1$d transacciones nuevas mientras se ejecutaba.</item>
     </plurals>
+    <!-- %1$d = current number of transactions -->
     <string name="settings_delete_all_result_count_changed">Llegaron transacciones nuevas mientras confirmabas, así que no se eliminó nada. Ahora hay %1$d. Revisa el número e inténtalo de nuevo.</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_delete_all_result_error">No se pudieron eliminar las transacciones: %1$s</string>
+    <!-- Data Management → Backup / import status -->
     <string name="settings_backup_status_title">Estado de la copia de seguridad</string>
     <string name="settings_backup_created_choose">¡Copia de seguridad creada! Elige dónde guardarla.</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">Error al exportar: %1$s</string>
     <string name="settings_export_error">Error de exportación: %1$s</string>
     <string name="settings_backup_saved">¡Copia de seguridad guardada!</string>
@@ -208,6 +183,7 @@
     <string name="settings_folder_not_writable">No se puede escribir en la carpeta de copias seleccionada</string>
     <string name="settings_folder_backup_saved">Copia de seguridad guardada en la carpeta</string>
     <string name="settings_folder_backup_enabled">Copia de seguridad automática en carpeta activada. Las copias se hacen cada día a las 2:00.</string>
+    <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Guardar copia de seguridad</string>
     <string name="settings_save_backup_created">¡Copia de seguridad creada!</string>
     <string name="settings_save_backup_choose">Elige cómo quieres guardarla:</string>
@@ -215,6 +191,7 @@
     <string name="settings_save_backup_share">Compartir</string>
     <string name="settings_share_backup_subject">Copia de seguridad de PennyWise</string>
     <string name="settings_share_backup_chooser">Compartir copia de seguridad</string>
+    <!-- Notifications -->
     <string name="settings_notifications_section">Notificaciones</string>
     <string name="settings_notification_access_title">Acceso a notificaciones bancarias</string>
     <string name="settings_notification_access_enabled">Activado</string>
@@ -224,8 +201,10 @@
     <string name="settings_daily_summary_title">Resumen diario</string>
     <string name="settings_daily_summary_subtitle">Un resumen de los gastos del día a las 21:00</string>
     <string name="settings_daily_summary_needs_permission">Permite las notificaciones de PennyWise para recibir el resumen diario.</string>
+    <!-- AI Features -->
     <string name="settings_ai_section">Funciones de AI</string>
     <string name="settings_ai_chat_title">Asistente de chat con AI</string>
+    <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">Descargar modelo de AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">Descargando modelo de AI…</string>
     <string name="settings_ai_status_paused">Descarga interrumpida</string>
@@ -236,18 +215,18 @@
     <string name="settings_ai_retry">Reintentar</string>
     <string name="settings_ai_downloaded">Descargado</string>
     <string name="settings_ai_delete">Eliminar</string>
-    <string name="settings_ai_error">Error</string>
-    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">Cancelar descarga</string>
     <string name="settings_ai_info">Chatea con la AI sobre tus gastos y obtén ideas financieras. Todas las conversaciones se quedan en privado en tu dispositivo.</string>
     <string name="settings_ai_download_notification_title">Modelo de chat con AI</string>
     <string name="settings_ai_download_notification_description">Descargando el asistente de chat con AI de PennyWise</string>
+    <!-- Developer -->
     <string name="settings_developer_section">Desarrollador</string>
     <string name="settings_developer_mode_title">Modo desarrollador</string>
     <string name="settings_developer_mode_subtitle">Muestra información técnica en el chat</string>
-    <string name="settings_webhooks_title">Webhooks</string>
     <string name="settings_webhooks_subtitle">Envía los datos que elijas a tu endpoint</string>
     <string name="settings_webhooks_subtitle_pro">Pro · Envía los datos que elijas a tu endpoint</string>
+    <!-- Support & Community -->
     <string name="settings_support_section">Soporte y comunidad</string>
     <string name="settings_help_faq_title">Ayuda y preguntas frecuentes</string>
     <string name="settings_help_faq_subtitle">Preguntas frecuentes y ayuda</string>
@@ -255,35 +234,41 @@
     <string name="settings_user_guide_subtitle">Guías paso a paso con capturas de pantalla</string>
     <string name="settings_report_issue_title">Reportar un problema</string>
     <string name="settings_report_issue_subtitle">Envía reportes de errores en GitHub</string>
-    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Apariencia</string>
     <string name="appearance_back">Atrás</string>
+    <!-- Theme mode -->
     <string name="appearance_mode_system">Sistema</string>
     <string name="appearance_mode_light">Claro</string>
     <string name="appearance_mode_dark">Oscuro</string>
+    <!-- Theme style -->
     <string name="appearance_style_dynamic">Dinámico</string>
     <string name="appearance_style_dynamic_subtitle">Colores del fondo de pantalla</string>
     <string name="appearance_style_default">Predeterminado</string>
     <string name="appearance_style_default_subtitle">Colores Rose Pine</string>
+    <!-- Toggles -->
     <string name="appearance_amoled_title">Negro AMOLED</string>
     <string name="appearance_amoled_subtitle">Usa un fondo negro puro para más contraste</string>
     <string name="appearance_blur_title">Efectos de desenfoque</string>
     <string name="appearance_blur_subtitle">Activa el desenfoque tipo vidrio en los componentes de la interfaz</string>
+    <!-- Navigation -->
     <string name="appearance_navigation_section">Navegación</string>
     <string name="appearance_bottom_bar_section">Barra inferior</string>
     <string name="appearance_bottom_bar_subtitle">Elige qué pestañas mostrar. Inicio siempre se queda.</string>
     <string name="appearance_nav_floating">Flotante</string>
     <string name="appearance_nav_floating_subtitle">Moderna y elegante</string>
-    <string name="appearance_nav_normal">Normal</string>
     <string name="appearance_nav_normal_subtitle">M3 estándar</string>
+    <!-- Cover style -->
     <string name="appearance_cover_section">Estilo de portada</string>
     <string name="appearance_cover_none">Ninguno</string>
     <string name="appearance_cover_selected">Seleccionado</string>
+    <!-- Fonts -->
     <string name="appearance_fonts_section">Fuentes</string>
     <string name="appearance_font_default">Predeterminada</string>
     <string name="appearance_font_default_subtitle">Sistema</string>
     <string name="appearance_font_sn_pro_subtitle">Monoespaciada moderna</string>
-    <string name="webhooks_title">Webhooks</string>
+    <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title_add">Agregar webhook</string>
     <string name="webhooks_title_edit">Editar webhook</string>
     <string name="webhooks_title_history">Historial de envíos</string>
@@ -297,30 +282,36 @@
     <string name="webhooks_interval_apply">Aplicar</string>
     <string name="webhooks_sync_all_now">Sincronizar ahora los webhooks activos</string>
     <string name="webhooks_empty">No hay webhooks guardados</string>
+    <!-- Webhook card -->
     <string name="webhooks_auto_sync_on">Sincronización automática activada</string>
     <string name="webhooks_auto_sync_off">Sincronización automática desactivada</string>
+    <!-- %1$s = date and time of the last sync -->
     <string name="webhooks_last_sync">Última sincronización: %1$s</string>
     <string name="webhooks_action_edit">Editar</string>
     <string name="webhooks_action_test">Probar</string>
     <string name="webhooks_action_sync">Sincronizar</string>
     <string name="webhooks_action_history">Historial</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_action_delete_cd">Eliminar %1$s</string>
+    <!-- Delete dialog -->
     <string name="webhooks_delete_title">¿Eliminar el webhook?</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_delete_body">¿Eliminar %1$s y su historial de envíos?</string>
     <string name="webhooks_delete_confirm">Eliminar</string>
     <string name="webhooks_delete_cancel">Cancelar</string>
+    <!-- Delivery history -->
     <string name="webhooks_history_empty">Aún no hay envíos. El trabajo en cola espera a que haya conexión de red.</string>
     <string name="webhooks_history_delivered">Entregado</string>
     <string name="webhooks_history_failed">Fallido</string>
-    <string name="webhooks_history_meta">%1$s · %2$s</string>
+    <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
     <plurals name="webhooks_history_batches">
         <item quantity="one">El envío tiene %1$d lote</item>
         <item quantity="other">El envío tiene %1$d lotes</item>
     </plurals>
-    <string name="webhooks_reason_manual">Manual</string>
     <string name="webhooks_reason_interval">Intervalo</string>
     <string name="webhooks_reason_scheduled">Programado</string>
     <string name="webhooks_reason_test">Prueba</string>
+    <!-- Editor -->
     <string name="webhooks_editor_name">Nombre</string>
     <string name="webhooks_editor_url">URL del endpoint HTTPS</string>
     <plurals name="webhooks_editor_auto_on_warning">
@@ -337,6 +328,7 @@
     <string name="webhooks_data_budgets">Presupuestos</string>
     <string name="webhooks_data_accounts">Cuentas</string>
     <string name="webhooks_data_subscriptions">Suscripciones</string>
+    <!-- %1$s = selected date range, e.g. Today -->
     <string name="webhooks_editor_range">Rango: %1$s</string>
     <string name="webhooks_editor_range_hint">Desde el último envío correcto se mandan los cambios y las eliminaciones de transacciones. Los presupuestos, las cuentas y las suscripciones se envían como están ahora.</string>
     <string name="webhooks_editor_start_date">Fecha de inicio (YYYY-MM-DD)</string>
@@ -348,6 +340,7 @@
     <string name="webhooks_editor_remove_header">Quitar encabezado</string>
     <string name="webhooks_editor_add_header">Agregar encabezado</string>
     <string name="webhooks_editor_save">Guardar webhook</string>
+    <!-- Date ranges -->
     <string name="webhooks_range_since_last_success">Desde el último envío correcto</string>
     <string name="webhooks_range_today">Hoy</string>
     <string name="webhooks_range_current_week">Semana actual</string>
@@ -355,12 +348,14 @@
     <string name="webhooks_range_previous_month">Mes anterior</string>
     <string name="webhooks_range_last_30_days">Últimos 30 días</string>
     <string name="webhooks_range_custom">Fechas personalizadas</string>
+    <!-- Status messages -->
     <string name="webhooks_msg_saved">Webhook guardado</string>
     <string name="webhooks_msg_interval_saved">Intervalo de sincronización guardado</string>
     <string name="webhooks_msg_test_queued">Prueba ficticia en cola. Los resultados aparecerán en el historial.</string>
     <string name="webhooks_msg_sync_queued">Sincronización en cola. Se enviará cuando haya conexión.</string>
     <string name="webhooks_msg_deleted">Webhook eliminado</string>
     <string name="webhooks_msg_action_failed">No se pudo completar la acción del webhook. Inténtalo de nuevo.</string>
+    <!-- Validation errors -->
     <string name="webhooks_error_name_required">El nombre del webhook es obligatorio</string>
     <string name="webhooks_error_url_required">La URL del webhook es obligatoria</string>
     <string name="webhooks_error_url_invalid">Ingresa una URL HTTP o HTTPS válida</string>
@@ -373,11 +368,14 @@
     <string name="webhooks_error_header_line_breaks">Los valores de los encabezados no pueden tener saltos de línea</string>
     <string name="webhooks_error_header_managed">Este encabezado se gestiona automáticamente</string>
     <string name="webhooks_error_header_unique">Los nombres de los encabezados deben ser únicos</string>
+    <!-- %1$d = minimum hours, %2$d = maximum hours -->
     <string name="webhooks_error_interval">Ingresa un número entre %1$d y %2$d</string>
+    <!-- ══ FAQ screen ══ -->
     <string name="faq_title">Preguntas frecuentes</string>
     <string name="faq_back">Atrás</string>
     <string name="faq_collapse">Contraer</string>
     <string name="faq_expand">Expandir</string>
+    <!-- Transaction Types -->
     <string name="faq_transaction_types_section">Tipos de transacciones</string>
     <string name="faq_wallet_credit_question">¿Por qué las transacciones de billeteras aparecen como Crédito?</string>
     <string name="faq_wallet_credit_answer">Las transacciones de billeteras (Amazon Pay, Paytm, etc.) se marcan como Crédito porque primero se cargan a tu cuenta bancaria o tarjeta de crédito, no son débitos bancarios directos. Así se sigue el medio de pago que realmente usaste.</string>
@@ -385,6 +383,7 @@
     <string name="faq_transaction_types_answer">• Gasto: dinero que sale de tu cuenta (débitos, compras, pagos de facturas)\n• Ingreso: dinero que entra a tu cuenta (sueldo, reembolsos, cashback)\n• Inversión: fondos de inversión, acciones, SIP, cuentas de trading\n• Crédito: transacciones con tarjeta de crédito y pagos con billeteras (dinero que pagarás después)\n• Transferencia: dinero que mueves entre tus propias cuentas</string>
     <string name="faq_transfer_vs_expense_question">¿Cuándo uso Transferencia y cuándo Gasto?</string>
     <string name="faq_transfer_vs_expense_answer">Usa Transferencia cuando muevas dinero entre tus propias cuentas (p. ej., de ahorros a la cuenta corriente). No afecta tu patrimonio neto. Usa Gasto para lo que realmente gastas.</string>
+    <!-- SMS Parsing -->
     <string name="faq_sms_parsing_section">Lectura de SMS</string>
     <string name="faq_sms_not_detected_question">¿Por qué no se detectan los SMS de mi banco?</string>
     <string name="faq_sms_not_detected_answer">Revisa si tu banco está en nuestra lista de bancos compatibles. Si no, repórtalo en GitHub. Asegúrate de haber dado el permiso de SMS y de que el formato del remitente coincida con los patrones habituales de SMS bancarios.</string>
@@ -392,6 +391,7 @@
     <string name="faq_unrecognized_sms_answer">Se guardan en \'Mensajes no reconocidos\', donde puedes revisarlos manualmente o reportarlos para ayudarnos a mejorar la lectura.</string>
     <string name="faq_duplicates_question">¿Por qué algunas transacciones aparecen duplicadas?</string>
     <string name="faq_duplicates_answer">Algunos bancos envían varios SMS por la misma transacción. La app intenta detectar duplicados, pero puedes eliminar manualmente los que se cuelen.</string>
+    <!-- Privacy & Data -->
     <string name="faq_privacy_section">Privacidad y datos</string>
     <string name="faq_data_secure_question">¿Mis datos financieros están seguros?</string>
     <string name="faq_data_secure_answer">¡Sí! Todos los datos se quedan en tu dispositivo. No tenemos servidores ni almacenamiento en la nube. El modelo de AI funciona localmente para una privacidad total.</string>
@@ -399,16 +399,19 @@
     <string name="faq_backup_answer">Por ahora, los datos solo se guardan localmente. Las funciones de exportación y copia de seguridad están previstas para futuras actualizaciones.</string>
     <string name="faq_data_access_question">¿A qué datos accede la app?</string>
     <string name="faq_data_access_answer">Solo a los SMS de remitentes bancarios conocidos. No leemos mensajes personales ni accedemos a datos de otras apps.</string>
+    <!-- AI Features -->
     <string name="faq_ai_section">Funciones de AI</string>
     <string name="faq_ai_download_question">¿Por qué tengo que descargar el modelo de AI?</string>
     <string name="faq_ai_download_answer">El modelo de 750 MB permite chatear sobre tus gastos en el dispositivo sin enviar datos a ningún servidor, con total privacidad.</string>
     <string name="faq_ai_ask_question">¿Qué le puedo preguntar al asistente de AI?</string>
     <string name="faq_ai_ask_answer">Puedes preguntar por tus patrones de gasto, consejos de presupuesto, resúmenes de transacciones y dudas financieras generales basadas en tus datos.</string>
+    <!-- Account Management -->
     <string name="faq_accounts_section">Gestión de cuentas</string>
     <string name="faq_manual_accounts_question">¿Qué son las cuentas manuales?</string>
     <string name="faq_manual_accounts_answer">Las cuentas manuales te permiten seguir efectivo, inversiones o cuentas de bancos no compatibles. Tú actualizas los saldos manualmente.</string>
     <string name="faq_multiple_accounts_question">¿Cómo sigo varias cuentas del mismo banco?</string>
     <string name="faq_multiple_accounts_answer">La app detecta automáticamente las distintas cuentas según los últimos 4 dígitos que aparecen en el SMS.</string>
+    <!-- Still need help -->
     <string name="faq_still_need_help_section">¿Aún necesitas ayuda?</string>
     <string name="faq_report_issue_title">Reportar un problema</string>
     <string name="faq_report_issue_subtitle">Envía reportes de errores, solicitudes de bancos o mejoras en GitHub</string>

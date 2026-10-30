@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    <string name="widget_recent_header">Recentes</string>
+<resources>
+    <string name="widget_recent_header">Recentes</string>
     <string name="widget_recent_sort">Classificar</string>
     <string name="widget_recent_empty_add_cash">Toque em + para adicionar dinheiro</string>
     <string name="widget_recent_description">Suas transações mais recentes e as categorias delas, com um toque para classificar as que precisam.</string>

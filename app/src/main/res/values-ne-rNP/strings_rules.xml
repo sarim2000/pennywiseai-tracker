@@ -38,7 +38,6 @@
     <string name="onboarding_get_started">शुरु गर्नुहोस्</string>
     <string name="onboarding_continue">जारी राख्नुहोस्</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">PennyWise AI</string>
     <string name="chat_download">डाउनलोड</string>
     <string name="chat_cancel">रद्द गर्नुहोस्</string>
     <string name="chat_settings">सेटिङ्स</string>

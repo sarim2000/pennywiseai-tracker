@@ -255,7 +255,6 @@
     <string name="onboarding_continue">Continuar</string>
     <string name="onboarding_start_scanning">Empezar a escanear</string>
     <string name="onboarding_finish">Finalizar</string>
-    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">Descargando modelo...</string>
     <string name="chat_model_required_title">Se necesita el modelo de AI</string>
     <string name="chat_model_required_body">Descarga el modelo de AI para empezar a chatear</string>

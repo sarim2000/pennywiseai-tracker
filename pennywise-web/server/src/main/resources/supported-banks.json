@@ -1,5 +1,5 @@
 {
-  "totalBanks": 170,
+  "totalBanks": 171,
   "totalCountries": 26,
   "countries": [
     {
@@ -91,20 +91,20 @@
       "banks": ["Bank al Etihad", "Islamic International Arab Bank", "Jordan Islamic Bank", "Orange Money", "Safwa Islamic Bank"]
     },
     {
+      "country": "Sri Lanka",
+      "flag": "🇱🇰",
+      "currency": "LKR",
+      "symbol": "Rs",
+      "bankCount": 5,
+      "banks": ["Commercial Bank of Ceylon", "National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
+    },
+    {
       "country": "Mozambique",
       "flag": "🇲🇿",
       "currency": "MZN",
       "symbol": "MT",
       "bankCount": 4,
       "banks": ["M-Pesa Mozambique", "Millennium BIM", "Standard Bank Mozambique", "eMola"]
-    },
-    {
-      "country": "Sri Lanka",
-      "flag": "🇱🇰",
-      "currency": "LKR",
-      "symbol": "Rs",
-      "bankCount": 4,
-      "banks": ["National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
     },
     {
       "country": "Egypt",

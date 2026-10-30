@@ -363,6 +363,17 @@
       "reference": "123456789012",
       "balance": null
     },
+    "Commercial Bank of Ceylon": {
+      "sender": "ComBank",
+      "message": "Dear Cardholder, Purchase at AWS EMEA SARL LU for USD 15.00 on 02/10/26 04:12 AM has been authorised on your credit card ending #1234.",
+      "currency": "USD",
+      "amount": "15.00",
+      "type": "EXPENSE",
+      "merchant": "AWS EMEA SARL LU",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": null
+    },
     "Commercial Bank of Ethiopia": {
       "sender": "CBEBANK",
       "message": "Dear Customer your Account 1*********1234 has been Credited with ETB 5,000.00 from Salary Payment, on 15/09/2025 at 09:00:00 with Ref No ABC123456 Your Current Balance is ETB 8,000.00. Thank you for Banking with CBE!",

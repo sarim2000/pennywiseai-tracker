@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.recurring
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import java.time.format.TextStyle
 import java.time.DayOfWeek
 import androidx.compose.ui.platform.LocalConfiguration
@@ -184,7 +186,7 @@ private fun RecurringItem(
                     text = stringResource(
                         R.string.recurring_item_schedule,
                         template.frequency.label(),
-                        template.nextDueDate.format(DateTimeFormatter.ofPattern("MMM d"))
+                        template.nextDueDate.format(AppDates.pattern("MMM d"))
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

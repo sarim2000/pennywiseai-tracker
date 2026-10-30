@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import java.time.format.TextStyle
 import java.time.DayOfWeek
 import com.pennywiseai.tracker.R
@@ -241,8 +243,8 @@ fun BudgetGroupEditScreen(
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM yyyy") }
-                        val longDateFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+                        val dateFormatter = remember { AppDates.pattern("d MMM yyyy") }
+                        val longDateFormatter = remember { AppDates.pattern("d MMM") }
 
                         // Cadence chip row — Weekly / Monthly / One-time.
                         // FlowRow wraps the "One-time" chip onto a new line

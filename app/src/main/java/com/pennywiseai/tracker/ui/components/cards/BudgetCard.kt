@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -187,7 +189,7 @@ fun BudgetCard(
         // window comes from the per-budget current window (Weekly's
         // Jun 29..Jul 5 even when the user is on the July page), so the
         // number is consistent across month views.
-        val dateFormatter = remember { DateTimeFormatter.ofPattern("d MMM") }
+        val dateFormatter = remember { AppDates.pattern("d MMM") }
         val subtitleText = when {
             groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays ->
                 stringResource(R.string.budget_card_finished)

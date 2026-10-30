@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -61,9 +63,9 @@ fun SpendingBarChart(
         sortedData.map { point ->
             val label = when {
                 isYearly -> point.timestamp.format(DateTimeFormatter.ofPattern("yyyy"))
-                isMonthly && spansMultipleYears -> point.timestamp.format(DateTimeFormatter.ofPattern("MMM yy"))
-                isMonthly -> point.timestamp.format(DateTimeFormatter.ofPattern("MMM"))
-                else -> point.timestamp.format(DateTimeFormatter.ofPattern("dd MMM"))
+                isMonthly && spansMultipleYears -> point.timestamp.format(AppDates.pattern("MMM yy"))
+                isMonthly -> point.timestamp.format(AppDates.pattern("MMM"))
+                else -> point.timestamp.format(AppDates.pattern("dd MMM"))
             }
             BarData(label = label, value = point.balance.toDouble())
         }

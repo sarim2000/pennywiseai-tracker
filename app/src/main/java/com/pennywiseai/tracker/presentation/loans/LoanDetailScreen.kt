@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -423,7 +425,7 @@ private fun LoanTransactionItem(
                     }
                 }
                 Text(
-                    transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy")),
+                    transaction.dateTime.format(AppDates.pattern("d MMM yyyy")),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -511,7 +513,7 @@ private fun RecordPaymentBottomSheet(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    txn.dateTime.format(DateTimeFormatter.ofPattern("d MMM")),
+                                    txn.dateTime.format(AppDates.pattern("d MMM")),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

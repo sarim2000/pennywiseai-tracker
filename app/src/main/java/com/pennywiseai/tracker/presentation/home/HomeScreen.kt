@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.home
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -1446,7 +1448,7 @@ private fun BreakdownDialog(
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
-    val monthName = { m: java.time.Month -> m.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) }
+    val monthName = { m: java.time.Month -> m.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale()) }
     val currentPeriod = stringResource(R.string.home_breakdown_period, monthName(now.month), now.dayOfMonth)
     val lastMonth = now.minusMonths(1)
     val lastPeriod = stringResource(R.string.home_breakdown_period, monthName(lastMonth.month), now.dayOfMonth)

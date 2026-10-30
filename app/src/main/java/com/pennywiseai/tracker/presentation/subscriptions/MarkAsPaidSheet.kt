@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -214,7 +216,7 @@ fun MarkAsPaidSheet(
                         Text(
                             text = stringResource(
                                 R.string.mark_paid_already_marked,
-                                "${subscription.lastPaidAt?.format(DateTimeFormatter.ofPattern("d MMM"))}"
+                                "${subscription.lastPaidAt?.format(AppDates.pattern("d MMM"))}"
                             ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -410,7 +412,7 @@ private fun relativeDate(date: LocalDate): String {
         days == 0L -> stringResource(R.string.mark_paid_today)
         days == 1L -> stringResource(R.string.mark_paid_yesterday)
         days in 2..6 -> pluralStringResource(R.plurals.mark_paid_days_ago, days.toInt(), days.toInt())
-        else -> date.format(DateTimeFormatter.ofPattern("d MMM"))
+        else -> date.format(AppDates.pattern("d MMM"))
     }
 }
 
@@ -484,7 +486,7 @@ private fun DateChips(
             label = {
                 Text(
                     text = if (isCustom) {
-                        selected.format(DateTimeFormatter.ofPattern("MMM d"))
+                        selected.format(AppDates.pattern("MMM d"))
                     } else {
                         stringResource(R.string.mark_paid_pick_date)
                     },

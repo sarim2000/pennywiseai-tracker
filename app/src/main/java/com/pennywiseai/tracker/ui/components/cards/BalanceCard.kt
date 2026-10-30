@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -636,7 +638,7 @@ private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
  * formatter built once keeps the locale the process started in, so after switching the
  * app language the month stayed in the old one.
  */
-internal val SHORT_DATE: DateTimeFormatter get() = DateTimeFormatter.ofPattern("d MMM")
+internal val SHORT_DATE: DateTimeFormatter get() = AppDates.pattern("d MMM")
 
 @Composable
 private fun CurrencyChip(

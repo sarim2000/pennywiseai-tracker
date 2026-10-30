@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
@@ -908,7 +910,7 @@ private fun TransactionReceipt(
                 icon = Icons.Default.CalendarToday,
                 label = stringResource(R.string.txn_detail_label_date_time),
                 value = transaction.dateTime.format(
-                    DateTimeFormatter.ofPattern("EEE, MMM d, yyyy \u00b7 h:mm a")
+                    AppDates.pattern("EEE, MMM d, yyyy \u00b7 h:mm a")
                 )
             )
 
@@ -1957,7 +1959,7 @@ private fun DateTimeField(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = dateTime.format(DateTimeFormatter.ofPattern("dd MMMM")),
+                        text = dateTime.format(AppDates.pattern("dd MMMM")),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,

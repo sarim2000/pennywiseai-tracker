@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.groups
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -382,7 +384,7 @@ private fun GroupTransactionItem(
                         append(transaction.merchantName)
                         append(" · ")
                     }
-                    append(transaction.dateTime.format(DateTimeFormatter.ofPattern("d MMM yyyy")))
+                    append(transaction.dateTime.format(AppDates.pattern("d MMM yyyy")))
                 }
                 Text(
                     secondary,
@@ -511,7 +513,7 @@ private fun AddTransactionToGroupSheet(
                                             append(txn.merchantName)
                                             append(" · ")
                                         }
-                                        append(txn.dateTime.format(DateTimeFormatter.ofPattern("d MMM")))
+                                        append(txn.dateTime.format(AppDates.pattern("d MMM")))
                                     }
                                     Text(
                                         pickerSecondary,

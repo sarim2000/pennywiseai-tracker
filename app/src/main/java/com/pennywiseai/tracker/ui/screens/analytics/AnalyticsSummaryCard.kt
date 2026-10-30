@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -218,7 +220,7 @@ private fun ForecastSection(forecast: SpendForecast) {
     Text(
         text = stringResource(
             R.string.analytics_forecast_for,
-            forecast.periodEnd.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
+            forecast.periodEnd.format(AppDates.pattern("d MMM"))
         ).uppercase(),
         style = PennyWiseText.overline,
         color = MaterialTheme.colorScheme.onSurfaceVariant

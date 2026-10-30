@@ -10,10 +10,10 @@
         <exclude .../>
         -->
     </cloud-backup>
+    <!--
     <device-transfer>
-        <!-- Do not copy the financial database on device-to-device transfer.
-             allowBackup="false" alone does not disable D2D transfer on Android
-             12+ when no explicit rules exist. -->
-        <exclude domain="database" path="pennywise_database" />
+        <include .../>
+        <exclude .../>
     </device-transfer>
+    -->
 </data-extraction-rules>

@@ -1,21 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Export transactions dialog -->
-    <!-- Transaction detail: errors -->
-    <!-- Transaction types -->
-    <!-- Transaction detail -->
-    <!-- Transaction totals card -->
-    <!-- Transactions list -->
-    <!-- Add transaction / subscription -->
-    <!-- Transaction groups -->
-    <!-- Recurring transactions -->
-    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
-    <!-- Share card, sheet and banner -->
-    <!-- %1$s = month name -->
-    <!-- Shared transaction components -->
-    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <!-- %1$s the cash account the spend comes out of -->
-    <!-- %1$s amount with currency, %2$s category -->
     <string name="txn_export_title_ready">Hamisha Miamala</string>
     <string name="txn_export_title_exporting">Inahamisha...</string>
     <string name="txn_export_title_success">Uhamishaji Umekamilika!</string>
@@ -26,7 +11,6 @@
     </plurals>
     <string name="txn_export_total_transactions">Jumla ya miamala:</string>
     <string name="txn_export_date_range">Kipindi:</string>
-    <string name="txn_export_date_range_value">%1$s - %2$s</string>
     <string name="txn_export_free_limit_notice">Uhamishaji wa bure: safu %1$d za kwanza kati ya %2$d</string>
     <string name="txn_export_unlock_all">Fungua zote</string>
     <plurals name="txn_export_success_message">
@@ -43,6 +27,7 @@
     <string name="txn_export_action_share">Shiriki</string>
     <string name="txn_export_action_close">Funga</string>
     <string name="txn_export_action_retry">Jaribu tena</string>
+    <!-- Transaction detail: errors -->
     <string name="txn_detail_error_add_adjustment">Imeshindwa kuongeza marekebisho: %1$s</string>
     <string name="txn_detail_error_amount_positive_number">Kiasi lazima kiwe namba chanya</string>
     <string name="txn_detail_error_category_exists_income">Kategoria iitwayo \"%1$s\" tayari ipo kama mapato</string>
@@ -63,11 +48,13 @@
     <string name="txn_detail_error_delete">Imeshindwa kufuta muamala</string>
     <string name="txn_detail_error_create_loan">Imeshindwa kuunda mkopo: %1$s</string>
     <string name="txn_detail_error_unlink_loan">Imeshindwa kutenganisha mkopo: %1$s</string>
+    <!-- Transaction types -->
     <string name="txn_type_income">Mapato</string>
     <string name="txn_type_expense">Matumizi</string>
     <string name="txn_type_credit">Mkopo</string>
     <string name="txn_type_transfer">Uhamisho</string>
     <string name="txn_type_investment">Uwekezaji</string>
+    <!-- Transaction detail -->
     <string name="txn_detail_updated">Muamala umesasishwa</string>
     <string name="txn_detail_title">Maelezo ya Muamala</string>
     <string name="txn_detail_title_edit">Hariri Muamala</string>
@@ -180,6 +167,7 @@
     <string name="txn_detail_group_name">Jina la kikundi</string>
     <string name="txn_detail_group_create">Unda</string>
     <string name="txn_detail_group_create_new">Unda kikundi kipya</string>
+    <!-- Transaction totals card -->
     <string name="txn_totals_income">Mapato</string>
     <string name="txn_totals_expense">Matumizi</string>
     <string name="txn_totals_expenses">Matumizi</string>
@@ -188,6 +176,7 @@
     <string name="txn_totals_invest">Uwekezaji</string>
     <string name="txn_totals_net">Halisi</string>
     <string name="txn_totals_select_currency">Chagua sarafu</string>
+    <!-- Transactions list -->
     <string name="txn_list_title">Miamala</string>
     <string name="txn_list_back">Rudi</string>
     <string name="txn_list_deleted">Muamala umefutwa</string>
@@ -257,6 +246,7 @@
         <item quantity="one">Muamala %1$d umeongezwa kwenye \"%2$s\"</item>
         <item quantity="other">Miamala %1$d imeongezwa kwenye \"%2$s\"</item>
     </plurals>
+    <!-- Add transaction / subscription -->
     <string name="add_title">Ongeza Mpya</string>
     <string name="add_back">Rudi</string>
     <string name="add_tab_transaction">Muamala</string>
@@ -309,6 +299,7 @@
     <string name="add_error_merchant_required">Muuzaji/Maelezo yanahitajika</string>
     <string name="add_error_merchant_too_short">Fupi mno</string>
     <string name="add_error_category_required">Kategoria inahitajika</string>
+    <!-- Transaction groups -->
     <string name="groups_title">Vikundi vya Miamala</string>
     <string name="groups_create">Unda Kikundi</string>
     <string name="groups_empty_title">Bado hakuna vikundi</string>
@@ -345,6 +336,7 @@
     <string name="group_detail_picker_no_results">Hakuna matokeo</string>
     <string name="group_detail_picker_add">Ongeza</string>
     <string name="group_detail_edit_title">Hariri Kikundi</string>
+    <!-- Recurring transactions -->
     <string name="recurring_title">Inayojirudia</string>
     <string name="recurring_back">Rudi</string>
     <string name="recurring_add">Ongeza muamala unaojirudia</string>
@@ -356,6 +348,7 @@
     <string name="recurring_frequency_weekly">Kila wiki</string>
     <string name="recurring_frequency_monthly">Kila mwezi</string>
     <string name="recurring_untitled">Bila jina</string>
+    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
     <string name="recurring_item_schedule">%1$s · Ijayo %2$s</string>
     <string name="recurring_more_options">Chaguo zaidi</string>
     <string name="recurring_pause">Sitisha</string>
@@ -380,6 +373,7 @@
     <string name="recurring_day_of_week_any">Yoyote</string>
     <string name="recurring_field_note">Kumbuka (si lazima)</string>
     <string name="recurring_field_active">Inatumika</string>
+    <!-- Share card, sheet and banner -->
     <string name="share_card_caption_transactions">SMS za benki zimefuatiliwa. 0 zimeandikwa.</string>
     <plurals name="share_card_caption_subscriptions">
         <item quantity="one">usajili niliousahau</item>
@@ -399,14 +393,19 @@
     <string name="share_sheet_this_month">Mwezi huu</string>
     <string name="share_sheet_last_month">Mwezi uliopita</string>
     <string name="share_sheet_all_time">Muda wote</string>
+    <!-- %1$s = month name -->
     <string name="share_banner_title">Muhtasari wa %1$s</string>
     <string name="share_banner_subtitle">Ona kile PennyWise imekufuatilia</string>
     <string name="share_banner_dismiss">Ondoa</string>
+    <!-- Shared transaction components -->
     <string name="quick_category_title">Badilisha kategoria</string>
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Matumizi ya pesa taslimu</string>
     <string name="quick_add_more_details">Maelezo zaidi</string>
     <string name="quick_add_where_hint">Wapi? (si lazima)</string>
+    <!-- %1$s the cash account the spend comes out of -->
     <string name="quick_add_from">Kutoka: %1$s</string>
+    <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Imehifadhiwa %1$s · %2$s</string>
     <string name="date_range_title">Chagua Kipindi</string>
     <string name="date_range_ok">Sawa</string>

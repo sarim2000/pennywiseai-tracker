@@ -1,33 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ App lock ══ -->
-    <!-- Biometric capability errors (also shown in Settings) -->
-    <!-- ══ SMS permission screen ══ -->
-    <!-- ══ Unrecognized SMS ══ -->
-    <!-- ══ Import statement ══ -->
-    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
-    <!-- License key dialog -->
-    <!-- ══ Onboarding ══ -->
-    <!-- ══ Chat (PennyWise AI) ══ -->
-    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <!-- Chat confirm card for an AI-proposed action -->
-    <!-- Chat errors -->
-    <!-- ══ Smart Rules list ══ -->
-    <!-- Rule sharing (export / import) results -->
-    <!-- Apply rule to past transactions -->
-    <!-- ══ Create / edit rule ══ -->
-    <!-- Rule fields (pickers) -->
-    <!-- Rule operators (condition chips) -->
-    <!-- Transaction type labels (stored value stays the enum name) -->
-    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
-    <!-- Condition value inputs -->
-    <!-- The rule stores HH:mm; keep that pattern in the label. -->
-    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
-    <!-- Action editor -->
-    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
-    <!-- field, operator, value -->
-    <!-- value, field -->
-    <!-- field, value -->
     <string name="applock_prompt_title">Разблакіраваць PennyWise</string>
     <string name="applock_prompt_subtitle">Пацвердзіце асобу, каб убачыць даныя пра выдаткі</string>
     <string name="applock_prompt_description">Выкарыстайце біяметрыю або PIN прылады</string>
@@ -44,12 +17,14 @@
         <item quantity="other">Вашы даныя абаронены: блакіроўка праз %1$d хвіліны</item>
     </plurals>
     <string name="applock_auth_failed">Не ўдалося пацвердзіць асобу. Паспрабуйце яшчэ раз.</string>
+    <!-- Biometric capability errors (also shown in Settings) -->
     <string name="biometric_error_no_hardware">На гэтай прыладзе няма біяметрычнага датчыка</string>
     <string name="biometric_error_hw_unavailable">Біяметрычны датчык зараз недаступны</string>
     <string name="biometric_error_none_enrolled">Біяметрыя не наладжана. Наладзьце адбітак пальца або распазнаванне твару ў наладах прылады</string>
     <string name="biometric_error_security_update">Для біяметрычнай аўтэнтыфікацыі патрэбна абнаўленне бяспекі</string>
     <string name="biometric_error_unsupported">Біяметрычная аўтэнтыфікацыя не падтрымліваецца на гэтай прыладзе</string>
     <string name="biometric_error_unknown">Невядомы стан біяметрыі</string>
+    <!-- ══ SMS permission screen ══ -->
     <string name="permission_title">Уключыце аўтаматычнае распазнаванне транзакцый</string>
     <string name="permission_description">PennyWise можа сам знаходзіць банкаўскія транзакцыі ў SMS і раскладваць іх па катэгорыях, эканомячы ваш час.</string>
     <string name="permission_privacy_title">Ваша прыватнасць важная</string>
@@ -60,6 +35,7 @@
     <string name="permission_notification_open_settings">Адкрыць налады доступу да апавяшчэнняў</string>
     <string name="permission_rationale">Без доступу да SMS усе транзакцыі давядзецца дадаваць уручную. Мы чытаем толькі банкаўскія паведамленні пра транзакцыі, а не асабістую перапіску.</string>
     <string name="permission_enable_button">Уключыць аўтараспазнаванне</string>
+    <!-- ══ Unrecognized SMS ══ -->
     <string name="unrecognized_title">Нераспазнаныя SMS</string>
     <string name="unrecognized_back">Назад</string>
     <string name="unrecognized_header_title">Нераспазнаныя банкаўскія паведамленні</string>
@@ -89,6 +65,7 @@
     <string name="unrecognized_suggestion_debit">Спісанне %1$s</string>
     <string name="unrecognized_suggestion_credit">Залічэнне %1$s</string>
     <string name="unrecognized_suggestion_add">Дадаць</string>
+    <!-- ══ Import statement ══ -->
     <string name="import_statement_title">Імпарт выпіскі</string>
     <string name="import_statement_back">Назад</string>
     <string name="import_statement_description">Імпартуйце PDF-выпіску з Google Pay, PhonePe, Paytm, slice ці ICICI Bank або выпіску любога банка ў Excel (.xlsx) ці CSV. Перад даданнем вы ўбачыце, што новае.</string>
@@ -171,14 +148,13 @@
     <string name="import_statement_balance_statement">У выпісцы</string>
     <string name="import_statement_balance_app">У PennyWise</string>
     <string name="import_statement_balance_difference">Розніца</string>
-    <string name="import_statement_balance_unknown">—</string>
     <string name="import_statement_balance_unknown_note">У PennyWise няма балансу гэтага рахунку на %1$s ці раней, таму пакуль няма з чым параўнаць.</string>
     <string name="import_statement_balance_match">Балансы супадаюць.</string>
     <string name="import_statement_balance_set">Задаць баланс %1$s</string>
     <string name="import_statement_balance_set_note">Баланс з выпіскі плюс тое, што PennyWise запісаў пасля заканчэння выпіскі.</string>
     <string name="import_statement_balance_applied">Баланс абноўлены: %1$s.</string>
     <string name="import_statement_balance_newer">Пасля гэтай выпіскі банк паведаміў пра навейшы баланс, таму PennyWise пакідае яго.</string>
-    <string name="upgrade_title">PennyWise Pro</string>
+    <!-- ══ Upgrade sheet (Pro) — wording is Play-policy reviewed (#802); keep as-is ══ -->
     <string name="upgrade_subtitle_member">Усе магчымасці Pro актыўныя</string>
     <string name="upgrade_subtitle_upgrade">Усё адкрываецца ліцэнзійным ключом</string>
     <string name="upgrade_enter_license_key">Увесці ліцэнзійны ключ</string>
@@ -205,6 +181,7 @@
     <string name="upgrade_manage_subscription">Кіраваць падпіскай</string>
     <string name="upgrade_error_play_unavailable">Не ўдалося звязацца з Play Store. Паспрабуйце пазней.</string>
     <string name="upgrade_cancel">Скасаваць</string>
+    <!-- License key dialog -->
     <string name="upgrade_license_dialog_title">Актываваць ліцэнзійны ключ</string>
     <string name="upgrade_license_dialog_body">Устаўце ключ з ліста пра пакупку. Pro актывуецца на гэтай прыладзе адразу.</string>
     <string name="upgrade_license_email_label">Email пакупкі</string>
@@ -214,7 +191,7 @@
     <string name="upgrade_license_error_invalid">Ключ несапраўдны. Праверце, ці няма памылак, і паспрабуйце яшчэ раз.</string>
     <string name="upgrade_license_error_active_elsewhere">Гэты ключ ужо актываваны на іншай прыладзе.</string>
     <string name="upgrade_license_error_offline">Не ўдалося звязацца з серверам ліцэнзій. Праверце падключэнне і паспрабуйце яшчэ раз.</string>
-    <string name="onboarding_logo_cd">PennyWise</string>
+    <!-- ══ Onboarding ══ -->
     <string name="onboarding_welcome_title">Вітаем у PennyWise</string>
     <string name="onboarding_welcome_body">Ваш памочнік з AI для ўліку выдаткаў, які сам знаходзіць транзакцыі ў SMS.</string>
     <string name="onboarding_setup_heading">Што вы наладзіце:</string>
@@ -269,6 +246,7 @@
     <string name="onboarding_continue">Працягнуць</string>
     <string name="onboarding_start_scanning">Пачаць сканаванне</string>
     <string name="onboarding_finish">Завяршыць</string>
+    <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">Спампоўка мадэлі...</string>
     <string name="chat_model_required_title">Патрэбна AI-мадэль</string>
     <string name="chat_model_required_body">Спампуйце AI-мадэль, каб пачаць размову</string>
@@ -299,7 +277,6 @@
     <string name="chat_stats_tokens_of_max">%1$s / %2$s токенаў</string>
     <string name="chat_stats_system_tokens">Сістэма: %1$s</string>
     <string name="chat_context_usage">Выкарыстанне кантэксту</string>
-    <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Згарнуць</string>
     <string name="chat_expand">Разгарнуць</string>
     <string name="chat_thinking_reading">Чытаю…</string>
@@ -309,10 +286,12 @@
     <string name="chat_thinking_one_moment">Хвілінку…</string>
     <string name="chat_empty_title">Дадайце выдатак або спытайце пра яго</string>
     <string name="chat_empty_body">Паспрабуйце адзін з гэтых запытаў</string>
+    <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
     <string name="chat_example_prompt_coffee">кава 120 у Starbucks</string>
     <string name="chat_example_prompt_salary">сёння атрымаў заробак 50000</string>
     <string name="chat_example_prompt_groceries">Колькі пайшло на прадукты ў гэтым месяцы?</string>
     <string name="chat_example_prompt_spent">Колькі я выдаткаваў у гэтым месяцы?</string>
+    <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">Дадаць даход?</string>
     <string name="chat_action_add_expense">Дадаць выдатак?</string>
     <string name="chat_action_add_detail">%1$s · %2$s · сёння</string>
@@ -323,6 +302,7 @@
     <string name="chat_action_update">Абнавіць</string>
     <string name="chat_action_change_merchant">прадавец → %1$s</string>
     <string name="chat_action_change_category">катэгорыя → %1$s</string>
+    <!-- Chat errors -->
     <string name="chat_error_apply_failed">Не ўдалося ўжыць: %1$s</string>
     <string name="chat_error_memory_full">Памяць чата поўная. Ачысціце чат, каб працягнуць.</string>
     <string name="chat_error_model_downloading">Мадэль спампоўваецца. Пачакайце.</string>
@@ -337,6 +317,7 @@
     <string name="chat_error_download_roaming">У роўмінгу спампоўка не ідзе. Падключыцеся да Wi-Fi або выключыце роўмінг і паспрабуйце зноў.</string>
     <string name="chat_download_notification_title">AI-мадэль чата</string>
     <string name="chat_download_notification_description">Спампоўка AI-памочніка для PennyWise</string>
+    <!-- ══ Smart Rules list ══ -->
     <string name="rules_title">Разумныя правілы</string>
     <string name="rules_navigate_back">Назад</string>
     <string name="rules_more_options">Іншыя параметры</string>
@@ -344,7 +325,6 @@
     <string name="rules_menu_import">Імпартаваць правілы</string>
     <string name="rules_menu_reset">Скінуць да стандартных</string>
     <string name="rules_create_cd">Стварыць правіла</string>
-    <string name="rules_ok">OK</string>
     <string name="rules_cancel">Скасаваць</string>
     <string name="rules_close">Закрыць</string>
     <string name="rules_reset_title">Скінуць правілы</string>
@@ -377,6 +357,7 @@
     <string name="rules_delete_title">Выдаліць правіла</string>
     <string name="rules_delete_body">Выдаліць «%1$s»? Гэта дзеянне нельга адрабіць.</string>
     <string name="rules_delete">Выдаліць</string>
+    <!-- Rule sharing (export / import) results -->
     <string name="rules_export_nothing">У вас пакуль няма ўласных правілаў для экспарту.</string>
     <plurals name="rules_exported">
         <item quantity="one">Экспартавана %1$d правіла.</item>
@@ -410,6 +391,7 @@
         <item quantity="other">Яшчэ %1$d патрабуюць Pro — вы дасягнулі бясплатнага ліміту ў %2$d.</item>
     </plurals>
     <string name="rules_import_failed">Памылка імпарту.</string>
+    <!-- Apply rule to past transactions -->
     <string name="rules_batch_applying">Ужыванне правіла...</string>
     <string name="rules_batch_previewing">Папярэдні прагляд...</string>
     <string name="rules_batch_preview_title">Прагляд: %1$s</string>
@@ -449,6 +431,7 @@
     <string name="rules_batch_apply_uncategorized">Без катэгорыі</string>
     <string name="rules_batch_apply_all">Ужыць да ўсіх</string>
     <string name="rules_batch_preview">Прагляд</string>
+    <!-- ══ Create / edit rule ══ -->
     <string name="rules_create_title">Стварыць правіла</string>
     <string name="rules_edit_title">Рэдагаваць правіла</string>
     <string name="rules_save">Захаваць</string>
@@ -478,6 +461,7 @@
     <string name="rules_block_confirm_body">Блакіроўка не дае захаваць адпаведную транзакцыю, таму астатнія дзеянні гэтага правіла не выканаюцца. Выдаліць іншыя дзеянні і пакінуць толькі блакіроўку?</string>
     <string name="rules_block_confirm_action">Блакіраваць і выдаліць</string>
     <string name="rules_block_explainer">Транзакцыі, што адпавядаюць гэтаму правілу, будуць заблакіраваны і не захаваюцца</string>
+    <!-- Rule fields (pickers) -->
     <string name="rules_field_label">Поле</string>
     <string name="rules_field_amount">Сума</string>
     <string name="rules_field_transaction_type">Тып транзакцыі</string>
@@ -494,6 +478,7 @@
     <string name="rules_field_account">Рахунак</string>
     <string name="rules_field_description">Апісанне</string>
     <string name="rules_field_tags">Тэгі</string>
+    <!-- Rule operators (condition chips) -->
     <string name="rules_op_before">да</string>
     <string name="rules_op_after">пасля</string>
     <string name="rules_op_at_or_after">у або пасля</string>
@@ -505,12 +490,14 @@
     <string name="rules_op_equals">роўна</string>
     <string name="rules_op_starts_with">пачынаецца з</string>
     <string name="rules_op_contains">змяшчае</string>
+    <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">Даход</string>
     <string name="rules_type_expense">Выдатак</string>
     <string name="rules_type_credit">Крэдыт</string>
     <string name="rules_type_transfer">Перавод</string>
     <string name="rules_type_investment">Інвестыцыя</string>
     <string name="rules_select_transaction_type">Выберыце тып транзакцыі:</string>
+    <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
     <string name="rules_day_mon">Пн</string>
     <string name="rules_day_tue">Аў</string>
     <string name="rules_day_wed">Ср</string>
@@ -518,13 +505,16 @@
     <string name="rules_day_fri">Пт</string>
     <string name="rules_day_sat">Сб</string>
     <string name="rules_day_sun">Нд</string>
+    <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">Дзень (1-31)</string>
     <string name="rules_day_of_month_placeholder">напр., 1</string>
+    <!-- The rule stores HH:mm; keep that pattern in the label. -->
     <string name="rules_time_label">Час (HH:mm)</string>
     <string name="rules_time_placeholder">Націсніце, каб выбраць час</string>
     <string name="rules_pick_time">Выбраць час</string>
     <string name="rules_hour_label">Гадзіна (0-23)</string>
     <string name="rules_hour_placeholder">напр., 9</string>
+    <!-- The rule parses yyyy-MM-dd; keep that pattern (and the example) as-is. -->
     <string name="rules_date_label">Дата (yyyy-MM-dd)</string>
     <string name="rules_date_placeholder">напр., 2026-03-21</string>
     <string name="rules_select_account">Выберыце рахунак</string>
@@ -537,6 +527,7 @@
     <string name="rules_value_placeholder_category">напр., Ежа і рэстараны</string>
     <string name="rules_value_placeholder_bank">напр., HDFC Bank</string>
     <string name="rules_value_placeholder_generic">Увядзіце значэнне</string>
+    <!-- Action editor -->
     <string name="rules_action_type_label">Тып дзеяння</string>
     <string name="rules_action_type_block">Блакіраваць транзакцыю</string>
     <string name="rules_action_type_set">Задаць поле</string>
@@ -551,12 +542,13 @@
     <string name="rules_description_value_placeholder">напр., Штомесячная аплата падпіскі</string>
     <string name="rules_account_bank_label">Рахунак / назва банка</string>
     <string name="rules_tag_name_label">Назва тэга</string>
+    <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">Прагляд правіла</string>
     <string name="rules_preview_sentence">Калі %1$s, %2$s</string>
     <string name="rules_preview_conditions_and">%1$s І %2$s</string>
     <string name="rules_preview_conditions_or">%1$s АБО %2$s</string>
     <string name="rules_preview_actions_and">%1$s і %2$s</string>
-    <string name="rules_preview_condition">%1$s %2$s %3$s</string>
+    <!-- field, operator, value -->
     <string name="rules_preview_field_amount">сума</string>
     <string name="rules_preview_field_type">тып</string>
     <string name="rules_preview_field_category">катэгорыя</string>
@@ -587,8 +579,10 @@
     <string name="rules_preview_action_block">блакіраваць транзакцыю</string>
     <string name="rules_preview_action_add_tag">дадаць тэг %1$s</string>
     <string name="rules_preview_action_remove_tag">выдаліць тэг %1$s</string>
+    <!-- value, field -->
     <string name="rules_preview_action_append">дадаць %1$s у канец поля «%2$s»</string>
     <string name="rules_preview_action_prepend">дадаць %1$s у пачатак поля «%2$s»</string>
     <string name="rules_preview_action_clear">ачысціць поле «%1$s»</string>
+    <!-- field, value -->
     <string name="rules_preview_action_set">задаць полю «%1$s» значэнне %2$s</string>
 </resources>

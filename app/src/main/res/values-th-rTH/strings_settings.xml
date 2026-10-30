@@ -2,140 +2,37 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">การตั้งค่า</string>
+    <string name="settings_back">กลับ</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">ยกเลิก</string>
     <string name="settings_action_ok">ตกลง</string>
     <string name="settings_action_done">เสร็จสิ้น</string>
     <!-- PennyWise Pro -->
-    <!-- Personalization -->
-    <string name="settings_appearance_title">ลักษณะ</string>
-    <string name="settings_language_title">ภาษา</string>
-    <!-- Currency -->
-    <string name="settings_currency_section">สกุลเงิน</string>
-    <string name="settings_display_currency_title">สกุลเงินที่แสดง</string>
-    <string name="settings_exchange_rates_title">อัตราแลกเปลี่ยน</string>
-    <string name="settings_default_currency_title">สกุลเงินเริ่มต้น</string>
-    <string name="settings_currency_field_label">สกุลเงิน</string>
-    <!-- Budget -->
-    <!-- Contacts -->
-    <string name="settings_contacts_section">รายชื่อติดต่อ</string>
-    <!-- Security -->
-    <string name="settings_security_section">ความปลอดภัย</string>
-    <string name="settings_app_lock_title">ล็อกแอป</string>
-    <string name="settings_app_lock_subtitle">ปกป้องข้อมูลของคุณด้วยการยืนยันตัวตนทางชีวมิติ</string>
-    <string name="settings_lock_timeout_title">เวลาหมดอายุล็อก</string>
-    <string name="settings_lock_timeout_option_immediately">ทันที</string>
-    <plurals name="settings_lock_timeout_option_minutes">
-        <item quantity="other">%1$d นาที</item>
-    </plurals>
-    <!-- Data Management -->
-    <string name="settings_data_section">การจัดการข้อมูล</string>
-    <string name="settings_categories_title">หมวดหมู่</string>
-    <string name="settings_categories_subtitle">จัดการหมวดหมู่ค่าใช้จ่ายและรายได้</string>
-    <string name="settings_smart_rules_title">กฎอัจฉริยะ</string>
-    <string name="settings_smart_rules_subtitle">การจัดหมวดหมู่ธุรกรรมอัตโนมัติ</string>
-    <string name="settings_budgets_title">งบประมาณ</string>
-    <string name="settings_loans_title">เงินกู้</string>
-    <string name="settings_recurring_title">เกิดซ้ำ</string>
-    <string name="settings_export_data_title">ส่งออกข้อมูล</string>
-    <!-- %1$s = date and time of the last backup -->
-    <string name="settings_import_data_title">นำเข้าข้อมูล</string>
-    <string name="settings_import_data_subtitle">กู้คืนข้อมูลจากการสำรอง</string>
-    <!-- Data Management → SMS Scan Period -->
-    <string name="settings_sms_scan_title">ระยะเวลาสแกน SMS</string>
-    <string name="settings_sms_scan_subtitle_all_time">สแกนข้อความ SMS ทั้งหมด</string>
-    <!-- %1$s = custom start date -->
-    <string name="settings_sms_scan_all_time">ตลอดเวลา</string>
-    <string name="settings_sms_scan_custom_short">กำหนดเอง</string>
-    <!-- Short badge next to the row, e.g. "3 mo" -->
-    <!-- %1$s = custom start date -->
-    <plurals name="settings_sms_scan_option_months">
-        <item quantity="other">%1$d เดือน</item>
-    </plurals>
-    <!-- Data Management → Delete all transactions dialog -->
-    <!-- %1$s = the confirmation word the user must type; it is not translated -->
-    <string name="settings_delete_all_dialog_confirm">ลบทั้งหมด</string>
-    <string name="settings_delete_all_result_title">ไทม์ไลน์</string>
-    <plurals name="settings_delete_all_result_deleted">
-        <item quantity="other">ลบรายการธุรกรรม %1$d รายการ.</item>
-    </plurals>
-    <!-- %1$d = current number of transactions -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Backup / import status -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Save backup dialog -->
-    <string name="settings_save_backup_share">แชร์</string>
-    <!-- Notifications -->
-    <string name="settings_notifications_section">การแจ้งเตือน</string>
-    <!-- AI Features -->
-    <string name="settings_ai_chat_title">ผู้ช่วยแชท AI</string>
-    <!-- %1$d = model size in megabytes -->
-    <string name="settings_ai_status_insufficient_space">พื้นที่จัดเก็บไม่เพียงพอ</string>
-    <string name="settings_ai_download">ดาวน์โหลด</string>
-    <string name="settings_ai_retry">ลองอีกครั้ง</string>
-    <string name="settings_ai_delete">ลบ</string>
-    <string name="settings_ai_error">ข้อผิดพลาด</string>
-    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
-    <!-- Developer -->
-    <string name="settings_developer_mode_subtitle">แสดงข้อมูลทางเทคนิคในแชท</string>
-    <!-- Support & Community -->
-    <!-- %1$s = app version, e.g. 2.18.0 -->
-    <!-- ══ Appearance screen ══ -->
-    <string name="appearance_title">ลักษณะ</string>
-    <!-- Theme mode -->
-    <string name="appearance_mode_system">ระบบ</string>
-    <string name="appearance_mode_light">สว่าง</string>
-    <string name="appearance_mode_dark">มืด</string>
-    <!-- Theme style -->
-    <string name="appearance_style_dynamic">ไดนามิก</string>
-    <string name="appearance_style_dynamic_subtitle">สีวอลเปเปอร์</string>
-    <string name="appearance_style_default">ค่าเริ่มต้น</string>
-    <!-- Toggles -->
-    <string name="appearance_amoled_subtitle">ใช้พื้นหลังสีดำบริสุทธิ์เพื่อความคอนทราสต์ที่ลึกยิ่งขึ้น</string>
-    <string name="appearance_blur_title">เอฟเฟกต์เบลอ</string>
-    <string name="appearance_blur_subtitle">เปิดใช้งานเอฟเฟกต์เบลอแบบ Glassmorphism ในส่วนประกอบของ UI</string>
-    <!-- Navigation -->
-    <string name="appearance_navigation_section">การนำทาง</string>
-    <string name="appearance_nav_floating">ลอย</string>
-    <string name="appearance_nav_normal">ปกติ</string>
-    <string name="appearance_nav_normal_subtitle">มาตรฐาน M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_none">ไม่มี</string>
-    <string name="appearance_cover_selected">ที่เลือก</string>
-    <!-- Fonts -->
-    <string name="appearance_fonts_section">แบบอักษร</string>
-    <string name="appearance_font_default">ค่าเริ่มต้น</string>
-    <string name="appearance_font_default_subtitle">ระบบ</string>
-    <string name="appearance_font_sn_pro_subtitle">โมโนทันสมัย</string>
-    <!-- ══ FAQ screen ══ -->
-    <string name="faq_title">คำถามที่พบบ่อย</string>
-    <string name="faq_collapse">ย่อ</string>
-    <string name="faq_expand">ขยาย</string>
-    <!-- Transaction Types -->
-    <!-- SMS Parsing -->
-    <!-- Privacy & Data -->
-    <!-- AI Features -->
-    <!-- Account Management -->
-    <!-- Still need help -->
-    <string name="settings_back">กลับ</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">อัปเกรดเป็น PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">ใช้งานอยู่ · ปลดล็อกฟีเจอร์ขั้นสูงทั้งหมดแล้ว</string>
     <string name="settings_pro_subtitle_upgrade">กฎ Statement การส่งออก และอื่นๆ ได้ไม่จำกัด</string>
+    <!-- Personalization -->
     <string name="settings_personalization_section">ปรับแต่ง</string>
+    <string name="settings_appearance_title">ลักษณะ</string>
     <string name="settings_appearance_subtitle">ธีม สี แบบอักษร และการนำทาง</string>
+    <string name="settings_language_title">ภาษา</string>
     <string name="settings_language_subtitle">เลือกภาษาของแอป</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">สกุลเงิน</string>
     <string name="settings_unified_currency_title">โหมดสกุลเงินเดียว</string>
     <string name="settings_unified_currency_subtitle">แปลงธุรกรรมทั้งหมดเป็นสกุลเงินที่แสดง</string>
+    <string name="settings_display_currency_title">สกุลเงินที่แสดง</string>
     <string name="settings_display_currency_subtitle">แสดงจำนวนเงินทั้งหมดเป็นสกุลนี้</string>
+    <string name="settings_exchange_rates_title">อัตราแลกเปลี่ยน</string>
     <string name="settings_exchange_rates_subtitle">ดูและปรับอัตราแลกเปลี่ยน</string>
     <string name="settings_card_spend_as_expense_title">นับยอดใช้บัตรเป็นค่าใช้จ่าย</string>
     <string name="settings_card_spend_as_expense_subtitle">รวมยอดใช้บัตรเครดิตใน \"ใช้ไปเดือนนี้\"</string>
+    <string name="settings_default_currency_title">สกุลเงินเริ่มต้น</string>
     <string name="settings_default_currency_subtitle">สกุลเงินที่ใช้ในการแปลง</string>
     <string name="settings_main_account_title">บัญชีหลัก</string>
     <string name="settings_main_account_subtitle">ใช้กำหนดสกุลเงินเริ่มต้นของคุณ</string>
     <string name="settings_main_account_not_set">ยังไม่ได้ตั้งค่า</string>
+    <string name="settings_currency_field_label">สกุลเงิน</string>
     <string name="settings_number_format_title">รูปแบบตัวเลข</string>
     <string name="settings_number_format_subtitle">วิธีแบ่งหลักของจำนวนเงินก้อนใหญ่</string>
     <string name="settings_number_format_auto">อัตโนมัติ</string>
@@ -144,24 +41,46 @@
     <string name="settings_number_format_auto_example">ตามแต่ละสกุลเงิน (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (แสน / โครร์)</string>
     <string name="settings_number_format_international_example">150,000 (พัน / ล้าน)</string>
+    <!-- Budget -->
     <string name="settings_budget_section">งบประมาณ</string>
     <string name="settings_budget_cycle_title">วันเริ่มรอบงบประมาณ</string>
     <string name="settings_budget_cycle_subtitle">เลื่อนวันเริ่มของรอบงบประมาณรายเดือน เช่น 25 หมายถึงรอบจะเริ่มวันที่ 25 → 24</string>
     <string name="settings_budget_cycle_dialog_body">เลือกวันที่เริ่มรอบงบประมาณแต่ละเดือน เช่น 25 หมายถึงรอบจะเริ่มวันที่ 25 ถึงวันที่ 24 ของเดือนถัดไป</string>
+    <!-- Contacts -->
+    <string name="settings_contacts_section">รายชื่อติดต่อ</string>
     <string name="settings_contacts_vpa_title">แสดงชื่อผู้ติดต่อแทน UPI VPA</string>
     <string name="settings_contacts_vpa_subtitle">แสดง \'John Doe\' แทน \'9876543210@paytm\' ต้องอนุญาตให้เข้าถึงรายชื่อติดต่อ</string>
+    <!-- Security -->
+    <string name="settings_security_section">ความปลอดภัย</string>
+    <string name="settings_app_lock_title">ล็อกแอป</string>
+    <string name="settings_app_lock_subtitle">ปกป้องข้อมูลของคุณด้วยการยืนยันตัวตนทางชีวมิติ</string>
+    <string name="settings_lock_timeout_title">เวลาหมดอายุล็อก</string>
     <string name="settings_lock_timeout_immediately_subtitle">ล็อกทันที</string>
     <plurals name="settings_lock_timeout_after_minutes">
         <item quantity="other">หลังจาก %1$d นาที</item>
     </plurals>
     <string name="settings_lock_timeout_dialog_body">เลือกว่าจะล็อกแอปเมื่อไหร่หลังจากแอปไปอยู่เบื้องหลัง</string>
+    <string name="settings_lock_timeout_option_immediately">ทันที</string>
+    <plurals name="settings_lock_timeout_option_minutes">
+        <item quantity="other">%1$d นาที</item>
+    </plurals>
+    <!-- Data Management -->
+    <string name="settings_data_section">การจัดการข้อมูล</string>
     <string name="settings_manage_accounts_title">จัดการบัญชี</string>
     <string name="settings_manage_accounts_subtitle">ดูและจัดการบัญชีธนาคารของคุณ</string>
+    <string name="settings_categories_title">หมวดหมู่</string>
+    <string name="settings_categories_subtitle">จัดการหมวดหมู่ค่าใช้จ่ายและรายได้</string>
+    <string name="settings_smart_rules_title">กฎอัจฉริยะ</string>
+    <string name="settings_smart_rules_subtitle">การจัดหมวดหมู่ธุรกรรมอัตโนมัติ</string>
+    <string name="settings_budgets_title">งบประมาณ</string>
     <string name="settings_budgets_subtitle">ติดตามวงเงินใช้จ่ายตามหมวดหมู่</string>
+    <string name="settings_loans_title">เงินกู้</string>
     <string name="settings_loans_subtitle">ติดตามเงินที่ให้ยืมและยืมมา</string>
+    <string name="settings_recurring_title">เกิดซ้ำ</string>
     <string name="settings_recurring_subtitle">เพิ่มธุรกรรมเงินสดและที่เพิ่มเองตามกำหนดให้อัตโนมัติ</string>
     <string name="settings_transaction_groups_title">กลุ่มธุรกรรม</string>
     <string name="settings_transaction_groups_subtitle">จัดธุรกรรมไว้ภายใต้หัวข้อเดียวกัน</string>
+    <string name="settings_export_data_title">ส่งออกข้อมูล</string>
     <string name="settings_export_data_subtitle">สำรองข้อมูลทั้งหมดเป็นไฟล์</string>
     <string name="settings_folder_backup_title">สำรองข้อมูลลงโฟลเดอร์อัตโนมัติ</string>
     <string name="settings_folder_backup_subtitle_enabled">สำรองข้อมูลทุกวันตอน 2:00 น. ลงโฟลเดอร์ที่คุณเลือก</string>
@@ -172,10 +91,13 @@
     <string name="settings_folder_backup_include_receipts_title">รวมรูปใบเสร็จในการสำรองข้อมูลอัตโนมัติ</string>
     <string name="settings_folder_backup_include_receipts_subtitle">ทำให้ข้อมูลสำรองแต่ละวันใหญ่ขึ้น</string>
     <string name="settings_backup_now_title">สำรองข้อมูลตอนนี้</string>
+    <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">สำรองล่าสุด: %1$s</string>
     <string name="settings_backup_now_subtitle">สำรองข้อมูลลงโฟลเดอร์ของคุณตอนนี้</string>
     <string name="settings_change_backup_folder_title">เปลี่ยนโฟลเดอร์สำรองข้อมูล</string>
     <string name="settings_change_backup_folder_subtitle">เลือกโฟลเดอร์อื่นสำหรับการสำรองข้อมูลอัตโนมัติ</string>
+    <string name="settings_import_data_title">นำเข้าข้อมูล</string>
+    <string name="settings_import_data_subtitle">กู้คืนข้อมูลจากการสำรอง</string>
     <string name="settings_import_csv_title">นำเข้าธุรกรรม (CSV)</string>
     <string name="settings_import_csv_subtitle">นำเข้าจากไฟล์ CSV ที่ส่งออกจาก PennyWise</string>
     <string name="settings_import_statement_title">นำเข้า Statement</string>
@@ -184,35 +106,57 @@
     <string name="settings_unrecognized_sms_subtitle">ดูและรายงานข้อความจากธนาคารที่ยังไม่รองรับ</string>
     <string name="settings_delete_all_title">ลบธุรกรรมทั้งหมด</string>
     <string name="settings_delete_all_subtitle">ล้างประวัติธุรกรรม บัญชีและงบประมาณจะยังอยู่</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">ระยะเวลาสแกน SMS</string>
+    <string name="settings_sms_scan_subtitle_all_time">สแกนข้อความ SMS ทั้งหมด</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_subtitle_from_date">สแกนตั้งแต่ %1$s ถึงวันนี้</string>
     <string name="settings_sms_scan_subtitle_custom">สแกนตั้งแต่วันที่ที่กำหนดเองถึงวันนี้</string>
     <plurals name="settings_sms_scan_subtitle_months">
         <item quantity="other">สแกน %1$d เดือนล่าสุด</item>
     </plurals>
+    <string name="settings_sms_scan_all_time">ตลอดเวลา</string>
+    <string name="settings_sms_scan_custom_short">กำหนดเอง</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
     <plurals name="settings_sms_scan_months_short">
         <item quantity="other">%1$d ด.</item>
     </plurals>
     <string name="settings_sms_scan_dialog_body">เลือกว่าจะสแกนหาธุรกรรมในข้อความ SMS ย้อนหลังไปแค่ไหน</string>
     <string name="settings_sms_scan_option_custom">กำหนดวันที่เอง</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_option_custom_with_date">กำหนดวันที่เอง (%1$s)</string>
+    <plurals name="settings_sms_scan_option_months">
+        <item quantity="other">%1$d เดือน</item>
+    </plurals>
     <plurals name="settings_sms_scan_option_years">
         <item quantity="other">%1$d ปี</item>
     </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
     <string name="settings_delete_all_dialog_title">ลบธุรกรรมทั้งหมดไหม?</string>
     <plurals name="settings_delete_all_dialog_body">
         <item quantity="other">ธุรกรรมทั้งหมด %1$d รายการจะถูกลบถาวร รวมถึงการแบ่งจ่ายและแท็ก ย้อนกลับไม่ได้นะ</item>
     </plurals>
     <string name="settings_delete_all_dialog_kept">บัญชี งบประมาณ เงินกู้ หมวดหมู่ และกฎของคุณจะยังอยู่ ถ้าอาจอยากได้ประวัตินี้คืน ให้ส่งออกข้อมูลก่อน</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
     <string name="settings_delete_all_dialog_type_to_confirm">พิมพ์ %1$s เพื่อยืนยัน</string>
     <string name="settings_delete_all_dialog_deleting">กำลังลบ…</string>
+    <string name="settings_delete_all_dialog_confirm">ลบทั้งหมด</string>
+    <string name="settings_delete_all_result_title">ไทม์ไลน์</string>
     <string name="settings_delete_all_result_none">ไม่มีธุรกรรมให้ลบ</string>
+    <plurals name="settings_delete_all_result_deleted">
+        <item quantity="other">ลบรายการธุรกรรม %1$d รายการ.</item>
+    </plurals>
     <plurals name="settings_delete_all_result_arrived">
         <item quantity="other">มีธุรกรรมใหม่เข้ามา %1$d รายการระหว่างที่กำลังลบ</item>
     </plurals>
+    <!-- %1$d = current number of transactions -->
     <string name="settings_delete_all_result_count_changed">มีธุรกรรมใหม่เข้ามาระหว่างที่คุณยืนยัน จึงยังไม่ได้ลบอะไร ตอนนี้มี %1$d รายการ ตรวจสอบจำนวนแล้วลองอีกครั้ง</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_delete_all_result_error">ลบธุรกรรมไม่ได้: %1$s</string>
+    <!-- Data Management → Backup / import status -->
     <string name="settings_backup_status_title">สถานะการสำรองข้อมูล</string>
     <string name="settings_backup_created_choose">สร้างข้อมูลสำรองแล้ว! เลือกที่บันทึกได้เลย</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">ส่งออกไม่สำเร็จ: %1$s</string>
     <string name="settings_export_error">ส่งออกผิดพลาด: %1$s</string>
     <string name="settings_backup_saved">บันทึกข้อมูลสำรองแล้ว!</string>
@@ -231,12 +175,16 @@
     <string name="settings_folder_not_writable">เขียนลงโฟลเดอร์สำรองข้อมูลที่เลือกไม่ได้</string>
     <string name="settings_folder_backup_saved">บันทึกข้อมูลสำรองลงโฟลเดอร์แล้ว</string>
     <string name="settings_folder_backup_enabled">เปิดการสำรองข้อมูลลงโฟลเดอร์อัตโนมัติแล้ว จะสำรองทุกวันตอน 2:00 น.</string>
+    <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">บันทึกข้อมูลสำรอง</string>
     <string name="settings_save_backup_created">สร้างข้อมูลสำรองแล้ว!</string>
     <string name="settings_save_backup_choose">เลือกวิธีบันทึก:</string>
     <string name="settings_save_backup_to_files">บันทึกลงไฟล์</string>
+    <string name="settings_save_backup_share">แชร์</string>
     <string name="settings_share_backup_subject">ข้อมูลสำรอง PennyWise</string>
     <string name="settings_share_backup_chooser">แชร์ข้อมูลสำรอง</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">การแจ้งเตือน</string>
     <string name="settings_notification_access_title">การเข้าถึงการแจ้งเตือนจากธนาคาร</string>
     <string name="settings_notification_access_enabled">เปิดอยู่</string>
     <string name="settings_notification_access_disabled">แตะเพื่อเปิดการแจ้งเตือนจากแอปธนาคาร</string>
@@ -245,23 +193,34 @@
     <string name="settings_daily_summary_title">สรุปรายวัน</string>
     <string name="settings_daily_summary_subtitle">สรุปการใช้จ่ายของวันนี้ตอน 21:00 น.</string>
     <string name="settings_daily_summary_needs_permission">อนุญาตการแจ้งเตือนสำหรับ PennyWise เพื่อรับสรุปรายวัน</string>
+    <!-- AI Features -->
     <string name="settings_ai_section">ฟีเจอร์ AI</string>
+    <string name="settings_ai_chat_title">ผู้ช่วยแชท AI</string>
+    <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">ดาวน์โหลดโมเดล AI (%1$d MB)</string>
     <string name="settings_ai_status_downloading">กำลังดาวน์โหลดโมเดล AI...</string>
     <string name="settings_ai_status_paused">การดาวน์โหลดหยุดชะงัก</string>
     <string name="settings_ai_status_completed">โมเดล AI พร้อมแชทแล้ว</string>
     <string name="settings_ai_status_failed">ดาวน์โหลดไม่สำเร็จ</string>
+    <string name="settings_ai_status_insufficient_space">พื้นที่จัดเก็บไม่เพียงพอ</string>
+    <string name="settings_ai_download">ดาวน์โหลด</string>
+    <string name="settings_ai_retry">ลองอีกครั้ง</string>
     <string name="settings_ai_downloaded">ดาวน์โหลดแล้ว</string>
-    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_delete">ลบ</string>
+    <string name="settings_ai_error">ข้อผิดพลาด</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">ยกเลิกการดาวน์โหลด</string>
     <string name="settings_ai_info">แชทกับ AI เรื่องค่าใช้จ่ายและรับข้อมูลเชิงลึกด้านการเงิน บทสนทนาทั้งหมดอยู่ในเครื่องของคุณเท่านั้น</string>
     <string name="settings_ai_download_notification_title">โมเดลแชท AI</string>
     <string name="settings_ai_download_notification_description">กำลังดาวน์โหลดผู้ช่วยแชท AI สำหรับ PennyWise</string>
+    <!-- Developer -->
     <string name="settings_developer_section">นักพัฒนา</string>
     <string name="settings_developer_mode_title">โหมดนักพัฒนา</string>
+    <string name="settings_developer_mode_subtitle">แสดงข้อมูลทางเทคนิคในแชท</string>
     <string name="settings_webhooks_title">Webhook</string>
     <string name="settings_webhooks_subtitle">ส่งข้อมูลที่เลือกไปยังปลายทางของคุณ</string>
     <string name="settings_webhooks_subtitle_pro">Pro · ส่งข้อมูลที่เลือกไปยังปลายทางของคุณ</string>
+    <!-- Support & Community -->
     <string name="settings_support_section">ความช่วยเหลือและชุมชน</string>
     <string name="settings_help_faq_title">ความช่วยเหลือและคำถามที่พบบ่อย</string>
     <string name="settings_help_faq_subtitle">คำถามที่พบบ่อยและความช่วยเหลือ</string>
@@ -269,14 +228,42 @@
     <string name="settings_user_guide_subtitle">คู่มือทีละขั้นตอนพร้อมภาพหน้าจอ</string>
     <string name="settings_report_issue_title">รายงานปัญหา</string>
     <string name="settings_report_issue_subtitle">ส่งรายงานบั๊กบน GitHub</string>
-    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">ลักษณะ</string>
     <string name="appearance_back">กลับ</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">ระบบ</string>
+    <string name="appearance_mode_light">สว่าง</string>
+    <string name="appearance_mode_dark">มืด</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">ไดนามิก</string>
+    <string name="appearance_style_dynamic_subtitle">สีวอลเปเปอร์</string>
+    <string name="appearance_style_default">ค่าเริ่มต้น</string>
     <string name="appearance_style_default_subtitle">สีแบบ Rose Pine</string>
+    <!-- Toggles -->
     <string name="appearance_amoled_title">ดำ AMOLED</string>
+    <string name="appearance_amoled_subtitle">ใช้พื้นหลังสีดำบริสุทธิ์เพื่อความคอนทราสต์ที่ลึกยิ่งขึ้น</string>
+    <string name="appearance_blur_title">เอฟเฟกต์เบลอ</string>
+    <string name="appearance_blur_subtitle">เปิดใช้งานเอฟเฟกต์เบลอแบบ Glassmorphism ในส่วนประกอบของ UI</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">การนำทาง</string>
     <string name="appearance_bottom_bar_section">แถบด้านล่าง</string>
     <string name="appearance_bottom_bar_subtitle">เลือกแท็บที่จะแสดง หน้าแรกจะแสดงเสมอ</string>
+    <string name="appearance_nav_floating">ลอย</string>
     <string name="appearance_nav_floating_subtitle">ทันสมัยและเพรียวบาง</string>
+    <string name="appearance_nav_normal">ปกติ</string>
+    <string name="appearance_nav_normal_subtitle">มาตรฐาน M3</string>
+    <!-- Cover style -->
     <string name="appearance_cover_section">รูปแบบหน้าปก</string>
+    <string name="appearance_cover_none">ไม่มี</string>
+    <string name="appearance_cover_selected">ที่เลือก</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">แบบอักษร</string>
+    <string name="appearance_font_default">ค่าเริ่มต้น</string>
+    <string name="appearance_font_default_subtitle">ระบบ</string>
+    <string name="appearance_font_sn_pro_subtitle">โมโนทันสมัย</string>
+    <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Webhook</string>
     <string name="webhooks_title_add">เพิ่ม Webhook</string>
     <string name="webhooks_title_edit">แก้ไข Webhook</string>
@@ -291,22 +278,28 @@
     <string name="webhooks_interval_apply">ใช้</string>
     <string name="webhooks_sync_all_now">ซิงค์ Webhook ที่เปิดอยู่ตอนนี้</string>
     <string name="webhooks_empty">ยังไม่มี Webhook ที่บันทึกไว้</string>
+    <!-- Webhook card -->
     <string name="webhooks_auto_sync_on">เปิดซิงค์อัตโนมัติแล้ว</string>
     <string name="webhooks_auto_sync_off">ปิดซิงค์อัตโนมัติอยู่</string>
+    <!-- %1$s = date and time of the last sync -->
     <string name="webhooks_last_sync">ซิงค์ล่าสุด: %1$s</string>
     <string name="webhooks_action_edit">แก้ไข</string>
     <string name="webhooks_action_test">ทดสอบ</string>
     <string name="webhooks_action_sync">ซิงค์</string>
     <string name="webhooks_action_history">ประวัติ</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_action_delete_cd">ลบ %1$s</string>
+    <!-- Delete dialog -->
     <string name="webhooks_delete_title">ลบ Webhook ไหม?</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_delete_body">ลบ %1$s และประวัติการส่งไหม?</string>
     <string name="webhooks_delete_confirm">ลบ</string>
     <string name="webhooks_delete_cancel">ยกเลิก</string>
+    <!-- Delivery history -->
     <string name="webhooks_history_empty">ยังไม่มีการส่ง งานที่อยู่ในคิวจะรอการเชื่อมต่อเครือข่าย</string>
     <string name="webhooks_history_delivered">ส่งแล้ว</string>
     <string name="webhooks_history_failed">ล้มเหลว</string>
-    <string name="webhooks_history_meta">%1$s · %2$s</string>
+    <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
     <plurals name="webhooks_history_batches">
         <item quantity="other">การส่งนี้มี %1$d ชุด</item>
     </plurals>
@@ -314,6 +307,7 @@
     <string name="webhooks_reason_interval">ตามรอบเวลา</string>
     <string name="webhooks_reason_scheduled">ตามกำหนดการ</string>
     <string name="webhooks_reason_test">ทดสอบ</string>
+    <!-- Editor -->
     <string name="webhooks_editor_name">ชื่อ</string>
     <string name="webhooks_editor_url">URL ปลายทาง HTTPS</string>
     <plurals name="webhooks_editor_auto_on_warning">
@@ -329,6 +323,7 @@
     <string name="webhooks_data_budgets">งบประมาณ</string>
     <string name="webhooks_data_accounts">บัญชี</string>
     <string name="webhooks_data_subscriptions">การสมัครสมาชิก</string>
+    <!-- %1$s = selected date range, e.g. Today -->
     <string name="webhooks_editor_range">ช่วง: %1$s</string>
     <string name="webhooks_editor_range_hint">ตั้งแต่ครั้งล่าสุดที่สำเร็จ จะส่งการแก้ไขและบันทึกการลบธุรกรรม ส่วนงบประมาณ บัญชี และการสมัครสมาชิกเป็นข้อมูล ณ ปัจจุบัน</string>
     <string name="webhooks_editor_start_date">วันที่เริ่ม (YYYY-MM-DD)</string>
@@ -340,6 +335,7 @@
     <string name="webhooks_editor_remove_header">ลบ Header</string>
     <string name="webhooks_editor_add_header">เพิ่ม Header</string>
     <string name="webhooks_editor_save">บันทึก Webhook</string>
+    <!-- Date ranges -->
     <string name="webhooks_range_since_last_success">ตั้งแต่ครั้งล่าสุดที่สำเร็จ</string>
     <string name="webhooks_range_today">วันนี้</string>
     <string name="webhooks_range_current_week">สัปดาห์นี้</string>
@@ -347,12 +343,14 @@
     <string name="webhooks_range_previous_month">เดือนที่แล้ว</string>
     <string name="webhooks_range_last_30_days">30 วันที่ผ่านมา</string>
     <string name="webhooks_range_custom">กำหนดวันที่เอง</string>
+    <!-- Status messages -->
     <string name="webhooks_msg_saved">บันทึก Webhook แล้ว</string>
     <string name="webhooks_msg_interval_saved">บันทึกความถี่ในการซิงค์แล้ว</string>
     <string name="webhooks_msg_test_queued">เข้าคิวการทดสอบด้วยข้อมูลจำลองแล้ว ผลการส่งจะแสดงในประวัติ</string>
     <string name="webhooks_msg_sync_queued">เข้าคิวการซิงค์แล้ว จะส่งเมื่อออนไลน์</string>
     <string name="webhooks_msg_deleted">ลบ Webhook แล้ว</string>
     <string name="webhooks_msg_action_failed">ทำรายการ Webhook ไม่สำเร็จ ลองอีกครั้ง</string>
+    <!-- Validation errors -->
     <string name="webhooks_error_name_required">ต้องใส่ชื่อ Webhook</string>
     <string name="webhooks_error_url_required">ต้องใส่ URL ของ Webhook</string>
     <string name="webhooks_error_url_invalid">ใส่ URL แบบ HTTP หรือ HTTPS ที่ถูกต้อง</string>
@@ -365,8 +363,14 @@
     <string name="webhooks_error_header_line_breaks">ค่า Header ต้องไม่มีการขึ้นบรรทัดใหม่</string>
     <string name="webhooks_error_header_managed">Header นี้ถูกจัดการให้อัตโนมัติ</string>
     <string name="webhooks_error_header_unique">ชื่อ Header ต้องไม่ซ้ำกัน</string>
+    <!-- %1$d = minimum hours, %2$d = maximum hours -->
     <string name="webhooks_error_interval">ใส่ตัวเลขระหว่าง %1$d ถึง %2$d</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">คำถามที่พบบ่อย</string>
     <string name="faq_back">กลับ</string>
+    <string name="faq_collapse">ย่อ</string>
+    <string name="faq_expand">ขยาย</string>
+    <!-- Transaction Types -->
     <string name="faq_transaction_types_section">ประเภทธุรกรรม</string>
     <string name="faq_wallet_credit_question">ทำไมธุรกรรมวอลเล็ตถึงเป็นเครดิต?</string>
     <string name="faq_wallet_credit_answer">ธุรกรรมวอลเล็ต (Amazon Pay, Paytm ฯลฯ) ถูกจัดเป็นเครดิต เพราะจะเรียกเก็บจากบัญชีธนาคารหรือบัตรเครดิตของคุณก่อน ไม่ใช่การตัดเงินจากธนาคารโดยตรง ช่วยให้ติดตามวิธีชำระเงินจริงที่ใช้ได้</string>
@@ -374,6 +378,7 @@
     <string name="faq_transaction_types_answer">• ค่าใช้จ่าย: เงินออกจากบัญชีของคุณ (การตัดเงิน การซื้อ การจ่ายบิล)\n• รายได้: เงินเข้าบัญชีของคุณ (เงินเดือน เงินคืน แคชแบ็ก)\n• การลงทุน: กองทุนรวม หุ้น การลงทุนแบบ SIP บัญชีเทรด\n• เครดิต: ธุรกรรมบัตรเครดิตและการจ่ายผ่านวอลเล็ต (เงินที่คุณจะจ่ายทีหลัง)\n• โอน: เงินที่ย้ายระหว่างบัญชีของคุณเอง (โอนเข้าบัญชีตัวเอง)</string>
     <string name="faq_transfer_vs_expense_question">เมื่อไหร่ควรใช้โอน และเมื่อไหร่ควรใช้ค่าใช้จ่าย?</string>
     <string name="faq_transfer_vs_expense_answer">ใช้โอนเมื่อย้ายเงินระหว่างบัญชีของคุณเอง (เช่น จากบัญชีออมทรัพย์ไปบัญชีกระแสรายวัน) ซึ่งไม่กระทบมูลค่าสุทธิ ใช้ค่าใช้จ่ายสำหรับการใช้จ่ายจริง</string>
+    <!-- SMS Parsing -->
     <string name="faq_sms_parsing_section">การอ่าน SMS</string>
     <string name="faq_sms_not_detected_question">ทำไมแอปไม่เจอ SMS จากธนาคารของฉัน?</string>
     <string name="faq_sms_not_detected_answer">ตรวจสอบว่าธนาคารของคุณอยู่ในรายการที่รองรับไหม ถ้าไม่มี รายงานผ่าน GitHub ได้เลย และตรวจสอบว่าอนุญาตสิทธิ์ SMS แล้ว และรูปแบบผู้ส่งตรงกับรูปแบบ SMS ธนาคารทั่วไป</string>
@@ -381,6 +386,7 @@
     <string name="faq_unrecognized_sms_answer">จะถูกเก็บไว้ใน \'ข้อความที่ไม่รู้จัก\' ซึ่งคุณตรวจดูเองหรือรายงานมาให้เราเพื่อช่วยปรับปรุงการอ่านข้อความได้</string>
     <string name="faq_duplicates_question">ทำไมบางธุรกรรมถึงซ้ำกัน?</string>
     <string name="faq_duplicates_answer">บางธนาคารส่ง SMS หลายข้อความสำหรับธุรกรรมเดียวกัน แอปพยายามตรวจหารายการซ้ำ แต่ถ้ายังมีหลุดมา คุณลบเองได้</string>
+    <!-- Privacy & Data -->
     <string name="faq_privacy_section">ความเป็นส่วนตัวและข้อมูล</string>
     <string name="faq_data_secure_question">ข้อมูลการเงินของฉันปลอดภัยไหม?</string>
     <string name="faq_data_secure_answer">ปลอดภัย! ข้อมูลทั้งหมดอยู่ในเครื่องของคุณ เราไม่มีเซิร์ฟเวอร์หรือคลาวด์ โมเดล AI ทำงานในเครื่องเพื่อความเป็นส่วนตัวเต็มที่</string>
@@ -388,16 +394,19 @@
     <string name="faq_backup_answer">ตอนนี้ข้อมูลเก็บไว้ในเครื่องเท่านั้น ฟีเจอร์ส่งออก/สำรองข้อมูลมีแผนจะเพิ่มในอัปเดตต่อๆ ไป</string>
     <string name="faq_data_access_question">แอปเข้าถึงข้อมูลอะไรบ้าง?</string>
     <string name="faq_data_access_answer">เฉพาะข้อความ SMS จากผู้ส่งที่เป็นธนาคารที่รู้จักเท่านั้น เราไม่อ่านข้อความส่วนตัวหรือเข้าถึงข้อมูลของแอปอื่น</string>
+    <!-- AI Features -->
     <string name="faq_ai_section">ฟีเจอร์ AI</string>
     <string name="faq_ai_download_question">ทำไมต้องดาวน์โหลดโมเดล AI?</string>
     <string name="faq_ai_download_answer">โมเดลขนาด 750MB ช่วยให้แชทเรื่องค่าใช้จ่ายได้ในเครื่อง โดยไม่ส่งข้อมูลไปเซิร์ฟเวอร์ไหนเลย จึงเป็นส่วนตัวเต็มที่</string>
     <string name="faq_ai_ask_question">ถามผู้ช่วย AI เรื่องอะไรได้บ้าง?</string>
     <string name="faq_ai_ask_answer">ถามเรื่องรูปแบบการใช้จ่าย คำแนะนำเรื่องงบประมาณ สรุปธุรกรรม และคำถามการเงินทั่วไปจากข้อมูลของคุณได้</string>
+    <!-- Account Management -->
     <string name="faq_accounts_section">การจัดการบัญชี</string>
     <string name="faq_manual_accounts_question">บัญชีที่เพิ่มเองคืออะไร?</string>
     <string name="faq_manual_accounts_answer">บัญชีที่เพิ่มเองใช้ติดตามเงินสด การลงทุน หรือบัญชีจากธนาคารที่ยังไม่รองรับ คุณอัปเดตยอดเงินเอง</string>
     <string name="faq_multiple_accounts_question">ติดตามหลายบัญชีจากธนาคารเดียวกันได้อย่างไร?</string>
     <string name="faq_multiple_accounts_answer">แอปจะแยกบัญชีให้อัตโนมัติจากเลข 4 หลักสุดท้ายที่แสดงใน SMS</string>
+    <!-- Still need help -->
     <string name="faq_still_need_help_section">ยังต้องการความช่วยเหลือ?</string>
     <string name="faq_report_issue_title">รายงานปัญหา</string>
     <string name="faq_report_issue_subtitle">ส่งรายงานบั๊ก ขอให้รองรับธนาคาร หรือเสนอฟีเจอร์บน GitHub</string>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">Die heutigen Ausgaben, der Rest Ihres Budgets und schnelles Erfassen von Bargeld.</string>
+<resources>
+    <string name="widget_summary_description">Die heutigen Ausgaben, der Rest Ihres Budgets und schnelles Erfassen von Bargeld.</string>
     <string name="widget_summary_left">Übrig im Budget</string>
     <string name="widget_summary_over">Budget überschritten</string>
     <string name="widget_budget_left_label">Übrig</string>

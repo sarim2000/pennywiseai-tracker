@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
-<resources>    <string name="ai_access_settings_title">เชื่อมต่อ Claude / ChatGPT</string>
+<resources>
+    <string name="ai_access_settings_title">เชื่อมต่อ Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">ให้แอป AI อ่านข้อมูลของคุณได้เฉพาะตอนที่คุณอนุญาต</string>
     <string name="ai_access_settings_subtitle_pro">Pro · ให้แอป AI อ่านข้อมูลของคุณได้เฉพาะตอนที่คุณอนุญาต</string>
     <string name="ai_access_title">การเข้าถึงของ AI</string>

@@ -53,6 +53,10 @@
     <string name="balance_history_new_balance">Nouveau solde</string>
     <string name="balance_history_balance_label">Solde</string>
     <string name="balance_history_sms_source">Source SMS</string>
+    <plurals name="balance_history_sms_chars">
+        <item quantity="one">(%1$d caractère)</item>
+        <item quantity="other">(%1$d caractères)</item>
+    </plurals>
     <!-- %1$s = first characters of the SMS -->
     <string name="balance_history_sms_truncated">%1$s...</string>
     <string name="balance_history_copy_sms">Copier le texte SMS</string>
@@ -128,9 +132,16 @@
     <string name="manage_accounts_section_unlinked_cards">Cartes non liées</string>
     <string name="manage_accounts_section_credit_cards">Cartes de crédit</string>
     <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
+    <string name="manage_accounts_section_loan_accounts">Comptes de prêt</string>
+    <string name="manage_accounts_hidden_header">Comptes ignorés (%1$d)</string>
     <string name="manage_accounts_reassign_title">Déplacer les transactions existantes ?</string>
+    <plurals name="manage_accounts_reassign_message">
+        <item quantity="one">%1$d transaction de ce compte est associée à un autre profil. La déplacer aussi vers le nouveau profil ?</item>
+        <item quantity="other">%1$d transactions de ce compte sont associées à un autre profil. Les déplacer aussi vers le nouveau profil ?</item>
+    </plurals>
     <string name="manage_accounts_reassign_move">Déplacer</string>
     <string name="manage_accounts_reassign_keep">Conserver comme étant</string>
+    <string name="manage_accounts_hidden_badge">Ignoré</string>
     <string name="manage_accounts_business_badge">Entreprise</string>
     <string name="manage_accounts_outstanding">En attente</string>
     <string name="manage_accounts_available">Disponible</string>
@@ -143,7 +154,11 @@
     <string name="manage_accounts_action_clear">Nettoyer</string>
     <string name="manage_accounts_action_link">Lier</string>
     <string name="manage_accounts_menu_history">Historique</string>
+    <string name="manage_accounts_menu_show">Ne plus ignorer</string>
+    <string name="manage_accounts_menu_hide">Ignorer ce compte</string>
     <!-- Snackbar after ignoring an account; %1$s = account label -->
+    <string name="manage_accounts_ignored_snackbar">%1$s ignoré</string>
+    <string name="manage_accounts_undo">Annuler</string>
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Date du relevé : %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Définir la date du relevé</string>
@@ -164,6 +179,7 @@
     <string name="manage_accounts_card_updated">Mis à jour : %1$s</string>
     <string name="manage_accounts_unlink_card">Délier la carte</string>
     <string name="manage_accounts_update_balance">Mettre à jour le solde</string>
+    <string name="manage_accounts_estimated_balance_hint">Estimé : les SMS de votre banque n\'indiquent pas de solde. Appuyez pour le définir une fois.</string>
     <string name="manage_accounts_low_balance_alert">Alerte de faible solde</string>
     <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">Marquez ce compte lorsque son solde est inférieur ou égal à ce montant. Solde actuel : %1$s</string>
@@ -177,6 +193,7 @@
     <string name="manage_accounts_update_credit_card">Mettre à jour la carte de crédit</string>
     <string name="manage_accounts_outstanding_balance">Solde en cours</string>
     <string name="manage_accounts_outstanding_balance_hint">Montant actuellement dû sur la carte</string>
+    <string name="manage_accounts_loan_outstanding_hint">Montant restant dû sur le prêt</string>
     <string name="manage_accounts_credit_limit_hint">Limite de crédit totale de la carte</string>
     <string name="manage_accounts_available_credit_label">Crédit disponible :</string>
     <string name="manage_accounts_utilization_label">Utilisation:</string>
@@ -203,6 +220,7 @@
     <string name="manage_accounts_account_ending_in">Compte se terminant par %1$s</string>
     <string name="manage_accounts_delete_warning">Ceci supprimera définitivement tout l\'historique de la balance pour ce compte. Toutes les cartes liées seront dissociées. Cette action ne peut pas être annulée.</string>
     <string name="manage_accounts_edit_account_title">Modifier le compte</string>
+    <string name="manage_accounts_type_note">Changer le type modifie seulement la façon dont le solde est calculé à partir de maintenant. Les transactions passées restent telles quelles.</string>
     <string name="manage_accounts_bank_name_label">Nom de la banque</string>
     <string name="manage_accounts_account_number_label">Numéro de compte</string>
     <string name="manage_accounts_read_only">Lecture seule</string>
@@ -221,7 +239,14 @@
     <!-- %1$s = formatted original loan amount -->
     <string name="loans_of_original">de %1$s</string>
     <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <string name="loans_person_owes_you">Vous doit %1$s</string>
+    <string name="loans_person_you_owe">Vous devez %1$s</string>
+    <string name="loans_person_all_settled">Tout est réglé</string>
     <!-- Open loans both ways that cancel out exactly -->
+    <string name="loans_person_even">À égalité — personne ne doit rien</string>
+    <string name="loans_settle_up">Solder</string>
+    <string name="loans_settle_up_title">Solder les comptes avec %1$s ?</string>
+    <string name="loans_settle_up_message">Tous les prêts en cours avec %1$s seront marqués comme réglés. Tout montant encore impayé sera pardonné.</string>
     <!-- ══ Loan detail ══ -->
     <string name="loan_detail_title_fallback">Prêt</string>
     <string name="loan_detail_more">En savoir plus</string>
@@ -232,6 +257,7 @@
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">reste de %1$s</string>
     <!-- %1$d = percentage repaid -->
+    <string name="loan_detail_percent_repaid">%1$d %% remboursé</string>
     <string name="loan_detail_history">Historique</string>
     <string name="loan_detail_settle_title">Régler le prêt</string>
     <string name="loan_detail_settle_message">Marquer ce prêt comme réglé ? Tout solde restant sera pardonné.</string>
@@ -243,6 +269,7 @@
     <!-- %1$s = person name -->
     <string name="loan_detail_record_payment_from">Enregistrer le paiement à partir de %1$s</string>
     <!-- %1$s = formatted remaining amount -->
+    <string name="loan_detail_amount_remaining">%1$s restant</string>
     <string name="loan_detail_link_existing">Lier une transaction existante</string>
     <string name="loan_detail_or_enter_manually">Ou entrez manuellement</string>
     <string name="loan_detail_enter_amount">Entrez le montant</string>
@@ -283,33 +310,4 @@
         <item quantity="one">Voir tous les comptes %1$d</item>
         <item quantity="other">Voir tous les comptes %1$d</item>
     </plurals>
-    <plurals name="balance_history_sms_chars">
-        <item quantity="one">(%1$d caractère)</item>
-        <item quantity="many">(%1$d caractères)</item>
-        <item quantity="other">(%1$d caractères)</item>
-    </plurals>
-    <string name="manage_accounts_section_loan_accounts">Comptes de prêt</string>
-    <string name="manage_accounts_hidden_header">Comptes ignorés (%1$d)</string>
-    <plurals name="manage_accounts_reassign_message">
-        <item quantity="one">%1$d transaction de ce compte est associée à un autre profil. La déplacer aussi vers le nouveau profil ?</item>
-        <item quantity="many">%1$d transactions de ce compte sont associées à un autre profil. Les déplacer aussi vers le nouveau profil ?</item>
-        <item quantity="other">%1$d transactions de ce compte sont associées à un autre profil. Les déplacer aussi vers le nouveau profil ?</item>
-    </plurals>
-    <string name="manage_accounts_hidden_badge">Ignoré</string>
-    <string name="manage_accounts_menu_show">Ne plus ignorer</string>
-    <string name="manage_accounts_menu_hide">Ignorer ce compte</string>
-    <string name="manage_accounts_ignored_snackbar">%1$s ignoré</string>
-    <string name="manage_accounts_undo">Annuler</string>
-    <string name="manage_accounts_estimated_balance_hint">Estimé : les SMS de votre banque n\'indiquent pas de solde. Appuyez pour le définir une fois.</string>
-    <string name="manage_accounts_loan_outstanding_hint">Montant restant dû sur le prêt</string>
-    <string name="manage_accounts_type_note">Changer le type modifie seulement la façon dont le solde est calculé à partir de maintenant. Les transactions passées restent telles quelles.</string>
-    <string name="loans_person_owes_you">Vous doit %1$s</string>
-    <string name="loans_person_you_owe">Vous devez %1$s</string>
-    <string name="loans_person_all_settled">Tout est réglé</string>
-    <string name="loans_person_even">À égalité — personne ne doit rien</string>
-    <string name="loans_settle_up">Solder</string>
-    <string name="loans_settle_up_title">Solder les comptes avec %1$s ?</string>
-    <string name="loans_settle_up_message">Tous les prêts en cours avec %1$s seront marqués comme réglés. Tout montant encore impayé sera pardonné.</string>
-    <string name="loan_detail_percent_repaid">%1$d %% remboursé</string>
-    <string name="loan_detail_amount_remaining">%1$s restant</string>
 </resources>

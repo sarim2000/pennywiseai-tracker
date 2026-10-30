@@ -35,7 +35,6 @@
     <string name="split_remove_confirm">Entfernen</string>
     <string name="split_upi_title">Ihre UPI-ID</string>
     <string name="split_upi_message">Andere zahlen ihren Anteil an diese UPI-ID. Sie können sie in den Einstellungen ändern.</string>
-    <string name="split_upi_hint">name@bank</string>
     <string name="split_upi_invalid">Geben Sie eine UPI-ID wie name@bank ein</string>
     <string name="split_upi_save">Speichern</string>
     <string name="split_request_text">Zahle %1$s an %2$s für %3$s</string>

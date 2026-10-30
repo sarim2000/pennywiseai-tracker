@@ -35,7 +35,6 @@
     <string name="split_remove_confirm">Выдаліць</string>
     <string name="split_upi_title">Ваш UPI ID</string>
     <string name="split_upi_message">Людзі плацяць сваю долю на гэты UPI ID. Змяніць яго можна ў наладах.</string>
-    <string name="split_upi_hint">name@bank</string>
     <string name="split_upi_invalid">Увядзіце UPI ID у выглядзе name@bank</string>
     <string name="split_upi_save">Захаваць</string>
     <string name="split_request_text">Заплаціце %1$s на %2$s за %3$s</string>

@@ -2,131 +2,37 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">सेटिङ्स</string>
+    <string name="settings_back">पछाडि</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">रद्द गर्नुहोस्</string>
     <string name="settings_action_ok">ठीक छ</string>
     <string name="settings_action_done">समाप्त</string>
     <!-- PennyWise Pro -->
-    <!-- Personalization -->
-    <string name="settings_appearance_title">रुपरेखा</string>
-    <string name="settings_language_title">भाषा</string>
-    <!-- Currency -->
-    <string name="settings_currency_section">मुद्रा</string>
-    <string name="settings_display_currency_title">प्रदर्शन मुद्रा</string>
-    <string name="settings_exchange_rates_title">विनिमय दरहरू</string>
-    <string name="settings_default_currency_title">पूर्वनिर्धारित मुद्रा</string>
-    <string name="settings_currency_field_label">मुद्रा</string>
-    <!-- Budget -->
-    <!-- Contacts -->
-    <string name="settings_contacts_section">सम्पर्कहरू</string>
-    <!-- Security -->
-    <string name="settings_security_section">सुरक्षा</string>
-    <string name="settings_app_lock_title">एप लक</string>
-    <string name="settings_app_lock_subtitle">आफ्नो डेटा बायोमेट्रिक प्रमाणीकरणको प्रयोग गरेर सुरक्षित गर्नुहोस्</string>
-    <string name="settings_lock_timeout_title">लक समय समाप्ति</string>
-    <string name="settings_lock_timeout_option_immediately">तुरुन्त</string>
-    <!-- Data Management -->
-    <string name="settings_data_section">डेटा व्यवस्थापन</string>
-    <string name="settings_categories_title">वर्गहरू</string>
-    <string name="settings_categories_subtitle">खर्च र आम्दानीका वर्गहरू व्यवस्थापन गर्नुहोस्</string>
-    <string name="settings_smart_rules_title">स्मार्ट नियमहरू</string>
-    <string name="settings_smart_rules_subtitle">स्वचालित लेनदेन वर्गीकरण</string>
-    <string name="settings_budgets_title">बजेटहरू</string>
-    <string name="settings_loans_title">ऋणहरू</string>
-    <string name="settings_recurring_title">पुनरावृत्ती हुने</string>
-    <string name="settings_export_data_title">डेटा निर्यात गर्नुहोस्</string>
-    <!-- %1$s = date and time of the last backup -->
-    <string name="settings_import_data_title">डेटा आयात गर्नुहोस्</string>
-    <string name="settings_import_data_subtitle">ब्याकअपबाट डेटा पुनर्स्थापना गर्नुहोस्</string>
-    <!-- Data Management → SMS Scan Period -->
-    <string name="settings_sms_scan_title">SMS स्क्यान अवधि</string>
-    <string name="settings_sms_scan_subtitle_all_time">सबै SMS सन्देश स्क्यान गर्नुहोस्</string>
-    <!-- %1$s = custom start date -->
-    <string name="settings_sms_scan_all_time">सधैं</string>
-    <string name="settings_sms_scan_custom_short">अनुकूल</string>
-    <!-- Short badge next to the row, e.g. "3 mo" -->
-    <!-- %1$s = custom start date -->
-    <!-- Data Management → Delete all transactions dialog -->
-    <!-- %1$s = the confirmation word the user must type; it is not translated -->
-    <string name="settings_delete_all_dialog_confirm">सबै मेटाउनुहोस्</string>
-    <string name="settings_delete_all_result_title">टाइमलाइन</string>
-    <!-- %1$d = current number of transactions -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Backup / import status -->
-    <!-- %1$s = technical error detail -->
-    <!-- Data Management → Save backup dialog -->
-    <string name="settings_save_backup_share">सेयर गर्नुहोस्</string>
-    <!-- Notifications -->
-    <string name="settings_notifications_section">सूचनाहरू</string>
-    <!-- AI Features -->
-    <string name="settings_ai_chat_title">एआई च्याट सहायक</string>
-    <!-- %1$d = model size in megabytes -->
-    <string name="settings_ai_status_insufficient_space">पर्याप्त भण्डारण स्थान छैन</string>
-    <string name="settings_ai_download">डाउनलोड</string>
-    <string name="settings_ai_retry">पुन: प्रयास गर्नुहोस्</string>
-    <string name="settings_ai_delete">हटाउनुहोस्</string>
-    <string name="settings_ai_error">त्रुटि</string>
-    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
-    <!-- Developer -->
-    <string name="settings_developer_mode_subtitle">च्याटमा प्राविधिक जानकारी प्रदर्शन गर्नुहोस्</string>
-    <!-- Support & Community -->
-    <!-- %1$s = app version, e.g. 2.18.0 -->
-    <!-- ══ Appearance screen ══ -->
-    <string name="appearance_title">रुपरेखा</string>
-    <!-- Theme mode -->
-    <string name="appearance_mode_system">प्रणाली</string>
-    <string name="appearance_mode_light">हल्का</string>
-    <string name="appearance_mode_dark">गाढा</string>
-    <!-- Theme style -->
-    <string name="appearance_style_dynamic">गतिशील</string>
-    <string name="appearance_style_dynamic_subtitle">वॉलपेपर रङहरू</string>
-    <string name="appearance_style_default">पूर्वनिर्धारित</string>
-    <!-- Toggles -->
-    <string name="appearance_amoled_subtitle">गहिरो विरोधाभासको लागि पूर्ण कालो पृष्ठभूमि प्रयोग गर्नुहोस्</string>
-    <string name="appearance_blur_title">ब्लर प्रभावहरू</string>
-    <string name="appearance_blur_subtitle">UI कम्पोनेन्टहरूमा ग्लासमॉर्फिज्म ब्लर प्रभाव सक्षम गर्नुहोस्</string>
-    <!-- Navigation -->
-    <string name="appearance_navigation_section">नेभिगेसन</string>
-    <string name="appearance_nav_floating">तैरिरहेको</string>
-    <string name="appearance_nav_normal">सामान्य</string>
-    <string name="appearance_nav_normal_subtitle">मानक M3</string>
-    <!-- Cover style -->
-    <string name="appearance_cover_none">कुनै छैन</string>
-    <string name="appearance_cover_selected">छानिएको</string>
-    <!-- Fonts -->
-    <string name="appearance_fonts_section">फन्टहरू</string>
-    <string name="appearance_font_default">पूर्वनिर्धारित</string>
-    <string name="appearance_font_default_subtitle">प्रणाली</string>
-    <string name="appearance_font_sn_pro_subtitle">आधुनिक मोनो</string>
-    <!-- ══ FAQ screen ══ -->
-    <string name="faq_title">सोधिने प्रश्नहरू</string>
-    <string name="faq_collapse">सङ्कुचन गर्नुहोस्</string>
-    <string name="faq_expand">विस्तार गर्नुहोस्</string>
-    <!-- Transaction Types -->
-    <!-- SMS Parsing -->
-    <!-- Privacy & Data -->
-    <!-- AI Features -->
-    <!-- Account Management -->
-    <!-- Still need help -->
-    <string name="settings_back">पछाडि</string>
-    <string name="settings_pro_section">PennyWise Pro</string>
-    <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
     <string name="settings_pro_subtitle_active">सक्रिय · सबै सुविधाहरू खुला</string>
     <string name="settings_pro_subtitle_upgrade">असीमित नियम, स्टेटमेन्ट, निर्यात र अझै धेरै</string>
+    <!-- Personalization -->
     <string name="settings_personalization_section">आफ्नो अनुसार</string>
+    <string name="settings_appearance_title">रुपरेखा</string>
     <string name="settings_appearance_subtitle">थिम, रङ, फन्ट र नेभिगेसन</string>
+    <string name="settings_language_title">भाषा</string>
     <string name="settings_language_subtitle">एपको भाषा छान्नुहोस्</string>
+    <!-- Currency -->
+    <string name="settings_currency_section">मुद्रा</string>
     <string name="settings_unified_currency_title">एकीकृत मुद्रा मोड</string>
     <string name="settings_unified_currency_subtitle">सबै लेनदेनलाई प्रदर्शन मुद्रामा रूपान्तरण गर्नुहोस्</string>
+    <string name="settings_display_currency_title">प्रदर्शन मुद्रा</string>
     <string name="settings_display_currency_subtitle">सबै रकम यही मुद्रामा देखाइन्छ</string>
+    <string name="settings_exchange_rates_title">विनिमय दरहरू</string>
     <string name="settings_exchange_rates_subtitle">दरहरू हेर्नुहोस् र मिलाउनुहोस्</string>
     <string name="settings_card_spend_as_expense_title">कार्ड खर्चलाई खर्चमा गन्नुहोस्</string>
     <string name="settings_card_spend_as_expense_subtitle">\"यो महिना खर्च\" मा क्रेडिट कार्ड खर्च समावेश गर्नुहोस्</string>
+    <string name="settings_default_currency_title">पूर्वनिर्धारित मुद्रा</string>
     <string name="settings_default_currency_subtitle">रूपान्तरणको लागि प्रयोग हुने मुद्रा</string>
     <string name="settings_main_account_title">मुख्य खाता</string>
     <string name="settings_main_account_subtitle">तपाईंको पूर्वनिर्धारित मुद्रा सेट गर्छ</string>
     <string name="settings_main_account_not_set">सेट गरिएको छैन</string>
+    <string name="settings_currency_field_label">मुद्रा</string>
     <string name="settings_number_format_title">संख्या ढाँचा</string>
     <string name="settings_number_format_subtitle">ठूला रकमहरू कसरी समूह गरिन्छन्</string>
     <string name="settings_number_format_auto">स्वचालित</string>
@@ -135,29 +41,48 @@
     <string name="settings_number_format_auto_example">हरेक मुद्रा अनुसार (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (लाख / करोड)</string>
     <string name="settings_number_format_international_example">150,000 (हजार / मिलियन)</string>
+    <!-- Budget -->
     <string name="settings_budget_section">बजेट</string>
     <string name="settings_budget_cycle_title">बजेट चक्र सुरु हुने दिन</string>
     <string name="settings_budget_cycle_subtitle">हरेक मासिक बजेट अवधिको सुरुवात सार्छ; जस्तै 25 भनेको तपाईंको चक्र 25 गतेदेखि 24 गतेसम्म चल्छ</string>
     <string name="settings_budget_cycle_dialog_body">हरेक मासिक बजेट चक्र सुरु हुने दिन छान्नुहोस्। जस्तै 25 भनेको चक्र 25 गतेदेखि अर्को महिनाको 24 गतेसम्म चल्छ।</string>
+    <!-- Contacts -->
+    <string name="settings_contacts_section">सम्पर्कहरू</string>
     <string name="settings_contacts_vpa_title">UPI VPA को सट्टा सम्पर्कको नाम देखाउनुहोस्</string>
     <string name="settings_contacts_vpa_subtitle">\'9876543210@paytm\' को सट्टा \'John Doe\' देखाउनुहोस्। सम्पर्क अनुमति चाहिन्छ।</string>
+    <!-- Security -->
+    <string name="settings_security_section">सुरक्षा</string>
+    <string name="settings_app_lock_title">एप लक</string>
+    <string name="settings_app_lock_subtitle">आफ्नो डेटा बायोमेट्रिक प्रमाणीकरणको प्रयोग गरेर सुरक्षित गर्नुहोस्</string>
+    <string name="settings_lock_timeout_title">लक समय समाप्ति</string>
     <string name="settings_lock_timeout_immediately_subtitle">तुरुन्त लक गर्नुहोस्</string>
     <plurals name="settings_lock_timeout_after_minutes">
         <item quantity="one">%1$d मिनेटपछि</item>
         <item quantity="other">%1$d मिनेटपछि</item>
     </plurals>
     <string name="settings_lock_timeout_dialog_body">एप ब्याकग्राउन्डमा गएपछि कहिले लक गर्ने छान्नुहोस्</string>
+    <string name="settings_lock_timeout_option_immediately">तुरुन्त</string>
     <plurals name="settings_lock_timeout_option_minutes">
         <item quantity="one">%1$d मिनेट</item>
         <item quantity="other">%1$d मिनेट</item>
     </plurals>
+    <!-- Data Management -->
+    <string name="settings_data_section">डेटा व्यवस्थापन</string>
     <string name="settings_manage_accounts_title">खाता व्यवस्थापन</string>
     <string name="settings_manage_accounts_subtitle">आफ्ना बैंक खाताहरू हेर्नुहोस् र व्यवस्थापन गर्नुहोस्</string>
+    <string name="settings_categories_title">वर्गहरू</string>
+    <string name="settings_categories_subtitle">खर्च र आम्दानीका वर्गहरू व्यवस्थापन गर्नुहोस्</string>
+    <string name="settings_smart_rules_title">स्मार्ट नियमहरू</string>
+    <string name="settings_smart_rules_subtitle">स्वचालित लेनदेन वर्गीकरण</string>
+    <string name="settings_budgets_title">बजेटहरू</string>
     <string name="settings_budgets_subtitle">वर्ग अनुसार खर्च सीमा ट्र्याक गर्नुहोस्</string>
+    <string name="settings_loans_title">ऋणहरू</string>
     <string name="settings_loans_subtitle">दिएको र लिएको पैसा ट्र्याक गर्नुहोस्</string>
+    <string name="settings_recurring_title">पुनरावृत्ती हुने</string>
     <string name="settings_recurring_subtitle">तालिका अनुसारका नगद र म्यानुअल लेनदेन आफैं थप्नुहोस्</string>
     <string name="settings_transaction_groups_title">लेनदेन समूहहरू</string>
     <string name="settings_transaction_groups_subtitle">लेनदेनलाई एउटा विषयअन्तर्गत मिलाउनुहोस्</string>
+    <string name="settings_export_data_title">डेटा निर्यात गर्नुहोस्</string>
     <string name="settings_export_data_subtitle">सबै डेटा फाइलमा ब्याकअप गर्नुहोस्</string>
     <string name="settings_folder_backup_title">स्वचालित फोल्डर ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_enabled">तपाईंले छानेको फोल्डरमा हरेक दिन बिहान 2:00 बजे ब्याकअप</string>
@@ -168,10 +93,13 @@
     <string name="settings_folder_backup_include_receipts_title">स्वचालित ब्याकअपमा रसिदका फोटो समावेश गर्नुहोस्</string>
     <string name="settings_folder_backup_include_receipts_subtitle">हरेक दैनिक ब्याकअप ठूलो बनाउँछ</string>
     <string name="settings_backup_now_title">अहिले ब्याकअप गर्नुहोस्</string>
+    <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">पछिल्लो ब्याकअप: %1$s</string>
     <string name="settings_backup_now_subtitle">अहिले नै आफ्नो फोल्डरमा ब्याकअप चलाउनुहोस्</string>
     <string name="settings_change_backup_folder_title">ब्याकअप फोल्डर बदल्नुहोस्</string>
     <string name="settings_change_backup_folder_subtitle">स्वचालित ब्याकअपको लागि अर्को फोल्डर छान्नुहोस्</string>
+    <string name="settings_import_data_title">डेटा आयात गर्नुहोस्</string>
+    <string name="settings_import_data_subtitle">ब्याकअपबाट डेटा पुनर्स्थापना गर्नुहोस्</string>
     <string name="settings_import_csv_title">लेनदेन आयात गर्नुहोस् (CSV)</string>
     <string name="settings_import_csv_subtitle">PennyWise CSV निर्यातबाट आयात गर्नुहोस्</string>
     <string name="settings_import_statement_title">स्टेटमेन्ट आयात गर्नुहोस्</string>
@@ -180,18 +108,26 @@
     <string name="settings_unrecognized_sms_subtitle">समर्थन नभएका बैंक सन्देशहरू हेर्नुहोस् र रिपोर्ट गर्नुहोस्</string>
     <string name="settings_delete_all_title">सबै लेनदेन मेटाउनुहोस्</string>
     <string name="settings_delete_all_subtitle">आफ्नो लेनदेन इतिहास खाली गर्नुहोस् — खाता र बजेट रहन्छन्</string>
+    <!-- Data Management → SMS Scan Period -->
+    <string name="settings_sms_scan_title">SMS स्क्यान अवधि</string>
+    <string name="settings_sms_scan_subtitle_all_time">सबै SMS सन्देश स्क्यान गर्नुहोस्</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_subtitle_from_date">%1$s देखि आजसम्म स्क्यान गर्नुहोस्</string>
     <string name="settings_sms_scan_subtitle_custom">आफूले छानेको मितिदेखि आजसम्म स्क्यान गर्नुहोस्</string>
     <plurals name="settings_sms_scan_subtitle_months">
         <item quantity="one">पछिल्लो %1$d महिना स्क्यान गर्नुहोस्</item>
         <item quantity="other">पछिल्ला %1$d महिना स्क्यान गर्नुहोस्</item>
     </plurals>
+    <string name="settings_sms_scan_all_time">सधैं</string>
+    <string name="settings_sms_scan_custom_short">अनुकूल</string>
+    <!-- Short badge next to the row, e.g. "3 mo" -->
     <plurals name="settings_sms_scan_months_short">
         <item quantity="one">%1$d महिना</item>
         <item quantity="other">%1$d महिना</item>
     </plurals>
     <string name="settings_sms_scan_dialog_body">लेनदेनको लागि कति पुराना SMS सन्देश स्क्यान गर्ने छान्नुहोस्</string>
     <string name="settings_sms_scan_option_custom">आफ्नै मिति</string>
+    <!-- %1$s = custom start date -->
     <string name="settings_sms_scan_option_custom_with_date">आफ्नै मिति (%1$s)</string>
     <plurals name="settings_sms_scan_option_months">
         <item quantity="one">%1$d महिना</item>
@@ -201,14 +137,18 @@
         <item quantity="one">%1$d वर्ष</item>
         <item quantity="other">%1$d वर्ष</item>
     </plurals>
+    <!-- Data Management → Delete all transactions dialog -->
     <string name="settings_delete_all_dialog_title">सबै लेनदेन मेटाउने?</string>
     <plurals name="settings_delete_all_dialog_body">
         <item quantity="one">यसले तपाईंको %1$d लेनदेन, यसका विभाजन र ट्यागसहित स्थायी रूपमा मेटाउँछ। यो पूर्ववत गर्न सकिँदैन।</item>
         <item quantity="other">यसले सबै %1$d लेनदेन, तिनका विभाजन र ट्यागसहित स्थायी रूपमा मेटाउँछ। यो पूर्ववत गर्न सकिँदैन।</item>
     </plurals>
     <string name="settings_delete_all_dialog_kept">तपाईंका खाता, बजेट, ऋण, वर्ग र नियमहरू रहन्छन्। यो इतिहास फेरि चाहिन सक्छ भने पहिले डेटा निर्यात गर्नुहोस्।</string>
+    <!-- %1$s = the confirmation word the user must type; it is not translated -->
     <string name="settings_delete_all_dialog_type_to_confirm">पुष्टि गर्न %1$s टाइप गर्नुहोस्</string>
     <string name="settings_delete_all_dialog_deleting">मेटाउँदै…</string>
+    <string name="settings_delete_all_dialog_confirm">सबै मेटाउनुहोस्</string>
+    <string name="settings_delete_all_result_title">टाइमलाइन</string>
     <string name="settings_delete_all_result_none">मेटाउनुपर्ने कुनै लेनदेन थिएन।</string>
     <plurals name="settings_delete_all_result_deleted">
         <item quantity="one">%1$d लेनदेन मेटाइयो।</item>
@@ -218,10 +158,14 @@
         <item quantity="one">यो चल्दा %1$d नयाँ लेनदेन आयो।</item>
         <item quantity="other">यो चल्दा %1$d नयाँ लेनदेन आए।</item>
     </plurals>
+    <!-- %1$d = current number of transactions -->
     <string name="settings_delete_all_result_count_changed">तपाईं पुष्टि गर्दै गर्दा नयाँ लेनदेन आए, त्यसैले केही मेटाइएन। अहिले %1$d छन्। संख्या जाँचेर फेरि प्रयास गर्नुहोस्।</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_delete_all_result_error">लेनदेन मेटाउन सकिएन: %1$s</string>
+    <!-- Data Management → Backup / import status -->
     <string name="settings_backup_status_title">ब्याकअप स्थिति</string>
     <string name="settings_backup_created_choose">ब्याकअप सफलतापूर्वक बन्यो! कहाँ सुरक्षित गर्ने छान्नुहोस्।</string>
+    <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">निर्यात असफल: %1$s</string>
     <string name="settings_export_error">निर्यात त्रुटि: %1$s</string>
     <string name="settings_backup_saved">ब्याकअप सफलतापूर्वक सुरक्षित भयो!</string>
@@ -240,12 +184,16 @@
     <string name="settings_folder_not_writable">छानिएको ब्याकअप फोल्डरमा लेख्न सकिँदैन</string>
     <string name="settings_folder_backup_saved">ब्याकअप फोल्डरमा सुरक्षित भयो</string>
     <string name="settings_folder_backup_enabled">स्वचालित फोल्डर ब्याकअप सुरु गरियो। ब्याकअप हरेक दिन बिहान 2:00 बजे चल्छ।</string>
+    <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">ब्याकअप सुरक्षित गर्नुहोस्</string>
     <string name="settings_save_backup_created">ब्याकअप सफलतापूर्वक बन्यो!</string>
     <string name="settings_save_backup_choose">कसरी सुरक्षित गर्ने छान्नुहोस्:</string>
     <string name="settings_save_backup_to_files">फाइलमा सुरक्षित गर्नुहोस्</string>
+    <string name="settings_save_backup_share">सेयर गर्नुहोस्</string>
     <string name="settings_share_backup_subject">PennyWise ब्याकअप</string>
     <string name="settings_share_backup_chooser">ब्याकअप सेयर गर्नुहोस्</string>
+    <!-- Notifications -->
+    <string name="settings_notifications_section">सूचनाहरू</string>
     <string name="settings_notification_access_title">बैंक सूचना पहुँच</string>
     <string name="settings_notification_access_enabled">सक्रिय</string>
     <string name="settings_notification_access_disabled">बैंक एपका सूचनाहरू सक्रिय गर्न ट्याप गर्नुहोस्</string>
@@ -254,23 +202,34 @@
     <string name="settings_daily_summary_title">दैनिक सारांश</string>
     <string name="settings_daily_summary_subtitle">राति 9 बजे आजको खर्चको सारांश</string>
     <string name="settings_daily_summary_needs_permission">दैनिक सारांश पाउन PennyWise लाई सूचना अनुमति दिनुहोस्।</string>
+    <!-- AI Features -->
     <string name="settings_ai_section">AI सुविधाहरू</string>
+    <string name="settings_ai_chat_title">एआई च्याट सहायक</string>
+    <!-- %1$d = model size in megabytes -->
     <string name="settings_ai_status_not_downloaded">AI मोडेल डाउनलोड गर्नुहोस् (%1$d MB)</string>
     <string name="settings_ai_status_downloading">AI मोडेल डाउनलोड हुँदैछ...</string>
     <string name="settings_ai_status_paused">डाउनलोड रोकियो</string>
     <string name="settings_ai_status_completed">AI मोडेल च्याटको लागि तयार छ</string>
     <string name="settings_ai_status_failed">डाउनलोड असफल</string>
+    <string name="settings_ai_status_insufficient_space">पर्याप्त भण्डारण स्थान छैन</string>
+    <string name="settings_ai_download">डाउनलोड</string>
+    <string name="settings_ai_retry">पुन: प्रयास गर्नुहोस्</string>
     <string name="settings_ai_downloaded">डाउनलोड भयो</string>
-    <string name="settings_ai_download_progress">%1$d MB / %2$d MB</string>
+    <string name="settings_ai_delete">हटाउनुहोस्</string>
+    <string name="settings_ai_error">त्रुटि</string>
+    <!-- %1$d = downloaded megabytes, %2$d = total megabytes -->
     <string name="settings_ai_cancel_download">डाउनलोड रद्द गर्नुहोस्</string>
     <string name="settings_ai_info">आफ्नो खर्चबारे AI सँग च्याट गर्नुहोस् र आर्थिक जानकारी पाउनुहोस्। सबै कुराकानी तपाईंकै डिभाइसमा गोप्य रहन्छ।</string>
     <string name="settings_ai_download_notification_title">AI च्याट मोडेल</string>
     <string name="settings_ai_download_notification_description">PennyWise को लागि AI च्याट सहायक डाउनलोड हुँदैछ</string>
+    <!-- Developer -->
     <string name="settings_developer_section">डेभलपर</string>
     <string name="settings_developer_mode_title">डेभलपर मोड</string>
+    <string name="settings_developer_mode_subtitle">च्याटमा प्राविधिक जानकारी प्रदर्शन गर्नुहोस्</string>
     <string name="settings_webhooks_title">वेबहुक</string>
     <string name="settings_webhooks_subtitle">छानिएको डेटा आफ्नो इन्डपोइन्टमा पठाउनुहोस्</string>
     <string name="settings_webhooks_subtitle_pro">Pro · छानिएको डेटा आफ्नो इन्डपोइन्टमा पठाउनुहोस्</string>
+    <!-- Support & Community -->
     <string name="settings_support_section">सहयोग र समुदाय</string>
     <string name="settings_help_faq_title">मद्दत र FAQ</string>
     <string name="settings_help_faq_subtitle">सोधिने प्रश्नहरू र मद्दत</string>
@@ -278,14 +237,42 @@
     <string name="settings_user_guide_subtitle">स्क्रिनसटसहित चरणबद्ध गाइडहरू</string>
     <string name="settings_report_issue_title">समस्या रिपोर्ट गर्नुहोस्</string>
     <string name="settings_report_issue_subtitle">GitHub मा बग रिपोर्ट पठाउनुहोस्</string>
-    <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- ══ Appearance screen ══ -->
+    <string name="appearance_title">रुपरेखा</string>
     <string name="appearance_back">पछाडि</string>
+    <!-- Theme mode -->
+    <string name="appearance_mode_system">प्रणाली</string>
+    <string name="appearance_mode_light">हल्का</string>
+    <string name="appearance_mode_dark">गाढा</string>
+    <!-- Theme style -->
+    <string name="appearance_style_dynamic">गतिशील</string>
+    <string name="appearance_style_dynamic_subtitle">वॉलपेपर रङहरू</string>
+    <string name="appearance_style_default">पूर्वनिर्धारित</string>
     <string name="appearance_style_default_subtitle">Rose Pine रङहरू</string>
+    <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED कालो</string>
+    <string name="appearance_amoled_subtitle">गहिरो विरोधाभासको लागि पूर्ण कालो पृष्ठभूमि प्रयोग गर्नुहोस्</string>
+    <string name="appearance_blur_title">ब्लर प्रभावहरू</string>
+    <string name="appearance_blur_subtitle">UI कम्पोनेन्टहरूमा ग्लासमॉर्फिज्म ब्लर प्रभाव सक्षम गर्नुहोस्</string>
+    <!-- Navigation -->
+    <string name="appearance_navigation_section">नेभिगेसन</string>
     <string name="appearance_bottom_bar_section">तलको बार</string>
     <string name="appearance_bottom_bar_subtitle">कुन ट्याबहरू देखाउने छान्नुहोस्। होम सधैं रहन्छ।</string>
+    <string name="appearance_nav_floating">तैरिरहेको</string>
     <string name="appearance_nav_floating_subtitle">आधुनिक र सफा</string>
+    <string name="appearance_nav_normal">सामान्य</string>
+    <string name="appearance_nav_normal_subtitle">मानक M3</string>
+    <!-- Cover style -->
     <string name="appearance_cover_section">कभर शैली</string>
+    <string name="appearance_cover_none">कुनै छैन</string>
+    <string name="appearance_cover_selected">छानिएको</string>
+    <!-- Fonts -->
+    <string name="appearance_fonts_section">फन्टहरू</string>
+    <string name="appearance_font_default">पूर्वनिर्धारित</string>
+    <string name="appearance_font_default_subtitle">प्रणाली</string>
+    <string name="appearance_font_sn_pro_subtitle">आधुनिक मोनो</string>
+    <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">वेबहुक</string>
     <string name="webhooks_title_add">वेबहुक थप्नुहोस्</string>
     <string name="webhooks_title_edit">वेबहुक सम्पादन गर्नुहोस्</string>
@@ -300,22 +287,28 @@
     <string name="webhooks_interval_apply">लागू गर्नुहोस्</string>
     <string name="webhooks_sync_all_now">सक्रिय वेबहुक अहिले सिंक गर्नुहोस्</string>
     <string name="webhooks_empty">कुनै वेबहुक सुरक्षित छैन</string>
+    <!-- Webhook card -->
     <string name="webhooks_auto_sync_on">स्वचालित सिंक सक्रिय</string>
     <string name="webhooks_auto_sync_off">स्वचालित सिंक बन्द</string>
+    <!-- %1$s = date and time of the last sync -->
     <string name="webhooks_last_sync">पछिल्लो सिंक: %1$s</string>
     <string name="webhooks_action_edit">सम्पादन गर्नुहोस्</string>
     <string name="webhooks_action_test">परीक्षण</string>
     <string name="webhooks_action_sync">सिंक</string>
     <string name="webhooks_action_history">इतिहास</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_action_delete_cd">%1$s मेटाउनुहोस्</string>
+    <!-- Delete dialog -->
     <string name="webhooks_delete_title">वेबहुक मेटाउने?</string>
+    <!-- %1$s = webhook name -->
     <string name="webhooks_delete_body">%1$s र यसको पठाएको इतिहास मेटाउने?</string>
     <string name="webhooks_delete_confirm">मेटाउनुहोस्</string>
     <string name="webhooks_delete_cancel">रद्द गर्नुहोस्</string>
+    <!-- Delivery history -->
     <string name="webhooks_history_empty">अहिलेसम्म केही पठाइएको छैन। लाइनमा रहेको काम नेटवर्क जडान पर्खन्छ।</string>
     <string name="webhooks_history_delivered">पठाइयो</string>
     <string name="webhooks_history_failed">असफल</string>
-    <string name="webhooks_history_meta">%1$s · %2$s</string>
+    <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
     <plurals name="webhooks_history_batches">
         <item quantity="one">डेलिभरीमा %1$d ब्याच छ</item>
         <item quantity="other">डेलिभरीमा %1$d ब्याच छन्</item>
@@ -324,6 +317,7 @@
     <string name="webhooks_reason_interval">अन्तराल</string>
     <string name="webhooks_reason_scheduled">तालिका अनुसार</string>
     <string name="webhooks_reason_test">परीक्षण</string>
+    <!-- Editor -->
     <string name="webhooks_editor_name">नाम</string>
     <string name="webhooks_editor_url">HTTPS इन्डपोइन्ट URL</string>
     <plurals name="webhooks_editor_auto_on_warning">
@@ -340,6 +334,7 @@
     <string name="webhooks_data_budgets">बजेटहरू</string>
     <string name="webhooks_data_accounts">खाताहरू</string>
     <string name="webhooks_data_subscriptions">सदस्यताहरू</string>
+    <!-- %1$s = selected date range, e.g. Today -->
     <string name="webhooks_editor_range">दायरा: %1$s</string>
     <string name="webhooks_editor_range_hint">\"पछिल्लो सफलतादेखि\" ले लेनदेनका सम्पादन र मेटाइएका रेकर्ड पठाउँछ। बजेट, खाता र सदस्यता हालको अवस्थाका स्न्यापसट हुन्।</string>
     <string name="webhooks_editor_start_date">सुरु मिति (YYYY-MM-DD)</string>
@@ -351,6 +346,7 @@
     <string name="webhooks_editor_remove_header">हेडर हटाउनुहोस्</string>
     <string name="webhooks_editor_add_header">हेडर थप्नुहोस्</string>
     <string name="webhooks_editor_save">वेबहुक सुरक्षित गर्नुहोस्</string>
+    <!-- Date ranges -->
     <string name="webhooks_range_since_last_success">पछिल्लो सफलतादेखि</string>
     <string name="webhooks_range_today">आज</string>
     <string name="webhooks_range_current_week">यो हप्ता</string>
@@ -358,12 +354,14 @@
     <string name="webhooks_range_previous_month">अघिल्लो महिना</string>
     <string name="webhooks_range_last_30_days">पछिल्ला 30 दिन</string>
     <string name="webhooks_range_custom">आफ्नै मितिहरू</string>
+    <!-- Status messages -->
     <string name="webhooks_msg_saved">वेबहुक सुरक्षित भयो</string>
     <string name="webhooks_msg_interval_saved">सिंक अन्तराल सुरक्षित भयो</string>
     <string name="webhooks_msg_test_queued">नमुना परीक्षण लाइनमा राखियो। नतिजा इतिहासमा देखिन्छ।</string>
     <string name="webhooks_msg_sync_queued">सिंक लाइनमा राखियो। अनलाइन हुँदा पठाइन्छ।</string>
     <string name="webhooks_msg_deleted">वेबहुक मेटाइयो</string>
     <string name="webhooks_msg_action_failed">वेबहुकको काम पूरा गर्न सकिएन। फेरि प्रयास गर्नुहोस्।</string>
+    <!-- Validation errors -->
     <string name="webhooks_error_name_required">वेबहुकको नाम आवश्यक छ</string>
     <string name="webhooks_error_url_required">वेबहुक URL आवश्यक छ</string>
     <string name="webhooks_error_url_invalid">मान्य HTTP वा HTTPS URL हाल्नुहोस्</string>
@@ -376,8 +374,14 @@
     <string name="webhooks_error_header_line_breaks">हेडर मानमा लाइन ब्रेक हुन मिल्दैन</string>
     <string name="webhooks_error_header_managed">यो हेडर आफैं व्यवस्थापन हुन्छ</string>
     <string name="webhooks_error_header_unique">हेडरका नामहरू फरक-फरक हुनुपर्छ</string>
+    <!-- %1$d = minimum hours, %2$d = maximum hours -->
     <string name="webhooks_error_interval">%1$d र %2$d बीचको संख्या हाल्नुहोस्</string>
+    <!-- ══ FAQ screen ══ -->
+    <string name="faq_title">सोधिने प्रश्नहरू</string>
     <string name="faq_back">पछाडि</string>
+    <string name="faq_collapse">सङ्कुचन गर्नुहोस्</string>
+    <string name="faq_expand">विस्तार गर्नुहोस्</string>
+    <!-- Transaction Types -->
     <string name="faq_transaction_types_section">लेनदेनका प्रकार</string>
     <string name="faq_wallet_credit_question">वालेट लेनदेन किन क्रेडिट भनी मार्क हुन्छन्?</string>
     <string name="faq_wallet_credit_answer">वालेट लेनदेन (Amazon Pay, Paytm आदि) क्रेडिट भनी मार्क हुन्छन्, किनकि ती सिधै बैंक डेबिट नभई पहिले तपाईंको बैंक खाता वा क्रेडिट कार्डबाट चार्ज हुन्छन्। यसले वास्तवमा प्रयोग भएको भुक्तानी माध्यम ट्र्याक गर्न मद्दत गर्छ।</string>
@@ -385,6 +389,7 @@
     <string name="faq_transaction_types_answer">• खर्च: तपाईंको खाताबाट बाहिर जाने पैसा (डेबिट, खरिद, बिल भुक्तानी)\n• आम्दानी: तपाईंको खातामा आउने पैसा (तलब, रिफन्ड, क्यासब्याक)\n• लगानी: म्युचुअल फन्ड, सेयर, SIP, ट्रेडिङ खाता\n• क्रेडिट: क्रेडिट कार्ड लेनदेन र वालेट भुक्तानी (पछि तिर्ने पैसा)\n• स्थानान्तरण: आफ्नै खाताहरूबीच सारिएको पैसा (सेल्फ ट्रान्सफर)</string>
     <string name="faq_transfer_vs_expense_question">स्थानान्तरण र खर्च कहिले प्रयोग गर्ने?</string>
     <string name="faq_transfer_vs_expense_answer">आफ्नै खाताहरूबीच पैसा सार्दा (जस्तै बचतबाट चल्ती खातामा) स्थानान्तरण प्रयोग गर्नुहोस्। यसले तपाईंको शुद्ध सम्पत्तिमा असर गर्दैन। वास्तविक खर्चको लागि खर्च प्रयोग गर्नुहोस्।</string>
+    <!-- SMS Parsing -->
     <string name="faq_sms_parsing_section">SMS पार्सिङ</string>
     <string name="faq_sms_not_detected_question">मेरो बैंकका SMS किन पत्ता लागिरहेका छैनन्?</string>
     <string name="faq_sms_not_detected_answer">तपाईंको बैंक हाम्रो सूचीमा समर्थित छ कि जाँच्नुहोस्। छैन भने GitHub मार्फत रिपोर्ट गर्नुहोस्। SMS अनुमति दिइएको छ र पठाउनेको ढाँचा सामान्य बैंक SMS सँग मिल्छ भन्ने पक्का गर्नुहोस्।</string>
@@ -392,6 +397,7 @@
     <string name="faq_unrecognized_sms_answer">ती \'नचिनिएका सन्देशहरू\' मा सुरक्षित हुन्छन्, जहाँ तपाईं आफैं हेर्न वा पार्सिङ सुधार्न मद्दत गर्न हामीलाई रिपोर्ट गर्न सक्नुहुन्छ।</string>
     <string name="faq_duplicates_question">केही लेनदेन किन दोहोरिएका छन्?</string>
     <string name="faq_duplicates_answer">केही बैंकले एउटै लेनदेनको लागि धेरै SMS पठाउँछन्। एपले दोहोरिएका पत्ता लगाउन कोसिस गर्छ, तर छुटेका जति तपाईं आफैं मेटाउन सक्नुहुन्छ।</string>
+    <!-- Privacy & Data -->
     <string name="faq_privacy_section">गोपनीयता र डेटा</string>
     <string name="faq_data_secure_question">के मेरो आर्थिक डेटा सुरक्षित छ?</string>
     <string name="faq_data_secure_answer">हो! सबै डेटा तपाईंकै डिभाइसमा रहन्छ। हाम्रो कुनै सर्भर वा क्लाउड स्टोरेज छैन। पूर्ण गोपनीयताको लागि AI मोडेल डिभाइसमै चल्छ।</string>
@@ -399,16 +405,19 @@
     <string name="faq_backup_answer">हाल डेटा डिभाइसमा मात्र राखिन्छ। निर्यात/ब्याकअप सुविधाहरू आगामी अपडेटमा ल्याउने योजना छ।</string>
     <string name="faq_data_access_question">एपले कुन डेटा पहुँच गर्छ?</string>
     <string name="faq_data_access_answer">चिनिएका बैंक पठाउनेहरूका SMS सन्देश मात्र। हामी व्यक्तिगत सन्देश पढ्दैनौं वा अरू एपको डेटा पहुँच गर्दैनौं।</string>
+    <!-- AI Features -->
     <string name="faq_ai_section">AI सुविधाहरू</string>
     <string name="faq_ai_download_question">मैले AI मोडेल किन डाउनलोड गर्नुपर्छ?</string>
     <string name="faq_ai_download_answer">750MB को मोडेलले कुनै सर्भरमा डेटा नपठाई डिभाइसमै तपाईंको खर्चबारे च्याट गर्न दिन्छ, जसले पूर्ण गोपनीयता सुनिश्चित गर्छ।</string>
     <string name="faq_ai_ask_question">म AI सहायकलाई के सोध्न सक्छु?</string>
     <string name="faq_ai_ask_answer">तपाईं आफ्नो डेटाको आधारमा खर्चको ढाँचा, बजेट सल्लाह, लेनदेन सारांश र सामान्य आर्थिक प्रश्नहरू सोध्न सक्नुहुन्छ।</string>
+    <!-- Account Management -->
     <string name="faq_accounts_section">खाता व्यवस्थापन</string>
     <string name="faq_manual_accounts_question">म्यानुअल खाता भनेको के हो?</string>
     <string name="faq_manual_accounts_answer">म्यानुअल खाताले नगद, लगानी वा समर्थन नभएका बैंकका खाता ट्र्याक गर्न दिन्छ। बालान्स तपाईं आफैं अपडेट गर्नुहुन्छ।</string>
     <string name="faq_multiple_accounts_question">एउटै बैंकका धेरै खाता कसरी ट्र्याक गर्ने?</string>
     <string name="faq_multiple_accounts_answer">SMS मा देखिने अन्तिम 4 अंकको आधारमा एपले फरक खाताहरू आफैं पत्ता लगाउँछ।</string>
+    <!-- Still need help -->
     <string name="faq_still_need_help_section">अझै मद्दत चाहिन्छ?</string>
     <string name="faq_report_issue_title">समस्या रिपोर्ट गर्नुहोस्</string>
     <string name="faq_report_issue_subtitle">GitHub मा बग रिपोर्ट, बैंक अनुरोध वा सुविधा सुधार पठाउनुहोस्</string>

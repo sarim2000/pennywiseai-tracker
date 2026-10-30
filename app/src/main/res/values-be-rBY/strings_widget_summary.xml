@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">Сённяшнія выдаткі, рэшта бюджэту і хуткае даданне наяўных.</string>
+<resources>
+    <string name="widget_summary_description">Сённяшнія выдаткі, рэшта бюджэту і хуткае даданне наяўных.</string>
     <string name="widget_summary_left">Засталося ў бюджэце</string>
     <string name="widget_summary_over">Бюджэт перавышаны</string>
     <string name="widget_budget_left_label">Засталося</string>

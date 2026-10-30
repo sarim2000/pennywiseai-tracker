@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">Objectifs</string>
     <string name="upgrade_feature_goals">Objectifs illimités</string>
     <string name="goals_new">Nouvel objectif</string>
@@ -28,9 +21,9 @@
     <string name="goals_ring_description">%1$d %% épargné</string>
     <plurals name="goals_months_left">
         <item quantity="one">%d mois restant</item>
-        <item quantity="many">%d mois restants</item>
         <item quantity="other">%d mois restants</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">Nouvel objectif</string>
     <string name="goal_edit_title_edit">Modifier l\'objectif</string>
     <string name="goal_back">Retour</string>
@@ -51,8 +44,8 @@
     <string name="goal_edit_failed">Impossible d\'enregistrer l\'objectif. Vérifiez les informations et réessayez.</string>
     <string name="goal_edit_create">Créer l\'objectif</string>
     <string name="goal_edit_save">Enregistrer</string>
-    <string name="goal_action_ok">OK</string>
     <string name="goal_action_cancel">Abandonner</string>
+    <!-- Detail -->
     <string name="goal_detail_left">Reste</string>
     <string name="goal_detail_per_month">Par mois</string>
     <string name="goal_detail_over">%1$s de plus</string>
@@ -71,8 +64,8 @@
     <string name="goal_converted_from">Depuis %1$s</string>
     <string name="goal_withdrawal">Retrait</string>
     <string name="goal_contribution">Versement</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">Montant</string>
-    <string name="goal_money_date">Date</string>
     <string name="goal_money_note">Note (facultatif)</string>
     <string name="goal_money_saved_so_far">Épargné jusqu\'ici : %1$s</string>
     <string name="goal_money_converted">Montant en %1$s</string>
@@ -84,6 +77,7 @@
     <string name="goal_edit_contribution">Modifier le versement</string>
     <string name="goal_edit_withdrawal">Modifier le retrait</string>
     <string name="goal_contribution_delete">Supprimer</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">Ajouter à un objectif</string>
     <string name="goal_add_to_goal_left">%1$s de cette transaction peut aller vers des objectifs</string>
     <string name="goal_add_to_goal_none_left">Cette transaction est déjà entièrement affectée à des objectifs</string>
@@ -93,13 +87,13 @@
     <string name="goal_toward_goals">Vers des objectifs</string>
     <string name="goal_toward_remove">Retirer de %1$s</string>
     <string name="goal_currency_locked_by_goal">Retirez cette transaction de ses objectifs avant de changer sa devise</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">%1$s restant</string>
     <plurals name="goals_months_short">
         <item quantity="one">%d mois</item>
-        <item quantity="many">%d mois</item>
         <item quantity="other">%d mois</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">Objectif</string>
     <string name="widget_name_goals">Objectifs</string>
     <string name="widget_description_goal">Un objectif avec son anneau de progression et ce qu\'il reste à épargner</string>
@@ -109,4 +103,5 @@
     <string name="widget_goals_empty">Pas encore d\'objectif</string>
     <string name="widget_goal_config_title">Choisir un objectif</string>
     <string name="widget_goal_config_close">Fermer</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

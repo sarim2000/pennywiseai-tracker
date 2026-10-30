@@ -11,10 +11,8 @@
     <string name="ai_access_unlock">Desbloquear con Pro</string>
     <string name="ai_access_session_title">Sesión de AI</string>
     <string name="ai_access_session_off">Desactivada. Elige cuánto tiempo mantener PennyWise conectada o usa el mosaico PennyWise AI en Ajustes rápidos.</string>
-    <string name="ai_access_session_minutes">%d min</string>
     <string name="ai_access_session_on">Activa · quedan %1$d:%2$02d</string>
     <string name="ai_access_session_connecting">Conectando… · quedan %1$d:%2$02d</string>
-    <string name="ai_access_extend">+15 min</string>
     <string name="ai_access_stop">Detener</string>
     <string name="ai_access_connect_title">Conectar una app de AI</string>
     <string name="ai_access_connect_step1">1. En Claude o ChatGPT, agrega un conector personalizado con esta URL:</string>

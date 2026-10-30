@@ -1,49 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Analytics screen ══ -->
-    <!-- %1$s = formatted refund amount -->
-    <!-- Group by picker (#422); the chip and menu show one of these -->
-    <!-- Content description of the lock beside a Pro-only grouping -->
-    <!-- Filters -->
-    <!-- List rows -->
-    <!-- Whole-number percentage, e.g. "42%" -->
-    <!-- Empty state -->
-    <!-- Summary card -->
-    <!-- Pie charts -->
-    <!-- Breakdown cards -->
-    <!-- ══ Budgets screen ══ -->
-    <!-- %1$s = budget name -->
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = weekday name -->
-    <!-- %1$d = days, %2$s = weekday name -->
-    <!-- %1$d = day of month the budget starts on -->
-    <!-- %1$d = days, %2$d = day of month -->
-    <!-- Date range, %1$s = start date, %2$s = end date -->
-    <!-- %1$s = date range, %2$d = days -->
-    <!-- %1$s = spent amount, %2$s = budget amount -->
-    <!-- ══ Budget edit screen ══ -->
-    <!-- %1$s = weekday name -->
-    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
-    <!-- %1$s = transaction-type bucket name -->
-    <!-- ══ Budget history screen ══ -->
-    <!-- %1$s = budget amount, %2$d = percent used -->
-    <!-- ══ Categories screen ══ -->
-    <!-- %1$s = category name -->
-    <!-- %1$s = error detail -->
-    <!-- Category edit dialog -->
-    <!-- ══ Subscriptions screen ══ -->
-    <!-- %1$s = merchant name -->
-    <!-- %1$d = paid count, %2$d = active count -->
-    <!-- %1$s = date -->
-    <!-- Edit subscription dialog -->
-    <!-- %1$s = currency code -->
-    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
-    <!-- ══ Mark-as-paid sheet ══ -->
-    <!-- %1$s = date -->
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = currency code -->
-    <!-- %1$s = relative date, %2$s = bank name -->
-    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_title">Análisis</string>
     <string name="analytics_trends">Tendencias</string>
     <string name="analytics_chart_line">Líneas</string>
@@ -53,6 +10,7 @@
     <string name="analytics_chart_bar_full">Gráfico de barras</string>
     <string name="analytics_top_categories">Categorías principales</string>
     <string name="analytics_toggle_view">Cambiar vista</string>
+    <!-- %1$s = formatted refund amount -->
     <string name="analytics_refund_note">El total ya descuenta %1$s en reembolsos. Las barras por categoría no pueden bajar de cero, así que pueden sumar más que el total mostrado.</string>
     <string name="analytics_top_tags">Etiquetas principales</string>
     <string name="analytics_top_merchants">Comercios principales</string>
@@ -60,12 +18,14 @@
     <string name="analytics_by_day_of_week">Por día de la semana</string>
     <string name="analytics_no_tag">Sin etiqueta</string>
     <string name="analytics_tag_overlap_note">Una transacción con varias etiquetas cuenta en cada una, así que los totales por etiqueta pueden sumar más que el total.</string>
+    <!-- Group by picker (#422); the chip and menu show one of these -->
     <string name="analytics_group_by_category">Por categoría</string>
     <string name="analytics_group_by_merchant">Por comercio</string>
     <string name="analytics_group_by_account">Por cuenta</string>
     <string name="analytics_group_by_tag">Por etiqueta</string>
     <string name="analytics_group_by_day_of_week">Por día de la semana</string>
-    <string name="analytics_group_by_pro">Pro</string>
+    <!-- Content description of the lock beside a Pro-only grouping -->
+    <!-- Filters -->
     <string name="analytics_filter_clear">Borrar</string>
     <string name="analytics_filter_all_profiles">Todas las cuentas</string>
     <string name="analytics_filter_currency">Moneda</string>
@@ -73,6 +33,7 @@
     <string name="analytics_filter_all_categories">Todas las categorías</string>
     <string name="analytics_filter_account">Cuenta</string>
     <string name="analytics_filter_all_accounts">Todas las cuentas</string>
+    <!-- List rows -->
     <plurals name="analytics_transaction_count">
         <item quantity="one">%1$d transacción</item>
         <item quantity="other">%1$d transacciones</item>
@@ -81,11 +42,12 @@
         <item quantity="one">%1$d transacción • Suscripción</item>
         <item quantity="other">%1$d transacciones • Suscripción</item>
     </plurals>
-    <string name="analytics_percent">%1$d%%</string>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
     <string name="analytics_empty_headline">Aún no hay suficientes datos</string>
     <string name="analytics_empty_description">Tus estadísticas de gastos aparecerán aquí después de tu primera semana de seguimiento</string>
     <string name="analytics_empty_action">Escanear SMS</string>
-    <string name="analytics_summary_total">TOTAL</string>
+    <!-- Summary card -->
     <plurals name="analytics_summary_txns">
         <item quantity="one">%1$d TRANS.</item>
         <item quantity="other">%1$d TRANS.</item>
@@ -93,10 +55,12 @@
     <string name="analytics_summary_average">PROMEDIO</string>
     <string name="analytics_summary_per_day">" /día"</string>
     <string name="analytics_summary_percent_of_total">%1$d%% del total</string>
+    <!-- Pie charts -->
     <string name="analytics_pie_unknown">Desconocido</string>
-    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
     <string name="analytics_spending_by_category">Gastos por categoría</string>
     <string name="analytics_spending_by_tag">Gastos por etiqueta</string>
+    <!-- ══ Budgets screen ══ -->
     <string name="budgets_title">Presupuestos</string>
     <string name="budgets_back">Atrás</string>
     <string name="budgets_add">Agregar presupuesto</string>
@@ -108,31 +72,37 @@
     <string name="budgets_setup_smart_defaults">Usar valores sugeridos</string>
     <string name="budgets_setup_custom">Crear presupuesto personalizado</string>
     <string name="budgets_delete_title">Eliminar presupuesto</string>
+    <!-- %1$s = budget name -->
     <string name="budgets_delete_message">¿Seguro que quieres eliminar \"%1$s\"? Esta acción no se puede deshacer.</string>
     <string name="budgets_previous_month">Mes anterior</string>
     <string name="budgets_next_month">Mes siguiente</string>
-    <string name="budgets_percent">%1$d%%</string>
     <string name="budgets_edit">Editar presupuesto</string>
     <string name="budgets_delete">Eliminar presupuesto</string>
     <string name="budgets_more_options">Más opciones</string>
     <string name="budgets_view_history">Ver historial de este período</string>
     <string name="budgets_move_up">Subir</string>
     <string name="budgets_move_down">Bajar</string>
+    <!-- %1$s = formatted amount -->
     <string name="budgets_over_budget">%1$s por encima del presupuesto</string>
     <string name="budgets_remaining">Quedan %1$s</string>
     <string name="budgets_over_by">Excedido por %1$s</string>
     <string name="budgets_finished">Finalizado</string>
+    <!-- %1$s = weekday name -->
     <string name="budgets_resets_today_weekly">Se reinicia hoy · cada %1$s</string>
+    <!-- %1$d = days, %2$s = weekday name -->
     <plurals name="budgets_resets_in_weekly">
         <item quantity="one">Se reinicia en %1$d día · cada %2$s</item>
         <item quantity="other">Se reinicia en %1$d días · cada %2$s</item>
     </plurals>
+    <!-- %1$d = day of month the budget starts on -->
     <string name="budgets_resets_today_monthly">Se reinicia hoy · día %1$d</string>
+    <!-- %1$d = days, %2$d = day of month -->
     <plurals name="budgets_resets_in_monthly">
         <item quantity="one">Se reinicia en %1$d día · día %2$d</item>
         <item quantity="other">Se reinicia en %1$d días · día %2$d</item>
     </plurals>
-    <string name="budgets_date_range">%1$s – %2$s</string>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
     <plurals name="budgets_runs_days_remaining">
         <item quantity="one">Vigente %1$s · queda %2$d día</item>
         <item quantity="other">Vigente %1$s · quedan %2$d días</item>
@@ -142,33 +112,36 @@
         <item quantity="one">Queda %1$d día</item>
         <item quantity="other">Quedan %1$d días</item>
     </plurals>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
     <string name="budgets_spent_of">Gastado %1$s de %2$s</string>
     <string name="budgets_spent">Gastado %1$s</string>
     <string name="budgets_amount_of">%1$s de %2$s</string>
     <string name="budgets_tracking_all">Siguiendo todos los gastos</string>
     <string name="budgets_chart_actual">Real</string>
     <string name="budgets_chart_pace">Ritmo del presupuesto</string>
+    <!-- ══ Budget edit screen ══ -->
     <string name="budget_edit_title_edit">Editar presupuesto</string>
     <string name="budget_edit_title_new">Nuevo presupuesto</string>
     <string name="budget_edit_save">Guardar cambios</string>
     <string name="budget_edit_create">Crear presupuesto</string>
-    <string name="budget_edit_color">Color</string>
     <string name="budget_edit_period">Período del presupuesto</string>
     <string name="budget_edit_period_weekly">Semanal (recurrente)</string>
     <string name="budget_edit_period_monthly">Mensual (recurrente)</string>
     <string name="budget_edit_period_one_time">Única vez</string>
     <string name="budget_edit_start_date">Fecha de inicio</string>
     <string name="budget_edit_end_date">Fecha de fin</string>
+    <!-- %1$s = weekday name -->
     <string name="budget_edit_resets_every">Se reinicia cada %1$s</string>
     <string name="budget_edit_resets_on_day">Se reinicia el día %1$d de cada mes</string>
     <string name="budget_edit_runs_once">Una sola vez, sin arrastre</string>
     <string name="budget_edit_current_window">Período actual</string>
-    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">Límites por categoría (opcional)</string>
     <string name="budget_edit_no_categories">No hay categorías. Este presupuesto seguirá todos los gastos.</string>
     <string name="budget_edit_unallocated">Sin asignar: %1$s</string>
     <string name="budget_edit_over_allocated">Los límites por categoría superan el presupuesto en %1$s</string>
     <string name="budget_edit_add_category">Agregar categoría</string>
+    <!-- %1$s = transaction-type bucket name -->
     <string name="budget_edit_type_bucket_all">%1$s (todo)</string>
     <string name="budget_edit_name_placeholder">Nombre del presupuesto</string>
     <string name="budget_edit_edit_name">Editar nombre</string>
@@ -178,6 +151,7 @@
     <string name="budget_edit_month_starts_on">El mes empieza el día</string>
     <string name="budget_edit_decrease_day">Disminuir día</string>
     <string name="budget_edit_increase_day">Aumentar día</string>
+    <!-- ══ Budget history screen ══ -->
     <string name="budget_history_title">Historial del presupuesto</string>
     <string name="budget_history_loading">Cargando…</string>
     <string name="budget_history_not_found">No se encontró el presupuesto</string>
@@ -189,9 +163,11 @@
     <string name="budget_history_live">En curso · sigue acumulando</string>
     <string name="budget_history_frozen">Cerrado al %1$s</string>
     <string name="budget_history_categories">Categorías</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
     <string name="budget_history_of_budget_percent">de %1$s · %2$d%%</string>
     <string name="budget_history_zero_remaining">Queda 0</string>
     <string name="budget_history_percent_used">%1$d%% usado</string>
+    <!-- ══ Categories screen ══ -->
     <string name="categories_title">Categorías</string>
     <string name="categories_back">Atrás</string>
     <string name="categories_add">Agregar categoría</string>
@@ -205,8 +181,10 @@
     <string name="categories_system_badge">Sistema</string>
     <string name="categories_msg_system_not_editable">Las categorías del sistema no se pueden editar</string>
     <string name="categories_msg_updated">Categoría actualizada</string>
+    <!-- %1$s = category name -->
     <string name="categories_msg_already_exists">La categoría \'%1$s\' ya existe</string>
     <string name="categories_msg_created">Categoría creada</string>
+    <!-- %1$s = error detail -->
     <string name="categories_msg_save_error">Error al guardar la categoría: %1$s</string>
     <string name="categories_msg_system_not_deletable">Las categorías del sistema no se pueden eliminar</string>
     <string name="categories_msg_deleted">Categoría eliminada</string>
@@ -215,6 +193,7 @@
     <string name="categories_msg_hidden">%1$s oculta</string>
     <string name="categories_msg_shown">%1$s visible</string>
     <string name="categories_msg_update_error">Error al actualizar la categoría: %1$s</string>
+    <!-- Category edit dialog -->
     <string name="category_edit_title_add">Agregar categoría</string>
     <string name="category_edit_title_edit">Editar categoría</string>
     <string name="category_edit_name_required">El nombre de la categoría es obligatorio</string>
@@ -227,16 +206,17 @@
     <string name="category_edit_icon_label">Ícono (emoji, opcional)</string>
     <string name="category_edit_icon_placeholder">Toca para elegir un emoji</string>
     <string name="category_edit_clear_icon">Quitar ícono</string>
-    <string name="category_edit_color">Color</string>
     <string name="category_edit_preview">Vista previa</string>
     <string name="category_edit_add">Agregar</string>
     <string name="category_edit_save">Guardar</string>
     <string name="category_edit_delete">Eliminar categoría</string>
     <string name="category_edit_delete_title">¿Eliminar la categoría?</string>
     <string name="category_edit_delete_message">Se eliminará \"%1$s\". Las transacciones existentes conservan su etiqueta actual. Esta acción no se puede deshacer.</string>
+    <!-- ══ Subscriptions screen ══ -->
     <string name="subscriptions_title">Suscripciones</string>
     <string name="subscriptions_add">Agregar suscripción</string>
     <string name="subscriptions_undo">Deshacer</string>
+    <!-- %1$s = merchant name -->
     <string name="subscriptions_snackbar_hidden">%1$s oculta</string>
     <string name="subscriptions_snackbar_ended">%1$s finalizada</string>
     <string name="subscriptions_active_section">Suscripciones activas</string>
@@ -262,6 +242,7 @@
         <item quantity="one">%1$d pagada en este ciclo</item>
         <item quantity="other">Las %1$d pagadas en este ciclo</item>
     </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
     <string name="subscriptions_summary_some_paid">%1$d de %2$d pagadas en este ciclo</string>
     <string name="subscriptions_hide">Ocultar</string>
     <string name="subscriptions_sms_available">SMS disponible</string>
@@ -272,6 +253,7 @@
         <item quantity="one">Vence en %1$d día</item>
         <item quantity="other">Vence en %1$d días</item>
     </plurals>
+    <!-- %1$s = date -->
     <string name="subscriptions_paid_on">Pagada el %1$s</string>
     <string name="subscriptions_more_options">Más opciones</string>
     <string name="subscriptions_menu_mark_paid">Marcar como pagada</string>
@@ -280,8 +262,10 @@
     <string name="subscriptions_menu_end">Finalizar suscripción</string>
     <string name="subscriptions_source_notes">Notas</string>
     <string name="subscriptions_source_original_sms">SMS original</string>
+    <!-- Edit subscription dialog -->
     <string name="subscriptions_edit_title">Editar suscripción</string>
     <string name="subscriptions_edit_name">Nombre</string>
+    <!-- %1$s = currency code -->
     <string name="subscriptions_edit_amount">Monto (%1$s)</string>
     <string name="subscriptions_edit_tap_to_set">Toca para configurar</string>
     <string name="subscriptions_edit_next_date">Próxima fecha de pago</string>
@@ -292,6 +276,7 @@
     <string name="subscriptions_edit_pick_account">Elegir cuenta</string>
     <string name="subscriptions_edit_selected">Seleccionada</string>
     <string name="subscriptions_edit_save">Guardar</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">%1$s marcada como pagada · próximo ciclo el %2$s</string>
     <string name="subscriptions_msg_linked">%1$s vinculada · próximo ciclo el %2$s</string>
     <string name="subscriptions_msg_already_marked">%1$s ya estaba marcada en este ciclo · se adelantó al %2$s</string>
@@ -299,19 +284,23 @@
     <string name="subscriptions_msg_not_found">No se encontró esa suscripción</string>
     <string name="subscriptions_msg_linked_existing">%1$s vinculada a un pago existente · próximo ciclo el %2$s</string>
     <string name="subscriptions_msg_linked_generic">Vinculada</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">MARCAR COMO PAGADO</string>
     <string name="mark_paid_eyebrow_received">MARCAR COMO RECIBIDO</string>
+    <!-- %1$s = date -->
     <string name="mark_paid_already_marked">Ya se marcó como pagado el %1$s</string>
     <plurals name="mark_paid_found_matches">
         <item quantity="one">Se encontró %1$d pago que coincide</item>
         <item quantity="other">Se encontraron %1$d pagos que coinciden</item>
     </plurals>
     <string name="mark_paid_when">¿Cuándo?</string>
+    <!-- %1$s = formatted amount -->
     <string name="mark_paid_cta_paid">Marcar pagado · %1$s</string>
     <string name="mark_paid_cta_received">Marcar recibido · %1$s</string>
+    <!-- %1$s = currency code -->
     <string name="mark_paid_helper_income">Registraremos un ingreso de %1$s y pasaremos el calendario al siguiente ciclo.</string>
     <string name="mark_paid_helper_expense">Registraremos el gasto y pasaremos el calendario al siguiente ciclo.</string>
-    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
     <string name="mark_paid_link_payment">Vincular este pago</string>
     <string name="mark_paid_or_mark_today">o marcar hoy</string>
     <string name="mark_paid_today">Hoy</string>
@@ -321,6 +310,7 @@
         <item quantity="other">Hace %1$d días</item>
     </plurals>
     <string name="mark_paid_pick_date">Elegir fecha</string>
+    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_forecast_for">Previsión para %1$s</string>
     <string name="analytics_forecast_above_usual">Unos %1$s más de lo habitual</string>
     <string name="analytics_forecast_stay_under">Gasta menos de %1$s al día para quedarte en %2$s.</string>

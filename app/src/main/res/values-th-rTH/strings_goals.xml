@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">เป้าหมาย</string>
     <string name="upgrade_feature_goals">เป้าหมายไม่จำกัด</string>
     <string name="goals_new">เป้าหมายใหม่</string>
@@ -29,6 +22,7 @@
     <plurals name="goals_months_left">
         <item quantity="other">เหลือ %d เดือน</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">เป้าหมายใหม่</string>
     <string name="goal_edit_title_edit">แก้ไขเป้าหมาย</string>
     <string name="goal_back">กลับ</string>
@@ -51,6 +45,7 @@
     <string name="goal_edit_save">บันทึก</string>
     <string name="goal_action_ok">ตกลง</string>
     <string name="goal_action_cancel">ยกเลิก</string>
+    <!-- Detail -->
     <string name="goal_detail_left">เหลือ</string>
     <string name="goal_detail_per_month">ต่อเดือน</string>
     <string name="goal_detail_over">เกิน %1$s</string>
@@ -69,6 +64,7 @@
     <string name="goal_converted_from">จาก %1$s</string>
     <string name="goal_withdrawal">ถอนออก</string>
     <string name="goal_contribution">เพิ่มเงิน</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">จำนวนเงิน</string>
     <string name="goal_money_date">วันที่</string>
     <string name="goal_money_note">หมายเหตุ (ไม่บังคับ)</string>
@@ -82,6 +78,7 @@
     <string name="goal_edit_contribution">แก้ไขเงินที่เพิ่ม</string>
     <string name="goal_edit_withdrawal">แก้ไขเงินที่ถอน</string>
     <string name="goal_contribution_delete">ลบ</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">เพิ่มเข้าเป้าหมาย</string>
     <string name="goal_add_to_goal_left">ธุรกรรมนี้ยังนำไปใส่เป้าหมายได้อีก %1$s</string>
     <string name="goal_add_to_goal_none_left">ธุรกรรมนี้ถูกนำไปใส่เป้าหมายครบแล้ว</string>
@@ -91,11 +88,12 @@
     <string name="goal_toward_goals">ใส่เป้าหมาย</string>
     <string name="goal_toward_remove">เอาออกจาก %1$s</string>
     <string name="goal_currency_locked_by_goal">เอาธุรกรรมนี้ออกจากเป้าหมายก่อน แล้วค่อยเปลี่ยนสกุลเงิน</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">เหลือ %1$s</string>
     <plurals name="goals_months_short">
         <item quantity="other">%d ด.</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">เป้าหมาย</string>
     <string name="widget_name_goals">หลายเป้าหมาย</string>
     <string name="widget_description_goal">เป้าหมายเดียว พร้อมวงแสดงความคืบหน้าและยอดที่ยังต้องเก็บ</string>
@@ -105,4 +103,5 @@
     <string name="widget_goals_empty">ยังไม่มีเป้าหมาย</string>
     <string name="widget_goal_config_title">เลือกเป้าหมาย</string>
     <string name="widget_goal_config_close">ปิด</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

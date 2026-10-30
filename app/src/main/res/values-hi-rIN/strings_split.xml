@@ -35,7 +35,6 @@
     <string name="split_remove_confirm">हटाएँ</string>
     <string name="split_upi_title">आपकी UPI ID</string>
     <string name="split_upi_message">लोग अपना हिस्सा इस UPI ID पर भेजेंगे। आप इसे सेटिंग्स में बदल सकते हैं।</string>
-    <string name="split_upi_hint">name@bank</string>
     <string name="split_upi_invalid">name@bank जैसी UPI ID डालें</string>
     <string name="split_upi_save">सेव करें</string>
     <string name="split_request_text">%3$s के लिए %2$s को %1$s भेजें</string>

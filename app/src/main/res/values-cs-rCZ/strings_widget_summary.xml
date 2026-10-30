@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">Dnešní výdaje, kolik zbývá z rozpočtu a rychlé přidání hotovosti.</string>
+<resources>
+    <string name="widget_summary_description">Dnešní výdaje, kolik zbývá z rozpočtu a rychlé přidání hotovosti.</string>
     <string name="widget_summary_left">Zbývá v rozpočtu</string>
     <string name="widget_summary_over">Nad rozpočtem</string>
     <string name="widget_budget_left_label">Zbývá</string>

@@ -49,9 +49,14 @@ class ComBankParser : BankParser() {
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         purchasePattern.find(smsBody)?.let { m ->
             val amount = amountOf(m) ?: return null
+            val currency = currencyOf(m)
+            val isCreditCard = m.groups["kind"]!!.value.equals("credit", ignoreCase = true)
             return ParsedTransaction(
                 amount = amount,
-                type = TransactionType.EXPENSE,
+                // CREDIT is the app's credit-card purchase type; booking one as
+                // EXPENSE would create a debit card and draw down a real balance
+                // instead of adding to the card's debt.
+                type = if (isCreditCard) TransactionType.CREDIT else TransactionType.EXPENSE,
                 merchant = cleanMerchantName(m.groups["merchant"]!!.value.trim()),
                 reference = extractReference(smsBody),
                 accountLast4 = m.groups["card"]!!.value,
@@ -61,7 +66,10 @@ class ComBankParser : BankParser() {
                 timestamp = timestamp,
                 bankName = getBankName(),
                 isFromCard = true,
-                currency = currencyOf(m)
+                currency = currency,
+                // ComBank cards are kept in LKR; a foreign spend doesn't turn the
+                // card itself into a USD account.
+                accountCurrency = if (currency != getCurrency()) getCurrency() else null
             )
         }
 

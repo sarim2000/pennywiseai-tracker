@@ -26,7 +26,8 @@ class ComBankParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "Dialog Axiata PLC Colombo 02 LK",
                     accountLast4 = "5555",
-                    isFromCard = true
+                    isFromCard = true,
+                    expectNullAccountCurrency = true
                 )
             ),
             ParserTestCase(
@@ -36,7 +37,7 @@ class ComBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("12450.75"),
                     currency = "LKR",
-                    type = TransactionType.EXPENSE,
+                    type = TransactionType.CREDIT,
                     merchant = "KEELLS SUPER NUGEGODA LK",
                     accountLast4 = "1234",
                     isFromCard = true
@@ -49,10 +50,13 @@ class ComBankParserTest {
                 expected = ExpectedTransaction(
                     amount = BigDecimal("15.00"),
                     currency = "USD",
-                    type = TransactionType.EXPENSE,
+                    type = TransactionType.CREDIT,
                     merchant = "AWS EMEA SARL LU",
                     accountLast4 = "1234",
-                    isFromCard = true
+                    isFromCard = true,
+                    // The card stays an LKR account — a USD spend must not
+                    // create a USD card.
+                    accountCurrency = "LKR"
                 )
             ),
             ParserTestCase(

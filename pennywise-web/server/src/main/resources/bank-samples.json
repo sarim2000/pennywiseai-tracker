@@ -368,7 +368,7 @@
       "message": "Dear Cardholder, Purchase at AWS EMEA SARL LU for USD 15.00 on 02/10/26 04:12 AM has been authorised on your credit card ending #1234.",
       "currency": "USD",
       "amount": "15.00",
-      "type": "EXPENSE",
+      "type": "CREDIT",
       "merchant": "AWS EMEA SARL LU",
       "accountLast4": "1234",
       "reference": null,

@@ -31,6 +31,14 @@
     <!-- Explicitly remove AD_ID permission to ensure privacy -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
+    <!-- #994 step 4: list launchable apps for "Track Other Apps" (no QUERY_ALL_PACKAGES needed). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".PennyWiseApplication"
         android:allowBackup="false"

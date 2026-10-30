@@ -216,6 +216,17 @@
     <string name="settings_notification_access_disabled">Tap to enable bank app notifications</string>
     <string name="settings_notification_access_on">On</string>
     <string name="settings_notification_access_off">Off</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
+    <string name="settings_tracked_apps_title">Track Other Apps</string>
+    <string name="settings_tracked_apps_subtitle_none">Suggest transactions from any app\'s notifications</string>
+    <plurals name="settings_tracked_apps_subtitle_count">
+        <item quantity="one">%d app tracked</item>
+        <item quantity="other">%d apps tracked</item>
+    </plurals>
+    <string name="settings_tracked_apps_body">Pick the apps that notify you about payments. Their notifications show up in Unrecognized SMS as suggestions, and nothing is added until you tap Add. Supported bank apps are read already and aren\'t listed.</string>
+    <string name="settings_tracked_apps_enable_access">Turn on notification access first</string>
+    <string name="settings_tracked_apps_search">Search apps</string>
+    <string name="settings_tracked_apps_done">Done</string>
     <string name="settings_daily_summary_title">Daily summary</string>
     <string name="settings_daily_summary_subtitle">A recap of today\'s spending at 9\u00A0PM</string>
     <string name="settings_daily_summary_needs_permission">Allow notifications for PennyWise to get the daily summary.</string>

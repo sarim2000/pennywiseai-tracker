@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import kotlinx.coroutines.flow.Flow
+import java.time.Duration
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,6 +47,22 @@ class UnrecognizedSmsRepository @Inject constructor(
 
     suspend fun getById(id: Long): UnrecognizedSmsEntity? = dao.getById(id)
 
+    /**
+     * #994: an app notification carries no reference number, so a second identical
+     * payment repeats the first one's text, which the (sender, body) index rejects.
+     * Offer the earlier, already handled row again instead. Within [REDELIVERY_WINDOW]
+     * it is the same alert posted twice, so -1 as for any duplicate.
+     */
+    suspend fun insertOrRevive(sms: UnrecognizedSmsEntity): Long {
+        dao.insert(sms).takeIf { it > 0 }?.let { return it }
+        val existing = dao.findBySenderAndBody(sms.sender, sms.smsBody) ?: return -1
+        if (Duration.between(existing.receivedAt, sms.receivedAt).abs() < REDELIVERY_WINDOW) return -1
+        // ponytail: two identical payments both still waiting show as one row; a per-event key column would split them.
+        if (!existing.isDeleted) return -1
+        dao.revive(existing.id, sms.receivedAt)
+        return existing.id
+    }
+
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
         dao.insertAll(smsList)
     }
@@ -84,6 +101,10 @@ class UnrecognizedSmsRepository @Inject constructor(
         SmsBroadcastReceiver.cancelSuggestion(context, id)
     }
     
+    private companion object {
+        val REDELIVERY_WINDOW: Duration = Duration.ofMinutes(2)
+    }
+
     /**
      * Check if a message already exists (including deleted ones)
      */

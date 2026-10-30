@@ -326,6 +326,91 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private const val GROUP_SUMMARY_ID = -3
         private val GROUP_LOCK = Any()
         private const val GROUP_SETTLE_MS = 1_000L
+
+        /**
+         * #994: an SMS from a sender the user has added a suggestion from is offered
+         * right away, in Unrecognized SMS and as an alert that opens Add pre-filled.
+         * It is never saved on its own; the user's Add is the confirmation.
+         * A notification from an app the user chose to track ([fromTrackedApp]) is
+         * always listed when it reads as a transaction; the alert still waits until
+         * the user has added one from that app.
+         */
+        internal suspend fun suggestFromLearnedSender(
+            context: Context,
+            sender: String,
+            body: String,
+            timestamp: Long,
+            fromTrackedApp: Boolean = false
+        ) {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                SmsBroadcastReceiverEntryPoint::class.java
+            )
+            val learned = entryPoint.learnedSendersStore()
+            // A parser that turned this SMS down (an OTP, a promo) knows the sender better than we do.
+            val isLearned = learned.isLearned(sender)
+            if (!fromTrackedApp && (!isLearned || BankParserFactory.getParsers(sender).isNotEmpty())) return
+            val transaction = GenericTransactionExtractor.extract(sender, body)?.transaction ?: return
+            val learnedAccount = learned.accountFor(sender)
+            LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)?.let {
+                if (entryPoint.ignoredAccountsStore().isIgnored(it.bankName, it.accountLast4)) return
+            }
+            val sms = UnrecognizedSmsEntity(
+                sender = sender,
+                smsBody = body,
+                receivedAt = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
+                )
+            )
+            // Already offered (the same SMS delivered twice): -1, no second alert.
+            val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
+            if (isLearned) showSuggestionNotification(context, Suggestion(sms.copy(id = id), transaction, learnedAccount))
+        }
+
+        private fun showSuggestionNotification(context: Context, suggestion: Suggestion) {
+            val draft = suggestion.draft()
+            val tx = suggestion.transaction
+            val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
+            val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
+            val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
+                context.getString(R.string.notif_suggestion_title_received, amount, merchant)
+            } else {
+                context.getString(R.string.notif_suggestion_title_spent, amount, merchant)
+            }
+            val intent = Intent(context, MainActivity::class.java).apply {
+                action = ACTION_ADD_SUGGESTION
+                putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
+                putExtra(MainActivity.EXTRA_ADD_AMOUNT, draft.amount)
+                putExtra(MainActivity.EXTRA_ADD_MERCHANT, draft.merchant)
+                putExtra(MainActivity.EXTRA_ADD_BANK, draft.bankName)
+                putExtra(MainActivity.EXTRA_ADD_LAST4, draft.accountLast4)
+                putExtra(MainActivity.EXTRA_ADD_CURRENCY, draft.currency)
+                putExtra(MainActivity.EXTRA_ADD_TYPE, draft.type)
+                putExtra(MainActivity.EXTRA_ADD_DATE_TIME, draft.dateTime)
+                putExtra(MainActivity.EXTRA_ADD_SMS_ID, suggestion.sms.id)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val notificationId = suggestion.sms.id.toInt()
+            ensureChannel(context).notify(
+                SUGGESTION_TAG,
+                notificationId,
+                NotificationCompat.Builder(context, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setContentTitle(title)
+                    .setContentText(context.getString(R.string.notif_suggestion_text, BankNotificationConfig.displayName(context, suggestion.sms.sender)))
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setContentIntent(
+                        PendingIntent.getActivity(
+                            context,
+                            notificationId,
+                            intent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                        )
+                    )
+                    .setAutoCancel(true)
+                    .build()
+            )
+        }
     }
 
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -421,81 +506,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Error processing SMS", e)
         }
-    }
-
-    /**
-     * #994: an SMS from a sender the user has added a suggestion from is offered
-     * right away, in Unrecognized SMS and as an alert that opens Add pre-filled.
-     * It is never saved on its own; the user's Add is the confirmation.
-     */
-    private suspend fun suggestFromLearnedSender(context: Context, sender: String, body: String, timestamp: Long) {
-        val entryPoint = EntryPointAccessors.fromApplication(
-            context.applicationContext,
-            SmsBroadcastReceiverEntryPoint::class.java
-        )
-        val learned = entryPoint.learnedSendersStore()
-        // A parser that turned this SMS down (an OTP, a promo) knows the sender better than we do.
-        if (!learned.isLearned(sender) || BankParserFactory.getParsers(sender).isNotEmpty()) return
-        val transaction = GenericTransactionExtractor.extract(sender, body)?.transaction ?: return
-        val learnedAccount = learned.accountFor(sender)
-        LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)?.let {
-            if (entryPoint.ignoredAccountsStore().isIgnored(it.bankName, it.accountLast4)) return
-        }
-        val sms = UnrecognizedSmsEntity(
-            sender = sender,
-            smsBody = body,
-            receivedAt = java.time.LocalDateTime.ofInstant(
-                java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
-            )
-        )
-        // Already offered (the same SMS delivered twice): -1, no second alert.
-        val id = entryPoint.unrecognizedSmsRepository().insert(sms).takeIf { it > 0 } ?: return
-        showSuggestionNotification(context, Suggestion(sms.copy(id = id), transaction, learnedAccount))
-    }
-
-    private fun showSuggestionNotification(context: Context, suggestion: Suggestion) {
-        val draft = suggestion.draft()
-        val tx = suggestion.transaction
-        val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
-        val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
-        val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
-            context.getString(R.string.notif_suggestion_title_received, amount, merchant)
-        } else {
-            context.getString(R.string.notif_suggestion_title_spent, amount, merchant)
-        }
-        val intent = Intent(context, MainActivity::class.java).apply {
-            action = ACTION_ADD_SUGGESTION
-            putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
-            putExtra(MainActivity.EXTRA_ADD_AMOUNT, draft.amount)
-            putExtra(MainActivity.EXTRA_ADD_MERCHANT, draft.merchant)
-            putExtra(MainActivity.EXTRA_ADD_BANK, draft.bankName)
-            putExtra(MainActivity.EXTRA_ADD_LAST4, draft.accountLast4)
-            putExtra(MainActivity.EXTRA_ADD_CURRENCY, draft.currency)
-            putExtra(MainActivity.EXTRA_ADD_TYPE, draft.type)
-            putExtra(MainActivity.EXTRA_ADD_DATE_TIME, draft.dateTime)
-            putExtra(MainActivity.EXTRA_ADD_SMS_ID, suggestion.sms.id)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val notificationId = suggestion.sms.id.toInt()
-        ensureChannel(context).notify(
-            SUGGESTION_TAG,
-            notificationId,
-            NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(title)
-                .setContentText(context.getString(R.string.notif_suggestion_text, suggestion.sms.sender))
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                .setContentIntent(
-                    PendingIntent.getActivity(
-                        context,
-                        notificationId,
-                        intent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                    )
-                )
-                .setAutoCancel(true)
-                .build()
-        )
     }
 
     private fun isAppInForeground(context: Context): Boolean {

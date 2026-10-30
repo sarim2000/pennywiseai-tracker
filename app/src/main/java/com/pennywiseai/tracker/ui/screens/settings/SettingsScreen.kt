@@ -176,6 +176,9 @@ fun SettingsScreen(
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showNumberFormatDialog by remember { mutableStateOf(false) }
     var showDateFormatDialog by remember { mutableStateOf(false) }
+    var showTrackedAppsDialog by remember { mutableStateOf(false) }
+    val trackedAppsViewModel: TrackedAppsViewModel = hiltViewModel()
+    val trackedApps by trackedAppsViewModel.tracked.collectAsStateWithLifecycle()
     var showBudgetCycleDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     var showMainAccountDropdown by remember { mutableStateOf(false) }
@@ -820,6 +823,26 @@ fun SettingsScreen(
                     position = ListItemPosition.Top,
                     trailingText = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_on) else stringResource(R.string.settings_notification_access_off)
                 )
+                SettingsNavItem(
+                    icon = Icons.Default.Apps,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.settings_tracked_apps_title),
+                    subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
+                        else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
+                    onClick = { showTrackedAppsDialog = true },
+                    position = ListItemPosition.Middle
+                )
+                if (showTrackedAppsDialog) {
+                    TrackedAppsDialog(
+                        viewModel = trackedAppsViewModel,
+                        hasNotificationAccess = hasNotificationAccess,
+                        onEnableAccess = {
+                            notificationAccessLauncher.launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        },
+                        onDismiss = { showTrackedAppsDialog = false }
+                    )
+                }
                 SettingsSwitchRow(
                     icon = Icons.Default.Schedule,
                     iconBgColor = indigo_light,

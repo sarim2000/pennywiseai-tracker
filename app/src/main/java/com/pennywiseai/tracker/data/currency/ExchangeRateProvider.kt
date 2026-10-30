@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.currency
 
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.android.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -36,9 +37,13 @@ interface ExchangeRateProvider {
  * Uses https://open.er-api.com/v6/latest/ endpoint, falling back to the keyless
  * https://allratestoday.com/api/open/latest/ endpoint (same shape) when it fails
  */
-class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
+class FreeExchangeRateProvider internal constructor(
+    engine: HttpClientEngine
+) : ExchangeRateProvider {
 
-    private val client = HttpClient(Android) {
+    @Inject constructor() : this(Android.create())
+
+    private val client = HttpClient(engine) {
         // Bound every request so a hung socket can't stall callers indefinitely —
         // important because rate fetches are serialized on a shared mutex, so one
         // stuck request would otherwise block all currency conversions.

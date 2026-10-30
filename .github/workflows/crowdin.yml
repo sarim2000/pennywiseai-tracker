@@ -16,6 +16,11 @@ on:
   schedule:
     - cron: '0 6 * * 1'   # Mondays 06:00 UTC — pull fresh translations
   workflow_dispatch:
+    inputs:
+      upload_translations:
+        description: 'Also upload the repo''s values-* translations to Crowdin (run once after merging hand translations, or the next pull deletes them)'
+        type: boolean
+        default: false
 
 # One sync at a time: back-to-back merges otherwise race on Crowdin's
 # translation build ("Another build is currently in progress" / 429).
@@ -37,7 +42,9 @@ jobs:
         uses: crowdin/github-action@v2
         with:
           upload_sources: true
-          upload_translations: false
+          upload_translations: ${{ inputs.upload_translations == true }}
+          # Repo translations were reviewed in their PRs, so approve them on upload.
+          auto_approve_imported: ${{ inputs.upload_translations == true }}
           download_translations: true
           # Per-file skip rules (store listing vs app strings) live in crowdin.yml.
           localization_branch_name: l10n/crowdin

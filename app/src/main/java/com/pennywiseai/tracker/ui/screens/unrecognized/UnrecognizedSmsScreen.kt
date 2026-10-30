@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.unrecognized
 
+import androidx.compose.ui.platform.LocalContext
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.animation.*
@@ -301,6 +303,8 @@ private fun UnrecognizedSmsItem(
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth()
     ) {
+        val context = LocalContext.current
+        val displayName = remember(message.sender) { BankNotificationConfig.displayName(context, message.sender) }
         Column(
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
@@ -312,7 +316,7 @@ private fun UnrecognizedSmsItem(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = message.sender,
+                        text = displayName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary

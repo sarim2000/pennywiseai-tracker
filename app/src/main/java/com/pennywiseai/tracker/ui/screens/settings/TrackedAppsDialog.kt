@@ -30,13 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +76,10 @@ class TrackedAppsViewModel @Inject constructor(
                     .distinct()
                     // Our own alerts would loop back in; parser-backed apps are read already.
                     .filter { it != context.packageName && !BankNotificationConfig.isAllowed(it) }
-                    .map { pkg -> App(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()) }
+                    // An app uninstalled since the query is skipped, not a crash.
+                    .mapNotNull { pkg ->
+                        runCatching { App(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()) }.getOrNull()
+                    }
                     .sortedBy { it.label.lowercase() }
             }
         }
@@ -102,7 +106,7 @@ fun TrackedAppsDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.settings_tracked_apps_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(
                     stringResource(R.string.settings_tracked_apps_body),
                     style = MaterialTheme.typography.bodyMedium,
@@ -122,14 +126,14 @@ fun TrackedAppsDialog(
                 )
                 val list = apps
                 if (list == null) {
-                    Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxWidth().padding(Spacing.md), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
                     }
                 } else {
                     val shown = list
                         .filter { query.isBlank() || it.label.contains(query.trim(), ignoreCase = true) }
                         .sortedByDescending { it.packageName in pickedAtOpen }
-                    LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                    LazyColumn(Modifier.heightIn(max = Dimensions.Component.dialogListMaxHeight)) {
                         items(shown, key = { it.packageName }) { app ->
                             val checked = app.packageName in tracked
                             Row(
@@ -138,7 +142,7 @@ fun TrackedAppsDialog(
                                     .fillMaxWidth()
                                     .clickable(role = Role.Checkbox) { viewModel.setTracked(app.packageName, !checked) }
                             ) {
-                                Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.padding(8.dp))
+                                Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.padding(Spacing.sm))
                                 Text(app.label, style = MaterialTheme.typography.bodyLarge)
                             }
                         }

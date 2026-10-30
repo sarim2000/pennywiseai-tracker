@@ -72,11 +72,11 @@ class BankNotificationListenerService : NotificationListenerService() {
         // #994 step 4: an app the user picked, with no parser of its own. Offer what
         // the generic extractor reads as a suggestion; never book it directly.
         if (!allowed) {
-            val sender = appLabel(packageName)
             serviceScope.launch {
                 try {
+                    // The package is the sender: it keeps two apps with one name apart.
                     SmsBroadcastReceiver.suggestFromLearnedSender(
-                        applicationContext, sender, body, sbn.postTime, fromTrackedApp = true
+                        applicationContext, packageName, body, sbn.postTime, fromTrackedApp = true
                     )
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to suggest from tracked app notification", e)
@@ -151,13 +151,6 @@ class BankNotificationListenerService : NotificationListenerService() {
                 BankNotificationRetryWorker.enqueue(applicationContext)
             }
         }
-    }
-
-    /** The app's name as the user knows it ("Robinhood"), used as the suggestion's sender. */
-    private fun appLabel(packageName: String): String = try {
-        packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0)).toString()
-    } catch (e: Exception) {
-        packageName
     }
 
     override fun onDestroy() {

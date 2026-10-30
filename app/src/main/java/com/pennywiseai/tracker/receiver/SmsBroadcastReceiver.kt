@@ -363,7 +363,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 )
             )
             // Already offered (the same SMS delivered twice): -1, no second alert.
-            val id = entryPoint.unrecognizedSmsRepository().insert(sms).takeIf { it > 0 } ?: return
+            val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
             if (isLearned) showSuggestionNotification(context, Suggestion(sms.copy(id = id), transaction, learnedAccount))
         }
 
@@ -397,7 +397,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
-                    .setContentText(context.getString(R.string.notif_suggestion_text, suggestion.sms.sender))
+                    .setContentText(context.getString(R.string.notif_suggestion_text, BankNotificationConfig.displayName(context, suggestion.sms.sender)))
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setContentIntent(
                         PendingIntent.getActivity(

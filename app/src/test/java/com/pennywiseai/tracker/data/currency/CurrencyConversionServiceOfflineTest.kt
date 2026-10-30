@@ -84,8 +84,9 @@ class CurrencyConversionServiceOfflineTest {
             assertEquals(pairs[expectedPair]?.rate, r)
         }
 
-        coVerify(atLeast = 1) { dao.getExchangeRate("USD", "INR", any()) }
-        coVerify(atLeast = 1) { dao.getExchangeRate("EUR", "INR", any()) }
-        coVerify(atLeast = 1) { dao.getExchangeRate("GBP", "INR", any()) }
+        // Every concurrent write must have left a usable cache entry: with the DB
+        // now failing, all three pairs still resolve from the cache alone.
+        coEvery { dao.getExchangeRate(any(), any(), any()) } throws IllegalStateException("cache miss")
+        pairs.forEach { (from, entity) -> assertEquals(entity.rate, service.getExchangeRate(from, "INR")) }
     }
 }

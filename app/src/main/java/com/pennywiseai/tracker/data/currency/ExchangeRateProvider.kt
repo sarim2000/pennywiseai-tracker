@@ -33,7 +33,8 @@ interface ExchangeRateProvider {
 
 /**
  * Implementation using the free ExchangeRate-API
- * Uses https://open.er-api.com/v6/latest/ endpoint
+ * Uses https://open.er-api.com/v6/latest/ endpoint, falling back to the keyless
+ * https://allratestoday.com/api/open/latest/ endpoint (same shape) when it fails
  */
 class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
 
@@ -76,9 +77,17 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
     }
 
     override suspend fun fetchAllExchangeRatesWithMetadata(baseCurrency: String): ExchangeRateResponseWithMetadata? {
+        val base = baseCurrency.uppercase()
+        return fetchFrom("https://open.er-api.com/v6/latest/$base")
+            // Keyless fallback with the same response shape (ECB reference rates,
+            // ~30 currencies). Exchange rates by AllRatesToday: https://allratestoday.com
+            ?: fetchFrom("https://allratestoday.com/api/open/latest/$base")
+    }
+
+    private suspend fun fetchFrom(url: String): ExchangeRateResponseWithMetadata? {
         return try {
             withContext(Dispatchers.IO) {
-                val response = client.get("https://open.er-api.com/v6/latest/${baseCurrency.uppercase()}") {
+                val response = client.get(url) {
                     header("User-Agent", "PennyWise/1.0")
                 }
 
@@ -95,12 +104,12 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
                         baseCurrency = exchangeRateResponse.base_code
                     )
                 } else {
-                    println("Exchange rate API returned result='${exchangeRateResponse.result}' base='${exchangeRateResponse.base_code}'")
+                    println("Exchange rate API $url returned result='${exchangeRateResponse.result}' base='${exchangeRateResponse.base_code}'")
                     null
                 }
             }
         } catch (e: Exception) {
-            println("Failed to fetch exchange rates from API: ${e.message}")
+            println("Failed to fetch exchange rates from $url: ${e.message}")
             null
         }
     }
@@ -138,7 +147,7 @@ data class ExchangeRateApiResponse(
     val time_last_update_utc: String,
     val time_next_update_unix: Long,
     val time_next_update_utc: String,
-    val time_eol_unix: Long,
+    val time_eol_unix: Long = 0,
     val base_code: String,
     val rates: Map<String, Double>
 )

@@ -53,7 +53,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 
 ### Internet Permission
 - **Model Download**: One-time download of the ~1.5GB Qwen 2.5 model from a public Cloudflare R2 bucket, verified against a SHA-256 checksum before use
-- **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com; only the currency code is sent
+- **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com (falling back to allratestoday.com if that fails); only the currency code is sent
 - **Parse Reports**: The "report a parsing problem" action opens pennywise.zynth.dev with the SMS text and sender ID pre-filled. The link also carries an encrypted device identifier — your Android device ID plus a timestamp, RSA-encrypted on-device before it leaves. Opening the page sends these details to the server right away to generate a parsed preview; submitting the report itself remains a separate user action
 - **AI Access (optional, off by default)**: Only while you have started an AI session, answers to a connected AI app's questions travel from your phone through PennyWise's relay (see "Connected AI Apps" below)
 - **App Updates**: Google Play Store variant uses Play Services for app updates (F-Droid variant does not)

@@ -238,7 +238,7 @@
     <string name="onboarding_start_scanning">Start Scanning</string>
     <string name="onboarding_finish">Finish</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">PennyWise AI</string>
+    <string name="chat_title" translatable="false">PennyWise AI</string>
     <string name="chat_downloading_model">Downloading Model...</string>
     <string name="chat_model_required_title">AI Model Required</string>
     <string name="chat_model_required_body">Download the AI model to start chatting</string>

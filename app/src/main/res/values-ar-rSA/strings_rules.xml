@@ -192,7 +192,6 @@
     <string name="onboarding_start_scanning">بدء الفحص</string>
     <string name="onboarding_finish">إنهاء</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">جاري تحميل الموديل...</string>
     <string name="chat_model_required_title">نموذج AI مطلوب</string>
     <string name="chat_model_required_body">تحميل نموذج الذكاء الاصطناعي لبدء الدردشة</string>

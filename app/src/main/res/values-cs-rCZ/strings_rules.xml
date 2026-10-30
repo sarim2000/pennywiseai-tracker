@@ -161,7 +161,6 @@
     <string name="onboarding_start_scanning">Začít skenovat</string>
     <string name="onboarding_finish">Dokončit</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">Stahování modelu...</string>
     <string name="chat_model_required_title">Je vyžadován model AI</string>
     <string name="chat_model_required_body">Stáhněte si AI model a začněte chatovat</string>

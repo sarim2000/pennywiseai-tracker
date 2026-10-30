@@ -269,7 +269,6 @@
     <string name="onboarding_continue">Працягнуць</string>
     <string name="onboarding_start_scanning">Пачаць сканаванне</string>
     <string name="onboarding_finish">Завяршыць</string>
-    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">Спампоўка мадэлі...</string>
     <string name="chat_model_required_title">Патрэбна AI-мадэль</string>
     <string name="chat_model_required_body">Спампуйце AI-мадэль, каб пачаць размову</string>

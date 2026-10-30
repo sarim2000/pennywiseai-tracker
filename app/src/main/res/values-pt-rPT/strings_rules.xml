@@ -150,7 +150,6 @@
     <string name="onboarding_start_scanning">Comece a escanear</string>
     <string name="onboarding_finish">Acabamento</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
-    <string name="chat_title">PennyWise AI</string>
     <string name="chat_downloading_model">Baixando modelo...</string>
     <string name="chat_model_required_title">Modelo IA necessário</string>
     <string name="chat_model_required_body">Baixe o modelo de IA para começar a conversar</string>

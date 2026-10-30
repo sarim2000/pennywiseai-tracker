@@ -40,6 +40,8 @@
     <string name="settings_number_format_international">Internacional</string>
     <string name="settings_number_format_auto_example">Según cada moneda (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_international_example">150,000 (miles / millones)</string>
+    <string name="settings_date_format_title">Formato de fecha</string>
+    <string name="settings_date_format_subtitle">Cómo se muestran las fechas</string>
     <!-- Budget -->
     <string name="settings_budget_section">Presupuesto</string>
     <string name="settings_budget_cycle_title">Día de inicio del ciclo del presupuesto</string>

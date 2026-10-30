@@ -57,6 +57,7 @@ import com.pennywiseai.tracker.ui.components.shortLabel
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.HazeState
@@ -125,7 +126,7 @@ fun AnalyticsScreen(
 
     // Cache expensive operations
     val timePeriods = remember { TimePeriod.values().toList() }
-    val customRangeLabel = remember(customDateRange) {
+    val customRangeLabel = remember(customDateRange, AppDates.dateFormatStyle) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
     val periodLabel = selectedPeriod.label

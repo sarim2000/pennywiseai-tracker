@@ -81,6 +81,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import androidx.compose.foundation.shape.CircleShape
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -209,7 +210,7 @@ fun TransactionsScreen(
 
     // Cache expensive operations
     val timePeriods = remember { TimePeriod.values().toList() }
-    val customRangeLabel = remember(customDateRange) {
+    val customRangeLabel = remember(customDateRange, AppDates.dateFormatStyle) {
         DateRangeUtils.formatDateRange(customDateRange)
     }
     val periodLabel = selectedPeriod.label

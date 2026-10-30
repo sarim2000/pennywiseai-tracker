@@ -47,6 +47,8 @@
     <string name="settings_number_format_auto_example">Matches each currency (₹1,50,000 · $150,000)</string>
     <string name="settings_number_format_indian_example">1,50,000 (lakh / crore)</string>
     <string name="settings_number_format_international_example">150,000 (thousand / million)</string>
+    <string name="settings_date_format_title">Date Format</string>
+    <string name="settings_date_format_subtitle">How dates are shown</string>
 
     <!-- Budget -->
     <string name="settings_budget_section">Budget</string>

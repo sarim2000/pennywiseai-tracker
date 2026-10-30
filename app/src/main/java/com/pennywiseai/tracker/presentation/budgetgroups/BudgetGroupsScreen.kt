@@ -678,7 +678,7 @@ private fun BudgetCard(
                 // budget's own current window (Jun 29..Jul 5 even when
                 // the page is the July view) so this number is
                 // consistent across month views.
-                val dateFormatter = AppDates.pattern("d MMM")
+                val dateFormatter = AppDates.dayMonthFormatter()
                 val locale = LocalConfiguration.current.locales[0]
                 val subtitleText = when {
                     groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)

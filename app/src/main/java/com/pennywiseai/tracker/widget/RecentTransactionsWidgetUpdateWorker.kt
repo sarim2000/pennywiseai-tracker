@@ -181,7 +181,8 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 DateFormat.getBestDateTimePattern(locale, if (DateFormat.is24HourFormat(ctx)) "Hm" else "hma"),
                 locale
             )
-            val dateFormat = AppDates.pattern(DateFormat.getBestDateTimePattern(locale, "MMMd"), locale)
+            // From the store, not AppDates.dateFormatStyle: a cold background start may not have loaded it yet.
+            val dateFormat = AppDates.dayMonthFormatter(locale, userPreferencesRepository.dateFormatStyle.first())
             val yesterday = ctx.getString(R.string.txn_list_group_yesterday)
             // From the table, not CategoryMapping.userStyles / BuiltinCategoryNames:
             // a background process may not have mirrored them yet.

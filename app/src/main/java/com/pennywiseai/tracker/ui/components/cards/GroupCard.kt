@@ -72,7 +72,7 @@ fun GroupCard(
     }
 
     val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }
-    val dateText = latestDate?.format(AppDates.pattern("d MMM")) ?: ""
+    val dateText = latestDate?.format(AppDates.dayMonthFormatter()) ?: ""
     val currency = displayCurrency ?: transactions.firstOrNull()?.currency ?: "INR"
 
     val countText = pluralStringResource(R.plurals.group_card_transaction_count, transactions.size, transactions.size)

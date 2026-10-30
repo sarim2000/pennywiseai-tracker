@@ -162,6 +162,7 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Number Format Style (digit grouping: Auto / Indian / International)
         val NUMBER_FORMAT_STYLE = stringPreferencesKey("number_format_style")
+        val DATE_FORMAT_STYLE = stringPreferencesKey("date_format_style")
 
         // Analytics Chart Type
         val ANALYTICS_CHART_TYPE = stringPreferencesKey("analytics_chart_type")
@@ -291,6 +292,13 @@ open class UserPreferencesRepository @Inject constructor(
                     NumberFormatStyle.AUTO
                 }
             } ?: NumberFormatStyle.AUTO
+        }
+
+    val dateFormatStyle: Flow<DateFormatStyle> = context.dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.DATE_FORMAT_STYLE]
+                ?.let { name -> DateFormatStyle.entries.firstOrNull { it.name == name } }
+                ?: DateFormatStyle.AUTO
         }
 
     suspend fun updateDarkThemeEnabled(enabled: Boolean?) {
@@ -883,6 +891,12 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun updateNumberFormatStyle(style: NumberFormatStyle) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.NUMBER_FORMAT_STYLE] = style.name
+        }
+    }
+
+    suspend fun updateDateFormatStyle(style: DateFormatStyle) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DATE_FORMAT_STYLE] = style.name
         }
     }
 

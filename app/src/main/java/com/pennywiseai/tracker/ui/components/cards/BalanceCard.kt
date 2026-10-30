@@ -638,7 +638,7 @@ private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
  * formatter built once keeps the locale the process started in, so after switching the
  * app language the month stayed in the old one.
  */
-internal val SHORT_DATE: DateTimeFormatter get() = AppDates.pattern("d MMM")
+internal val SHORT_DATE: DateTimeFormatter get() = AppDates.dayMonthFormatter()
 
 @Composable
 private fun CurrencyChip(

@@ -24,6 +24,8 @@ import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
@@ -194,6 +196,8 @@ class SettingsViewModel @Inject constructor(
 
     // Number format style (digit grouping: Auto / Indian / International)
     val numberFormatStyle = userPreferencesRepository.numberFormatStyle
+
+    val dateFormatStyle = userPreferencesRepository.dateFormatStyle
 
     // Budget cycle start day (1..31). Drives Home/Budgets/Analytics so a user
     // whose salary doesn't land on the 1st can define their own pay cycle.
@@ -774,6 +778,16 @@ class SettingsViewModel @Inject constructor(
     fun updateNumberFormatStyle(style: NumberFormatStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateNumberFormatStyle(style)
+        }
+    }
+
+    fun updateDateFormatStyle(style: DateFormatStyle) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateDateFormatStyle(style)
+            // Widgets store pre-formatted dates. Set the style before refreshing so
+            // the worker doesn't race the app-level collector and render the old one.
+            AppDates.dateFormatStyle = style
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 

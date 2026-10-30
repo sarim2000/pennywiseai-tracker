@@ -29,7 +29,6 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
-import com.pennywiseai.tracker.data.backup.ExportBytesResult
 import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
@@ -531,7 +530,6 @@ class SettingsViewModel @Inject constructor(
                         _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
                         Log.e("SettingsViewModel", "Export failed: ${result.message}")
                     }
-                    else -> {}
                 }
             } catch (e: Exception) {
                 _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
@@ -722,9 +720,14 @@ class SettingsViewModel @Inject constructor(
         }
 
         val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
-        return when (val exportResult = backupExporter.exportBackupBytes(includeReceipts = includeReceipts)) {
-            is ExportBytesResult.Success -> {
-                when (val writeResult = folderBackupWriter.writeBackup(treeUri, exportResult.bytes)) {
+        return when (val exportResult = backupExporter.exportBackup(includeReceipts = includeReceipts)) {
+            is ExportResult.Success -> {
+                val writeResult = try {
+                    folderBackupWriter.writeBackup(treeUri, exportResult.file)
+                } finally {
+                    exportResult.file.delete()
+                }
+                when (writeResult) {
                     is FolderBackupWriter.Result.Success -> {
                         userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
                             System.currentTimeMillis()
@@ -740,7 +743,7 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             }
-            is ExportBytesResult.Error -> {
+            is ExportResult.Error -> {
                 _importExportMessage.value = UiText.Plain(exportResult.message)
                 false
             }

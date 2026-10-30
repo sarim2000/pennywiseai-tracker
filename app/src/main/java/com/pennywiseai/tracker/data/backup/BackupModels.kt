@@ -402,17 +402,6 @@ sealed class ImportResult {
 sealed class ExportResult {
     data class Success(val file: java.io.File) : ExportResult()
     data class Error(val message: String) : ExportResult()
-    data class Progress(val current: Int, val total: Int) : ExportResult()
-}
-
-/**
- * In-memory export result for scheduled and manual folder backups.
- */
-sealed class ExportBytesResult {
-    // Plain class, not data class: ByteArray has reference equality, so a generated
-    // equals/hashCode over it would be misleading. This result is only matched via `when`.
-    class Success(val bytes: ByteArray) : ExportBytesResult()
-    data class Error(val message: String) : ExportBytesResult()
 }
 
 /**

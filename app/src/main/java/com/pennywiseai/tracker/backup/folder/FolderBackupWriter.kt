@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -19,7 +20,8 @@ class FolderBackupWriter @Inject constructor(
         return existing == null || existing.canWrite()
     }
 
-    fun writeBackup(treeUri: String, bytes: ByteArray): Result {
+    /** Copies the backup [file] into the folder, streamed rather than loaded into memory. */
+    fun writeBackup(treeUri: String, file: File): Result {
         val folder = DocumentFile.fromTreeUri(context, Uri.parse(treeUri))
             ?: return Result.Failure("Backup folder is no longer accessible")
 
@@ -36,7 +38,7 @@ class FolderBackupWriter @Inject constructor(
             ScheduledFolderBackupConstants.TEMP_BACKUP_FILE_NAME
         ) ?: return Result.Failure("Could not create backup file in the selected folder")
 
-        val writeError = writeBytes(tempFile.uri, bytes)
+        val writeError = copyFile(file, tempFile.uri)
         if (writeError != null) {
             tempFile.delete()
             return Result.Failure(writeError)
@@ -56,7 +58,7 @@ class FolderBackupWriter @Inject constructor(
             ScheduledFolderBackupConstants.BACKUP_FILE_NAME
         ) ?: return Result.Failure("Could not finalize backup file")
 
-        val finalError = writeBytes(finalFile.uri, bytes)
+        val finalError = copyFile(file, finalFile.uri)
         if (finalError != null) {
             return Result.Failure(finalError)
         }
@@ -64,12 +66,12 @@ class FolderBackupWriter @Inject constructor(
         return Result.Success
     }
 
-    /** Writes [bytes] to [uri], truncating. Returns null on success or an error message. */
-    private fun writeBytes(uri: Uri, bytes: ByteArray): String? {
+    /** Copies [file] to [uri], truncating. Returns null on success or an error message. */
+    private fun copyFile(file: File, uri: Uri): String? {
         return try {
             context.contentResolver.openOutputStream(uri, "wt")?.use { stream ->
-                stream.write(bytes)
-            } ?: "Could not open backup file for writing"
+                file.inputStream().use { it.copyTo(stream) }
+            } ?: return "Could not open backup file for writing"
             null
         } catch (e: Exception) {
             "Failed to write backup: ${e.message ?: "unknown error"}"

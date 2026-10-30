@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
@@ -26,6 +27,7 @@ import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
+import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.EntryPoint
@@ -53,6 +55,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun transactionRepository(): TransactionRepository
         fun categoryRepository(): CategoryRepository
         fun detectBalanceDiscrepancy(): com.pennywiseai.tracker.domain.usecase.DetectBalanceDiscrepancyUseCase
+        fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
         fun learnedSendersStore(): LearnedSendersStore
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
@@ -64,14 +67,15 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val CHANNEL_ID = "transaction_notifications"
 
-        // Category actions occupy slots 0..1; the learned note's Undo slot 8; picker reserves slot 9.
-        // Codes are unique per (transactionId, slot): txId*10+slot cannot alias across
-        // transactions because take(2) bounds slot < 10. This numbering is used ONLY by
-        // ACTION_CHANGE_CATEGORY broadcasts — one filterEquals space; activity intents
+        // Category actions occupy slots 0..1; "Track as … bill" / "Update price" slot 7; the learned note's Undo
+        // slot 8; picker reserves slot 9. Codes are unique per (transactionId, slot): txId*10+slot
+        // cannot alias across transactions because take(2) bounds slot < 10. This numbering is
+        // used ONLY by NotificationActionReceiver broadcasts — one filterEquals space; activity intents
         // (content → MainActivity, picker → QuickCategoryPickerActivity) are separate
         // components and keep their own lanes.
         private const val CATEGORY_SLOT_BASE = 10
         private const val PICKER_SLOT = 9
+        private const val TRACK_SLOT = 7
 
         internal fun categoryRequestCode(transactionId: Long, slotIndex: Int): Int =
             (transactionId * CATEGORY_SLOT_BASE + slotIndex).toInt()
@@ -313,6 +317,72 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             )
         }
 
+        /** Labels for a [SubscriptionEntity.billingCycle]: the alert's action, and the cycle as a word. */
+        private fun trackActionLabel(cycle: String): Int = when (cycle) {
+            "Weekly" -> R.string.recurring_alert_track_weekly
+            "Quarterly" -> R.string.recurring_alert_track_quarterly
+            "Semi-Annual" -> R.string.recurring_alert_track_semi_annual
+            "Annual" -> R.string.recurring_alert_track_annual
+            else -> R.string.recurring_alert_track_monthly
+        }
+
+        private fun cycleLabel(cycle: String): Int = when (cycle) {
+            "Weekly" -> R.string.recurring_alert_cycle_weekly
+            "Quarterly" -> R.string.recurring_alert_cycle_quarterly
+            "Semi-Annual" -> R.string.recurring_alert_cycle_semi_annual
+            "Annual" -> R.string.recurring_alert_cycle_annual
+            else -> R.string.recurring_alert_cycle_monthly
+        }
+
+        /**
+         * Replaces the alert with a short, silent "Tracking Netflix · monthly ·
+         * next on 24 Nov" once "Track as … bill" landed, or "Netflix now ₹240 ·
+         * next on 24 Nov" once "Update price" did ([priceUpdated]). [tracked]
+         * null (nothing changed) just clears the alert.
+         */
+        fun showTrackingNotification(
+            context: Context,
+            notificationId: Int,
+            transactionId: Long,
+            tracked: SubscriptionEntity?,
+            priceUpdated: Boolean = false
+        ) {
+            if (notificationId == -1) return
+            val notificationManager = ensureChannel(context)
+            if (tracked == null) {
+                notificationManager.cancel(notificationId)
+            } else {
+                val next = tracked.nextPaymentDate?.format(java.time.format.DateTimeFormatter.ofPattern("d MMM")).orEmpty()
+                val text = if (priceUpdated) {
+                    context.getString(
+                        R.string.recurring_alert_price_updated,
+                        tracked.merchantName,
+                        CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency),
+                        next
+                    )
+                } else {
+                    context.getString(
+                        R.string.recurring_alert_tracking,
+                        tracked.merchantName,
+                        context.getString(cycleLabel(tracked.billingCycle)),
+                        next
+                    )
+                }
+                notificationManager.notify(
+                    notificationId,
+                    NotificationCompat.Builder(context, CHANNEL_ID)
+                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setContentTitle(text)
+                        .setContentIntent(openTransactionIntent(context, transactionId))
+                        .setAutoCancel(true)
+                        .setSilent(true)
+                        .setTimeoutAfter(LEARNED_TIMEOUT_MS)
+                        .build()
+                )
+            }
+            updateAlertGroup(context, removedId = notificationId)
+        }
+
         // Long enough to reach Undo after the picker closes the shade.
         private const val LEARNED_TIMEOUT_MS = 15_000L
         private const val UNDO_SLOT = 8
@@ -396,15 +466,19 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             }
             Log.d(TAG, "Transaction saved with ID: ${result.transactionId}")
 
-            // The open app shows the new row itself.
-            if (isAppInForeground(context)) return
-
             val entryPoint = EntryPointAccessors.fromApplication(
                 context.applicationContext,
                 SmsBroadcastReceiverEntryPoint::class.java
             )
             val repository = entryPoint.transactionRepository()
             val saved = repository.getTransactionById(result.transactionId) ?: return
+            // The same bill as last month (or week, or year)? Offer to track it.
+            val trackCycle = runCatching { entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved) }
+                .onFailure { Log.e(TAG, "Error checking for a repeat charge", it) }
+                .getOrNull()
+            // The open app shows the new row itself, but has nowhere to ask "Track
+            // as … bill?" or "Update price?", so those still get the alert.
+            if (result.priceChange == null && trackCycle == null && isAppInForeground(context)) return
             // #734: tell the user right away when the bank's balance disagrees
             // with the ledger — the detail screen offers the fix.
             val discrepancyLine = runCatching { entryPoint.detectBalanceDiscrepancy().execute(saved) }
@@ -417,7 +491,19 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         CurrencyFormatter.formatCurrency(d.reported, d.currency)
                     )
                 }
-            showTransactionNotification(context, saved, repository, entryPoint.categoryRepository(), discrepancyLine)
+            // Maybe a subscription at a new price: ask, don't apply.
+            val priceLine = result.priceChange?.let { change ->
+                context.getString(
+                    if (saved.amount > change.previousAmount) R.string.recurring_alert_price_up else R.string.recurring_alert_price_down,
+                    change.subscriptionName,
+                    CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency),
+                    CurrencyFormatter.formatCurrency(saved.amount, saved.currency)
+                )
+            }
+            showTransactionNotification(
+                context, saved, repository, entryPoint.categoryRepository(),
+                discrepancyLine, priceLine, trackCycle, offerPriceUpdate = result.priceChange != null
+            )
         } catch (e: Exception) {
             Log.e(TAG, "Error processing SMS", e)
         }
@@ -512,7 +598,10 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         transaction: TransactionEntity,
         repository: TransactionRepository,
         categoryRepository: CategoryRepository,
-        discrepancyLine: String? = null
+        discrepancyLine: String? = null,
+        priceLine: String? = null,
+        trackCycle: String? = null,
+        offerPriceUpdate: Boolean = false
     ) {
         try {
             val notificationManager = ensureChannel(context)
@@ -546,7 +635,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             } else {
                 context.getString(R.string.notif_txn_category_bank, CategoryMapping.label(context, transaction.category, categories), bankName)
             }
-            val content = listOfNotNull(summaryLine, discrepancyLine).joinToString("\n")
+            val content = listOfNotNull(summaryLine, priceLine, discrepancyLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -575,8 +664,37 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // so the last opens the full picker and the first two are the
             // user's most-used categories of this type, for one-tap answers. (#303)
             val notificationId = transactionId.toInt()
+            // A repeat charge's "Track as … bill", or a repriced bill's "Update price",
+            // goes first and takes a quick pick's place. They never both apply: a
+            // price change needs a subscription, and Track needs there to be none.
+            if (offerPriceUpdate) {
+                notificationBuilder.addAction(
+                    0,
+                    context.getString(R.string.recurring_alert_update_price),
+                    NotificationActionReceiver.updatePriceIntent(
+                        context,
+                        categoryRequestCode(transactionId, TRACK_SLOT),
+                        transactionId,
+                        notificationId
+                    )
+                )
+            } else if (trackCycle != null) {
+                notificationBuilder.addAction(
+                    0,
+                    context.getString(trackActionLabel(trackCycle)),
+                    NotificationActionReceiver.trackIntent(
+                        context,
+                        categoryRequestCode(transactionId, TRACK_SLOT),
+                        transactionId,
+                        notificationId,
+                        trackCycle
+                    )
+                )
+            }
             if (uncategorized) {
-                quickPicksFor(transaction, repository, categoryRepository).forEachIndexed { index, pick ->
+                val picks = quickPicksFor(transaction, repository, categoryRepository)
+                    .take(if (trackCycle != null || offerPriceUpdate) 1 else 2)
+                picks.forEachIndexed { index, pick ->
                     val categoryIntent = Intent(context, NotificationActionReceiver::class.java).apply {
                         action = NotificationActionReceiver.ACTION_CHANGE_CATEGORY
                         putExtra(NotificationActionReceiver.EXTRA_TRANSACTION_ID, transactionId)

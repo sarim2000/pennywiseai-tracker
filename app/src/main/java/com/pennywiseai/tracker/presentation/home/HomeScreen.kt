@@ -74,6 +74,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
@@ -122,6 +123,7 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /** Distance each card travels on the first-composition entrance animation. */
 private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
@@ -1024,6 +1026,7 @@ fun HomeScreen(
                                                 subscriptions = uiState.upcomingSubscriptions,
                                                 totalAmount = uiState.upcomingSubscriptionsTotal,
                                                 totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
+                                                nextDue = uiState.nextDueSubscription,
                                                 isUnified = uiState.isUnifiedMode,
                                                 currency = uiState.selectedCurrency,
                                                 onClick = onNavigateToSubscriptions,
@@ -1582,6 +1585,7 @@ private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
     totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
+    nextDue: SubscriptionEntity? = null,
     isUnified: Boolean = false,
     currency: String = "INR",
     onClick: () -> Unit = {},
@@ -1717,6 +1721,24 @@ private fun UpcomingSubscriptionsCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
                     )
+                    val nextDate = nextDue?.nextPaymentDate
+                    if (nextDue != null && nextDate != null) {
+                        val days = ChronoUnit.DAYS.between(LocalDate.now(), nextDate).toInt()
+                        val due = when {
+                            days < 0 -> stringResource(R.string.home_subscriptions_due_overdue)
+                            days == 0 -> stringResource(R.string.home_subscriptions_due_today)
+                            days == 1 -> stringResource(R.string.home_subscriptions_due_tomorrow)
+                            else -> pluralStringResource(R.plurals.home_subscriptions_due_in_days, days, days)
+                        }
+                        Text(
+                            text = stringResource(R.string.home_subscriptions_next_due, nextDue.merchantName, due),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (days < 0) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             Text(

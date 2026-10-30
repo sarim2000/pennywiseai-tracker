@@ -14,6 +14,7 @@ import androidx.work.workDataOf
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
@@ -24,6 +25,7 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
+import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
@@ -1009,11 +1011,15 @@ class HomeViewModel @Inject constructor(
                 // Unified mode collapses to one converted figure. Native mode keeps
                 // currencies apart — summing ₹ + $ into one figure mislabels it — so
                 // we expose a per-currency map the card renders as "₹499 · $10".
+                // The total is what you pay per month: expenses only (a salary
+                // isn't a cost), each normalized by its billing cycle.
+                val expenses = subscriptions.filter { it.direction == SubscriptionDirection.EXPENSE }
+                val monthlyCosts = expenses.map { it to SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
                 val totalAmount = if (isUnified) {
                     var total = java.math.BigDecimal.ZERO
-                    for (sub in subscriptions) {
+                    for ((sub, monthly) in monthlyCosts) {
                         total += currencyConversionService.convertAmountOrNull(
-                            sub.amount, sub.currency, displayCurrency
+                            monthly, sub.currency, displayCurrency
                         ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
@@ -1023,12 +1029,15 @@ class HomeViewModel @Inject constructor(
                 val totalByCurrency: Map<String, Money> = if (isUnified) {
                     emptyMap()
                 } else {
-                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
+                    monthlyCosts.sumByCurrency({ it.first.currency }, { it.second })
                 }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
                     upcomingSubscriptionsTotal = totalAmount,
-                    upcomingSubscriptionsByCurrency = totalByCurrency
+                    upcomingSubscriptionsByCurrency = totalByCurrency,
+                    nextDueSubscription = expenses
+                        .filter { it.nextPaymentDate != null }
+                        .minByOrNull { it.nextPaymentDate!! }
                 )
             }
         }
@@ -1857,6 +1866,8 @@ data class HomeUiState(
     val upcomingSubscriptionsTotal: BigDecimal = BigDecimal.ZERO,
     /** Native-mode totals, kept per-currency so a ₹ + $ mix isn't summed. */
     val upcomingSubscriptionsByCurrency: Map<String, Money> = emptyMap(),
+    /** The soonest-due active EXPENSE subscription, for the card's "Next:" line. */
+    val nextDueSubscription: SubscriptionEntity? = null,
     val budgetSummary: BudgetOverallSummary? = null,
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),

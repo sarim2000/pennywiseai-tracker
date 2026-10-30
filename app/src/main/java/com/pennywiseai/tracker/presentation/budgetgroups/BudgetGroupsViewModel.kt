@@ -423,9 +423,10 @@ class BudgetGroupsViewModel @Inject constructor(
                 }
                 val boost = if (cat.matchType != null) BigDecimal.ZERO
                     else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
-                val effectiveBudget = currencyConversionService.convertAmount(
-                    cat.budgetAmount + boost, baseCurrency, displayCurrency
-                )
+                val convertedBudget = currencyConversionService.convertAmountOrNull(
+                    cat.budgetAmount, baseCurrency, displayCurrency
+                ) ?: BigDecimal.ZERO
+                val effectiveBudget = convertedBudget + boost
                 val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                     (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
                 } else 0f
@@ -444,9 +445,9 @@ class BudgetGroupsViewModel @Inject constructor(
         }
 
         val convertedTotalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
-            currencyConversionService.convertAmount(
+            currencyConversionService.convertAmountOrNull(
                 group.budget.limitAmount, baseCurrency, displayCurrency
-            )
+            ) ?: BigDecimal.ZERO
         } else {
             categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
         }

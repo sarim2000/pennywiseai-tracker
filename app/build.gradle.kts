@@ -303,6 +303,7 @@ dependencies {
     "standardImplementation"(libs.review.ktx)
     
     testImplementation(libs.mockk)
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)

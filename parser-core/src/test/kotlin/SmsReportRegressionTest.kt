@@ -82,7 +82,7 @@ class SmsReportRegressionTest {
                 bankName = "State Bank of India",
                 sender = "JM-SBIPSG-S",
                 currency = "INR",
-                message = "Dear Customer, Your NEFT of Rs 11,500.00 with UTR SBIN426282651047 DTD 09/10/2026 credited to Beneficiary AC NO. XX1098 at BKID0002501 on 09/10/2026 at 09:02 AM.-SBI",
+                message = "Dear Customer, Your NEFT of Rs 1,000.00 with UTR SBIN000000000000 DTD 01/01/2026 credited to Beneficiary AC NO. XX1111 at BKID0000000 on 01/01/2026 at 10:00 AM.-SBI",
                 shouldParse = false
             ),
 

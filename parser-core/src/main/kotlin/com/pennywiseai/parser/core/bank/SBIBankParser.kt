@@ -570,6 +570,16 @@ class SBIBankParser : BaseIndianBankParser() {
             return false
         }
 
+        // Skip NEFT delivery confirmations for an OUTGOING transfer:
+        // "Your NEFT of Rs X with UTR ... credited to Beneficiary AC NO. XXxxxx
+        // at <IFSC> on <date>". The money left on the account's own debit SMS;
+        // this one only reports that it reached the beneficiary, and reading the
+        // word "credited" booked it as income. Same reasoning as Federal Bank's
+        // outgoing-confirmation skip (#547).
+        if (lowerMessage.contains("credited to beneficiary")) {
+            return false
+        }
+
         // Skip UPI-Mandate creation notifications
         if (isEMandateNotification(normalizedMessage) || isUPIMandateNotification(normalizedMessage)) {
             return false

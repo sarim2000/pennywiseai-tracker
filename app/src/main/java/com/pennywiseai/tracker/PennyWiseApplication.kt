@@ -171,6 +171,32 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         }
     }
 
+    private var lastCatchUpAt = 0L
+    private val CATCH_UP_INTERVAL_MS = 10 * 60 * 1000L
+
+    /**
+     * #1034: some phones (seen on a Moto, Android 15) never deliver the SMS
+     * broadcast, or kill the process before it's handled, so a bank SMS stayed
+     * missing until the user tapped Scan. Opening the app now runs that same
+     * incremental scan quietly: it rereads the last few days and skips what's
+     * already saved or deleted. KEEP leaves a running scan alone, and a scan
+     * the user starts replaces this one.
+     */
+    private fun catchUpMissedSms() {
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastCatchUpAt != 0L && now - lastCatchUpAt < CATCH_UP_INTERVAL_MS) return
+        if (checkSelfPermission(android.Manifest.permission.READ_SMS) != android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        lastCatchUpAt = now
+        applicationScope.launch {
+            if (!userPreferencesRepository.userPreferences.first().hasCompletedOnboarding) return@launch
+            androidx.work.WorkManager.getInstance(this@PennyWiseApplication).enqueueUniqueWork(
+                com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker.WORK_NAME,
+                androidx.work.ExistingWorkPolicy.KEEP,
+                androidx.work.OneTimeWorkRequestBuilder<com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker>().build()
+            )
+        }
+    }
+
     private var lastLocales: android.os.LocaleList? = null
 
     // Widgets bake translated text into their stored snapshots, so rebuild them
@@ -201,6 +227,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 isInForeground = true
                 isAppInForeground = true
                 refreshBillingOnce()
+                catchUpMissedSms()
                 // Check if app should be locked when returning from background
                 checkAndLockApp()
             }

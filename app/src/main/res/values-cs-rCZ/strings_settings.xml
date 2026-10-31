@@ -221,6 +221,7 @@
     <string name="settings_notification_access_disabled">Klepnutím povolíte upozornění na bankovní aplikaci</string>
     <string name="settings_notification_access_on">Zapnuto</string>
     <string name="settings_notification_access_off">Vypnuto</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">Denní souhrn</string>
     <string name="settings_daily_summary_subtitle">Shrnutí dnešních výdajů ve 21:00</string>
     <string name="settings_daily_summary_needs_permission">Povolte oznámení pro PennyWise, abyste dostávali denní souhrn.</string>

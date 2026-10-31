@@ -201,6 +201,7 @@
     <string name="settings_notification_access_disabled">बैंक एपका सूचनाहरू सक्रिय गर्न ट्याप गर्नुहोस्</string>
     <string name="settings_notification_access_on">अन</string>
     <string name="settings_notification_access_off">अफ</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">दैनिक सारांश</string>
     <string name="settings_daily_summary_subtitle">राति 9 बजे आजको खर्चको सारांश</string>
     <string name="settings_daily_summary_needs_permission">दैनिक सारांश पाउन PennyWise लाई सूचना अनुमति दिनुहोस्।</string>

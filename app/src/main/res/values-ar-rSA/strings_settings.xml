@@ -239,6 +239,7 @@
     <string name="settings_notification_access_disabled">انقر لتفعيل إشعارات التطبيقات المصرفية</string>
     <string name="settings_notification_access_on">تشغيل</string>
     <string name="settings_notification_access_off">متوقف</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">الملخص اليومي</string>
     <string name="settings_daily_summary_subtitle">ملخص لمصاريف اليوم الساعة 9\u00A0مساءً</string>
     <string name="settings_daily_summary_needs_permission">اسمح بإشعارات PennyWise لتصلك الخلاصة اليومية.</string>

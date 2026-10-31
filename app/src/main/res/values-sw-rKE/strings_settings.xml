@@ -201,6 +201,7 @@
     <string name="settings_notification_access_disabled">Gusa ili kuwasha arifa za app za benki</string>
     <string name="settings_notification_access_on">Imewashwa</string>
     <string name="settings_notification_access_off">Imezimwa</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">Muhtasari wa siku</string>
     <string name="settings_daily_summary_subtitle">Muhtasari wa matumizi ya leo saa 3 usiku (9 PM)</string>
     <string name="settings_daily_summary_needs_permission">Ruhusu arifa za PennyWise ili upate muhtasari wa siku.</string>

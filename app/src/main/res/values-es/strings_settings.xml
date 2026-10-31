@@ -200,6 +200,7 @@
     <string name="settings_notification_access_disabled">Toca para activar las notificaciones de apps bancarias</string>
     <string name="settings_notification_access_on">Activado</string>
     <string name="settings_notification_access_off">Desactivado</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">Resumen diario</string>
     <string name="settings_daily_summary_subtitle">Un resumen de los gastos del día a las 21:00</string>
     <string name="settings_daily_summary_needs_permission">Permite las notificaciones de PennyWise para recibir el resumen diario.</string>

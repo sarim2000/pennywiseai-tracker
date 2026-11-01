@@ -155,7 +155,6 @@
     <string name="balance_card_last_month">Mes pasado</string>
     <string name="balance_card_accounts">Cuentas</string>
     <string name="balance_card_credit_cards">Tarjetas de crédito</string>
-    <string name="balance_card_approximate_note">* Algunos saldos no se pudieron convertir y se muestran en su moneda original (el total es aproximado).</string>
     <string name="balance_card_spent_this_month">Gastado este mes</string>
     <string name="balance_card_change_currency">Cambiar moneda</string>
     <string name="balance_card_summary_income">Ingresos</string>

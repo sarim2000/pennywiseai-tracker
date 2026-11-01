@@ -158,7 +158,6 @@
     <string name="balance_card_accounts">Konten</string>
     <string name="balance_card_credit_cards">Kreditkarten</string>
     <string name="balance_card_total">Gesamt</string>
-    <string name="balance_card_approximate_note">* Einige Salden konnten nicht umgetauscht werden und werden in Originalwährung angezeigt (Gesamtsumme ist ungefähr).</string>
     <string name="balance_card_spent_this_month">Diesen Monat ausgegeben</string>
     <string name="balance_card_change_currency">Währung ändern</string>
     <string name="balance_card_summary_income">Einkommen</string>

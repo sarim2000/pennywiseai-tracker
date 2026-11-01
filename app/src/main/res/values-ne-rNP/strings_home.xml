@@ -157,7 +157,6 @@
     <string name="balance_card_accounts">खाता</string>
     <string name="balance_card_credit_cards">क्रेडिट कार्ड</string>
     <string name="balance_card_total">कुल</string>
-    <string name="balance_card_approximate_note">* केही बालान्स रूपान्तरण गर्न सकिएन र मूल मुद्रामै देखाइएको छ (कुल रकम अनुमानित हो)।</string>
     <string name="balance_card_spent_this_month">यो महिना खर्च</string>
     <string name="balance_card_change_currency">मुद्रा बदल्नुहोस्</string>
     <string name="balance_card_summary_income">आम्दानी</string>

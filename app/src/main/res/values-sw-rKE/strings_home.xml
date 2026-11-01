@@ -157,7 +157,6 @@
     <string name="balance_card_accounts">Akaunti</string>
     <string name="balance_card_credit_cards">Kadi za Mkopo</string>
     <string name="balance_card_total">Jumla</string>
-    <string name="balance_card_approximate_note">* Baadhi ya salio hazikuweza kubadilishwa na zimeonyeshwa kwa sarafu yake asili (jumla ni ya kukadiria).</string>
     <string name="balance_card_spent_this_month">Matumizi mwezi huu</string>
     <string name="balance_card_change_currency">Badilisha sarafu</string>
     <string name="balance_card_summary_income">Mapato</string>

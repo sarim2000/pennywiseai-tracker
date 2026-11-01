@@ -485,7 +485,7 @@ fun BalanceCard(
                             if (isApproximate) {
                                 Spacer(modifier = Modifier.height(Spacing.xs))
                                 Text(
-                                    text = stringResource(R.string.balance_card_approximate_note),
+                                    text = stringResource(R.string.balance_card_other_currency_note),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.fillMaxWidth()

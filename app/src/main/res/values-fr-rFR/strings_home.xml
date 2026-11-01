@@ -158,7 +158,6 @@
     <string name="balance_card_accounts">Comptes</string>
     <string name="balance_card_credit_cards">Cartes de crédit</string>
     <string name="balance_card_total">Total</string>
-    <string name="balance_card_approximate_note">* Certains soldes n\'ont pas pu être convertis et sont affichés dans la devise d\'origine (la somme totale est approximative).</string>
     <string name="balance_card_spent_this_month">Passé ce mois-ci</string>
     <string name="balance_card_change_currency">Changer de devise</string>
     <string name="balance_card_summary_income">Revenus</string>

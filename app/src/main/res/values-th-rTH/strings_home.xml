@@ -151,7 +151,6 @@
     <string name="balance_card_accounts">บัญชี</string>
     <string name="balance_card_credit_cards">บัตรเครดิต</string>
     <string name="balance_card_total">รวม</string>
-    <string name="balance_card_approximate_note">* ยอดเงินบางรายการแปลงสกุลไม่ได้ จึงแสดงเป็นสกุลเงินเดิม (ยอดรวมเป็นค่าโดยประมาณ)</string>
     <string name="balance_card_spent_this_month">ใช้ไปเดือนนี้</string>
     <string name="balance_card_change_currency">เปลี่ยนสกุลเงิน</string>
     <string name="balance_card_summary_income">รายได้</string>

@@ -171,7 +171,6 @@
     <string name="balance_card_accounts">Účty</string>
     <string name="balance_card_credit_cards">Kreditní karty</string>
     <string name="balance_card_total">Celkem</string>
-    <string name="balance_card_approximate_note">* Některé zůstatky nelze převést a jsou zobrazeny v původní měně (součet je přibližný).</string>
     <string name="balance_card_spent_this_month">Tento měsíc utraceno</string>
     <string name="balance_card_change_currency">Změnit měnu</string>
     <string name="balance_card_summary_income">Příjmy</string>

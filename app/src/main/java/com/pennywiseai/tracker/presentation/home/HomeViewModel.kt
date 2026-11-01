@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkInfo
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -605,23 +606,12 @@ class HomeViewModel @Inject constructor(
                 val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-                // regularAccounts/creditCards are already pre-converted by
-                // convertAccountEntities (currency == selectedCurrency for everything it
-                // could convert). So just sum their balances; anything still in a foreign
-                // currency is one we couldn't get a rate for — add its raw amount as a
-                // best-effort fallback and flag the total as approximate.
-                var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-                var hasApproximateBalance = false
-                for (account in regularAccounts) {
-                    totalBalanceInSelectedCurrency += account.balance
-                    if (account.currency != selectedCurrency) hasApproximateBalance = true
-                }
-
-                var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-                for (card in creditCards) {
-                    totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                    if (card.currency != selectedCurrency) hasApproximateBalance = true
-                }
+                // Only balances already in selectedCurrency are totalled; anything else (native
+                // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+                val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+                val totalBalanceInSelectedCurrency = totals.balance
+                val totalAvailableCreditInSelectedCurrency = totals.availableCredit
+                val hasApproximateBalance = totals.hasOtherCurrencies
 
                 // Update available currencies to include account currencies
                 val currentAvailableCurrencies = _uiState.value.availableCurrencies.toSet()
@@ -795,6 +785,11 @@ class HomeViewModel @Inject constructor(
                 .combine(_cachedAccountBalances.filterNotNull()) { (allTransactions, profileId), balances ->
                     filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
                 }
+                // Rebuild on a currency switch too, or the sparkline and the "vs this time
+                // last month" chip keep showing the previous currency's figures.
+                .combine(
+                    _uiState.map { it.selectedCurrency to it.isUnifiedMode }.distinctUntilChanged()
+                ) { allTransactions, _ -> allTransactions }
                 .collect { allTransactions ->
                     val (firstOfMonth, _) = _currentCycleWindow.value
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
@@ -858,8 +853,11 @@ class HomeViewModel @Inject constructor(
             combine(
                 loanRepository.getActiveLoans(),
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { loans, isUnified, displayCurrency ->
+                userPreferencesRepository.displayCurrency,
+                // Native mode totals only the selected currency, so re-total on a switch
+                // instead of relabelling the old currency's figures.
+                _uiState.map { it.selectedCurrency }.distinctUntilChanged()
+            ) { loans, isUnified, displayCurrency, _ ->
                 if (loans.isEmpty()) null
                 else Triple(loans, isUnified, displayCurrency)
             }.collect { summary ->
@@ -1005,7 +1003,11 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.displayCurrency
             ) { subscriptions, isUnified, displayCurrency ->
                 Triple(subscriptions, isUnified, displayCurrency)
-            }.collect { (subscriptions, isUnified, displayCurrency) ->
+            }.collect { (allActive, isUnified, displayCurrency) ->
+                // Money going out only: an income "subscription" (salary, rent received)
+                // isn't a bill, and a weekly or annual charge is folded to its monthly
+                // share so the card's "Monthly total" is one.
+                val subscriptions = allActive.filter { it.direction == SubscriptionDirection.EXPENSE }
                 // Unified mode collapses to one converted figure. Native mode keeps
                 // currencies apart — summing ₹ + $ into one figure mislabels it — so
                 // we expose a per-currency map the card renders as "₹499 · $10".
@@ -1013,7 +1015,7 @@ class HomeViewModel @Inject constructor(
                     var total = java.math.BigDecimal.ZERO
                     for (sub in subscriptions) {
                         total += currencyConversionService.convertAmountOrNull(
-                            sub.amount, sub.currency, displayCurrency
+                            monthlyEquivalent(sub.amount, sub.billingCycle), sub.currency, displayCurrency
                         ) ?: continue // never-rated pair — skip, don't face-value (#670)
                     }
                     total
@@ -1023,7 +1025,7 @@ class HomeViewModel @Inject constructor(
                 val totalByCurrency: Map<String, Money> = if (isUnified) {
                     emptyMap()
                 } else {
-                    subscriptions.sumByCurrency({ it.currency }, { it.amount })
+                    subscriptions.sumByCurrency({ it.currency }, { monthlyEquivalent(it.amount, it.billingCycle) })
                 }
                 _uiState.value = _uiState.value.copy(
                     upcomingSubscriptions = subscriptions,
@@ -1072,11 +1074,15 @@ class HomeViewModel @Inject constructor(
     }
     
     private fun calculateMonthlyChange() {
-        val currentExpenses = _uiState.value.currentMonthExpenses
-        val lastExpenses = _uiState.value.lastMonthExpenses
-        _uiState.value = _uiState.value.copy(
-            monthlyChange = currentExpenses - lastExpenses,
-            monthlyChangePercent = monthlyChangePercent(currentExpenses, lastExpenses)
+        // Compare like with like: spend so far vs the same number of days into the
+        // previous cycle (the sparkline's two series), not the whole previous cycle —
+        // that made every early-cycle day read as a green "% less".
+        val state = _uiState.value
+        val current = state.spendingHistory.lastOrNull() ?: BigDecimal.ZERO
+        val lastAtSamePoint = state.lastMonthSpendingHistory.lastOrNull() ?: BigDecimal.ZERO
+        _uiState.value = state.copy(
+            monthlyChange = current - lastAtSamePoint,
+            monthlyChangePercent = monthlyChangePercent(current, lastAtSamePoint)
         )
     }
     
@@ -1101,19 +1107,12 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalance = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalance += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-            var totalAvailableCredit = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCredit += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            // Only balances already in selectedCurrency are totalled; anything else (native
+            // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+            val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+            val totalBalance = totals.balance
+            val totalAvailableCredit = totals.availableCredit
+            val hasApproximateBalance = totals.hasOtherCurrencies
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
@@ -1220,20 +1219,12 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalanceInSelectedCurrency += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-
-            var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            // Only balances already in selectedCurrency are totalled; anything else (native
+            // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+            val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+            val totalBalanceInSelectedCurrency = totals.balance
+            val totalAvailableCreditInSelectedCurrency = totals.availableCredit
+            val hasApproximateBalance = totals.hasOtherCurrencies
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
@@ -1911,6 +1902,37 @@ internal fun BudgetOverallSummary.safeToSpendCap(today: LocalDate): Money? =
     }.minOfOrNull { it.remaining }?.let { Money(it, currency) }
 
 /** Whole-percent change vs last month; null when last month had no spending to compare with. */
+/** A charge's share of one month, from its billing cycle; unknown cycles count as monthly. */
+internal fun monthlyEquivalent(amount: BigDecimal, billingCycle: String): BigDecimal =
+    when (billingCycle.uppercase()) {
+        "WEEKLY" -> amount.multiply(BigDecimal(52)).divide(BigDecimal(12), java.math.MathContext.DECIMAL64)
+        "QUARTERLY" -> amount.divide(BigDecimal(3), java.math.MathContext.DECIMAL64)
+        "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> amount.divide(BigDecimal(6), java.math.MathContext.DECIMAL64)
+        "ANNUAL", "YEARLY" -> amount.divide(BigDecimal(12), java.math.MathContext.DECIMAL64)
+        else -> amount
+    }
+
+internal data class BalanceTotals(
+    val balance: BigDecimal,
+    val availableCredit: BigDecimal,
+    /** Some account or card is in another currency and was left out of both totals. */
+    val hasOtherCurrencies: Boolean,
+)
+
+internal fun balanceTotals(
+    accounts: List<AccountBalanceEntity>,
+    creditCards: List<AccountBalanceEntity>,
+    currency: String,
+): BalanceTotals {
+    val (sameAccounts, otherAccounts) = accounts.partition { it.currency == currency }
+    val (sameCards, otherCards) = creditCards.partition { it.currency == currency }
+    return BalanceTotals(
+        balance = sameAccounts.fold(BigDecimal.ZERO) { a, acc -> a + acc.balance },
+        availableCredit = sameCards.fold(BigDecimal.ZERO) { a, c -> a + (c.creditLimit ?: BigDecimal.ZERO) - c.balance },
+        hasOtherCurrencies = otherAccounts.isNotEmpty() || otherCards.isNotEmpty(),
+    )
+}
+
 internal fun monthlyChangePercent(current: BigDecimal, last: BigDecimal): Int? =
     if (last.signum() == 0) null
     else (current - last).multiply(BigDecimal(100)).divide(last, 0, RoundingMode.HALF_UP).toInt()

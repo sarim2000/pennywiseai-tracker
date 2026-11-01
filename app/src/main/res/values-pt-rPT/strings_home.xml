@@ -159,7 +159,6 @@
     <string name="balance_card_accounts">Organizações</string>
     <string name="balance_card_credit_cards">Cartões de crédito</string>
     <string name="balance_card_total">Total:</string>
-    <string name="balance_card_approximate_note">* Alguns saldos não puderam ser convertidos e são mostrados na moeda original (a soma total é aproximada).</string>
     <string name="balance_card_spent_this_month">Gasto este mês</string>
     <string name="balance_card_change_currency">Alterar moeda</string>
     <string name="balance_card_summary_income">Rendimento</string>

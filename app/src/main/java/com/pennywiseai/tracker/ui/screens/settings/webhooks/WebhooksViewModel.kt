@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.*
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.webhook.*
 import com.pennywiseai.tracker.ui.UiText
@@ -45,7 +46,8 @@ class WebhooksViewModel @Inject constructor(
     private val repository: WebhookRepository,
     private val scheduler: WebhookSyncScheduler,
     private val preferences: WebhookPreferences,
-    private val entitlementGate: EntitlementGate
+    private val entitlementGate: EntitlementGate,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
     val isProEntitled = entitlementGate.isProEntitled
     private val _state = MutableStateFlow(WebhooksUiState())
@@ -63,7 +65,10 @@ class WebhooksViewModel @Inject constructor(
 
     fun newProfile() {
         if (!isProEntitled.value) return
-        _state.update { it.copy(editor = WebhookEditorState(), message = null) }
+        viewModelScope.launch {
+            val currency = userPreferencesRepository.baseCurrency.first()
+            _state.update { it.copy(editor = WebhookEditorState(currency = currency), message = null) }
+        }
     }
     fun closeEditor() = _state.update { it.copy(editor = null, message = null) }
     fun updateEditor(change: (WebhookEditorState) -> WebhookEditorState) =

@@ -155,7 +155,7 @@ object CurrencyFormatter {
     /**
      * Formats a BigDecimal amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String =
+    fun formatCurrency(amount: BigDecimal, currencyCode: String): String =
         ltr(formatCurrencyRaw(amount, currencyCode))
 
     /**
@@ -221,7 +221,7 @@ object CurrencyFormatter {
     /**
      * Formats a Double amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: Double, currencyCode: String = "INR"): String {
+    fun formatCurrency(amount: Double, currencyCode: String): String {
         return formatCurrency(amount.toBigDecimal(), currencyCode)
     }
 

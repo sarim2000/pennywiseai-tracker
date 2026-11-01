@@ -161,8 +161,8 @@
     <string name="account_card_balance">Balance</string>
 
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% more vs last month</string>
-    <string name="balance_card_change_less">%1$d%% less vs last month</string>
+    <string name="balance_card_change_more_same_point">%1$d%% more than this time last month</string>
+    <string name="balance_card_change_less_same_point">%1$d%% less than this time last month</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Balance: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -175,7 +175,7 @@
     <string name="balance_card_accounts">Accounts</string>
     <string name="balance_card_credit_cards">Credit Cards</string>
     <string name="balance_card_total">Total</string>
-    <string name="balance_card_approximate_note">* Some balances could not be converted and are shown in original currency (total sum is approximate).</string>
+    <string name="balance_card_other_currency_note">* Accounts in other currencies aren\'t included in this total.</string>
     <string name="balance_card_spent_this_month">Spent this month</string>
     <string name="balance_card_change_currency">Change currency</string>
     <string name="balance_card_summary_income">Income</string>

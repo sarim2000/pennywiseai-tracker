@@ -131,8 +131,8 @@ fun BalanceCard(
     val changeText = monthlyChangePercent?.let { percent ->
         when {
             isBalanceHidden -> "••••"
-            isPositive -> stringResource(R.string.balance_card_change_more, kotlin.math.abs(percent))
-            else -> stringResource(R.string.balance_card_change_less, kotlin.math.abs(percent))
+            isPositive -> stringResource(R.string.balance_card_change_more_same_point, kotlin.math.abs(percent))
+            else -> stringResource(R.string.balance_card_change_less_same_point, kotlin.math.abs(percent))
         }
     }
 
@@ -485,7 +485,7 @@ fun BalanceCard(
                             if (isApproximate) {
                                 Spacer(modifier = Modifier.height(Spacing.xs))
                                 Text(
-                                    text = stringResource(R.string.balance_card_approximate_note),
+                                    text = stringResource(R.string.balance_card_other_currency_note),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.fillMaxWidth()

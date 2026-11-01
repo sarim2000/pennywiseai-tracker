@@ -143,8 +143,8 @@
     <string name="account_card_outstanding">बाँकी</string>
     <string name="account_card_balance">बालान्स</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">गत महिनाभन्दा %1$d%% बढी</string>
-    <string name="balance_card_change_less">गत महिनाभन्दा %1$d%% कम</string>
+    <string name="balance_card_change_more_same_point">गत महिनाको यही समयभन्दा %1$d%% बढी</string>
+    <string name="balance_card_change_less_same_point">गत महिनाको यही समयभन्दा %1$d%% कम</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">बालान्स: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -157,7 +157,6 @@
     <string name="balance_card_accounts">खाता</string>
     <string name="balance_card_credit_cards">क्रेडिट कार्ड</string>
     <string name="balance_card_total">कुल</string>
-    <string name="balance_card_approximate_note">* केही बालान्स रूपान्तरण गर्न सकिएन र मूल मुद्रामै देखाइएको छ (कुल रकम अनुमानित हो)।</string>
     <string name="balance_card_spent_this_month">यो महिना खर्च</string>
     <string name="balance_card_change_currency">मुद्रा बदल्नुहोस्</string>
     <string name="balance_card_summary_income">आम्दानी</string>

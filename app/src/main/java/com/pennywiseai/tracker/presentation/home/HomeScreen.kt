@@ -1762,19 +1762,23 @@ private fun ActiveLoansSummaryCard(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
-                val subtitle = when {
-                    totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
-                    totalLentRemaining > java.math.BigDecimal.ZERO ->
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
-                    else ->
-                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency))
+                // Both directions, what you owe first — a lender who also borrows
+                // used to see only "owed to you". Nothing in this currency → no line.
+                val subtitle = listOfNotNull(
+                    totalBorrowedRemaining.takeIf { it > java.math.BigDecimal.ZERO }?.let {
+                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(it, currency))
+                    },
+                    totalLentRemaining.takeIf { it > java.math.BigDecimal.ZERO }?.let {
+                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(it, currency))
+                    },
+                ).joinToString(" · ")
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
             Text(
                 text = stringResource(R.string.home_view),

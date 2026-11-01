@@ -24,12 +24,13 @@ import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
-import com.pennywiseai.tracker.data.backup.ExportBytesResult
 import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
@@ -195,6 +196,8 @@ class SettingsViewModel @Inject constructor(
 
     // Number format style (digit grouping: Auto / Indian / International)
     val numberFormatStyle = userPreferencesRepository.numberFormatStyle
+
+    val dateFormatStyle = userPreferencesRepository.dateFormatStyle
 
     // Budget cycle start day (1..31). Drives Home/Budgets/Analytics so a user
     // whose salary doesn't land on the 1st can define their own pay cycle.
@@ -531,7 +534,6 @@ class SettingsViewModel @Inject constructor(
                         _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
                         Log.e("SettingsViewModel", "Export failed: ${result.message}")
                     }
-                    else -> {}
                 }
             } catch (e: Exception) {
                 _importExportMessage.value = UiText.Res(R.string.settings_export_error, listOf("${e.message}"))
@@ -722,9 +724,14 @@ class SettingsViewModel @Inject constructor(
         }
 
         val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
-        return when (val exportResult = backupExporter.exportBackupBytes(includeReceipts = includeReceipts)) {
-            is ExportBytesResult.Success -> {
-                when (val writeResult = folderBackupWriter.writeBackup(treeUri, exportResult.bytes)) {
+        return when (val exportResult = backupExporter.exportBackup(includeReceipts = includeReceipts)) {
+            is ExportResult.Success -> {
+                val writeResult = try {
+                    folderBackupWriter.writeBackup(treeUri, exportResult.file)
+                } finally {
+                    exportResult.file.delete()
+                }
+                when (writeResult) {
                     is FolderBackupWriter.Result.Success -> {
                         userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
                             System.currentTimeMillis()
@@ -740,7 +747,7 @@ class SettingsViewModel @Inject constructor(
                     }
                 }
             }
-            is ExportBytesResult.Error -> {
+            is ExportResult.Error -> {
                 _importExportMessage.value = UiText.Plain(exportResult.message)
                 false
             }
@@ -771,6 +778,16 @@ class SettingsViewModel @Inject constructor(
     fun updateNumberFormatStyle(style: NumberFormatStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateNumberFormatStyle(style)
+        }
+    }
+
+    fun updateDateFormatStyle(style: DateFormatStyle) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateDateFormatStyle(style)
+            // Widgets store pre-formatted dates. Set the style before refreshing so
+            // the worker doesn't race the app-level collector and render the old one.
+            AppDates.dateFormatStyle = style
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 

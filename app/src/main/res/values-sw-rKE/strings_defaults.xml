@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Names the app seeds or prefills. Profiles are translated at display
+         time only while the row still holds its seeded name; the rest are
+         written in the app's language when created and are the user's after. -->
+    <!-- ══ Seeded profiles ══ -->
     <string name="profile_default_personal">Binafsi</string>
     <string name="profile_default_business">Biashara</string>
+    <!-- ══ Starter rule (stored in the app's language when seeded) ══ -->
     <string name="rule_template_small_payments_name">Malipo Madogo kwa Chakula</string>
     <string name="rule_template_small_payments_description">Weka malipo madogo ya matumizi (chini ya 200) kwenye Chakula &amp; Mikahawa</string>
+    <!-- ══ Budget group defaults (stored in the app's language when created) ══ -->
     <string name="budget_group_default_spending">Matumizi</string>
     <string name="budget_group_default_fixed_costs">Gharama za Kudumu</string>
     <string name="budget_group_default_investments">Uwekezaji</string>

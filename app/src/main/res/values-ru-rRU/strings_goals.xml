@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">Цели</string>
     <string name="upgrade_feature_goals">Неограниченные цели</string>
     <string name="goals_new">Новая цель</string>
@@ -32,6 +25,7 @@
         <item quantity="many">Осталось %d месяцев</item>
         <item quantity="other">Осталось %d месяца</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">Новая цель</string>
     <string name="goal_edit_title_edit">Изменить цель</string>
     <string name="goal_back">Назад</string>
@@ -52,8 +46,8 @@
     <string name="goal_edit_failed">Не удалось сохранить цель. Проверьте данные и попробуйте снова.</string>
     <string name="goal_edit_create">Создать цель</string>
     <string name="goal_edit_save">Сохранить</string>
-    <string name="goal_action_ok">OK</string>
     <string name="goal_action_cancel">Отмена</string>
+    <!-- Detail -->
     <string name="goal_detail_left">Осталось</string>
     <string name="goal_detail_per_month">В месяц</string>
     <string name="goal_detail_over">Сверх цели %1$s</string>
@@ -72,6 +66,7 @@
     <string name="goal_converted_from">Из %1$s</string>
     <string name="goal_withdrawal">Снятие</string>
     <string name="goal_contribution">Пополнение</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">Сумма</string>
     <string name="goal_money_date">Дата</string>
     <string name="goal_money_note">Заметка (необязательно)</string>
@@ -85,6 +80,7 @@
     <string name="goal_edit_contribution">Изменить пополнение</string>
     <string name="goal_edit_withdrawal">Изменить снятие</string>
     <string name="goal_contribution_delete">Удалить</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">Добавить в цель</string>
     <string name="goal_add_to_goal_left">%1$s из этой транзакции можно направить на цели</string>
     <string name="goal_add_to_goal_none_left">Вся эта транзакция уже направлена на цели</string>
@@ -94,7 +90,7 @@
     <string name="goal_toward_goals">На цели</string>
     <string name="goal_toward_remove">Убрать из %1$s</string>
     <string name="goal_currency_locked_by_goal">Чтобы изменить валюту, сначала уберите эту транзакцию из ее целей</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">Осталось %1$s</string>
     <plurals name="goals_months_short">
         <item quantity="one">%d мес</item>
@@ -102,6 +98,7 @@
         <item quantity="many">%d мес</item>
         <item quantity="other">%d мес</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">Цель</string>
     <string name="widget_name_goals">Цели</string>
     <string name="widget_description_goal">Одна цель с кольцом прогресса и тем, сколько осталось накопить</string>
@@ -111,4 +108,5 @@
     <string name="widget_goals_empty">Целей пока нет</string>
     <string name="widget_goal_config_title">Выберите цель</string>
     <string name="widget_goal_config_close">Закрыть</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

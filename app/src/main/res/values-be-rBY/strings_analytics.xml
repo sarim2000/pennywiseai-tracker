@@ -1,49 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Analytics screen ══ -->
-    <!-- %1$s = formatted refund amount -->
-    <!-- Group by picker (#422); the chip and menu show one of these -->
-    <!-- Content description of the lock beside a Pro-only grouping -->
-    <!-- Filters -->
-    <!-- List rows -->
-    <!-- Whole-number percentage, e.g. "42%" -->
-    <!-- Empty state -->
-    <!-- Summary card -->
-    <!-- Pie charts -->
-    <!-- Breakdown cards -->
-    <!-- ══ Budgets screen ══ -->
-    <!-- %1$s = budget name -->
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = weekday name -->
-    <!-- %1$d = days, %2$s = weekday name -->
-    <!-- %1$d = day of month the budget starts on -->
-    <!-- %1$d = days, %2$d = day of month -->
-    <!-- Date range, %1$s = start date, %2$s = end date -->
-    <!-- %1$s = date range, %2$d = days -->
-    <!-- %1$s = spent amount, %2$s = budget amount -->
-    <!-- ══ Budget edit screen ══ -->
-    <!-- %1$s = weekday name -->
-    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
-    <!-- %1$s = transaction-type bucket name -->
-    <!-- ══ Budget history screen ══ -->
-    <!-- %1$s = budget amount, %2$d = percent used -->
-    <!-- ══ Categories screen ══ -->
-    <!-- %1$s = category name -->
-    <!-- %1$s = error detail -->
-    <!-- Category edit dialog -->
-    <!-- ══ Subscriptions screen ══ -->
-    <!-- %1$s = merchant name -->
-    <!-- %1$d = paid count, %2$d = active count -->
-    <!-- %1$s = date -->
-    <!-- Edit subscription dialog -->
-    <!-- %1$s = currency code -->
-    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
-    <!-- ══ Mark-as-paid sheet ══ -->
-    <!-- %1$s = date -->
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = currency code -->
-    <!-- %1$s = relative date, %2$s = bank name -->
-    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_title">Аналітыка</string>
     <string name="analytics_trends">Тэндэнцыі</string>
     <string name="analytics_chart_line">Лінія</string>
@@ -53,6 +10,7 @@
     <string name="analytics_chart_bar_full">Слупковая дыяграма</string>
     <string name="analytics_top_categories">Топ катэгорый</string>
     <string name="analytics_toggle_view">Пераключыць выгляд</string>
+    <!-- %1$s = formatted refund amount -->
     <string name="analytics_refund_note">Сума ўлічвае %1$s вяртанняў. Слупкі катэгорый не могуць быць ніжэй за нуль, таму ў суме яны могуць даваць больш, чым паказаная агульная сума.</string>
     <string name="analytics_top_tags">Топ тэгаў</string>
     <string name="analytics_top_merchants">Топ атрымальнікаў</string>
@@ -60,12 +18,14 @@
     <string name="analytics_by_day_of_week">Па днях тыдня</string>
     <string name="analytics_no_tag">Без тэга</string>
     <string name="analytics_tag_overlap_note">Транзакцыя з некалькімі тэгамі ўлічваецца пад кожным з іх, таму сумы па тэгах могуць перавышаць агульную суму.</string>
+    <!-- Group by picker (#422); the chip and menu show one of these -->
     <string name="analytics_group_by_category">Па катэгорыях</string>
     <string name="analytics_group_by_merchant">Па атрымальніках</string>
     <string name="analytics_group_by_account">Па рахунках</string>
     <string name="analytics_group_by_tag">Па тэгах</string>
     <string name="analytics_group_by_day_of_week">Па днях тыдня</string>
-    <string name="analytics_group_by_pro">Pro</string>
+    <!-- Content description of the lock beside a Pro-only grouping -->
+    <!-- Filters -->
     <string name="analytics_filter_clear">Ачысціць</string>
     <string name="analytics_filter_all_profiles">Усе рахункі</string>
     <string name="analytics_filter_currency">Валюта</string>
@@ -73,6 +33,7 @@
     <string name="analytics_filter_all_categories">Усе катэгорыі</string>
     <string name="analytics_filter_account">Рахунак</string>
     <string name="analytics_filter_all_accounts">Усе рахункі</string>
+    <!-- List rows -->
     <plurals name="analytics_transaction_count">
         <item quantity="one">%1$d транзакцыя</item>
         <item quantity="few">%1$d транзакцыі</item>
@@ -85,10 +46,12 @@
         <item quantity="many">%1$d транзакцый • Падпіска</item>
         <item quantity="other">%1$d транзакцыі • Падпіска</item>
     </plurals>
-    <string name="analytics_percent">%1$d%%</string>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
     <string name="analytics_empty_headline">Пакуль недастаткова даных</string>
     <string name="analytics_empty_description">Аналітыка вашых выдаткаў з\'явіцца тут пасля першага тыдня ўліку</string>
     <string name="analytics_empty_action">Сканаваць SMS</string>
+    <!-- Summary card -->
     <string name="analytics_summary_total">УСЯГО</string>
     <plurals name="analytics_summary_txns">
         <item quantity="one">%1$d ТРАНЗ.</item>
@@ -99,50 +62,57 @@
     <string name="analytics_summary_average">СЯРЭДНЕЕ</string>
     <string name="analytics_summary_per_day">" /дзень"</string>
     <string name="analytics_summary_percent_of_total">%1$d%% ад агульнай сумы</string>
+    <!-- Pie charts -->
     <string name="analytics_pie_unknown">Невядома</string>
-    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
     <string name="analytics_spending_by_category">Выдаткі па катэгорыях</string>
     <string name="analytics_spending_by_tag">Выдаткі па тэгах</string>
+    <!-- ══ Budgets screen ══ -->
     <string name="budgets_title">Бюджэты</string>
     <string name="budgets_back">Назад</string>
     <string name="budgets_add">Дадаць бюджэт</string>
     <string name="budgets_action_cancel">Скасаваць</string>
     <string name="budgets_action_delete">Выдаліць</string>
-    <string name="budgets_action_ok">OK</string>
     <string name="budgets_setup_title">Наладзьце бюджэт</string>
     <string name="budgets_setup_body">Размяркуйце выдаткі па бюджэтах, каб бачыць, куды ідуць вашы грошы.</string>
     <string name="budgets_setup_smart_defaults">Узяць гатовыя налады</string>
     <string name="budgets_setup_custom">Стварыць свой бюджэт</string>
     <string name="budgets_delete_title">Выдаліць бюджэт</string>
+    <!-- %1$s = budget name -->
     <string name="budgets_delete_message">Выдаліць «%1$s»? Гэта нельга адрабіць.</string>
     <string name="budgets_previous_month">Папярэдні месяц</string>
     <string name="budgets_next_month">Наступны месяц</string>
-    <string name="budgets_percent">%1$d%%</string>
     <string name="budgets_edit">Змяніць бюджэт</string>
     <string name="budgets_delete">Выдаліць бюджэт</string>
     <string name="budgets_more_options">Іншыя параметры</string>
     <string name="budgets_view_history">Гісторыя гэтага перыяду</string>
     <string name="budgets_move_up">Перамясціць вышэй</string>
     <string name="budgets_move_down">Перамясціць ніжэй</string>
+    <!-- %1$s = formatted amount -->
     <string name="budgets_over_budget">%1$s звыш бюджэту</string>
     <string name="budgets_remaining">Засталося %1$s</string>
     <string name="budgets_over_by">Перавышана на %1$s</string>
     <string name="budgets_finished">Завершаны</string>
+    <!-- %1$s = weekday name -->
     <string name="budgets_resets_today_weekly">Абнаўляецца сёння · кожны тыдзень: %1$s</string>
+    <!-- %1$d = days, %2$s = weekday name -->
     <plurals name="budgets_resets_in_weekly">
         <item quantity="one">Абнаўленне праз %1$d дзень · кожны тыдзень: %2$s</item>
         <item quantity="few">Абнаўленне праз %1$d дні · кожны тыдзень: %2$s</item>
         <item quantity="many">Абнаўленне праз %1$d дзён · кожны тыдзень: %2$s</item>
         <item quantity="other">Абнаўленне праз %1$d дня · кожны тыдзень: %2$s</item>
     </plurals>
+    <!-- %1$d = day of month the budget starts on -->
     <string name="budgets_resets_today_monthly">Абнаўляецца сёння · %1$d-га чысла</string>
+    <!-- %1$d = days, %2$d = day of month -->
     <plurals name="budgets_resets_in_monthly">
         <item quantity="one">Абнаўленне праз %1$d дзень · %2$d-га чысла</item>
         <item quantity="few">Абнаўленне праз %1$d дні · %2$d-га чысла</item>
         <item quantity="many">Абнаўленне праз %1$d дзён · %2$d-га чысла</item>
         <item quantity="other">Абнаўленне праз %1$d дня · %2$d-га чысла</item>
     </plurals>
-    <string name="budgets_date_range">%1$s – %2$s</string>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
     <plurals name="budgets_runs_days_remaining">
         <item quantity="one">%1$s · застаўся %2$d дзень</item>
         <item quantity="few">%1$s · засталося %2$d дні</item>
@@ -156,12 +126,14 @@
         <item quantity="many">Засталося %1$d дзён</item>
         <item quantity="other">Засталося %1$d дня</item>
     </plurals>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
     <string name="budgets_spent_of">Выдаткавана %1$s з %2$s</string>
     <string name="budgets_spent">Выдаткавана %1$s</string>
     <string name="budgets_amount_of">%1$s з %2$s</string>
     <string name="budgets_tracking_all">Улічваюцца ўсе выдаткі</string>
     <string name="budgets_chart_actual">Факт</string>
     <string name="budgets_chart_pace">Тэмп бюджэту</string>
+    <!-- ══ Budget edit screen ══ -->
     <string name="budget_edit_title_edit">Змяніць бюджэт</string>
     <string name="budget_edit_title_new">Новы бюджэт</string>
     <string name="budget_edit_save">Захаваць змены</string>
@@ -173,16 +145,18 @@
     <string name="budget_edit_period_one_time">Аднаразова</string>
     <string name="budget_edit_start_date">Дата пачатку</string>
     <string name="budget_edit_end_date">Дата заканчэння</string>
+    <!-- %1$s = weekday name -->
     <string name="budget_edit_resets_every">Абнаўляецца кожны тыдзень: %1$s</string>
     <string name="budget_edit_resets_on_day">Абнаўляецца %1$d-га чысла кожнага месяца</string>
     <string name="budget_edit_runs_once">Дзейнічае адзін раз, без пераносу рэшты</string>
     <string name="budget_edit_current_window">Бягучы перыяд</string>
-    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">Ліміты па катэгорыях (неабавязкова)</string>
     <string name="budget_edit_no_categories">Катэгорыі не дададзены. Гэты бюджэт будзе ўлічваць усе выдаткі.</string>
     <string name="budget_edit_unallocated">Не размеркавана: %1$s</string>
     <string name="budget_edit_over_allocated">Ліміты катэгорый перавышаюць бюджэт на %1$s</string>
     <string name="budget_edit_add_category">Дадаць катэгорыю</string>
+    <!-- %1$s = transaction-type bucket name -->
     <string name="budget_edit_type_bucket_all">%1$s (усе)</string>
     <string name="budget_edit_name_placeholder">Назва бюджэту</string>
     <string name="budget_edit_edit_name">Змяніць назву</string>
@@ -192,6 +166,7 @@
     <string name="budget_edit_month_starts_on">Месяц пачынаецца з дня</string>
     <string name="budget_edit_decrease_day">Паменшыць дзень</string>
     <string name="budget_edit_increase_day">Павялічыць дзень</string>
+    <!-- ══ Budget history screen ══ -->
     <string name="budget_history_title">Гісторыя бюджэту</string>
     <string name="budget_history_loading">Загрузка…</string>
     <string name="budget_history_not_found">Бюджэт не знойдзены</string>
@@ -203,9 +178,11 @@
     <string name="budget_history_live">Актыўны · яшчэ ідзе</string>
     <string name="budget_history_frozen">Зафіксавана на %1$s</string>
     <string name="budget_history_categories">Катэгорыі</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
     <string name="budget_history_of_budget_percent">з %1$s · %2$d%%</string>
     <string name="budget_history_zero_remaining">Засталося 0</string>
     <string name="budget_history_percent_used">Выкарыстана %1$d%%</string>
+    <!-- ══ Categories screen ══ -->
     <string name="categories_title">Катэгорыі</string>
     <string name="categories_back">Назад</string>
     <string name="categories_add">Дадаць катэгорыю</string>
@@ -219,8 +196,10 @@
     <string name="categories_system_badge">Сістэмная</string>
     <string name="categories_msg_system_not_editable">Сістэмныя катэгорыі нельга змяняць</string>
     <string name="categories_msg_updated">Катэгорыя абноўлена</string>
+    <!-- %1$s = category name -->
     <string name="categories_msg_already_exists">Катэгорыя «%1$s» ужо існуе</string>
     <string name="categories_msg_created">Катэгорыя створана</string>
+    <!-- %1$s = error detail -->
     <string name="categories_msg_save_error">Памылка захавання катэгорыі: %1$s</string>
     <string name="categories_msg_system_not_deletable">Сістэмныя катэгорыі нельга выдаляць</string>
     <string name="categories_msg_deleted">Катэгорыя выдалена</string>
@@ -229,6 +208,7 @@
     <string name="categories_msg_hidden">%1$s схавана</string>
     <string name="categories_msg_shown">%1$s паказваецца</string>
     <string name="categories_msg_update_error">Памылка абнаўлення катэгорыі: %1$s</string>
+    <!-- Category edit dialog -->
     <string name="category_edit_title_add">Дадаць катэгорыю</string>
     <string name="category_edit_title_edit">Змяніць катэгорыю</string>
     <string name="category_edit_name_required">Увядзіце назву катэгорыі</string>
@@ -248,9 +228,11 @@
     <string name="category_edit_delete">Выдаліць катэгорыю</string>
     <string name="category_edit_delete_title">Выдаліць катэгорыю?</string>
     <string name="category_edit_delete_message">«%1$s» будзе выдалена. Існуючыя транзакцыі захаваюць сваю бягучую пазнаку. Гэта нельга адрабіць.</string>
+    <!-- ══ Subscriptions screen ══ -->
     <string name="subscriptions_title">Падпіскі</string>
     <string name="subscriptions_add">Дадаць падпіску</string>
     <string name="subscriptions_undo">Адрабіць</string>
+    <!-- %1$s = merchant name -->
     <string name="subscriptions_snackbar_hidden">%1$s схавана</string>
     <string name="subscriptions_snackbar_ended">%1$s завершана</string>
     <string name="subscriptions_active_section">Актыўныя падпіскі</string>
@@ -262,7 +244,6 @@
     <string name="subscriptions_reactivate">Аднавіць</string>
     <string name="subscriptions_action_delete">Выдаліць</string>
     <string name="subscriptions_action_cancel">Скасаваць</string>
-    <string name="subscriptions_action_ok">OK</string>
     <string name="subscriptions_delete_title">Выдаліць падпіску?</string>
     <string name="subscriptions_delete_permanently_message">Назаўсёды выдаліць «%1$s»? Гэта нельга адрабіць.</string>
     <string name="subscriptions_delete_message">«%1$s» будзе выдалена назаўсёды. Гэта нельга адрабіць.</string>
@@ -280,6 +261,7 @@
         <item quantity="many">Аплачаны ўсе %1$d у гэтым цыкле</item>
         <item quantity="other">Аплачаны ўсе %1$d у гэтым цыкле</item>
     </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
     <string name="subscriptions_summary_some_paid">Аплачана %1$d з %2$d у гэтым цыкле</string>
     <string name="subscriptions_hide">Схаваць</string>
     <string name="subscriptions_sms_available">Ёсць SMS</string>
@@ -292,6 +274,7 @@
         <item quantity="many">Аплата праз %1$d дзён</item>
         <item quantity="other">Аплата праз %1$d дня</item>
     </plurals>
+    <!-- %1$s = date -->
     <string name="subscriptions_paid_on">Аплачана %1$s</string>
     <string name="subscriptions_more_options">Іншыя параметры</string>
     <string name="subscriptions_menu_mark_paid">Пазначыць як аплачаную</string>
@@ -300,8 +283,10 @@
     <string name="subscriptions_menu_end">Завяршыць падпіску</string>
     <string name="subscriptions_source_notes">Нататкі</string>
     <string name="subscriptions_source_original_sms">Зыходнае SMS</string>
+    <!-- Edit subscription dialog -->
     <string name="subscriptions_edit_title">Змяніць падпіску</string>
     <string name="subscriptions_edit_name">Назва</string>
+    <!-- %1$s = currency code -->
     <string name="subscriptions_edit_amount">Сума (%1$s)</string>
     <string name="subscriptions_edit_tap_to_set">Націсніце, каб задаць</string>
     <string name="subscriptions_edit_next_date">Дата наступнага плацяжу</string>
@@ -312,6 +297,7 @@
     <string name="subscriptions_edit_pick_account">Абраць рахунак</string>
     <string name="subscriptions_edit_selected">Абрана</string>
     <string name="subscriptions_edit_save">Захаваць</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">%1$s пазначана як аплачаная · наступны цыкл %2$s</string>
     <string name="subscriptions_msg_linked">%1$s прывязана · наступны цыкл %2$s</string>
     <string name="subscriptions_msg_already_marked">%1$s ужо пазначана ў гэтым цыкле · перанесена на %2$s</string>
@@ -319,8 +305,10 @@
     <string name="subscriptions_msg_not_found">Не ўдалося знайсці гэтую падпіску</string>
     <string name="subscriptions_msg_linked_existing">%1$s прывязана да існуючага плацяжу · наступны цыкл %2$s</string>
     <string name="subscriptions_msg_linked_generic">Прывязана</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">ПАЗНАЧЫЦЬ ЯК АПЛАЧАНАЕ</string>
     <string name="mark_paid_eyebrow_received">ПАЗНАЧЫЦЬ ЯК АТРЫМАНАЕ</string>
+    <!-- %1$s = date -->
     <string name="mark_paid_already_marked">Ужо пазначана як аплачанае %1$s</string>
     <plurals name="mark_paid_found_matches">
         <item quantity="one">Знойдзены %1$d адпаведны плацёж</item>
@@ -329,11 +317,13 @@
         <item quantity="other">Знойдзена %1$d адпаведнага плацяжу</item>
     </plurals>
     <string name="mark_paid_when">Калі?</string>
+    <!-- %1$s = formatted amount -->
     <string name="mark_paid_cta_paid">Аплачана · %1$s</string>
     <string name="mark_paid_cta_received">Атрымана · %1$s</string>
+    <!-- %1$s = currency code -->
     <string name="mark_paid_helper_income">Мы запішам даход %1$s і перанясём расклад на наступны цыкл.</string>
     <string name="mark_paid_helper_expense">Мы запішам выдатак і перанясём расклад на наступны цыкл.</string>
-    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
     <string name="mark_paid_link_payment">Прывязаць гэты плацёж</string>
     <string name="mark_paid_or_mark_today">або пазначыць сёння</string>
     <string name="mark_paid_today">Сёння</string>
@@ -345,6 +335,7 @@
         <item quantity="other">%1$d дня таму</item>
     </plurals>
     <string name="mark_paid_pick_date">Абраць дату</string>
+    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_forecast_for">Прагноз на %1$s</string>
     <string name="analytics_forecast_above_usual">Каля %1$s больш, чым звычайна</string>
     <string name="analytics_forecast_stay_under">Трацьце менш за %1$s у дзень, каб застацца ў межах %2$s.</string>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
-<resources>    <string name="ai_access_settings_title">Připojit Claude / ChatGPT</string>
+<resources>
+    <string name="ai_access_settings_title">Připojit Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Nechte AI aplikace číst vaše data, dokud to povolíte</string>
     <string name="ai_access_settings_subtitle_pro">Pro · Nechte AI aplikace číst vaše data, dokud to povolíte</string>
     <string name="ai_access_title">Přístup pro AI</string>
@@ -10,10 +11,8 @@
     <string name="ai_access_unlock">Odemknout s Pro</string>
     <string name="ai_access_session_title">AI relace</string>
     <string name="ai_access_session_off">Vypnuto. Vyberte, jak dlouho má PennyWise zůstat připojená, nebo použijte dlaždici PennyWise AI v Rychlém nastavení.</string>
-    <string name="ai_access_session_minutes">%d min</string>
     <string name="ai_access_session_on">Zapnuto · zbývá %1$d:%2$02d</string>
     <string name="ai_access_session_connecting">Připojování… · zbývá %1$d:%2$02d</string>
-    <string name="ai_access_extend">+15 min</string>
     <string name="ai_access_stop">Zastavit</string>
     <string name="ai_access_connect_title">Připojit AI aplikaci</string>
     <string name="ai_access_connect_step1">1. V Claude nebo ChatGPT přidejte vlastní konektor s touto URL:</string>

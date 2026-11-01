@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    <string name="widget_recent_header">Последние</string>
+<resources>
+    <string name="widget_recent_header">Последние</string>
     <string name="widget_recent_sort">Разобрать</string>
     <string name="widget_recent_empty_add_cash">Нажмите +, чтобы добавить наличные</string>
     <string name="widget_recent_description">Ваши последние транзакции и их категории — одно нажатие, чтобы разобрать те, что без категории.</string>

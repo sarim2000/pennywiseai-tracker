@@ -15,7 +15,15 @@
     <string name="analytics_top_tags">Топ тегов</string>
     <string name="analytics_top_merchants">Лучшие продавцы</string>
     <string name="analytics_by_account">По Аккаунту</string>
+    <string name="analytics_by_day_of_week">По дням недели</string>
+    <string name="analytics_no_tag">Без тега</string>
+    <string name="analytics_tag_overlap_note">Транзакция с несколькими тегами учитывается в каждом из них, поэтому суммы по тегам могут превышать общую сумму.</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">По категориям</string>
+    <string name="analytics_group_by_merchant">По продавцам</string>
+    <string name="analytics_group_by_account">По счетам</string>
+    <string name="analytics_group_by_tag">По тегам</string>
+    <string name="analytics_group_by_day_of_week">По дням недели</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Очистить</string>
@@ -85,6 +93,7 @@
     <string name="budgets_move_up">Вверх</string>
     <string name="budgets_move_down">Сдвинуть вниз</string>
     <!-- %1$s = formatted amount -->
+    <string name="budgets_over_budget">Бюджет превышен на %1$s</string>
     <string name="budgets_remaining">%1$s осталось</string>
     <string name="budgets_over_by">Свыше от %1$s</string>
     <string name="budgets_finished">Завершено</string>
@@ -109,7 +118,19 @@
     <!-- Date range, %1$s = start date, %2$s = end date -->
     <string name="budgets_date_range">%1$s – %2$s</string>
     <!-- %1$s = date range, %2$d = days -->
+    <plurals name="budgets_runs_days_remaining">
+        <item quantity="one">%1$s · остался %2$d день</item>
+        <item quantity="few">%1$s · осталось %2$d дня</item>
+        <item quantity="many">%1$s · осталось %2$d дней</item>
+        <item quantity="other">%1$s · осталось %2$d дня</item>
+    </plurals>
     <string name="budgets_runs_finished">Запуск %1$s · Завершено</string>
+    <plurals name="budgets_days_remaining">
+        <item quantity="one">Остался %1$d день</item>
+        <item quantity="few">Осталось %1$d дня</item>
+        <item quantity="many">Осталось %1$d дней</item>
+        <item quantity="other">Осталось %1$d дня</item>
+    </plurals>
     <!-- %1$s = spent amount, %2$s = budget amount -->
     <string name="budgets_spent_of">Потрачено %1$s из %2$s</string>
     <string name="budgets_spent">Потрачено %1$s</string>
@@ -139,11 +160,13 @@
     <string name="budget_edit_category_limits">Ограничения категории (опционально)</string>
     <string name="budget_edit_no_categories">Категории не добавлены. Этот бюджет будет отслеживать все расходы.</string>
     <string name="budget_edit_unallocated">Не выделено: %1$s</string>
+    <string name="budget_edit_over_allocated">Лимиты категорий превышают бюджет на %1$s</string>
     <string name="budget_edit_add_category">Добавить категорию</string>
     <!-- %1$s = transaction-type bucket name -->
     <string name="budget_edit_type_bucket_all">%1$s (все)</string>
     <string name="budget_edit_name_placeholder">Название бюджета</string>
     <string name="budget_edit_edit_name">Изменить имя</string>
+    <string name="budget_edit_spent">Потрачено: %1$s</string>
     <string name="budget_edit_remove">Удалить</string>
     <string name="budget_edit_week_starts_on">Начало недели</string>
     <string name="budget_edit_month_starts_on">Месяц начинается в день</string>
@@ -180,6 +203,7 @@
     <string name="categories_msg_system_not_editable">Системные категории не могут быть изменены</string>
     <string name="categories_msg_updated">Категория успешно обновлена</string>
     <!-- %1$s = category name -->
+    <string name="categories_msg_already_exists">Категория «%1$s» уже существует</string>
     <string name="categories_msg_created">Категория успешно создана</string>
     <!-- %1$s = error detail -->
     <string name="categories_msg_save_error">Ошибка сохранения категории: %1$s</string>
@@ -228,6 +252,7 @@
     <string name="subscriptions_action_cancel">Отмена</string>
     <string name="subscriptions_action_ok">ОК</string>
     <string name="subscriptions_delete_title">Удалить подписку?</string>
+    <string name="subscriptions_delete_permanently_message">Удалить «%1$s» навсегда? Это действие нельзя отменить.</string>
     <string name="subscriptions_delete_message">\"%1$s\" будет удален навсегда. Это действие не может быть отменено.</string>
     <string name="subscriptions_summary_title">Ежемесячные подписки</string>
     <string name="subscriptions_summary_none_active">Нет активных подписок</string>
@@ -244,11 +269,18 @@
         <item quantity="other">Все %1$d оплатили этот цикл</item>
     </plurals>
     <!-- %1$d = paid count, %2$d = active count -->
+    <string name="subscriptions_summary_some_paid">Оплачено %1$d из %2$d в этом цикле</string>
     <string name="subscriptions_hide">Скрыть</string>
     <string name="subscriptions_sms_available">Доступно SMS</string>
     <string name="subscriptions_no_date">Дата не установлена</string>
     <string name="subscriptions_due_today">Срок сегодня</string>
     <string name="subscriptions_due_tomorrow">Срок завтра</string>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="one">Оплата через %1$d день</item>
+        <item quantity="few">Оплата через %1$d дня</item>
+        <item quantity="many">Оплата через %1$d дней</item>
+        <item quantity="other">Оплата через %1$d дня</item>
+    </plurals>
     <!-- %1$s = date -->
     <string name="subscriptions_paid_on">Оплачено %1$s</string>
     <string name="subscriptions_more_options">Больше опций</string>
@@ -296,6 +328,7 @@
     <string name="mark_paid_cta_paid">Отметить оплачено · %1$s</string>
     <string name="mark_paid_cta_received">Отметить полученное · %1$s</string>
     <!-- %1$s = currency code -->
+    <string name="mark_paid_helper_income">Мы запишем доход %1$s и перенесем график на следующий цикл.</string>
     <string name="mark_paid_helper_expense">Мы будем записывать расходы и переводить график на следующий цикл.</string>
     <!-- %1$s = relative date, %2$s = bank name -->
     <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
@@ -303,48 +336,14 @@
     <string name="mark_paid_or_mark_today">или отметьте сегодня</string>
     <string name="mark_paid_today">Сегодня</string>
     <string name="mark_paid_yesterday">Вчера</string>
-    <string name="mark_paid_pick_date">Выберите дату</string>
-    <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_by_day_of_week">По дням недели</string>
-    <string name="analytics_no_tag">Без тега</string>
-    <string name="analytics_tag_overlap_note">Транзакция с несколькими тегами учитывается в каждом из них, поэтому суммы по тегам могут превышать общую сумму.</string>
-    <string name="analytics_group_by_category">По категориям</string>
-    <string name="analytics_group_by_merchant">По продавцам</string>
-    <string name="analytics_group_by_account">По счетам</string>
-    <string name="analytics_group_by_tag">По тегам</string>
-    <string name="analytics_group_by_day_of_week">По дням недели</string>
-    <string name="analytics_group_by_pro">Pro</string>
-    <string name="budgets_over_budget">Бюджет превышен на %1$s</string>
-    <plurals name="budgets_runs_days_remaining">
-        <item quantity="one">%1$s · остался %2$d день</item>
-        <item quantity="few">%1$s · осталось %2$d дня</item>
-        <item quantity="many">%1$s · осталось %2$d дней</item>
-        <item quantity="other">%1$s · осталось %2$d дня</item>
-    </plurals>
-    <plurals name="budgets_days_remaining">
-        <item quantity="one">Остался %1$d день</item>
-        <item quantity="few">Осталось %1$d дня</item>
-        <item quantity="many">Осталось %1$d дней</item>
-        <item quantity="other">Осталось %1$d дня</item>
-    </plurals>
-    <string name="budget_edit_over_allocated">Лимиты категорий превышают бюджет на %1$s</string>
-    <string name="budget_edit_spent">Потрачено: %1$s</string>
-    <string name="categories_msg_already_exists">Категория «%1$s» уже существует</string>
-    <string name="subscriptions_delete_permanently_message">Удалить «%1$s» навсегда? Это действие нельзя отменить.</string>
-    <string name="subscriptions_summary_some_paid">Оплачено %1$d из %2$d в этом цикле</string>
-    <plurals name="subscriptions_due_in_days">
-        <item quantity="one">Оплата через %1$d день</item>
-        <item quantity="few">Оплата через %1$d дня</item>
-        <item quantity="many">Оплата через %1$d дней</item>
-        <item quantity="other">Оплата через %1$d дня</item>
-    </plurals>
-    <string name="mark_paid_helper_income">Мы запишем доход %1$s и перенесем график на следующий цикл.</string>
     <plurals name="mark_paid_days_ago">
         <item quantity="one">%1$d день назад</item>
         <item quantity="few">%1$d дня назад</item>
         <item quantity="many">%1$d дней назад</item>
         <item quantity="other">%1$d дня назад</item>
     </plurals>
+    <string name="mark_paid_pick_date">Выберите дату</string>
+    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_forecast_for">Прогноз на %1$s</string>
     <string name="analytics_forecast_above_usual">Примерно на %1$s больше обычного</string>
     <string name="analytics_forecast_stay_under">Тратьте меньше %1$s в день, чтобы уложиться в %2$s.</string>

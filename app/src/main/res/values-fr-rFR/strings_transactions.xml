@@ -32,6 +32,7 @@
     <string name="txn_detail_error_amount_positive_number">Le montant doit être un nombre positif</string>
     <string name="txn_detail_error_category_exists_income">Une catégorie nommée \"%1$s\" existe déjà en tant que revenu</string>
     <string name="txn_detail_error_category_exists_expense">Une catégorie nommée \"%1$s\" existe déjà en tant que dépense</string>
+    <string name="txn_detail_error_category_exists_other_parent">Une catégorie nommée « %1$s » existe déjà sous un autre parent</string>
     <string name="txn_detail_error_create_category">Impossible de créer la catégorie: %1$s</string>
     <string name="txn_detail_error_splits_unavailable">Les fractions ne sont disponibles que pour les dépenses et les achats par carte</string>
     <string name="txn_detail_error_splits_min">Au moins 2 fractions sont requises</string>
@@ -40,6 +41,8 @@
     <string name="txn_detail_error_merchant_required">Le nom du marchand est requis</string>
     <string name="txn_detail_error_amount_positive">Le montant doit être positif</string>
     <string name="txn_detail_error_same_accounts">Les comptes source et destination doivent être différents</string>
+    <string name="txn_detail_error_loan_type_locked">Cette transaction fait partie d\'un prêt. Retirez-la du prêt avant de la faire passer de revenu à dépense, ou inversement.</string>
+    <string name="txn_detail_error_loan_currency_locked">Cette transaction fait partie d\'un prêt. Retirez-la du prêt avant de changer sa devise.</string>
     <string name="txn_detail_error_tag_rule">Sauvegardé, mais impossible de créer la règle d\'étiquette : %1$s</string>
     <string name="txn_detail_error_save">Échec de l\'enregistrement des modifications : %1$s</string>
     <string name="txn_detail_error_delete">Échec de la suppression de la transaction</string>
@@ -104,9 +107,15 @@
     <string name="txn_detail_balance_mismatch_value">Désactivé par %1$s · attendu %2$s</string>
     <string name="txn_detail_add_untracked_expense">Ajouter une dépense %1$s sans suivi</string>
     <string name="txn_detail_add_untracked_income">Ajouter un revenu %1$s non suivi</string>
+    <string name="txn_detail_adjustment_title_expense">Dépense non suivie</string>
+    <string name="txn_detail_adjustment_title_income">Revenu non suivi</string>
+    <string name="txn_detail_adjustment_what">C\'était quoi ?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Ajustement du solde</string>
+    <string name="txn_detail_adjustment_add">Ajouter</string>
     <string name="txn_detail_label_reference">Référence</string>
     <string name="txn_detail_receipt">Reçu</string>
     <string name="txn_detail_receipt_tap_to_view">Appuyer pour voir</string>
+    <string name="txn_detail_receipt_missing">Photo du reçu absente de cette sauvegarde</string>
     <string name="txn_detail_sms_hide">Masquer les SMS</string>
     <string name="txn_detail_sms_show">Afficher les SMS originaux</string>
     <string name="txn_detail_field_amount">Montant</string>
@@ -114,6 +123,7 @@
     <string name="txn_detail_field_alias">Afficher l\'alias (facultatif)</string>
     <string name="txn_detail_field_alias_placeholder">Afficher un nom plus convivial à la place</string>
     <string name="txn_detail_field_description">Description (facultatif)</string>
+    <string name="txn_detail_field_reference">Numéro de référence (facultatif)</string>
     <string name="txn_detail_apply_tags_to_merchant">Appliquer les balises à tous les futurs depuis %1$s</string>
     <string name="txn_detail_field_from_account">Depuis le compte</string>
     <string name="txn_detail_field_from_account_placeholder">Sélectionnez ou entrez le compte source</string>
@@ -162,6 +172,8 @@
     <string name="txn_totals_expense">Dépenses</string>
     <string name="txn_totals_expenses">Dépenses</string>
     <string name="txn_totals_credit">Crédit</string>
+    <string name="txn_totals_transfer">Transfert</string>
+    <string name="txn_totals_invest">Investissement</string>
     <string name="txn_totals_net">NT</string>
     <string name="txn_totals_select_currency">Sélectionner une devise</string>
     <!-- Transactions list -->
@@ -205,6 +217,10 @@
     <string name="txn_list_filters">Filtres</string>
     <string name="txn_list_filters_two">2 Filtres</string>
     <string name="txn_list_categories_all_except">Tout sauf %1$s</string>
+    <plurals name="txn_list_categories_count">
+        <item quantity="one">%1$d catégorie</item>
+        <item quantity="other">%1$d catégories</item>
+    </plurals>
     <string name="txn_list_search">Chercher</string>
     <string name="txn_list_search_in_category">Rechercher dans %1$s...</string>
     <string name="txn_list_search_placeholder">Rechercher des transactions...</string>
@@ -238,6 +254,7 @@
     <string name="add_field_amount">Montant *</string>
     <string name="add_field_merchant">Commerçant</string>
     <string name="add_field_notes">Notes (facultatif)</string>
+    <string name="add_field_reference">Numéro de référence (facultatif)</string>
     <string name="add_field_category">Catégorie</string>
     <string name="add_clear">Nettoyer</string>
     <string name="add_selected">Sélectionné</string>
@@ -307,6 +324,7 @@
     <string name="group_detail_transactions">Chronologie</string>
     <string name="group_detail_expenses">Dépenses</string>
     <string name="group_detail_income">Revenu</string>
+    <string name="group_detail_invested">Investi</string>
     <string name="group_detail_empty_title">Pas encore de transactions</string>
     <string name="group_detail_empty_hint">Appuyez sur + pour ajouter des transactions à ce groupe</string>
     <string name="group_detail_delete_title">Supprimer le groupe</string>
@@ -331,6 +349,7 @@
     <string name="recurring_frequency_monthly">Mensuel</string>
     <string name="recurring_untitled">Sans titre</string>
     <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
+    <string name="recurring_item_schedule">%1$s · Prochain : %2$s</string>
     <string name="recurring_more_options">Plus d\'options</string>
     <string name="recurring_pause">Mettre en pause</string>
     <string name="recurring_resume">Reprendre</string>
@@ -381,8 +400,13 @@
     <!-- Shared transaction components -->
     <string name="quick_category_title">Changer de catégorie</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <string name="quick_add_title">Dépense en espèces</string>
+    <string name="quick_add_more_details">Plus de détails</string>
+    <string name="quick_add_where_hint">Où ? (facultatif)</string>
     <!-- %1$s the cash account the spend comes out of -->
+    <string name="quick_add_from">Depuis : %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
+    <string name="quick_add_saved">Enregistré %1$s · %2$s</string>
     <string name="date_range_title">Sélectionnez la plage de dates</string>
     <string name="date_range_ok">Ok</string>
     <string name="date_range_cancel">Abandonner</string>
@@ -399,38 +423,12 @@
     <string name="split_editor_balanced">Equilibré</string>
     <string name="split_editor_not_balanced">Non équilibré</string>
     <string name="split_editor_total">Total :</string>
+    <string name="split_editor_remaining">%1$s restant</string>
+    <string name="split_editor_over">%1$s en trop</string>
     <string name="split_editor_remove">Supprimer la séparation</string>
     <string name="split_breakdown_title">Répartition de la catégorie</string>
     <string name="tag_input_label">Tags (facultatif)</string>
     <string name="tag_input_remove">Supprimer %1$s</string>
     <string name="tag_input_add">Ajouter un tag</string>
     <string name="tag_input_create">Créer \"%1$s\"</string>
-    <string name="txn_export_date_range_value">%1$s - %2$s</string>
-    <string name="txn_detail_error_category_exists_other_parent">Une catégorie nommée « %1$s » existe déjà sous un autre parent</string>
-    <string name="txn_detail_error_loan_type_locked">Cette transaction fait partie d\'un prêt. Retirez-la du prêt avant de la faire passer de revenu à dépense, ou inversement.</string>
-    <string name="txn_detail_error_loan_currency_locked">Cette transaction fait partie d\'un prêt. Retirez-la du prêt avant de changer sa devise.</string>
-    <string name="txn_detail_adjustment_title_expense">Dépense non suivie</string>
-    <string name="txn_detail_adjustment_title_income">Revenu non suivi</string>
-    <string name="txn_detail_adjustment_what">C\'était quoi ?</string>
-    <string name="txn_detail_adjustment_what_placeholder">Ajustement du solde</string>
-    <string name="txn_detail_adjustment_add">Ajouter</string>
-    <string name="txn_detail_receipt_missing">Photo du reçu absente de cette sauvegarde</string>
-    <string name="txn_detail_field_reference">Numéro de référence (facultatif)</string>
-    <string name="txn_totals_transfer">Transfert</string>
-    <string name="txn_totals_invest">Investissement</string>
-    <plurals name="txn_list_categories_count">
-        <item quantity="one">%1$d catégorie</item>
-        <item quantity="many">%1$d catégories</item>
-        <item quantity="other">%1$d catégories</item>
-    </plurals>
-    <string name="add_field_reference">Numéro de référence (facultatif)</string>
-    <string name="group_detail_invested">Investi</string>
-    <string name="recurring_item_schedule">%1$s · Prochain : %2$s</string>
-    <string name="quick_add_title">Dépense en espèces</string>
-    <string name="quick_add_more_details">Plus de détails</string>
-    <string name="quick_add_where_hint">Où ? (facultatif)</string>
-    <string name="quick_add_from">Depuis : %1$s</string>
-    <string name="quick_add_saved">Enregistré %1$s · %2$s</string>
-    <string name="split_editor_remaining">%1$s restant</string>
-    <string name="split_editor_over">%1$s en trop</string>
 </resources>

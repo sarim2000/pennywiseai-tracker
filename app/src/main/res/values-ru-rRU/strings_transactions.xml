@@ -37,6 +37,7 @@
     <string name="txn_detail_error_amount_positive_number">Количество должно быть положительным числом</string>
     <string name="txn_detail_error_category_exists_income">Категория с именем \"%1$s\" уже существует в качестве дохода</string>
     <string name="txn_detail_error_category_exists_expense">Категория с именем \"%1$s\" уже существует в качестве расходов</string>
+    <string name="txn_detail_error_category_exists_other_parent">Категория с названием \"%1$s\" уже есть в другой родительской категории</string>
     <string name="txn_detail_error_create_category">Не удалось создать категорию: %1$s</string>
     <string name="txn_detail_error_splits_unavailable">Разделы доступны только для расходов и покупки карт</string>
     <string name="txn_detail_error_splits_min">Требуется как минимум 2 разделителя</string>
@@ -45,6 +46,8 @@
     <string name="txn_detail_error_merchant_required">Требуется название продавца</string>
     <string name="txn_detail_error_amount_positive">Сумма должна быть положительной</string>
     <string name="txn_detail_error_same_accounts">Счета источника и назначения должны отличаться</string>
+    <string name="txn_detail_error_loan_type_locked">Эта транзакция входит в долг. Уберите ее из долга, прежде чем переключать между доходом и расходом.</string>
+    <string name="txn_detail_error_loan_currency_locked">Эта транзакция входит в долг. Уберите ее из долга, прежде чем менять валюту.</string>
     <string name="txn_detail_error_tag_rule">Сохранено, но не удалось создать правило тегов: %1$s</string>
     <string name="txn_detail_error_save">Не удалось сохранить изменения: %1$s</string>
     <string name="txn_detail_error_delete">Не удалось удалить транзакцию</string>
@@ -113,9 +116,15 @@
     <string name="txn_detail_balance_mismatch_value">Выключен %1$s · ожидается %2$s</string>
     <string name="txn_detail_add_untracked_expense">Добавить неотслеживаемые расходы %1$s</string>
     <string name="txn_detail_add_untracked_income">Добавить неотслеживаемый доход %1$s</string>
+    <string name="txn_detail_adjustment_title_expense">Неучтенный расход</string>
+    <string name="txn_detail_adjustment_title_income">Неучтенный доход</string>
+    <string name="txn_detail_adjustment_what">Что это было?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Корректировка баланса</string>
+    <string name="txn_detail_adjustment_add">Добавить</string>
     <string name="txn_detail_label_reference">Артикул</string>
     <string name="txn_detail_receipt">Квитанция</string>
     <string name="txn_detail_receipt_tap_to_view">Нажмите для просмотра</string>
+    <string name="txn_detail_receipt_missing">Фото чека не входит в эту резервную копию</string>
     <string name="txn_detail_sms_hide">Скрыть СМС</string>
     <string name="txn_detail_sms_show">Показать оригинальные SMS</string>
     <string name="txn_detail_field_amount">Сумма</string>
@@ -123,6 +132,7 @@
     <string name="txn_detail_field_alias">Псевдоним (необязательно)</string>
     <string name="txn_detail_field_alias_placeholder">Показывать имя друга</string>
     <string name="txn_detail_field_description">Описание (необязательно)</string>
+    <string name="txn_detail_field_reference">Номер операции (необязательно)</string>
     <string name="txn_detail_apply_tags_to_merchant">Применить теги ко всем будущим от %1$s</string>
     <string name="txn_detail_field_from_account">Со счета</string>
     <string name="txn_detail_field_from_account_placeholder">Выберите или введите исходный аккаунт</string>
@@ -173,6 +183,8 @@
     <string name="txn_totals_expense">Расход</string>
     <string name="txn_totals_expenses">Расходы</string>
     <string name="txn_totals_credit">Кредит</string>
+    <string name="txn_totals_transfer">Перевод</string>
+    <string name="txn_totals_invest">Инвестиции</string>
     <string name="txn_totals_net">Чистая сумма</string>
     <string name="txn_totals_select_currency">Выберите валюту</string>
     <!-- Transactions list -->
@@ -261,6 +273,7 @@
     <string name="add_field_amount">Сумма *</string>
     <string name="add_field_merchant">Продавец</string>
     <string name="add_field_notes">Заметки (необязательно)</string>
+    <string name="add_field_reference">Номер операции (необязательно)</string>
     <string name="add_field_category">Категория</string>
     <string name="add_clear">Очистить</string>
     <string name="add_selected">Выбрано</string>
@@ -332,6 +345,7 @@
     <string name="group_detail_transactions">Хронология</string>
     <string name="group_detail_expenses">Расходы</string>
     <string name="group_detail_income">Доход</string>
+    <string name="group_detail_invested">Вложено</string>
     <string name="group_detail_empty_title">Транзакций ещё нет</string>
     <string name="group_detail_empty_hint">Нажмите +, чтобы добавить транзакции в эту группу</string>
     <string name="group_detail_delete_title">Удалить группу</string>
@@ -409,8 +423,13 @@
     <!-- Shared transaction components -->
     <string name="quick_category_title">Изменить категорию</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <string name="quick_add_title">Расход наличными</string>
+    <string name="quick_add_more_details">Подробнее</string>
+    <string name="quick_add_where_hint">Где? (необязательно)</string>
     <!-- %1$s the cash account the spend comes out of -->
+    <string name="quick_add_from">Со счета: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
+    <string name="quick_add_saved">Сохранено: %1$s · %2$s</string>
     <string name="date_range_title">Выбрать диапазон дат</string>
     <string name="date_range_ok">ОК</string>
     <string name="date_range_cancel">Отмена</string>
@@ -437,23 +456,4 @@
     <string name="tag_input_remove">Удалить %1$s</string>
     <string name="tag_input_add">Добавить тег</string>
     <string name="tag_input_create">Создать \"%1$s\"</string>
-    <string name="txn_detail_error_category_exists_other_parent">Категория с названием \"%1$s\" уже есть в другой родительской категории</string>
-    <string name="txn_detail_error_loan_type_locked">Эта транзакция входит в долг. Уберите ее из долга, прежде чем переключать между доходом и расходом.</string>
-    <string name="txn_detail_error_loan_currency_locked">Эта транзакция входит в долг. Уберите ее из долга, прежде чем менять валюту.</string>
-    <string name="txn_detail_adjustment_title_expense">Неучтенный расход</string>
-    <string name="txn_detail_adjustment_title_income">Неучтенный доход</string>
-    <string name="txn_detail_adjustment_what">Что это было?</string>
-    <string name="txn_detail_adjustment_what_placeholder">Корректировка баланса</string>
-    <string name="txn_detail_adjustment_add">Добавить</string>
-    <string name="txn_detail_receipt_missing">Фото чека не входит в эту резервную копию</string>
-    <string name="txn_detail_field_reference">Номер операции (необязательно)</string>
-    <string name="txn_totals_transfer">Перевод</string>
-    <string name="txn_totals_invest">Инвестиции</string>
-    <string name="add_field_reference">Номер операции (необязательно)</string>
-    <string name="group_detail_invested">Вложено</string>
-    <string name="quick_add_title">Расход наличными</string>
-    <string name="quick_add_more_details">Подробнее</string>
-    <string name="quick_add_where_hint">Где? (необязательно)</string>
-    <string name="quick_add_from">Со счета: %1$s</string>
-    <string name="quick_add_saved">Сохранено: %1$s · %2$s</string>
 </resources>

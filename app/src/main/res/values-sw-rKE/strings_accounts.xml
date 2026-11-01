@@ -1,51 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Shared (accounts, loans, exchange rates) ══ -->
-    <!-- ══ Account detail ══ -->
-    <!-- %1$s = formatted amount; marks an estimate across currencies -->
-    <!-- %1$s = formatted balance after the transaction -->
-    <!-- ══ Balance history ══ -->
-    <!-- %1$s = first characters of the SMS -->
-    <!-- ══ Add account ══ -->
-    <!-- ══ Merge accounts sheet ══ -->
-    <!-- %1$d = transaction count, %2$s = source account, %3$s = target account -->
-    <!-- %1$s = source account, %2$s = target account -->
-    <!-- Tag appended to a credit-card account row ("··1234 · INR · Credit") -->
-    <!-- ══ Manage accounts: status messages ══ -->
-    <!-- %1$s = formatted balance -->
-    <!-- %1$s / %2$s = currency codes -->
-    <!-- %1$d = transaction count, %2$s = target account -->
-    <!-- ══ Manage accounts screen ══ -->
-    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
-    <!-- %1$d = utilization percentage -->
-    <!-- Snackbar after ignoring an account; %1$s = account label -->
-    <!-- %1$d = day of month -->
-    <!-- %1$s = short date -->
-    <!-- %1$s = formatted current balance -->
-    <!-- %1$s = currency code -->
-    <!-- %1$s = formatted balance -->
-    <!-- %1$s = SMS text -->
-    <!-- %1$s = bank name -->
-    <!-- %1$s = last digits of the account -->
-    <!-- ══ Loans list ══ -->
-    <!-- %1$s = formatted original loan amount -->
-    <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
-    <!-- Open loans both ways that cancel out exactly -->
-    <!-- ══ Loan detail ══ -->
-    <!-- %1$s = formatted original loan amount -->
-    <!-- %1$d = percentage repaid -->
-    <!-- %1$s = person name -->
-    <!-- %1$s = formatted remaining amount -->
-    <!-- ══ Exchange rates ══ -->
-    <!-- %1$s = date and time -->
-    <!-- ══ Accounts overview card (home) ══ -->
-    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
     <string name="accounts_back">Rudi</string>
     <string name="accounts_collapse">Kunja</string>
     <string name="accounts_expand">Panua</string>
     <string name="accounts_action_cancel">Ghairi</string>
     <string name="accounts_action_delete">Futa</string>
     <string name="accounts_action_save">Hifadhi</string>
+    <!-- ══ Account detail ══ -->
     <string name="account_detail_transactions_header">Miamala (%1$d)</string>
     <string name="account_detail_empty_title">Hakuna miamala</string>
     <string name="account_detail_empty_description">Miamala ya akaunti hii itaonekana hapa</string>
@@ -58,7 +20,9 @@
     <string name="account_detail_income">Mapato</string>
     <string name="account_detail_expenses">Matumizi</string>
     <string name="account_detail_net">Halisi</string>
+    <!-- %1$s = formatted amount; marks an estimate across currencies -->
     <string name="account_detail_estimated_amount">takriban %1$s</string>
+    <!-- %1$s = formatted balance after the transaction -->
     <string name="account_detail_balance_after">• Salio: %1$s</string>
     <string name="account_detail_type_credit">Mkopo</string>
     <string name="account_detail_type_transfer">Uhamisho</string>
@@ -69,6 +33,7 @@
     <string name="account_detail_range_last_6_months">Miezi 6 Iliyopita</string>
     <string name="account_detail_range_last_year">Mwaka Uliopita</string>
     <string name="account_detail_range_all_time">Muda Wote</string>
+    <!-- ══ Balance history ══ -->
     <string name="balance_history_title">Historia ya Salio</string>
     <string name="balance_history_empty_title">Hakuna Historia ya Salio</string>
     <string name="balance_history_empty_description">Rekodi za salio zitaonekana hapa miamala inaposhughulikiwa.</string>
@@ -92,10 +57,11 @@
         <item quantity="one">(herufi %1$d)</item>
         <item quantity="other">(herufi %1$d)</item>
     </plurals>
-    <string name="balance_history_sms_truncated">%1$s...</string>
+    <!-- %1$s = first characters of the SMS -->
     <string name="balance_history_copy_sms">Nakili maandishi ya SMS</string>
     <string name="balance_history_collapse_sms">Kunja chanzo cha SMS</string>
     <string name="balance_history_expand_sms">Panua chanzo cha SMS</string>
+    <!-- ══ Add account ══ -->
     <string name="add_account_title">Ongeza Akaunti</string>
     <string name="add_account_intro">Ongeza akaunti zisizofuatiliwa kupitia SMS kama pesa taslimu, pochi, kadi za mkopo au akaunti za uwekezaji.</string>
     <string name="add_account_type_label">Aina ya Akaunti</string>
@@ -106,21 +72,27 @@
     <string name="add_account_balance_label">Salio la Sasa *</string>
     <string name="add_account_credit_limit_label">Kikomo cha Mkopo</string>
     <string name="add_account_credit_limit_hint">Si lazima: Weka kikomo cha mkopo ili kufuatilia matumizi yake</string>
+    <!-- ══ Merge accounts sheet ══ -->
     <string name="merge_accounts_title">Unganisha akaunti</string>
     <string name="merge_accounts_description">Hamisha miamala yote kutoka akaunti moja kwenda nyingine. Akaunti ya chanzo inaondolewa ukimaliza.</string>
     <string name="merge_accounts_move_from">Hamisha kutoka</string>
     <string name="merge_accounts_no_targets">Hakuna akaunti nyingine inayolingana na sarafu / aina ya hii.</string>
     <string name="merge_accounts_into">Kwenda</string>
     <string name="merge_accounts_confirm_title">Uunganishe akaunti?</string>
+    <!-- %1$d = transaction count, %2$s = source account, %3$s = target account -->
     <plurals name="merge_accounts_confirm_message_count">
         <item quantity="one">Hamisha muamala %1$d kutoka %2$s kwenda %3$s. Akaunti ya chanzo itaondolewa baada ya kuhamisha. Hili haliwezi kutenduliwa.</item>
         <item quantity="other">Hamisha miamala %1$d kutoka %2$s kwenda %3$s. Akaunti ya chanzo itaondolewa baada ya kuhamisha. Hili haliwezi kutenduliwa.</item>
     </plurals>
+    <!-- %1$s = source account, %2$s = target account -->
     <string name="merge_accounts_confirm_message_all">Hamisha miamala yote kutoka %1$s kwenda %2$s. Akaunti ya chanzo itaondolewa baada ya kuhamisha. Hili haliwezi kutenduliwa.</string>
     <string name="merge_accounts_confirm">Unganisha</string>
     <string name="merge_accounts_selected">Imechaguliwa</string>
+    <!-- Tag appended to a credit-card account row ("··1234 · INR · Credit") -->
     <string name="merge_accounts_credit_tag">Mkopo</string>
+    <!-- ══ Manage accounts: status messages ══ -->
     <string name="manage_accounts_msg_account_exists">Akaunti tayari ipo</string>
+    <!-- %1$s = formatted balance -->
     <string name="manage_accounts_msg_card_linked_balance">Kadi imeunganishwa. Salio limesasishwa hadi %1$s</string>
     <string name="manage_accounts_msg_card_linked_balance_failed">Kadi imeunganishwa (kusasisha salio kumeshindwa)</string>
     <string name="manage_accounts_msg_card_linked">Kadi imeunganishwa</string>
@@ -136,8 +108,10 @@
     </plurals>
     <string name="manage_accounts_msg_delete_account_failed">Imeshindwa kufuta akaunti: %1$s</string>
     <string name="manage_accounts_msg_merge_same_account">Chanzo na lengwa ni akaunti moja</string>
+    <!-- %1$s / %2$s = currency codes -->
     <string name="manage_accounts_msg_merge_currency_mismatch">Sarafu hazilingani (%1$s na %2$s)</string>
     <string name="manage_accounts_msg_merge_card_mismatch">Haiwezekani kuunganisha kadi ya mkopo na akaunti ya kawaida</string>
+    <!-- %1$d = transaction count, %2$s = target account -->
     <plurals name="manage_accounts_msg_merged">
         <item quantity="one">Muamala %1$d umeunganishwa kwenye %2$s</item>
         <item quantity="other">Miamala %1$d imeunganishwa kwenye %2$s</item>
@@ -149,12 +123,14 @@
     <string name="manage_accounts_msg_move_failed">Imeshindwa kuhamisha miamala: %1$s</string>
     <string name="manage_accounts_msg_account_updated">Akaunti imesasishwa</string>
     <string name="manage_accounts_msg_update_account_failed">Imeshindwa kusasisha akaunti: %1$s</string>
+    <!-- ══ Manage accounts screen ══ -->
     <string name="manage_accounts_title">Akaunti</string>
     <string name="manage_accounts_empty_title">Hakuna Akaunti</string>
     <string name="manage_accounts_empty_description">Ongeza akaunti yako ya kwanza ya benki ili uanze kufuatilia.</string>
     <string name="manage_accounts_section_bank">Akaunti za Benki</string>
     <string name="manage_accounts_section_unlinked_cards">Kadi Zisizounganishwa</string>
     <string name="manage_accounts_section_credit_cards">Kadi za Mkopo</string>
+    <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
     <string name="manage_accounts_section_loan_accounts">Akaunti za Mikopo</string>
     <string name="manage_accounts_hidden_header">Akaunti Zilizopuuzwa (%1$d)</string>
     <string name="manage_accounts_reassign_title">Uhamishe miamala iliyopo?</string>
@@ -169,6 +145,7 @@
     <string name="manage_accounts_outstanding">Deni</string>
     <string name="manage_accounts_available">Inapatikana</string>
     <string name="manage_accounts_credit_limit">Kikomo cha Mkopo</string>
+    <!-- %1$d = utilization percentage -->
     <string name="manage_accounts_utilization_used">(%1$d%% imetumika)</string>
     <string name="manage_accounts_more_options">Chaguo zaidi</string>
     <string name="manage_accounts_action_edit">Hariri</string>
@@ -178,8 +155,10 @@
     <string name="manage_accounts_menu_history">Historia</string>
     <string name="manage_accounts_menu_show">Acha kupuuza</string>
     <string name="manage_accounts_menu_hide">Puuza akaunti hii</string>
+    <!-- Snackbar after ignoring an account; %1$s = account label -->
     <string name="manage_accounts_ignored_snackbar">%1$s imepuuzwa</string>
     <string name="manage_accounts_undo">Tendua</string>
+    <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Tarehe ya taarifa: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Weka tarehe ya taarifa</string>
     <string name="manage_accounts_menu_mark_personal">Weka kuwa Binafsi</string>
@@ -195,12 +174,15 @@
     <string name="manage_accounts_balance">Salio</string>
     <string name="manage_accounts_linked_cards">Kadi Zilizounganishwa</string>
     <string name="manage_accounts_card_inactive">(Haitumiki)</string>
+    <!-- %1$s = short date -->
     <string name="manage_accounts_card_updated">Imesasishwa: %1$s</string>
     <string name="manage_accounts_unlink_card">Tenganisha kadi</string>
     <string name="manage_accounts_update_balance">Sasisha Salio</string>
     <string name="manage_accounts_estimated_balance_hint">Makadirio: SMS za benki yako hazionyeshi salio. Gusa ili uliweke mara moja.</string>
     <string name="manage_accounts_low_balance_alert">Tahadhari ya salio la chini</string>
+    <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">Weka alama kwenye akaunti hii salio likifika au kushuka chini ya kiasi hiki. Salio la sasa: %1$s</string>
+    <!-- %1$s = currency code -->
     <string name="manage_accounts_threshold_label">Kiwango (%1$s)</string>
     <string name="manage_accounts_rename_title">Badilisha jina la akaunti</string>
     <string name="manage_accounts_alias_label">Jina mbadala</string>
@@ -216,20 +198,22 @@
     <string name="manage_accounts_utilization_label">Matumizi:</string>
     <string name="manage_accounts_unlinked_credit_card">Kadi ya Mkopo (Haijaunganishwa)</string>
     <string name="manage_accounts_unlinked_debit_card">Kadi ya Debit (Haijaunganishwa)</string>
+    <!-- %1$s = formatted balance -->
     <string name="manage_accounts_last_balance">Salio la Mwisho: %1$s</string>
-    <string name="manage_accounts_card_sms">SMS: %1$s</string>
+    <!-- %1$s = SMS text -->
     <string name="manage_accounts_card_sms_truncated">SMS: %1$s... (gusa ili kupanua)</string>
     <string name="manage_accounts_edit_card_title">Hariri kadi</string>
     <string name="manage_accounts_bank_label">Benki</string>
     <string name="manage_accounts_card_type_label">Aina ya kadi</string>
-    <string name="manage_accounts_card_type_debit">Debit</string>
     <string name="manage_accounts_card_type_credit">Mkopo</string>
     <string name="manage_accounts_nickname_label">Jina la utani (si lazima)</string>
     <string name="manage_accounts_link_card_title">Unganisha Kadi na Akaunti</string>
+    <!-- %1$s = bank name -->
     <string name="manage_accounts_link_no_accounts">Hakuna akaunti za %1$s zilizopatikana. Ongeza akaunti kwanza.</string>
     <string name="manage_accounts_link_select_account">Chagua akaunti ya kuunganisha na kadi hii:</string>
     <string name="manage_accounts_delete_title">Ufute Akaunti?</string>
     <string name="manage_accounts_delete_message">Una uhakika unataka kufuta akaunti hii?</string>
+    <!-- %1$s = last digits of the account -->
     <string name="manage_accounts_account_ending_in">Akaunti inayoishia na %1$s</string>
     <string name="manage_accounts_delete_warning">Hii itafuta kabisa historia yote ya salio ya akaunti hii. Kadi zozote zilizounganishwa zitatenganishwa. Hatua hii haiwezi kutenduliwa.</string>
     <string name="manage_accounts_edit_account_title">Hariri Akaunti</string>
@@ -238,6 +222,7 @@
     <string name="manage_accounts_account_number_label">Namba ya Akaunti</string>
     <string name="manage_accounts_read_only">Kusoma tu</string>
     <string name="manage_accounts_account_balance_label">Salio la Akaunti</string>
+    <!-- ══ Loans list ══ -->
     <string name="loans_title">Mikopo</string>
     <string name="loans_empty_title">Bado hakuna mikopo</string>
     <string name="loans_empty_description">Weka muamala kuwa \"Umekopesha\" au \"Umekopa\" ili uanze kufuatilia</string>
@@ -248,21 +233,27 @@
     <string name="loans_direction_lent">Umekopesha</string>
     <string name="loans_direction_borrowed">Umekopa</string>
     <string name="loans_status_settled">Umelipwa</string>
+    <!-- %1$s = formatted original loan amount -->
     <string name="loans_of_original">kati ya %1$s</string>
+    <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
     <string name="loans_person_owes_you">Unamdai %1$s</string>
     <string name="loans_person_you_owe">Unadaiwa %1$s</string>
     <string name="loans_person_all_settled">Yote yamelipwa</string>
+    <!-- Open loans both ways that cancel out exactly -->
     <string name="loans_person_even">Mko sawa — hakuna anayemdai mwenzake</string>
     <string name="loans_settle_up">Malizana</string>
     <string name="loans_settle_up_title">Umalizane na %1$s?</string>
     <string name="loans_settle_up_message">Mikopo yote iliyo wazi na %1$s itawekwa kuwa imelipwa. Kiasi chochote ambacho bado hakijalipwa kitasamehewa.</string>
+    <!-- ══ Loan detail ══ -->
     <string name="loan_detail_title_fallback">Mkopo</string>
     <string name="loan_detail_more">Zaidi</string>
     <string name="loan_detail_menu_set_expected_return">Weka kiasi kinachotarajiwa kurudi</string>
     <string name="loan_detail_settle">Maliza</string>
     <string name="loan_detail_menu_reopen">Fungua tena</string>
     <string name="loan_detail_record_payment">Rekodi Malipo</string>
+    <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">kimebaki kati ya %1$s</string>
+    <!-- %1$d = percentage repaid -->
     <string name="loan_detail_percent_repaid">%1$d%% imerejeshwa</string>
     <string name="loan_detail_history">Historia</string>
     <string name="loan_detail_settle_title">Maliza Mkopo</string>
@@ -272,22 +263,25 @@
     <string name="loan_detail_delete_title">Futa Mkopo</string>
     <string name="loan_detail_delete_message">Ufute mkopo huu? Miamala iliyounganishwa itatenganishwa lakini haitafutwa.</string>
     <string name="loan_detail_original_chip">Asili</string>
+    <!-- %1$s = person name -->
     <string name="loan_detail_record_payment_from">Rekodi malipo kutoka kwa %1$s</string>
+    <!-- %1$s = formatted remaining amount -->
     <string name="loan_detail_amount_remaining">%1$s imebaki</string>
     <string name="loan_detail_link_existing">Unganisha muamala uliopo</string>
     <string name="loan_detail_or_enter_manually">Au weka mwenyewe</string>
     <string name="loan_detail_enter_amount">Weka kiasi</string>
     <string name="loan_detail_amount_label">Kiasi</string>
     <string name="loan_detail_add">Ongeza</string>
+    <!-- ══ Exchange rates ══ -->
     <string name="exchange_rates_title">Viwango vya Ubadilishaji</string>
     <string name="exchange_rates_refresh">Onyesha upya viwango</string>
     <string name="exchange_rates_empty_title">Hakuna viwango vya ubadilishaji</string>
     <string name="exchange_rates_empty_description">Viwango vitaonekana ukiwa na miamala ya sarafu tofauti</string>
+    <!-- %1$s = date and time -->
     <string name="exchange_rates_last_updated">Ilisasishwa mwisho: %1$s</string>
     <string name="exchange_rates_hint">Gusa kiwango ili uweke thamani yako. Viwango ulivyoweka mwenyewe vinabaki hata API ikisasisha.</string>
     <string name="exchange_rates_reset_all">Rudisha Zote kuwa Otomatiki</string>
     <string name="exchange_rates_badge_custom">Yako</string>
-    <string name="exchange_rates_badge_api">API</string>
     <string name="exchange_rates_rate_label">Kiwango cha Ubadilishaji</string>
     <string name="exchange_rates_invalid_rate">Weka namba sahihi iliyo juu ya sifuri</string>
     <string name="exchange_rates_reset">Rudisha kuwa Otomatiki</string>
@@ -297,12 +291,14 @@
     <string name="exchange_rates_error_set_custom">Imeshindwa kuweka kiwango chako</string>
     <string name="exchange_rates_error_clear_custom">Imeshindwa kuondoa kiwango chako</string>
     <string name="exchange_rates_error_clear_all_custom">Imeshindwa kuondoa viwango ulivyoweka</string>
+    <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">Muhtasari wa Akaunti</string>
     <string name="accounts_overview_bank_balance">Salio la Benki</string>
     <string name="accounts_overview_bank_balance_count">Salio la Benki • %1$d</string>
     <string name="accounts_overview_available_credit">Mkopo Unaopatikana</string>
     <string name="accounts_overview_available_credit_count">Mkopo Unaopatikana • %1$d</string>
     <string name="accounts_overview_balance">Salio</string>
+    <!-- %1$s = formatted used amount, %2$d = utilization percentage -->
     <string name="accounts_overview_used">Imetumika: %1$s (%2$d%%)</string>
     <string name="accounts_overview_available_limit">Kikomo Kinachopatikana</string>
     <string name="accounts_overview_show_less">Onyesha Chache</string>

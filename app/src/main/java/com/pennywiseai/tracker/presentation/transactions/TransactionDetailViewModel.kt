@@ -332,7 +332,11 @@ class TransactionDetailViewModel @Inject constructor(
             transaction?.let {
                 determinePrimaryCurrency(it)
                 calculateConvertedAmount(it)
-                loadSplits(transactionId)
+                // Splits are a live Flow that never completes: collected on its own
+                // job, or nothing below would ever run for a split transaction —
+                // its loan chip came back as "Mark as loan" (#1032).
+                splitsJob?.cancel()
+                splitsJob = viewModelScope.launch { loadSplits(transactionId) }
                 loadReceiptUri(it)
                 // Clear stale loan state when the (re)loaded transaction has no
                 // loan — e.g. the loan was deleted elsewhere and we reload on
@@ -398,6 +402,8 @@ class TransactionDetailViewModel @Inject constructor(
             CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
         }
     }
+
+    private var splitsJob: kotlinx.coroutines.Job? = null
 
     private suspend fun loadSplits(transactionId: Long) {
         val hasSplits = transactionRepository.hasSplits(transactionId)

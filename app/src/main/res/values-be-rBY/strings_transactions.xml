@@ -1,21 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Export transactions dialog -->
-    <!-- Transaction detail: errors -->
-    <!-- Transaction types -->
-    <!-- Transaction detail -->
-    <!-- Transaction totals card -->
-    <!-- Transactions list -->
-    <!-- Add transaction / subscription -->
-    <!-- Transaction groups -->
-    <!-- Recurring transactions -->
-    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
-    <!-- Share card, sheet and banner -->
-    <!-- %1$s = month name -->
-    <!-- Shared transaction components -->
-    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <!-- %1$s the cash account the spend comes out of -->
-    <!-- %1$s amount with currency, %2$s category -->
     <string name="txn_export_title_ready">Экспарт транзакцый</string>
     <string name="txn_export_title_exporting">Экспарт...</string>
     <string name="txn_export_title_success">Экспарт завершаны!</string>
@@ -28,7 +13,6 @@
     </plurals>
     <string name="txn_export_total_transactions">Усяго транзакцый:</string>
     <string name="txn_export_date_range">Перыяд:</string>
-    <string name="txn_export_date_range_value">%1$s - %2$s</string>
     <string name="txn_export_free_limit_notice">Бясплатны экспарт: першыя %1$d з %2$d радкоў</string>
     <string name="txn_export_unlock_all">Адкрыць усё</string>
     <plurals name="txn_export_success_message">
@@ -47,6 +31,7 @@
     <string name="txn_export_action_share">Абагуліць</string>
     <string name="txn_export_action_close">Закрыць</string>
     <string name="txn_export_action_retry">Паўтарыць</string>
+    <!-- Transaction detail: errors -->
     <string name="txn_detail_error_add_adjustment">Не ўдалося дадаць карэкціроўку: %1$s</string>
     <string name="txn_detail_error_amount_positive_number">Сума павінна быць дадатным лікам</string>
     <string name="txn_detail_error_category_exists_income">Катэгорыя «%1$s» ужо існуе як даход</string>
@@ -67,11 +52,13 @@
     <string name="txn_detail_error_delete">Не ўдалося выдаліць транзакцыю</string>
     <string name="txn_detail_error_create_loan">Не ўдалося стварыць пазыку: %1$s</string>
     <string name="txn_detail_error_unlink_loan">Не ўдалося адвязаць пазыку: %1$s</string>
+    <!-- Transaction types -->
     <string name="txn_type_income">Даход</string>
     <string name="txn_type_expense">Выдатак</string>
     <string name="txn_type_credit">Крэдыт</string>
     <string name="txn_type_transfer">Перавод</string>
     <string name="txn_type_investment">Інвестыцыя</string>
+    <!-- Transaction detail -->
     <string name="txn_detail_updated">Транзакцыя абноўлена</string>
     <string name="txn_detail_title">Падрабязнасці транзакцыі</string>
     <string name="txn_detail_title_edit">Рэдагаваць транзакцыю</string>
@@ -80,7 +67,6 @@
     <string name="txn_detail_action_edit">Рэдагаваць</string>
     <string name="txn_detail_action_delete">Выдаліць</string>
     <string name="txn_detail_action_save">Захаваць</string>
-    <string name="txn_detail_action_ok">OK</string>
     <string name="txn_detail_action_confirm">Пацвердзіць</string>
     <string name="txn_detail_more_actions">Іншыя дзеянні</string>
     <string name="txn_detail_menu_add_to_group">Дадаць у групу</string>
@@ -190,6 +176,7 @@
     <string name="txn_detail_group_name">Назва групы</string>
     <string name="txn_detail_group_create">Стварыць</string>
     <string name="txn_detail_group_create_new">Стварыць новую групу</string>
+    <!-- Transaction totals card -->
     <string name="txn_totals_income">Даход</string>
     <string name="txn_totals_expense">Выдатак</string>
     <string name="txn_totals_expenses">Выдаткі</string>
@@ -198,6 +185,7 @@
     <string name="txn_totals_invest">Інвест.</string>
     <string name="txn_totals_net">Вынік</string>
     <string name="txn_totals_select_currency">Выберыце валюту</string>
+    <!-- Transactions list -->
     <string name="txn_list_title">Транзакцыі</string>
     <string name="txn_list_back">Назад</string>
     <string name="txn_list_deleted">Транзакцыя выдалена</string>
@@ -275,6 +263,7 @@
         <item quantity="many">Дададзена ў «%2$s»: %1$d</item>
         <item quantity="other">Дададзена ў «%2$s»: %1$d</item>
     </plurals>
+    <!-- Add transaction / subscription -->
     <string name="add_title">Дадаць</string>
     <string name="add_back">Назад</string>
     <string name="add_tab_transaction">Транзакцыя</string>
@@ -287,7 +276,6 @@
     <string name="add_clear">Ачысціць</string>
     <string name="add_selected">Выбрана</string>
     <string name="add_save">Захаваць</string>
-    <string name="add_ok">OK</string>
     <string name="add_cancel">Скасаваць</string>
     <string name="add_select_time">Выберыце час</string>
     <string name="add_txn_from_account">З рахунку</string>
@@ -327,6 +315,7 @@
     <string name="add_error_merchant_required">Укажыце прадаўца або апісанне</string>
     <string name="add_error_merchant_too_short">Занадта коратка</string>
     <string name="add_error_category_required">Выберыце катэгорыю</string>
+    <!-- Transaction groups -->
     <string name="groups_title">Групы транзакцый</string>
     <string name="groups_create">Стварыць групу</string>
     <string name="groups_empty_title">Груп пакуль няма</string>
@@ -365,6 +354,7 @@
     <string name="group_detail_picker_no_results">Нічога не знойдзена</string>
     <string name="group_detail_picker_add">Дадаць</string>
     <string name="group_detail_edit_title">Рэдагаваць групу</string>
+    <!-- Recurring transactions -->
     <string name="recurring_title">Паўтаральныя</string>
     <string name="recurring_back">Назад</string>
     <string name="recurring_add">Дадаць паўтаральную транзакцыю</string>
@@ -376,6 +366,7 @@
     <string name="recurring_frequency_weekly">Штотыдзень</string>
     <string name="recurring_frequency_monthly">Штомесяц</string>
     <string name="recurring_untitled">Без назвы</string>
+    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
     <string name="recurring_item_schedule">%1$s · Наступная %2$s</string>
     <string name="recurring_more_options">Іншыя параметры</string>
     <string name="recurring_pause">Прыпыніць</string>
@@ -400,6 +391,7 @@
     <string name="recurring_day_of_week_any">Любы</string>
     <string name="recurring_field_note">Нататка (неабавязкова)</string>
     <string name="recurring_field_active">Актыўная</string>
+    <!-- Share card, sheet and banner -->
     <string name="share_card_caption_transactions">банкаўскіх SMS улічана. 0 уведзена ўручную.</string>
     <plurals name="share_card_caption_subscriptions">
         <item quantity="one">забытая падпіска</item>
@@ -421,17 +413,21 @@
     <string name="share_sheet_this_month">Гэты месяц</string>
     <string name="share_sheet_last_month">Мінулы месяц</string>
     <string name="share_sheet_all_time">Увесь час</string>
+    <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s: вынікі</string>
     <string name="share_banner_subtitle">Паглядзіце, што PennyWise улічыў для вас</string>
     <string name="share_banner_dismiss">Схаваць</string>
+    <!-- Shared transaction components -->
     <string name="quick_category_title">Змяніць катэгорыю</string>
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Выдатак наяўнымі</string>
     <string name="quick_add_more_details">Больш падрабязнасцей</string>
     <string name="quick_add_where_hint">Дзе? (неабавязкова)</string>
+    <!-- %1$s the cash account the spend comes out of -->
     <string name="quick_add_from">З: %1$s</string>
+    <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Захавана %1$s · %2$s</string>
     <string name="date_range_title">Выберыце перыяд</string>
-    <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Скасаваць</string>
     <string name="filter_row_more">Яшчэ фільтры</string>
     <plurals name="filter_row_more_active">

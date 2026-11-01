@@ -35,7 +35,6 @@
     <string name="split_remove_confirm">ลบ</string>
     <string name="split_upi_title">UPI ID ของคุณ</string>
     <string name="split_upi_message">คนอื่นจะจ่ายส่วนของเขาไปที่ UPI ID นี้ เปลี่ยนได้ในการตั้งค่า</string>
-    <string name="split_upi_hint">name@bank</string>
     <string name="split_upi_invalid">ใส่ UPI ID แบบ name@bank</string>
     <string name="split_upi_save">บันทึก</string>
     <string name="split_request_text">จ่าย %1$s ให้ %2$s ค่า %3$s</string>

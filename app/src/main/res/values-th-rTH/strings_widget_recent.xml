@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    <string name="widget_recent_header">ล่าสุด</string>
+<resources>
+    <string name="widget_recent_header">ล่าสุด</string>
     <string name="widget_recent_sort">จัดหมวด</string>
     <string name="widget_recent_empty_add_cash">แตะ + เพื่อเพิ่มเงินสด</string>
     <string name="widget_recent_description">ธุรกรรมล่าสุดพร้อมหมวดหมู่ แตะครั้งเดียวเพื่อจัดหมวดรายการที่ยังไม่ได้จัด</string>

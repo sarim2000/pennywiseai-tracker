@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">लक्ष्य</string>
     <string name="upgrade_feature_goals">अनलिमिटेड लक्ष्य</string>
     <string name="goals_new">नया लक्ष्य</string>
@@ -30,6 +23,7 @@
         <item quantity="one">%d महीना बाकी</item>
         <item quantity="other">%d महीने बाकी</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">नया लक्ष्य</string>
     <string name="goal_edit_title_edit">लक्ष्य संपादित करें</string>
     <string name="goal_back">वापस</string>
@@ -52,6 +46,7 @@
     <string name="goal_edit_save">सहेजें</string>
     <string name="goal_action_ok">ठीक है</string>
     <string name="goal_action_cancel">रद्द करें</string>
+    <!-- Detail -->
     <string name="goal_detail_left">बाकी</string>
     <string name="goal_detail_per_month">हर महीने</string>
     <string name="goal_detail_over">%1$s ज़्यादा</string>
@@ -70,6 +65,7 @@
     <string name="goal_converted_from">%1$s से</string>
     <string name="goal_withdrawal">निकासी</string>
     <string name="goal_contribution">जमा</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">राशि</string>
     <string name="goal_money_date">तारीख</string>
     <string name="goal_money_note">नोट (वैकल्पिक)</string>
@@ -83,6 +79,7 @@
     <string name="goal_edit_contribution">जमा राशि बदलें</string>
     <string name="goal_edit_withdrawal">निकासी बदलें</string>
     <string name="goal_contribution_delete">हटाएं</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">लक्ष्य में जोड़ें</string>
     <string name="goal_add_to_goal_left">इस लेन-देन के %1$s लक्ष्यों में जा सकते हैं</string>
     <string name="goal_add_to_goal_none_left">यह पूरा लेन-देन पहले से लक्ष्यों में जा रहा है</string>
@@ -92,12 +89,13 @@
     <string name="goal_toward_goals">लक्ष्यों में</string>
     <string name="goal_toward_remove">%1$s से हटाएं</string>
     <string name="goal_currency_locked_by_goal">इस लेन-देन की मुद्रा बदलने से पहले इसे इसके लक्ष्यों से हटाएं</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">%1$s बाकी</string>
     <plurals name="goals_months_short">
         <item quantity="one">%d मही.</item>
         <item quantity="other">%d मही.</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">लक्ष्य</string>
     <string name="widget_name_goals">लक्ष्य</string>
     <string name="widget_description_goal">एक लक्ष्य, उसकी प्रगति रिंग और कितना बचाना बाकी है</string>
@@ -107,4 +105,5 @@
     <string name="widget_goals_empty">अभी तक कोई लक्ष्य नहीं</string>
     <string name="widget_goal_config_title">एक लक्ष्य चुनें</string>
     <string name="widget_goal_config_close">बंद करें</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

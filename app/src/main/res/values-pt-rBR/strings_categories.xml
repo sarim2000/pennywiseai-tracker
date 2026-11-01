@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Built-in category names, shown in place of the stored English key (CategoryMapping.label). -->
 <resources>
     <string name="category_food_dining">Alimentação</string>
     <string name="category_groceries">Mercado</string>

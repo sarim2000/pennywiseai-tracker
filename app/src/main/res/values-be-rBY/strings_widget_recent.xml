@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    <string name="widget_recent_header">Апошнія</string>
+<resources>
+    <string name="widget_recent_header">Апошнія</string>
     <string name="widget_recent_sort">Разабраць</string>
     <string name="widget_recent_empty_add_cash">Націсніце +, каб дадаць наяўныя</string>
     <string name="widget_recent_description">Вашы апошнія транзакцыі і іх катэгорыі. Адзін дотык, каб разабраць тыя, што гэтага патрабуюць.</string>

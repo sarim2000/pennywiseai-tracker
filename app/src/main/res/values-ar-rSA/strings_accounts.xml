@@ -203,6 +203,7 @@
     <string name="manage_accounts_card_updated">تم التحديث: %1$s</string>
     <string name="manage_accounts_unlink_card">فك ارتباط البطاقة</string>
     <string name="manage_accounts_update_balance">تحديث الرصيد</string>
+    <string name="manage_accounts_estimated_balance_hint">تقديري: رسائل البنك لا تذكر الرصيد. اضغط لتعيينه مرة واحدة.</string>
     <string name="manage_accounts_low_balance_alert">تنبيه منخفض الرصيد</string>
     <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">علم هذا الحساب عندما يكون رصيده بهذا المبلغ أو أقل. الرصيد الحالي: %1$s</string>
@@ -337,5 +338,4 @@
         <item quantity="many">عرض جميع حسابات %1$d</item>
         <item quantity="other">عرض جميع حسابات %1$d</item>
     </plurals>
-    <string name="manage_accounts_estimated_balance_hint">تقديري: رسائل البنك لا تذكر الرصيد. اضغط لتعيينه مرة واحدة.</string>
 </resources>

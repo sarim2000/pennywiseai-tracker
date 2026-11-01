@@ -7,7 +7,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.data.backup.BackupExporter
-import com.pennywiseai.tracker.data.backup.ExportBytesResult
+import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -39,9 +39,14 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
         }
 
         val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
-        return when (val exportResult = backupExporter.exportBackupBytes(includeReceipts = includeReceipts)) {
-            is ExportBytesResult.Success -> {
-                when (val writeResult = folderBackupWriter.writeBackup(treeUri, exportResult.bytes)) {
+        return when (val exportResult = backupExporter.exportBackup(includeReceipts = includeReceipts)) {
+            is ExportResult.Success -> {
+                val writeResult = try {
+                    folderBackupWriter.writeBackup(treeUri, exportResult.file)
+                } finally {
+                    exportResult.file.delete()
+                }
+                when (writeResult) {
                     is FolderBackupWriter.Result.Success -> {
                         userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
                             System.currentTimeMillis()
@@ -55,7 +60,7 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
                     }
                 }
             }
-            is ExportBytesResult.Error -> {
+            is ExportResult.Error -> {
                 Log.e(TAG, "Scheduled folder backup export failed: ${exportResult.message}")
                 Result.retry()
             }

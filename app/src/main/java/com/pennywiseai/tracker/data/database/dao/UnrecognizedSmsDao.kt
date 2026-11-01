@@ -49,6 +49,9 @@ interface UnrecognizedSmsDao {
     @Query("SELECT * FROM unrecognized_sms WHERE id = :id")
     suspend fun getById(id: Long): UnrecognizedSmsEntity?
 
+    @Query("UPDATE unrecognized_sms SET is_deleted = 0, reported = 0, received_at = :receivedAt WHERE id = :id")
+    suspend fun revive(id: Long, receivedAt: LocalDateTime)
+
     @Query("SELECT * FROM unrecognized_sms WHERE sender = :sender AND sms_body = :smsBody LIMIT 1")
     suspend fun findBySenderAndBody(sender: String, smsBody: String): UnrecognizedSmsEntity?
 }

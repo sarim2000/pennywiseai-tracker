@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -7,7 +9,7 @@ fun buildHeatmapMonthLabels(
     startDate: LocalDate,
     endDate: LocalDate
 ): List<Pair<Int, String>> {
-    val formatter = DateTimeFormatter.ofPattern("MMM")
+    val formatter = AppDates.pattern("MMM")
     val allMonthStarts = mutableListOf<Pair<Int, String>>()
     var current = startDate
     var lastMonth = -1

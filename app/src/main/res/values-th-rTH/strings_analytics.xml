@@ -6,24 +6,45 @@
     <string name="analytics_chart_line">เส้น</string>
     <string name="analytics_chart_bar">แท่ง</string>
     <string name="analytics_chart_heatmap">แผนที่ความร้อน</string>
+    <string name="analytics_chart_line_full">กราฟเส้น</string>
+    <string name="analytics_chart_bar_full">กราฟแท่ง</string>
     <string name="analytics_top_categories">หมวดหมู่ยอดนิยม</string>
     <string name="analytics_toggle_view">สลับมุมมอง</string>
     <!-- %1$s = formatted refund amount -->
+    <string name="analytics_refund_note">ยอดรวมหักเงินคืน %1$s แล้ว แถบหมวดหมู่ติดลบไม่ได้ ผลรวมของแถบจึงอาจมากกว่ายอดรวมที่แสดง</string>
+    <string name="analytics_top_tags">แท็กยอดนิยม</string>
     <string name="analytics_top_merchants">ร้านค้าชั้นนำ</string>
+    <string name="analytics_by_account">ตามบัญชี</string>
+    <string name="analytics_by_day_of_week">ตามวันในสัปดาห์</string>
+    <string name="analytics_no_tag">ไม่มีแท็ก</string>
+    <string name="analytics_tag_overlap_note">ธุรกรรมที่มีหลายแท็กจะถูกนับในทุกแท็ก ยอดรวมของแท็กจึงอาจมากกว่ายอดรวมทั้งหมด</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">ตามหมวดหมู่</string>
+    <string name="analytics_group_by_merchant">ตามร้านค้า</string>
+    <string name="analytics_group_by_account">ตามบัญชี</string>
+    <string name="analytics_group_by_tag">ตามแท็ก</string>
+    <string name="analytics_group_by_day_of_week">ตามวันในสัปดาห์</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">ล้าง</string>
     <string name="analytics_filter_all_profiles">บัญชีทั้งหมด</string>
     <string name="analytics_filter_currency">สกุลเงิน</string>
     <string name="analytics_filter_category">หมวดหมู่</string>
+    <string name="analytics_filter_all_categories">ทุกหมวดหมู่</string>
     <string name="analytics_filter_account">บัญชี</string>
+    <string name="analytics_filter_all_accounts">บัญชีทั้งหมด</string>
     <!-- List rows -->
     <plurals name="analytics_transaction_count">
         <item quantity="other">%1$d ธุรกรรม</item>
     </plurals>
+    <plurals name="analytics_transaction_count_subscription">
+        <item quantity="other">%1$d ธุรกรรม • การสมัครสมาชิก</item>
+    </plurals>
     <!-- Whole-number percentage, e.g. "42%" -->
     <!-- Empty state -->
+    <string name="analytics_empty_headline">ข้อมูลยังไม่พอ</string>
+    <string name="analytics_empty_description">ข้อมูลเชิงลึกการใช้จ่ายของคุณจะแสดงที่นี่หลังจากติดตามครบสัปดาห์แรก</string>
+    <string name="analytics_empty_action">สแกน SMS</string>
     <!-- Summary card -->
     <string name="analytics_summary_total">รวมทั้งหมด</string>
     <plurals name="analytics_summary_txns">
@@ -31,28 +52,67 @@
     </plurals>
     <string name="analytics_summary_average">ค่าเฉลี่ย</string>
     <string name="analytics_summary_per_day">" /วัน"</string>
+    <string name="analytics_summary_percent_of_total">%1$d%% ของทั้งหมด</string>
     <!-- Pie charts -->
+    <string name="analytics_pie_unknown">ไม่ทราบ</string>
     <!-- Breakdown cards -->
+    <string name="analytics_spending_by_category">การใช้จ่ายตามหมวดหมู่</string>
+    <string name="analytics_spending_by_tag">การใช้จ่ายตามแท็ก</string>
     <!-- ══ Budgets screen ══ -->
     <string name="budgets_title">งบประมาณ</string>
+    <string name="budgets_back">กลับ</string>
+    <string name="budgets_add">เพิ่มงบประมาณ</string>
     <string name="budgets_action_cancel">ยกเลิก</string>
     <string name="budgets_action_delete">ลบ</string>
     <string name="budgets_action_ok">ตกลง</string>
+    <string name="budgets_setup_title">ตั้งงบประมาณของคุณ</string>
+    <string name="budgets_setup_body">แบ่งการใช้จ่ายเป็นงบประมาณ เพื่อดูว่าเงินของคุณไปอยู่ที่ไหน</string>
+    <string name="budgets_setup_smart_defaults">ใช้ค่าแนะนำอัจฉริยะ</string>
+    <string name="budgets_setup_custom">สร้างงบประมาณเอง</string>
     <string name="budgets_delete_title">ลบงบประมาณ</string>
     <!-- %1$s = budget name -->
+    <string name="budgets_delete_message">แน่ใจไหมว่าจะลบ \"%1$s\"? ย้อนกลับไม่ได้นะ</string>
+    <string name="budgets_previous_month">เดือนก่อน</string>
+    <string name="budgets_next_month">เดือนถัดไป</string>
+    <string name="budgets_edit">แก้ไขงบประมาณ</string>
     <string name="budgets_delete">ลบงบประมาณ</string>
     <string name="budgets_more_options">ตัวเลือกเพิ่มเติม</string>
+    <string name="budgets_view_history">ดูประวัติของรอบนี้</string>
+    <string name="budgets_move_up">เลื่อนขึ้น</string>
+    <string name="budgets_move_down">เลื่อนลง</string>
     <!-- %1$s = formatted amount -->
+    <string name="budgets_over_budget">เกินงบ %1$s</string>
+    <string name="budgets_remaining">เหลือ %1$s</string>
+    <string name="budgets_over_by">เกินไป %1$s</string>
+    <string name="budgets_finished">สิ้นสุดแล้ว</string>
     <!-- %1$s = weekday name -->
+    <string name="budgets_resets_today_weekly">รีเซ็ตวันนี้ · เริ่มใหม่ทุก%1$s</string>
     <!-- %1$d = days, %2$s = weekday name -->
+    <plurals name="budgets_resets_in_weekly">
+        <item quantity="other">รีเซ็ตในอีก %1$d วัน · เริ่มใหม่ทุก%2$s</item>
+    </plurals>
     <!-- %1$d = day of month the budget starts on -->
+    <string name="budgets_resets_today_monthly">รีเซ็ตวันนี้ · วันที่ %1$d</string>
     <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="other">รีเซ็ตในอีก %1$d วัน · วันที่ %2$d</item>
+    </plurals>
     <!-- Date range, %1$s = start date, %2$s = end date -->
     <!-- %1$s = date range, %2$d = days -->
+    <plurals name="budgets_runs_days_remaining">
+        <item quantity="other">ช่วง %1$s · เหลือ %2$d วัน</item>
+    </plurals>
+    <string name="budgets_runs_finished">ช่วง %1$s · สิ้นสุดแล้ว</string>
     <plurals name="budgets_days_remaining">
         <item quantity="other">เหลือ %1$d วัน</item>
     </plurals>
     <!-- %1$s = spent amount, %2$s = budget amount -->
+    <string name="budgets_spent_of">ใช้ไป %1$s จาก %2$s</string>
+    <string name="budgets_spent">ใช้ไป %1$s</string>
+    <string name="budgets_amount_of">%1$s จาก %2$s</string>
+    <string name="budgets_tracking_all">ติดตามค่าใช้จ่ายทั้งหมด</string>
+    <string name="budgets_chart_actual">ใช้จริง</string>
+    <string name="budgets_chart_pace">ตามแผนงบ</string>
     <!-- ══ Budget edit screen ══ -->
     <string name="budget_edit_title_edit">แก้งบประมาณ</string>
     <string name="budget_edit_title_new">งบประมาณใหม่</string>
@@ -60,166 +120,34 @@
     <string name="budget_edit_create">สร้างงบประมาณ</string>
     <string name="budget_edit_color">สี</string>
     <string name="budget_edit_period">ระยะเวลากำหนดงบประมาณ</string>
-    <!-- %1$s = weekday name -->
-    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
-    <string name="budget_edit_add_category">เพิ่มหมวดหมู่</string>
-    <!-- %1$s = transaction-type bucket name -->
-    <string name="budget_edit_remove">ลบ</string>
-    <!-- ══ Budget history screen ══ -->
-    <string name="budget_history_title">ประวัติงบประมาณ</string>
-    <string name="budget_history_categories">หมวดหมู่</string>
-    <!-- %1$s = budget amount, %2$d = percent used -->
-    <string name="budget_history_percent_used">%1$d%% ใช้แล้ว</string>
-    <!-- ══ Categories screen ══ -->
-    <string name="categories_title">หมวดหมู่</string>
-    <string name="categories_add">เพิ่มหมวดหมู่</string>
-    <string name="categories_expense_section">หมวดหมู่ค่าใช้จ่าย</string>
-    <string name="categories_income_section">หมวดหมู่รายได้</string>
-    <string name="categories_action_delete">ลบ</string>
-    <string name="categories_action_edit">แก้ไข</string>
-    <string name="categories_action_cancel">ยกเลิก</string>
-    <string name="categories_system_badge">ระบบ</string>
-    <!-- %1$s = category name -->
-    <!-- %1$s = error detail -->
-    <string name="categories_msg_hidden">%1$s ซ่อนอยู่</string>
-    <!-- Category edit dialog -->
-    <string name="category_edit_title_add">เพิ่มหมวดหมู่</string>
-    <string name="category_edit_name_label">ชื่อหมวดหมู่</string>
-    <string name="category_edit_type_expense">ค่าใช้จ่าย</string>
-    <string name="category_edit_type_income">รายได้</string>
-    <string name="category_edit_parent_none">ไม่มี</string>
-    <string name="category_edit_color">สี</string>
-    <string name="category_edit_preview">ตัวอย่างล่วงหน้า</string>
-    <string name="category_edit_add">เพิ่ม</string>
-    <string name="category_edit_save">บันทึก</string>
-    <string name="category_edit_delete">ลบหมวดหมู่</string>
-    <!-- ══ Subscriptions screen ══ -->
-    <string name="subscriptions_title">การสมัครสมาชิก</string>
-    <string name="subscriptions_add">เพิ่มการสมัครสมาชิก</string>
-    <string name="subscriptions_undo">เลิกทำ</string>
-    <!-- %1$s = merchant name -->
-    <string name="subscriptions_snackbar_hidden">%1$s ซ่อนอยู่</string>
-    <string name="subscriptions_empty_headline">ยังไม่พบการสมัครสมาชิก</string>
-    <string name="subscriptions_empty_description">ซิงค์ SMS ของคุณเพื่อตรวจสอบการสมัครสมาชิก</string>
-    <string name="subscriptions_collapse">ย่อ</string>
-    <string name="subscriptions_expand">ขยาย</string>
-    <string name="subscriptions_action_delete">ลบ</string>
-    <string name="subscriptions_action_cancel">ยกเลิก</string>
-    <string name="subscriptions_action_ok">ตกลง</string>
-    <!-- %1$d = paid count, %2$d = active count -->
-    <string name="subscriptions_hide">ซ่อน</string>
-    <string name="subscriptions_sms_available">มี SMS ให้ใช้งาน</string>
-    <string name="subscriptions_due_today">ครบกำหนดวันนี้</string>
-    <string name="subscriptions_due_tomorrow">ครบกำหนดพรุ่งนี้</string>
-    <plurals name="subscriptions_due_in_days">
-        <item quantity="other">ครบกำหนดใน %1$d วัน</item>
-    </plurals>
-    <!-- %1$s = date -->
-    <string name="subscriptions_more_options">ตัวเลือกเพิ่มเติม</string>
-    <string name="subscriptions_menu_edit">แก้ไข</string>
-    <string name="subscriptions_source_notes">บันทึก</string>
-    <string name="subscriptions_source_original_sms">SMS ต้นฉบับ</string>
-    <!-- Edit subscription dialog -->
-    <string name="subscriptions_edit_name">ชื่อ</string>
-    <!-- %1$s = currency code -->
-    <string name="subscriptions_edit_selected">ที่เลือก</string>
-    <string name="subscriptions_edit_save">บันทึก</string>
-    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
-    <!-- ══ Mark-as-paid sheet ══ -->
-    <!-- %1$s = date -->
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = currency code -->
-    <!-- %1$s = relative date, %2$s = bank name -->
-    <string name="mark_paid_today">วันนี้</string>
-    <string name="mark_paid_yesterday">เมื่อวาน</string>
-    <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_chart_line_full">กราฟเส้น</string>
-    <string name="analytics_chart_bar_full">กราฟแท่ง</string>
-    <string name="analytics_refund_note">ยอดรวมหักเงินคืน %1$s แล้ว แถบหมวดหมู่ติดลบไม่ได้ ผลรวมของแถบจึงอาจมากกว่ายอดรวมที่แสดง</string>
-    <string name="analytics_top_tags">แท็กยอดนิยม</string>
-    <string name="analytics_by_account">ตามบัญชี</string>
-    <string name="analytics_by_day_of_week">ตามวันในสัปดาห์</string>
-    <string name="analytics_no_tag">ไม่มีแท็ก</string>
-    <string name="analytics_tag_overlap_note">ธุรกรรมที่มีหลายแท็กจะถูกนับในทุกแท็ก ยอดรวมของแท็กจึงอาจมากกว่ายอดรวมทั้งหมด</string>
-    <string name="analytics_group_by_category">ตามหมวดหมู่</string>
-    <string name="analytics_group_by_merchant">ตามร้านค้า</string>
-    <string name="analytics_group_by_account">ตามบัญชี</string>
-    <string name="analytics_group_by_tag">ตามแท็ก</string>
-    <string name="analytics_group_by_day_of_week">ตามวันในสัปดาห์</string>
-    <string name="analytics_group_by_pro">Pro</string>
-    <string name="analytics_filter_all_categories">ทุกหมวดหมู่</string>
-    <string name="analytics_filter_all_accounts">บัญชีทั้งหมด</string>
-    <plurals name="analytics_transaction_count_subscription">
-        <item quantity="other">%1$d ธุรกรรม • การสมัครสมาชิก</item>
-    </plurals>
-    <string name="analytics_percent">%1$d%%</string>
-    <string name="analytics_empty_headline">ข้อมูลยังไม่พอ</string>
-    <string name="analytics_empty_description">ข้อมูลเชิงลึกการใช้จ่ายของคุณจะแสดงที่นี่หลังจากติดตามครบสัปดาห์แรก</string>
-    <string name="analytics_empty_action">สแกน SMS</string>
-    <string name="analytics_summary_percent_of_total">%1$d%% ของทั้งหมด</string>
-    <string name="analytics_pie_unknown">ไม่ทราบ</string>
-    <string name="analytics_pie_percent">(%1$d%%)</string>
-    <string name="analytics_spending_by_category">การใช้จ่ายตามหมวดหมู่</string>
-    <string name="analytics_spending_by_tag">การใช้จ่ายตามแท็ก</string>
-    <string name="budgets_back">กลับ</string>
-    <string name="budgets_add">เพิ่มงบประมาณ</string>
-    <string name="budgets_setup_title">ตั้งงบประมาณของคุณ</string>
-    <string name="budgets_setup_body">แบ่งการใช้จ่ายเป็นงบประมาณ เพื่อดูว่าเงินของคุณไปอยู่ที่ไหน</string>
-    <string name="budgets_setup_smart_defaults">ใช้ค่าแนะนำอัจฉริยะ</string>
-    <string name="budgets_setup_custom">สร้างงบประมาณเอง</string>
-    <string name="budgets_delete_message">แน่ใจไหมว่าจะลบ \"%1$s\"? ย้อนกลับไม่ได้นะ</string>
-    <string name="budgets_previous_month">เดือนก่อน</string>
-    <string name="budgets_next_month">เดือนถัดไป</string>
-    <string name="budgets_percent">%1$d%%</string>
-    <string name="budgets_edit">แก้ไขงบประมาณ</string>
-    <string name="budgets_view_history">ดูประวัติของรอบนี้</string>
-    <string name="budgets_move_up">เลื่อนขึ้น</string>
-    <string name="budgets_move_down">เลื่อนลง</string>
-    <string name="budgets_over_budget">เกินงบ %1$s</string>
-    <string name="budgets_remaining">เหลือ %1$s</string>
-    <string name="budgets_over_by">เกินไป %1$s</string>
-    <string name="budgets_finished">สิ้นสุดแล้ว</string>
-    <string name="budgets_resets_today_weekly">รีเซ็ตวันนี้ · เริ่มใหม่ทุก%1$s</string>
-    <plurals name="budgets_resets_in_weekly">
-        <item quantity="other">รีเซ็ตในอีก %1$d วัน · เริ่มใหม่ทุก%2$s</item>
-    </plurals>
-    <string name="budgets_resets_today_monthly">รีเซ็ตวันนี้ · วันที่ %1$d</string>
-    <plurals name="budgets_resets_in_monthly">
-        <item quantity="other">รีเซ็ตในอีก %1$d วัน · วันที่ %2$d</item>
-    </plurals>
-    <string name="budgets_date_range">%1$s – %2$s</string>
-    <plurals name="budgets_runs_days_remaining">
-        <item quantity="other">ช่วง %1$s · เหลือ %2$d วัน</item>
-    </plurals>
-    <string name="budgets_runs_finished">ช่วง %1$s · สิ้นสุดแล้ว</string>
-    <string name="budgets_spent_of">ใช้ไป %1$s จาก %2$s</string>
-    <string name="budgets_spent">ใช้ไป %1$s</string>
-    <string name="budgets_amount_of">%1$s จาก %2$s</string>
-    <string name="budgets_tracking_all">ติดตามค่าใช้จ่ายทั้งหมด</string>
-    <string name="budgets_chart_actual">ใช้จริง</string>
-    <string name="budgets_chart_pace">ตามแผนงบ</string>
     <string name="budget_edit_period_weekly">รายสัปดาห์ (เกิดซ้ำ)</string>
     <string name="budget_edit_period_monthly">รายเดือน (เกิดซ้ำ)</string>
     <string name="budget_edit_period_one_time">ครั้งเดียว</string>
     <string name="budget_edit_start_date">วันที่เริ่ม</string>
     <string name="budget_edit_end_date">วันที่สิ้นสุด</string>
+    <!-- %1$s = weekday name -->
     <string name="budget_edit_resets_every">รีเซ็ตทุก%1$s</string>
     <string name="budget_edit_resets_on_day">รีเซ็ตทุกวันที่ %1$d ของเดือน</string>
     <string name="budget_edit_runs_once">ใช้ครั้งเดียว ไม่ยกยอด</string>
     <string name="budget_edit_current_window">รอบปัจจุบัน</string>
-    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">วงเงินตามหมวดหมู่ (ไม่บังคับ)</string>
     <string name="budget_edit_no_categories">ยังไม่ได้เพิ่มหมวดหมู่ งบประมาณนี้จะติดตามค่าใช้จ่ายทั้งหมด</string>
     <string name="budget_edit_unallocated">ยังไม่ได้จัดสรร: %1$s</string>
     <string name="budget_edit_over_allocated">วงเงินหมวดหมู่เกินงบประมาณ %1$s</string>
+    <string name="budget_edit_add_category">เพิ่มหมวดหมู่</string>
+    <!-- %1$s = transaction-type bucket name -->
     <string name="budget_edit_type_bucket_all">%1$s (ทั้งหมด)</string>
     <string name="budget_edit_name_placeholder">ชื่องบประมาณ</string>
     <string name="budget_edit_edit_name">แก้ไขชื่อ</string>
     <string name="budget_edit_spent">ใช้ไป: %1$s</string>
+    <string name="budget_edit_remove">ลบ</string>
     <string name="budget_edit_week_starts_on">สัปดาห์เริ่มวัน</string>
     <string name="budget_edit_month_starts_on">เดือนเริ่มวันที่</string>
     <string name="budget_edit_decrease_day">ลดวัน</string>
     <string name="budget_edit_increase_day">เพิ่มวัน</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">ประวัติงบประมาณ</string>
     <string name="budget_history_loading">กำลังโหลด…</string>
     <string name="budget_history_not_found">ไม่พบงบประมาณ</string>
     <string name="budget_history_window">รอบ: %1$s – %2$s</string>
@@ -229,35 +157,74 @@
     <string name="budget_history_current">ปัจจุบัน</string>
     <string name="budget_history_live">ล่าสุด · ยังนับอยู่</string>
     <string name="budget_history_frozen">ปิดยอด ณ %1$s</string>
+    <string name="budget_history_categories">หมวดหมู่</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
     <string name="budget_history_of_budget_percent">จาก %1$s · %2$d%%</string>
     <string name="budget_history_zero_remaining">เหลือ 0</string>
+    <string name="budget_history_percent_used">%1$d%% ใช้แล้ว</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">หมวดหมู่</string>
     <string name="categories_back">กลับ</string>
+    <string name="categories_add">เพิ่มหมวดหมู่</string>
+    <string name="categories_expense_section">หมวดหมู่ค่าใช้จ่าย</string>
+    <string name="categories_income_section">หมวดหมู่รายได้</string>
+    <string name="categories_action_delete">ลบ</string>
+    <string name="categories_action_edit">แก้ไข</string>
+    <string name="categories_action_cancel">ยกเลิก</string>
     <string name="categories_show_category">แสดงหมวดหมู่</string>
     <string name="categories_hide_category">ซ่อนหมวดหมู่</string>
+    <string name="categories_system_badge">ระบบ</string>
     <string name="categories_msg_system_not_editable">แก้ไขหมวดหมู่ระบบไม่ได้</string>
     <string name="categories_msg_updated">อัปเดตหมวดหมู่แล้ว</string>
+    <!-- %1$s = category name -->
     <string name="categories_msg_already_exists">มีหมวดหมู่ \'%1$s\' อยู่แล้ว</string>
     <string name="categories_msg_created">สร้างหมวดหมู่แล้ว</string>
+    <!-- %1$s = error detail -->
     <string name="categories_msg_save_error">บันทึกหมวดหมู่ไม่สำเร็จ: %1$s</string>
     <string name="categories_msg_system_not_deletable">ลบหมวดหมู่ระบบไม่ได้</string>
     <string name="categories_msg_deleted">ลบหมวดหมู่แล้ว</string>
     <string name="categories_msg_cannot_delete">ลบหมวดหมู่นี้ไม่ได้</string>
     <string name="categories_msg_delete_error">ลบหมวดหมู่ไม่สำเร็จ: %1$s</string>
+    <string name="categories_msg_hidden">%1$s ซ่อนอยู่</string>
     <string name="categories_msg_shown">แสดง %1$s แล้ว</string>
     <string name="categories_msg_update_error">อัปเดตหมวดหมู่ไม่สำเร็จ: %1$s</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">เพิ่มหมวดหมู่</string>
     <string name="category_edit_title_edit">แก้ไขหมวดหมู่</string>
     <string name="category_edit_name_required">ต้องใส่ชื่อหมวดหมู่</string>
+    <string name="category_edit_name_label">ชื่อหมวดหมู่</string>
     <string name="category_edit_type">ประเภทหมวดหมู่</string>
+    <string name="category_edit_type_expense">ค่าใช้จ่าย</string>
+    <string name="category_edit_type_income">รายได้</string>
     <string name="category_edit_parent_label">หมวดหมู่หลัก (ไม่บังคับ)</string>
+    <string name="category_edit_parent_none">ไม่มี</string>
     <string name="category_edit_icon_label">ไอคอน (อีโมจิ ไม่บังคับ)</string>
     <string name="category_edit_icon_placeholder">แตะเพื่อเลือกอีโมจิ</string>
     <string name="category_edit_clear_icon">ล้างไอคอน</string>
+    <string name="category_edit_color">สี</string>
+    <string name="category_edit_preview">ตัวอย่างล่วงหน้า</string>
+    <string name="category_edit_add">เพิ่ม</string>
+    <string name="category_edit_save">บันทึก</string>
+    <string name="category_edit_delete">ลบหมวดหมู่</string>
     <string name="category_edit_delete_title">ลบหมวดหมู่ไหม?</string>
     <string name="category_edit_delete_message">\"%1$s\" จะถูกลบ ธุรกรรมที่มีอยู่จะยังใช้ป้ายกำกับเดิม ย้อนกลับไม่ได้นะ</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">การสมัครสมาชิก</string>
+    <string name="subscriptions_add">เพิ่มการสมัครสมาชิก</string>
+    <string name="subscriptions_undo">เลิกทำ</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s ซ่อนอยู่</string>
     <string name="subscriptions_snackbar_ended">สิ้นสุด %1$s แล้ว</string>
     <string name="subscriptions_active_section">การสมัครสมาชิกที่ใช้งานอยู่</string>
+    <string name="subscriptions_empty_headline">ยังไม่พบการสมัครสมาชิก</string>
+    <string name="subscriptions_empty_description">ซิงค์ SMS ของคุณเพื่อตรวจสอบการสมัครสมาชิก</string>
     <string name="subscriptions_cancelled_section">ยกเลิกแล้ว (%1$d)</string>
+    <string name="subscriptions_collapse">ย่อ</string>
+    <string name="subscriptions_expand">ขยาย</string>
     <string name="subscriptions_reactivate">เปิดใช้อีกครั้ง</string>
+    <string name="subscriptions_action_delete">ลบ</string>
+    <string name="subscriptions_action_cancel">ยกเลิก</string>
+    <string name="subscriptions_action_ok">ตกลง</string>
     <string name="subscriptions_delete_title">ลบการสมัครสมาชิกไหม?</string>
     <string name="subscriptions_delete_permanently_message">ลบ \'%1$s\' ถาวรไหม? ย้อนกลับไม่ได้นะ</string>
     <string name="subscriptions_delete_message">\"%1$s\" จะถูกลบถาวร ย้อนกลับไม่ได้นะ</string>
@@ -269,13 +236,29 @@
     <plurals name="subscriptions_summary_all_paid">
         <item quantity="other">จ่ายครบทั้ง %1$d รายการในรอบนี้</item>
     </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
     <string name="subscriptions_summary_some_paid">จ่ายแล้ว %1$d จาก %2$d รายการในรอบนี้</string>
+    <string name="subscriptions_hide">ซ่อน</string>
+    <string name="subscriptions_sms_available">มี SMS ให้ใช้งาน</string>
     <string name="subscriptions_no_date">ยังไม่ได้ตั้งวันที่</string>
+    <string name="subscriptions_due_today">ครบกำหนดวันนี้</string>
+    <string name="subscriptions_due_tomorrow">ครบกำหนดพรุ่งนี้</string>
+    <plurals name="subscriptions_due_in_days">
+        <item quantity="other">ครบกำหนดใน %1$d วัน</item>
+    </plurals>
+    <!-- %1$s = date -->
     <string name="subscriptions_paid_on">จ่ายแล้ว %1$s</string>
+    <string name="subscriptions_more_options">ตัวเลือกเพิ่มเติม</string>
     <string name="subscriptions_menu_mark_paid">ทำเครื่องหมายว่าจ่ายแล้ว</string>
     <string name="subscriptions_menu_view_source">ดูต้นทาง</string>
+    <string name="subscriptions_menu_edit">แก้ไข</string>
     <string name="subscriptions_menu_end">สิ้นสุดการสมัครสมาชิก</string>
+    <string name="subscriptions_source_notes">บันทึก</string>
+    <string name="subscriptions_source_original_sms">SMS ต้นฉบับ</string>
+    <!-- Edit subscription dialog -->
     <string name="subscriptions_edit_title">แก้ไขการสมัครสมาชิก</string>
+    <string name="subscriptions_edit_name">ชื่อ</string>
+    <!-- %1$s = currency code -->
     <string name="subscriptions_edit_amount">จำนวนเงิน (%1$s)</string>
     <string name="subscriptions_edit_tap_to_set">แตะเพื่อตั้งค่า</string>
     <string name="subscriptions_edit_next_date">วันชำระครั้งถัดไป</string>
@@ -284,6 +267,9 @@
     <string name="subscriptions_edit_no_account">ไม่มีบัญชี</string>
     <string name="subscriptions_edit_paid_from">จ่ายจาก</string>
     <string name="subscriptions_edit_pick_account">เลือกบัญชี</string>
+    <string name="subscriptions_edit_selected">ที่เลือก</string>
+    <string name="subscriptions_edit_save">บันทึก</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">ทำเครื่องหมาย %1$s ว่าจ่ายแล้ว · รอบถัดไป %2$s</string>
     <string name="subscriptions_msg_linked">เชื่อม %1$s แล้ว · รอบถัดไป %2$s</string>
     <string name="subscriptions_msg_already_marked">%1$s ถูกทำเครื่องหมายในรอบนี้แล้ว · เลื่อนไปเป็น %2$s</string>
@@ -291,24 +277,31 @@
     <string name="subscriptions_msg_not_found">ไม่พบการสมัครสมาชิกนั้น</string>
     <string name="subscriptions_msg_linked_existing">เชื่อม %1$s กับรายการชำระที่มีอยู่แล้ว · รอบถัดไป %2$s</string>
     <string name="subscriptions_msg_linked_generic">เชื่อมแล้ว</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">ทำเครื่องหมายว่าจ่ายแล้ว</string>
     <string name="mark_paid_eyebrow_received">ทำเครื่องหมายว่าได้รับแล้ว</string>
+    <!-- %1$s = date -->
     <string name="mark_paid_already_marked">ทำเครื่องหมายว่าจ่ายแล้วเมื่อ %1$s</string>
     <plurals name="mark_paid_found_matches">
         <item quantity="other">พบรายการชำระที่ตรงกัน %1$d รายการ</item>
     </plurals>
     <string name="mark_paid_when">เมื่อไหร่?</string>
+    <!-- %1$s = formatted amount -->
     <string name="mark_paid_cta_paid">จ่ายแล้ว · %1$s</string>
     <string name="mark_paid_cta_received">ได้รับแล้ว · %1$s</string>
+    <!-- %1$s = currency code -->
     <string name="mark_paid_helper_income">เราจะบันทึกรายได้ %1$s และเลื่อนกำหนดการไปรอบถัดไป</string>
     <string name="mark_paid_helper_expense">เราจะบันทึกค่าใช้จ่าย และเลื่อนกำหนดการไปรอบถัดไป</string>
-    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
     <string name="mark_paid_link_payment">เชื่อมรายการชำระนี้</string>
     <string name="mark_paid_or_mark_today">หรือทำเครื่องหมายเป็นวันนี้</string>
+    <string name="mark_paid_today">วันนี้</string>
+    <string name="mark_paid_yesterday">เมื่อวาน</string>
     <plurals name="mark_paid_days_ago">
         <item quantity="other">%1$d วันที่แล้ว</item>
     </plurals>
     <string name="mark_paid_pick_date">เลือกวันที่</string>
+    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_forecast_for">คาดการณ์สำหรับ %1$s</string>
     <string name="analytics_forecast_above_usual">สูงกว่าปกติประมาณ %1$s</string>
     <string name="analytics_forecast_stay_under">ใช้ไม่เกินวันละ %1$s เพื่อให้อยู่ที่ %2$s</string>

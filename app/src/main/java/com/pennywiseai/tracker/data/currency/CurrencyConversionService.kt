@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.ConcurrentHashMap
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -29,9 +30,11 @@ class CurrencyConversionService @Inject constructor(
 ) {
     private val backgroundScope = CoroutineScope(Dispatchers.IO)
 
-    // Cache rates for performance
-    private val rateCache = mutableMapOf<String, BigDecimal>()
-    private var lastCacheUpdate: LocalDateTime = LocalDateTime.MIN
+    // Cache rates for performance. ConcurrentHashMap so concurrent coroutine
+    // readers/writers cannot corrupt the map (AUD-03); lastCacheUpdate is
+    // @Volatile so a stale read only ever causes an extra rate refresh.
+    private val rateCache = ConcurrentHashMap<String, BigDecimal>()
+    @Volatile private var lastCacheUpdate: LocalDateTime = LocalDateTime.MIN
 
     // Serializes network fetches so the cold-start thundering herd (many collectors
     // converting at once) collapses to one API call: the first caller fetches and
@@ -99,7 +102,8 @@ class CurrencyConversionService @Inject constructor(
 
         // Check cache first (unless forced refresh)
         if (!forceRefresh && isCacheValid()) {
-            rateCache[cacheKey]?.let { return it }
+            val cached = rateCache[cacheKey]
+            if (cached != null) return cached
         }
 
         // Check database for fresh rates
@@ -310,7 +314,10 @@ class CurrencyConversionService @Inject constructor(
         val from = fromCurrency.uppercase()
         val to = toCurrency.uppercase()
         val cacheKey = "${from}_${to}"
-        if (isCacheValid()) rateCache[cacheKey]?.let { return it }
+        if (isCacheValid()) {
+            val cached = rateCache[cacheKey]
+            if (cached != null) return cached
+        }
         return exchangeRateDao.getExchangeRate(from, to, LocalDateTime.now())?.rate
     }
 
@@ -322,9 +329,10 @@ class CurrencyConversionService @Inject constructor(
         // ran while we were queued may have already stored this pair, so we skip the
         // network entirely instead of each caller re-fetching the same table.
         return fetchMutex.withLock {
-            lookupFreshRate(fromCurrency, toCurrency)?.let {
-                updateCache("${fromCurrency.uppercase()}_${toCurrency.uppercase()}", it)
-                return@withLock it
+            lookupFreshRate(fromCurrency, toCurrency)?.let { rate ->
+                rateCache["${fromCurrency.uppercase()}_${toCurrency.uppercase()}"] = rate
+                lastCacheUpdate = LocalDateTime.now()
+                return@withLock rate
             }
             fetchAndCacheRateLocked(fromCurrency, toCurrency)
         }
@@ -464,7 +472,10 @@ class CurrencyConversionService @Inject constructor(
     }
 
     /**
-     * Update cache with new rate
+     * Update cache with new rate. rateCache is a ConcurrentHashMap and
+     * lastCacheUpdate is @Volatile, so this is safe from concurrent callers
+     * without taking fetchMutex (which is reserved for fetch serialization;
+     * taking it here would deadlock when called from within fetchAndCacheRate).
      */
     private fun updateCache(key: String, rate: BigDecimal) {
         rateCache[key] = rate
@@ -472,7 +483,9 @@ class CurrencyConversionService @Inject constructor(
     }
 
     /**
-     * Check if cache is still valid (less than 1 hour old)
+     * Check if cache is still valid (less than 1 hour old).
+     * Reads the @Volatile timestamp directly; a stale read only ever causes an
+     * extra rate refresh (AUD-03).
      */
     private fun isCacheValid(): Boolean {
         return lastCacheUpdate.isAfter(LocalDateTime.now().minusHours(1))

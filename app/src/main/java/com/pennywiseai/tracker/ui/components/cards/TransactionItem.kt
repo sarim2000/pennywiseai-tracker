@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.res.Resources
 import androidx.compose.ui.platform.LocalContext
 import com.pennywiseai.tracker.R
@@ -58,9 +60,7 @@ fun TransactionItem(
         }
     }
 
-    val dateTimeFormatter = remember(showDate) {
-        DateTimeFormatter.ofPattern(if (showDate) "d MMM \u00B7 h:mm a" else "h:mm a")
-    }
+    val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
         transaction.dateTime.format(dateTimeFormatter)
     }

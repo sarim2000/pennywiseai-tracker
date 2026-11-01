@@ -35,6 +35,9 @@
     <!-- Transaction detail: errors -->
     <string name="txn_detail_error_add_adjustment">Nelze přidat úpravu: %1$s</string>
     <string name="txn_detail_error_amount_positive_number">Částka musí být kladné číslo</string>
+    <string name="txn_detail_error_category_exists_income">Kategorie s názvem \"%1$s\" už existuje jako příjem</string>
+    <string name="txn_detail_error_category_exists_expense">Kategorie s názvem \"%1$s\" už existuje jako výdaj</string>
+    <string name="txn_detail_error_category_exists_other_parent">Kategorie s názvem \"%1$s\" už existuje pod jinou nadřazenou kategorií</string>
     <string name="txn_detail_error_create_category">Nelze vytvořit kategorii: %1$s</string>
     <string name="txn_detail_error_splits_unavailable">Rozdělené položky jsou k dispozici pouze pro výdaje a nákupy karet</string>
     <string name="txn_detail_error_splits_min">Vyžadují se alespoň 2 štěpky</string>
@@ -43,6 +46,8 @@
     <string name="txn_detail_error_merchant_required">Jméno obchodníka je povinné</string>
     <string name="txn_detail_error_amount_positive">Částka musí být kladná</string>
     <string name="txn_detail_error_same_accounts">Zdrojové a cílové účty se musí lišit</string>
+    <string name="txn_detail_error_loan_type_locked">Tato transakce je součástí půjčky. Než ji přepnete mezi příjmem a výdajem, odeberte ji z půjčky.</string>
+    <string name="txn_detail_error_loan_currency_locked">Tato transakce je součástí půjčky. Než změníte její měnu, odeberte ji z půjčky.</string>
     <string name="txn_detail_error_tag_rule">Uloženo, ale nelze vytvořit pravidlo štítku: %1$s</string>
     <string name="txn_detail_error_save">Nepodařilo se uložit změny: %1$s</string>
     <string name="txn_detail_error_delete">Odstranění transakce se nezdařilo</string>
@@ -111,9 +116,15 @@
     <string name="txn_detail_balance_mismatch_value">Vypnuto %1$s · očekáváno %2$s</string>
     <string name="txn_detail_add_untracked_expense">Přidat %1$s bez sledování výdajů</string>
     <string name="txn_detail_add_untracked_income">Přidat %1$s nesledovaný příjem</string>
+    <string name="txn_detail_adjustment_title_expense">Nezaznamenaný výdaj</string>
+    <string name="txn_detail_adjustment_title_income">Nezaznamenaný příjem</string>
+    <string name="txn_detail_adjustment_what">Co to bylo?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Úprava zůstatku</string>
+    <string name="txn_detail_adjustment_add">Přidat</string>
     <string name="txn_detail_label_reference">Referenční číslo</string>
     <string name="txn_detail_receipt">Účtenka</string>
     <string name="txn_detail_receipt_tap_to_view">Klepnutím zobrazíte</string>
+    <string name="txn_detail_receipt_missing">Fotka účtenky není v této záloze</string>
     <string name="txn_detail_sms_hide">Skrýt SMS</string>
     <string name="txn_detail_sms_show">Zobrazit původní SMS</string>
     <string name="txn_detail_field_amount">Částka</string>
@@ -121,6 +132,7 @@
     <string name="txn_detail_field_alias">Zobrazit alias (volitelné)</string>
     <string name="txn_detail_field_alias_placeholder">Zobrazit místo toho jméno přítele</string>
     <string name="txn_detail_field_description">Popis (nepovinné)</string>
+    <string name="txn_detail_field_reference">Referenční číslo (nepovinné)</string>
     <string name="txn_detail_apply_tags_to_merchant">Použít štítky na celou budoucnost od %1$s</string>
     <string name="txn_detail_field_from_account">Z účtu</string>
     <string name="txn_detail_field_from_account_placeholder">Vyberte nebo zadejte zdrojový účet</string>
@@ -171,6 +183,8 @@
     <string name="txn_totals_expense">Výdaje</string>
     <string name="txn_totals_expenses">Výdaje</string>
     <string name="txn_totals_credit">Kredit</string>
+    <string name="txn_totals_transfer">Převod</string>
+    <string name="txn_totals_invest">Investice</string>
     <string name="txn_totals_net">Čistá hodnota</string>
     <string name="txn_totals_select_currency">Vyberte měnu</string>
     <!-- Transactions list -->
@@ -259,6 +273,7 @@
     <string name="add_field_amount">Částka *</string>
     <string name="add_field_merchant">Obchodník</string>
     <string name="add_field_notes">Poznámky (nepovinné)</string>
+    <string name="add_field_reference">Referenční číslo (nepovinné)</string>
     <string name="add_field_category">Kategorie</string>
     <string name="add_clear">Vyčistit</string>
     <string name="add_selected">Vybrané</string>
@@ -330,6 +345,7 @@
     <string name="group_detail_transactions">Časová osa</string>
     <string name="group_detail_expenses">Výdaje</string>
     <string name="group_detail_income">Výnosy</string>
+    <string name="group_detail_invested">Investováno</string>
     <string name="group_detail_empty_title">Zatím žádné transakce</string>
     <string name="group_detail_empty_hint">Klepněte na + pro přidání transakcí do této skupiny</string>
     <string name="group_detail_delete_title">Odstranit skupinu</string>
@@ -407,8 +423,13 @@
     <!-- Shared transaction components -->
     <string name="quick_category_title">Změnit kategorii</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <string name="quick_add_title">Platba hotově</string>
+    <string name="quick_add_more_details">Další podrobnosti</string>
+    <string name="quick_add_where_hint">Kde? (nepovinné)</string>
     <!-- %1$s the cash account the spend comes out of -->
+    <string name="quick_add_from">Z: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
+    <string name="quick_add_saved">Uloženo %1$s · %2$s</string>
     <string name="date_range_title">Vybrat rozsah data</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Zrušit</string>
@@ -435,25 +456,4 @@
     <string name="tag_input_remove">Odstranit %1$s</string>
     <string name="tag_input_add">Přidat štítek</string>
     <string name="tag_input_create">Vytvořit \"%1$s\"</string>
-    <string name="txn_detail_error_category_exists_income">Kategorie s názvem \"%1$s\" už existuje jako příjem</string>
-    <string name="txn_detail_error_category_exists_expense">Kategorie s názvem \"%1$s\" už existuje jako výdaj</string>
-    <string name="txn_detail_error_category_exists_other_parent">Kategorie s názvem \"%1$s\" už existuje pod jinou nadřazenou kategorií</string>
-    <string name="txn_detail_error_loan_type_locked">Tato transakce je součástí půjčky. Než ji přepnete mezi příjmem a výdajem, odeberte ji z půjčky.</string>
-    <string name="txn_detail_error_loan_currency_locked">Tato transakce je součástí půjčky. Než změníte její měnu, odeberte ji z půjčky.</string>
-    <string name="txn_detail_adjustment_title_expense">Nezaznamenaný výdaj</string>
-    <string name="txn_detail_adjustment_title_income">Nezaznamenaný příjem</string>
-    <string name="txn_detail_adjustment_what">Co to bylo?</string>
-    <string name="txn_detail_adjustment_what_placeholder">Úprava zůstatku</string>
-    <string name="txn_detail_adjustment_add">Přidat</string>
-    <string name="txn_detail_receipt_missing">Fotka účtenky není v této záloze</string>
-    <string name="txn_detail_field_reference">Referenční číslo (nepovinné)</string>
-    <string name="txn_totals_transfer">Převod</string>
-    <string name="txn_totals_invest">Investice</string>
-    <string name="add_field_reference">Referenční číslo (nepovinné)</string>
-    <string name="group_detail_invested">Investováno</string>
-    <string name="quick_add_title">Platba hotově</string>
-    <string name="quick_add_more_details">Další podrobnosti</string>
-    <string name="quick_add_where_hint">Kde? (nepovinné)</string>
-    <string name="quick_add_from">Z: %1$s</string>
-    <string name="quick_add_saved">Uloženo %1$s · %2$s</string>
 </resources>

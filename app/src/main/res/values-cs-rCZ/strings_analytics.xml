@@ -15,7 +15,15 @@
     <string name="analytics_top_tags">Top štítky</string>
     <string name="analytics_top_merchants">Top obchodníci</string>
     <string name="analytics_by_account">Podle účtu</string>
+    <string name="analytics_by_day_of_week">Podle dne v týdnu</string>
+    <string name="analytics_no_tag">Bez štítku</string>
+    <string name="analytics_tag_overlap_note">Transakce s více štítky se započítá pod každý z nich, takže součty štítků mohou přesáhnout celkovou částku.</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">Podle kategorie</string>
+    <string name="analytics_group_by_merchant">Podle obchodníka</string>
+    <string name="analytics_group_by_account">Podle účtu</string>
+    <string name="analytics_group_by_tag">Podle štítku</string>
+    <string name="analytics_group_by_day_of_week">Podle dne v týdnu</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Vyčistit</string>
@@ -336,15 +344,6 @@
     </plurals>
     <string name="mark_paid_pick_date">Vybrat datum</string>
     <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_by_day_of_week">Podle dne v týdnu</string>
-    <string name="analytics_no_tag">Bez štítku</string>
-    <string name="analytics_tag_overlap_note">Transakce s více štítky se započítá pod každý z nich, takže součty štítků mohou přesáhnout celkovou částku.</string>
-    <string name="analytics_group_by_category">Podle kategorie</string>
-    <string name="analytics_group_by_merchant">Podle obchodníka</string>
-    <string name="analytics_group_by_account">Podle účtu</string>
-    <string name="analytics_group_by_tag">Podle štítku</string>
-    <string name="analytics_group_by_day_of_week">Podle dne v týdnu</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_forecast_for">Odhad na %1$s</string>
     <string name="analytics_forecast_above_usual">Asi o %1$s víc než obvykle</string>
     <string name="analytics_forecast_stay_under">Utrácejte méně než %1$s denně, abyste zůstali na %2$s.</string>

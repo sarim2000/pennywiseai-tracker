@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -365,7 +367,7 @@ fun TransactionTabContent(
                                 color = MaterialTheme.colorScheme.primary
                             )
                             Text(
-                                text = uiState.date.format(DateTimeFormatter.ofPattern("dd MMMM")),
+                                text = uiState.date.format(AppDates.pattern("dd MMMM")),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,

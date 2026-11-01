@@ -6,135 +6,34 @@
     <string name="analytics_chart_line">लाइन</string>
     <string name="analytics_chart_bar">बार</string>
     <string name="analytics_chart_heatmap">हीटमैप</string>
+    <string name="analytics_chart_line_full">लाइन चार्ट</string>
+    <string name="analytics_chart_bar_full">बार चार्ट</string>
     <string name="analytics_top_categories">शीर्ष श्रेणियाँ</string>
     <string name="analytics_toggle_view">दृश्य बदलें</string>
     <!-- %1$s = formatted refund amount -->
+    <string name="analytics_refund_note">कुल राशि में से %1$s के रिफ़ंड घटा दिए गए हैं। श्रेणी के बार शून्य से नीचे नहीं जा सकते, इसलिए उनका जोड़ दिखाए गए कुल से ज़्यादा हो सकता है।</string>
+    <string name="analytics_top_tags">टॉप टैग</string>
     <string name="analytics_top_merchants">शीर्ष व्यापारी</string>
+    <string name="analytics_by_account">खाते के हिसाब से</string>
+    <string name="analytics_by_day_of_week">हफ़्ते के दिन के हिसाब से</string>
+    <string name="analytics_no_tag">कोई टैग नहीं</string>
+    <string name="analytics_tag_overlap_note">कई टैग वाला लेन-देन हर टैग में गिना जाता है, इसलिए टैग का जोड़ कुल से ज़्यादा हो सकता है।</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">श्रेणी के हिसाब से</string>
+    <string name="analytics_group_by_merchant">व्यापारी के हिसाब से</string>
+    <string name="analytics_group_by_account">खाते के हिसाब से</string>
+    <string name="analytics_group_by_tag">टैग के हिसाब से</string>
+    <string name="analytics_group_by_day_of_week">हफ़्ते के दिन के हिसाब से</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">साफ करें</string>
     <string name="analytics_filter_all_profiles">सभी खाते</string>
     <string name="analytics_filter_currency">मुद्रा</string>
     <string name="analytics_filter_category">श्रेणी</string>
-    <string name="analytics_filter_account">खाता</string>
-    <!-- List rows -->
-    <!-- Whole-number percentage, e.g. "42%" -->
-    <!-- Empty state -->
-    <!-- Summary card -->
-    <string name="analytics_summary_total">कुल</string>
-    <string name="analytics_summary_average">औसत</string>
-    <string name="analytics_summary_per_day">" /दिन"</string>
-    <!-- Pie charts -->
-    <!-- Breakdown cards -->
-    <!-- ══ Budgets screen ══ -->
-    <string name="budgets_title">बजट</string>
-    <string name="budgets_action_cancel">रद्द करें</string>
-    <string name="budgets_action_delete">हटाएं</string>
-    <string name="budgets_action_ok">ठीक है</string>
-    <!-- %1$s = budget name -->
-    <string name="budgets_delete">बजट हटाएँ</string>
-    <string name="budgets_more_options">अधिक विकल्प</string>
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = weekday name -->
-    <!-- %1$d = days, %2$s = weekday name -->
-    <!-- %1$d = day of month the budget starts on -->
-    <!-- %1$d = days, %2$d = day of month -->
-    <!-- Date range, %1$s = start date, %2$s = end date -->
-    <!-- %1$s = date range, %2$d = days -->
-    <!-- %1$s = spent amount, %2$s = budget amount -->
-    <!-- ══ Budget edit screen ══ -->
-    <string name="budget_edit_title_edit">बजट संपादित करें</string>
-    <string name="budget_edit_title_new">नई बजट</string>
-    <string name="budget_edit_save">परिवर्तनों को सहेजें</string>
-    <string name="budget_edit_create">बजट बनाएं</string>
-    <string name="budget_edit_color">रंग</string>
-    <string name="budget_edit_period">बजट अवधि</string>
-    <!-- %1$s = weekday name -->
-    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
-    <string name="budget_edit_add_category">श्रेणी जोड़ें</string>
-    <!-- %1$s = transaction-type bucket name -->
-    <string name="budget_edit_remove">हटाएँ</string>
-    <!-- ══ Budget history screen ══ -->
-    <string name="budget_history_title">बजट इतिहास</string>
-    <string name="budget_history_categories">श्रेणियाँ</string>
-    <!-- %1$s = budget amount, %2$d = percent used -->
-    <!-- ══ Categories screen ══ -->
-    <string name="categories_title">श्रेणियाँ</string>
-    <string name="categories_add">श्रेणी जोड़ें</string>
-    <string name="categories_expense_section">व्यय श्रेणियाँ</string>
-    <string name="categories_income_section">आय श्रेणियाँ</string>
-    <string name="categories_action_delete">हटाएं</string>
-    <string name="categories_action_edit">संपादित करें</string>
-    <string name="categories_action_cancel">रद्द करें</string>
-    <string name="categories_system_badge">सिस्टम</string>
-    <!-- %1$s = category name -->
-    <!-- %1$s = error detail -->
-    <string name="categories_msg_hidden">%1$s छिपाई गई</string>
-    <!-- Category edit dialog -->
-    <string name="category_edit_title_add">श्रेणी जोड़ें</string>
-    <string name="category_edit_name_label">श्रेणी का नाम</string>
-    <string name="category_edit_type_expense">व्यय</string>
-    <string name="category_edit_type_income">आय</string>
-    <string name="category_edit_parent_none">कोई नहीं</string>
-    <string name="category_edit_color">रंग</string>
-    <string name="category_edit_preview">पूर्वावलोकन</string>
-    <string name="category_edit_add">जोड़ें</string>
-    <string name="category_edit_save">सहेजें</string>
-    <string name="category_edit_delete">श्रेणी हटाएँ</string>
-    <!-- ══ Subscriptions screen ══ -->
-    <string name="subscriptions_title">सदस्यताएँ</string>
-    <string name="subscriptions_add">सदस्यता जोड़ें</string>
-    <string name="subscriptions_undo">पूर्ववत करें</string>
-    <!-- %1$s = merchant name -->
-    <string name="subscriptions_snackbar_hidden">%1$s छिपाई गई</string>
-    <string name="subscriptions_empty_headline">अभी तक कोई सदस्यता नहीं मिली</string>
-    <string name="subscriptions_empty_description">सदस्यताएँ पता करने के लिए अपने एसएमएस को सिंक करें</string>
-    <string name="subscriptions_collapse">संकुचित करें</string>
-    <string name="subscriptions_expand">विस्तार करें</string>
-    <string name="subscriptions_action_delete">हटाएं</string>
-    <string name="subscriptions_action_cancel">रद्द करें</string>
-    <string name="subscriptions_action_ok">ठीक है</string>
-    <!-- %1$d = paid count, %2$d = active count -->
-    <string name="subscriptions_hide">छिपाएँ</string>
-    <string name="subscriptions_sms_available">एसएमएस उपलब्ध</string>
-    <string name="subscriptions_due_today">आज देय</string>
-    <string name="subscriptions_due_tomorrow">कल देय</string>
-    <!-- %1$s = date -->
-    <string name="subscriptions_more_options">अधिक विकल्प</string>
-    <string name="subscriptions_menu_edit">संपादित करें</string>
-    <string name="subscriptions_source_notes">नोट्स</string>
-    <string name="subscriptions_source_original_sms">मूल एसएमएस</string>
-    <!-- Edit subscription dialog -->
-    <string name="subscriptions_edit_name">नाम</string>
-    <!-- %1$s = currency code -->
-    <string name="subscriptions_edit_selected">चयनित</string>
-    <string name="subscriptions_edit_save">सहेजें</string>
-    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
-    <!-- ══ Mark-as-paid sheet ══ -->
-    <!-- %1$s = date -->
-    <!-- %1$s = formatted amount -->
-    <!-- %1$s = currency code -->
-    <!-- %1$s = relative date, %2$s = bank name -->
-    <string name="mark_paid_today">आज</string>
-    <string name="mark_paid_yesterday">कल</string>
-    <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_chart_line_full">लाइन चार्ट</string>
-    <string name="analytics_chart_bar_full">बार चार्ट</string>
-    <string name="analytics_refund_note">कुल राशि में से %1$s के रिफ़ंड घटा दिए गए हैं। श्रेणी के बार शून्य से नीचे नहीं जा सकते, इसलिए उनका जोड़ दिखाए गए कुल से ज़्यादा हो सकता है।</string>
-    <string name="analytics_top_tags">टॉप टैग</string>
-    <string name="analytics_by_account">खाते के हिसाब से</string>
-    <string name="analytics_by_day_of_week">हफ़्ते के दिन के हिसाब से</string>
-    <string name="analytics_no_tag">कोई टैग नहीं</string>
-    <string name="analytics_tag_overlap_note">कई टैग वाला लेन-देन हर टैग में गिना जाता है, इसलिए टैग का जोड़ कुल से ज़्यादा हो सकता है।</string>
-    <string name="analytics_group_by_category">श्रेणी के हिसाब से</string>
-    <string name="analytics_group_by_merchant">व्यापारी के हिसाब से</string>
-    <string name="analytics_group_by_account">खाते के हिसाब से</string>
-    <string name="analytics_group_by_tag">टैग के हिसाब से</string>
-    <string name="analytics_group_by_day_of_week">हफ़्ते के दिन के हिसाब से</string>
-    <string name="analytics_group_by_pro">Pro</string>
     <string name="analytics_filter_all_categories">सभी श्रेणियाँ</string>
+    <string name="analytics_filter_account">खाता</string>
     <string name="analytics_filter_all_accounts">सभी खाते</string>
+    <!-- List rows -->
     <plurals name="analytics_transaction_count">
         <item quantity="one">%1$d लेन-देन</item>
         <item quantity="other">%1$d लेन-देन</item>
@@ -143,49 +42,68 @@
         <item quantity="one">%1$d लेन-देन • सदस्यता</item>
         <item quantity="other">%1$d लेन-देन • सदस्यता</item>
     </plurals>
-    <string name="analytics_percent">%1$d%%</string>
+    <!-- Whole-number percentage, e.g. "42%" -->
+    <!-- Empty state -->
     <string name="analytics_empty_headline">अभी पर्याप्त डेटा नहीं है</string>
     <string name="analytics_empty_description">ट्रैकिंग के पहले हफ़्ते के बाद आपके खर्च की जानकारी यहाँ दिखेगी</string>
     <string name="analytics_empty_action">SMS स्कैन करें</string>
+    <!-- Summary card -->
+    <string name="analytics_summary_total">कुल</string>
     <plurals name="analytics_summary_txns">
         <item quantity="one">%1$d लेन-देन</item>
         <item quantity="other">%1$d लेन-देन</item>
     </plurals>
+    <string name="analytics_summary_average">औसत</string>
+    <string name="analytics_summary_per_day">" /दिन"</string>
     <string name="analytics_summary_percent_of_total">कुल का %1$d%%</string>
+    <!-- Pie charts -->
     <string name="analytics_pie_unknown">अज्ञात</string>
-    <string name="analytics_pie_percent">(%1$d%%)</string>
+    <!-- Breakdown cards -->
     <string name="analytics_spending_by_category">श्रेणी के हिसाब से खर्च</string>
     <string name="analytics_spending_by_tag">टैग के हिसाब से खर्च</string>
+    <!-- ══ Budgets screen ══ -->
+    <string name="budgets_title">बजट</string>
     <string name="budgets_back">वापस</string>
     <string name="budgets_add">बजट जोड़ें</string>
+    <string name="budgets_action_cancel">रद्द करें</string>
+    <string name="budgets_action_delete">हटाएं</string>
+    <string name="budgets_action_ok">ठीक है</string>
     <string name="budgets_setup_title">अपना बजट सेट करें</string>
     <string name="budgets_setup_body">अपने खर्च को बजट में बाँटें, ताकि पता रहे कि पैसा कहाँ जा रहा है।</string>
     <string name="budgets_setup_smart_defaults">स्मार्ट डिफ़ॉल्ट इस्तेमाल करें</string>
     <string name="budgets_setup_custom">कस्टम बजट बनाएं</string>
     <string name="budgets_delete_title">बजट हटाएं</string>
+    <!-- %1$s = budget name -->
     <string name="budgets_delete_message">क्या आप वाकई \"%1$s\" हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।</string>
     <string name="budgets_previous_month">पिछला महीना</string>
     <string name="budgets_next_month">अगला महीना</string>
-    <string name="budgets_percent">%1$d%%</string>
     <string name="budgets_edit">बजट संपादित करें</string>
+    <string name="budgets_delete">बजट हटाएँ</string>
+    <string name="budgets_more_options">अधिक विकल्प</string>
     <string name="budgets_view_history">इस अवधि का इतिहास देखें</string>
     <string name="budgets_move_up">ऊपर ले जाएँ</string>
     <string name="budgets_move_down">नीचे ले जाएँ</string>
+    <!-- %1$s = formatted amount -->
     <string name="budgets_over_budget">बजट से %1$s ज़्यादा</string>
     <string name="budgets_remaining">%1$s बाकी</string>
     <string name="budgets_over_by">%1$s ज़्यादा</string>
     <string name="budgets_finished">खत्म</string>
+    <!-- %1$s = weekday name -->
     <string name="budgets_resets_today_weekly">आज रीसेट · हर %1$s नया</string>
+    <!-- %1$d = days, %2$s = weekday name -->
     <plurals name="budgets_resets_in_weekly">
         <item quantity="one">%1$d दिन में रीसेट · हर %2$s नया</item>
         <item quantity="other">%1$d दिन में रीसेट · हर %2$s नया</item>
     </plurals>
+    <!-- %1$d = day of month the budget starts on -->
     <string name="budgets_resets_today_monthly">आज रीसेट · %1$d तारीख</string>
+    <!-- %1$d = days, %2$d = day of month -->
     <plurals name="budgets_resets_in_monthly">
         <item quantity="one">%1$d दिन में रीसेट · %2$d तारीख</item>
         <item quantity="other">%1$d दिन में रीसेट · %2$d तारीख</item>
     </plurals>
-    <string name="budgets_date_range">%1$s – %2$s</string>
+    <!-- Date range, %1$s = start date, %2$s = end date -->
+    <!-- %1$s = date range, %2$d = days -->
     <plurals name="budgets_runs_days_remaining">
         <item quantity="one">%1$s · %2$d दिन बाकी</item>
         <item quantity="other">%1$s · %2$d दिन बाकी</item>
@@ -195,34 +113,48 @@
         <item quantity="one">%1$d दिन बाकी</item>
         <item quantity="other">%1$d दिन बाकी</item>
     </plurals>
+    <!-- %1$s = spent amount, %2$s = budget amount -->
     <string name="budgets_spent_of">%2$s में से %1$s खर्च</string>
     <string name="budgets_spent">%1$s खर्च</string>
     <string name="budgets_amount_of">%2$s में से %1$s</string>
     <string name="budgets_tracking_all">सभी खर्च ट्रैक हो रहे हैं</string>
     <string name="budgets_chart_actual">असल</string>
     <string name="budgets_chart_pace">बजट की रफ़्तार</string>
+    <!-- ══ Budget edit screen ══ -->
+    <string name="budget_edit_title_edit">बजट संपादित करें</string>
+    <string name="budget_edit_title_new">नई बजट</string>
+    <string name="budget_edit_save">परिवर्तनों को सहेजें</string>
+    <string name="budget_edit_create">बजट बनाएं</string>
+    <string name="budget_edit_color">रंग</string>
+    <string name="budget_edit_period">बजट अवधि</string>
     <string name="budget_edit_period_weekly">साप्ताहिक (हर हफ़्ते)</string>
     <string name="budget_edit_period_monthly">मासिक (हर महीने)</string>
     <string name="budget_edit_period_one_time">एक बार</string>
     <string name="budget_edit_start_date">शुरू की तारीख</string>
     <string name="budget_edit_end_date">आखिरी तारीख</string>
+    <!-- %1$s = weekday name -->
     <string name="budget_edit_resets_every">हर %1$s रीसेट होता है</string>
     <string name="budget_edit_resets_on_day">हर महीने की %1$d तारीख को रीसेट होता है</string>
     <string name="budget_edit_runs_once">एक बार चलता है, बचा पैसा आगे नहीं जाता</string>
     <string name="budget_edit_current_window">मौजूदा अवधि</string>
-    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">श्रेणी की सीमाएँ (वैकल्पिक)</string>
     <string name="budget_edit_no_categories">कोई श्रेणी नहीं जोड़ी गई। यह बजट सभी खर्च ट्रैक करेगा।</string>
     <string name="budget_edit_unallocated">बिना बँटा: %1$s</string>
     <string name="budget_edit_over_allocated">श्रेणी की सीमाएँ बजट से %1$s ज़्यादा हैं</string>
+    <string name="budget_edit_add_category">श्रेणी जोड़ें</string>
+    <!-- %1$s = transaction-type bucket name -->
     <string name="budget_edit_type_bucket_all">%1$s (सभी)</string>
     <string name="budget_edit_name_placeholder">बजट का नाम</string>
     <string name="budget_edit_edit_name">नाम बदलें</string>
     <string name="budget_edit_spent">खर्च: %1$s</string>
+    <string name="budget_edit_remove">हटाएँ</string>
     <string name="budget_edit_week_starts_on">हफ़्ता शुरू होता है</string>
     <string name="budget_edit_month_starts_on">महीना इस तारीख से शुरू</string>
     <string name="budget_edit_decrease_day">दिन घटाएँ</string>
     <string name="budget_edit_increase_day">दिन बढ़ाएँ</string>
+    <!-- ══ Budget history screen ══ -->
+    <string name="budget_history_title">बजट इतिहास</string>
     <string name="budget_history_loading">लोड हो रहा है…</string>
     <string name="budget_history_not_found">बजट नहीं मिला</string>
     <string name="budget_history_window">अवधि: %1$s – %2$s</string>
@@ -232,36 +164,74 @@
     <string name="budget_history_current">मौजूदा</string>
     <string name="budget_history_live">लाइव · अभी जुड़ रहा है</string>
     <string name="budget_history_frozen">%1$s तक की स्थिति</string>
+    <string name="budget_history_categories">श्रेणियाँ</string>
+    <!-- %1$s = budget amount, %2$d = percent used -->
     <string name="budget_history_of_budget_percent">%1$s में से · %2$d%%</string>
     <string name="budget_history_zero_remaining">0 बाकी</string>
     <string name="budget_history_percent_used">%1$d%% इस्तेमाल</string>
+    <!-- ══ Categories screen ══ -->
+    <string name="categories_title">श्रेणियाँ</string>
     <string name="categories_back">वापस</string>
+    <string name="categories_add">श्रेणी जोड़ें</string>
+    <string name="categories_expense_section">व्यय श्रेणियाँ</string>
+    <string name="categories_income_section">आय श्रेणियाँ</string>
+    <string name="categories_action_delete">हटाएं</string>
+    <string name="categories_action_edit">संपादित करें</string>
+    <string name="categories_action_cancel">रद्द करें</string>
     <string name="categories_show_category">श्रेणी दिखाएँ</string>
     <string name="categories_hide_category">श्रेणी छिपाएँ</string>
+    <string name="categories_system_badge">सिस्टम</string>
     <string name="categories_msg_system_not_editable">सिस्टम श्रेणियाँ संपादित नहीं की जा सकतीं</string>
     <string name="categories_msg_updated">श्रेणी अपडेट हो गई</string>
+    <!-- %1$s = category name -->
     <string name="categories_msg_already_exists">श्रेणी \'%1$s\' पहले से मौजूद है</string>
     <string name="categories_msg_created">श्रेणी बन गई</string>
+    <!-- %1$s = error detail -->
     <string name="categories_msg_save_error">श्रेणी सहेजने में गड़बड़ी: %1$s</string>
     <string name="categories_msg_system_not_deletable">सिस्टम श्रेणियाँ हटाई नहीं जा सकतीं</string>
     <string name="categories_msg_deleted">श्रेणी हटा दी गई</string>
     <string name="categories_msg_cannot_delete">यह श्रेणी हटाई नहीं जा सकती</string>
     <string name="categories_msg_delete_error">श्रेणी हटाने में गड़बड़ी: %1$s</string>
+    <string name="categories_msg_hidden">%1$s छिपाई गई</string>
     <string name="categories_msg_shown">%1$s दिखाई गई</string>
     <string name="categories_msg_update_error">श्रेणी अपडेट करने में गड़बड़ी: %1$s</string>
+    <!-- Category edit dialog -->
+    <string name="category_edit_title_add">श्रेणी जोड़ें</string>
     <string name="category_edit_title_edit">श्रेणी संपादित करें</string>
     <string name="category_edit_name_required">श्रेणी का नाम ज़रूरी है</string>
+    <string name="category_edit_name_label">श्रेणी का नाम</string>
     <string name="category_edit_type">श्रेणी का प्रकार</string>
+    <string name="category_edit_type_expense">व्यय</string>
+    <string name="category_edit_type_income">आय</string>
     <string name="category_edit_parent_label">मुख्य श्रेणी (वैकल्पिक)</string>
+    <string name="category_edit_parent_none">कोई नहीं</string>
     <string name="category_edit_icon_label">आइकन (इमोजी, वैकल्पिक)</string>
     <string name="category_edit_icon_placeholder">इमोजी चुनने के लिए टैप करें</string>
     <string name="category_edit_clear_icon">आइकन हटाएं</string>
+    <string name="category_edit_color">रंग</string>
+    <string name="category_edit_preview">पूर्वावलोकन</string>
+    <string name="category_edit_add">जोड़ें</string>
+    <string name="category_edit_save">सहेजें</string>
+    <string name="category_edit_delete">श्रेणी हटाएँ</string>
     <string name="category_edit_delete_title">श्रेणी हटाएं?</string>
     <string name="category_edit_delete_message">\"%1$s\" हटा दी जाएगी। मौजूदा लेन-देन पर उनका अभी का लेबल बना रहेगा। इसे पूर्ववत नहीं किया जा सकता।</string>
+    <!-- ══ Subscriptions screen ══ -->
+    <string name="subscriptions_title">सदस्यताएँ</string>
+    <string name="subscriptions_add">सदस्यता जोड़ें</string>
+    <string name="subscriptions_undo">पूर्ववत करें</string>
+    <!-- %1$s = merchant name -->
+    <string name="subscriptions_snackbar_hidden">%1$s छिपाई गई</string>
     <string name="subscriptions_snackbar_ended">%1$s खत्म की गई</string>
     <string name="subscriptions_active_section">एक्टिव सदस्यताएँ</string>
+    <string name="subscriptions_empty_headline">अभी तक कोई सदस्यता नहीं मिली</string>
+    <string name="subscriptions_empty_description">सदस्यताएँ पता करने के लिए अपने एसएमएस को सिंक करें</string>
     <string name="subscriptions_cancelled_section">रद्द की गईं (%1$d)</string>
+    <string name="subscriptions_collapse">संकुचित करें</string>
+    <string name="subscriptions_expand">विस्तार करें</string>
     <string name="subscriptions_reactivate">फिर से चालू करें</string>
+    <string name="subscriptions_action_delete">हटाएं</string>
+    <string name="subscriptions_action_cancel">रद्द करें</string>
+    <string name="subscriptions_action_ok">ठीक है</string>
     <string name="subscriptions_delete_title">सदस्यता हटाएं?</string>
     <string name="subscriptions_delete_permanently_message">\'%1$s\' को हमेशा के लिए हटाएं? इसे पूर्ववत नहीं किया जा सकता।</string>
     <string name="subscriptions_delete_message">\"%1$s\" हमेशा के लिए हटा दी जाएगी। इसे पूर्ववत नहीं किया जा सकता।</string>
@@ -275,17 +245,30 @@
         <item quantity="one">इस साइकिल में सभी %1$d का भुगतान हो गया</item>
         <item quantity="other">इस साइकिल में सभी %1$d का भुगतान हो गया</item>
     </plurals>
+    <!-- %1$d = paid count, %2$d = active count -->
     <string name="subscriptions_summary_some_paid">इस साइकिल में %2$d में से %1$d का भुगतान हुआ</string>
+    <string name="subscriptions_hide">छिपाएँ</string>
+    <string name="subscriptions_sms_available">एसएमएस उपलब्ध</string>
     <string name="subscriptions_no_date">कोई तारीख सेट नहीं</string>
+    <string name="subscriptions_due_today">आज देय</string>
+    <string name="subscriptions_due_tomorrow">कल देय</string>
     <plurals name="subscriptions_due_in_days">
         <item quantity="one">%1$d दिन में देय</item>
         <item quantity="other">%1$d दिन में देय</item>
     </plurals>
+    <!-- %1$s = date -->
     <string name="subscriptions_paid_on">%1$s को भुगतान हुआ</string>
+    <string name="subscriptions_more_options">अधिक विकल्प</string>
     <string name="subscriptions_menu_mark_paid">भुगतान हुआ मार्क करें</string>
     <string name="subscriptions_menu_view_source">स्रोत देखें</string>
+    <string name="subscriptions_menu_edit">संपादित करें</string>
     <string name="subscriptions_menu_end">सदस्यता खत्म करें</string>
+    <string name="subscriptions_source_notes">नोट्स</string>
+    <string name="subscriptions_source_original_sms">मूल एसएमएस</string>
+    <!-- Edit subscription dialog -->
     <string name="subscriptions_edit_title">सदस्यता संपादित करें</string>
+    <string name="subscriptions_edit_name">नाम</string>
+    <!-- %1$s = currency code -->
     <string name="subscriptions_edit_amount">राशि (%1$s)</string>
     <string name="subscriptions_edit_tap_to_set">सेट करने के लिए टैप करें</string>
     <string name="subscriptions_edit_next_date">अगले भुगतान की तारीख</string>
@@ -294,6 +277,9 @@
     <string name="subscriptions_edit_no_account">कोई खाता नहीं</string>
     <string name="subscriptions_edit_paid_from">किस खाते से भुगतान</string>
     <string name="subscriptions_edit_pick_account">खाता चुनें</string>
+    <string name="subscriptions_edit_selected">चयनित</string>
+    <string name="subscriptions_edit_save">सहेजें</string>
+    <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">%1$s भुगतान हुआ मार्क किया · अगली साइकिल %2$s को</string>
     <string name="subscriptions_msg_linked">%1$s लिंक हो गया · अगली साइकिल %2$s को</string>
     <string name="subscriptions_msg_already_marked">%1$s इस साइकिल में पहले ही मार्क है · %2$s पर आगे बढ़ाया गया</string>
@@ -301,26 +287,33 @@
     <string name="subscriptions_msg_not_found">वह सदस्यता नहीं मिली</string>
     <string name="subscriptions_msg_linked_existing">%1$s मौजूदा भुगतान से लिंक हो गया · अगली साइकिल %2$s को</string>
     <string name="subscriptions_msg_linked_generic">लिंक हो गया</string>
+    <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">भुगतान हुआ मार्क करें</string>
     <string name="mark_paid_eyebrow_received">मिला हुआ मार्क करें</string>
+    <!-- %1$s = date -->
     <string name="mark_paid_already_marked">%1$s को पहले ही भुगतान हुआ मार्क किया गया</string>
     <plurals name="mark_paid_found_matches">
         <item quantity="one">%1$d मिलता-जुलता भुगतान मिला</item>
         <item quantity="other">%1$d मिलते-जुलते भुगतान मिले</item>
     </plurals>
     <string name="mark_paid_when">कब?</string>
+    <!-- %1$s = formatted amount -->
     <string name="mark_paid_cta_paid">भुगतान हुआ मार्क करें · %1$s</string>
     <string name="mark_paid_cta_received">मिला हुआ मार्क करें · %1$s</string>
+    <!-- %1$s = currency code -->
     <string name="mark_paid_helper_income">हम %1$s की आय दर्ज करेंगे और शेड्यूल को अगली साइकिल पर ले जाएंगे।</string>
     <string name="mark_paid_helper_expense">हम यह खर्च दर्ज करेंगे और शेड्यूल को अगली साइकिल पर ले जाएंगे।</string>
-    <string name="mark_paid_candidate_subtitle">%1$s · %2$s</string>
+    <!-- %1$s = relative date, %2$s = bank name -->
     <string name="mark_paid_link_payment">यह भुगतान लिंक करें</string>
     <string name="mark_paid_or_mark_today">या आज का मार्क करें</string>
+    <string name="mark_paid_today">आज</string>
+    <string name="mark_paid_yesterday">कल</string>
     <plurals name="mark_paid_days_ago">
         <item quantity="one">%1$d दिन पहले</item>
         <item quantity="other">%1$d दिन पहले</item>
     </plurals>
     <string name="mark_paid_pick_date">तारीख चुनें</string>
+    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_forecast_for">%1$s का अनुमान</string>
     <string name="analytics_forecast_above_usual">आपके आम खर्च से करीब %1$s ज़्यादा</string>
     <string name="analytics_forecast_stay_under">%2$s पर रहने के लिए रोज़ %1$s से कम खर्च करें।</string>

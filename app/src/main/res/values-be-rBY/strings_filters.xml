@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Time period filter chips (Transactions, Analytics) -->
-    <!-- FY = financial year (India: April to March) -->
-    <!-- Transaction type filter -->
-    <!-- Analytics only: expense + credit-card spend shown together -->
-    <!-- Account types -->
     <string name="filter_period_this_month">Гэты месяц</string>
     <string name="filter_period_last_month">Мінулы месяц</string>
+    <!-- FY = financial year (India: April to March) -->
     <string name="filter_period_current_fy">Бягучы фін. год</string>
     <string name="filter_period_all_time">Увесь час</string>
     <string name="filter_period_custom_range">Свой перыяд</string>
+    <!-- Transaction type filter -->
     <string name="filter_type_all">Усе</string>
     <string name="filter_type_income">Даход</string>
     <string name="filter_type_expense">Выдатак</string>
     <string name="filter_type_credit">Крэдыт</string>
+    <!-- Analytics only: expense + credit-card spend shown together -->
     <string name="filter_type_spending">Выдаткі (выдатак + картка)</string>
     <string name="filter_type_transfer">Перавод</string>
     <string name="filter_type_investment">Інвестыцыя</string>
+    <!-- Account types -->
     <string name="account_type_savings">Ашчадны</string>
     <string name="account_type_current">Бягучы</string>
     <string name="account_type_credit_card">Крэдытная картка</string>

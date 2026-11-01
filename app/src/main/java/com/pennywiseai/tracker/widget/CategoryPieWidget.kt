@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -97,7 +99,7 @@ class CategoryPieWidget : GlanceAppWidget() {
                 .clickable(actionStartActivity<MainActivity>())
         ) {
             val month = runCatching { LocalDate.parse(data.cycleStart) }.getOrNull()
-                ?.format(DateTimeFormatter.ofPattern("MMM", context.appLocale))
+                ?.format(AppDates.pattern("MMM", context.appLocale))
             WidgetRow(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 item { WidgetTitle(context.getString(R.string.widget_pie_title), GlanceModifier.defaultWeight()) }
                 if (month != null) item { WidgetLabel(month) }

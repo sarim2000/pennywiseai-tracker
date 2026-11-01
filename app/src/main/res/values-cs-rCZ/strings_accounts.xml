@@ -85,6 +85,12 @@
     <string name="merge_accounts_into">Do</string>
     <string name="merge_accounts_confirm_title">Sloučit účty?</string>
     <!-- %1$d = transaction count, %2$s = source account, %3$s = target account -->
+    <plurals name="merge_accounts_confirm_message_count">
+        <item quantity="one">Přesunout %1$d transakci z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
+        <item quantity="few">Přesunout %1$d transakce z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
+        <item quantity="many">Přesunout %1$d transakce z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
+        <item quantity="other">Přesunout %1$d transakcí z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
+    </plurals>
     <!-- %1$s = source account, %2$s = target account -->
     <string name="merge_accounts_confirm_message_all">Přesunout všechny transakce z %1$s do %2$s. Zdrojový účet je odstraněn po přesunu. Tuto akci nelze vrátit zpět.</string>
     <string name="merge_accounts_confirm">Sloučit</string>
@@ -103,6 +109,12 @@
     <string name="manage_accounts_msg_card_missing">Karta již neexistuje - možná byla odstraněna.</string>
     <string name="manage_accounts_msg_card_updated">Karta byla aktualizována</string>
     <string name="manage_accounts_msg_update_card_failed">Aktualizace karty se nezdařila: %1$s</string>
+    <plurals name="manage_accounts_msg_account_deleted">
+        <item quantity="one">Účet byl odstraněn (odstraněn %1$d záznam zůstatku)</item>
+        <item quantity="few">Účet byl odstraněn (odstraněny %1$d záznamy zůstatku)</item>
+        <item quantity="many">Účet byl odstraněn (odstraněno %1$d záznamu zůstatku)</item>
+        <item quantity="other">Účet byl odstraněn (odstraněno %1$d záznamů zůstatku)</item>
+    </plurals>
     <string name="manage_accounts_msg_delete_account_failed">Nepodařilo se odstranit účet: %1$s</string>
     <string name="manage_accounts_msg_merge_same_account">Zdroj a cíl jsou stejný účet</string>
     <!-- %1$s / %2$s = currency codes -->
@@ -130,6 +142,8 @@
     <string name="manage_accounts_section_unlinked_cards">Nepropojené karty</string>
     <string name="manage_accounts_section_credit_cards">Kreditní karty</string>
     <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
+    <string name="manage_accounts_section_loan_accounts">Úvěrové účty</string>
+    <string name="manage_accounts_hidden_header">Ignorované účty (%1$d)</string>
     <string name="manage_accounts_reassign_title">Přesunout existující transakce?</string>
     <plurals name="manage_accounts_reassign_message">
         <item quantity="one">%1$d transakce z tohoto účtu je nastavena na jiný profil. Přesunout ji také do nového profilu?</item>
@@ -139,6 +153,7 @@
     </plurals>
     <string name="manage_accounts_reassign_move">Přesunout</string>
     <string name="manage_accounts_reassign_keep">Ponechat tak, jak je</string>
+    <string name="manage_accounts_hidden_badge">Ignorováno</string>
     <string name="manage_accounts_business_badge">Podniky</string>
     <string name="manage_accounts_outstanding">Nevyřízené</string>
     <string name="manage_accounts_available">Dostupné</string>
@@ -151,7 +166,11 @@
     <string name="manage_accounts_action_clear">Vyčistit</string>
     <string name="manage_accounts_action_link">Odkaz</string>
     <string name="manage_accounts_menu_history">Historie</string>
+    <string name="manage_accounts_menu_show">Přestat ignorovat</string>
+    <string name="manage_accounts_menu_hide">Ignorovat tento účet</string>
     <!-- Snackbar after ignoring an account; %1$s = account label -->
+    <string name="manage_accounts_ignored_snackbar">%1$s ignorován</string>
+    <string name="manage_accounts_undo">Zpět</string>
     <!-- %1$d = day of month -->
     <string name="manage_accounts_menu_statement_date">Datum prohlášení: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Nastavit datum závazku.</string>
@@ -172,6 +191,7 @@
     <string name="manage_accounts_card_updated">Aktualizováno: %1$s</string>
     <string name="manage_accounts_unlink_card">Odpojit kartu</string>
     <string name="manage_accounts_update_balance">Aktualizovat zůstatek</string>
+    <string name="manage_accounts_estimated_balance_hint">Odhad: SMS z vaší banky neuvádějí zůstatek. Klepnutím ho jednou nastavíte.</string>
     <string name="manage_accounts_low_balance_alert">Nízký zůstatek</string>
     <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">Označte tento účet, pokud je jeho zůstatek nižší nebo roven této částce. Aktuální zůstatek: %1$s</string>
@@ -185,6 +205,7 @@
     <string name="manage_accounts_update_credit_card">Aktualizovat kreditní kartu</string>
     <string name="manage_accounts_outstanding_balance">Zůstatek</string>
     <string name="manage_accounts_outstanding_balance_hint">Částka aktuálně dlužná na kartě</string>
+    <string name="manage_accounts_loan_outstanding_hint">Částka, kterou ještě dlužíte na úvěru</string>
     <string name="manage_accounts_credit_limit_hint">Celkový limit kreditu karty</string>
     <string name="manage_accounts_available_credit_label">Dostupný kredit:</string>
     <string name="manage_accounts_utilization_label">Využití:</string>
@@ -211,6 +232,7 @@
     <string name="manage_accounts_account_ending_in">Účet končící v %1$s</string>
     <string name="manage_accounts_delete_warning">Toto trvale odstraní celou historii zůstatků pro tento účet. Všechny propojené karty budou odpojeny. Tuto akci nelze vrátit zpět.</string>
     <string name="manage_accounts_edit_account_title">Upravit účet</string>
+    <string name="manage_accounts_type_note">Změna typu ovlivní jen to, jak se zůstatek počítá od teď. Dřívější transakce zůstanou beze změny.</string>
     <string name="manage_accounts_bank_name_label">Název banky</string>
     <string name="manage_accounts_account_number_label">Číslo účtu</string>
     <string name="manage_accounts_read_only">Pouze pro čtení</string>
@@ -229,7 +251,14 @@
     <!-- %1$s = formatted original loan amount -->
     <string name="loans_of_original">z %1$s</string>
     <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <string name="loans_person_owes_you">Dluží vám %1$s</string>
+    <string name="loans_person_you_owe">Dlužíte %1$s</string>
+    <string name="loans_person_all_settled">Vše vyrovnáno</string>
     <!-- Open loans both ways that cancel out exactly -->
+    <string name="loans_person_even">Vyrovnáno – nikdo nikomu nic nedluží</string>
+    <string name="loans_settle_up">Vyrovnat</string>
+    <string name="loans_settle_up_title">Vyrovnat se s %1$s?</string>
+    <string name="loans_settle_up_message">Všechny otevřené půjčky s %1$s budou označeny jako vyrovnané. Případná nesplacená částka se odpouští.</string>
     <!-- ══ Loan detail ══ -->
     <string name="loan_detail_title_fallback">Půjčka</string>
     <string name="loan_detail_more">Více</string>
@@ -295,33 +324,4 @@
         <item quantity="many">Zobrazit všechny %1$d účty</item>
         <item quantity="other">Zobrazit všechny %1$d účty</item>
     </plurals>
-    <plurals name="merge_accounts_confirm_message_count">
-        <item quantity="one">Přesunout %1$d transakci z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
-        <item quantity="few">Přesunout %1$d transakce z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
-        <item quantity="many">Přesunout %1$d transakce z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
-        <item quantity="other">Přesunout %1$d transakcí z %2$s do %3$s. Zdrojový účet se po přesunu odstraní. Tuto akci nelze vrátit zpět.</item>
-    </plurals>
-    <plurals name="manage_accounts_msg_account_deleted">
-        <item quantity="one">Účet byl odstraněn (odstraněn %1$d záznam zůstatku)</item>
-        <item quantity="few">Účet byl odstraněn (odstraněny %1$d záznamy zůstatku)</item>
-        <item quantity="many">Účet byl odstraněn (odstraněno %1$d záznamu zůstatku)</item>
-        <item quantity="other">Účet byl odstraněn (odstraněno %1$d záznamů zůstatku)</item>
-    </plurals>
-    <string name="manage_accounts_section_loan_accounts">Úvěrové účty</string>
-    <string name="manage_accounts_hidden_header">Ignorované účty (%1$d)</string>
-    <string name="manage_accounts_hidden_badge">Ignorováno</string>
-    <string name="manage_accounts_menu_show">Přestat ignorovat</string>
-    <string name="manage_accounts_menu_hide">Ignorovat tento účet</string>
-    <string name="manage_accounts_ignored_snackbar">%1$s ignorován</string>
-    <string name="manage_accounts_undo">Zpět</string>
-    <string name="manage_accounts_estimated_balance_hint">Odhad: SMS z vaší banky neuvádějí zůstatek. Klepnutím ho jednou nastavíte.</string>
-    <string name="manage_accounts_loan_outstanding_hint">Částka, kterou ještě dlužíte na úvěru</string>
-    <string name="manage_accounts_type_note">Změna typu ovlivní jen to, jak se zůstatek počítá od teď. Dřívější transakce zůstanou beze změny.</string>
-    <string name="loans_person_owes_you">Dluží vám %1$s</string>
-    <string name="loans_person_you_owe">Dlužíte %1$s</string>
-    <string name="loans_person_all_settled">Vše vyrovnáno</string>
-    <string name="loans_person_even">Vyrovnáno – nikdo nikomu nic nedluží</string>
-    <string name="loans_settle_up">Vyrovnat</string>
-    <string name="loans_settle_up_title">Vyrovnat se s %1$s?</string>
-    <string name="loans_settle_up_message">Všechny otevřené půjčky s %1$s budou označeny jako vyrovnané. Případná nesplacená částka se odpouští.</string>
 </resources>

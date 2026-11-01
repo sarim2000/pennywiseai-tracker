@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -75,7 +77,7 @@ fun GreetingCard(
         val lastDay = cycleEnd ?: today.withDayOfMonth(today.lengthOfMonth())
         ChronoUnit.DAYS.between(today, lastDay).toInt() to LocalTime.now().hour
     }
-    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale())
     val subtitle = when {
         daysLeft == 0 -> stringResource(R.string.greeting_last_day_of_month, monthName)
         daysLeft <= 7 -> pluralStringResource(R.plurals.greeting_days_left_in_month, daysLeft, daysLeft, monthName)

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Built-in category names, shown in place of the stored English key (CategoryMapping.label). -->
 <resources>
     <string name="category_food_dining">Alimentation et restaurants</string>
     <string name="category_groceries">Courses</string>
@@ -11,7 +12,6 @@
     <string name="category_banking">Banque</string>
     <string name="category_personal_care">Soins personnels</string>
     <string name="category_education">Éducation</string>
-    <string name="category_mobile">Mobile</string>
     <string name="category_fitness">Sport</string>
     <string name="category_insurance">Assurance</string>
     <string name="category_tax">Impôts</string>

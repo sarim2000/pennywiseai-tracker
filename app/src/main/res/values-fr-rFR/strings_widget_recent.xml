@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    <string name="widget_recent_header">Récentes</string>
+<resources>
+    <string name="widget_recent_header">Récentes</string>
     <string name="widget_recent_sort">Classer</string>
     <string name="widget_recent_empty_add_cash">Appuyez sur + pour ajouter des espèces</string>
     <string name="widget_recent_description">Vos dernières transactions et leurs catégories, avec un appui pour classer celles qui en ont besoin.</string>

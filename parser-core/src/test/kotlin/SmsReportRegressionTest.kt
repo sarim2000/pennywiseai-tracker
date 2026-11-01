@@ -77,6 +77,15 @@ class SmsReportRegressionTest {
                 )
             ),
 
+            SimpleTestCase(
+                description = "SBI NEFT beneficiary-credit confirmation is not income",
+                bankName = "State Bank of India",
+                sender = "JM-SBIPSG-S",
+                currency = "INR",
+                message = "Dear Customer, Your NEFT of Rs 1,000.00 with UTR SBIN000000000000 DTD 01/01/2026 credited to Beneficiary AC NO. XX1111 at BKID0000000 on 01/01/2026 at 10:00 AM.-SBI",
+                shouldParse = false
+            ),
+
             // --- Wrong figure / wrong direction ------------------------------
             SimpleTestCase(
                 description = "ICICI sub-unit foreign amount: USD .28, not the INR available limit",

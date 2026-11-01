@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.navigation.AddTransaction
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +28,8 @@ import javax.inject.Inject
 class UnrecognizedSmsViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val unrecognizedSmsRepository: UnrecognizedSmsRepository,
-    private val learnedSendersStore: LearnedSendersStore
+    private val learnedSendersStore: LearnedSendersStore,
+    private val trackedAppsStore: TrackedNotificationAppsStore
 ) : ViewModel() {
     
     private val _isLoading = MutableStateFlow(false)
@@ -53,13 +55,17 @@ class UnrecognizedSmsViewModel @Inject constructor(
     
     /**
      * What each message looks like it says (#994), by message id; only the ones worth
-     * suggesting. A sender the user has added from before is always worth it.
+     * suggesting. A sender the user has added from before, or an app they chose to
+     * track, is always worth it.
      */
-    val suggestions: StateFlow<Map<Long, Suggestion>> = combine(allMessages, learnedSendersStore.allFlow) { messages, learned ->
+    val suggestions: StateFlow<Map<Long, Suggestion>> = combine(
+        allMessages, learnedSendersStore.allFlow, trackedAppsStore.allFlow
+    ) { messages, learned, trackedApps ->
             messages.mapNotNull { sms ->
                 val key = LearnedSendersStore.normalize(sms.sender)
+                val trusted = key in learned || sms.sender in trackedApps
                 GenericTransactionExtractor.extract(sms.sender, sms.smsBody)
-                    ?.takeIf { key in learned || it.confidence >= GenericTransactionExtractor.SUGGEST_AT }
+                    ?.takeIf { trusted || it.confidence >= GenericTransactionExtractor.SUGGEST_AT }
                     ?.let { sms.id to Suggestion(sms, it.transaction, learned[key]) }
             }.toMap()
         }

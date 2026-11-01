@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -89,6 +91,7 @@ import com.pennywiseai.tracker.ui.theme.grey_dark
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import com.pennywiseai.tracker.data.preferences.DateFormatStyle
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
@@ -130,6 +133,7 @@ fun SettingsScreen(
     val smsScanCustomDate by settingsViewModel.smsScanCustomDate.collectAsStateWithLifecycle(initialValue = null)
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
     val numberFormatStyle by settingsViewModel.numberFormatStyle.collectAsStateWithLifecycle(initialValue = NumberFormatStyle.AUTO)
+    val dateFormatStyle by settingsViewModel.dateFormatStyle.collectAsStateWithLifecycle(initialValue = DateFormatStyle.AUTO)
     val budgetCycleStartDay by settingsViewModel.budgetCycleStartDay.collectAsStateWithLifecycle(initialValue = 1)
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
@@ -171,6 +175,10 @@ fun SettingsScreen(
     var showTimeoutDialog by remember { mutableStateOf(false) }
     var showDisplayCurrencyDialog by remember { mutableStateOf(false) }
     var showNumberFormatDialog by remember { mutableStateOf(false) }
+    var showDateFormatDialog by remember { mutableStateOf(false) }
+    var showTrackedAppsDialog by remember { mutableStateOf(false) }
+    val trackedAppsViewModel: TrackedAppsViewModel = hiltViewModel()
+    val trackedApps by trackedAppsViewModel.tracked.collectAsStateWithLifecycle()
     var showBudgetCycleDialog by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
     var showMainAccountDropdown by remember { mutableStateOf(false) }
@@ -467,8 +475,19 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_number_format_title),
                     subtitle = stringResource(R.string.settings_number_format_subtitle),
                     onClick = { showNumberFormatDialog = true },
-                    position = ListItemPosition.Bottom,
+                    position = ListItemPosition.Middle,
                     trailingText = numberFormatStyleLabel(numberFormatStyle)
+                )
+
+                SettingsNavItem(
+                    icon = Icons.Default.CalendarMonth,
+                    iconBgColor = green_light,
+                    iconTint = green_dark,
+                    title = stringResource(R.string.settings_date_format_title),
+                    subtitle = stringResource(R.string.settings_date_format_subtitle),
+                    onClick = { showDateFormatDialog = true },
+                    position = ListItemPosition.Bottom,
+                    trailingText = dateFormatStyleLabel(dateFormatStyle)
                 )
             }
 
@@ -689,7 +708,7 @@ fun SettingsScreen(
                         subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
                             val formatted = java.time.Instant.ofEpochMilli(timestamp)
                                 .atZone(java.time.ZoneId.systemDefault())
-                                .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a"))
+                                .format(AppDates.dateTimeFormatter())
                             stringResource(R.string.settings_backup_now_last_backup, formatted)
                         } ?: stringResource(R.string.settings_backup_now_subtitle),
                         onClick = { settingsViewModel.backupToFolderNow() },
@@ -804,6 +823,26 @@ fun SettingsScreen(
                     position = ListItemPosition.Top,
                     trailingText = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_on) else stringResource(R.string.settings_notification_access_off)
                 )
+                SettingsNavItem(
+                    icon = Icons.Default.Apps,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.settings_tracked_apps_title),
+                    subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
+                        else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
+                    onClick = { showTrackedAppsDialog = true },
+                    position = ListItemPosition.Middle
+                )
+                if (showTrackedAppsDialog) {
+                    TrackedAppsDialog(
+                        viewModel = trackedAppsViewModel,
+                        hasNotificationAccess = hasNotificationAccess,
+                        onEnableAccess = {
+                            notificationAccessLauncher.launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        },
+                        onDismiss = { showTrackedAppsDialog = false }
+                    )
+                }
                 SettingsSwitchRow(
                     icon = Icons.Default.Schedule,
                     iconBgColor = indigo_light,
@@ -975,6 +1014,49 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDisplayCurrencyDialog = false }) {
+                    Text(stringResource(R.string.settings_action_cancel))
+                }
+            }
+        )
+    }
+
+    if (showDateFormatDialog) {
+        AlertDialog(
+            onDismissRequest = { showDateFormatDialog = false },
+            title = { Text(stringResource(R.string.settings_date_format_title)) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    DateFormatStyle.entries.forEach { style ->
+                        val choose = {
+                            settingsViewModel.updateDateFormatStyle(style)
+                            showDateFormatDialog = false
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(selected = style == dateFormatStyle, onClick = choose)
+                                .padding(vertical = Spacing.sm),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = style == dateFormatStyle, onClick = choose)
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Column {
+                                Text(
+                                    text = dateFormatStyleLabel(style),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Text(
+                                    text = dateFormatStyleExample(style),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDateFormatDialog = false }) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1785,6 +1867,19 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
     }
 }
 
+// Each option is named by what it looks like today; only Auto needs a word.
+@Composable
+private fun dateFormatStyleLabel(style: DateFormatStyle): String =
+    if (style == DateFormatStyle.AUTO) stringResource(R.string.settings_number_format_auto)
+    else AppDates.dateFormatter(style = style).format(java.time.LocalDate.now())
+
+@Composable
+private fun dateFormatStyleExample(style: DateFormatStyle): String {
+    val today = java.time.LocalDate.now()
+    val short = AppDates.dayMonthFormatter(style = style).format(today)
+    return if (style == DateFormatStyle.AUTO) "${AppDates.dateFormatter(style = style).format(today)} · $short" else short
+}
+
 @Composable
 private fun numberFormatStyleLabel(style: NumberFormatStyle): String = stringResource(
     when (style) {
@@ -1826,12 +1921,12 @@ private fun formatSmsScanCustomDate(dateMillis: Long): String {
     return java.time.Instant.ofEpochMilli(dateMillis)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        .format(AppDates.dateFormatter())
 }
 
 private fun formatSmsScanCustomDateShort(dateMillis: Long): String {
     return java.time.Instant.ofEpochMilli(dateMillis)
         .atZone(java.time.ZoneId.systemDefault())
         .toLocalDate()
-        .format(java.time.format.DateTimeFormatter.ofPattern("MMM d"))
+        .format(AppDates.dayMonthFormatter())
 }

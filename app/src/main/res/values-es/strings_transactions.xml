@@ -1,21 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Export transactions dialog -->
-    <!-- Transaction detail: errors -->
-    <!-- Transaction types -->
-    <!-- Transaction detail -->
-    <!-- Transaction totals card -->
-    <!-- Transactions list -->
-    <!-- Add transaction / subscription -->
-    <!-- Transaction groups -->
-    <!-- Recurring transactions -->
-    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
-    <!-- Share card, sheet and banner -->
-    <!-- %1$s = month name -->
-    <!-- Shared transaction components -->
-    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <!-- %1$s the cash account the spend comes out of -->
-    <!-- %1$s amount with currency, %2$s category -->
     <string name="txn_export_title_ready">Exportar transacciones</string>
     <string name="txn_export_title_exporting">Exportando...</string>
     <string name="txn_export_title_success">¡Exportación completada!</string>
@@ -26,7 +11,6 @@
     </plurals>
     <string name="txn_export_total_transactions">Total de transacciones:</string>
     <string name="txn_export_date_range">Rango de fechas:</string>
-    <string name="txn_export_date_range_value">%1$s - %2$s</string>
     <string name="txn_export_free_limit_notice">Exportación gratuita: primeras %1$d de %2$d filas</string>
     <string name="txn_export_unlock_all">Desbloquear todo</string>
     <plurals name="txn_export_success_message">
@@ -43,6 +27,7 @@
     <string name="txn_export_action_share">Compartir</string>
     <string name="txn_export_action_close">Cerrar</string>
     <string name="txn_export_action_retry">Reintentar</string>
+    <!-- Transaction detail: errors -->
     <string name="txn_detail_error_add_adjustment">No se pudo agregar el ajuste: %1$s</string>
     <string name="txn_detail_error_amount_positive_number">El monto debe ser un número positivo</string>
     <string name="txn_detail_error_category_exists_income">Ya existe una categoría de ingreso llamada \"%1$s\"</string>
@@ -63,11 +48,13 @@
     <string name="txn_detail_error_delete">No se pudo eliminar la transacción</string>
     <string name="txn_detail_error_create_loan">No se pudo crear el préstamo: %1$s</string>
     <string name="txn_detail_error_unlink_loan">No se pudo desvincular el préstamo: %1$s</string>
+    <!-- Transaction types -->
     <string name="txn_type_income">Ingreso</string>
     <string name="txn_type_expense">Gasto</string>
     <string name="txn_type_credit">Crédito</string>
     <string name="txn_type_transfer">Transferencia</string>
     <string name="txn_type_investment">Inversión</string>
+    <!-- Transaction detail -->
     <string name="txn_detail_updated">Transacción actualizada</string>
     <string name="txn_detail_title">Detalles de la transacción</string>
     <string name="txn_detail_title_edit">Editar transacción</string>
@@ -110,7 +97,6 @@
     <string name="txn_detail_label_status">Estado</string>
     <string name="txn_detail_status_recurring">Recurrente</string>
     <string name="txn_detail_label_classification">Clasificación</string>
-    <string name="txn_detail_personal">Personal</string>
     <string name="txn_detail_business">Negocio</string>
     <string name="txn_detail_label_account">Cuenta</string>
     <string name="txn_detail_label_from">De</string>
@@ -180,6 +166,7 @@
     <string name="txn_detail_group_name">Nombre del grupo</string>
     <string name="txn_detail_group_create">Crear</string>
     <string name="txn_detail_group_create_new">Crear grupo nuevo</string>
+    <!-- Transaction totals card -->
     <string name="txn_totals_income">Ingresos</string>
     <string name="txn_totals_expense">Gasto</string>
     <string name="txn_totals_expenses">Gastos</string>
@@ -188,6 +175,7 @@
     <string name="txn_totals_invest">Inversión</string>
     <string name="txn_totals_net">Neto</string>
     <string name="txn_totals_select_currency">Seleccionar moneda</string>
+    <!-- Transactions list -->
     <string name="txn_list_title">Transacciones</string>
     <string name="txn_list_back">Atrás</string>
     <string name="txn_list_deleted">Transacción eliminada</string>
@@ -257,6 +245,7 @@
         <item quantity="one">%1$d agregada a \"%2$s\"</item>
         <item quantity="other">%1$d agregadas a \"%2$s\"</item>
     </plurals>
+    <!-- Add transaction / subscription -->
     <string name="add_title">Agregar</string>
     <string name="add_back">Atrás</string>
     <string name="add_tab_transaction">Transacción</string>
@@ -309,6 +298,7 @@
     <string name="add_error_merchant_required">El comercio o la descripción es obligatorio</string>
     <string name="add_error_merchant_too_short">Demasiado corto</string>
     <string name="add_error_category_required">La categoría es obligatoria</string>
+    <!-- Transaction groups -->
     <string name="groups_title">Grupos de transacciones</string>
     <string name="groups_create">Crear grupo</string>
     <string name="groups_empty_title">Aún no hay grupos</string>
@@ -345,6 +335,7 @@
     <string name="group_detail_picker_no_results">Sin resultados</string>
     <string name="group_detail_picker_add">Agregar</string>
     <string name="group_detail_edit_title">Editar grupo</string>
+    <!-- Recurring transactions -->
     <string name="recurring_title">Recurrentes</string>
     <string name="recurring_back">Atrás</string>
     <string name="recurring_add">Agregar transacción recurrente</string>
@@ -356,6 +347,7 @@
     <string name="recurring_frequency_weekly">Semanal</string>
     <string name="recurring_frequency_monthly">Mensual</string>
     <string name="recurring_untitled">Sin título</string>
+    <!-- %1$s = frequency (e.g. Monthly), %2$s = next due date -->
     <string name="recurring_item_schedule">%1$s · Próxima: %2$s</string>
     <string name="recurring_more_options">Más opciones</string>
     <string name="recurring_pause">Pausar</string>
@@ -380,6 +372,7 @@
     <string name="recurring_day_of_week_any">Cualquiera</string>
     <string name="recurring_field_note">Nota (opcional)</string>
     <string name="recurring_field_active">Activa</string>
+    <!-- Share card, sheet and banner -->
     <string name="share_card_caption_transactions">SMS del banco registrados. 0 escritos a mano.</string>
     <plurals name="share_card_caption_subscriptions">
         <item quantity="one">suscripción que había olvidado</item>
@@ -399,14 +392,19 @@
     <string name="share_sheet_this_month">Este mes</string>
     <string name="share_sheet_last_month">Mes pasado</string>
     <string name="share_sheet_all_time">Desde el inicio</string>
+    <!-- %1$s = month name -->
     <string name="share_banner_title">Resumen de %1$s</string>
     <string name="share_banner_subtitle">Mira lo que PennyWise registró por ti</string>
     <string name="share_banner_dismiss">Descartar</string>
+    <!-- Shared transaction components -->
     <string name="quick_category_title">Cambiar categoría</string>
+    <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Gasto en efectivo</string>
     <string name="quick_add_more_details">Más detalles</string>
     <string name="quick_add_where_hint">¿Dónde? (opcional)</string>
+    <!-- %1$s the cash account the spend comes out of -->
     <string name="quick_add_from">Desde: %1$s</string>
+    <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Guardado %1$s · %2$s</string>
     <string name="date_range_title">Seleccionar rango de fechas</string>
     <string name="date_range_ok">Aceptar</string>
@@ -423,7 +421,6 @@
     <string name="split_editor_add">Agregar parte</string>
     <string name="split_editor_balanced">Cuadra</string>
     <string name="split_editor_not_balanced">No cuadra</string>
-    <string name="split_editor_total">Total:</string>
     <string name="split_editor_remaining">Faltan %1$s</string>
     <string name="split_editor_over">Sobran %1$s</string>
     <string name="split_editor_remove">Quitar parte</string>

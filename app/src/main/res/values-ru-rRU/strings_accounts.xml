@@ -100,6 +100,7 @@
     <!-- ══ Manage accounts: status messages ══ -->
     <string name="manage_accounts_msg_account_exists">Аккаунт уже существует</string>
     <!-- %1$s = formatted balance -->
+    <string name="manage_accounts_msg_card_linked_balance">Карта привязана. Баланс обновлен до %1$s</string>
     <string name="manage_accounts_msg_card_linked_balance_failed">Карта успешно привязана (Ошибка обновления баланса)</string>
     <string name="manage_accounts_msg_card_linked">Карта успешно привязана</string>
     <string name="manage_accounts_msg_link_card_failed">Не удалось связать карту: %1$s</string>
@@ -108,6 +109,12 @@
     <string name="manage_accounts_msg_card_missing">Карта больше не существует — возможно она была удалена.</string>
     <string name="manage_accounts_msg_card_updated">Карта обновлена</string>
     <string name="manage_accounts_msg_update_card_failed">Не удалось обновить карту: %1$s</string>
+    <plurals name="manage_accounts_msg_account_deleted">
+        <item quantity="one">Счет удален (удалена %1$d запись баланса)</item>
+        <item quantity="few">Счет удален (удалено %1$d записи баланса)</item>
+        <item quantity="many">Счет удален (удалено %1$d записей баланса)</item>
+        <item quantity="other">Счет удален (удалено %1$d записи баланса)</item>
+    </plurals>
     <string name="manage_accounts_msg_delete_account_failed">Не удалось удалить учетную запись: %1$s</string>
     <string name="manage_accounts_msg_merge_same_account">Источник и цель одинаковые аккаунты</string>
     <!-- %1$s / %2$s = currency codes -->
@@ -135,9 +142,18 @@
     <string name="manage_accounts_section_unlinked_cards">Несвязанные карты</string>
     <string name="manage_accounts_section_credit_cards">Кредитные карты</string>
     <!-- Bank loan accounts (home/car/personal loan), not the Lent/Borrowed Loans screen -->
+    <string name="manage_accounts_section_loan_accounts">Кредитные счета</string>
+    <string name="manage_accounts_hidden_header">Игнорируемые счета (%1$d)</string>
     <string name="manage_accounts_reassign_title">Переместить существующие транзакции?</string>
+    <plurals name="manage_accounts_reassign_message">
+        <item quantity="one">%1$d транзакция с этого счета относится к другому профилю. Перенести ее тоже в новый профиль?</item>
+        <item quantity="few">%1$d транзакции с этого счета относятся к другому профилю. Перенести их тоже в новый профиль?</item>
+        <item quantity="many">%1$d транзакций с этого счета относятся к другому профилю. Перенести их тоже в новый профиль?</item>
+        <item quantity="other">%1$d транзакции с этого счета относятся к другому профилю. Перенести их тоже в новый профиль?</item>
+    </plurals>
     <string name="manage_accounts_reassign_move">Переместить</string>
     <string name="manage_accounts_reassign_keep">Оставить как</string>
+    <string name="manage_accounts_hidden_badge">Игнорируется</string>
     <string name="manage_accounts_business_badge">Бизнес</string>
     <string name="manage_accounts_outstanding">Непогашенный</string>
     <string name="manage_accounts_available">Доступно</string>
@@ -150,8 +166,13 @@
     <string name="manage_accounts_action_clear">Очистить</string>
     <string name="manage_accounts_action_link">Привязать</string>
     <string name="manage_accounts_menu_history">История</string>
+    <string name="manage_accounts_menu_show">Не игнорировать</string>
+    <string name="manage_accounts_menu_hide">Игнорировать счет</string>
     <!-- Snackbar after ignoring an account; %1$s = account label -->
+    <string name="manage_accounts_ignored_snackbar">%1$s игнорируется</string>
+    <string name="manage_accounts_undo">Отменить</string>
     <!-- %1$d = day of month -->
+    <string name="manage_accounts_menu_statement_date">Дата выписки: %1$d</string>
     <string name="manage_accounts_menu_set_statement_date">Установить дату выписки</string>
     <string name="manage_accounts_menu_mark_personal">Отметить как персональное</string>
     <string name="manage_accounts_menu_mark_business">Отметить как бизнес</string>
@@ -170,6 +191,7 @@
     <string name="manage_accounts_card_updated">Обновлено: %1$s</string>
     <string name="manage_accounts_unlink_card">Открепить карту</string>
     <string name="manage_accounts_update_balance">Обновить баланс</string>
+    <string name="manage_accounts_estimated_balance_hint">Примерно: в SMS вашего банка нет баланса. Нажмите, чтобы задать его один раз.</string>
     <string name="manage_accounts_low_balance_alert">Предупреждение о низком балансе</string>
     <!-- %1$s = formatted current balance -->
     <string name="manage_accounts_low_balance_alert_description">Отметить этот счет, когда его баланс находится на этой сумме или ниже ее. Текущий баланс: %1$s</string>
@@ -183,6 +205,7 @@
     <string name="manage_accounts_update_credit_card">Обновить кредитную карту</string>
     <string name="manage_accounts_outstanding_balance">Неоплаченный баланс</string>
     <string name="manage_accounts_outstanding_balance_hint">Сумма задолженности на карте в настоящее время</string>
+    <string name="manage_accounts_loan_outstanding_hint">Сколько еще осталось выплатить по кредиту</string>
     <string name="manage_accounts_credit_limit_hint">Общий кредитный лимит карты</string>
     <string name="manage_accounts_available_credit_label">Доступный кредит:</string>
     <string name="manage_accounts_utilization_label">Использование:</string>
@@ -209,6 +232,7 @@
     <string name="manage_accounts_account_ending_in">Счет заканчивается на %1$s</string>
     <string name="manage_accounts_delete_warning">Это навсегда удалит всю историю баланса для этого аккаунта. Любые связанные карты будут отвязаны. Это действие нельзя отменить.</string>
     <string name="manage_accounts_edit_account_title">Редактировать аккаунт</string>
+    <string name="manage_accounts_type_note">Смена типа меняет только то, как баланс считается дальше. Прошлые транзакции останутся как есть.</string>
     <string name="manage_accounts_bank_name_label">Название банка</string>
     <string name="manage_accounts_account_number_label">Номер счета</string>
     <string name="manage_accounts_read_only">Только чтение</string>
@@ -227,7 +251,14 @@
     <!-- %1$s = formatted original loan amount -->
     <string name="loans_of_original">из %1$s</string>
     <!-- Per-person balance on the Loans list, e.g. "Owes you ₹1,500" -->
+    <string name="loans_person_owes_you">Должен вам %1$s</string>
+    <string name="loans_person_you_owe">Вы должны %1$s</string>
+    <string name="loans_person_all_settled">Все долги закрыты</string>
     <!-- Open loans both ways that cancel out exactly -->
+    <string name="loans_person_even">В расчете — никто никому не должен</string>
+    <string name="loans_settle_up">Рассчитаться</string>
+    <string name="loans_settle_up_title">Рассчитаться с %1$s?</string>
+    <string name="loans_settle_up_message">Все открытые долги с %1$s будут отмечены как погашенные. Неоплаченный остаток будет прощен.</string>
     <!-- ══ Loan detail ══ -->
     <string name="loan_detail_title_fallback">Заем</string>
     <string name="loan_detail_more">Ещё</string>
@@ -293,35 +324,4 @@
         <item quantity="many">Просмотр всех аккаунтов %1$d</item>
         <item quantity="other">Просмотр всех аккаунтов %1$d</item>
     </plurals>
-    <string name="manage_accounts_msg_card_linked_balance">Карта привязана. Баланс обновлен до %1$s</string>
-    <plurals name="manage_accounts_msg_account_deleted">
-        <item quantity="one">Счет удален (удалена %1$d запись баланса)</item>
-        <item quantity="few">Счет удален (удалено %1$d записи баланса)</item>
-        <item quantity="many">Счет удален (удалено %1$d записей баланса)</item>
-        <item quantity="other">Счет удален (удалено %1$d записи баланса)</item>
-    </plurals>
-    <string name="manage_accounts_section_loan_accounts">Кредитные счета</string>
-    <string name="manage_accounts_hidden_header">Игнорируемые счета (%1$d)</string>
-    <plurals name="manage_accounts_reassign_message">
-        <item quantity="one">%1$d транзакция с этого счета относится к другому профилю. Перенести ее тоже в новый профиль?</item>
-        <item quantity="few">%1$d транзакции с этого счета относятся к другому профилю. Перенести их тоже в новый профиль?</item>
-        <item quantity="many">%1$d транзакций с этого счета относятся к другому профилю. Перенести их тоже в новый профиль?</item>
-        <item quantity="other">%1$d транзакции с этого счета относятся к другому профилю. Перенести их тоже в новый профиль?</item>
-    </plurals>
-    <string name="manage_accounts_hidden_badge">Игнорируется</string>
-    <string name="manage_accounts_menu_show">Не игнорировать</string>
-    <string name="manage_accounts_menu_hide">Игнорировать счет</string>
-    <string name="manage_accounts_ignored_snackbar">%1$s игнорируется</string>
-    <string name="manage_accounts_undo">Отменить</string>
-    <string name="manage_accounts_menu_statement_date">Дата выписки: %1$d</string>
-    <string name="manage_accounts_estimated_balance_hint">Примерно: в SMS вашего банка нет баланса. Нажмите, чтобы задать его один раз.</string>
-    <string name="manage_accounts_loan_outstanding_hint">Сколько еще осталось выплатить по кредиту</string>
-    <string name="manage_accounts_type_note">Смена типа меняет только то, как баланс считается дальше. Прошлые транзакции останутся как есть.</string>
-    <string name="loans_person_owes_you">Должен вам %1$s</string>
-    <string name="loans_person_you_owe">Вы должны %1$s</string>
-    <string name="loans_person_all_settled">Все долги закрыты</string>
-    <string name="loans_person_even">В расчете — никто никому не должен</string>
-    <string name="loans_settle_up">Рассчитаться</string>
-    <string name="loans_settle_up_title">Рассчитаться с %1$s?</string>
-    <string name="loans_settle_up_message">Все открытые долги с %1$s будут отмечены как погашенные. Неоплаченный остаток будет прощен.</string>
 </resources>

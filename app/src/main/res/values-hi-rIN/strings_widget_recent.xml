@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>    <string name="widget_recent_header">हाल के</string>
+<resources>
+    <string name="widget_recent_header">हाल के</string>
     <string name="widget_recent_sort">छाँटें</string>
     <string name="widget_recent_empty_add_cash">कैश जोड़ने के लिए + पर टैप करें</string>
     <string name="widget_recent_description">आपके हाल के लेन-देन और उनकी श्रेणियाँ, जिनकी श्रेणी तय करनी है उन्हें एक टैप में छाँटें।</string>

@@ -15,7 +15,15 @@
     <string name="analytics_top_tags">Top-Tags</string>
     <string name="analytics_top_merchants">Top Händler</string>
     <string name="analytics_by_account">Nach Konto</string>
+    <string name="analytics_by_day_of_week">Nach Wochentag</string>
+    <string name="analytics_no_tag">Kein Tag</string>
+    <string name="analytics_tag_overlap_note">Eine Transaktion mit mehreren Tags zählt bei jedem davon. Die Summen der Tags können daher höher sein als die Gesamtsumme.</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">Nach Kategorie</string>
+    <string name="analytics_group_by_merchant">Nach Händler</string>
+    <string name="analytics_group_by_account">Nach Konto</string>
+    <string name="analytics_group_by_tag">Nach Tag</string>
+    <string name="analytics_group_by_day_of_week">Nach Wochentag</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Leeren</string>
@@ -29,6 +37,10 @@
     <plurals name="analytics_transaction_count">
         <item quantity="one">%1$d Transaktion</item>
         <item quantity="other">%1$d transaktionen</item>
+    </plurals>
+    <plurals name="analytics_transaction_count_subscription">
+        <item quantity="one">%1$d Transaktion • Abonnement</item>
+        <item quantity="other">%1$d Transaktionen • Abonnement</item>
     </plurals>
     <!-- Whole-number percentage, e.g. "42%" -->
     <string name="analytics_percent">%1$d%%</string>
@@ -308,19 +320,6 @@
     </plurals>
     <string name="mark_paid_pick_date">Datum auswählen</string>
     <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_by_day_of_week">Nach Wochentag</string>
-    <string name="analytics_no_tag">Kein Tag</string>
-    <string name="analytics_tag_overlap_note">Eine Transaktion mit mehreren Tags zählt bei jedem davon. Die Summen der Tags können daher höher sein als die Gesamtsumme.</string>
-    <string name="analytics_group_by_category">Nach Kategorie</string>
-    <string name="analytics_group_by_merchant">Nach Händler</string>
-    <string name="analytics_group_by_account">Nach Konto</string>
-    <string name="analytics_group_by_tag">Nach Tag</string>
-    <string name="analytics_group_by_day_of_week">Nach Wochentag</string>
-    <string name="analytics_group_by_pro">Pro</string>
-    <plurals name="analytics_transaction_count_subscription">
-        <item quantity="one">%1$d Transaktion • Abonnement</item>
-        <item quantity="other">%1$d Transaktionen • Abonnement</item>
-    </plurals>
     <string name="analytics_forecast_for">Prognose für %1$s</string>
     <string name="analytics_forecast_above_usual">Etwa %1$s über Ihrem üblichen Wert</string>
     <string name="analytics_forecast_stay_under">Geben Sie weniger als %1$s pro Tag aus, um bei %2$s zu bleiben.</string>

@@ -14,6 +14,7 @@
     <string name="home_close">Закрыть</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Бюджеты</string>
+    <string name="home_section_goals">Цели</string>
     <string name="home_section_loans">Долги</string>
     <string name="home_section_groups">Группы</string>
     <string name="home_section_recent_transactions">Последние транзакции</string>
@@ -28,6 +29,11 @@
     <string name="home_fab_add">Добавить транзакцию или подписку</string>
     <string name="home_fab_sync">Синхронизация SMS (долгое нажатие для полной синхронизации)</string>
     <string name="home_fab_sync_hint">Удерживайте для полной синхронизации</string>
+    <string name="home_resync_title">Прочитать сообщения заново</string>
+    <string name="home_resync_scan_again">Сканировать все сообщения заново</string>
+    <string name="home_resync_scan_again_desc">Добавит всё, что было пропущено. Ваши правки и все существующие транзакции не изменятся.</string>
+    <string name="home_resync_rebuild">Пересобрать с нуля</string>
+    <string name="home_resync_rebuild_desc">Заново читает транзакции из SMS, чтобы применить исправления распознавания. Правки SMS-транзакций будут сброшены. Ручные, импортированные, долговые и сгруппированные транзакции сохранятся.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Больше опций</string>
     <string name="home_menu_monthly_recap">Ежемесячный расчет</string>
@@ -45,6 +51,7 @@
     <string name="home_breakdown_title">Разбивка расчетов</string>
     <!-- Month name, then day range, e.g. "March 1-15" -->
     <string name="home_breakdown_period">%1$s 1-%2$d</string>
+    <string name="home_breakdown_formula">Формула: Доход - Расходы = Чистая стоимость\nЗеленый (+) = Сбережения | Красный (-) = Перерасход</string>
     <string name="home_breakdown_income">Доход</string>
     <string name="home_breakdown_expenses">Расходы</string>
     <string name="home_breakdown_net_worth">Чистая стоимость</string>
@@ -62,9 +69,16 @@
         <item quantity="many">Активные ссуды %1$d</item>
         <item quantity="other">Активные ссуды %1$d</item>
     </plurals>
+    <string name="home_loans_owed_to_you">Вам должны %1$s</string>
     <string name="home_loans_you_owe">Вы обязаны %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
     <string name="greeting_last_day_of_month">Последний день %1$s</string>
+    <plurals name="greeting_days_left_in_month">
+        <item quantity="one">Остался %1$d день · %2$s</item>
+        <item quantity="few">Осталось %1$d дня · %2$s</item>
+        <item quantity="many">Осталось %1$d дней · %2$s</item>
+        <item quantity="other">Осталось %1$d дня · %2$s</item>
+    </plurals>
     <string name="greeting_good_morning">Доброе утро</string>
     <string name="greeting_good_afternoon">Добрый день</string>
     <string name="greeting_good_evening">Добрый вечер</string>
@@ -84,6 +98,8 @@
     <string name="color_swatch_selected">Выбрано</string>
     <string name="profile_filter_all_accounts">Все счета</string>
     <string name="whats_new_got_it">Понятно</string>
+    <string name="whats_new_title">Что нового</string>
+    <string name="whats_new_version">Версия %1$s</string>
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Нажмите здесь, чтобы отсканировать ваши SMS сообщения для транзакций</string>
     <string name="spotlight_tap_to_dismiss">Коснитесь экрана, чтобы отменить</string>
@@ -92,6 +108,7 @@
     <string name="type_filter_income">Доход</string>
     <string name="type_filter_expense">Расход</string>
     <string name="type_filter_credit">Кредит</string>
+    <string name="type_filter_spending">Траты</string>
     <string name="type_filter_transfer">Перевод</string>
     <string name="type_filter_investment">Инвестировать</string>
     <!-- ══ SMS scan progress dialog ══ -->
@@ -157,10 +174,16 @@
     <string name="balance_card_approximate_note">* Некоторые балансы не могут быть конвертированы и показаны в оригинальной валюте (общая сумма приблизительная).</string>
     <string name="balance_card_spent_this_month">Потрачено в этом месяце</string>
     <string name="balance_card_change_currency">Изменить валюту</string>
+    <string name="balance_card_summary_income">Доход</string>
+    <string name="balance_card_summary_expenses">Расходы</string>
+    <string name="balance_card_summary_lent">Одолжено</string>
+    <string name="balance_card_summary_saved">Накоплено</string>
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
+    <string name="budget_card_over_budget">Бюджет превышен на %1$s</string>
     <string name="budget_card_remaining">%1$s осталось</string>
     <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
+    <string name="budget_card_per_day">%1$s/день</string>
     <string name="budget_card_finished">Завершено</string>
     <string name="budget_card_tracking_all">Отслеживание всех расходов</string>
     <!-- %1$s is a weekday name -->
@@ -181,6 +204,18 @@
     </plurals>
     <string name="budget_card_over_by">Свыше от %1$s</string>
     <!-- %1$s is a date range -->
+    <plurals name="budget_card_runs_days_remaining">
+        <item quantity="one">%1$s · остался %2$d день</item>
+        <item quantity="few">%1$s · осталось %2$d дня</item>
+        <item quantity="many">%1$s · осталось %2$d дней</item>
+        <item quantity="other">%1$s · осталось %2$d дня</item>
+    </plurals>
+    <plurals name="budget_card_days_remaining">
+        <item quantity="one">Остался %1$d день</item>
+        <item quantity="few">Осталось %1$d дня</item>
+        <item quantity="many">Осталось %1$d дней</item>
+        <item quantity="other">Осталось %1$d дня</item>
+    </plurals>
     <string name="budget_card_spent_of">Потрачено %1$s из %2$s</string>
     <string name="budget_cadence_weekly">Еженедельно</string>
     <string name="budget_cadence_monthly">Ежемесячно</string>
@@ -195,6 +230,7 @@
         <item quantity="other">%1$d элементов</item>
     </plurals>
     <string name="group_card_no_transactions">Транзакций ещё нет</string>
+    <string name="group_card_invested">Вложено %1$s</string>
     <plurals name="group_card_transaction_count">
         <item quantity="one">%1$d транзакция</item>
         <item quantity="few">%1$d транзакций</item>
@@ -224,6 +260,7 @@
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">Добавить транзакцию</string>
     <!-- Budget widget -->
+    <string name="widget_budget_title">Месячный бюджет</string>
     <string name="widget_budget_percent_used">%1$d%% использовано</string>
     <string name="widget_budget_of_limit">из %1$s</string>
     <string name="widget_budget_per_day">%1$s/день</string>
@@ -240,6 +277,8 @@
     <string name="widget_recent_empty">Транзакций ещё нет</string>
     <string name="widget_recent_fallback_title">Транзакция</string>
     <!-- Spending summary widget -->
+    <string name="widget_summary_today">Сегодня</string>
+    <string name="widget_summary_month">Этот месяц</string>
     <!-- ══ Notifications ══ -->
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">SMS-сканирование</string>
@@ -260,60 +299,13 @@
     <string name="notif_txn_public_title">%1$s новая транзакция</string>
     <string name="notif_txn_public_text">%1$s • баланс нуждается в покупке</string>
     <!-- %1$s amount with currency, %2$s merchant -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <!-- After a category is picked from the notification; %1$s is the category -->
-    <!-- Evening recap notification -->
-    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
-    <!-- Header over a stack of transaction alerts -->
-    <!-- Balance chart legend -->
-    <string name="balance_chart_label">Тренд баланса</string>
-    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <!-- Month-end forecast on the "Spent this month" card -->
-    <!-- Safe to spend card + breakdown sheet -->
-    <string name="home_section_goals">Цели</string>
-    <string name="home_resync_title">Прочитать сообщения заново</string>
-    <string name="home_resync_scan_again">Сканировать все сообщения заново</string>
-    <string name="home_resync_scan_again_desc">Добавит всё, что было пропущено. Ваши правки и все существующие транзакции не изменятся.</string>
-    <string name="home_resync_rebuild">Пересобрать с нуля</string>
-    <string name="home_resync_rebuild_desc">Заново читает транзакции из SMS, чтобы применить исправления распознавания. Правки SMS-транзакций будут сброшены. Ручные, импортированные, долговые и сгруппированные транзакции сохранятся.</string>
-    <string name="home_breakdown_formula">Формула: Доход - Расходы = Чистая стоимость\nЗеленый (+) = Сбережения | Красный (-) = Перерасход</string>
-    <string name="home_loans_owed_to_you">Вам должны %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">Остался %1$d день · %2$s</item>
-        <item quantity="few">Осталось %1$d дня · %2$s</item>
-        <item quantity="many">Осталось %1$d дней · %2$s</item>
-        <item quantity="other">Осталось %1$d дня · %2$s</item>
-    </plurals>
-    <string name="whats_new_title">Что нового</string>
-    <string name="whats_new_version">Версия %1$s</string>
-    <string name="type_filter_spending">Траты</string>
-    <string name="balance_card_summary_income">Доход</string>
-    <string name="balance_card_summary_expenses">Расходы</string>
-    <string name="balance_card_summary_lent">Одолжено</string>
-    <string name="balance_card_summary_saved">Накоплено</string>
-    <string name="budget_card_over_budget">Бюджет превышен на %1$s</string>
-    <string name="budget_card_per_day">%1$s/день</string>
-    <plurals name="budget_card_runs_days_remaining">
-        <item quantity="one">%1$s · остался %2$d день</item>
-        <item quantity="few">%1$s · осталось %2$d дня</item>
-        <item quantity="many">%1$s · осталось %2$d дней</item>
-        <item quantity="other">%1$s · осталось %2$d дня</item>
-    </plurals>
-    <plurals name="budget_card_days_remaining">
-        <item quantity="one">Остался %1$d день</item>
-        <item quantity="few">Осталось %1$d дня</item>
-        <item quantity="many">Осталось %1$d дней</item>
-        <item quantity="other">Осталось %1$d дня</item>
-    </plurals>
-    <string name="group_card_invested">Вложено %1$s</string>
-    <string name="widget_budget_title">Месячный бюджет</string>
-    <string name="widget_summary_today">Сегодня</string>
-    <string name="widget_summary_month">Этот месяц</string>
     <string name="notif_txn_title_spent">Потрачено %1$s · %2$s</string>
     <string name="notif_txn_title_received">Получено %1$s от %2$s</string>
-    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">На что это было? · %1$s</string>
     <string name="notif_txn_action_change">Изменить</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Сохранено как %1$s</string>
     <string name="notif_txn_learned_text">Платежи здесь теперь будут распределяться автоматически.</string>
     <plurals name="notif_txn_learned_moved">
@@ -322,8 +314,10 @@
         <item quantity="many">Также перенесено %d прежних транзакций.</item>
         <item quantity="other">Также перенесено %d прежней транзакции.</item>
     </plurals>
+    <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">Итоги дня</string>
     <string name="notif_daily_channel_description">Короткая сводка расходов за день каждый вечер</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">Сегодня вы потратили %1$s</string>
     <plurals name="notif_daily_count">
         <item quantity="one">%d транзакция</item>
@@ -339,18 +333,24 @@
     </plurals>
     <string name="notif_daily_action_sort">Разобрать</string>
     <string name="notif_daily_action_cash">+ Наличные</string>
+    <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d новая транзакция</item>
         <item quantity="few">%d новые транзакции</item>
         <item quantity="many">%d новых транзакций</item>
         <item quantity="other">%d новой транзакции</item>
     </plurals>
+    <!-- Balance chart legend -->
+    <string name="balance_chart_label">Тренд баланса</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">Нравится PennyWise?</string>
     <string name="pro_home_card_body">Pro добавляет неограниченные правила, цели, экспорт и импорт выписок.</string>
     <string name="pro_home_card_action">Подробнее о Pro</string>
     <string name="pro_home_card_dismiss">Скрыть</string>
+    <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">По плану: %1$s к %2$s</string>
     <string name="forecast_over_usual">На %1$s больше обычного</string>
+    <!-- Safe to spend card + breakdown sheet -->
     <string name="home_section_safe_to_spend">Можно потратить</string>
     <string name="safe_to_spend_title">Можно потратить</string>
     <string name="safe_to_spend_tap_to_show">Нажмите, чтобы показать</string>

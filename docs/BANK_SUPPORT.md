@@ -1,6 +1,6 @@
 # Bank SMS Support
 
-PennyWise parses bank SMS into transactions through a registry of dedicated parsers. As of August 2026 the registry holds **144 parsers covering 23 countries**.
+PennyWise parses bank SMS into transactions through a registry of dedicated parsers. As of October 2026 the registry holds **170 parsers covering 26 countries**.
 
 This page explains how support works and where to look things up. It deliberately doesn't repeat the full bank list — that list is machine-generated and would drift the moment someone adds a parser without updating prose.
 

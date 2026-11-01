@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings.aiaccess
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -52,8 +54,8 @@ import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
-import java.text.DateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
 
 @Composable
 fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hiltViewModel()) {
@@ -183,7 +185,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                         Column(Modifier.weight(1f)) {
                             Text(c.clientName, style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                stringResource(R.string.ai_access_connected_on, DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(c.createdAt * 1000))),
+                                stringResource(R.string.ai_access_connected_on, AppDates.dateFormatter().format(Instant.ofEpochSecond(c.createdAt).atZone(ZoneId.systemDefault()))),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }

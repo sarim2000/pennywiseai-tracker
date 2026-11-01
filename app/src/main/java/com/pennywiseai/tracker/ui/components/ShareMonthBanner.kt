@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AppDates
+
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
@@ -45,7 +47,7 @@ fun ShareMonthBanner(
 ) {
     val month = remember {
         YearMonth.from(LocalDate.now()).minusMonths(1)
-            .format(DateTimeFormatter.ofPattern("MMMM", Locale.getDefault()))
+            .format(AppDates.pattern("MMMM"))
     }
 
     Card(

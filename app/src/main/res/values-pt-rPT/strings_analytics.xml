@@ -15,7 +15,15 @@
     <string name="analytics_top_tags">Principais tags</string>
     <string name="analytics_top_merchants">Comerciantes Mais Populares</string>
     <string name="analytics_by_account">Por Conta</string>
+    <string name="analytics_by_day_of_week">Por dia da semana</string>
+    <string name="analytics_no_tag">Sem etiqueta</string>
+    <string name="analytics_tag_overlap_note">Uma transação com várias etiquetas conta em cada uma delas, por isso a soma das etiquetas pode ultrapassar o total.</string>
     <!-- Group by picker (#422); the chip and menu show one of these -->
+    <string name="analytics_group_by_category">Por categoria</string>
+    <string name="analytics_group_by_merchant">Por comerciante</string>
+    <string name="analytics_group_by_account">Por conta</string>
+    <string name="analytics_group_by_tag">Por etiqueta</string>
+    <string name="analytics_group_by_day_of_week">Por dia da semana</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <!-- Filters -->
     <string name="analytics_filter_clear">Limpar</string>
@@ -80,6 +88,7 @@
     <string name="budgets_move_down">Mover para baixo</string>
     <!-- %1$s = formatted amount -->
     <string name="budgets_over_budget">%1$s acima do orçamento</string>
+    <string name="budgets_remaining">Restam %1$s</string>
     <string name="budgets_over_by">Terminado por %1$s</string>
     <string name="budgets_finished">Finalizado.</string>
     <!-- %1$s = weekday name -->
@@ -92,6 +101,10 @@
     <!-- %1$d = day of month the budget starts on -->
     <string name="budgets_resets_today_monthly">Reinicia hoje · dia %1$d</string>
     <!-- %1$d = days, %2$d = day of month -->
+    <plurals name="budgets_resets_in_monthly">
+        <item quantity="one">Recomeça daqui a %1$d dia · dia %2$d</item>
+        <item quantity="other">Recomeça daqui a %1$d dias · dia %2$d</item>
+    </plurals>
     <!-- Date range, %1$s = start date, %2$s = end date -->
     <string name="budgets_date_range">%1$s – %2$s</string>
     <!-- %1$s = date range, %2$d = days -->
@@ -284,6 +297,10 @@
     <string name="mark_paid_eyebrow_received">MARQUE COMO RECEBIDO</string>
     <!-- %1$s = date -->
     <string name="mark_paid_already_marked">Já marcado como pago em %1$s</string>
+    <plurals name="mark_paid_found_matches">
+        <item quantity="one">Foi encontrado %1$d pagamento correspondente</item>
+        <item quantity="other">Foram encontrados %1$d pagamentos correspondentes</item>
+    </plurals>
     <string name="mark_paid_when">Quando?</string>
     <!-- %1$s = formatted amount -->
     <string name="mark_paid_cta_paid">Marcar paga · %1$s</string>
@@ -297,30 +314,12 @@
     <string name="mark_paid_or_mark_today">ou marque hoje</string>
     <string name="mark_paid_today">Hoje</string>
     <string name="mark_paid_yesterday">Ontem</string>
-    <string name="mark_paid_pick_date">Escolher data</string>
-    <!-- Month-end forecast row in the summary card -->
-    <string name="analytics_by_day_of_week">Por dia da semana</string>
-    <string name="analytics_no_tag">Sem etiqueta</string>
-    <string name="analytics_tag_overlap_note">Uma transação com várias etiquetas conta em cada uma delas, por isso a soma das etiquetas pode ultrapassar o total.</string>
-    <string name="analytics_group_by_category">Por categoria</string>
-    <string name="analytics_group_by_merchant">Por comerciante</string>
-    <string name="analytics_group_by_account">Por conta</string>
-    <string name="analytics_group_by_tag">Por etiqueta</string>
-    <string name="analytics_group_by_day_of_week">Por dia da semana</string>
-    <string name="analytics_group_by_pro">Pro</string>
-    <string name="budgets_remaining">Restam %1$s</string>
-    <plurals name="budgets_resets_in_monthly">
-        <item quantity="one">Recomeça daqui a %1$d dia · dia %2$d</item>
-        <item quantity="other">Recomeça daqui a %1$d dias · dia %2$d</item>
-    </plurals>
-    <plurals name="mark_paid_found_matches">
-        <item quantity="one">Foi encontrado %1$d pagamento correspondente</item>
-        <item quantity="other">Foram encontrados %1$d pagamentos correspondentes</item>
-    </plurals>
     <plurals name="mark_paid_days_ago">
         <item quantity="one">Há %1$d dia</item>
         <item quantity="other">Há %1$d dias</item>
     </plurals>
+    <string name="mark_paid_pick_date">Escolher data</string>
+    <!-- Month-end forecast row in the summary card -->
     <string name="analytics_forecast_for">Previsão para %1$s</string>
     <string name="analytics_forecast_above_usual">Cerca de %1$s acima do habitual</string>
     <string name="analytics_forecast_stay_under">Gaste menos de %1$s por dia para ficar nos %2$s.</string>

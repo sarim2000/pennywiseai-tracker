@@ -2,13 +2,6 @@
 <resources>
     <!-- ══ Goals (#914). Words follow GLOSSARY.md. ══ -->
     <!-- Budgets screen section -->
-    <!-- Create / edit -->
-    <!-- Detail -->
-    <!-- Add money / Take out / edit sheet -->
-    <!-- Add to goal from a transaction (#914) -->
-    <!-- Compact goal rows: Home card and widgets -->
-    <!-- Home-screen widgets -->
-    <!-- Sample content for the widget picker previews only -->
     <string name="goals_section_title">Metas</string>
     <string name="upgrade_feature_goals">Metas ilimitadas</string>
     <string name="goals_new">Nueva meta</string>
@@ -30,6 +23,7 @@
         <item quantity="one">Queda %d mes</item>
         <item quantity="other">Quedan %d meses</item>
     </plurals>
+    <!-- Create / edit -->
     <string name="goal_edit_title_new">Nueva meta</string>
     <string name="goal_edit_title_edit">Editar meta</string>
     <string name="goal_back">Atrás</string>
@@ -41,7 +35,6 @@
     <string name="goal_edit_currency_locked">La moneda no se puede cambiar una vez que se agregó dinero</string>
     <string name="goal_edit_already_saved">Ya ahorrado</string>
     <string name="goal_edit_already_saved_hint">Opcional. Dinero que ya apartaste.</string>
-    <string name="goal_edit_color">Color</string>
     <string name="goal_edit_helper">Ahorra %1$s al mes para lograrlo</string>
     <string name="goal_edit_error_name">Ponle un nombre a la meta</string>
     <string name="goal_edit_error_target">Ingresa un monto objetivo mayor que cero</string>
@@ -52,6 +45,7 @@
     <string name="goal_edit_save">Guardar</string>
     <string name="goal_action_ok">Aceptar</string>
     <string name="goal_action_cancel">Cancelar</string>
+    <!-- Detail -->
     <string name="goal_detail_left">Falta</string>
     <string name="goal_detail_per_month">Por mes</string>
     <string name="goal_detail_over">%1$s de más</string>
@@ -70,6 +64,7 @@
     <string name="goal_converted_from">Desde %1$s</string>
     <string name="goal_withdrawal">Retiro</string>
     <string name="goal_contribution">Aporte</string>
+    <!-- Add money / Take out / edit sheet -->
     <string name="goal_money_amount">Monto</string>
     <string name="goal_money_date">Fecha</string>
     <string name="goal_money_note">Nota (opcional)</string>
@@ -83,6 +78,7 @@
     <string name="goal_edit_contribution">Editar aporte</string>
     <string name="goal_edit_withdrawal">Editar retiro</string>
     <string name="goal_contribution_delete">Eliminar</string>
+    <!-- Add to goal from a transaction (#914) -->
     <string name="goal_add_to_goal">Agregar a una meta</string>
     <string name="goal_add_to_goal_left">%1$s de esta transacción puede ir a metas</string>
     <string name="goal_add_to_goal_none_left">Toda esta transacción ya va a metas</string>
@@ -92,12 +88,13 @@
     <string name="goal_toward_goals">Para metas</string>
     <string name="goal_toward_remove">Quitar de %1$s</string>
     <string name="goal_currency_locked_by_goal">Quita esta transacción de sus metas antes de cambiar su moneda</string>
-    <string name="goals_line_join">%1$s · %2$s</string>
+    <!-- Compact goal rows: Home card and widgets -->
     <string name="goals_left">Faltan %1$s</string>
     <plurals name="goals_months_short">
         <item quantity="one">%d mes</item>
         <item quantity="other">%d meses</item>
     </plurals>
+    <!-- Home-screen widgets -->
     <string name="widget_name_goal">Meta</string>
     <string name="widget_name_goals">Metas</string>
     <string name="widget_description_goal">Una meta con su anillo de progreso y lo que falta por ahorrar</string>
@@ -107,4 +104,5 @@
     <string name="widget_goals_empty">Aún no hay metas</string>
     <string name="widget_goal_config_title">Elige una meta</string>
     <string name="widget_goal_config_close">Cerrar</string>
+    <!-- Sample content for the widget picker previews only -->
 </resources>

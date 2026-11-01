@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.receiver
 
 import android.app.Notification
+import android.content.Context
+import android.content.pm.PackageManager
 import com.pennywiseai.parser.core.bank.BankParserFactory
 
 /**
@@ -38,6 +40,17 @@ object BankNotificationConfig {
      */
     val notificationBankNames: Set<String> by lazy {
         notificationAliases.mapNotNull { BankParserFactory.getParser(it)?.getBankName() }.toSet()
+    }
+
+    /**
+     * How to show a suggestion's sender: a tracked app (#994) is stored by package,
+     * so show its name ("Robinhood"). An SMS sender isn't a package and stays as is.
+     */
+    fun displayName(context: Context, sender: String): String = try {
+        val pm = context.packageManager
+        pm.getApplicationLabel(pm.getApplicationInfo(sender, 0)).toString()
+    } catch (e: PackageManager.NameNotFoundException) {
+        sender
     }
 
     fun isAllowed(packageName: String): Boolean =

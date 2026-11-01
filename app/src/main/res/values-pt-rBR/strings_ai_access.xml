@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
-<resources>    <string name="ai_access_settings_title">Conectar Claude / ChatGPT</string>
+<resources>
+    <string name="ai_access_settings_title">Conectar Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Deixe apps de AI lerem seus dados enquanto você permitir</string>
     <string name="ai_access_settings_subtitle_pro">Pro · Deixe apps de AI lerem seus dados enquanto você permitir</string>
     <string name="ai_access_title">Acesso por AI</string>
@@ -10,10 +11,8 @@
     <string name="ai_access_unlock">Desbloquear com Pro</string>
     <string name="ai_access_session_title">Sessão de AI</string>
     <string name="ai_access_session_off">Desativada. Escolha por quanto tempo manter o PennyWise conectado ou use o bloco PennyWise AI nas Configurações rápidas.</string>
-    <string name="ai_access_session_minutes">%d min</string>
     <string name="ai_access_session_on">Ativa · faltam %1$d:%2$02d</string>
     <string name="ai_access_session_connecting">Conectando… · faltam %1$d:%2$02d</string>
-    <string name="ai_access_extend">+15 min</string>
     <string name="ai_access_stop">Parar</string>
     <string name="ai_access_connect_title">Conectar um app de AI</string>
     <string name="ai_access_connect_step1">1. No Claude ou no ChatGPT, adicione um conector personalizado com esta URL:</string>

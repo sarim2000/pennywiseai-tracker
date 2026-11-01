@@ -3,150 +3,30 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">ธุรกรรมถูกลบ</string>
     <string name="home_undo">เลิกทำ</string>
+    <string name="home_upgrade_pro">อัปเกรดเป็น PennyWise Pro</string>
+    <string name="home_profile_filter">ตัวกรองโปรไฟล์</string>
     <string name="home_more_options">ตัวเลือกเพิ่มเติม</string>
     <string name="home_view_all">ดูทั้งหมด</string>
+    <string name="home_view">ดู</string>
+    <string name="home_manage">จัดการ</string>
     <string name="home_search_transactions">ค้นหาธุรกรรม</string>
     <string name="home_cancel">ยกเลิก</string>
     <string name="home_close">ปิด</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">งบประมาณ</string>
-    <string name="home_section_loans">เงินกู้</string>
-    <string name="home_section_accounts">บัญชีธนาคาร</string>
-    <!-- Empty state -->
-    <string name="home_empty_headline">ยังไม่มีรายการธุรกรรม</string>
-    <!-- FABs + full resync -->
-    <string name="home_fab_add">เพิ่มธุรกรรมหรือการสมัครสมาชิก</string>
-    <!-- More options sheet -->
-    <string name="home_menu_settings">การตั้งค่า</string>
-    <!-- Edit home screen sheet -->
-    <string name="home_edit_description">จัดลำดับใหม่หรือซ่อนส่วนบนหน้าหลักของคุณ</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">รายละเอียดการคำนวณ</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_income">รายได้</string>
-    <string name="home_breakdown_expenses">ค่าใช้จ่าย</string>
-    <string name="home_breakdown_net_worth">มูลค่าสุทธิ</string>
-    <!-- Subscriptions + loans summary cards -->
-    <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">วันสุดท้ายของ %1$s</string>
-    <string name="greeting_good_morning">สวัสดีตอนเช้า</string>
-    <string name="greeting_good_afternoon">สวัสดีตอนบ่าย</string>
-    <string name="greeting_good_evening">สวัสดีตอนเย็น</string>
-    <string name="greeting_good_night">ราตรีสวัสดิ์</string>
-    <string name="greeting_default_user_name">ผู้ใช้</string>
-    <string name="greeting_more_options">ตัวเลือกเพิ่มเติม</string>
-    <!-- ══ Bottom navigation ══ -->
-    <string name="nav_home">หน้าแรก</string>
-    <string name="nav_transactions">ไทม์ไลน์</string>
-    <string name="nav_analytics">การวิเคราะห์</string>
-    <!-- ══ Shared components ══ -->
-    <string name="error_state_retry">ลองอีกครั้ง</string>
-    <string name="color_swatch_selected">ที่เลือก</string>
-    <string name="profile_filter_all_accounts">บัญชีทั้งหมด</string>
-    <!-- Spotlight tutorial -->
-    <!-- Transaction type filter (short labels) -->
-    <string name="type_filter_all">ทั้งหมด</string>
-    <string name="type_filter_income">รายได้</string>
-    <string name="type_filter_expense">ค่าใช้จ่าย</string>
-    <string name="type_filter_credit">เครดิต</string>
-    <string name="type_filter_transfer">โอน</string>
-    <!-- ══ SMS scan progress dialog ══ -->
-    <string name="sms_scan_title">กำลังสแกนข้อความ SMS</string>
-    <string name="sms_scan_cancel">ยกเลิกการสแกน</string>
-    <string name="sms_scan_done">เสร็จสิ้น</string>
-    <string name="sms_scan_close">ปิด</string>
-    <string name="sms_scan_all_processed">ข้อความทั้งหมดถูกประมวลผลแล้ว!</string>
-    <plurals name="sms_scan_processed_of">
-        <item quantity="other">ประมวลผล %1$d จาก %2$d ข้อความ</item>
-    </plurals>
-    <!-- %1$s is a duration such as "2m 5s" -->
-    <string name="sms_scan_time_left">เหลือประมาณ ~%1$s</string>
-    <string name="sms_scan_batch">ชุดที่ %1$d จาก %2$d</string>
-    <string name="sms_scan_completed">สแกนเสร็จสมบูรณ์เรียบร้อย!</string>
-    <string name="sms_scan_failed">สแกนล้มเหลว กรุณาลองอีกครั้ง</string>
-    <string name="sms_scan_cancelled">สแกนถูกยกเลิก</string>
-    <string name="sms_scan_starting">เริ่มการสแกน...</string>
-    <string name="sms_scan_indicator">กำลังสแกน SMS: %1$d/%2$d</string>
-    <!-- Short elapsed/remaining durations -->
-    <!-- ══ Shared cards ══ -->
-    <string name="card_collapse">ย่อ</string>
-    <string name="card_expand">ขยาย</string>
-    <!-- Account carousel -->
-    <string name="account_card_type_credit">เครดิต</string>
-    <string name="account_card_type_savings">การออม</string>
-    <string name="account_card_outstanding">ยอดคงค้าง</string>
-    <string name="account_card_balance">ยอดคงเหลือ</string>
-    <!-- Balance / spending card -->
-    <!-- %1$s is a formatted (or masked) amount -->
-    <string name="balance_card_accounts">บัญชี</string>
-    <string name="balance_card_credit_cards">บัตรเครดิต</string>
-    <string name="balance_card_total">รวม</string>
-    <!-- Budget card -->
-    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
-    <!-- %1$s is a weekday name -->
-    <!-- %1$d is the day of month the budget starts on -->
-    <!-- %1$s is a date range -->
-    <plurals name="budget_card_days_remaining">
-        <item quantity="other">เหลือ %1$d วัน</item>
-    </plurals>
-    <string name="budget_cadence_weekly">รายสัปดาห์</string>
-    <string name="budget_cadence_monthly">รายเดือน</string>
-    <string name="budget_carousel_create">สร้างงบประมาณ</string>
-    <!-- Group cards -->
-    <string name="group_card_no_transactions">ยังไม่มีรายการธุรกรรม</string>
-    <plurals name="group_card_transaction_count">
-        <item quantity="other">%1$d ธุรกรรม</item>
-    </plurals>
-    <!-- Transaction count · latest date -->
-    <!-- Cash flow card -->
-    <string name="cash_flow_credit">เครดิต</string>
-    <!-- Transaction row -->
-    <string name="txn_item_tag_credit">เครดิต</string>
-    <string name="txn_item_tag_transfer">โอน</string>
-    <string name="txn_item_tag_investment">การลงทุน</string>
-    <string name="txn_item_tag_recurring">เกิดซ้ำ</string>
-    <!-- %1$s is the last 4 digits of the other account -->
-    <!-- ══ Home-screen widgets ══ -->
-    <!-- Add transaction widget -->
-    <string name="widget_add_content_description">เพิ่มรายการธุรกรรม</string>
-    <!-- Budget widget -->
-    <string name="widget_budget_percent_used">%1$d%% ใช้แล้ว</string>
-    <!-- Spending pie widget -->
-    <!-- Slice that groups the smallest categories -->
-    <string name="widget_pie_other">อื่นๆ</string>
-    <!-- Recent transactions widget -->
-    <string name="widget_recent_empty">ยังไม่มีรายการธุรกรรม</string>
-    <string name="widget_recent_fallback_title">ธุรกรรม</string>
-    <!-- Spending summary widget -->
-    <!-- ══ Notifications ══ -->
-    <!-- SMS scan progress (foreground worker) -->
-    <!-- New transaction notification -->
-    <string name="notif_txn_unknown_bank">ธนาคาร</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <!-- After a category is picked from the notification; %1$s is the category -->
-    <!-- Evening recap notification -->
-    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
-    <!-- Header over a stack of transaction alerts -->
-    <!-- Balance chart legend -->
-    <string name="balance_chart_label">แนวโน้มยอดเงิน</string>
-    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
-    <!-- Month-end forecast on the "Spent this month" card -->
-    <!-- Safe to spend card + breakdown sheet -->
-    <string name="home_upgrade_pro">อัปเกรดเป็น PennyWise Pro</string>
-    <string name="home_profile_filter">ตัวกรองโปรไฟล์</string>
-    <string name="home_view">ดู</string>
-    <string name="home_manage">จัดการ</string>
     <string name="home_section_goals">เป้าหมาย</string>
+    <string name="home_section_loans">เงินกู้</string>
     <string name="home_section_groups">กลุ่ม</string>
     <string name="home_section_recent_transactions">ธุรกรรมล่าสุด</string>
+    <string name="home_section_accounts">บัญชีธนาคาร</string>
     <string name="home_section_subscriptions">การสมัครสมาชิกที่จะถึง</string>
     <string name="home_section_activity">กิจกรรม</string>
+    <!-- Empty state -->
+    <string name="home_empty_headline">ยังไม่มีรายการธุรกรรม</string>
     <string name="home_empty_description">สแกน SMS เพื่อเริ่มต้น เราจะหาธุรกรรมของคุณให้อัตโนมัติ</string>
     <string name="home_empty_action">สแกนเลย</string>
+    <!-- FABs + full resync -->
+    <string name="home_fab_add">เพิ่มธุรกรรมหรือการสมัครสมาชิก</string>
     <string name="home_fab_sync">ซิงค์ SMS (กดค้างเพื่อซิงค์ใหม่ทั้งหมด)</string>
     <string name="home_fab_sync_hint">กดค้างเพื่อซิงค์ใหม่ทั้งหมด</string>
     <string name="home_resync_title">อ่านข้อความอีกครั้ง</string>
@@ -154,17 +34,26 @@
     <string name="home_resync_scan_again_desc">เพิ่มรายการที่ตกหล่น สิ่งที่คุณแก้ไขและธุรกรรมที่มีอยู่ทั้งหมดจะยังเหมือนเดิม</string>
     <string name="home_resync_rebuild">สร้างใหม่ตั้งแต่ต้น</string>
     <string name="home_resync_rebuild_desc">อ่านธุรกรรมจาก SMS ใหม่เพื่อใช้การแก้ไขตัวแยกข้อมูลล่าสุด สิ่งที่คุณแก้ไขในธุรกรรมจาก SMS จะถูกรีเซ็ต ส่วนธุรกรรมที่เพิ่มเอง นำเข้า เงินกู้ และที่จัดกลุ่มไว้จะยังอยู่</string>
+    <!-- More options sheet -->
     <string name="home_menu_title">ตัวเลือกเพิ่มเติม</string>
     <string name="home_menu_monthly_recap">สรุปรายเดือน</string>
+    <string name="home_menu_settings">การตั้งค่า</string>
     <string name="home_menu_edit_home">แก้ไขหน้าแรก</string>
     <string name="home_menu_discord">เข้าร่วม Discord เพื่อส่งความคิดเห็น</string>
     <string name="home_menu_rate">ให้คะแนนใน Play Store</string>
-    <string name="home_version">v%1$s</string>
+    <!-- Edit home screen sheet -->
     <string name="home_edit_title">แก้ไขหน้าแรก</string>
+    <string name="home_edit_description">จัดลำดับใหม่หรือซ่อนส่วนบนหน้าหลักของคุณ</string>
     <string name="home_edit_move_up">เลื่อน %1$s ขึ้น</string>
     <string name="home_edit_move_down">เลื่อน %1$s ลง</string>
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
+    <!-- Calculation breakdown dialog -->
+    <string name="home_breakdown_title">รายละเอียดการคำนวณ</string>
+    <!-- Month name, then day range, e.g. "March 1-15" -->
     <string name="home_breakdown_formula">สูตร: รายได้ - ค่าใช้จ่าย = มูลค่าสุทธิ\nสีเขียว (+) = เงินออม | สีแดง (-) = ใช้เกิน</string>
+    <string name="home_breakdown_income">รายได้</string>
+    <string name="home_breakdown_expenses">ค่าใช้จ่าย</string>
+    <string name="home_breakdown_net_worth">มูลค่าสุทธิ</string>
+    <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="other">การสมัครสมาชิกที่ใช้งานอยู่ %1$d รายการ</item>
     </plurals>
@@ -174,33 +63,84 @@
     </plurals>
     <string name="home_loans_owed_to_you">คนอื่นติดคุณ %1$s</string>
     <string name="home_loans_you_owe">คุณติดหนี้ %1$s</string>
+    <!-- ══ Greeting card (home header) ══ -->
+    <string name="greeting_last_day_of_month">วันสุดท้ายของ %1$s</string>
     <plurals name="greeting_days_left_in_month">
         <item quantity="other">เหลืออีก %1$d วันในเดือน%2$s</item>
     </plurals>
+    <string name="greeting_good_morning">สวัสดีตอนเช้า</string>
+    <string name="greeting_good_afternoon">สวัสดีตอนบ่าย</string>
+    <string name="greeting_good_evening">สวัสดีตอนเย็น</string>
+    <string name="greeting_good_night">ราตรีสวัสดิ์</string>
+    <string name="greeting_default_user_name">ผู้ใช้</string>
     <string name="greeting_profile_filter">ตัวกรองโปรไฟล์</string>
+    <string name="greeting_more_options">ตัวเลือกเพิ่มเติม</string>
+    <!-- ══ Bottom navigation ══ -->
+    <string name="nav_home">หน้าแรก</string>
+    <string name="nav_transactions">ไทม์ไลน์</string>
+    <string name="nav_analytics">การวิเคราะห์</string>
     <string name="nav_chat">แชท</string>
+    <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">ดูน้อยลง</string>
     <string name="expandable_list_view_all_more">ดูทั้งหมด (อีก %1$d รายการ)</string>
+    <string name="error_state_retry">ลองอีกครั้ง</string>
+    <string name="color_swatch_selected">ที่เลือก</string>
+    <string name="profile_filter_all_accounts">บัญชีทั้งหมด</string>
     <string name="whats_new_got_it">เข้าใจแล้ว</string>
     <string name="whats_new_title">มีอะไรใหม่</string>
     <string name="whats_new_version">เวอร์ชัน %1$s</string>
+    <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">แตะที่นี่เพื่อสแกนหาธุรกรรมจากข้อความ SMS</string>
     <string name="spotlight_tap_to_dismiss">แตะที่ใดก็ได้เพื่อปิด</string>
+    <!-- Transaction type filter (short labels) -->
+    <string name="type_filter_all">ทั้งหมด</string>
+    <string name="type_filter_income">รายได้</string>
+    <string name="type_filter_expense">ค่าใช้จ่าย</string>
+    <string name="type_filter_credit">เครดิต</string>
     <string name="type_filter_spending">รายจ่าย</string>
+    <string name="type_filter_transfer">โอน</string>
     <string name="type_filter_investment">ลงทุน</string>
+    <!-- ══ SMS scan progress dialog ══ -->
+    <string name="sms_scan_title">กำลังสแกนข้อความ SMS</string>
+    <string name="sms_scan_cancel">ยกเลิกการสแกน</string>
+    <string name="sms_scan_done">เสร็จสิ้น</string>
+    <string name="sms_scan_close">ปิด</string>
+    <string name="sms_scan_all_processed">ข้อความทั้งหมดถูกประมวลผลแล้ว!</string>
+    <plurals name="sms_scan_processed_of">
+        <item quantity="other">ประมวลผล %1$d จาก %2$d ข้อความ</item>
+    </plurals>
     <plurals name="sms_scan_transactions_parsed">
         <item quantity="other">อ่านได้ %1$d ธุรกรรม</item>
     </plurals>
     <string name="sms_scan_saved">บันทึกแล้ว %1$d</string>
+    <!-- %1$s is a duration such as "2m 5s" -->
+    <string name="sms_scan_time_left">เหลือประมาณ ~%1$s</string>
+    <string name="sms_scan_batch">ชุดที่ %1$d จาก %2$d</string>
     <string name="sms_scan_processing">กำลังประมวลผล...</string>
+    <string name="sms_scan_completed">สแกนเสร็จสมบูรณ์เรียบร้อย!</string>
+    <string name="sms_scan_failed">สแกนล้มเหลว กรุณาลองอีกครั้ง</string>
+    <string name="sms_scan_cancelled">สแกนถูกยกเลิก</string>
+    <string name="sms_scan_starting">เริ่มการสแกน...</string>
+    <string name="sms_scan_indicator">กำลังสแกน SMS: %1$d/%2$d</string>
+    <!-- Short elapsed/remaining durations -->
     <string name="duration_hours_minutes">%1$d ชม. %2$d น.</string>
     <string name="duration_minutes_seconds">%1$d น. %2$d วิ</string>
     <string name="duration_seconds">%1$d วิ</string>
+    <!-- ══ Shared cards ══ -->
     <string name="balance_show">แสดงยอดเงิน</string>
     <string name="balance_hide">ซ่อนยอดเงิน</string>
+    <string name="card_collapse">ย่อ</string>
+    <string name="card_expand">ขยาย</string>
+    <!-- Account carousel -->
+    <string name="account_card_type_credit">เครดิต</string>
+    <string name="account_card_type_savings">การออม</string>
     <string name="account_card_low_balance">ยอดเงินเหลือน้อย</string>
+    <string name="account_card_outstanding">ยอดคงค้าง</string>
+    <string name="account_card_balance">ยอดคงเหลือ</string>
+    <!-- Balance / spending card -->
     <string name="balance_card_change_more">มากกว่าเดือนที่แล้ว %1$d%%</string>
     <string name="balance_card_change_less">น้อยกว่าเดือนที่แล้ว %1$d%%</string>
+    <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">ยอดคงเหลือ: %1$s</string>
     <plurals name="balance_card_account_count">
         <item quantity="other">" · %1$d บัญชี"</item>
@@ -208,6 +148,9 @@
     <string name="balance_card_last_month_amount">เดือนที่แล้ว: %1$s</string>
     <string name="balance_card_this_month">เดือนนี้</string>
     <string name="balance_card_last_month">เดือนที่แล้ว</string>
+    <string name="balance_card_accounts">บัญชี</string>
+    <string name="balance_card_credit_cards">บัตรเครดิต</string>
+    <string name="balance_card_total">รวม</string>
     <string name="balance_card_approximate_note">* ยอดเงินบางรายการแปลงสกุลไม่ได้ จึงแสดงเป็นสกุลเงินเดิม (ยอดรวมเป็นค่าโดยประมาณ)</string>
     <string name="balance_card_spent_this_month">ใช้ไปเดือนนี้</string>
     <string name="balance_card_change_currency">เปลี่ยนสกุลเงิน</string>
@@ -215,76 +158,121 @@
     <string name="balance_card_summary_expenses">ค่าใช้จ่าย</string>
     <string name="balance_card_summary_lent">ให้ยืม</string>
     <string name="balance_card_summary_saved">เก็บได้</string>
-    <string name="budget_card_percent">%1$d%%</string>
+    <!-- Budget card -->
     <string name="budget_card_over_budget">เกินงบ %1$s</string>
     <string name="budget_card_remaining">เหลือ %1$s</string>
+    <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
     <string name="budget_card_per_day">%1$s/วัน</string>
     <string name="budget_card_finished">สิ้นสุดแล้ว</string>
     <string name="budget_card_tracking_all">ติดตามค่าใช้จ่ายทั้งหมด</string>
+    <!-- %1$s is a weekday name -->
     <string name="budget_card_resets_today_weekday">รีเซ็ตวันนี้ · เริ่มใหม่ทุก%1$s</string>
     <plurals name="budget_card_resets_in_weekday">
         <item quantity="other">รีเซ็ตในอีก %1$d วัน · เริ่มใหม่ทุก%2$s</item>
     </plurals>
+    <!-- %1$d is the day of month the budget starts on -->
     <string name="budget_card_resets_today_day">รีเซ็ตวันนี้ · วันที่ %1$d</string>
     <plurals name="budget_card_resets_in_day">
         <item quantity="other">รีเซ็ตในอีก %1$d วัน · วันที่ %2$d</item>
     </plurals>
     <string name="budget_card_over_by">เกินไป %1$s</string>
+    <!-- %1$s is a date range -->
     <plurals name="budget_card_runs_days_remaining">
         <item quantity="other">ช่วง %1$s · เหลือ %2$d วัน</item>
     </plurals>
+    <plurals name="budget_card_days_remaining">
+        <item quantity="other">เหลือ %1$d วัน</item>
+    </plurals>
     <string name="budget_card_spent_of">ใช้ไป %1$s จาก %2$s</string>
+    <string name="budget_cadence_weekly">รายสัปดาห์</string>
+    <string name="budget_cadence_monthly">รายเดือน</string>
     <string name="budget_cadence_one_time">ครั้งเดียว</string>
     <string name="budget_carousel_empty">ตั้งงบประมาณเพื่อติดตามการใช้จ่าย</string>
+    <string name="budget_carousel_create">สร้างงบประมาณ</string>
+    <!-- Group cards -->
     <plurals name="group_card_item_count">
         <item quantity="other">%1$d รายการ</item>
     </plurals>
+    <string name="group_card_no_transactions">ยังไม่มีรายการธุรกรรม</string>
     <string name="group_card_invested">ลงทุน %1$s</string>
-    <string name="group_card_subtitle">%1$s · %2$s</string>
+    <plurals name="group_card_transaction_count">
+        <item quantity="other">%1$d ธุรกรรม</item>
+    </plurals>
+    <!-- Transaction count · latest date -->
+    <!-- Cash flow card -->
     <string name="cash_flow_title">เงินที่เคลื่อนไหว</string>
     <string name="cash_flow_subtitle">รายการที่ไม่นับในกระแสเงินสดสุทธิของเดือนนี้</string>
+    <string name="cash_flow_credit">เครดิต</string>
     <string name="cash_flow_invested">ลงทุน</string>
     <string name="cash_flow_transferred">โอน</string>
+    <!-- Transaction row -->
+    <string name="txn_item_tag_credit">เครดิต</string>
+    <string name="txn_item_tag_transfer">โอน</string>
+    <string name="txn_item_tag_investment">การลงทุน</string>
+    <string name="txn_item_tag_recurring">เกิดซ้ำ</string>
     <string name="txn_item_tag_business">ธุรกิจ</string>
     <string name="txn_item_tag_excluded">ไม่นับรวม</string>
     <string name="txn_item_balance_after">คงเหลือ %1$s</string>
+    <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">โอน → %1$s</string>
     <string name="txn_item_transfer_from">โอนจาก %1$s</string>
+    <!-- ══ Home-screen widgets ══ -->
+    <!-- Add transaction widget -->
+    <string name="widget_add_content_description">เพิ่มรายการธุรกรรม</string>
+    <!-- Budget widget -->
     <string name="widget_budget_title">งบประมาณรายเดือน</string>
+    <string name="widget_budget_percent_used">%1$d%% ใช้แล้ว</string>
     <string name="widget_budget_of_limit">จาก %1$s</string>
     <string name="widget_budget_per_day">%1$s/วัน</string>
     <string name="widget_budget_saved">เก็บได้ %1$s</string>
     <string name="widget_budget_overspent">เกิน %1$s</string>
+    <!-- Spending pie widget -->
     <string name="widget_pie_title">การใช้จ่าย</string>
     <string name="widget_pie_content_description">การใช้จ่ายตามหมวดหมู่</string>
-    <string name="widget_pie_percent">%1$d%%</string>
     <string name="widget_pie_empty">เดือนนี้ยังไม่มีการใช้จ่าย</string>
+    <!-- Slice that groups the smallest categories -->
+    <string name="widget_pie_other">อื่นๆ</string>
+    <!-- Recent transactions widget -->
+    <string name="widget_recent_empty">ยังไม่มีรายการธุรกรรม</string>
+    <string name="widget_recent_fallback_title">ธุรกรรม</string>
+    <!-- Spending summary widget -->
     <string name="widget_summary_today">วันนี้</string>
     <string name="widget_summary_month">เดือนนี้</string>
+    <!-- ══ Notifications ══ -->
+    <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">สแกน SMS</string>
     <string name="notif_sms_scan_title">กำลังสแกนธุรกรรม…</string>
     <string name="notif_sms_scan_progress">ประมวลผลแล้ว %1$d / %2$d</string>
     <string name="notif_sms_scan_reading">กำลังอ่าน SMS…</string>
+    <!-- New transaction notification -->
     <string name="notif_txn_channel_name">การแจ้งเตือนธุรกรรม</string>
     <string name="notif_txn_channel_description">แจ้งเตือนเมื่อมีธุรกรรมใหม่</string>
     <string name="notif_txn_unknown_merchant">ไม่ทราบ</string>
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
+    <string name="notif_txn_unknown_bank">ธนาคาร</string>
+    <!-- Category • bank name -->
+    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
     <string name="notif_txn_balance_discrepancy">⚠ ยอดเงินคลาดเคลื่อน %1$s — ควรเป็น %2$s แต่ธนาคารแจ้ง %3$s</string>
     <string name="notif_txn_action_more">เพิ่มเติม…</string>
+    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
     <string name="notif_txn_public_title">%1$s ธุรกรรมใหม่</string>
     <string name="notif_txn_public_text">%1$s • ยอดเงินต้องตรวจสอบ</string>
+    <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">จ่าย %1$s ที่ %2$s</string>
     <string name="notif_txn_title_received">ได้รับ %1$s จาก %2$s</string>
-    <string name="notif_txn_title_other">%1$s · %2$s</string>
+    <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
+    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">รายการนี้จ่ายค่าอะไร? · %1$s</string>
     <string name="notif_txn_action_change">เปลี่ยน</string>
+    <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">บันทึกเป็น %1$s แล้ว</string>
     <string name="notif_txn_learned_text">ต่อจากนี้รายการจ่ายที่นี่จะถูกจัดหมวดหมู่ให้อัตโนมัติ</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="other">ย้ายรายการก่อนหน้า %d รายการไปด้วยแล้ว</item>
     </plurals>
+    <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">สรุปรายวัน</string>
     <string name="notif_daily_channel_description">สรุปการใช้จ่ายของวันสั้นๆ ทุกเย็น</string>
+    <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">วันนี้คุณใช้ไป %1$s</string>
     <plurals name="notif_daily_count">
         <item quantity="other">%d ธุรกรรม</item>
@@ -294,15 +282,21 @@
     </plurals>
     <string name="notif_daily_action_sort">จัดหมวดหมู่</string>
     <string name="notif_daily_action_cash">+ เงินสด</string>
+    <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="other">%d ธุรกรรมใหม่</item>
     </plurals>
+    <!-- Balance chart legend -->
+    <string name="balance_chart_label">แนวโน้มยอดเงิน</string>
+    <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">ชอบ PennyWise ไหม?</string>
     <string name="pro_home_card_body">Pro เพิ่มกฎ เป้าหมาย การส่งออก และการนำเข้า Statement ได้ไม่จำกัด</string>
     <string name="pro_home_card_action">ดู Pro</string>
     <string name="pro_home_card_dismiss">ปิด</string>
+    <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">มีแนวโน้มอยู่ที่ %1$s ภายใน %2$s</string>
     <string name="forecast_over_usual">มากกว่าปกติ %1$s</string>
+    <!-- Safe to spend card + breakdown sheet -->
     <string name="home_section_safe_to_spend">เงินที่ใช้ได้</string>
     <string name="safe_to_spend_title">เงินที่ใช้ได้</string>
     <string name="safe_to_spend_tap_to_show">แตะเพื่อแสดง</string>

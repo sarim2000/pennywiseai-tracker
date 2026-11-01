@@ -16,9 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.decodeFromString
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import kotlinx.serialization.json.decodeFromStream
 import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -77,14 +75,13 @@ class BackupImporter @Inject constructor(
     private suspend fun readBackupFile(uri: Uri): PennyWiseBackup {
         return withContext(Dispatchers.IO) {
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val reader = BufferedReader(InputStreamReader(inputStream))
-                val content = reader.readText()
+                // Streamed, so a large backup isn't also held as one big String.
                 // backupJson tolerates missing keys (older backups → Kotlin
                 // defaults) and unknown keys (newer backups → ignored). The
                 // old Gson `normalized()` net is no longer needed because the
                 // `= emptyList()` / field defaults on the models now actually
                 // apply. See BackupSerializers + docs/backup-format.md.
-                backupJson.decodeFromString<PennyWiseBackup>(content)
+                backupJson.decodeFromStream<PennyWiseBackup>(inputStream.buffered())
             } ?: throw Exception("Failed to read backup file")
         }
     }

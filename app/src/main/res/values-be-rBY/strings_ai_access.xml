@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
-<resources>    <string name="ai_access_settings_title">Падключыць Claude / ChatGPT</string>
+<resources>
+    <string name="ai_access_settings_title">Падключыць Claude / ChatGPT</string>
     <string name="ai_access_settings_subtitle">Дазвольце AI-праграмам чытаць вашы даныя, пакуль вы гэта дазваляеце</string>
     <string name="ai_access_settings_subtitle_pro">Pro · Дазвольце AI-праграмам чытаць вашы даныя, пакуль вы гэта дазваляеце</string>
     <string name="ai_access_title">Доступ для AI</string>

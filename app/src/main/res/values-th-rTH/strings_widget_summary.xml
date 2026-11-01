@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Spending summary, budget overview and cash widgets. -->
-<resources>    <string name="widget_summary_description">การใช้จ่ายวันนี้ งบประมาณที่เหลือ และปุ่มเพิ่มเงินสดแบบด่วน</string>
+<resources>
+    <string name="widget_summary_description">การใช้จ่ายวันนี้ งบประมาณที่เหลือ และปุ่มเพิ่มเงินสดแบบด่วน</string>
     <string name="widget_summary_left">เหลือในงบ</string>
     <string name="widget_summary_over">เกินงบ</string>
     <string name="widget_budget_left_label">เหลือ</string>

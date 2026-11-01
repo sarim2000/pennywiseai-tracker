@@ -33,6 +33,7 @@
     <string name="txn_detail_error_amount_positive_number">O valor deve ser um número positivo</string>
     <string name="txn_detail_error_category_exists_income">Uma categoria chamada \"%1$s\" já existe como renda</string>
     <string name="txn_detail_error_category_exists_expense">Uma categoria chamada \"%1$s\" já existe como despesa</string>
+    <string name="txn_detail_error_category_exists_other_parent">Já existe uma categoria chamada \"%1$s\" em outra categoria principal</string>
     <string name="txn_detail_error_create_category">Não foi possível criar categoria: %1$s</string>
     <string name="txn_detail_error_splits_unavailable">Divisões estão disponíveis apenas para despesas e compras de cartão</string>
     <string name="txn_detail_error_splits_min">Pelo menos 2 divisões são obrigatórias</string>
@@ -41,6 +42,8 @@
     <string name="txn_detail_error_merchant_required">Nome do comerciante é necessário</string>
     <string name="txn_detail_error_amount_positive">O valor deve ser positivo</string>
     <string name="txn_detail_error_same_accounts">Contas de origem e destino devem ser diferentes</string>
+    <string name="txn_detail_error_loan_type_locked">Esta transação faz parte de um empréstimo. Remova-a do empréstimo antes de trocar entre rendimento e gasto.</string>
+    <string name="txn_detail_error_loan_currency_locked">Esta transação faz parte de um empréstimo. Remova-a do empréstimo antes de mudar a moeda.</string>
     <string name="txn_detail_error_tag_rule">Salvo, mas não foi possível criar a regra de tag: %1$s</string>
     <string name="txn_detail_error_save">Falha ao salvar as alterações: %1$s</string>
     <string name="txn_detail_error_delete">Falha ao excluir transação</string>
@@ -79,6 +82,7 @@
     <string name="txn_detail_receipt_full_screen">Recibo em tela cheia</string>
     <string name="txn_detail_close">FECHAR</string>
     <string name="txn_detail_exclude_analytics_title">Excluir da análise</string>
+    <string name="txn_detail_exclude_analytics_subtitle">Continua no histórico e no saldo, mas fica fora das estatísticas de gastos</string>
     <string name="txn_detail_label_date_time">Data &amp; Hora</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Dividir (categoria%1$d)</item>
@@ -104,9 +108,15 @@
     <string name="txn_detail_balance_mismatch_value">Desligar por %1$s · esperado %2$s</string>
     <string name="txn_detail_add_untracked_expense">Adicionar %1$s despesa não monitorada</string>
     <string name="txn_detail_add_untracked_income">Adicionar renda %1$s não monitorada</string>
+    <string name="txn_detail_adjustment_title_expense">Despesa não registrada</string>
+    <string name="txn_detail_adjustment_title_income">Rendimento não registrado</string>
+    <string name="txn_detail_adjustment_what">O que foi?</string>
+    <string name="txn_detail_adjustment_what_placeholder">Ajuste de saldo</string>
+    <string name="txn_detail_adjustment_add">Adicionar</string>
     <string name="txn_detail_label_reference">Referência</string>
     <string name="txn_detail_receipt">Recibo</string>
     <string name="txn_detail_receipt_tap_to_view">Toque para ver</string>
+    <string name="txn_detail_receipt_missing">Foto do recibo não incluída neste backup</string>
     <string name="txn_detail_sms_hide">Ocultar SMS</string>
     <string name="txn_detail_sms_show">Mostrar SMS original</string>
     <string name="txn_detail_field_amount">Quantidade</string>
@@ -114,6 +124,7 @@
     <string name="txn_detail_field_alias">Exibir pseudônimo (opcional)</string>
     <string name="txn_detail_field_alias_placeholder">Mostrar nome de amigo em vez disso</string>
     <string name="txn_detail_field_description">Descrição (opcional)</string>
+    <string name="txn_detail_field_reference">Número de referência (opcional)</string>
     <string name="txn_detail_apply_tags_to_merchant">Aplicar etiquetas a todos os futuros de %1$s</string>
     <string name="txn_detail_field_from_account">Da Conta</string>
     <string name="txn_detail_field_from_account_placeholder">Selecione ou digite a conta de origem</string>
@@ -139,6 +150,7 @@
     <string name="txn_detail_budget_no_categories">Nenhuma categoria de orçamento encontrada</string>
     <string name="txn_detail_add_category">Adicionar categoria</string>
     <string name="txn_detail_select_time">Selecione o horário</string>
+    <string name="txn_detail_loan_sheet_lent">Emprestou %1$s</string>
     <string name="txn_detail_loan_sheet_borrowed">%1$s Emprestado</string>
     <string name="txn_detail_loan_sheet_who_lent">Por quem você pagou?</string>
     <string name="txn_detail_loan_sheet_who_borrowed">Quem pagou por você?</string>
@@ -161,6 +173,8 @@
     <string name="txn_totals_expense">Despesa</string>
     <string name="txn_totals_expenses">Despesas</string>
     <string name="txn_totals_credit">Crédito</string>
+    <string name="txn_totals_transfer">Transferência</string>
+    <string name="txn_totals_invest">Investimento</string>
     <string name="txn_totals_net">Líquido</string>
     <string name="txn_totals_select_currency">Selecione a moeda</string>
     <!-- Transactions list -->
@@ -241,6 +255,7 @@
     <string name="add_field_amount">Quantidade *</string>
     <string name="add_field_merchant">Comerciante</string>
     <string name="add_field_notes">Notas (opcional)</string>
+    <string name="add_field_reference">Número de referência (opcional)</string>
     <string name="add_field_category">categoria</string>
     <string name="add_clear">Limpar</string>
     <string name="add_selected">Selecionado</string>
@@ -310,6 +325,7 @@
     <string name="group_detail_transactions">Transações</string>
     <string name="group_detail_expenses">Despesas</string>
     <string name="group_detail_income">Rendimento</string>
+    <string name="group_detail_invested">Investido</string>
     <string name="group_detail_empty_title">Nenhuma transação ainda</string>
     <string name="group_detail_empty_hint">Toque em + para adicionar transações a este grupo</string>
     <string name="group_detail_delete_title">Apagar Grupo</string>
@@ -385,8 +401,13 @@
     <!-- Shared transaction components -->
     <string name="quick_category_title">Alterar categoria</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
+    <string name="quick_add_title">Gasto em dinheiro</string>
+    <string name="quick_add_more_details">Mais detalhes</string>
+    <string name="quick_add_where_hint">Onde? (opcional)</string>
     <!-- %1$s the cash account the spend comes out of -->
+    <string name="quick_add_from">De: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
+    <string name="quick_add_saved">Salvo: %1$s · %2$s</string>
     <string name="date_range_title">Selecione Intervalo de Datas</string>
     <string name="date_range_ok">Certo</string>
     <string name="date_range_cancel">cancelar</string>
@@ -403,6 +424,7 @@
     <string name="split_editor_balanced">Equilibrado</string>
     <string name="split_editor_not_balanced">Não balanceado</string>
     <string name="split_editor_total">Total:</string>
+    <string name="split_editor_remaining">Restam %1$s</string>
     <string name="split_editor_over">%1$s acima</string>
     <string name="split_editor_remove">Remover divisão</string>
     <string name="split_breakdown_title">Disposição da Categoria</string>
@@ -410,26 +432,4 @@
     <string name="tag_input_remove">Remover %1$s</string>
     <string name="tag_input_add">Adicionar tag</string>
     <string name="tag_input_create">Criar \"%1$s\"</string>
-    <string name="txn_detail_error_category_exists_other_parent">Já existe uma categoria chamada \"%1$s\" em outra categoria principal</string>
-    <string name="txn_detail_error_loan_type_locked">Esta transação faz parte de um empréstimo. Remova-a do empréstimo antes de trocar entre rendimento e gasto.</string>
-    <string name="txn_detail_error_loan_currency_locked">Esta transação faz parte de um empréstimo. Remova-a do empréstimo antes de mudar a moeda.</string>
-    <string name="txn_detail_exclude_analytics_subtitle">Continua no histórico e no saldo, mas fica fora das estatísticas de gastos</string>
-    <string name="txn_detail_adjustment_title_expense">Despesa não registrada</string>
-    <string name="txn_detail_adjustment_title_income">Rendimento não registrado</string>
-    <string name="txn_detail_adjustment_what">O que foi?</string>
-    <string name="txn_detail_adjustment_what_placeholder">Ajuste de saldo</string>
-    <string name="txn_detail_adjustment_add">Adicionar</string>
-    <string name="txn_detail_receipt_missing">Foto do recibo não incluída neste backup</string>
-    <string name="txn_detail_field_reference">Número de referência (opcional)</string>
-    <string name="txn_detail_loan_sheet_lent">Emprestou %1$s</string>
-    <string name="txn_totals_transfer">Transferência</string>
-    <string name="txn_totals_invest">Investimento</string>
-    <string name="add_field_reference">Número de referência (opcional)</string>
-    <string name="group_detail_invested">Investido</string>
-    <string name="quick_add_title">Gasto em dinheiro</string>
-    <string name="quick_add_more_details">Mais detalhes</string>
-    <string name="quick_add_where_hint">Onde? (opcional)</string>
-    <string name="quick_add_from">De: %1$s</string>
-    <string name="quick_add_saved">Salvo: %1$s · %2$s</string>
-    <string name="split_editor_remaining">Restam %1$s</string>
 </resources>

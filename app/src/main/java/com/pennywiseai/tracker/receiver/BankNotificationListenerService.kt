@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.receiver
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.repository.BankNotificationRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
@@ -35,6 +36,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         fun smsTransactionProcessor(): SmsTransactionProcessor
         fun bankNotificationRepository(): BankNotificationRepository
         fun transactionRepository(): TransactionRepository
+        fun trackedNotificationAppsStore(): TrackedNotificationAppsStore
     }
 
     companion object {
@@ -45,8 +47,15 @@ class BankNotificationListenerService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val packageName = sbn.packageName ?: return
+        // Our own alerts ("Spent … at …?") must never feed back in.
+        if (packageName == this.packageName) return
 
-        if (!BankNotificationConfig.isAllowed(packageName)) {
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext,
+            NotificationListenerEntryPoint::class.java
+        )
+        val allowed = BankNotificationConfig.isAllowed(packageName)
+        if (!allowed && !entryPoint.trackedNotificationAppsStore().isTracked(packageName)) {
             return
         }
 
@@ -60,10 +69,21 @@ class BankNotificationListenerService : NotificationListenerService() {
             return
         }
 
-        val entryPoint = EntryPointAccessors.fromApplication(
-            applicationContext,
-            NotificationListenerEntryPoint::class.java
-        )
+        // #994 step 4: an app the user picked, with no parser of its own. Offer what
+        // the generic extractor reads as a suggestion; never book it directly.
+        if (!allowed) {
+            serviceScope.launch {
+                try {
+                    // The package is the sender: it keeps two apps with one name apart.
+                    SmsBroadcastReceiver.suggestFromLearnedSender(
+                        applicationContext, packageName, body, sbn.postTime, fromTrackedApp = true
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to suggest from tracked app notification", e)
+                }
+            }
+            return
+        }
         val processor = entryPoint.smsTransactionProcessor()
         val notificationRepository = entryPoint.bankNotificationRepository()
         val transactionRepository = entryPoint.transactionRepository()

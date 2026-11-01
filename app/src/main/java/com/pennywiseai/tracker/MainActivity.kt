@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -70,6 +71,10 @@ class MainActivity : FragmentActivity() {
     // Text shared to PennyWise from another app; opens Add Transaction pre-filled.
     var sharedText by mutableStateOf<String?>(null)
         private set
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase.withLatinDigits())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Install splash screen before super.onCreate()

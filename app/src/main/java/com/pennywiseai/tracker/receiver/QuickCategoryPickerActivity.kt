@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.receiver
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -71,6 +72,10 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     // Holds the args from the latest intent (initial or via onNewIntent), so
     // a second notification tap re-targets the picker at the new transaction.
     private val currentArgs = mutableStateOf<PickerArgs?>(null)
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase.withLatinDigits())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

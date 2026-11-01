@@ -1444,7 +1444,7 @@ private fun BreakdownDialog(
     lastMonthIncome: BigDecimal,
     lastMonthExpenses: BigDecimal,
     lastMonthTotal: BigDecimal,
-    currency: String = "INR",
+    currency: String,
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
@@ -1552,7 +1552,7 @@ private fun BreakdownRow(
     amount: BigDecimal,
     isIncome: Boolean,
     isBold: Boolean = false,
-    currency: String = "INR"
+    currency: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1583,7 +1583,7 @@ private fun UpcomingSubscriptionsCard(
     totalAmount: BigDecimal,
     totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
     isUnified: Boolean = false,
-    currency: String = "INR",
+    currency: String,
     onClick: () -> Unit = {},
     blurEffects: Boolean = false,
     hazeState: HazeState? = null

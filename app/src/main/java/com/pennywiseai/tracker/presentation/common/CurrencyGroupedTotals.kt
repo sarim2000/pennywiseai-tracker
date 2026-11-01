@@ -16,7 +16,7 @@ data class CurrencyGroupedTotals(
 
     fun hasAnyCurrency(): Boolean = availableCurrencies.isNotEmpty()
 
-    fun getPrimaryCurrency(preferredCurrency: String = "INR"): String {
+    fun getPrimaryCurrency(preferredCurrency: String): String {
         return when {
             availableCurrencies.contains(preferredCurrency) -> preferredCurrency
             availableCurrencies.isNotEmpty() -> availableCurrencies.first()

@@ -55,7 +55,7 @@ fun AccountCarousel(
     onAccountClick: (bankName: String, accountLast4: String) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     isUnifiedMode: Boolean = false,
-    selectedCurrency: String = "INR",
+    selectedCurrency: String,
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {
@@ -106,7 +106,7 @@ private fun AccountCarouselCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     isUnifiedMode: Boolean = false,
-    selectedCurrency: String = "INR",
+    selectedCurrency: String,
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
 ) {

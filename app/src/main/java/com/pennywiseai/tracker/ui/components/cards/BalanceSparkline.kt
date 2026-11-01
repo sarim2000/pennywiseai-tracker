@@ -24,7 +24,7 @@ fun BalanceSparkline(
     data: List<BigDecimal>,
     lineColor: Color,
     modifier: Modifier = Modifier,
-    currency: String = "INR",
+    currency: String,
     isBalanceHidden: Boolean = false,
     comparisonData: List<BigDecimal>? = null,
     comparisonLineColor: Color = Color.Gray
@@ -151,22 +151,10 @@ fun BalanceSparkline(
 }
 
 private fun formatCompactBalance(value: BigDecimal, currency: String): String {
-    val symbol = when (currency) {
-        "INR" -> "\u20B9"
-        "USD" -> "$"
-        "EUR" -> "\u20AC"
-        "GBP" -> "\u00A3"
-        "AED" -> "AED"
-        else -> currency
-    }
-    val absValue = value.abs().toDouble()
-    val formatted = when {
-        absValue >= 10_000_000 -> String.format(java.util.Locale.US, "%.1fCr", absValue / 10_000_000)
-        absValue >= 100_000 -> String.format(java.util.Locale.US, "%.1fL", absValue / 100_000)
-        absValue >= 1_000 -> String.format(java.util.Locale.US, "%.1fK", absValue / 1_000)
-        else -> String.format(java.util.Locale.US, "%.0f", absValue)
-    }
-    val clean = formatted.replace(".0K", "K").replace(".0L", "L").replace(".0Cr", "Cr")
+    // Symbol and K/M vs L/Cr follow the currency and the number-format setting.
     val prefix = if (value < BigDecimal.ZERO) "-" else ""
-    return com.pennywiseai.tracker.utils.CurrencyFormatter.signed(prefix, "$symbol$clean")
+    return com.pennywiseai.tracker.utils.CurrencyFormatter.signed(
+        prefix,
+        com.pennywiseai.tracker.utils.CurrencyFormatter.formatAbbreviated(value.toDouble(), currency)
+    )
 }

@@ -26,7 +26,7 @@ class CsvTransactionImporterTest {
             appendLine("2026-01-17,12:00:00,Broker,Investments,Investment,1000.00,USD,DemoBank,9876,,,")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertEquals(0, result.failedCount)
         assertEquals(3, result.transactions.size)
@@ -64,7 +64,7 @@ class CsvTransactionImporterTest {
             appendLine("2026-01-16,10:00:00,Broken,Food,Expense,not-a-number,INR,DemoBank,1234,,,")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertEquals(1, result.transactions.size)
         assertEquals(1, result.failedCount)
@@ -82,7 +82,7 @@ class CsvTransactionImporterTest {
             appendLine("2026-01-17,10:00:00,Zero,Food,Expense,0,INR,DemoBank,1234,,,")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertEquals(1, result.transactions.size)
         assertEquals(2, result.failedCount)
@@ -97,11 +97,23 @@ class CsvTransactionImporterTest {
             appendLine("2026-01-16,09:30:00,Enum Merchant,Shopping,credit,99.00,INR,DemoBank,1234,,,")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertEquals(2, result.transactions.size)
         assertEquals(TransactionType.CREDIT, result.transactions[0].transactionType)
         assertEquals(TransactionType.CREDIT, result.transactions[1].transactionType)
+    }
+
+    @Test
+    fun `missing currency column falls back to the given base currency`() {
+        val csv = buildString {
+            appendLine("Date,Type,Amount")
+            appendLine("2026-02-01,Expense,42.00")
+        }
+
+        val result = importer.parse(StringReader(csv), "SAR")
+
+        assertEquals("SAR", result.transactions.single().currency)
     }
 
     @Test
@@ -113,7 +125,7 @@ class CsvTransactionImporterTest {
             appendLine("500.00,Expense,2026-02-01,Reordered Merchant,ignore-me,EUR")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertEquals(0, result.failedCount)
         assertEquals(1, result.transactions.size)
@@ -135,7 +147,7 @@ class CsvTransactionImporterTest {
             appendLine("2026-01-15,09:30:00,Coffee Shop,Food,Expense,250.00,INR,DemoBank,1234,,,")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertTrue(result.failureReasons.isEmpty())
         assertEquals(1, result.transactions.size)
@@ -150,7 +162,7 @@ class CsvTransactionImporterTest {
             appendLine("2026-01-15,09:30:00,Coffee Shop,Food,Expense,250.00,INR,DemoBank,1234,,,")
         }
 
-        val result = importer.parse(StringReader(csv))
+        val result = importer.parse(StringReader(csv), "INR")
 
         assertEquals(2, result.transactions.size)
         assertNotNull(result.transactions[0].transactionHash)

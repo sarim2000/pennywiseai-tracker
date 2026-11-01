@@ -48,7 +48,6 @@ class CsvTransactionImporter @Inject constructor() {
 
         private const val DEFAULT_BANK = "Imported"
         private const val DEFAULT_CATEGORY = "Others"
-        private const val DEFAULT_CURRENCY = "INR"
     }
 
     /**
@@ -65,8 +64,9 @@ class CsvTransactionImporter @Inject constructor() {
      * Parses the given CSV [reader]. The first row must be the header; column
      * indices are resolved from it by name. Rows that are blank, or missing a
      * required field, or malformed, are counted as failed rather than throwing.
+     * Rows with no Currency cell are booked in [defaultCurrency] (the user's base).
      */
-    fun parse(reader: Reader): ImportParseResult {
+    fun parse(reader: Reader, defaultCurrency: String): ImportParseResult {
         val transactions = mutableListOf<TransactionEntity>()
         val failureReasons = mutableListOf<String>()
         var failedCount = 0
@@ -135,7 +135,8 @@ class CsvTransactionImporter @Inject constructor() {
                         bankIdx = bankIdx,
                         accountIdx = accountIdx,
                         balanceIdx = balanceIdx,
-                        descriptionIdx = descriptionIdx
+                        descriptionIdx = descriptionIdx,
+                        defaultCurrency = defaultCurrency
                     ))
                 } catch (e: Exception) {
                     failedCount++
@@ -162,7 +163,8 @@ class CsvTransactionImporter @Inject constructor() {
         bankIdx: Int?,
         accountIdx: Int?,
         balanceIdx: Int?,
-        descriptionIdx: Int?
+        descriptionIdx: Int?,
+        defaultCurrency: String
     ): TransactionEntity {
         val dateText = row.cell(dateIdx)
             ?: throw IllegalArgumentException("Missing Date")
@@ -205,7 +207,7 @@ class CsvTransactionImporter @Inject constructor() {
 
         val merchant = row.cell(merchantIdx)?.takeIf { it.isNotBlank() } ?: "Unknown"
         val category = row.cell(categoryIdx)?.takeIf { it.isNotBlank() } ?: DEFAULT_CATEGORY
-        val currency = row.cell(currencyIdx)?.takeIf { it.isNotBlank() } ?: DEFAULT_CURRENCY
+        val currency = row.cell(currencyIdx)?.takeIf { it.isNotBlank() } ?: defaultCurrency
         val bank = row.cell(bankIdx)?.takeIf { it.isNotBlank() } ?: DEFAULT_BANK
         val account = row.cell(accountIdx)?.takeIf { it.isNotBlank() }
         val description = row.cell(descriptionIdx)?.takeIf { it.isNotBlank() }

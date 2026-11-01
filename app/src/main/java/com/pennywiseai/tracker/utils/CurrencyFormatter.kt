@@ -155,7 +155,7 @@ object CurrencyFormatter {
     /**
      * Formats a BigDecimal amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String =
+    fun formatCurrency(amount: BigDecimal, currencyCode: String): String =
         ltr(formatCurrencyRaw(amount, currencyCode))
 
     /**
@@ -221,7 +221,7 @@ object CurrencyFormatter {
     /**
      * Formats a Double amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: Double, currencyCode: String = "INR"): String {
+    fun formatCurrency(amount: Double, currencyCode: String): String {
         return formatCurrency(amount.toBigDecimal(), currencyCode)
     }
 
@@ -323,7 +323,7 @@ object CurrencyFormatter {
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000_000)}M"
             absValue >= 1_000 ->
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000)}K"
-            absValue > 0 -> "${symbol}${absValue.toInt()}"
+            absValue > 0 -> "${symbol}${kotlin.math.round(absValue).toLong()}"
             else -> "${symbol}0"
         }
     }

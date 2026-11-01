@@ -78,6 +78,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         CategoryMapping.userStyles
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
+        com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
 
         // Re-arm the daily folder backup on process start when the user has it enabled,
         // so scheduled work survives reboots / app updates that clear WorkManager state.
@@ -177,6 +178,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     // when the device or per-app language changes.
     override fun onConfigurationChanged(newConfig: ResConfiguration) {
         super.onConfigurationChanged(newConfig)
+        com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
         val locales = newConfig.locales
         if (lastLocales != null && locales != lastLocales) {
             com.pennywiseai.tracker.widget.WidgetLanguageChanges.value++

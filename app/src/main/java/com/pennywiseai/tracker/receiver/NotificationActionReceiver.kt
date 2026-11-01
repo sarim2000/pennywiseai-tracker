@@ -153,7 +153,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             intent.toLearned(transactionId)?.let { entryPoint.learnCategoryUseCase().undo(it) }
                             WidgetRefresher.refreshTransactionWidgets(context)
                         }.onFailure { Log.e(TAG, "Error undoing a learned category", it) }
-                        dismissNotification(context, notificationId)
+                        SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
                     }
                     ACTION_TRACK_RECURRING -> {
                         val cycle = intent.getStringExtra(EXTRA_BILLING_CYCLE)

@@ -9,6 +9,7 @@ import android.content.Intent
 import android.provider.Telephony
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.os.BundleCompat
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
@@ -286,35 +287,70 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     context.resources.getQuantityString(R.plurals.notif_txn_learned_moved, moved, moved)
                 else -> context.getString(R.string.notif_txn_learned_text)
             }
-            notificationManager.notify(
-                notificationId,
-                NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
-                    .setContentTitle(context.getString(R.string.notif_txn_learned_title, CategoryMapping.label(context, learned.category)))
-                    .setContentText(text)
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-                    .setContentIntent(openTransactionIntent(context, learned.transactionId))
-                    .addAction(
-                        0,
-                        context.getString(R.string.home_undo),
-                        NotificationActionReceiver.undoIntent(
-                            context,
-                            categoryRequestCode(learned.transactionId, UNDO_SLOT),
-                            notificationId,
-                            learned
-                        )
+            // An alert still asking "Track as … bill" / "Update price" hands that
+            // action to the note, and Undo puts the alert back, so a category pick
+            // never costs the bill's answer.
+            val billAlert = notificationManager.activeNotifications
+                .firstOrNull { it.id == notificationId && it.tag == null }?.notification
+                ?.takeIf { it.extras.getBoolean(EXTRA_BILL_ACTION) }
+            val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(context.getString(R.string.notif_txn_learned_title, CategoryMapping.label(context, learned.category)))
+                .setContentText(text)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setContentIntent(openTransactionIntent(context, learned.transactionId))
+            billAlert?.actions?.firstOrNull()?.let { builder.addAction(0, it.title, it.actionIntent) }
+            builder
+                .addAction(
+                    0,
+                    context.getString(R.string.home_undo),
+                    NotificationActionReceiver.undoIntent(
+                        context,
+                        categoryRequestCode(learned.transactionId, UNDO_SLOT),
+                        notificationId,
+                        learned
                     )
-                    .addExtras(
-                        android.os.Bundle().apply {
-                            putString(EXTRA_LEARNED_MERCHANT, learned.merchant)
-                            putLong(EXTRA_LEARNED_AT, learnedAt)
+                )
+                .addExtras(
+                    android.os.Bundle().apply {
+                        putString(EXTRA_LEARNED_MERCHANT, learned.merchant)
+                        putLong(EXTRA_LEARNED_AT, learnedAt)
+                        if (billAlert != null) {
+                            putBoolean(EXTRA_BILL_ACTION, true)
+                            // A second pick replaces this note: keep the first alert.
+                            putParcelable(EXTRA_ALERT, alertBehind(billAlert) ?: billAlert)
                         }
-                    )
-                    .setAutoCancel(true)
-                    .setSilent(true)
-                    .setTimeoutAfter(LEARNED_TIMEOUT_MS)
-                    .build()
-            )
+                    }
+                )
+                .setAutoCancel(true)
+                .setSilent(true)
+            // A pending bill answer stays until it's given; a plain note times out.
+            if (billAlert == null) builder.setTimeoutAfter(LEARNED_TIMEOUT_MS)
+            notificationManager.notify(notificationId, builder.build())
+        }
+
+        private fun alertBehind(note: android.app.Notification): android.app.Notification? =
+            BundleCompat.getParcelable(note.extras, EXTRA_ALERT, android.app.Notification::class.java)
+
+        /**
+         * The learned note's Undo: brings back the alert it replaced when that
+         * one still had a bill to answer, else just clears the note.
+         */
+        fun undoLearnedNotification(context: Context, notificationId: Int) {
+            if (notificationId == -1) return
+            val notificationManager = ensureChannel(context)
+            val alert = notificationManager.activeNotifications
+                .firstOrNull { it.id == notificationId && it.tag == null }
+                ?.notification?.let(::alertBehind)
+            if (alert == null) {
+                notificationManager.cancel(notificationId)
+                updateAlertGroup(context, removedId = notificationId)
+            } else {
+                // The note still holds this slot, so the alert returns without a second sound.
+                alert.flags = alert.flags or android.app.Notification.FLAG_ONLY_ALERT_ONCE
+                notificationManager.notify(notificationId, alert)
+                updateAlertGroup(context, posted = notificationId to alert)
+            }
         }
 
         /** Labels for a [SubscriptionEntity.billingCycle]: the alert's action, and the cycle as a word. */
@@ -388,6 +424,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private const val UNDO_SLOT = 8
         private const val EXTRA_LEARNED_MERCHANT = "com.pennywiseai.tracker.learned_merchant"
         private const val EXTRA_LEARNED_AT = "com.pennywiseai.tracker.learned_at"
+        // Set on an alert (and its learned note) whose first action is "Track as … bill" / "Update price".
+        private const val EXTRA_BILL_ACTION = "com.pennywiseai.tracker.bill_action"
+        private const val EXTRA_ALERT = "com.pennywiseai.tracker.alert"
         private val LEARNED_LOCK = Any()
 
         // A busy day is one stack in the shade, not a wall of alerts.
@@ -677,6 +716,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // A repeat charge's "Track as … bill", or a repriced bill's "Update price",
             // goes first and takes a quick pick's place. They never both apply: a
             // price change needs a subscription, and Track needs there to be none.
+            if (offerPriceUpdate || trackCycle != null) {
+                notificationBuilder.addExtras(android.os.Bundle().apply { putBoolean(EXTRA_BILL_ACTION, true) })
+            }
             if (offerPriceUpdate) {
                 notificationBuilder.addAction(
                     0,

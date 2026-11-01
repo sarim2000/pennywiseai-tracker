@@ -52,7 +52,8 @@ class TrackRepeatChargeUseCase @Inject constructor(
 
     /**
      * Tracks [transactionId]'s merchant as a [cycle] bill paid by that charge,
-     * and marks the charge recurring. Null when the transaction is gone or a
+     * and marks the charge recurring. Null when the transaction is gone, no
+     * longer repeats as a [cycle] spend (edited since the alert), or a
      * subscription already covers it (a second tap on the same alert).
      */
     // One write transaction serializes the check and the insert, so two taps (or
@@ -60,7 +61,7 @@ class TrackRepeatChargeUseCase @Inject constructor(
     suspend fun track(transactionId: Long, cycle: String): SubscriptionEntity? = database.withTransaction {
         val transaction = transactionRepository.getTransactionById(transactionId)
             ?.takeUnless { it.isDeleted } ?: return@withTransaction null
-        if (subscriptionRepository.hasAnySubscriptionFor(transaction.merchantName, transaction.currency)) return@withTransaction null
+        if (suggestedCycle(transaction) != cycle) return@withTransaction null
         val paidOn = transaction.dateTime.toLocalDate()
         val subscription = SubscriptionEntity(
             merchantName = transaction.merchantName,

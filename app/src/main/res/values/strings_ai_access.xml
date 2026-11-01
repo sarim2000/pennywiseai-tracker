@@ -7,7 +7,7 @@
 
     <string name="ai_access_title">AI access</string>
     <string name="ai_access_back">Back</string>
-    <string name="ai_access_intro">Ask Claude, ChatGPT or another AI app about your spending, or open the dashboard on a computer. They can read your transactions, balances and subscriptions only while an AI session is on. They can\'t change anything.</string>
+    <string name="ai_access_intro">Ask Claude, ChatGPT or another AI app about your spending, or open the dashboard on a computer. They can read your transactions, balances and subscriptions only while an AI session is on, and change nothing unless you allow it below.</string>
     <string name="ai_access_pro_only">AI access is a Pro feature.</string>
     <string name="ai_access_unlock">Unlock with Pro</string>
 

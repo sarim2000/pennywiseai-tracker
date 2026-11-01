@@ -46,7 +46,7 @@ import java.util.Date
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -143,13 +143,9 @@ fun ChatScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (isDownloading) {
-                                    LinearProgressIndicator(
+                                    LinearWavyProgressIndicator(
                                         progress = { downloadProgress / 100f },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(Spacing.sm)
-                                            .clip(RoundedCornerShape(Spacing.xs)),
-                                        drawStopIndicator = {}
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     OutlinedButton(onClick = { viewModel.cancelDownload() }) {
                                         Icon(
@@ -235,13 +231,9 @@ fun ChatScreen(
                                         Text(stringResource(R.string.chat_cancel))
                                     }
                                 }
-                                LinearProgressIndicator(
+                                LinearWavyProgressIndicator(
                                     progress = { downloadProgress / 100f },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(Spacing.sm)
-                                        .clip(CircleShape),
-                                    drawStopIndicator = {}
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         } else {
@@ -295,7 +287,7 @@ fun ChatScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
-                            CircularProgressIndicator()
+                            LoadingIndicator()
                             Text(
                                 text = stringResource(R.string.chat_initializing_model),
                                 style = MaterialTheme.typography.bodyLarge

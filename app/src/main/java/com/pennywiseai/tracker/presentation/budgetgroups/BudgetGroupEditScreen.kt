@@ -62,7 +62,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BudgetGroupEditScreen(
     viewModel: BudgetGroupEditViewModel = hiltViewModel(),
@@ -178,7 +178,7 @@ fun BudgetGroupEditScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }

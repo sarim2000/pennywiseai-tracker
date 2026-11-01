@@ -39,9 +39,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,6 +69,7 @@ import com.pennywiseai.tracker.domain.loan.SplitError
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.UpiRequest
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -272,17 +270,14 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
             )
             Text(stringResource(R.string.split_sheet_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                SplitMode.entries.forEachIndexed { i, mode ->
-                    SegmentedButton(
-                        selected = f.mode == mode,
-                        onClick = { viewModel.setMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(i, SplitMode.entries.size),
-                    ) {
-                        Text(stringResource(if (mode == SplitMode.EQUAL) R.string.split_mode_equal else R.string.split_mode_custom))
-                    }
-                }
-            }
+            ConnectedChoiceRow(
+                options = SplitMode.entries,
+                selected = f.mode,
+                onSelect = { viewModel.setMode(it) },
+                label = { mode ->
+                    stringResource(if (mode == SplitMode.EQUAL) R.string.split_mode_equal else R.string.split_mode_custom)
+                },
+            )
 
             // Everyone's part: read-only rows when equal, an amount field each when custom.
             if (f.mode == SplitMode.EQUAL) {

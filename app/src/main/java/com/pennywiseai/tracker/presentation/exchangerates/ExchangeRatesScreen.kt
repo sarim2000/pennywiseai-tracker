@@ -35,7 +35,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExchangeRatesScreen(
     viewModel: ExchangeRatesViewModel = hiltViewModel(),
@@ -83,7 +83,7 @@ fun ExchangeRatesScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
             }
 
@@ -143,7 +143,7 @@ fun ExchangeRatesScreen(
                     // Refreshing indicator
                     if (uiState.isRefreshing) {
                         item {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Spacer(modifier = Modifier.height(Spacing.sm))
                         }
                     }

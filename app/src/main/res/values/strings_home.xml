@@ -21,6 +21,7 @@
     <string name="home_section_recent_transactions">Recent Transactions</string>
     <string name="home_section_accounts">Bank Accounts</string>
     <string name="home_section_subscriptions">Upcoming Subscriptions</string>
+    <string name="home_section_money_in_motion">Money in motion</string>
     <string name="home_section_activity">Activity</string>
 
     <!-- Empty state -->

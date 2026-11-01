@@ -495,15 +495,7 @@ fun HomeScreen(
                             isApproximate = uiState.isApproximateBalance,
                             isBalanceHidden = uiState.isBalanceHidden,
                             onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                            onCurrencyClick = {
-                                // Cycle through currencies when tapped
-                                val currencies = uiState.availableCurrencies
-                                if (currencies.size > 1) {
-                                    val currentIdx = currencies.indexOf(uiState.selectedCurrency)
-                                    val nextIdx = (currentIdx + 1) % currencies.size
-                                    viewModel.selectCurrency(currencies[nextIdx])
-                                }
-                            },
+                            onCurrencySelected = { viewModel.selectCurrency(it) },
                             onShowBreakdown = { viewModel.showBreakdownDialog() },
                             accountBalances = uiState.accountBalances,
                             creditCards = uiState.creditCards,

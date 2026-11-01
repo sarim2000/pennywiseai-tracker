@@ -32,6 +32,9 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -93,7 +96,7 @@ fun BalanceCard(
     availableCurrencies: List<String>,
     isUnifiedMode: Boolean = false,
     isApproximate: Boolean = false,
-    onCurrencyClick: () -> Unit,
+    onCurrencySelected: (String) -> Unit,
     onShowBreakdown: () -> Unit,
     isBalanceHidden: Boolean = false,
     onToggleBalanceVisibility: () -> Unit = {},
@@ -194,7 +197,8 @@ fun BalanceCard(
                         SpendingMetaRow(
                             currency = currency,
                             showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
-                            onCurrencyClick = onCurrencyClick,
+                            currencies = availableCurrencies,
+                            onCurrencySelected = onCurrencySelected,
                             changeText = changeText,
                             changeColor = changeColor
                         )
@@ -247,7 +251,8 @@ fun BalanceCard(
                         SpendingMetaRow(
                             currency = currency,
                             showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode,
-                            onCurrencyClick = onCurrencyClick,
+                            currencies = availableCurrencies,
+                            onCurrencySelected = onCurrencySelected,
                             changeText = changeText,
                             changeColor = changeColor
                         )
@@ -561,7 +566,8 @@ private fun SpendingAmountHeader(
 private fun SpendingMetaRow(
     currency: String,
     showCurrencyChip: Boolean,
-    onCurrencyClick: () -> Unit,
+    currencies: List<String>,
+    onCurrencySelected: (String) -> Unit,
     changeText: String?,
     changeColor: Color
 ) {
@@ -570,11 +576,26 @@ private fun SpendingMetaRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        if (showCurrencyChip) {
+        if (showCurrencyChip) Box {
+            var showMenu by remember { mutableStateOf(false) }
             CurrencyChip(
                 currency = currency,
-                onClick = onCurrencyClick
+                onClick = { showMenu = true }
             )
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                currencies.forEach { code ->
+                    DropdownMenuItem(
+                        text = { Text(code) },
+                        onClick = {
+                            onCurrencySelected(code)
+                            showMenu = false
+                        },
+                        trailingIcon = if (code == currency) {
+                            { Icon(Icons.Default.Check, contentDescription = null) }
+                        } else null
+                    )
+                }
+            }
         }
         if (changeText != null) Surface(
             shape = RoundedCornerShape(Dimensions.CornerRadius.medium),

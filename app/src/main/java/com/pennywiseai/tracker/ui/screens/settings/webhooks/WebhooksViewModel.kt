@@ -67,7 +67,11 @@ class WebhooksViewModel @Inject constructor(
         if (!isProEntitled.value) return
         viewModelScope.launch {
             val currency = userPreferencesRepository.baseCurrency.first()
-            _state.update { it.copy(editor = WebhookEditorState(currency = currency), message = null) }
+            // An Edit opened while the preference was loading wins over this Add.
+            _state.update {
+                if (it.editor != null) it
+                else it.copy(editor = WebhookEditorState(currency = currency), message = null)
+            }
         }
     }
     fun closeEditor() = _state.update { it.copy(editor = null, message = null) }

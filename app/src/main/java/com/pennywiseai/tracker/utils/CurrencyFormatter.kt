@@ -323,7 +323,7 @@ object CurrencyFormatter {
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000_000)}M"
             absValue >= 1_000 ->
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000)}K"
-            absValue > 0 -> "${symbol}${absValue.toInt()}"
+            absValue > 0 -> "${symbol}${kotlin.math.round(absValue).toLong()}"
             else -> "${symbol}0"
         }
     }

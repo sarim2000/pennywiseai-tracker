@@ -522,9 +522,9 @@ fun HomeScreen(
                 }
             }
 
-            // Share / one-time Pro card: below the first section (Safe to spend by
-            // default), so the decision card stays first and the prompt still sits
-            // high enough to be seen and dismissed.
+            // Share / one-time Pro card: below the first section that actually shows
+            // (Safe to spend by default), so the decision card stays first and the
+            // prompt still sits high enough to be seen and dismissed.
             val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
                 // Monthly share prompt. Offers the user something ("your month, summed
                 // up") rather than asking a favour, and only appears when the finished month
@@ -561,8 +561,22 @@ fun HomeScreen(
             // list entirely; the entrance stagger follows the *displayed* position so
             // it survives reordering. Each branch keeps its own data guard.
             val visibleSections = homeSectionLayout.filter { it.second }.map { it.first }
+            // Mirrors each branch's own data guard below, so an empty section first in
+            // line doesn't drag the promo up under the balance card.
+            val promoAfter = visibleSections.firstOrNull { section ->
+                when (section) {
+                    HomeSection.SAFE_TO_SPEND -> safeToSpend != null
+                    HomeSection.BUDGETS -> uiState.budgetSummary != null
+                    HomeSection.GOALS -> goals.isNotEmpty()
+                    HomeSection.LOANS -> uiState.loanSummary != null
+                    HomeSection.GROUPS -> groupSummaries.isNotEmpty()
+                    HomeSection.ACCOUNTS -> uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()
+                    HomeSection.SUBSCRIPTIONS -> uiState.upcomingSubscriptions.isNotEmpty()
+                    HomeSection.MONEY_IN_MOTION -> false // ponytail: secondary card, never the promo's anchor
+                    HomeSection.RECENT_TRANSACTIONS, HomeSection.ACTIVITY -> true
+                }
+            }
             for ((index, section) in visibleSections.withIndex()) {
-                if (index == 1) promoSlot()
                 val delayMs = 50L * (index + 1)
                 when (section) {
                     HomeSection.SAFE_TO_SPEND -> {
@@ -1077,9 +1091,10 @@ fun HomeScreen(
                         }
                     }
                 }
+                if (section == promoAfter) promoSlot()
             }
-            // Fewer than two sections shown: the slot never came up inside the loop.
-            if (visibleSections.size < 2) promoSlot()
+            // Nothing shown to anchor on: the promo still gets a slot.
+            if (promoAfter == null) promoSlot()
         }
         
         // Scan FAB rotation animation

@@ -192,6 +192,7 @@
     <string name="settings_notification_access_disabled">แตะเพื่อเปิดการแจ้งเตือนจากแอปธนาคาร</string>
     <string name="settings_notification_access_on">เปิด</string>
     <string name="settings_notification_access_off">ปิด</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">สรุปรายวัน</string>
     <string name="settings_daily_summary_subtitle">สรุปการใช้จ่ายของวันนี้ตอน 21:00 น.</string>
     <string name="settings_daily_summary_needs_permission">อนุญาตการแจ้งเตือนสำหรับ PennyWise เพื่อรับสรุปรายวัน</string>

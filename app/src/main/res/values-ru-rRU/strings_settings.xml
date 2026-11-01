@@ -221,6 +221,7 @@
     <string name="settings_notification_access_disabled">Нажмите, чтобы включить уведомления от банковских приложений</string>
     <string name="settings_notification_access_on">На</string>
     <string name="settings_notification_access_off">Выкл</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">Итоги дня</string>
     <string name="settings_daily_summary_subtitle">Сводка расходов за день в 21:00</string>
     <string name="settings_daily_summary_needs_permission">Разрешите уведомления для PennyWise, чтобы получать итоги дня.</string>

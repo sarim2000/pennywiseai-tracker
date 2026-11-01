@@ -29,3 +29,7 @@ fun Context.withLatinDigits(): Context {
 fun useLatinDigitsByDefault() {
     Locale.setDefault(Locale.getDefault().withLatinDigits())
 }
+
+/** Any decimal digit (٠-٩, ۰-۹, ०-९…) as 0-9; everything else unchanged. */
+fun String.toLatinDigits(): String =
+    map { c -> c.digitToIntOrNull()?.let { '0' + it } ?: c }.joinToString("")

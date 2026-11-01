@@ -28,6 +28,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -49,6 +50,7 @@ class AiSessionService : Service() {
     @Inject lateinit var relay: AiRelayClient
     @Inject lateinit var tools: AiTools
     @Inject lateinit var state: AiSessionState
+    @Inject lateinit var writeAccess: AiWriteAccess
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var lineJob: Job? = null
@@ -65,6 +67,12 @@ class AiSessionService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // The notification says whether AI apps may change data; keep it true when the switch flips.
+        scope.launch { writeAccess.allowed.drop(1).collect { state.session.value?.let { publish(it.lineUp) } } }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
@@ -163,7 +171,13 @@ class AiSessionService : Service() {
         NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_ai_session)
             .setContentTitle(getString(R.string.ai_session_notification_title))
-            .setContentText(getString(if (state.session.value?.lineUp == true) R.string.ai_session_notification_connected else R.string.ai_session_notification_connecting))
+            .setContentText(getString(
+                when {
+                    state.session.value?.lineUp != true -> R.string.ai_session_notification_connecting
+                    writeAccess.allowed.value -> R.string.ai_session_notification_connected_changes
+                    else -> R.string.ai_session_notification_connected
+                }
+            ))
             .setWhen(endsAt)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)

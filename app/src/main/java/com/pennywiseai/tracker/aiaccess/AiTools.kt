@@ -92,6 +92,8 @@ class AiTools @Inject constructor(
                 else -> return error("PennyWise doesn't know the tool $name.")
             }
             text(body.toString(), isError = false)
+        } catch (e: Refused) {
+            error(e.message!!)
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             error(if (name in WRITE_TOOLS) "PennyWise couldn't save that just now. Try again." else "PennyWise couldn't read that just now. Try again.")
@@ -108,22 +110,24 @@ class AiTools @Inject constructor(
      * never a placeholder merchant like "UPI Payment".
      */
     private suspend fun categorizeMerchants(items: JsonArray): JsonObject {
-        if (items.size > MAX_BATCH) return error("Send at most $MAX_BATCH at a time.")
+        if (items.size > MAX_BATCH) throw Refused("Send at most $MAX_BATCH at a time.")
         val others = BuiltinCategoryNames.current("Others")
         val results = items.map { item ->
             val o = item as? JsonObject ?: JsonObject(emptyMap())
             val merchant = o.string("merchant")?.trim()
             val category = findCategory(o.string("category"))
+            val fromName = o.string("from_category")
+            val from = if (fromName == null) others else findCategory(fromName)?.name
             val problem = when {
                 merchant == null -> "merchant is missing"
                 LearnCategoryUseCase.isPlaceholderMerchant(merchant) -> "\"$merchant\" names a payment channel, not a payee, so it can't be remembered"
                 category == null -> "No category named \"${o.string("category")}\". Use list_categories, or create_category first."
+                from == null -> "No category named \"$fromName\" to move past transactions out of. Nothing was changed for this merchant."
                 else -> null
             }
-            if (problem != null || merchant == null || category == null) {
+            if (problem != null || merchant == null || category == null || from == null) {
                 return@map buildJsonObject { put("merchant", merchant); put("error", problem) }
             }
-            val from = findCategory(o.string("from_category"))?.name ?: others
             val kinds = if (category.isIncome) listOf(TransactionType.INCOME) else listOf(TransactionType.EXPENSE, TransactionType.CREDIT)
             val moved = database.withTransaction {
                 mappings.setMapping(merchant, category.name)
@@ -136,13 +140,15 @@ class AiTools @Inject constructor(
 
     /** An empty alias removes the merchant's alias. */
     private suspend fun setAliases(items: JsonArray): JsonObject {
-        if (items.size > MAX_BATCH) return error("Send at most $MAX_BATCH at a time.")
+        if (items.size > MAX_BATCH) throw Refused("Send at most $MAX_BATCH at a time.")
         val results = items.map { item ->
             val o = item as? JsonObject ?: JsonObject(emptyMap())
             val merchant = o.string("merchant")?.trim()
-            val alias = (o["alias"] as? JsonPrimitive)?.contentOrNull?.trim().orEmpty()
+            // Only an explicit "" removes an alias; a missing or non-string one must not.
+            val alias = (o["alias"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()
             when {
                 merchant == null -> buildJsonObject { put("error", "merchant is missing") }
+                alias == null -> buildJsonObject { put("merchant", merchant); put("error", "alias must be a string; use \"\" to remove it") }
                 alias.isEmpty() -> { aliases.removeAlias(merchant); buildJsonObject { put("merchant", merchant); put("alias", null as String?) } }
                 else -> { aliases.setAlias(merchant, alias); buildJsonObject { put("merchant", merchant); put("alias", alias) } }
             }
@@ -151,8 +157,8 @@ class AiTools @Inject constructor(
     }
 
     private suspend fun createCategory(name: String, isIncome: Boolean): JsonObject {
-        if (name.isEmpty()) return error("Give the category a name.")
-        findCategory(name)?.let { return error("A category named \"${it.name}\" already exists.") }
+        if (name.isEmpty()) throw Refused("Give the category a name.")
+        findCategory(name)?.let { throw Refused("A category named \"${it.name}\" already exists.") }
         categories.createCategory(name, DEFAULT_CATEGORY_COLOR, isIncome)
         return buildJsonObject { put("created", name); put("kind", if (isIncome) "income" else "expense") }
     }
@@ -161,17 +167,21 @@ class AiTools @Inject constructor(
         val rule = try {
             AiToolLogic.ruleFrom(args)
         } catch (e: IllegalArgumentException) {
-            return error(e.message ?: "That rule isn't valid.")
+            throw Refused(e.message ?: "That rule isn't valid.")
         }
         val existing = rules.getAllRules().first()
-        if (existing.any { it.name.equals(rule.name, ignoreCase = true) }) return error("A rule named \"${rule.name}\" already exists.")
+        if (existing.any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
         rules.insertRule(rule)
         val applied = if (args["apply_to_past"]?.jsonPrimitive?.booleanOrNull == true) {
-            applyRulesToPast.applyRuleToUncategorizedTransactions(rule).totalUpdated
+            applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
         } else null
         return buildJsonObject {
             put("created", rule.name)
-            applied?.let { put("past_uncategorized_transactions_updated", it) }
+            applied?.let { r ->
+                put("past_uncategorized_transactions_updated", r.totalUpdated)
+                // Per-row failures don't stop the run; say which rows stayed as they were.
+                if (r.errors.isNotEmpty()) putJsonArray("past_errors") { r.errors.take(20).forEach { add(it) } }
+            }
         }
     }
 
@@ -187,6 +197,9 @@ class AiTools @Inject constructor(
     private fun JsonObject.string(key: String) = (this[key] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() }
 
     private fun error(message: String) = text(message, isError = true)
+
+    /** A refusal to report as a tool error (isError: true), not as data. */
+    private class Refused(message: String) : Exception(message)
 
     private companion object {
         val WRITE_TOOLS = setOf("categorize_merchants", "set_merchant_aliases", "create_category", "create_rule")

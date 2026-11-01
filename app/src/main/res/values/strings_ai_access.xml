@@ -64,6 +64,7 @@
     <string name="ai_session_channel_description">Shows while connected AI apps can read your PennyWise data</string>
     <string name="ai_session_notification_title">AI apps can read your PennyWise data</string>
     <string name="ai_session_notification_connected">Connected · read-only</string>
+    <string name="ai_session_notification_connected_changes">Connected · changes allowed</string>
     <string name="ai_session_notification_connecting">Connecting…</string>
     <string name="ai_session_tile_on">On</string>
     <string name="ai_session_tile_off">Off</string>

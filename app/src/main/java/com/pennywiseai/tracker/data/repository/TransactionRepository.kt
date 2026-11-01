@@ -546,9 +546,10 @@ open class TransactionRepository @Inject constructor(
     }
 
     suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Get all transactions without a category or with "Others" category
+        // Without a category, or in "Others" under whatever name the user gave it.
+        val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
         return getAllTransactionsList().filter { transaction ->
-            transaction.category.isNullOrBlank() || transaction.category == "Others"
+            transaction.category.isNullOrBlank() || transaction.category == others
         }
     }
 

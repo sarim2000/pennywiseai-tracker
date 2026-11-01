@@ -178,6 +178,8 @@ class HomeViewModel @Inject constructor(
     // The previous SpendForecast.USUAL_PERIODS complete cycles, most recent first, for
     // the forecast's "usual". The first one is lastMonthBreakdownMap.
     private var previousCycleBreakdownMaps: List<Map<String, TransactionRepository.MonthlyBreakdown>> = emptyList()
+    // The previous cycle cut at today's day-of-cycle, for the "vs this time last month" chip.
+    private var lastMonthSamePointBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
     // Per-currency LENT-loan settlement loss for each of those cycles, folded into "usual"
     // the same way currentMonthLoanLossByCurrency is folded into this cycle's spend.
@@ -754,15 +756,30 @@ class HomeViewModel @Inject constructor(
                     cycles to filterTransactionsByProfile(transactions, profileId, keys).forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
-                    cycles.map { (start, end) ->
+                    Triple(cycles, nonLoan, creditAsExpense)
+                }
+                // `today` too: the same-point window grows by a day every day.
+                .combine(today) { (cycles, nonLoan, creditAsExpense), day ->
+                    val full = cycles.map { (start, end) ->
                         computeBreakdownByCurrency(
                             nonLoan.filter { it.dateTime.toLocalDate() in start..end },
                             creditAsExpense
                         )
                     }
+                    // As many days into the previous cycle as today is into this one, under
+                    // the headline's own spend rules (credit-card preference included).
+                    val (prevStart, prevEnd) = cycles.first()
+                    val elapsed = ChronoUnit.DAYS.between(_currentCycleWindow.value.first, day).coerceAtLeast(0)
+                    val cutoff = minOf(prevStart.plusDays(elapsed), prevEnd)
+                    val samePoint = computeBreakdownByCurrency(
+                        nonLoan.filter { it.dateTime.toLocalDate() in prevStart..cutoff },
+                        creditAsExpense
+                    )
+                    full to samePoint
                 }
-                .collect { breakdowns ->
+                .collect { (breakdowns, samePoint) ->
                     previousCycleBreakdownMaps = breakdowns
+                    lastMonthSamePointBreakdownMap = samePoint
                     updateBreakdownForSelectedCurrency(breakdowns.first(), isCurrentMonth = false)
                 }
         }
@@ -785,8 +802,8 @@ class HomeViewModel @Inject constructor(
                 .combine(_cachedAccountBalances.filterNotNull()) { (allTransactions, profileId), balances ->
                     filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
                 }
-                // Rebuild on a currency switch too, or the sparkline and the "vs this time
-                // last month" chip keep showing the previous currency's figures.
+                // Rebuild on a currency switch too, or the sparkline keeps drawing the
+                // previous currency's figures.
                 .combine(
                     _uiState.map { it.selectedCurrency to it.isUnifiedMode }.distinctUntilChanged()
                 ) { allTransactions, _ -> allTransactions }
@@ -844,7 +861,6 @@ class HomeViewModel @Inject constructor(
                         balanceHistory = cumulativeList,
                         lastMonthSpendingHistory = lastMonthCumulative
                     )
-                    calculateMonthlyChange()
                 }
         }
 
@@ -1075,11 +1091,13 @@ class HomeViewModel @Inject constructor(
     
     private fun calculateMonthlyChange() {
         // Compare like with like: spend so far vs the same number of days into the
-        // previous cycle (the sparkline's two series), not the whole previous cycle —
-        // that made every early-cycle day read as a green "% less".
+        // previous cycle, not the whole previous cycle — that made every early-cycle
+        // day read as a green "% less".
+        // ponytail: settlement losses sit in the headline but not the same-point window
+        // (as with the old full-cycle figure); add a windowed loss query if it matters.
         val state = _uiState.value
-        val current = state.spendingHistory.lastOrNull() ?: BigDecimal.ZERO
-        val lastAtSamePoint = state.lastMonthSpendingHistory.lastOrNull() ?: BigDecimal.ZERO
+        val current = state.currentMonthExpenses
+        val lastAtSamePoint = state.lastMonthSamePointExpenses
         _uiState.value = state.copy(
             monthlyChange = current - lastAtSamePoint,
             monthlyChangePercent = monthlyChangePercent(current, lastAtSamePoint)
@@ -1478,6 +1496,7 @@ class HomeViewModel @Inject constructor(
             viewModelScope.launch {
                 val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
                 val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
+                val lastSamePoint = aggregateBreakdowns(lastMonthSamePointBreakdownMap, selectedCurrency).expenses
                 val loanLoss = aggregateAcrossCurrencies(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
                 val lent = aggregateAcrossCurrencies(currentMonthLentByCurrency, selectedCurrency, isUnified = true)
 
@@ -1489,6 +1508,7 @@ class HomeViewModel @Inject constructor(
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
+                    lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
                     availableCurrencies = availableCurrencies,
                     spendForecast = forecastFor(
@@ -1530,6 +1550,7 @@ class HomeViewModel @Inject constructor(
                 lastMonthTotal = lastBreakdown.total,
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
+                lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
                 availableCurrencies = availableCurrencies,
                 spendForecast = forecastFor(
@@ -1840,6 +1861,7 @@ data class HomeUiState(
     val lastMonthIncome: BigDecimal = BigDecimal.ZERO,
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
+    val lastMonthSamePointExpenses: BigDecimal = BigDecimal.ZERO,
     /** Null when last month had no spending: there is nothing to compare with. */
     val monthlyChangePercent: Int? = null,
     val recentItems: List<HomeRecentItem> = emptyList(),

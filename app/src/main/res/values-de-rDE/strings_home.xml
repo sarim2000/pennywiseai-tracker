@@ -144,8 +144,8 @@
     <string name="account_card_outstanding">Ausstehend</string>
     <string name="account_card_balance">Saldo</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% mehr im letzten Monat</string>
-    <string name="balance_card_change_less">%1$d%% weniger vs letzten Monat</string>
+    <string name="balance_card_change_more_same_point">%1$d%% mehr als zur gleichen Zeit letzten Monat</string>
+    <string name="balance_card_change_less_same_point">%1$d%% weniger als zur gleichen Zeit letzten Monat</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Kontostand: %1$s</string>
     <plurals name="balance_card_account_count">

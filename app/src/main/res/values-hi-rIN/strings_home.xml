@@ -142,8 +142,8 @@
     <string name="account_card_outstanding">बकाया</string>
     <string name="account_card_balance">बाकी राशि</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">पिछले महीने से %1$d%% ज़्यादा</string>
-    <string name="balance_card_change_less">पिछले महीने से %1$d%% कम</string>
+    <string name="balance_card_change_more_same_point">पिछले महीने के इसी समय से %1$d%% ज़्यादा</string>
+    <string name="balance_card_change_less_same_point">पिछले महीने के इसी समय से %1$d%% कम</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">बैलेंस: %1$s</string>
     <plurals name="balance_card_account_count">

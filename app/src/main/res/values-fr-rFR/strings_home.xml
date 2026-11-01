@@ -144,8 +144,8 @@
     <string name="account_card_outstanding">En attente</string>
     <string name="account_card_balance">Solde</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% de plus par rapport au mois dernier</string>
-    <string name="balance_card_change_less">%1$d%% de moins par rapport au mois dernier</string>
+    <string name="balance_card_change_more_same_point">%1$d%% de plus qu\'à la même date le mois dernier</string>
+    <string name="balance_card_change_less_same_point">%1$d%% de moins qu\'à la même date le mois dernier</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Solde : %1$s</string>
     <plurals name="balance_card_account_count">

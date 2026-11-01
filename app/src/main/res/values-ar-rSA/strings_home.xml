@@ -165,8 +165,8 @@
     <string name="account_card_outstanding">المستحق</string>
     <string name="account_card_balance">الرصيد</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% أكثر من الفترة نفسها الشهر الماضي</string>
-    <string name="balance_card_change_less">%1$d%% أقل من الفترة نفسها الشهر الماضي</string>
+    <string name="balance_card_change_more_same_point">%1$d%% أكثر من الفترة نفسها الشهر الماضي</string>
+    <string name="balance_card_change_less_same_point">%1$d%% أقل من الفترة نفسها الشهر الماضي</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">الرصيد: %1$s</string>
     <plurals name="balance_card_account_count">

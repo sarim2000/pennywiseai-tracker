@@ -153,8 +153,8 @@
     <string name="account_card_outstanding">Запазычанасць</string>
     <string name="account_card_balance">Баланс</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">На %1$d%% больш, чым у мінулым месяцы</string>
-    <string name="balance_card_change_less">На %1$d%% менш, чым у мінулым месяцы</string>
+    <string name="balance_card_change_more_same_point">На %1$d%% больш, чым у гэты ж час мінулага месяца</string>
+    <string name="balance_card_change_less_same_point">На %1$d%% менш, чым у гэты ж час мінулага месяца</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Баланс: %1$s</string>
     <plurals name="balance_card_account_count">

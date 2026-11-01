@@ -544,11 +544,13 @@ class HomeViewModel @Inject constructor(
             // flatMapLatest on the cycle window so a start-day change (e.g. Settings
             // → "25th" while the screen is open) cancels the in-flight query and
             // re-fetches against the new window — without this, the captured
-            // cycleStart would go stale.
-            _currentCycleWindow
-                .flatMapLatest { (cycleStart, _) ->
-                    val now = LocalDate.now()
-                    transactionRepository.getTransactionsBetweenDates(cycleStart, now)
+            // cycleStart would go stale. `today` too: resuming on a new day inside the
+            // same cycle leaves the window unchanged, and the old end date would keep
+            // today's spending out of "Spent this month".
+            combine(_currentCycleWindow, today) { (cycleStart, _), day -> cycleStart to day }
+                .distinctUntilChanged()
+                .flatMapLatest { (cycleStart, day) ->
+                    transactionRepository.getTransactionsBetweenDates(cycleStart, day)
                 }
                 .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
                     transactions to profileId
@@ -785,15 +787,19 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            // Load cumulative spending sparkline for current cycle + previous cycle comparison
-            val now = LocalDate.now()
-            _currentCycleWindow
-                .flatMapLatest { (firstOfMonth, cycleEnd) ->
+            // Load cumulative spending sparkline for current cycle + previous cycle comparison.
+            // Keyed on `today` as well, like the "Spent" query, so a next-day resume
+            // extends the chart instead of freezing it at the ViewModel's first day.
+            var now = today.value
+            combine(_currentCycleWindow, today) { window, day -> window to day }
+                .distinctUntilChanged()
+                .flatMapLatest { (window, day) ->
+                    now = day
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                    val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to cycleEnd, startDay)
+                    val (lastMonthStart, _) = BudgetCycle.previousCycle(window, startDay)
                     transactionRepository.getTransactionsBetweenDates(
                         startDate = lastMonthStart,
-                        endDate = now
+                        endDate = day
                     )
                 }
                 .combine(userPreferencesRepository.selectedProfileId) { allTransactions, profileId ->

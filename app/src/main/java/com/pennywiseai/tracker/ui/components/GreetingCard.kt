@@ -203,7 +203,7 @@ fun GreetingCard(
             Box {
                 IconButton(
                     onClick = { showProfileMenu = true },
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                 ) {
                     Icon(
                         imageVector = profileFilterIcon(profiles, selectedProfileId),
@@ -224,7 +224,7 @@ fun GreetingCard(
         if (onAddClick != null) {
             IconButton(
                 onClick = onAddClick,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -237,7 +237,7 @@ fun GreetingCard(
         // Menu button — plain IconButton, no circular background
         IconButton(
             onClick = onMenuClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
                 imageVector = Icons.Default.MoreHoriz,

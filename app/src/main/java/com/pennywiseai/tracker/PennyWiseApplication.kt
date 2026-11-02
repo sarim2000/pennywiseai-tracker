@@ -19,6 +19,7 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -126,10 +127,13 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             }
         }
         applicationScope.launch {
-            userPreferencesRepository.isBalanceHidden.collectLatest { hidden ->
-                AmountPrivacy.hidden = hidden
-                AmountPrivacy.loaded = true
-            }
+            userPreferencesRepository.isBalanceHidden
+                // Unreadable: keep amounts hidden, and don't hold the splash forever.
+                .catch { emit(true) }
+                .collectLatest { hidden ->
+                    AmountPrivacy.hidden = hidden
+                    AmountPrivacy.loaded = true
+                }
         }
         applicationScope.launch {
             userPreferencesRepository.dateFormatStyle.collectLatest { style ->

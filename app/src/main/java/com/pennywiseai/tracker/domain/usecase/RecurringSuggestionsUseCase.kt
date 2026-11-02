@@ -40,12 +40,11 @@ class RecurringSuggestionsUseCase @Inject constructor(
 
     /** Re-runs whenever the history, subscriptions, categories or dismissals change. */
     fun suggestions(): Flow<List<RecurringSuggestion>> {
-        val today = LocalDate.now()
+        // Open-ended, so a screen kept alive past midnight still sees new days'
+        // payments; "today" is read on each run for the same reason.
+        val from = LocalDate.now().minusDays(RecurringSuggestions.LOOKBACK_DAYS).atStartOfDay()
         return combine(
-            transactionRepository.getTransactionsBetweenDates(
-                today.minusDays(RecurringSuggestions.LOOKBACK_DAYS).atStartOfDay(),
-                today.plusDays(1).atStartOfDay()
-            ),
+            transactionRepository.getTransactionsBetweenDates(from, LocalDateTime.of(9999, 12, 31, 0, 0)),
             subscriptionRepository.getAllSubscriptions(),
             categoryDao.getAllCategories(),
             userPreferencesRepository.dismissedRecurringSuggestions,
@@ -54,7 +53,7 @@ class RecurringSuggestionsUseCase @Inject constructor(
             val covered = subscriptions.map { RecurringSuggestions.keyFor(it.merchantName, it.currency) }.toSet()
             RecurringSuggestions.detect(
                 transactions = transactions,
-                today = today,
+                today = LocalDate.now(),
                 // A category missing from the table is an auto-categorizer name
                 // that hasn't been renamed: it is its own built-in key.
                 builtinKeyOf = { name -> if (name in builtinByName) builtinByName[name] else name },

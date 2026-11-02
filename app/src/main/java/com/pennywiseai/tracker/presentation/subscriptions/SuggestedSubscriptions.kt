@@ -167,7 +167,10 @@ internal fun RecurringSuggestionSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var amountText by remember(suggestion.key) { mutableStateOf(suggestion.amount.toPlainString()) }
-    val amount = amountText.trim().replace(',', '.').toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    // "1,234.50" groups with commas; "19,90" uses a decimal comma.
+    val amount = amountText.trim()
+        .let { if ('.' in it) it.replace(",", "") else it.replace(',', '.') }
+        .toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
 
     val closeThen: (() -> Unit) -> Unit = { action ->
         action()

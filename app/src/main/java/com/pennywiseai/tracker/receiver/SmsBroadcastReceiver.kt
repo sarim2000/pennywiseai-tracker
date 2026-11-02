@@ -714,6 +714,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // isn't lost, the Subscriptions screen lists it under "Suggested".
             val trackCycle = runCatching {
                 entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved)?.takeIf {
+                    // An offer nobody can see mustn't use up the merchant's 90 days.
+                    androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled() &&
                     entryPoint.userPreferencesRepository().tryRecordRecurringOffer(
                         com.pennywiseai.tracker.domain.spending.RecurringSuggestions.keyFor(saved.merchantName, saved.currency),
                         java.time.LocalDate.now(),

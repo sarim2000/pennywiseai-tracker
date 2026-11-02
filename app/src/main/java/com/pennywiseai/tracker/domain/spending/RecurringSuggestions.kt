@@ -61,8 +61,11 @@ object RecurringSuggestions {
     /** Built-in categories whose bills legitimately change amount every cycle. */
     val VARIABLE_CATEGORIES = setOf("Bills & Utilities", "Mobile")
 
-    /** How far back the history needs to go to see two annual payments. */
-    const val LOOKBACK_DAYS = 400L
+    /**
+     * How far back the history goes: two annual payments plus the time the
+     * suggestion stays up after the second one.
+     */
+    const val LOOKBACK_DAYS = 800L
 
     fun keyFor(merchantName: String, currency: String): String =
         "${currency.uppercase()}|${RecurringCharge.merchantKey(merchantName)}"
@@ -120,30 +123,32 @@ object RecurringSuggestions {
         today: LocalDate,
         variable: Boolean,
     ): RecurringSuggestion? {
-        // One payment per day: a duplicate SMS or a split payment shouldn't
-        // break (or fake) a cadence.
-        val newestFirst = charges
-            .sortedByDescending { it.dateTime }
-            .distinctBy { it.dateTime.toLocalDate() }
+        val newestFirst = charges.sortedByDescending { it.dateTime }
         // A fixed subscription is anchored on one of the recent amounts (the
-        // newest charge may be a one-off at the same merchant); a variable bill
-        // takes every payment.
-        val anchors = newestFirst.take(MAX_ANCHORS)
+        // newest charge may be a one-off at the same merchant), but only on the
+        // newest charge at that amount: anchoring further back would skip a
+        // newer same-amount buy that shows it's a frequent purchase.
+        val anchors = newestFirst.take(MAX_ANCHORS).filter { anchor ->
+            newestFirst.takeWhile { it !== anchor }.none { RecurringCharge.sameAmount(it.amount, anchor.amount) }
+        }
         for (anchor in anchors) {
+            // One payment per day, after the amount filter: a duplicate SMS
+            // shouldn't fake a cadence, and a same-day one-off shouldn't hide the bill.
             val chain = newestFirst
                 .dropWhile { it !== anchor }
                 .filter { RecurringCharge.sameAmount(it.amount, anchor.amount) }
+                .distinctBy { it.dateTime.toLocalDate() }
             series(chain, today)?.let { (cadence, payments) ->
-                return suggestion(key, payments, cadence, isVariable = false)
+                return suggestion(key, payments, cadence, today, isVariable = false)
             }
         }
         if (variable) {
-            series(newestFirst, today)?.let { (cadence, payments) ->
+            series(newestFirst.distinctBy { it.dateTime.toLocalDate() }, today)?.let { (cadence, payments) ->
                 if (cadence.cycle != "Monthly") return null
                 val median = payments.map { it.amount }.sorted()[payments.size / 2]
                 val band = median.multiply(VARIABLE_TOLERANCE)
                 if (payments.all { (it.amount - median).abs() <= band }) {
-                    return suggestion(key, payments, cadence, isVariable = true)
+                    return suggestion(key, payments, cadence, today, isVariable = true)
                 }
             }
         }
@@ -161,13 +166,20 @@ object RecurringSuggestions {
             var frequent = false
             for (charge in newestFirst.drop(1)) {
                 val date = charge.dateTime.toLocalDate()
-                val expected = advance(payments.last().dateTime.toLocalDate(), cadence.cycle, reverse = true)
-                val off = ChronoUnit.DAYS.between(expected, date)
+                val previous = payments.last().dateTime.toLocalDate()
+                // A cycle before the previous payment, or n cycles before the
+                // latest: the second keeps a bill on the 31st (Feb 28, then
+                // Jan 31) from drifting off its day, the first lets a 28-day
+                // plan drift a little every month.
+                val fromPrevious = advance(previous, cadence.cycle, reverse = true)
+                val fromLatest = advance(latestDate, cadence.cycle, reverse = true, times = payments.size)
+                val cycleDays = ChronoUnit.DAYS.between(fromPrevious, previous)
                 when {
-                    Math.abs(off) <= cadence.toleranceDays -> payments += charge
-                    // Lands inside the cycle: paid more often than this cadence.
-                    off > cadence.toleranceDays -> { frequent = true; break }
-                    // A missed cycle ends the run.
+                    Math.abs(ChronoUnit.DAYS.between(fromPrevious, date)) <= cadence.toleranceDays ||
+                        Math.abs(ChronoUnit.DAYS.between(fromLatest, date)) <= cadence.toleranceDays -> payments += charge
+                    // Within half a cycle of the next payment: paid more often than this cadence.
+                    ChronoUnit.DAYS.between(date, previous) < cycleDays / 2 -> { frequent = true; break }
+                    // A missed or irregular cycle ends the run.
                     else -> break
                 }
             }
@@ -181,6 +193,7 @@ object RecurringSuggestions {
         key: String,
         oldestFirst: List<TransactionEntity>,
         cadence: Cadence,
+        today: LocalDate,
         isVariable: Boolean,
     ): RecurringSuggestion {
         val latest = oldestFirst.last()
@@ -200,13 +213,14 @@ object RecurringSuggestions {
             payments = oldestFirst.map {
                 RecurringSuggestion.Payment(it.id, it.dateTime.toLocalDate(), it.amount)
             },
-            nextDueDate = advance(latest.dateTime.toLocalDate(), cadence.cycle),
+            // A payment that's a few days late is still expected: due today, not overdue.
+            nextDueDate = maxOf(advance(latest.dateTime.toLocalDate(), cadence.cycle), today),
         )
     }
 
     /** Same calendar arithmetic as [com.pennywiseai.tracker.data.repository.SubscriptionRepository.advance]. */
-    private fun advance(date: LocalDate, cycle: String, reverse: Boolean = false): LocalDate {
-        val sign = if (reverse) -1L else 1L
+    private fun advance(date: LocalDate, cycle: String, reverse: Boolean = false, times: Int = 1): LocalDate {
+        val sign = (if (reverse) -1L else 1L) * times
         return when (cycle) {
             "Weekly" -> date.plusWeeks(sign)
             "Quarterly" -> date.plusMonths(3L * sign)

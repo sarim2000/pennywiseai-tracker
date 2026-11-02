@@ -41,7 +41,7 @@
         <item quantity="other">%1$d возможного регулярного платежа</item>
     </plurals>
     <string name="home_recurring_card_body">%1$s. Проверьте, чтобы получать напоминание перед каждым платежом.</string>
-    <string name="home_recurring_card_body_more">%1$s и ещё %2$d. Проверьте, чтобы получать напоминание перед каждым платежом.</string>
+    <string name="home_recurring_card_body_more">%1$s +%2$d. Проверьте, чтобы получать напоминание перед каждым платежом.</string>
     <string name="home_recurring_card_action">Проверить</string>
     <string name="home_recurring_card_dismiss">Скрыть</string>
 </resources>

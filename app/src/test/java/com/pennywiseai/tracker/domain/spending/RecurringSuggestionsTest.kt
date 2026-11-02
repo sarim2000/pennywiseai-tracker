@@ -208,6 +208,43 @@ class RecurringSuggestionsTest {
     }
 
     @Test
+    fun `an extra same-amount top-up after the monthly ones is a frequent purchase`() {
+        // Topped up on the 1st every month, plus once on the 25th.
+        val history = listOf(
+            charge(LocalDate.of(2026, 8, 1), "10.00", merchant = "City Transit", category = "Others"),
+            charge(LocalDate.of(2026, 9, 1), "10.00", merchant = "City Transit", category = "Others"),
+            charge(LocalDate.of(2026, 10, 1), "10.00", merchant = "City Transit", category = "Others"),
+            charge(LocalDate.of(2026, 10, 25), "10.00", merchant = "City Transit", category = "Others"),
+        )
+        assertTrue(detect(history).isEmpty())
+    }
+
+    @Test
+    fun `a one-off buy on the bill's day doesn't hide the bill`() {
+        val history = monthly(LocalDate.of(2026, 10, 15), 3, "15.49") +
+            charge(LocalDate.of(2026, 9, 15), "2.99").copy(dateTime = LocalDate.of(2026, 9, 15).atTime(18, 0))
+        assertEquals(3, detect(history).single().payments.size)
+    }
+
+    @Test
+    fun `a month-end bill that moved early once keeps its day`() {
+        val result = detect(
+            listOf(
+                charge(LocalDate.of(2026, 8, 31), "20"),
+                charge(LocalDate.of(2026, 9, 27), "20"),
+                charge(LocalDate.of(2026, 10, 31), "20"),
+            )
+        )
+        assertEquals(3, result.single().payments.size)
+    }
+
+    @Test
+    fun `a payment a few days late is due today, not overdue`() {
+        val result = detect(monthly(LocalDate.of(2026, 9, 28), 3, "15.49"))
+        assertEquals(today, result.single().nextDueDate)
+    }
+
+    @Test
     fun `a duplicate message on the same day doesn't break the pattern`() {
         val history = monthly(LocalDate.of(2026, 10, 15), 3, "15.49") + charge(LocalDate.of(2026, 10, 15), "15.49")
         assertEquals(3, detect(history).single().payments.size)

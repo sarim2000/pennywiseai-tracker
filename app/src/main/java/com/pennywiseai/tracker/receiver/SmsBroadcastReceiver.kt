@@ -415,7 +415,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     context.getString(
                         R.string.recurring_alert_price_updated,
                         tracked.merchantName,
-                        CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency),
+                        CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency, maskIfHidden = false),
                         next
                     )
                 } else {
@@ -719,8 +719,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 context.getString(
                     if (saved.amount > change.previousAmount) R.string.recurring_alert_price_up else R.string.recurring_alert_price_down,
                     change.subscriptionName,
-                    CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency),
-                    CurrencyFormatter.formatCurrency(saved.amount, saved.currency)
+                    CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency, maskIfHidden = false),
+                    CurrencyFormatter.formatCurrency(saved.amount, saved.currency, maskIfHidden = false)
                 )
             }
             showTransactionNotification(

@@ -93,7 +93,7 @@ class BillReminderWorker @AssistedInject constructor(
                 .setContentText(
                     context.getString(
                         R.string.bill_reminder_text,
-                        CurrencyFormatter.formatCurrency(sub.amount, sub.currency),
+                        CurrencyFormatter.formatCurrency(sub.amount, sub.currency, maskIfHidden = false),
                         cycleLabel(context, sub.billingCycle)
                     )
                 )

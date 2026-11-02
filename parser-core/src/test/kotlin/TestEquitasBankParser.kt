@@ -87,6 +87,40 @@ class EquitasBankParserTest {
                 )
             ),
 
+            // UPI Debit with Equitas-XXXX and "to <merchant> on <date>"
+            ParserTestCase(
+                name = "UPI Debit with Equitas-XXXX and to Merchant on Date",
+                message = "INR 978.00 debited from Equitas-1234 via UPI -Ref:123456789012 to Zomato Media Pri on 30-10-26.Bal INR 25,000.00.Not U?SMS BLOCK UPI to 7045030000",
+                sender = "CP-EQUTAS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("978.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Zomato Media Pri",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("25000.00"),
+                    reference = "123456789012",
+                    isFromCard = false
+                )
+            ),
+
+            // UPI Debit without specific merchant falling back to UPI Transaction
+            ParserTestCase(
+                name = "UPI Debit without Merchant falls back to UPI Transaction",
+                message = "INR 13,428.00 debited from Equitas-1234 via UPI -Ref:987654321098  on 27-10-26.Bal INR 10,000.00.Not U?SMS BLOCK UPI to 7045030000",
+                sender = "CP-EQUTAS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("13428.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "UPI Transaction",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("10000.00"),
+                    reference = "987654321098",
+                    isFromCard = false
+                )
+            ),
+
             // Negative test cases - should NOT parse
             ParserTestCase(
                 name = "OTP Message Should Not Parse",

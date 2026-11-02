@@ -583,6 +583,17 @@
       "reference": "543210987654",
       "balance": "5000.00"
     },
+    "IDBI Bank": {
+      "sender": "BZ-IDBIBK-S",
+      "message": "Dear Customer, Acct XX1234 is credited with Rs 500.00 on 24-Oct-26 from JOHN DOE. UPI:112233445566 Avl Bal Rs 5000.00-IDBI Bank",
+      "currency": "INR",
+      "amount": "500.00",
+      "type": "INCOME",
+      "merchant": "JOHN DOE",
+      "accountLast4": "1234",
+      "reference": "112233445566",
+      "balance": "5000.00"
+    },
     "IDFC First Bank": {
       "sender": "JM-IDFCFB-S",
       "message": "Your A/c XX4614 debited by Rs. 1,172.06 on 15/01/26; REDBUS credited. RRN 060649915527. Available balance Rs. 9,134.15. Team IDFC FIRST Bank",

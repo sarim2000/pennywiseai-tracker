@@ -607,11 +607,17 @@ abstract class BankParser {
      */
     protected open fun isValidMerchantName(name: String): Boolean {
         val commonWords =
-            setOf("USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE")
+            setOf(
+                "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE",
+                "BLOCK", "BLOCK UPI", "UPIBLOCK", "BLOCK ACT", "BLOCK CARD"
+            )
 
+        val upper = name.uppercase().trim()
         return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
                 name.any { it.isLetter() } &&
-                name.uppercase() !in commonWords &&
+                upper !in commonWords &&
+                !upper.startsWith("BLOCK ") &&
+                !upper.startsWith("TO BLOCK") &&
                 !name.all { it.isDigit() } &&
                 !name.contains("@") // Not a UPI ID
     }

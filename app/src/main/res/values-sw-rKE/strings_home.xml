@@ -260,12 +260,8 @@
     <string name="notif_txn_channel_description">Arifa za miamala mipya</string>
     <string name="notif_txn_unknown_merchant">Haijulikani</string>
     <string name="notif_txn_unknown_bank">Benki</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ Salio limetofautiana kwa %1$s — lilitarajiwa %2$s, benki inasema %3$s</string>
     <string name="notif_txn_action_more">Zaidi…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Muamala mpya</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • salio linahitaji kuangaliwa</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Umetumia %1$s kwa %2$s</string>
@@ -274,6 +270,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">Hii ilikuwa ya nini? · %1$s</string>
     <string name="notif_txn_action_change">Badilisha</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Si matumizi</string>
+    <string name="notif_txn_action_not_income">Si mapato</string>
+    <string name="notif_txn_excluded_spending">Haitahesabiwa kama matumizi</string>
+    <string name="notif_txn_excluded_income">Haitahesabiwa kama mapato</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Salio lako ni %1$s zaidi ya lililorekodiwa</string>
+    <string name="notif_balance_lower">Salio lako ni %1$s pungufu ya lililorekodiwa</string>
+    <string name="notif_balance_text">Huenda muamala umekosekana. Gusa ili kukagua.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Imehifadhiwa kama %1$s</string>
     <string name="notif_txn_learned_text">Malipo ya hapa yatapangwa yenyewe kuanzia sasa.</string>

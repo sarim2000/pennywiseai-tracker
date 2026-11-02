@@ -259,12 +259,8 @@
     <string name="notif_txn_channel_description">नए लेन-देन के नोटिफ़िकेशन</string>
     <string name="notif_txn_unknown_merchant">अज्ञात</string>
     <string name="notif_txn_unknown_bank">बैंक</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ बैलेंस में %1$s का फ़र्क — होना था %2$s, बैंक बता रहा है %3$s</string>
     <string name="notif_txn_action_more">और…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s नया लेन-देन</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • बैलेंस जाँच लें</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">%2$s पर %1$s खर्च हुए</string>
@@ -273,6 +269,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">यह किस लिए था? · %1$s</string>
     <string name="notif_txn_action_change">बदलें</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">खर्च नहीं</string>
+    <string name="notif_txn_action_not_income">आय नहीं</string>
+    <string name="notif_txn_excluded_spending">खर्च में नहीं गिना जाएगा</string>
+    <string name="notif_txn_excluded_income">आय में नहीं गिना जाएगा</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">आपका बैलेंस दर्ज रकम से %1$s ज़्यादा है</string>
+    <string name="notif_balance_lower">आपका बैलेंस दर्ज रकम से %1$s कम है</string>
+    <string name="notif_balance_text">शायद कोई लेन-देन छूट गया है। देखने के लिए टैप करें।</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">%1$s में सहेजा गया</string>
     <string name="notif_txn_learned_text">अब से यहाँ के भुगतान अपने-आप इसी श्रेणी में जाएँगे।</string>

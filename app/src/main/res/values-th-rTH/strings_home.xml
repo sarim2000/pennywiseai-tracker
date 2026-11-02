@@ -248,12 +248,8 @@
     <string name="notif_txn_channel_description">แจ้งเตือนเมื่อมีธุรกรรมใหม่</string>
     <string name="notif_txn_unknown_merchant">ไม่ทราบ</string>
     <string name="notif_txn_unknown_bank">ธนาคาร</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ ยอดเงินคลาดเคลื่อน %1$s — ควรเป็น %2$s แต่ธนาคารแจ้ง %3$s</string>
     <string name="notif_txn_action_more">เพิ่มเติม…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s ธุรกรรมใหม่</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • ยอดเงินต้องตรวจสอบ</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">จ่าย %1$s ที่ %2$s</string>
@@ -262,6 +258,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">รายการนี้จ่ายค่าอะไร? · %1$s</string>
     <string name="notif_txn_action_change">เปลี่ยน</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">ไม่ใช่รายจ่าย</string>
+    <string name="notif_txn_action_not_income">ไม่ใช่รายรับ</string>
+    <string name="notif_txn_excluded_spending">จะไม่นับเป็นรายจ่าย</string>
+    <string name="notif_txn_excluded_income">จะไม่นับเป็นรายรับ</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">ยอดเงินของคุณสูงกว่าที่บันทึกไว้ %1$s</string>
+    <string name="notif_balance_lower">ยอดเงินของคุณต่ำกว่าที่บันทึกไว้ %1$s</string>
+    <string name="notif_balance_text">อาจมีธุรกรรมที่ขาดหายไป แตะเพื่อตรวจสอบ</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">บันทึกเป็น %1$s แล้ว</string>
     <string name="notif_txn_learned_text">ต่อจากนี้รายการจ่ายที่นี่จะถูกจัดหมวดหมู่ให้อัตโนมัติ</string>

@@ -258,12 +258,8 @@
     <string name="notif_txn_channel_description">Notificaciones de nuevas transacciones</string>
     <string name="notif_txn_unknown_merchant">Desconocido</string>
     <string name="notif_txn_unknown_bank">Banco</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ El saldo no cuadra por %1$s: se esperaba %2$s, el banco dice %3$s</string>
     <string name="notif_txn_action_more">Más…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Nueva transacción</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • hay que revisar el saldo</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Gastaste %1$s en %2$s</string>
@@ -272,6 +268,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">¿Para qué fue esto? · %1$s</string>
     <string name="notif_txn_action_change">Cambiar</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">No es un gasto</string>
+    <string name="notif_txn_action_not_income">No es un ingreso</string>
+    <string name="notif_txn_excluded_spending">No contará como gasto</string>
+    <string name="notif_txn_excluded_income">No contará como ingreso</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Tu saldo es %1$s mayor de lo registrado</string>
+    <string name="notif_balance_lower">Tu saldo es %1$s menor de lo registrado</string>
+    <string name="notif_balance_text">Puede que falte una transacción. Toca para revisar.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Guardado como %1$s</string>
     <string name="notif_txn_learned_text">A partir de ahora, los pagos aquí se clasificarán automáticamente.</string>

@@ -294,13 +294,8 @@
     <string name="notif_txn_channel_description">Notifications for new transactions</string>
     <string name="notif_txn_unknown_merchant">Unknown</string>
     <string name="notif_txn_unknown_bank">Bank</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ Balance off by %1$s — expected %2$s, bank says %3$s</string>
     <string name="notif_txn_action_more">More…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s New transaction</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • balance needs a look</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Spent %1$s at %2$s</string>
@@ -313,6 +308,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">What was this for? · %1$s</string>
     <string name="notif_txn_action_change">Change</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Not an expense</string>
+    <string name="notif_txn_action_not_income">Not income</string>
+    <string name="notif_txn_excluded_spending">Won\'t count as spending</string>
+    <string name="notif_txn_excluded_income">Won\'t count as income</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Your balance is %1$s higher than recorded</string>
+    <string name="notif_balance_lower">Your balance is %1$s lower than recorded</string>
+    <string name="notif_balance_text">A transaction may be missing. Tap to review.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Saved as %1$s</string>
     <string name="notif_txn_learned_text">Payments here will be sorted automatically from now on.</string>

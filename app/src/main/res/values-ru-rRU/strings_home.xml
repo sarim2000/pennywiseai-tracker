@@ -346,6 +346,10 @@
     <string name="pro_home_card_body">Pro добавляет неограниченные правила, цели, экспорт и импорт выписок.</string>
     <string name="pro_home_card_action">Подробнее о Pro</string>
     <string name="pro_home_card_dismiss">Скрыть</string>
+    <string name="home_payday_card_title">Начинать бюджет в день зарплаты?</string>
+    <string name="home_payday_card_body">Похоже, зарплата приходит %1$d-го числа. Начинать каждый бюджетный месяц с этого дня? Это можно изменить в Настройках.</string>
+    <string name="home_payday_card_action">Начинать %1$d-го</string>
+    <string name="home_payday_card_dismiss">Скрыть</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">По плану: %1$s к %2$s</string>
     <string name="forecast_over_usual">На %1$s больше обычного</string>

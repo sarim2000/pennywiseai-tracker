@@ -82,6 +82,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
+import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
@@ -170,6 +171,7 @@ fun HomeScreen(
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
+    val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
@@ -526,6 +528,7 @@ fun HomeScreen(
             // (Safe to spend by default), so the decision card stays first and the
             // prompt still sits high enough to be seen and dismissed.
             val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
+                val payday = paydaySuggestion
                 // Monthly share prompt. Offers the user something ("your month, summed
                 // up") rather than asking a favour, and only appears when the finished month
                 // actually has enough in it to be worth sending.
@@ -538,6 +541,17 @@ fun HomeScreen(
                                 showShareSheet = true
                             },
                             onDismiss = { viewModel.markSharePromptHandled() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        )
+                    }
+                } else if (payday != null) {
+                    // One-time "start budgets on payday?" suggestion. Ahead of the Pro card:
+                    // it's about the user's own money, not an upsell.
+                    item {
+                        PaydaySuggestionCard(
+                            day = payday,
+                            onAccept = { viewModel.acceptPaydaySuggestion(payday) },
+                            onDismiss = { viewModel.dismissPaydaySuggestion() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         )
                     }

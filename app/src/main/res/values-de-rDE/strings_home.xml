@@ -313,6 +313,10 @@
     <string name="pro_home_card_body">Pro bietet unbegrenzte Regeln, Ziele, Exporte und Kontoauszug-Importe.</string>
     <string name="pro_home_card_action">Pro ansehen</string>
     <string name="pro_home_card_dismiss">Ausblenden</string>
+    <string name="home_payday_card_title">Budget am Zahltag starten?</string>
+    <string name="home_payday_card_body">Dein Gehalt scheint am %1$d. des Monats einzugehen. Soll jeder Budgetmonat an diesem Tag beginnen? Du kannst das in den Einstellungen ändern.</string>
+    <string name="home_payday_card_action">Am %1$d. starten</string>
+    <string name="home_payday_card_dismiss">Ausblenden</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Auf Kurs für %1$s bis %2$s</string>
     <string name="forecast_over_usual">%1$s über dem Üblichen</string>

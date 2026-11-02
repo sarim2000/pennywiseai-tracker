@@ -307,6 +307,10 @@
     <string name="pro_home_card_body">Pro ajoute les règles, objectifs, exports et imports de relevés illimités.</string>
     <string name="pro_home_card_action">Voir Pro</string>
     <string name="pro_home_card_dismiss">Ignorer</string>
+    <string name="home_payday_card_title">Démarrer le budget le jour de paie ?</string>
+    <string name="home_payday_card_body">Votre salaire semble arriver le %1$d du mois. Commencer chaque mois de budget ce jour-là ? Vous pourrez le modifier dans les Paramètres.</string>
+    <string name="home_payday_card_action">Commencer le %1$d</string>
+    <string name="home_payday_card_dismiss">Ignorer</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">En route vers %1$s d\'ici le %2$s</string>
     <string name="forecast_over_usual">%1$s de plus que d\'habitude</string>

@@ -42,6 +42,8 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
@@ -62,6 +64,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -102,6 +105,7 @@ class HomeViewModel @Inject constructor(
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
     @ApplicationContext private val context: Context,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
+    private val categoryRepository: CategoryRepository,
 ) : ViewModel() {
 
     /**
@@ -237,6 +241,33 @@ class HomeViewModel @Inject constructor(
             sharePromptShowing = sharePromptShowing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /**
+     * The one-time "start budgets on payday?" card: the day the salary seems to land, offered
+     * only while the budget cycle is still the calendar month (day 1) and the card hasn't been
+     * accepted or dismissed. Null hides it. Detection reruns when the transaction count changes,
+     * so a salary that only arrives with a later SMS scan still gets offered.
+     */
+    val paydaySuggestion: StateFlow<Int?> = combine(
+        userPreferencesRepository.paydaySuggestionHandled,
+        userPreferencesRepository.budgetCycleStartDay,
+        transactionRepository.observeActiveTransactionCount(),
+    ) { handled, cycleDay, count -> count.takeIf { !handled && cycleDay == 1 } }
+        .distinctUntilChanged()
+        .mapLatest { eligibleCount ->
+            if (eligibleCount == null) return@mapLatest null
+            // Complete months only: a stray credit early in the current month would
+            // otherwise be that month's "salary" and break the agreement check.
+            val thisMonth = YearMonth.now()
+            val transactions = transactionRepository.getTransactionsBetweenDatesList(
+                thisMonth.minusMonths(PAYDAY_HISTORY_MONTHS).atDay(1).atStartOfDay(),
+                thisMonth.atDay(1).atStartOfDay().minusNanos(1)
+            )
+            // By built-in identity, so a translated or renamed Salary category still matches.
+            val salary = categoryRepository.getAllCategories().first().nameForBuiltin("Salary")
+            detectPayday(transactions, salary)?.takeIf { it != 1 }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
      * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
@@ -1361,6 +1392,19 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.markSharePromptHandled(lastMonthKey)
         }
+    }
+
+    /** "Start on day N" on the payday card: the budget cycle moves to payday, and the card never comes back. */
+    fun acceptPaydaySuggestion(day: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.markPaydaySuggestionHandled()
+            userPreferencesRepository.updateBudgetCycleStartDay(day)
+        }
+    }
+
+    /** ✕ on the payday card. The day stays settable in Settings → Budget cycle. */
+    fun dismissPaydaySuggestion() {
+        viewModelScope.launch { userPreferencesRepository.markPaydaySuggestionHandled() }
     }
 
     /** "See Pro" or ✕ on the Pro card — either way it never comes back. */

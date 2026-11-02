@@ -75,4 +75,14 @@ class TrackRepeatChargeUseCaseTest {
         assertNull(useCase.track(2, "Monthly"))
         coVerify(exactly = 0) { subscriptions.insertSubscription(any()) }
     }
+
+    @Test
+    fun `a same-amount purchase days ago means a frequent buy, not a bill`() = runBlocking {
+        // Newest match wins on purpose: a coffee bought every few days would
+        // otherwise find one ~30 days back and be offered as a monthly bill.
+        coEvery { transactionDao.getChargesInCurrencyBetween(any(), any(), any(), any(), any()) } returns
+            listOf(charge(3, now.minusDays(3)), charge(1, now.minusDays(30)))
+
+        assertNull(useCase.suggestedCycle(charge(2, now)))
+    }
 }

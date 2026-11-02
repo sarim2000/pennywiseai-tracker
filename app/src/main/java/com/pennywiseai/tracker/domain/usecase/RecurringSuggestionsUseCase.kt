@@ -13,7 +13,11 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestions
+import com.pennywiseai.tracker.di.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -36,10 +40,18 @@ class RecurringSuggestionsUseCase @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val categoryDao: CategoryDao,
     private val userPreferencesRepository: UserPreferencesRepository,
+    @ApplicationScope scope: CoroutineScope,
 ) {
 
-    /** Re-runs whenever the history, subscriptions, categories or dismissals change. */
-    fun suggestions(): Flow<List<RecurringSuggestion>> {
+    /**
+     * Re-runs whenever the history, subscriptions, categories or dismissals
+     * change. One shared run for Home and Subscriptions, kept for a few
+     * seconds after the last screen stops watching.
+     */
+    val suggestions: Flow<List<RecurringSuggestion>> = buildSuggestions()
+        .shareIn(scope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
+    private fun buildSuggestions(): Flow<List<RecurringSuggestion>> {
         // Open-ended, so a screen kept alive past midnight still sees new days'
         // payments; "today" is read on each run for the same reason.
         val from = LocalDate.now().minusDays(RecurringSuggestions.LOOKBACK_DAYS).atStartOfDay()

@@ -60,6 +60,20 @@ internal fun billingCycleLabel(cycle: String): String = stringResource(
     }
 )
 
+/**
+ * The typed amount, or null. The last separator is the decimal point and any
+ * before it group thousands, so "1,234.50" and "1.234,50" both read as 1234.50.
+ * A lone separator is always decimal: "19,900" is a 3-decimal dinar amount.
+ */
+internal fun parseAmount(text: String): BigDecimal? {
+    val trimmed = text.trim().replace(" ", "")
+    val decimalAt = maxOf(trimmed.lastIndexOf('.'), trimmed.lastIndexOf(','))
+    val normalized = if (decimalAt < 0) trimmed else {
+        trimmed.substring(0, decimalAt).replace(".", "").replace(",", "") + "." + trimmed.substring(decimalAt + 1)
+    }
+    return normalized.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+}
+
 /** "15.49" for a fixed bill, "27.10–31.40" for one whose amount moves. */
 @Composable
 private fun suggestionAmount(suggestion: RecurringSuggestion): String =
@@ -167,10 +181,7 @@ internal fun RecurringSuggestionSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     var amountText by remember(suggestion.key) { mutableStateOf(suggestion.amount.toPlainString()) }
-    // "1,234.50" groups with commas; "19,90" uses a decimal comma.
-    val amount = amountText.trim()
-        .let { if ('.' in it) it.replace(",", "") else it.replace(',', '.') }
-        .toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    val amount = parseAmount(amountText)
 
     val closeThen: (() -> Unit) -> Unit = { action ->
         action()

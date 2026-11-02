@@ -280,7 +280,7 @@ class HomeViewModel @Inject constructor(
      * after that it comes back only for a suggestion it hasn't shown before.
      */
     val recurringSuggestions: StateFlow<List<com.pennywiseai.tracker.domain.spending.RecurringSuggestion>?> = combine(
-        recurringSuggestionsUseCase.suggestions(),
+        recurringSuggestionsUseCase.suggestions,
         userPreferencesRepository.recurringHomeCardSeen,
         userPreferencesRepository.recurringHomeCardDismissedAt,
     ) { suggestions, seen, dismissedAt ->

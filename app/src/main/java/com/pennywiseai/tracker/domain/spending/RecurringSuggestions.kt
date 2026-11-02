@@ -165,6 +165,9 @@ object RecurringSuggestions {
             val payments = mutableListOf(latest)
             var frequent = false
             for (charge in newestFirst.drop(1)) {
+                // The recent run is the evidence; an old price shouldn't sink a
+                // variable bill, nor fill the review sheet.
+                if (payments.size == MAX_PAYMENTS) break
                 val date = charge.dateTime.toLocalDate()
                 val previous = payments.last().dateTime.toLocalDate()
                 // A cycle before the previous payment, or n cycles before the
@@ -231,4 +234,5 @@ object RecurringSuggestions {
     }
 
     private const val MAX_ANCHORS = 3
+    private const val MAX_PAYMENTS = 12
 }

@@ -52,7 +52,7 @@ class SubscriptionsViewModel @Inject constructor(
     init {
         loadSubscriptions()
         viewModelScope.launch {
-            recurringSuggestionsUseCase.suggestions().collect { suggestions ->
+            recurringSuggestionsUseCase.suggestions.collect { suggestions ->
                 _uiState.value = _uiState.value.copy(suggestions = suggestions)
             }
         }

@@ -298,7 +298,12 @@
         <item quantity="one">%d को श्रेणी चाहिए</item>
         <item quantity="other">%d को श्रेणी चाहिए</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">इसे श्रेणी दें ताकि सिर्फ़ असली खर्च गिना जाए</item>
+        <item quantity="other">इन्हें श्रेणी दें ताकि सिर्फ़ असली खर्च गिना जाए</item>
+    </plurals>
     <string name="notif_daily_action_sort">श्रेणी दें</string>
+    <string name="notif_daily_action_sort_all">श्रेणी दें</string>
     <string name="notif_daily_action_cash">+ कैश</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

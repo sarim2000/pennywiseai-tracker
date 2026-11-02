@@ -398,6 +398,10 @@
     <string name="share_banner_dismiss">Descartar</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Cambiar categoría</string>
+    <string name="quick_category_not_expense">No es un gasto</string>
+    <string name="quick_category_not_income">No es un ingreso</string>
+    <string name="quick_category_progress">%1$d de %2$d</string>
+    <string name="quick_category_save_failed">No se pudo guardar. Inténtalo de nuevo.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Gasto en efectivo</string>
     <string name="quick_add_more_details">Más detalles</string>

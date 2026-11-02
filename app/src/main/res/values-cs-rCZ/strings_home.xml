@@ -334,7 +334,14 @@
         <item quantity="many">%d potřebuje kategorii</item>
         <item quantity="other">%d potřebuje kategorii</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">roztřiďte ji, ať se počítají jen skutečné výdaje</item>
+        <item quantity="few">roztřiďte je, ať se počítají jen skutečné výdaje</item>
+        <item quantity="many">roztřiďte je, ať se počítají jen skutečné výdaje</item>
+        <item quantity="other">roztřiďte je, ať se počítají jen skutečné výdaje</item>
+    </plurals>
     <string name="notif_daily_action_sort">Roztřídit</string>
+    <string name="notif_daily_action_sort_all">Roztřídit</string>
     <string name="notif_daily_action_cash">+ Hotovost</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

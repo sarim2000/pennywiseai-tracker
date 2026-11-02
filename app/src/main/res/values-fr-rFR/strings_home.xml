@@ -298,7 +298,12 @@
         <item quantity="one">%d sans catégorie</item>
         <item quantity="other">%d sans catégorie</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">à classer pour ne compter que les vraies dépenses</item>
+        <item quantity="other">à classer pour ne compter que les vraies dépenses</item>
+    </plurals>
     <string name="notif_daily_action_sort">Classer</string>
+    <string name="notif_daily_action_sort_all">Classer</string>
     <string name="notif_daily_action_cash">+ Espèces</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

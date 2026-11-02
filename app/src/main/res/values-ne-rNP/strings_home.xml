@@ -299,7 +299,12 @@
         <item quantity="one">%d लाई वर्ग चाहिन्छ</item>
         <item quantity="other">%d लाई वर्ग चाहिन्छ</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">यसलाई वर्ग दिनुहोस्, ताकि वास्तविक खर्च मात्र गनियोस्</item>
+        <item quantity="other">यिनलाई वर्ग दिनुहोस्, ताकि वास्तविक खर्च मात्र गनियोस्</item>
+    </plurals>
     <string name="notif_daily_action_sort">मिलाउनुहोस्</string>
+    <string name="notif_daily_action_sort_all">मिलाउनुहोस्</string>
     <string name="notif_daily_action_cash">+ नगद</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

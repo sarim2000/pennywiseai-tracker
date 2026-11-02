@@ -400,6 +400,10 @@
     <string name="share_banner_dismiss">Verwerfen</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Kategorie ändern</string>
+    <string name="quick_category_not_expense">Keine Ausgabe</string>
+    <string name="quick_category_not_income">Keine Einnahme</string>
+    <string name="quick_category_progress">%1$d von %2$d</string>
+    <string name="quick_category_save_failed">Speichern fehlgeschlagen. Bitte erneut versuchen.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Barausgabe</string>
     <string name="quick_add_more_details">Weitere Details</string>

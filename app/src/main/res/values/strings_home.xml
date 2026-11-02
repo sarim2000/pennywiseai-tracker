@@ -338,7 +338,13 @@
         <item quantity="one">%d needs a category</item>
         <item quantity="other">%d need a category</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">sort it so only real spending counts</item>
+        <item quantity="other">sort them so only real spending counts</item>
+    </plurals>
     <string name="notif_daily_action_sort">Sort it</string>
+    <string name="notif_daily_action_sort_all">Sort them</string>
     <string name="notif_daily_action_cash">+ Cash</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

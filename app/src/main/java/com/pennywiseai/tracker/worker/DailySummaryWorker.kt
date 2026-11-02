@@ -26,11 +26,12 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.add.QuickAddActivity
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
-import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
+import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
+import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -72,8 +73,8 @@ class DailySummaryWorker @AssistedInject constructor(
         if (!userPreferencesRepository.dailySummaryEnabled.first()) return Result.success()
         val now = ZonedDateTime.now()
         // A run the phone slept through (off at 9 PM, on next morning) would
-        // recap the wrong day.
-        if (now.hour < SUMMARY_HOUR) return Result.success()
+        // recap the wrong day. (The debug-only DailySummaryProbeReceiver forces a run.)
+        if (now.hour < SUMMARY_HOUR && !inputData.getBoolean(KEY_FORCE, false)) return Result.success()
 
         // Same rows as Home and the widgets: the selected profile, no ignored accounts.
         val today = now.toLocalDate()
@@ -94,12 +95,17 @@ class DailySummaryWorker @AssistedInject constructor(
             ?: return Result.success()
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
 
-        val context = applicationContext
+        // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
+        val context = applicationContext.withLatinDigits()
         val text = listOfNotNull(
             transactions.size.takeIf { it > 0 }
                 ?.let { context.resources.getQuantityString(R.plurals.notif_daily_count, it, it) },
+            // Unsorted transfers count as spending until filed, so say why sorting matters.
             unsorted.size.takeIf { it > 0 }
-                ?.let { context.resources.getQuantityString(R.plurals.notif_daily_uncategorized, it, it) }
+                ?.let {
+                    context.resources.getQuantityString(R.plurals.notif_daily_uncategorized, it, it) + " — " +
+                        context.resources.getQuantityString(R.plurals.notif_daily_sort_why, it)
+                }
         ).joinToString(" · ")
         val title = context.getString(
             R.string.notif_daily_title,
@@ -118,6 +124,7 @@ class DailySummaryWorker @AssistedInject constructor(
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(
                 PendingIntent.getActivity(
                     context,
@@ -129,14 +136,18 @@ class DailySummaryWorker @AssistedInject constructor(
             .setAutoCancel(true)
             // Figures stay off the lock screen, like the transaction alerts (#734).
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-        // The newest unsorted one opens in the category picker; picking it
-        // teaches the merchant, which often sorts the rest too.
-        unsorted.maxByOrNull { it.dateTime }?.let { latest ->
+        // The picker walks the unsorted ones, newest first; each pick teaches the
+        // merchant, which often sorts the rest too. Its "Saved as" notes take each
+        // transaction's own alert id, so the recap stays until the walk ends.
+        if (unsorted.isNotEmpty()) {
             builder.addAction(
                 0,
-                context.getString(R.string.notif_daily_action_sort),
-                // The pick's "Saved as" note takes the transaction's own alert id, so the recap stays.
-                SmsBroadcastReceiver.pickerIntent(context, latest.id, latest.id.toInt(), requestCode = NOTIFICATION_ID)
+                context.getString(if (unsorted.size > 1) R.string.notif_daily_action_sort_all else R.string.notif_daily_action_sort),
+                QuickCategoryPickerActivity.walkIntent(
+                    context,
+                    unsorted.sortedByDescending { it.dateTime }.map { it.id },
+                    requestCode = NOTIFICATION_ID
+                )
             )
         }
         // Cash never texts: the recap is when the day's cash spend gets remembered.
@@ -158,7 +169,9 @@ class DailySummaryWorker @AssistedInject constructor(
         private const val WORK_NAME = "daily_summary"
         private const val CHANNEL_ID = "daily_summary"
         // Transaction alerts use the transaction id; ids are never negative.
-        private const val NOTIFICATION_ID = -2
+        internal const val NOTIFICATION_ID = -2
+        /** Input flag: skip the 9 PM gate (debug probe only). */
+        const val KEY_FORCE = "force"
         private const val SUMMARY_HOUR = 21
 
         /** The next local 9 PM strictly after [now]; zone-aware, so DST shifts keep it at 9 PM. */

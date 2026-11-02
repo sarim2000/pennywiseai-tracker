@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -11,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -59,7 +61,16 @@ fun QuickCategoryPickerSheet(
     // also picking a category. In-app call sites omit these and see no change.
     tagSuggestions: List<String> = emptyList(),
     initialTags: List<String> = emptyList(),
-    onTagsChanged: ((List<String>) -> Unit)? = null
+    onTagsChanged: ((List<String>) -> Unit)? = null,
+    // Notification picker only: a "2 of 3" beside the title while walking the
+    // recap's unsorted rows, and a "Not an expense" row that drops the
+    // transaction from totals ([onExclude] persists and dismisses).
+    progress: String? = null,
+    // Notification picker only: which transaction this is ("Merchant · JD21"),
+    // in place of the generic title — from the recap there's no alert beside it.
+    subject: String? = null,
+    excludeLabel: String? = null,
+    onExclude: (() -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -94,15 +105,31 @@ fun QuickCategoryPickerSheet(
                 )
             )
         }
-        Text(
-            text = stringResource(R.string.quick_category_title),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(
-                start = Dimensions.Padding.content,
-                end = Dimensions.Padding.content,
-                bottom = Spacing.sm
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = Dimensions.Padding.content,
+                    end = Dimensions.Padding.content,
+                    bottom = Spacing.sm
+                ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = subject ?: stringResource(R.string.quick_category_title),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
             )
-        )
+            if (progress != null) {
+                Text(
+                    text = progress,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         // LazyColumn so long category lists stay reachable when the sheet is
         // fully expanded — a plain Column would render items past the screen
         // bottom unscrollable.
@@ -111,6 +138,33 @@ fun QuickCategoryPickerSheet(
                 .fillMaxWidth()
                 .padding(bottom = Spacing.md)
         ) {
+            if (onExclude != null && excludeLabel != null) {
+                item(key = "exclude") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = onExclude)
+                            .padding(
+                                horizontal = Dimensions.Padding.content,
+                                vertical = Spacing.sm
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.VisibilityOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = excludeLabel,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
+                }
+            }
             items(categories, key = { it.id }) { category ->
                 val selected = currentCategory == category.name
                 Row(

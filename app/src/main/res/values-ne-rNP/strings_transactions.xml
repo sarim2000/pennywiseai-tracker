@@ -399,6 +399,10 @@
     <string name="share_banner_dismiss">रद्ध गर्नुहोस्</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">वर्ग बदल्नुहोस्</string>
+    <string name="quick_category_not_expense">खर्च होइन</string>
+    <string name="quick_category_not_income">आम्दानी होइन</string>
+    <string name="quick_category_progress">%2$d मध्ये %1$d</string>
+    <string name="quick_category_save_failed">सेभ गर्न सकिएन। फेरि प्रयास गर्नुहोस्।</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">नगद खर्च</string>
     <string name="quick_add_more_details">थप विवरण</string>

@@ -303,7 +303,12 @@
         <item quantity="one">%d braucht eine Kategorie</item>
         <item quantity="other">%d brauchen eine Kategorie</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">zuordnen, damit nur echte Ausgaben zählen</item>
+        <item quantity="other">zuordnen, damit nur echte Ausgaben zählen</item>
+    </plurals>
     <string name="notif_daily_action_sort">Zuordnen</string>
+    <string name="notif_daily_action_sort_all">Zuordnen</string>
     <string name="notif_daily_action_cash">+ Bargeld</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

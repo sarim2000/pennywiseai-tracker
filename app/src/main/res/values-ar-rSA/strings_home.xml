@@ -370,7 +370,16 @@
         <item quantity="many">%d بلا تصنيف</item>
         <item quantity="other">%d بلا تصنيف</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="zero">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="one">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="two">رتّبهما ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="few">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="many">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="other">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+    </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
+    <string name="notif_daily_action_sort_all">صنّفها</string>
     <string name="notif_daily_action_cash">+ نقداً</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

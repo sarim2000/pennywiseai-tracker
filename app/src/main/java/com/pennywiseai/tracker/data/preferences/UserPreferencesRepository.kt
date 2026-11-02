@@ -604,6 +604,14 @@ open class UserPreferencesRepository @Inject constructor(
         return allowed
     }
 
+    /** Undoes [tryRecordRecurringOffer] for an offer that was never shown. */
+    suspend fun releaseRecurringOffer(key: String, today: LocalDate) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.RECURRING_OFFER_LOG] =
+                (prefs[PreferencesKeys.RECURRING_OFFER_LOG] ?: emptySet()) - "$key|${today.toEpochDay()}"
+        }
+    }
+
     suspend fun setShareCardConfig(config: ShareCardConfig) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHARE_CARD_HERO] = config.hero.name

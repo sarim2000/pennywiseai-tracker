@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
@@ -197,9 +199,12 @@ internal fun RecurringSuggestionSheet(
         contentWindowInsets = { WindowInsets.navigationBars },
         containerColor = MaterialTheme.colorScheme.surface,
     ) {
+        // Scrolls, so a year of payments on a small screen can't push the amount
+        // and Track bill out of reach.
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.md),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -235,7 +240,10 @@ internal fun RecurringSuggestionSheet(
             )
             Spacer(Modifier.height(Spacing.sm))
             val dateFormatter = AppDates.dateFormatter()
-            suggestion.payments.asReversed().forEachIndexed { index, payment ->
+            var showAllPayments by remember(suggestion.key) { mutableStateOf(false) }
+            val newestFirst = suggestion.payments.asReversed()
+            val shownPayments = if (showAllPayments) newestFirst else newestFirst.take(PAYMENTS_PREVIEW)
+            shownPayments.forEachIndexed { index, payment ->
                 if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
                     modifier = Modifier
@@ -251,6 +259,14 @@ internal fun RecurringSuggestionSheet(
                         text = CurrencyFormatter.formatCurrency(payment.amount, suggestion.currency),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+            if (newestFirst.size > PAYMENTS_PREVIEW) {
+                TextButton(onClick = { showAllPayments = !showAllPayments }) {
+                    Text(
+                        if (showAllPayments) stringResource(R.string.subscriptions_suggested_show_less)
+                        else stringResource(R.string.subscriptions_suggested_show_all, newestFirst.size)
                     )
                 }
             }
@@ -310,3 +326,6 @@ internal fun RecurringSuggestionSheet(
         }
     }
 }
+
+/** Payments listed in the review sheet before "Show all". */
+private const val PAYMENTS_PREVIEW = 4

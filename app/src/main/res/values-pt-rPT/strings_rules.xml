@@ -234,6 +234,9 @@
     <string name="onboarding_continue">Continuar</string>
     <string name="onboarding_start_scanning">Comece a escanear</string>
     <string name="onboarding_finish">Acabamento</string>
+    <string name="onboarding_bank_missing_title">Não encontrou o seu banco?</string>
+    <string name="onboarding_bank_missing_body">Peça suporte para o seu banco e adicioná-lo-emos ao PennyWise.</string>
+    <string name="onboarding_bank_missing_action">Pedir o meu banco</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">Baixando modelo...</string>
     <string name="chat_model_required_title">Modelo IA necessário</string>

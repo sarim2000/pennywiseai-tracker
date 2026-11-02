@@ -77,6 +77,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
@@ -1667,30 +1668,19 @@ private fun EditableExtractedInfoCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            SegmentedButton(
-                selected = !isEffectivelyBusiness,
-                onClick = {
-                    val newId = if (accountDefault == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
-                    viewModel.updateProfileId(newId)
-                },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-            ) {
-                Text(stringResource(R.string.txn_detail_personal))
+        ConnectedChoiceRow(
+            options = listOf(ProfileEntity.PERSONAL_ID, ProfileEntity.BUSINESS_ID),
+            selected = if (isEffectivelyBusiness) ProfileEntity.BUSINESS_ID else ProfileEntity.PERSONAL_ID,
+            onSelect = { profileId ->
+                // Picking the account's own default clears the override.
+                viewModel.updateProfileId(if (accountDefault == profileId) null else profileId)
+            },
+            label = { profileId ->
+                stringResource(
+                    if (profileId == ProfileEntity.BUSINESS_ID) R.string.txn_detail_business else R.string.txn_detail_personal
+                )
             }
-            SegmentedButton(
-                selected = isEffectivelyBusiness,
-                onClick = {
-                    val newId = if (accountDefault == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
-                    viewModel.updateProfileId(newId)
-                },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-            ) {
-                Text(stringResource(R.string.txn_detail_business))
-            }
-        }
+        )
 
         // Recurring
         Row(
@@ -1775,26 +1765,21 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = budgetImpactType == null,
-                onClick = { viewModel.updateBudgetImpactType(null) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_none), style = MaterialTheme.typography.labelSmall) }
-            )
-            SegmentedButton(
-                selected = budgetImpactType == BudgetImpactType.DEDUCT_SPENT,
-                onClick = { viewModel.updateBudgetImpactType(BudgetImpactType.DEDUCT_SPENT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_refund), style = MaterialTheme.typography.labelSmall) }
-            )
-            SegmentedButton(
-                selected = budgetImpactType == BudgetImpactType.ADD_TO_LIMIT,
-                onClick = { viewModel.updateBudgetImpactType(BudgetImpactType.ADD_TO_LIMIT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_extra), style = MaterialTheme.typography.labelSmall) }
-            )
-        }
+        ConnectedChoiceRow(
+            options = listOf(null, BudgetImpactType.DEDUCT_SPENT, BudgetImpactType.ADD_TO_LIMIT),
+            selected = budgetImpactType,
+            onSelect = { viewModel.updateBudgetImpactType(it) },
+            label = {
+                stringResource(
+                    when (it) {
+                        null -> R.string.txn_detail_budget_impact_none
+                        BudgetImpactType.DEDUCT_SPENT -> R.string.txn_detail_budget_impact_refund
+                        BudgetImpactType.ADD_TO_LIMIT -> R.string.txn_detail_budget_impact_extra
+                    }
+                )
+            },
+            textStyle = MaterialTheme.typography.labelSmall
+        )
 
         if (budgetImpactType != null) {
             var expanded by remember { mutableStateOf(false) }

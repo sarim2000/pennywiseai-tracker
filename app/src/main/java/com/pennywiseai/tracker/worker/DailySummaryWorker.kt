@@ -31,6 +31,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
+import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -94,7 +95,8 @@ class DailySummaryWorker @AssistedInject constructor(
             ?: return Result.success()
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
 
-        val context = applicationContext
+        // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
+        val context = applicationContext.withLatinDigits()
         val text = listOfNotNull(
             transactions.size.takeIf { it > 0 }
                 ?.let { context.resources.getQuantityString(R.plurals.notif_daily_count, it, it) },

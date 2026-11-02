@@ -153,10 +153,16 @@ object CurrencyFormatter {
     private val EXPLICIT_SYMBOL_CURRENCIES = setOf("PKR", "LKR")
 
     /**
-     * Formats a BigDecimal amount as currency with the specified currency code
+     * Formats a BigDecimal amount as currency with the specified currency code.
+     *
+     * Returns [AmountPrivacy.MASK] while the user has amounts hidden. That's right
+     * for anything drawn on screen; output that leaves the screen or is stored
+     * (notifications, AI prompts and chat messages, logs, widgets that apply
+     * their own rule) passes [maskIfHidden] = false.
      */
-    fun formatCurrency(amount: BigDecimal, currencyCode: String): String =
-        ltr(formatCurrencyRaw(amount, currencyCode))
+    fun formatCurrency(amount: BigDecimal, currencyCode: String, maskIfHidden: Boolean = true): String =
+        if (maskIfHidden && AmountPrivacy.hidden) AmountPrivacy.MASK
+        else ltr(formatCurrencyRaw(amount, currencyCode))
 
     /**
      * [formatted] with a leading [signPrefix] ("-" / "+") that stays on the left in
@@ -221,8 +227,8 @@ object CurrencyFormatter {
     /**
      * Formats a Double amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: Double, currencyCode: String): String {
-        return formatCurrency(amount.toBigDecimal(), currencyCode)
+    fun formatCurrency(amount: Double, currencyCode: String, maskIfHidden: Boolean = true): String {
+        return formatCurrency(amount.toBigDecimal(), currencyCode, maskIfHidden)
     }
 
     /**
@@ -269,18 +275,21 @@ object CurrencyFormatter {
     fun formatByCurrency(
         totalsByCurrency: Map<String, Money>,
         signPrefix: String = "",
-        fallbackCurrency: String = "INR"
+        fallbackCurrency: String = "INR",
+        maskIfHidden: Boolean = true
     ): String {
+        // One mask, not one per currency: "•••• · ••••" would still say how many there are.
+        if (maskIfHidden && AmountPrivacy.hidden) return AmountPrivacy.MASK
         val nonZero = totalsByCurrency.values.filter { it.amount.signum() != 0 }
         if (nonZero.isEmpty()) {
             // Keep the symbol right for an all-cancelling single-currency set
             // (e.g. a $300 charge + $300 refund) instead of defaulting to ₹0.
             val currency = totalsByCurrency.keys.firstOrNull() ?: fallbackCurrency
-            return Money.zero(currency).format(signPrefix)
+            return Money.zero(currency).format(signPrefix, maskIfHidden = false)
         }
         return nonZero
             .sortedByDescending { it.amount.abs() }
-            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix) }
+            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix, maskIfHidden = false) }
     }
 
     /**
@@ -311,6 +320,7 @@ object CurrencyFormatter {
      * [numberFormatStyle] (AUTO = L/Cr for INR/NPR/PKR, K/M otherwise).
      */
     fun formatAbbreviated(value: Double, currencyCode: String): String {
+        if (AmountPrivacy.hidden) return AmountPrivacy.MASK
         val symbol = getCurrencySymbol(currencyCode)
         val absValue = kotlin.math.abs(value)
         val useIndianNotation = useIndianAbbreviation(currencyCode)

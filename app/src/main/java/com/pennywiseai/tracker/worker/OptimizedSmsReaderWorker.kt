@@ -1038,9 +1038,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         }
 
         val logMsg = if (parsed.creditLimit != null) {
-            "Saved balance/limit (${CurrencyFormatter.formatCurrency(parsed.creditLimit!!, parsed.currency)})"
+            "Saved balance/limit (${CurrencyFormatter.formatCurrency(parsed.creditLimit!!, parsed.currency, maskIfHidden = false)})"
         } else {
-            "Saved balance (${CurrencyFormatter.formatCurrency(saved.balance, saved.currency)})"
+            "Saved balance (${CurrencyFormatter.formatCurrency(saved.balance, saved.currency, maskIfHidden = false)})"
         }
         Log.i(TAG, logMsg)
     }

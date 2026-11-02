@@ -937,6 +937,14 @@ open class UserPreferencesRepository @Inject constructor(
         WidgetRefresher.refreshTransactionWidgets(context)
     }
 
+    /** Flips [isBalanceHidden] in one read-modify-write, so the eye and a shake can't race. */
+    suspend fun toggleBalanceHidden() {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BALANCE_HIDDEN] = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true)
+        }
+        WidgetRefresher.refreshTransactionWidgets(context)
+    }
+
     // Replace UPI VPAs with matching contact names at display time.
     // Off by default — turning on prompts for READ_CONTACTS.
     val useContactsForVpa: Flow<Boolean> = context.dataStore.data

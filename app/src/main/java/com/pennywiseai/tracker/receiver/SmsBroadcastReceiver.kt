@@ -590,7 +590,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private fun showSuggestionNotification(context: Context, suggestion: Suggestion) {
             val draft = suggestion.draft()
             val tx = suggestion.transaction
-            val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
+            val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency, maskIfHidden = false)
             val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
             val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
                 context.getString(R.string.notif_suggestion_title_received, amount, merchant)
@@ -760,7 +760,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val transactionId = transaction.id
             val pendingIntent = openTransactionIntent(context, transactionId)
 
-            val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)
+            val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)
             val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
             val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
             val title = when (transaction.transactionType) {

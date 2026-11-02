@@ -327,4 +327,24 @@ class CurrencyFormatterTest {
             }
         }
     }
+
+    @Test
+    fun `hidden amounts mask on screen but not where output leaves it`() {
+        AmountPrivacy.hidden = true
+        try {
+            val amount = BigDecimal("1200")
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatCurrency(amount, "USD"))
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatAbbreviated(1200.0, "USD"))
+            assertEquals(AmountPrivacy.MASK, Money(amount, "USD").format("-"))
+            // One mask for a mixed set: a mask per currency would still say how many.
+            val mixed = mapOf("USD" to Money(amount, "USD"), "INR" to Money(amount, "INR"))
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatByCurrency(mixed))
+            // Notifications, AI prompts and stored chat text opt out.
+            assertEquals("$1,200", CurrencyFormatter.formatCurrency(amount, "USD", maskIfHidden = false))
+            assertTrue(CurrencyFormatter.formatByCurrency(mixed, maskIfHidden = false).contains(" · "))
+        } finally {
+            AmountPrivacy.hidden = false
+        }
+        assertEquals("$1,200", CurrencyFormatter.formatCurrency(BigDecimal("1200"), "USD"))
+    }
 }

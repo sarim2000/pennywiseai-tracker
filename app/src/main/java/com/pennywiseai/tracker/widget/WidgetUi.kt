@@ -275,7 +275,7 @@ fun exactText(amount: BigDecimal, currency: String): String =
  */
 fun widgetMoney(context: Context, amount: BigDecimal, currency: String): String {
     val symbol = CurrencyFormatter.getCurrencySymbol(currency)
-    var text = CurrencyFormatter.formatCurrency(amount.abs(), currency).trim('⁦', '⁩')
+    var text = CurrencyFormatter.formatCurrency(amount.abs(), currency, maskIfHidden = false).trim('⁦', '⁩')
     if (symbol.lastOrNull()?.isLetter() == true && text.startsWith(symbol) && text.length > symbol.length) {
         text = "$symbol ${text.removePrefix(symbol)}"
     }

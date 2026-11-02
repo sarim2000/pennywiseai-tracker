@@ -77,8 +77,9 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Install splash screen before super.onCreate()
-        installSplashScreen()
+        // Install splash screen before super.onCreate(). Held until the hide-amounts
+        // switch is read, so a hidden balance never flashes on a cold start.
+        installSplashScreen().setKeepOnScreenCondition { !com.pennywiseai.tracker.utils.AmountPrivacy.loaded }
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

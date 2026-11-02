@@ -57,6 +57,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
@@ -457,6 +458,7 @@ private fun TotalSubscriptionsSummary(
                 fallbackCurrency = currency ?: "INR"
             )
             currency != null -> CurrencyFormatter.formatCurrency(totalAmount, currency)
+            AmountPrivacy.hidden -> AmountPrivacy.MASK
             else -> totalAmount.toPlainString()
         },
         subtitle = subtitle,

@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
@@ -85,7 +86,7 @@ fun TransactionItem(
 
     val resources = LocalContext.current.resources
     val categoryText = categoryLabel(transaction.category)
-    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness) {
+    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
             if (description != null) add(description)
             add(dateTimeText)

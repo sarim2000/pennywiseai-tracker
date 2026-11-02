@@ -14,12 +14,6 @@ import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -64,16 +58,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
@@ -122,6 +118,7 @@ import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 /** Distance each card travels on the first-composition entrance animation. */
 private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
@@ -136,7 +133,7 @@ private val STACKED_AVATAR_STEP = Spacing.lg - Spacing.xs
 /** The surface-coloured ring that separates one stacked avatar from the next. */
 private val STACKED_AVATAR_RING = Spacing.xxs
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -495,15 +492,7 @@ fun HomeScreen(
                             isApproximate = uiState.isApproximateBalance,
                             isBalanceHidden = uiState.isBalanceHidden,
                             onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                            onCurrencyClick = {
-                                // Cycle through currencies when tapped
-                                val currencies = uiState.availableCurrencies
-                                if (currencies.size > 1) {
-                                    val currentIdx = currencies.indexOf(uiState.selectedCurrency)
-                                    val nextIdx = (currentIdx + 1) % currencies.size
-                                    viewModel.selectCurrency(currencies[nextIdx])
-                                }
-                            },
+                            onCurrencySelected = { viewModel.selectCurrency(it) },
                             onShowBreakdown = { viewModel.showBreakdownDialog() },
                             accountBalances = uiState.accountBalances,
                             creditCards = uiState.creditCards,
@@ -1016,6 +1005,7 @@ fun HomeScreen(
                                                 subscriptions = uiState.upcomingSubscriptions,
                                                 totalAmount = uiState.upcomingSubscriptionsTotal,
                                                 totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
+                                                nextDue = uiState.nextDueSubscription,
                                                 isUnified = uiState.isUnifiedMode,
                                                 currency = uiState.selectedCurrency,
                                                 onClick = onNavigateToSubscriptions,
@@ -1097,23 +1087,6 @@ fun HomeScreen(
             if (promoAfter == null) promoSlot()
         }
         
-        // Scan FAB rotation animation
-        val infiniteTransition = rememberInfiniteTransition(label = "scan_rotation")
-        val rotationAngle by animateFloatAsState(
-            targetValue = if (uiState.isScanning) 1f else 0f,
-            animationSpec = tween(300),
-            label = "scan_trigger"
-        )
-        val continuousRotation by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1000, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "scan_rotation"
-        )
-        val scanRotation = if (uiState.isScanning) continuousRotation else 0f
 
         // FABs - Direct access (no speed dial)
         Column(
@@ -1166,12 +1139,22 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = stringResource(R.string.home_fab_sync),
-                            modifier = if (uiState.isScanning) Modifier.rotate(scanRotation) else Modifier,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                        // M3 Expressive: the shape-morphing loading indicator
+                        // takes the icon's place while a scan runs.
+                        if (uiState.isScanning) {
+                            LoadingIndicator(
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.semantics {
+                                    contentDescription = context.getString(R.string.home_fab_sync)
+                                }
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Sync,
+                                contentDescription = stringResource(R.string.home_fab_sync),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
                     }
                 }
                 // Hint for long-press functionality - only show for new users (no transactions yet)
@@ -1608,6 +1591,7 @@ private fun UpcomingSubscriptionsCard(
     subscriptions: List<SubscriptionEntity>,
     totalAmount: BigDecimal,
     totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
+    nextDue: SubscriptionEntity? = null,
     isUnified: Boolean = false,
     currency: String,
     onClick: () -> Unit = {},
@@ -1743,6 +1727,24 @@ private fun UpcomingSubscriptionsCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
                     )
+                    val nextDate = nextDue?.nextPaymentDate
+                    if (nextDue != null && nextDate != null) {
+                        val days = ChronoUnit.DAYS.between(LocalDate.now(), nextDate).toInt()
+                        val due = when {
+                            days < 0 -> stringResource(R.string.home_subscriptions_due_overdue)
+                            days == 0 -> stringResource(R.string.home_subscriptions_due_today)
+                            days == 1 -> stringResource(R.string.home_subscriptions_due_tomorrow)
+                            else -> pluralStringResource(R.plurals.home_subscriptions_due_in_days, days, days)
+                        }
+                        Text(
+                            text = stringResource(R.string.home_subscriptions_next_due, nextDue.merchantName, due),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (days < 0) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
             Text(

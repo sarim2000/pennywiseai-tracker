@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
 import android.Manifest
+import android.content.Intent
 import android.app.LocaleConfig
 import android.app.LocaleManager
 import android.os.Build
@@ -50,12 +51,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -81,6 +84,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 // TextFieldDefaults already imported above
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -647,17 +651,20 @@ private fun PermissionsStep(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SmsScanStep(uiState: OnBoardingUiState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         if (uiState.isScanning) {
-            CircularProgressIndicator(
+            LoadingIndicator(
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer)
             )
 
@@ -674,7 +681,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
 
             if (uiState.scanTotal > 0) {
                 val progress = uiState.scanProcessed.toFloat() / uiState.scanTotal.toFloat()
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -700,7 +707,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                     )
                 }
             } else {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.onboarding_scan_preparing),
@@ -741,6 +748,8 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                MissingBankCard()
             }
         } else {
             // Not started yet
@@ -768,6 +777,40 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+/** Nothing parsed usually means an unsupported bank: point to the bank-support request. */
+@Composable
+private fun MissingBankCard() {
+    val context = LocalContext.current
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.md)) {
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            TextButton(
+                onClick = {
+                    // ponytail: no browser installed → ActivityNotFoundException is swallowed, nothing else to offer
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
+                },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.onboarding_bank_missing_action))
+            }
         }
     }
 }
@@ -1076,6 +1119,8 @@ private fun currencyLabel(code: String): String {
 // Onboarding-only geometry. These are intentionally larger than any in-app
 // token: full-screen illustrative moments, not list chrome.
 private val HERO_ICON_SIZE = 100.dp
+private const val BANK_REQUEST_URL =
+    "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md"
 private val PSEUDO_REGIONS = setOf("XA", "XB")
 private val HERO_ICON_SIZE_SMALL = 80.dp
 private val OPTION_TILE_SIZE = 72.dp

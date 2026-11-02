@@ -1694,6 +1694,7 @@ private fun SettingsDropdownItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AiChatSettingsItem(
     downloadState: DownloadState,
@@ -1802,7 +1803,7 @@ private fun AiChatSettingsItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
                     modifier = Modifier.fillMaxWidth()
                 )

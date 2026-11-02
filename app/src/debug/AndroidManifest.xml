@@ -18,5 +18,10 @@
             android:name="com.pennywiseai.tracker.debug.DailySummaryProbeReceiver"
             android:exported="true"
             android:permission="android.permission.DUMP" />
+        <!-- Debug-only: run the bill-reminder check now; see BillReminderProbeReceiver. -->
+        <receiver
+            android:name="com.pennywiseai.tracker.debug.BillReminderProbeReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>

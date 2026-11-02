@@ -813,7 +813,7 @@ private fun SwipeableSubscriptionItem(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = subscription.smsBody,
+                                    text = CurrencyFormatter.maskAmountsIn(subscription.smsBody),
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontFamily = FontFamily.Monospace
                                     ),

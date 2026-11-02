@@ -449,7 +449,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          */
         internal fun showBalanceDiscrepancyNotification(context: Context, transaction: TransactionEntity, discrepancy: BalanceDiscrepancy) {
             val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
-            val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency)
+            val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency, maskIfHidden = false)
             val title = context.getString(
                 if (discrepancy.delta.signum() > 0) R.string.notif_balance_higher else R.string.notif_balance_lower,
                 difference
@@ -507,7 +507,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
-                    .setContentText("$merchant · ${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)}")
+                    .setContentText("$merchant · ${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)}")
                     .setContentIntent(openTransactionIntent(context, transaction.id))
                     .addAction(
                         0,

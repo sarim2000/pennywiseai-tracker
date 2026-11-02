@@ -156,9 +156,14 @@ object CurrencyFormatter {
      * Formats a BigDecimal amount as currency with the specified currency code.
      *
      * Returns [AmountPrivacy.MASK] while the user has amounts hidden. That's right
-     * for anything drawn on screen; output that leaves the screen or is stored
-     * (notifications, AI prompts and chat messages, logs, widgets that apply
-     * their own rule) passes [maskIfHidden] = false.
+     * for anything drawn on screen. Anything else must pass [maskIfHidden] = false,
+     * or it silently writes "••••" for users who hide amounts:
+     * - notifications (their lock-screen privacy is handled separately)
+     * - AI prompts and stored chat messages
+     * - text saved to the database (e.g. a balance adjustment's description)
+     * - exports, backups, webhook payloads and shared text or images
+     * - logs
+     * - widgets, which apply their own rule
      */
     fun formatCurrency(amount: BigDecimal, currencyCode: String, maskIfHidden: Boolean = true): String =
         if (maskIfHidden && AmountPrivacy.hidden) AmountPrivacy.MASK

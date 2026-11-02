@@ -55,6 +55,7 @@ fun AccountCarousel(
     selectedCurrency: String,
     blurEffects: Boolean = false,
     hazeState: HazeState? = null,
+    isAmountHidden: Boolean = true,
     onToggleAmountsHidden: () -> Unit = {}
 ) {
     val allAccounts = bankAccounts + creditCards
@@ -72,6 +73,7 @@ fun AccountCarousel(
             selectedCurrency = selectedCurrency,
             blurEffects = blurEffects,
             hazeState = hazeState,
+            isAmountHidden = isAmountHidden,
             onToggleAmountsHidden = onToggleAmountsHidden
         )
     } else {
@@ -93,6 +95,7 @@ fun AccountCarousel(
                 selectedCurrency = selectedCurrency,
                 blurEffects = blurEffects,
                 hazeState = hazeState,
+                isAmountHidden = isAmountHidden,
                 onToggleAmountsHidden = onToggleAmountsHidden
             )
         }
@@ -109,10 +112,9 @@ private fun AccountCarouselCard(
     selectedCurrency: String,
     blurEffects: Boolean = false,
     hazeState: HazeState? = null,
+    isAmountHidden: Boolean = true,
     onToggleAmountsHidden: () -> Unit = {}
 ) {
-    // The app-wide switch (Home's eye, shake), not a per-card one.
-    val isAmountHidden = AmountPrivacy.hidden
     // Low-balance alert: tint the home card red when a non-credit account's balance
     // is at or below its user-set threshold (matches Manage Accounts). #509
     val isLowBalance = !isCreditCard &&
@@ -234,7 +236,8 @@ private fun AccountCarouselCard(
                     // is the display currency when a rate was found), so format with the
                     // account's own currency. This keeps an un-convertible balance honest
                     // (shows "$400", not "MZN400") instead of forcing the display label.
-                    text = account.formatBalance(), // masked by the formatter while hidden
+                    // Home's eye, not a per-card one: hidden by default like the rest of Home.
+                    text = if (isAmountHidden) AmountPrivacy.MASK else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,

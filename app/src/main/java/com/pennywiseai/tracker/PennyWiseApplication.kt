@@ -127,7 +127,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             }
         }
         applicationScope.launch {
-            userPreferencesRepository.isBalanceHidden
+            userPreferencesRepository.isAmountHiddenEverywhere
                 // Unreadable: keep amounts hidden, and don't hold the splash forever.
                 .catch { emit(true) }
                 .collectLatest { hidden ->

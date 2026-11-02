@@ -246,28 +246,31 @@ class HomeViewModel @Inject constructor(
     /**
      * The one-time "start budgets on payday?" card: the day the salary seems to land, offered
      * only while the budget cycle is still the calendar month (day 1) and the card hasn't been
-     * accepted or dismissed. Null hides it. Detection reruns when the transaction count changes,
-     * so a salary that only arrives with a later SMS scan still gets offered.
+     * accepted or dismissed. Null hides it. Detection reruns on any change to those months'
+     * transactions (a salary arriving with a later scan, or one recategorized as Salary).
      */
     val paydaySuggestion: StateFlow<Int?> = combine(
         userPreferencesRepository.paydaySuggestionHandled,
         userPreferencesRepository.budgetCycleStartDay,
-        transactionRepository.observeActiveTransactionCount(),
-    ) { handled, cycleDay, count -> count.takeIf { !handled && cycleDay == 1 } }
+    ) { handled, cycleDay -> !handled && cycleDay == 1 }
         .distinctUntilChanged()
-        .mapLatest { eligibleCount ->
-            if (eligibleCount == null) return@mapLatest null
+        .flatMapLatest { eligible ->
+            if (!eligible) return@flatMapLatest flowOf(null)
             // Complete months only: a stray credit early in the current month would
             // otherwise be that month's "salary" and break the agreement check.
             val thisMonth = YearMonth.now()
-            val transactions = transactionRepository.getTransactionsBetweenDatesList(
-                thisMonth.minusMonths(PAYDAY_HISTORY_MONTHS).atDay(1).atStartOfDay(),
-                thisMonth.atDay(1).atStartOfDay().minusNanos(1)
-            )
-            // By built-in identity, so a translated or renamed Salary category still matches.
-            val salary = categoryRepository.getAllCategories().first().nameForBuiltin("Salary")
-            detectPayday(transactions, salary)?.takeIf { it != 1 }
+            combine(
+                transactionRepository.getTransactionsBetweenDates(
+                    thisMonth.minusMonths(PAYDAY_HISTORY_MONTHS).atDay(1).atStartOfDay(),
+                    thisMonth.atDay(1).atStartOfDay().minusNanos(1)
+                ),
+                categoryRepository.getAllCategories(),
+            ) { transactions, categories ->
+                // By built-in identity, so a translated or renamed Salary category still matches.
+                detectPayday(transactions, categories.nameForBuiltin("Salary"))?.takeIf { it != 1 }
+            }
         }
+        .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**

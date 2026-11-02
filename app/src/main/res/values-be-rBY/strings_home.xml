@@ -329,6 +329,7 @@
         <item quantity="many">%d без катэгорыі</item>
         <item quantity="other">%d без катэгорыі</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">разбярыце яе, каб улічваліся толькі сапраўдныя выдаткі</item>
         <item quantity="few">разбярыце іх, каб улічваліся толькі сапраўдныя выдаткі</item>

@@ -298,6 +298,7 @@
         <item quantity="one">%d sans catégorie</item>
         <item quantity="other">%d sans catégorie</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">à classer pour ne compter que les vraies dépenses</item>
         <item quantity="other">à classer pour ne compter que les vraies dépenses</item>

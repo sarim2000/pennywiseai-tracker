@@ -315,14 +315,9 @@
     <string name="notif_txn_channel_description">إشعارات للمعاملات الجديدة</string>
     <string name="notif_txn_unknown_merchant">غير معروف</string>
     <string name="notif_txn_unknown_bank">البنك</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠️ الرصيد من قبل %1$s - متوقعة %2$s، البنك يقول %3$s</string>
     <string name="notif_txn_action_more">المزيد…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s معاملة جديدة</string>
-    <string name="notif_txn_public_text">%1$s • يحتاج التوازن إلى مظهر</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • الرصيد يحتاج مراجعة</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">صرفت %1$s في %2$s</string>
     <string name="notif_txn_title_received">استلمت %1$s من %2$s</string>
@@ -334,6 +329,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">على ماذا صرفتها؟ · %1$s</string>
     <string name="notif_txn_action_change">تغيير</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">ليس مصروفاً</string>
+    <string name="notif_txn_action_not_income">ليس دخلاً</string>
+    <string name="notif_txn_excluded_spending">لن يُحسب كمصروف</string>
+    <string name="notif_txn_excluded_income">لن يُحسب كدخل</string>
+    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
+    <string name="notif_balance_higher">رصيدك في %1$s أعلى بـ %2$s من المسجَّل</string>
+    <string name="notif_balance_lower">رصيدك في %1$s أقل بـ %2$s من المسجَّل</string>
+    <string name="notif_balance_text">قد تكون هناك معاملة لم تُسجَّل. اضغط للمراجعة.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">حُفظت في %1$s</string>
     <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>

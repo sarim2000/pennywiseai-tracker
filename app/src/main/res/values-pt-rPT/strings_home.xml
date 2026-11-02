@@ -265,14 +265,9 @@
     <string name="notif_txn_channel_description">Notificações para novas transações</string>
     <string name="notif_txn_unknown_merchant">Desconhecido</string>
     <string name="notif_txn_unknown_bank">Banco</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠️ Saldo desligado por %1$s — esperado %2$s, o banco diz %3$s</string>
     <string name="notif_txn_action_more">Mais…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Nova transação</string>
-    <string name="notif_txn_public_text">%1$s • O saldo precisa de uma olhada</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • verifique o saldo</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Gastou %1$s em %2$s</string>
     <string name="notif_txn_title_received">Recebeu %1$s de %2$s</string>
@@ -280,6 +275,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">Para que foi? · %1$s</string>
     <string name="notif_txn_action_change">Alterar</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Não é despesa</string>
+    <string name="notif_txn_action_not_income">Não é receita</string>
+    <string name="notif_txn_excluded_spending">Não vai contar como despesa</string>
+    <string name="notif_txn_excluded_income">Não vai contar como receita</string>
+    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
+    <string name="notif_balance_higher">O seu saldo no %1$s está %2$s acima do registado</string>
+    <string name="notif_balance_lower">O seu saldo no %1$s está %2$s abaixo do registado</string>
+    <string name="notif_balance_text">Pode faltar uma transação. Toque para rever.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Guardado como %1$s</string>
     <string name="notif_txn_learned_text">A partir de agora, os pagamentos aqui serão classificados automaticamente.</string>

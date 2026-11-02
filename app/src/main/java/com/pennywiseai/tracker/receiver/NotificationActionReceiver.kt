@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -17,10 +19,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 /**
  * BroadcastReceiver that handles actions from transaction notifications.
- * Supports updating merchant, category, confirming, and deleting transactions.
+ * Supports updating category, excluding from totals, confirming, and deleting transactions.
  */
 class NotificationActionReceiver : BroadcastReceiver() {
 
@@ -29,6 +32,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
     interface NotificationActionReceiverEntryPoint {
         fun learnCategoryUseCase(): LearnCategoryUseCase
         fun deleteTransactionUseCase(): DeleteTransactionUseCase
+        fun transactionRepository(): TransactionRepository
     }
 
     companion object {
@@ -41,6 +45,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         const val EXTRA_NEW_CATEGORY = "new_category"
         const val ACTION_UNDO_LEARN = "com.pennywiseai.tracker.ACTION_UNDO_LEARN"
+        const val ACTION_EXCLUDE = "com.pennywiseai.tracker.ACTION_EXCLUDE"
+        const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
         private const val EXTRA_PREVIOUS_MAPPING = "previous_mapping"
@@ -62,6 +68,19 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     putExtra(EXTRA_PREVIOUS_MAPPING, learned.previousMapping)
                     putExtra(EXTRA_MOVED_IDS, learned.movedIds.toLongArray())
                     putExtra(EXTRA_MAPPED_AT, learned.mappedAt?.toString())
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /** "Not an expense"/"Not income" ([undo] false) and its Undo ([undo] true). */
+        fun excludeIntent(context: Context, requestCode: Int, transactionId: Long, notificationId: Int, undo: Boolean): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = if (undo) ACTION_UNDO_EXCLUDE else ACTION_EXCLUDE
+                    putExtra(EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -123,6 +142,14 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         }.onFailure { Log.e(TAG, "Error undoing a learned category", it) }
                         dismissNotification(context, notificationId)
                     }
+                    ACTION_EXCLUDE, ACTION_UNDO_EXCLUDE -> {
+                        val exclude = intent.action == ACTION_EXCLUDE
+                        runCatching {
+                            val txn = setExcluded(context, entryPoint.transactionRepository(), transactionId, exclude)
+                            if (exclude && txn != null) SmsBroadcastReceiver.showExcludedNotification(context, notificationId, txn)
+                            else dismissNotification(context, notificationId)
+                        }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
+                    }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")
                     }
@@ -153,6 +180,25 @@ class NotificationActionReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting transaction", e)
         }
+    }
+
+    /**
+     * Counts the transaction out of (or back into) spending/income totals; it
+     * stays in history and the balance. A repeat tap writes nothing. Null when
+     * the transaction is gone.
+     */
+    private suspend fun setExcluded(
+        context: Context,
+        repository: TransactionRepository,
+        transactionId: Long,
+        excluded: Boolean
+    ): TransactionEntity? {
+        val txn = repository.getTransactionById(transactionId) ?: return null
+        if (txn.excludedFromAnalytics == excluded) return txn
+        val updated = txn.copy(excludedFromAnalytics = excluded, updatedAt = LocalDateTime.now())
+        repository.updateTransaction(updated)
+        WidgetRefresher.refreshTransactionWidgets(context)
+        return updated
     }
 
     private fun confirmTransaction(context: Context, notificationId: Int) {

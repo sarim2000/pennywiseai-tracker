@@ -289,14 +289,9 @@
     <string name="notif_txn_channel_description">Oznámení o nových transakcích</string>
     <string name="notif_txn_unknown_merchant">Neznámý</string>
     <string name="notif_txn_unknown_bank">Bankovní</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠️ Zůstatek %1$s — očekávaný %2$s, banka říká %3$s</string>
     <string name="notif_txn_action_more">Více…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Nová transakce</string>
-    <string name="notif_txn_public_text">%1$s • zůstatek potřebuje vzhled</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • zkontrolujte zůstatek</string>
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">Utraceno %1$s · %2$s</string>
     <string name="notif_txn_title_received">Přijato %1$s od %2$s</string>
@@ -304,6 +299,15 @@
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">Za co to bylo? · %1$s</string>
     <string name="notif_txn_action_change">Změnit</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Není výdaj</string>
+    <string name="notif_txn_action_not_income">Není příjem</string>
+    <string name="notif_txn_excluded_spending">Nebude se počítat do výdajů</string>
+    <string name="notif_txn_excluded_income">Nebude se počítat do příjmů</string>
+    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
+    <string name="notif_balance_higher">Zůstatek %1$s je o %2$s vyšší, než je zaznamenáno</string>
+    <string name="notif_balance_lower">Zůstatek %1$s je o %2$s nižší, než je zaznamenáno</string>
+    <string name="notif_balance_text">Možná chybí nějaká transakce. Klepnutím zkontrolujte.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Uloženo jako %1$s</string>
     <string name="notif_txn_learned_text">Platby tady se od teď budou třídit automaticky.</string>

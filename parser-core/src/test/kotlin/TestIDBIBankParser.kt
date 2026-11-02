@@ -30,6 +30,23 @@ class IDBIBankParserTest {
                 )
             ),
 
+            // UPI Debit with integer balance (e.g. Bal Rs 50000)
+            ParserTestCase(
+                name = "UPI Debit with integer balance",
+                message = "IDBI Bank Acct XX1234 debited for Rs 500.00 on 31-Oct-26; Bal Rs 50000 TEST MERCHANT credited. UPI:123456789012. To Block UPI send SMS UPIBLOCK <Mob. No> to 07799726511  or call 18002094324-IDBI Bank",
+                sender = "BZ-IDBIBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "TEST MERCHANT",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("50000"),
+                    reference = "123456789012",
+                    isFromCard = false
+                )
+            ),
+
             // UPI Debit with merchant name JOHN DOE
             ParserTestCase(
                 name = "UPI Debit to Person Name",

@@ -121,6 +121,23 @@ class EquitasBankParserTest {
                 )
             ),
 
+            // UPI Debit with merchant starting with BLOCK (valid business name)
+            ParserTestCase(
+                name = "UPI Debit with merchant starting with BLOCK",
+                message = "INR 250.00 debited from Equitas-1234 via UPI -Ref:123456789012 to BLOCK A GROCERY on 30-10-26.Bal INR 24,750.00.Not U?SMS BLOCK UPI to 7045030000",
+                sender = "CP-EQUTAS-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "BLOCK A GROCERY",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("24750.00"),
+                    reference = "123456789012",
+                    isFromCard = false
+                )
+            ),
+
             // Negative test cases - should NOT parse
             ParserTestCase(
                 name = "OTP Message Should Not Parse",

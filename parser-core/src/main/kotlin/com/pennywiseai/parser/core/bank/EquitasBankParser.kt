@@ -26,7 +26,7 @@ class EquitasBankParser : BaseIndianBankParser() {
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern: "INR XXX.00 debited" or "INR XXX.00 credited"
         val amountPattern = Regex(
-            """INR\s+([0-9,]+(?:\\.\d{2})?)\s+(?:debited|credited)""",
+            """INR\s+([0-9,]+(?:\.\d{2})?)\s+(?:debited|credited)""",
             RegexOption.IGNORE_CASE
         )
         amountPattern.find(message)?.let { match ->

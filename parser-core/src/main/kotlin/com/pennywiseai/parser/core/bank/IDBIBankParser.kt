@@ -96,7 +96,7 @@ class IDBIBankParser : BaseIndianBankParser() {
         // Pattern 2: UPI Debit: "Bal Rs <bal> <merchant> credited." or "; <merchant> credited."
         // Example: "IDBI Bank Acct XX1234 debited for Rs 500.00 on 31-Oct-26; Bal Rs 50000.00 TEST MERCHANT credited. UPI:..."
         val creditedMerchantPattern = Regex(
-            """(?:Bal\s+(?:Rs\.?|INR|₹)?\s*[0-9,]+(?:\.\d{1,2})?|;)\s*([^.\n]+?)\s+credited\.""",
+            """(?:(?:;\s*)?Bal\s+(?:Rs\.?|INR|₹)?\s*[0-9,]+(?:\.\d{1,2})?\s+|;\s*)([^.\n]+?)\s+credited\.""",
             RegexOption.IGNORE_CASE
         )
         creditedMerchantPattern.find(message)?.let { match ->
@@ -179,9 +179,9 @@ class IDBIBankParser : BaseIndianBankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Pattern: "Bal Rs 3694.38" or "Avl Bal Rs. 16,252.65" or "Bal INR 16252.65"
+        // Pattern: "Bal Rs 3694.38" or "Avl Bal Rs. 16,252.65" or "Bal INR 16252.65" or "Bal Rs 50000"
         val balancePattern = Regex(
-            """(?:Avl\s+Bal|Bal)\s+(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)""",
+            """(?:Avl\s+Bal|Bal)\s+(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d{1,2})?)""",
             RegexOption.IGNORE_CASE
         )
         balancePattern.find(message)?.let { match ->

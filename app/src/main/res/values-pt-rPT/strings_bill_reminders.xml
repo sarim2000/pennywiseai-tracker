@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- "Bill due tomorrow" reminder for subscriptions -->
+    <!-- %1$s: the subscription's name, e.g. "Rent" -->
+    <!-- %1$s: amount with currency; %2$s: billing cycle, e.g. "Monthly" -->
+</resources>

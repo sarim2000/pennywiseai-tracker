@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Home subscriptions card: next due charge ══ -->
+    <!-- %1$s is the merchant, %2$s is when it is due (one of the strings below). -->
+</resources>

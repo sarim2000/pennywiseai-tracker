@@ -587,7 +587,7 @@ private fun SpendingMetaRow(
                     DropdownMenuItem(
                         text = { Text(code) },
                         onClick = {
-                            onCurrencySelected(code)
+                            if (code != currency) onCurrencySelected(code)
                             showMenu = false
                         },
                         trailingIcon = if (code == currency) {

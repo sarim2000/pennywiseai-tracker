@@ -184,6 +184,9 @@ fun PennyWiseApp(
     LifecycleResumeEffect(Unit) {
         lockChecksAtResume = appLockUiState.checks
         passedLockScreen = false
+        // Ask for that check ourselves: on a cold start the resume's own check can
+        // finish before this composes (themeUiState loads first), leaving none to wait for.
+        actualAppLockViewModel.refreshLockState()
         onPauseOrDispose { }
     }
     SideEffect { if (onLockScreen) passedLockScreen = true }

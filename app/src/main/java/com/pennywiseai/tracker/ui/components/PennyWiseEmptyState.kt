@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +38,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  * because centred text set to the full width of a phone wraps into a shape
  * that's hard to read; a measure closer to a paragraph reads better.
  */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun PennyWiseEmptyState(
     icon: ImageVector,
@@ -57,7 +60,7 @@ fun PennyWiseEmptyState(
                 .size(Dimensions.Icon.emptyStateContainer)
                 .background(
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
+                    shape = MaterialShapes.Cookie9Sided.toShape()
                 ),
             contentAlignment = Alignment.Center
         ) {

@@ -41,7 +41,7 @@ import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TransactionGroupsScreen(
     onNavigateBack: () -> Unit = {},
@@ -85,7 +85,7 @@ fun TransactionGroupsScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }

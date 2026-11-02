@@ -6,8 +6,8 @@ import org.junit.Test
 
 /** Which actions a transaction alert gets; the picker always takes the third slot. */
 class SmsBroadcastReceiverAlertLayoutTest {
-    private fun layout(type: TransactionType, uncategorized: Boolean, excluded: Boolean = false) =
-        SmsBroadcastReceiver.alertLayout(type, uncategorized, excluded)
+    private fun layout(type: TransactionType, uncategorized: Boolean, excluded: Boolean = false, bill: Boolean = false) =
+        SmsBroadcastReceiver.alertLayout(type, uncategorized, excluded, bill)
 
     @Test
     fun `sorted spending and income get Not an expense plus Change`() {
@@ -35,5 +35,11 @@ class SmsBroadcastReceiverAlertLayoutTest {
     fun `an already-excluded transaction gets no exclusion button`() {
         assertEquals(2 to false, layout(TransactionType.EXPENSE, uncategorized = true, excluded = true))
         assertEquals(0 to false, layout(TransactionType.EXPENSE, uncategorized = false, excluded = true))
+    }
+
+    @Test
+    fun `a bill's Track or Update price replaces Not an expense`() {
+        assertEquals(1 to false, layout(TransactionType.EXPENSE, uncategorized = true, bill = true))
+        assertEquals(0 to false, layout(TransactionType.EXPENSE, uncategorized = false, bill = true))
     }
 }

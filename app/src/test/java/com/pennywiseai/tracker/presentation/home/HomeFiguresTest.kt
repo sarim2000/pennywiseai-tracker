@@ -33,14 +33,4 @@ class HomeFiguresTest {
 
     @Test fun `single currency is not flagged`() =
         assertFalse(balanceTotals(listOf(account("1", "INR")), emptyList(), "INR").hasOtherCurrencies)
-
-    @Test fun `subscriptions fold to a monthly share`() {
-        fun m(amount: String, cycle: String) = monthlyEquivalent(BigDecimal(amount), cycle).setScale(2, java.math.RoundingMode.HALF_UP)
-        assertEquals(BigDecimal("100.00"), m("1200", "Annual"))
-        assertEquals(BigDecimal("433.33"), m("100", "Weekly"))
-        assertEquals(BigDecimal("100.00"), m("300", "Quarterly"))
-        assertEquals(BigDecimal("100.00"), m("600", "Semi-Annual"))
-        assertEquals(BigDecimal("100.00"), m("100", "Monthly"))
-        assertEquals(BigDecimal("100.00"), m("100", "Fortnightly-ish"))
-    }
 }

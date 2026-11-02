@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -1096,31 +1097,23 @@ private fun ConditionFieldSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LogicalOperatorToggle(
     selected: LogicalOperator,
     onSelect: (LogicalOperator) -> Unit
 ) {
-    val options = listOf(LogicalOperator.AND, LogicalOperator.OR)
-    SingleChoiceSegmentedButtonRow {
-        options.forEachIndexed { index, op ->
-            SegmentedButton(
-                selected = selected == op,
-                onClick = { onSelect(op) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                label = {
-                    Text(
-                        text = stringResource(
-                            if (op == LogicalOperator.AND) R.string.rules_logical_and else R.string.rules_logical_or
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+    ConnectedChoiceRow(
+        options = listOf(LogicalOperator.AND, LogicalOperator.OR),
+        selected = selected,
+        onSelect = onSelect,
+        label = { op ->
+            stringResource(
+                if (op == LogicalOperator.AND) R.string.rules_logical_and else R.string.rules_logical_or
             )
-        }
-    }
+        },
+        fillMaxWidth = false,
+        textStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+    )
 }
 
 @StringRes

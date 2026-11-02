@@ -37,15 +37,6 @@ interface SubscriptionDao {
     """)
     suspend fun getDueIncomeSubscriptions(date: LocalDate): List<SubscriptionEntity>
     
-    /**
-     * Used by the SMS-debit matcher only — explicitly filtered to
-     * EXPENSE-direction so an incoming bank-debit SMS doesn't accidentally
-     * match an INCOME-direction subscription (#371). INCOME subs are
-     * advanced by the phantom auto-creator, not by SMS match.
-     */
-    @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'ACTIVE' AND direction = 'EXPENSE' LIMIT 1")
-    suspend fun getActiveSubscriptionByMerchant(merchantName: String): SubscriptionEntity?
-    
     @Query("SELECT * FROM subscriptions WHERE merchant_name = :merchantName AND state = 'HIDDEN' LIMIT 1")
     suspend fun getHiddenSubscriptionByMerchant(merchantName: String): SubscriptionEntity?
     
@@ -79,6 +70,10 @@ interface SubscriptionDao {
     
     @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, updated_at = datetime('now') WHERE id = :id")
     suspend fun updateNextPaymentDate(id: Long, nextPaymentDate: LocalDate)
+
+    /** Moves the schedule only if it is still [dueDate] and the bill still [state] — a compare-and-set. */
+    @Query("UPDATE subscriptions SET next_payment_date = :nextPaymentDate, updated_at = datetime('now') WHERE id = :id AND next_payment_date = :dueDate AND state = :state")
+    suspend fun advanceIfDue(id: Long, dueDate: LocalDate, nextPaymentDate: LocalDate, state: SubscriptionState): Int
 
     /**
      * Atomic write of both fields when the user marks-as-paid (#412): we

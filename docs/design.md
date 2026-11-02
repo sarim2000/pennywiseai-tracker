@@ -181,6 +181,11 @@ Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
 `extraSmall`; pill shapes use `CircleShape`.
 
+Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
+merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
+`MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
+not containers or buttons.
+
 ---
 
 ## Components
@@ -245,7 +250,7 @@ height as headers without one.
 
 ### `PennyWiseEmptyState`
 
-Tonal icon circle → headline → one line of explanation → optional action.
+Tonal cookie-shaped icon badge → headline → one line of explanation → optional action.
 Spacing is deliberately **uneven** (icon→headline gap larger than
 headline→description) so the three read as one grouped unit. The description is
 width-capped so centred text doesn't wrap into an awkward shape.
@@ -254,6 +259,18 @@ width-capped so centred text doesn't wrap into an awkward shape.
 
 All screens use one of these for consistent system-bar and app-bar handling.
 App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
+
+### Choices and progress (Material 3 Expressive)
+
+- **One-of-N choice rows** → `ConnectedChoiceRow` (a connected `ToggleButton`
+  group). Don't use `SegmentedButton`; Expressive replaces it.
+- **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
+  spinners inside buttons or rows stay `CircularProgressIndicator`.
+- **Activity progress** (scan, import, export, download) →
+  `LinearWavyProgressIndicator`. **Data meters** (budget used, loan repaid)
+  stay flat `LinearProgressIndicator` — the wave signals *work happening*.
+- Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
+  specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
 
 ---
 

@@ -45,6 +45,7 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.statement.StatementBalanceCheck
 import com.pennywiseai.tracker.data.statement.StatementColumnMapping
 import com.pennywiseai.tracker.data.statement.StatementTableParser
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
@@ -310,14 +311,12 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LoadingContent() {
     Spacer(modifier = Modifier.height(Spacing.xxxl))
 
-    CircularProgressIndicator(
-        modifier = Modifier.size(48.dp),
-        strokeWidth = 4.dp
-    )
+    LoadingIndicator()
 
     Spacer(modifier = Modifier.height(Spacing.md))
 
@@ -407,26 +406,21 @@ private fun MappingContent(
             onMappingChange(mapping.copy(descriptionColumn = it))
         }
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = mapping.usesDebitCredit,
-                onClick = {
-                    if (!mapping.usesDebitCredit) {
-                        onMappingChange(mapping.copy(amountColumn = StatementColumnMapping.NONE, typeColumn = StatementColumnMapping.NONE, debitColumn = mapping.amountColumn.takeIf { it >= 0 } ?: 0))
-                    }
-                },
-                shape = SegmentedButtonDefaults.itemShape(0, 2)
-            ) { Text(stringResource(R.string.import_statement_amount_split)) }
-            SegmentedButton(
-                selected = !mapping.usesDebitCredit,
-                onClick = {
-                    if (mapping.usesDebitCredit) {
-                        onMappingChange(mapping.copy(amountColumn = mapping.debitColumn, debitColumn = StatementColumnMapping.NONE, creditColumn = StatementColumnMapping.NONE))
-                    }
-                },
-                shape = SegmentedButtonDefaults.itemShape(1, 2)
-            ) { Text(stringResource(R.string.import_statement_amount_single)) }
-        }
+        // Options are "uses debit/credit columns": true = split, false = single.
+        ConnectedChoiceRow(
+            options = listOf(true, false),
+            selected = mapping.usesDebitCredit,
+            onSelect = { split ->
+                if (split && !mapping.usesDebitCredit) {
+                    onMappingChange(mapping.copy(amountColumn = StatementColumnMapping.NONE, typeColumn = StatementColumnMapping.NONE, debitColumn = mapping.amountColumn.takeIf { it >= 0 } ?: 0))
+                } else if (!split && mapping.usesDebitCredit) {
+                    onMappingChange(mapping.copy(amountColumn = mapping.debitColumn, debitColumn = StatementColumnMapping.NONE, creditColumn = StatementColumnMapping.NONE))
+                }
+            },
+            label = { split ->
+                stringResource(if (split) R.string.import_statement_amount_split else R.string.import_statement_amount_single)
+            },
+        )
 
         if (mapping.usesDebitCredit) {
             ColumnPicker(stringResource(R.string.import_statement_col_debit), listOf(none) + columns, mapping.debitColumn) {

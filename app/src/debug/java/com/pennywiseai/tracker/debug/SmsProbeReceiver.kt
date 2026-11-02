@@ -15,13 +15,15 @@ import kotlinx.coroutines.launch
  * can be checked on a physical phone, where adb can't inject an SMS. Guarded
  * by android.permission.DUMP like LlmProbeReceiver:
  *   adb shell am broadcast -n <pkg>/com.pennywiseai.tracker.debug.SmsProbeReceiver \
- *       --es sender <bank sender id> --es body '<sms text>'
+ *       --es sender <bank sender id> --es body '<sms text>' [--el timestamp <epoch ms>]
+ * The optional timestamp backdates the SMS, e.g. to seed last month's charge.
  * The alert only shows while the app is in the background, as for a real SMS.
  */
 class SmsProbeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val sender = intent.getStringExtra("sender") ?: return
         val body = intent.getStringExtra("body") ?: return
+        val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis())
         val processor = EntryPointAccessors.fromApplication(
             context.applicationContext,
             SmsBroadcastReceiver.SmsBroadcastReceiverEntryPoint::class.java
@@ -29,7 +31,7 @@ class SmsProbeReceiver : BroadcastReceiver() {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                SmsBroadcastReceiver().processIncomingSms(context, processor, sender, body, System.currentTimeMillis())
+                SmsBroadcastReceiver().processIncomingSms(context, processor, sender, body, timestamp)
             } finally {
                 pending.finish()
             }

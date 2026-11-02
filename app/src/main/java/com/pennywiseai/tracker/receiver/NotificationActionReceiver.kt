@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
+import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -33,6 +34,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun learnCategoryUseCase(): LearnCategoryUseCase
         fun deleteTransactionUseCase(): DeleteTransactionUseCase
         fun transactionRepository(): TransactionRepository
+        fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
     }
 
     companion object {
@@ -47,6 +49,9 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_UNDO_LEARN = "com.pennywiseai.tracker.ACTION_UNDO_LEARN"
         const val ACTION_EXCLUDE = "com.pennywiseai.tracker.ACTION_EXCLUDE"
         const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
+        const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
+        const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
+        private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
         private const val EXTRA_PREVIOUS_MAPPING = "previous_mapping"
@@ -79,6 +84,33 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 requestCode,
                 Intent(context, NotificationActionReceiver::class.java).apply {
                     action = if (undo) ACTION_UNDO_EXCLUDE else ACTION_EXCLUDE
+                    putExtra(EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /** The alert's "Track as … bill": tracks the transaction's merchant as a [billingCycle] bill. */
+        fun trackIntent(context: Context, requestCode: Int, transactionId: Long, notificationId: Int, billingCycle: String): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_TRACK_RECURRING
+                    putExtra(EXTRA_TRANSACTION_ID, transactionId)
+                    putExtra(EXTRA_NOTIFICATION_ID, notificationId)
+                    putExtra(EXTRA_BILLING_CYCLE, billingCycle)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /** The alert's "Update price": the transaction's subscription now bills its amount. */
+        fun updatePriceIntent(context: Context, requestCode: Int, transactionId: Long, notificationId: Int): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_UPDATE_PRICE
                     putExtra(EXTRA_TRANSACTION_ID, transactionId)
                     putExtra(EXTRA_NOTIFICATION_ID, notificationId)
                 },
@@ -140,7 +172,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             intent.toLearned(transactionId)?.let { entryPoint.learnCategoryUseCase().undo(it) }
                             WidgetRefresher.refreshTransactionWidgets(context)
                         }.onFailure { Log.e(TAG, "Error undoing a learned category", it) }
-                        dismissNotification(context, notificationId)
+                        SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
+                    }
+                    ACTION_TRACK_RECURRING -> {
+                        val cycle = intent.getStringExtra(EXTRA_BILLING_CYCLE)
+                        val tracked = runCatching {
+                            cycle?.let { entryPoint.trackRepeatChargeUseCase().track(transactionId, it) }
+                        }.onFailure { Log.e(TAG, "Error tracking a repeat charge", it) }.getOrNull()
+                        SmsBroadcastReceiver.showTrackingNotification(context, notificationId, transactionId, tracked)
+                    }
+                    ACTION_UPDATE_PRICE -> {
+                        val updated = runCatching {
+                            entryPoint.trackRepeatChargeUseCase().applyPriceChange(transactionId)
+                        }.onFailure { Log.e(TAG, "Error updating a subscription price", it) }.getOrNull()
+                        SmsBroadcastReceiver.showTrackingNotification(context, notificationId, transactionId, updated, priceUpdated = true)
                     }
                     ACTION_EXCLUDE, ACTION_UNDO_EXCLUDE -> {
                         val exclude = intent.action == ACTION_EXCLUDE

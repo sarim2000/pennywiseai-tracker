@@ -239,6 +239,7 @@
     <string name="settings_notification_access_disabled">انقر لتفعيل إشعارات التطبيقات المصرفية</string>
     <string name="settings_notification_access_on">تشغيل</string>
     <string name="settings_notification_access_off">متوقف</string>
+    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_tracked_apps_title">تتبّع تطبيقات أخرى</string>
     <string name="settings_tracked_apps_subtitle_none">اقترح معاملات من إشعارات أي تطبيق</string>
     <plurals name="settings_tracked_apps_subtitle_count">
@@ -253,7 +254,6 @@
     <string name="settings_tracked_apps_enable_access">فعّل الوصول إلى الإشعارات أولًا</string>
     <string name="settings_tracked_apps_search">ابحث في التطبيقات</string>
     <string name="settings_tracked_apps_done">تم</string>
-    <!-- #994 step 4: pick apps whose notifications become suggested transactions -->
     <string name="settings_daily_summary_title">الملخص اليومي</string>
     <string name="settings_daily_summary_subtitle">ملخص لمصاريف اليوم الساعة 9\u00A0مساءً</string>
     <string name="settings_daily_summary_needs_permission">اسمح بإشعارات PennyWise لتصلك الخلاصة اليومية.</string>
@@ -329,8 +329,8 @@
     <string name="appearance_font_default">افتراضي</string>
     <string name="appearance_font_default_subtitle">النظام</string>
     <string name="appearance_font_sn_pro_subtitle">وحيد حديث</string>
-    <string name="webhooks_title">خطافات الويب</string>
     <!-- ══ Webhooks screen ══ -->
+    <string name="webhooks_title">خطافات الويب</string>
     <string name="webhooks_title_add">إضافة Webhook</string>
     <string name="webhooks_title_edit">تعديل Webhook</string>
     <string name="webhooks_title_history">سجل الإرسال</string>
@@ -365,7 +365,6 @@
     <string name="webhooks_history_empty">لا توجد عمليات إرسال بعد. تنتظر المهام في قائمة الانتظار توفّر اتصال بالشبكة.</string>
     <string name="webhooks_history_delivered">تم الإرسال</string>
     <string name="webhooks_history_failed">فشل</string>
-    <string name="webhooks_history_meta">%1$s · %2$s</string>
     <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
     <plurals name="webhooks_history_batches">
         <item quantity="zero">الإرسال يحتوي على %1$d دفعة</item>

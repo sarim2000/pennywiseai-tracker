@@ -232,6 +232,9 @@
     <string name="onboarding_continue">Endelea</string>
     <string name="onboarding_start_scanning">Anza Kusoma</string>
     <string name="onboarding_finish">Maliza</string>
+    <string name="onboarding_bank_missing_title">Hukupata benki yako?</string>
+    <string name="onboarding_bank_missing_body">Omba usaidizi wa benki yako na tutaiongeza kwenye PennyWise.</string>
+    <string name="onboarding_bank_missing_action">Omba benki yako</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">Inapakua Modeli...</string>
     <string name="chat_model_required_title">Modeli ya AI Inahitajika</string>

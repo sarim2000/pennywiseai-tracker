@@ -384,6 +384,9 @@ class TransactionDetailViewModel @Inject constructor(
                     ?: categoryRepository.getVisibleCategories().first().balanceAdjustmentDefaultCategory(type)
                 transactionRepository.insertTransaction(balanceAdjustment(tx, d, name, category))
                 _balanceDiscrepancy.value = detectBalanceDiscrepancy.execute(tx)
+                if (_balanceDiscrepancy.value == null) {
+                    com.pennywiseai.tracker.receiver.SmsBroadcastReceiver.cancelBalanceDiscrepancyNotification(context, tx)
+                }
             } catch (e: Exception) {
                 _errorMessage.value = UiText.Res(R.string.txn_detail_error_add_adjustment, listOf(e.message.toString()))
             } finally {

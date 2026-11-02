@@ -402,6 +402,7 @@
     <string name="quick_category_not_expense">Pas une dépense</string>
     <string name="quick_category_not_income">Pas un revenu</string>
     <string name="quick_category_progress">%1$d sur %2$d</string>
+    <string name="quick_category_save_failed">Échec de l\'enregistrement. Réessayez.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Dépense en espèces</string>
     <string name="quick_add_more_details">Plus de détails</string>

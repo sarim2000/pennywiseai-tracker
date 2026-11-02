@@ -403,6 +403,7 @@
     <string name="quick_category_not_expense">Não é um gasto</string>
     <string name="quick_category_not_income">Não é uma receita</string>
     <string name="quick_category_progress">%1$d de %2$d</string>
+    <string name="quick_category_save_failed">Não foi possível salvar. Tente novamente.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Gasto em dinheiro</string>
     <string name="quick_add_more_details">Mais detalhes</string>

@@ -183,24 +183,43 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         saving = true
         val gen = walkGen
         lifecycleScope.launch {
-            appScope.async { runCatching { save() }.onFailure { Log.e(TAG, "Error saving the pick", it) } }.await()
-            // Re-targeted by another notification while saving: the save stands, the old walk stops here.
+            val saved = appScope.async {
+                runCatching { save() }.onFailure { Log.e(TAG, "Error saving the pick", it) }.isSuccess
+            }.await()
             if (gen != walkGen) return@launch
-            val left = stillUnsorted(
-                queue.filter { it != txnId }.mapNotNull { transactionRepository.getTransactionById(it) },
-                BuiltinCategoryNames.current("Others")
-            )
-            walkQueue = left.map { it.id }
-            walked.value += 1
-            saving = false
-            val next = left.firstOrNull()
-            if (next == null) {
-                // All of today's are answered: the recap's "N need a category" is stale.
-                (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(DailySummaryWorker.NOTIFICATION_ID)
-                finish()
-            } else {
-                currentArgs.value = PickerArgs(next.id, next.id.toInt())
+            if (!saved) {
+                // The row stays on screen, still unsorted, for another try.
+                saving = false
+                android.widget.Toast.makeText(this@QuickCategoryPickerActivity, R.string.quick_category_save_failed, android.widget.Toast.LENGTH_SHORT).show()
+                return@launch
             }
+            advance(gen, txnId, answered = true)
+        }
+    }
+
+    /**
+     * Moves the walk past [txnId] to the next row still unsorted (re-read, since
+     * learning a merchant can sort others), or ends it. [answered] counts it toward
+     * the "2 of 3"; a row skipped for being stale ([PickerHost]) doesn't count.
+     */
+    private suspend fun advance(gen: Int, txnId: Long, answered: Boolean) {
+        val queue = walkQueue ?: return
+        val left = stillUnsorted(
+            queue.filter { it != txnId }.mapNotNull { transactionRepository.getTransactionById(it) },
+            BuiltinCategoryNames.current("Others")
+        )
+        // Re-targeted by another notification during the reads: the old walk stops here.
+        if (gen != walkGen) return
+        walkQueue = left.map { it.id }
+        if (answered) walked.value += 1
+        saving = false
+        val next = left.firstOrNull()
+        if (next == null) {
+            // All of today's are answered: the recap's "N need a category" is stale.
+            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(DailySummaryWorker.NOTIFICATION_ID)
+            finish()
+        } else {
+            currentArgs.value = PickerArgs(next.id, next.id.toInt())
         }
     }
 
@@ -239,7 +258,14 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         var tagSuggestions by remember { mutableStateOf<List<String>>(emptyList()) }
 
         LaunchedEffect(args.transactionId) {
-            transaction = transactionRepository.getTransactionById(args.transactionId)
+            val loaded = transactionRepository.getTransactionById(args.transactionId)
+            // Walk: a row deleted, sorted or excluded since the recap (or answered just
+            // before a rotation) is skipped, not shown, and a missing one doesn't end the walk.
+            if (walkQueue != null && stillUnsorted(listOfNotNull(loaded), BuiltinCategoryNames.current("Others")).isEmpty()) {
+                advance(walkGen, args.transactionId, answered = false)
+                return@LaunchedEffect
+            }
+            transaction = loaded
             transactionLoaded = true
             // Load existing tags BEFORE the sheet renders (gated by tagsLoaded below).
             // Otherwise the sheet's remember{} captures an empty list, and the first
@@ -336,9 +362,9 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         private const val KEY_WALK_QUEUE = "walk_queue"
         private const val KEY_WALKED = "walked"
 
-        /** The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned) or excluded ones drop out. */
+        /** The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned), excluded or deleted ones drop out. */
         internal fun stillUnsorted(rows: List<TransactionEntity>, others: String): List<TransactionEntity> =
-            rows.filter { it.category == others && !it.excludedFromAnalytics }
+            rows.filter { it.category == others && !it.excludedFromAnalytics && !it.isDeleted }
 
         /** Opens the picker on [ids]' first and walks the rest; each alert's id is its transaction's. */
         fun walkIntent(context: Context, ids: List<Long>, requestCode: Int): PendingIntent =

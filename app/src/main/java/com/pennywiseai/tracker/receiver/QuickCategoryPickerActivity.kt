@@ -40,7 +40,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 
 /**
  * Translucent activity launched from the txn-alert notification's
@@ -94,6 +93,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     private var walkQueue: List<Long>? = null
     private val walked = mutableStateOf(0)
     private var saving = false
+    // Bumped by each (re)start: a walk's pending step must not steer a picker re-targeted meanwhile.
+    private var walkGen = 0
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -109,6 +110,12 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         }
         currentArgs.value = initial
         startWalk(intent)
+        // Recreated (rotation, dark mode) mid-walk: resume where it was, not at the recap's first row.
+        savedInstanceState?.getLongArray(KEY_WALK_QUEUE)?.let { queue ->
+            walkQueue = queue.toList()
+            walked.value = savedInstanceState.getInt(KEY_WALKED)
+            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, it.toInt()) }
+        }
 
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) {
             unlocked.value = true
@@ -131,6 +138,10 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_UNLOCKED, unlocked.value)
+        walkQueue?.let {
+            outState.putLongArray(KEY_WALK_QUEUE, it.toLongArray())
+            outState.putInt(KEY_WALKED, walked.value)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -153,6 +164,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         walkQueue = intent.getLongArrayExtra(EXTRA_WALK_IDS)?.toList()
         walked.value = 0
         saving = false
+        walkGen++
     }
 
     /**
@@ -169,8 +181,11 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         }
         if (saving) return
         saving = true
+        val gen = walkGen
         lifecycleScope.launch {
             appScope.async { runCatching { save() }.onFailure { Log.e(TAG, "Error saving the pick", it) } }.await()
+            // Re-targeted by another notification while saving: the save stands, the old walk stops here.
+            if (gen != walkGen) return@launch
             val left = stillUnsorted(
                 queue.filter { it != txnId }.mapNotNull { transactionRepository.getTransactionById(it) },
                 BuiltinCategoryNames.current("Others")
@@ -279,13 +294,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                 excludeLabel = stringResource(if (isIncome) R.string.quick_category_not_income else R.string.quick_category_not_expense),
                 onExclude = {
                     answer(txn.id) {
-                        // Re-read so a stale copy can't undo a change made meanwhile.
-                        val fresh = transactionRepository.getTransactionById(txn.id)
-                        if (fresh != null && !fresh.excludedFromAnalytics) {
-                            transactionRepository.updateTransaction(
-                                fresh.copy(excludedFromAnalytics = true, updatedAt = LocalDateTime.now())
-                            )
-                        }
+                        transactionRepository.setExcludedFromAnalytics(txn.id, true)
                         WidgetRefresher.refreshTransactionWidgets(applicationContext)
                         // Nothing was learned, so the alert just clears, as for a pick on a vanished row.
                         SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, null)
@@ -324,6 +333,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         /** Walk mode: the recap's unsorted transaction ids, newest first. */
         const val EXTRA_WALK_IDS = "walk_ids"
         private const val KEY_UNLOCKED = "unlocked"
+        private const val KEY_WALK_QUEUE = "walk_queue"
+        private const val KEY_WALKED = "walked"
 
         /** The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned) or excluded ones drop out. */
         internal fun stillUnsorted(rows: List<TransactionEntity>, others: String): List<TransactionEntity> =

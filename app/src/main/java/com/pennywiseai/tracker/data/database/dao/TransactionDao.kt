@@ -264,6 +264,10 @@ interface TransactionDao {
     @Query("UPDATE transactions SET category = :category, updated_at = :updatedAt WHERE id = :transactionId")
     suspend fun updateCategoryById(transactionId: Long, category: String, updatedAt: LocalDateTime)
 
+    /** Flips only the "don't count" flag; 0 when it already had that value. */
+    @Query("UPDATE transactions SET excluded_from_analytics = :excluded, updated_at = :updatedAt WHERE id = :transactionId AND excluded_from_analytics != :excluded")
+    suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean, updatedAt: LocalDateTime): Int
+
     @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName COLLATE NOCASE AND id != :excludeId")
     suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
 

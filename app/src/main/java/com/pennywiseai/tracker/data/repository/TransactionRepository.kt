@@ -351,6 +351,14 @@ open class TransactionRepository @Inject constructor(
         transactionDao.updateCategoryById(transactionId, category, LocalDateTime.now())
     }
 
+    /**
+     * Counts the row out of (or back into) totals. Only the flag is written: a
+     * whole-row update from a stale copy could undo a category learned meanwhile.
+     * Returns the rows changed (0 when it already had that value).
+     */
+    suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean): Int =
+        transactionDao.setExcludedFromAnalytics(transactionId, excluded, LocalDateTime.now())
+
     /** See [TransactionDao.getMovableMerchantRowIds]. */
     suspend fun getMovableMerchantRowIds(merchantName: String, category: String, types: Collection<TransactionType>): List<Long> =
         transactionDao.getMovableMerchantRowIds(merchantName, category, types.map { it.name })

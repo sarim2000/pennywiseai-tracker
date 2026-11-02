@@ -7,6 +7,9 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +60,7 @@ import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainScreen(
     rootNavController: NavHostController? = null,
@@ -704,6 +708,9 @@ fun MainScreen(
                     navController = navController,
                     currentDestination = navBackStackEntry?.destination,
                     navBarStyle = themeState.navBarStyle,
+                    // Step aside while typing (Transactions search, Chat) rather
+                    // than sit under the keyboard with the docked action.
+                    visible = !WindowInsets.isImeVisible,
                     hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,

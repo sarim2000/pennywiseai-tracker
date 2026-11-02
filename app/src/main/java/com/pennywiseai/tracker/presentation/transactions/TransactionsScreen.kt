@@ -331,7 +331,13 @@ fun TransactionsScreen(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        // With no FAB to lift it, clear the overlaid floating nav bar instead.
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = if (navDock != null) bottomBarClearance else 0.dp)
+            )
+        },
         topBar = {
             if (selectionMode) {
                 // Contextual top bar for bulk-edit (#369): close left, count as title,

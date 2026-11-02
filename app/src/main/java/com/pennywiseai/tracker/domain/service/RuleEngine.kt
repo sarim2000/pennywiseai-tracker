@@ -7,7 +7,9 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
+import com.pennywiseai.tracker.utils.toLatinDigits
 import java.time.LocalDateTime
+import java.util.Locale
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -127,8 +129,14 @@ class RuleEngine @Inject constructor() {
     private fun evaluateCondition(
         transaction: TransactionEntity,
         smsText: String?,
-        condition: RuleCondition
+        savedCondition: RuleCondition
     ): Boolean {
+        // Time fields read in Latin digits (see getFieldValue). A value typed on an
+        // Arabic keyboard, or saved while the engine still printed ٠٩, reads ٠-٩;
+        // fold it to 0-9 so both match. Text fields are left alone.
+        val condition = if (savedCondition.field in TIME_FIELDS) {
+            savedCondition.copy(value = savedCondition.value.toLatinDigits())
+        } else savedCondition
         val fieldValue = getFieldValue(transaction, smsText, condition.field)
 
         // AMOUNT is compared as a number, not as text. The field value is
@@ -184,13 +192,13 @@ class RuleEngine @Inject constructor() {
             TransactionField.SMS_TEXT -> smsText ?: ""
             TransactionField.BANK_NAME -> transaction.bankName ?: ""
             TransactionField.TRANSACTION_HOUR ->
-                String.format("%02d", transaction.dateTime.hour)
+                String.format(Locale.ROOT, "%02d", transaction.dateTime.hour)
             TransactionField.TRANSACTION_TIME ->
-                String.format("%02d:%02d", transaction.dateTime.hour, transaction.dateTime.minute)
+                String.format(Locale.ROOT, "%02d:%02d", transaction.dateTime.hour, transaction.dateTime.minute)
             TransactionField.TRANSACTION_DAY_OF_WEEK ->
                 transaction.dateTime.dayOfWeek.value.toString()
             TransactionField.TRANSACTION_DAY_OF_MONTH ->
-                String.format("%02d", transaction.dateTime.dayOfMonth)
+                String.format(Locale.ROOT, "%02d", transaction.dateTime.dayOfMonth)
             TransactionField.TRANSACTION_DATE ->
                 transaction.dateTime.toLocalDate().toString()
             TransactionField.ACCOUNT -> {
@@ -350,5 +358,15 @@ class RuleEngine @Inject constructor() {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    private companion object {
+        val TIME_FIELDS = setOf(
+            TransactionField.TRANSACTION_HOUR,
+            TransactionField.TRANSACTION_TIME,
+            TransactionField.TRANSACTION_DAY_OF_WEEK,
+            TransactionField.TRANSACTION_DAY_OF_MONTH,
+            TransactionField.TRANSACTION_DATE
+        )
     }
 }

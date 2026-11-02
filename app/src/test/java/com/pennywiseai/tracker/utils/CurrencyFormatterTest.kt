@@ -305,6 +305,12 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun `small abbreviated amounts round rather than truncate`() {
+        assertEquals("$10", CurrencyFormatter.formatAbbreviated(9.99, "USD"))
+        assertEquals("$1", CurrencyFormatter.formatAbbreviated(0.99, "USD"))
+    }
+
+    @Test
     fun `LTR locales get no bidi marks`() {
         for (tag in listOf("en-US", "en-IN", "hi-IN", "de-DE", "fr-FR", "es", "ru-RU", "th-TH")) {
             withLocale(tag) {

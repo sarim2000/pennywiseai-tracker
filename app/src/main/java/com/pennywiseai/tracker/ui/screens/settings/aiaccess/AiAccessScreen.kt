@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -257,7 +259,13 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
 @Composable
 private fun CopyableAddress(address: String, copyLabel: String, onCopy: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(address, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
+        // URLs read left-to-right; under RTL a trailing "/" otherwise jumps to the front.
+        Text(
+            address,
+            fontFamily = FontFamily.Monospace,
+            style = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
+            modifier = Modifier.weight(1f),
+        )
         IconButton(onClick = onCopy) { Icon(Icons.Default.ContentCopy, copyLabel) }
     }
 }

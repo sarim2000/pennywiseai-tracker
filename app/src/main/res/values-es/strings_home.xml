@@ -142,8 +142,8 @@
     <string name="account_card_outstanding">Pendiente</string>
     <string name="account_card_balance">Saldo</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% más que el mes pasado</string>
-    <string name="balance_card_change_less">%1$d%% menos que el mes pasado</string>
+    <string name="balance_card_change_more_same_point">%1$d%% más que a estas alturas del mes pasado</string>
+    <string name="balance_card_change_less_same_point">%1$d%% menos que a estas alturas del mes pasado</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Saldo: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -155,7 +155,6 @@
     <string name="balance_card_last_month">Mes pasado</string>
     <string name="balance_card_accounts">Cuentas</string>
     <string name="balance_card_credit_cards">Tarjetas de crédito</string>
-    <string name="balance_card_approximate_note">* Algunos saldos no se pudieron convertir y se muestran en su moneda original (el total es aproximado).</string>
     <string name="balance_card_spent_this_month">Gastado este mes</string>
     <string name="balance_card_change_currency">Cambiar moneda</string>
     <string name="balance_card_summary_income">Ingresos</string>

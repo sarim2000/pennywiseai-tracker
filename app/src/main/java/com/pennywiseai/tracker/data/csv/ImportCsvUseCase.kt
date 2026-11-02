@@ -4,9 +4,11 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -25,7 +27,8 @@ import javax.inject.Singleton
 class ImportCsvUseCase @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val importer: CsvTransactionImporter,
-    private val transactionRepository: TransactionRepository
+    private val transactionRepository: TransactionRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) {
 
     sealed class Result {
@@ -40,9 +43,10 @@ class ImportCsvUseCase @Inject constructor(
 
     suspend fun execute(uri: Uri): Result = withContext(Dispatchers.IO) {
         try {
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
             val parseResult = context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                    importer.parse(reader)
+                    importer.parse(reader, baseCurrency)
                 }
             } ?: return@withContext Result.Error("Failed to read the selected file")
 

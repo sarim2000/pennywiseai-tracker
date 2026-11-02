@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.ComponentName
@@ -65,6 +66,10 @@ class GoalWidgetConfigActivity : FragmentActivity() {
 
     /** Null while the app lock is checked; goals are read and shown only once true. */
     private var unlocked by mutableStateOf<Boolean?>(null)
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase.withLatinDigits())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

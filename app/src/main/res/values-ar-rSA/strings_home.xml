@@ -20,6 +20,7 @@
     <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
     <string name="home_section_accounts">الحسابات البنكية</string>
     <string name="home_section_subscriptions">الاشتراكات القادمة</string>
+    <string name="home_section_money_in_motion">نقود متحركة</string>
     <string name="home_section_activity">النشاط</string>
     <!-- Empty state -->
     <string name="home_empty_headline">لا توجد معاملات بعد</string>
@@ -165,8 +166,8 @@
     <string name="account_card_outstanding">المستحق</string>
     <string name="account_card_balance">الرصيد</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% أكثر مقابل الشهر الماضي</string>
-    <string name="balance_card_change_less">%1$d%% أقل مقابل الشهر الماضي</string>
+    <string name="balance_card_change_more_same_point">%1$d%% أكثر من الفترة نفسها الشهر الماضي</string>
+    <string name="balance_card_change_less_same_point">%1$d%% أقل من الفترة نفسها الشهر الماضي</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">الرصيد: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -183,7 +184,7 @@
     <string name="balance_card_accounts">الحسابات</string>
     <string name="balance_card_credit_cards">بطاقات الائتمان</string>
     <string name="balance_card_total">الإجمالي</string>
-    <string name="balance_card_approximate_note">* بعض الأرصدة لا يمكن تحويلها وهي مبينة بالعملة الأصلية (المبلغ الإجمالي تقريبي).</string>
+    <string name="balance_card_other_currency_note">* لا يشمل هذا المجموع الحسابات بعملات أخرى.</string>
     <string name="balance_card_spent_this_month">أنفق هذا الشهر</string>
     <string name="balance_card_change_currency">تغيير العملة</string>
     <string name="balance_card_summary_income">الدخل</string>
@@ -325,6 +326,9 @@
     <!-- %1$s amount with currency, %2$s merchant -->
     <string name="notif_txn_title_spent">صرفت %1$s في %2$s</string>
     <string name="notif_txn_title_received">استلمت %1$s من %2$s</string>
+    <string name="notif_suggestion_title_spent">هل أنفقت %1$s في %2$s؟</string>
+    <string name="notif_suggestion_title_received">هل استلمت %1$s من %2$s؟</string>
+    <string name="notif_suggestion_text">من %1$s. اضغط لإضافتها.</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
     <string name="notif_txn_title_other">%1$s · %2$s</string>
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->

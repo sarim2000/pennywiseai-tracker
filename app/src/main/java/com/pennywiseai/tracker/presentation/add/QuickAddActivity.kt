@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -109,6 +110,10 @@ class QuickAddActivity : FragmentActivity() {
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
 
     private val unlocked = mutableStateOf(false)
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase.withLatinDigits())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

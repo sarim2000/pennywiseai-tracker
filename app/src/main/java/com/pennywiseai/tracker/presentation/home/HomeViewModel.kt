@@ -179,6 +179,8 @@ class HomeViewModel @Inject constructor(
     // The previous SpendForecast.USUAL_PERIODS complete cycles, most recent first, for
     // the forecast's "usual". The first one is lastMonthBreakdownMap.
     private var previousCycleBreakdownMaps: List<Map<String, TransactionRepository.MonthlyBreakdown>> = emptyList()
+    // The previous cycle cut at today's day-of-cycle, for the "vs this time last month" chip.
+    private var lastMonthSamePointBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
     // Per-currency LENT-loan settlement loss for each of those cycles, folded into "usual"
     // the same way currentMonthLoanLossByCurrency is folded into this cycle's spend.
@@ -543,11 +545,13 @@ class HomeViewModel @Inject constructor(
             // flatMapLatest on the cycle window so a start-day change (e.g. Settings
             // → "25th" while the screen is open) cancels the in-flight query and
             // re-fetches against the new window — without this, the captured
-            // cycleStart would go stale.
-            _currentCycleWindow
-                .flatMapLatest { (cycleStart, _) ->
-                    val now = LocalDate.now()
-                    transactionRepository.getTransactionsBetweenDates(cycleStart, now)
+            // cycleStart would go stale. `today` too: resuming on a new day inside the
+            // same cycle leaves the window unchanged, and the old end date would keep
+            // today's spending out of "Spent this month".
+            combine(_currentCycleWindow, today) { (cycleStart, _), day -> cycleStart to day }
+                .distinctUntilChanged()
+                .flatMapLatest { (cycleStart, day) ->
+                    transactionRepository.getTransactionsBetweenDates(cycleStart, day)
                 }
                 .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
                     transactions to profileId
@@ -607,23 +611,12 @@ class HomeViewModel @Inject constructor(
                 val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
                 val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-                // regularAccounts/creditCards are already pre-converted by
-                // convertAccountEntities (currency == selectedCurrency for everything it
-                // could convert). So just sum their balances; anything still in a foreign
-                // currency is one we couldn't get a rate for — add its raw amount as a
-                // best-effort fallback and flag the total as approximate.
-                var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-                var hasApproximateBalance = false
-                for (account in regularAccounts) {
-                    totalBalanceInSelectedCurrency += account.balance
-                    if (account.currency != selectedCurrency) hasApproximateBalance = true
-                }
-
-                var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-                for (card in creditCards) {
-                    totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                    if (card.currency != selectedCurrency) hasApproximateBalance = true
-                }
+                // Only balances already in selectedCurrency are totalled; anything else (native
+                // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+                val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+                val totalBalanceInSelectedCurrency = totals.balance
+                val totalAvailableCreditInSelectedCurrency = totals.availableCredit
+                val hasApproximateBalance = totals.hasOtherCurrencies
 
                 // Update available currencies to include account currencies
                 val currentAvailableCurrencies = _uiState.value.availableCurrencies.toSet()
@@ -766,29 +759,48 @@ class HomeViewModel @Inject constructor(
                     cycles to filterTransactionsByProfile(transactions, profileId, keys).forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
-                    cycles.map { (start, end) ->
+                    Triple(cycles, nonLoan, creditAsExpense)
+                }
+                // `today` too: the same-point window grows by a day every day.
+                .combine(today) { (cycles, nonLoan, creditAsExpense), day ->
+                    val full = cycles.map { (start, end) ->
                         computeBreakdownByCurrency(
                             nonLoan.filter { it.dateTime.toLocalDate() in start..end },
                             creditAsExpense
                         )
                     }
+                    // As many days into the previous cycle as today is into this one, under
+                    // the headline's own spend rules (credit-card preference included).
+                    val (prevStart, prevEnd) = cycles.first()
+                    val elapsed = ChronoUnit.DAYS.between(_currentCycleWindow.value.first, day).coerceAtLeast(0)
+                    val cutoff = minOf(prevStart.plusDays(elapsed), prevEnd)
+                    val samePoint = computeBreakdownByCurrency(
+                        nonLoan.filter { it.dateTime.toLocalDate() in prevStart..cutoff },
+                        creditAsExpense
+                    )
+                    full to samePoint
                 }
-                .collect { breakdowns ->
+                .collect { (breakdowns, samePoint) ->
                     previousCycleBreakdownMaps = breakdowns
+                    lastMonthSamePointBreakdownMap = samePoint
                     updateBreakdownForSelectedCurrency(breakdowns.first(), isCurrentMonth = false)
                 }
         }
 
         viewModelScope.launch {
-            // Load cumulative spending sparkline for current cycle + previous cycle comparison
-            val now = LocalDate.now()
-            _currentCycleWindow
-                .flatMapLatest { (firstOfMonth, cycleEnd) ->
+            // Load cumulative spending sparkline for current cycle + previous cycle comparison.
+            // Keyed on `today` as well, like the "Spent" query, so a next-day resume
+            // extends the chart instead of freezing it at the ViewModel's first day.
+            var now = today.value
+            combine(_currentCycleWindow, today) { window, day -> window to day }
+                .distinctUntilChanged()
+                .flatMapLatest { (window, day) ->
+                    now = day
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                    val (lastMonthStart, _) = BudgetCycle.previousCycle(firstOfMonth to cycleEnd, startDay)
+                    val (lastMonthStart, _) = BudgetCycle.previousCycle(window, startDay)
                     transactionRepository.getTransactionsBetweenDates(
                         startDate = lastMonthStart,
-                        endDate = now
+                        endDate = day
                     )
                 }
                 .combine(userPreferencesRepository.selectedProfileId) { allTransactions, profileId ->
@@ -797,6 +809,11 @@ class HomeViewModel @Inject constructor(
                 .combine(_cachedAccountBalances.filterNotNull()) { (allTransactions, profileId), balances ->
                     filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
                 }
+                // Rebuild on a currency switch too, or the sparkline keeps drawing the
+                // previous currency's figures.
+                .combine(
+                    _uiState.map { it.selectedCurrency to it.isUnifiedMode }.distinctUntilChanged()
+                ) { allTransactions, _ -> allTransactions }
                 .collect { allTransactions ->
                     val (firstOfMonth, _) = _currentCycleWindow.value
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
@@ -851,7 +868,6 @@ class HomeViewModel @Inject constructor(
                         balanceHistory = cumulativeList,
                         lastMonthSpendingHistory = lastMonthCumulative
                     )
-                    calculateMonthlyChange()
                 }
         }
 
@@ -860,8 +876,11 @@ class HomeViewModel @Inject constructor(
             combine(
                 loanRepository.getActiveLoans(),
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { loans, isUnified, displayCurrency ->
+                userPreferencesRepository.displayCurrency,
+                // Native mode totals only the selected currency, so re-total on a switch
+                // instead of relabelling the old currency's figures.
+                _uiState.map { it.selectedCurrency }.distinctUntilChanged()
+            ) { loans, isUnified, displayCurrency, _ ->
                 if (loans.isEmpty()) null
                 else Triple(loans, isUnified, displayCurrency)
             }.collect { summary ->
@@ -1007,14 +1026,15 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.displayCurrency
             ) { subscriptions, isUnified, displayCurrency ->
                 Triple(subscriptions, isUnified, displayCurrency)
-            }.collect { (subscriptions, isUnified, displayCurrency) ->
+            }.collect { (allActive, isUnified, displayCurrency) ->
+                // Money going out only: an income "subscription" (salary, rent received)
+                // isn't a bill, and a weekly or annual charge is folded to its monthly
+                // share so the card's "Monthly total" is one.
+                val subscriptions = allActive.filter { it.direction == SubscriptionDirection.EXPENSE }
                 // Unified mode collapses to one converted figure. Native mode keeps
                 // currencies apart — summing ₹ + $ into one figure mislabels it — so
                 // we expose a per-currency map the card renders as "₹499 · $10".
-                // The total is what you pay per month: expenses only (a salary
-                // isn't a cost), each normalized by its billing cycle.
-                val expenses = subscriptions.filter { it.direction == SubscriptionDirection.EXPENSE }
-                val monthlyCosts = expenses.map { it to SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
+                val monthlyCosts = subscriptions.map { it to SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
                 val totalAmount = if (isUnified) {
                     var total = java.math.BigDecimal.ZERO
                     for ((sub, monthly) in monthlyCosts) {
@@ -1035,7 +1055,7 @@ class HomeViewModel @Inject constructor(
                     upcomingSubscriptions = subscriptions,
                     upcomingSubscriptionsTotal = totalAmount,
                     upcomingSubscriptionsByCurrency = totalByCurrency,
-                    nextDueSubscription = expenses
+                    nextDueSubscription = subscriptions
                         .filter { it.nextPaymentDate != null }
                         .minByOrNull { it.nextPaymentDate!! }
                 )
@@ -1081,11 +1101,17 @@ class HomeViewModel @Inject constructor(
     }
     
     private fun calculateMonthlyChange() {
-        val currentExpenses = _uiState.value.currentMonthExpenses
-        val lastExpenses = _uiState.value.lastMonthExpenses
-        _uiState.value = _uiState.value.copy(
-            monthlyChange = currentExpenses - lastExpenses,
-            monthlyChangePercent = monthlyChangePercent(currentExpenses, lastExpenses)
+        // Compare like with like: spend so far vs the same number of days into the
+        // previous cycle, not the whole previous cycle — that made every early-cycle
+        // day read as a green "% less".
+        // ponytail: settlement losses sit in the headline but not the same-point window
+        // (as with the old full-cycle figure); add a windowed loss query if it matters.
+        val state = _uiState.value
+        val current = state.currentMonthExpenses
+        val lastAtSamePoint = state.lastMonthSamePointExpenses
+        _uiState.value = state.copy(
+            monthlyChange = current - lastAtSamePoint,
+            monthlyChangePercent = monthlyChangePercent(current, lastAtSamePoint)
         )
     }
     
@@ -1110,19 +1136,12 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalance = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalance += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-            var totalAvailableCredit = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCredit += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            // Only balances already in selectedCurrency are totalled; anything else (native
+            // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+            val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+            val totalBalance = totals.balance
+            val totalAvailableCredit = totals.availableCredit
+            val hasApproximateBalance = totals.hasOtherCurrencies
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
@@ -1229,20 +1248,12 @@ class HomeViewModel @Inject constructor(
             val regularAccounts = convertAccountEntities(rawRegularAccounts, selectedCurrency, isUnified)
             val creditCards = convertAccountEntities(rawCreditCards, selectedCurrency, isUnified)
 
-            // Entities are pre-converted by convertAccountEntities, so just sum;
-            // anything still foreign is one we couldn't get a rate for (raw fallback).
-            var totalBalanceInSelectedCurrency = BigDecimal.ZERO
-            var hasApproximateBalance = false
-            for (account in regularAccounts) {
-                totalBalanceInSelectedCurrency += account.balance
-                if (account.currency != selectedCurrency) hasApproximateBalance = true
-            }
-
-            var totalAvailableCreditInSelectedCurrency = BigDecimal.ZERO
-            for (card in creditCards) {
-                totalAvailableCreditInSelectedCurrency += (card.creditLimit ?: BigDecimal.ZERO) - card.balance
-                if (card.currency != selectedCurrency) hasApproximateBalance = true
-            }
+            // Only balances already in selectedCurrency are totalled; anything else (native
+            // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
+            val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
+            val totalBalanceInSelectedCurrency = totals.balance
+            val totalAvailableCreditInSelectedCurrency = totals.availableCredit
+            val hasApproximateBalance = totals.hasOtherCurrencies
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
@@ -1496,6 +1507,7 @@ class HomeViewModel @Inject constructor(
             viewModelScope.launch {
                 val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
                 val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
+                val lastSamePoint = aggregateBreakdowns(lastMonthSamePointBreakdownMap, selectedCurrency).expenses
                 val loanLoss = aggregateAcrossCurrencies(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
                 val lent = aggregateAcrossCurrencies(currentMonthLentByCurrency, selectedCurrency, isUnified = true)
 
@@ -1507,6 +1519,7 @@ class HomeViewModel @Inject constructor(
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
+                    lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
                     availableCurrencies = availableCurrencies,
                     spendForecast = forecastFor(
@@ -1548,6 +1561,7 @@ class HomeViewModel @Inject constructor(
                 lastMonthTotal = lastBreakdown.total,
                 lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
+                lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
                 availableCurrencies = availableCurrencies,
                 spendForecast = forecastFor(
@@ -1858,6 +1872,7 @@ data class HomeUiState(
     val lastMonthIncome: BigDecimal = BigDecimal.ZERO,
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
+    val lastMonthSamePointExpenses: BigDecimal = BigDecimal.ZERO,
     /** Null when last month had no spending: there is nothing to compare with. */
     val monthlyChangePercent: Int? = null,
     val recentItems: List<HomeRecentItem> = emptyList(),
@@ -1921,7 +1936,27 @@ internal fun BudgetOverallSummary.safeToSpendCap(today: LocalDate): Money? =
             it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
     }.minOfOrNull { it.remaining }?.let { Money(it, currency) }
 
-/** Whole-percent change vs last month; null when last month had no spending to compare with. */
+internal data class BalanceTotals(
+    val balance: BigDecimal,
+    val availableCredit: BigDecimal,
+    /** Some account or card is in another currency and was left out of both totals. */
+    val hasOtherCurrencies: Boolean,
+)
+
+internal fun balanceTotals(
+    accounts: List<AccountBalanceEntity>,
+    creditCards: List<AccountBalanceEntity>,
+    currency: String,
+): BalanceTotals {
+    val (sameAccounts, otherAccounts) = accounts.partition { it.currency == currency }
+    val (sameCards, otherCards) = creditCards.partition { it.currency == currency }
+    return BalanceTotals(
+        balance = sameAccounts.fold(BigDecimal.ZERO) { a, acc -> a + acc.balance },
+        availableCredit = sameCards.fold(BigDecimal.ZERO) { a, c -> a + (c.creditLimit ?: BigDecimal.ZERO) - c.balance },
+        hasOtherCurrencies = otherAccounts.isNotEmpty() || otherCards.isNotEmpty(),
+    )
+}
+
 internal fun monthlyChangePercent(current: BigDecimal, last: BigDecimal): Int? =
     if (last.signum() == 0) null
     else (current - last).multiply(BigDecimal(100)).divide(last, 0, RoundingMode.HALF_UP).toInt()

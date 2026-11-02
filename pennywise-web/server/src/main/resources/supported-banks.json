@@ -1,5 +1,5 @@
 {
-  "totalBanks": 171,
+  "totalBanks": 172,
   "totalCountries": 26,
   "countries": [
     {
@@ -107,6 +107,14 @@
       "banks": ["M-Pesa Mozambique", "Millennium BIM", "Standard Bank Mozambique", "eMola"]
     },
     {
+      "country": "Bangladesh",
+      "flag": "🇧🇩",
+      "currency": "BDT",
+      "symbol": "৳",
+      "bankCount": 3,
+      "banks": ["BRAC Bank", "City Bank (Bangladesh)", "bKash"]
+    },
+    {
       "country": "Egypt",
       "flag": "🇪🇬",
       "currency": "EGP",
@@ -121,14 +129,6 @@
       "symbol": "$",
       "bankCount": 3,
       "banks": ["Banco Agricola", "Banco Cuscatlan", "Banco Promerica"]
-    },
-    {
-      "country": "Bangladesh",
-      "flag": "🇧🇩",
-      "currency": "BDT",
-      "symbol": "৳",
-      "bankCount": 2,
-      "banks": ["BRAC Bank", "bKash"]
     },
     {
       "country": "Eurozone",

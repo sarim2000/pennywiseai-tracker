@@ -155,8 +155,8 @@
     <string name="account_card_outstanding">Непогашенный</string>
     <string name="account_card_balance">Баланс</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% больше по сравнению с прошлым месяцем</string>
-    <string name="balance_card_change_less">%1$d%% меньше по сравнению с прошлым месяцем</string>
+    <string name="balance_card_change_more_same_point">На %1$d%% больше, чем к этому времени в прошлом месяце</string>
+    <string name="balance_card_change_less_same_point">На %1$d%% меньше, чем к этому времени в прошлом месяце</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Баланс: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -171,7 +171,6 @@
     <string name="balance_card_accounts">Счета</string>
     <string name="balance_card_credit_cards">Кредитные карты</string>
     <string name="balance_card_total">Итого</string>
-    <string name="balance_card_approximate_note">* Некоторые балансы не могут быть конвертированы и показаны в оригинальной валюте (общая сумма приблизительная).</string>
     <string name="balance_card_spent_this_month">Потрачено в этом месяце</string>
     <string name="balance_card_change_currency">Изменить валюту</string>
     <string name="balance_card_summary_income">Доход</string>

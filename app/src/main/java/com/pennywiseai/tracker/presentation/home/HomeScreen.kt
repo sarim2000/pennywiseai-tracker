@@ -524,61 +524,38 @@ fun HomeScreen(
                 }
             }
 
-            // 1.2. Monthly share prompt. Offers the user something ("your month, summed
-            // up") rather than asking a favour, and only appears when the finished month
-            // actually has enough in it to be worth sending.
-            if (showSharePrompt) {
-                item {
-                    ShareMonthBanner(
-                        onOpen = {
-                            viewModel.markSharePromptHandled()
-                            sharePromptPeriod = SharePeriod.LAST_MONTH
-                            showShareSheet = true
-                        },
-                        onDismiss = { viewModel.markSharePromptHandled() },
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                    )
-                }
-            } else if (showProHomeCard) {
-                // 1.3. One-time Pro card (#945). Shares the share banner's slot and
-                // never stacks with it (the eligibility check also excludes it).
-                item {
-                    ProHomeCard(
-                        onSeePro = {
-                            viewModel.markProHomeCardHandled()
-                            showUpgradeSheet = true
-                        },
-                        onDismiss = { viewModel.markProHomeCardHandled() },
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                    )
-                }
-            }
-
-            // 1.5. Cash-flow card (25ms delay) — hides itself on dormant months.
-            item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!visible.value) { delay(25); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
-                    )
-                ) {
-                    CashFlowCard(
-                        currency = uiState.selectedCurrency,
-                        // When card spend counts as expense (#705) it's already in
-                        // "Spent this month", so drop it from this "outside cash flow"
-                        // card (a zero channel is filtered out) to avoid double-showing.
-                        creditCardSpend = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard,
-                        investments = uiState.currentMonthInvestment,
-                        transfers = uiState.currentMonthTransfer,
-                        isBalanceHidden = uiState.isBalanceHidden,
-                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                    )
+            // Share / one-time Pro card: below the first section that actually shows
+            // (Safe to spend by default), so the decision card stays first and the
+            // prompt still sits high enough to be seen and dismissed.
+            val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
+                // Monthly share prompt. Offers the user something ("your month, summed
+                // up") rather than asking a favour, and only appears when the finished month
+                // actually has enough in it to be worth sending.
+                if (showSharePrompt) {
+                    item {
+                        ShareMonthBanner(
+                            onOpen = {
+                                viewModel.markSharePromptHandled()
+                                sharePromptPeriod = SharePeriod.LAST_MONTH
+                                showShareSheet = true
+                            },
+                            onDismiss = { viewModel.markSharePromptHandled() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        )
+                    }
+                } else if (showProHomeCard) {
+                    // One-time Pro card (#945). Shares the share banner's slot and
+                    // never stacks with it (the eligibility check also excludes it).
+                    item {
+                        ProHomeCard(
+                            onSeePro = {
+                                viewModel.markProHomeCardHandled()
+                                showUpgradeSheet = true
+                            },
+                            onDismiss = { viewModel.markProHomeCardHandled() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        )
+                    }
                 }
             }
 
@@ -586,6 +563,21 @@ fun HomeScreen(
             // list entirely; the entrance stagger follows the *displayed* position so
             // it survives reordering. Each branch keeps its own data guard.
             val visibleSections = homeSectionLayout.filter { it.second }.map { it.first }
+            // Mirrors each branch's own data guard below, so an empty section first in
+            // line doesn't drag the promo up under the balance card.
+            val promoAfter = visibleSections.firstOrNull { section ->
+                when (section) {
+                    HomeSection.SAFE_TO_SPEND -> safeToSpend != null
+                    HomeSection.BUDGETS -> uiState.budgetSummary != null
+                    HomeSection.GOALS -> goals.isNotEmpty()
+                    HomeSection.LOANS -> uiState.loanSummary != null
+                    HomeSection.GROUPS -> groupSummaries.isNotEmpty()
+                    HomeSection.ACCOUNTS -> uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()
+                    HomeSection.SUBSCRIPTIONS -> uiState.upcomingSubscriptions.isNotEmpty()
+                    HomeSection.MONEY_IN_MOTION -> false // ponytail: secondary card, never the promo's anchor
+                    HomeSection.RECENT_TRANSACTIONS, HomeSection.ACTIVITY -> true
+                }
+            }
             for ((index, section) in visibleSections.withIndex()) {
                 val delayMs = 50L * (index + 1)
                 when (section) {
@@ -1039,6 +1031,37 @@ fun HomeScreen(
                             }
                         }
                     }
+                    HomeSection.MONEY_IN_MOTION -> {
+                        // Credit / invested / transferred: money outside net cash flow.
+                        // Reference detail, so a late, hideable section rather than a fixed
+                        // card above the decision cards. Hides itself on dormant months.
+                    item(key = section.name) {
+                        val visible = remember { mutableStateOf(hasAnimated) }
+                        LaunchedEffect(Unit) {
+                            if (!visible.value) { delay(delayMs); visible.value = true }
+                        }
+                        AnimatedVisibility(
+                            visible = visible.value,
+                            enter = fadeIn(tween(300)) + slideInVertically(
+                                initialOffsetY = { slideOffsetPx },
+                                animationSpec = tween(300)
+                            )
+                        ) {
+                            CashFlowCard(
+                                currency = uiState.selectedCurrency,
+                                // When card spend counts as expense (#705) it's already in
+                                // "Spent this month", so drop it from this "outside cash flow"
+                                // card (a zero channel is filtered out) to avoid double-showing.
+                                creditCardSpend = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard,
+                                investments = uiState.currentMonthInvestment,
+                                transfers = uiState.currentMonthTransfer,
+                                isBalanceHidden = uiState.isBalanceHidden,
+                                onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                            )
+                        }
+                    }
+                    }
                     HomeSection.ACTIVITY -> {
                         // 6. Heatmap Widget
                         item(key = section.name) {
@@ -1071,7 +1094,10 @@ fun HomeScreen(
                         }
                     }
                 }
+                if (section == promoAfter) promoSlot()
             }
+            // Nothing shown to anchor on: the promo still gets a slot.
+            if (promoAfter == null) promoSlot()
         }
         
         // Scan FAB rotation animation
@@ -1447,7 +1473,7 @@ private fun BreakdownDialog(
     lastMonthIncome: BigDecimal,
     lastMonthExpenses: BigDecimal,
     lastMonthTotal: BigDecimal,
-    currency: String = "INR",
+    currency: String,
     onDismiss: () -> Unit
 ) {
     val now = LocalDate.now()
@@ -1555,7 +1581,7 @@ private fun BreakdownRow(
     amount: BigDecimal,
     isIncome: Boolean,
     isBold: Boolean = false,
-    currency: String = "INR"
+    currency: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1587,7 +1613,7 @@ private fun UpcomingSubscriptionsCard(
     totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
     nextDue: SubscriptionEntity? = null,
     isUnified: Boolean = false,
-    currency: String = "INR",
+    currency: String,
     onClick: () -> Unit = {},
     blurEffects: Boolean = false,
     hazeState: HazeState? = null
@@ -1784,19 +1810,23 @@ private fun ActiveLoansSummaryCard(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
-                val subtitle = when {
-                    totalLentRemaining > java.math.BigDecimal.ZERO && totalBorrowedRemaining > java.math.BigDecimal.ZERO ->
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
-                    totalLentRemaining > java.math.BigDecimal.ZERO ->
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(totalLentRemaining, currency))
-                    else ->
-                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(totalBorrowedRemaining, currency))
+                // Both directions, what you owe first — a lender who also borrows
+                // used to see only "owed to you". Nothing in this currency → no line.
+                val subtitle = listOfNotNull(
+                    totalBorrowedRemaining.takeIf { it > java.math.BigDecimal.ZERO }?.let {
+                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(it, currency))
+                    },
+                    totalLentRemaining.takeIf { it > java.math.BigDecimal.ZERO }?.let {
+                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(it, currency))
+                    },
+                ).joinToString(" · ")
+                if (subtitle.isNotEmpty()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
             Text(
                 text = stringResource(R.string.home_view),
@@ -1847,6 +1877,7 @@ private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
     HomeSection.ACCOUNTS -> R.string.home_section_accounts
     HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
+    HomeSection.MONEY_IN_MOTION -> R.string.home_section_money_in_motion
     HomeSection.ACTIVITY -> R.string.home_section_activity
 }
 

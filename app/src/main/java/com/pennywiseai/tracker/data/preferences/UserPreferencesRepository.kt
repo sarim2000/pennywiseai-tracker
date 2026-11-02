@@ -947,11 +947,16 @@ open class UserPreferencesRepository @Inject constructor(
         WidgetRefresher.refreshTransactionWidgets(context)
     }
 
-    /** Flips [isBalanceHidden] in one read-modify-write, so the eye and a shake can't race. Returns the new value. */
-    suspend fun toggleBalanceHidden(): Boolean {
+    /**
+     * Flips the saved hide choice in one read-modify-write, so the eye and a shake
+     * can't race. Returns the new value. [hiddenWhenUnset] is what the caller sees
+     * before any choice: Home's eye sees hidden ([isBalanceHidden]), a shake sees
+     * the rest of the app shown ([isAmountHiddenEverywhere]), so it hides.
+     */
+    suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean = true): Boolean {
         var hidden = true
         context.dataStore.edit { preferences ->
-            hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true)
+            hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         WidgetRefresher.refreshTransactionWidgets(context)

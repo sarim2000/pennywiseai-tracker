@@ -58,7 +58,8 @@ class ShakeToHideViewModel @Inject constructor(
     fun onSample(x: Float, y: Float, z: Float, timestampNs: Long) {
         if (!detector.onSample(x, y, z, timestampNs)) return
         viewModelScope.launch {
-            val hidden = preferences.toggleBalanceHidden()
+            // Before any choice only Home is hidden, so the first shake hides everywhere.
+            val hidden = preferences.toggleBalanceHidden(hiddenWhenUnset = false)
             toggled.send(Toggled(hidden, preferences.claimShakeToHideHint()))
         }
     }

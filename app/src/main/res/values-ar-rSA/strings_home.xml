@@ -334,7 +334,7 @@
     <string name="notif_txn_action_not_income">ليس دخلاً</string>
     <string name="notif_txn_excluded_spending">لن يُحسب كمصروف</string>
     <string name="notif_txn_excluded_income">لن يُحسب كدخل</string>
-    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">رصيدك أعلى بـ %1$s من المسجَّل</string>
     <string name="notif_balance_lower">رصيدك أقل بـ %1$s من المسجَّل</string>
     <string name="notif_balance_text">قد تكون هناك معاملة لم تُسجَّل. اضغط للمراجعة.</string>

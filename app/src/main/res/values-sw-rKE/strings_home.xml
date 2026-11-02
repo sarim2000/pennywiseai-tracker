@@ -275,7 +275,7 @@
     <string name="notif_txn_action_not_income">Si mapato</string>
     <string name="notif_txn_excluded_spending">Haitahesabiwa kama matumizi</string>
     <string name="notif_txn_excluded_income">Haitahesabiwa kama mapato</string>
-    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">Salio lako ni %1$s zaidi ya lililorekodiwa</string>
     <string name="notif_balance_lower">Salio lako ni %1$s pungufu ya lililorekodiwa</string>
     <string name="notif_balance_text">Huenda muamala umekosekana. Gusa ili kukagua.</string>

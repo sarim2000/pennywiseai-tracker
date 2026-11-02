@@ -299,7 +299,7 @@
     <string name="notif_txn_action_not_income">Не даход</string>
     <string name="notif_txn_excluded_spending">Не будзе ўлічана ў выдатках</string>
     <string name="notif_txn_excluded_income">Не будзе ўлічана ў даходах</string>
-    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">Баланс на %1$s большы, чым запісана</string>
     <string name="notif_balance_lower">Баланс на %1$s меншы, чым запісана</string>
     <string name="notif_balance_text">Магчыма, нейкая транзакцыя прапушчана. Націсніце, каб праверыць.</string>

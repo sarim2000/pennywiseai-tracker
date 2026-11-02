@@ -278,7 +278,7 @@
     <string name="notif_txn_action_not_income">Pas un revenu</string>
     <string name="notif_txn_excluded_spending">Ne sera pas compté comme dépense</string>
     <string name="notif_txn_excluded_income">Ne sera pas compté comme revenu</string>
-    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">Votre solde dépasse de %1$s le montant enregistré</string>
     <string name="notif_balance_lower">Votre solde est inférieur de %1$s au montant enregistré</string>
     <string name="notif_balance_text">Une transaction manque peut-être. Touchez pour vérifier.</string>

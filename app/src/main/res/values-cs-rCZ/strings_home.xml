@@ -304,7 +304,7 @@
     <string name="notif_txn_action_not_income">Není příjem</string>
     <string name="notif_txn_excluded_spending">Nebude se počítat do výdajů</string>
     <string name="notif_txn_excluded_income">Nebude se počítat do příjmů</string>
-    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">Zůstatek je o %1$s vyšší, než je zaznamenáno</string>
     <string name="notif_balance_lower">Zůstatek je o %1$s nižší, než je zaznamenáno</string>
     <string name="notif_balance_text">Možná chybí nějaká transakce. Klepnutím zkontrolujte.</string>

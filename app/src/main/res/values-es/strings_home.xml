@@ -273,7 +273,7 @@
     <string name="notif_txn_action_not_income">No es un ingreso</string>
     <string name="notif_txn_excluded_spending">No contará como gasto</string>
     <string name="notif_txn_excluded_income">No contará como ingreso</string>
-    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">Tu saldo es %1$s mayor de lo registrado</string>
     <string name="notif_balance_lower">Tu saldo es %1$s menor de lo registrado</string>
     <string name="notif_balance_text">Puede que falte una transacción. Toca para revisar.</string>

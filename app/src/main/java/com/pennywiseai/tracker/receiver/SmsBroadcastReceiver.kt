@@ -344,7 +344,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 if (discrepancy.delta.signum() > 0) R.string.notif_balance_higher else R.string.notif_balance_lower,
                 difference
             )
-            val text = context.getString(R.string.notif_balance_text)
+            // The bank opens the text: in the title (or One UI's inline header) a long name cut the figure off.
+            val text = "$bankName · ${context.getString(R.string.notif_balance_text)}"
             val pendingIntent = openTransactionIntent(context, transaction.id)
             ensureChannel(context).notify(
                 BALANCE_TAG,
@@ -353,8 +354,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
                     .setContentText(text)
-                    // The bank sits in the header: in the title, a long name cut the figure off.
-                    .setSubText(bankName)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)

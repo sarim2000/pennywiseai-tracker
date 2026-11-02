@@ -293,6 +293,22 @@ object CurrencyFormatter {
     }
 
     /**
+     * [text] with each amount in it ("$1,200", "JD 4", "1,200 JOD") masked while
+     * amounts are hidden. For free text that already has amounts baked in, such as
+     * chat messages, which are stored unmasked.
+     */
+    fun maskAmountsIn(text: String): String =
+        if (AmountPrivacy.hidden) amountInText.replace(text, AmountPrivacy.MASK) else text
+
+    /** A number next to any currency symbol or code we know, either side, LTR-isolated or not. */
+    private val amountInText: Regex by lazy {
+        val currency = (CURRENCY_SYMBOLS.keys + CURRENCY_SYMBOLS.values)
+            .distinct().sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
+        val number = """\d(?:[\d,.\u066B\u066C]*\d)?""" // ends on a digit: keeps a full stop after it
+        Regex("""\u2066?(?:(?:$currency)\s?-?$number|$number\s?(?:$currency)(?![A-Za-z]))\u2069?""")
+    }
+
+    /**
      * Formats just the numeric amount without currency symbol
      */
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {

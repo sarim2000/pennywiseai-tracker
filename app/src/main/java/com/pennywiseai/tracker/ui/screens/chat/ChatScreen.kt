@@ -825,7 +825,8 @@ fun ChatMessageItem(
             )
         ) {
             Text(
-                text = message.message,
+                // Amounts are baked into the stored text; mask them on screen only.
+                text = com.pennywiseai.tracker.utils.CurrencyFormatter.maskAmountsIn(message.message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (message.isUser)
                     MaterialTheme.colorScheme.onPrimaryContainer

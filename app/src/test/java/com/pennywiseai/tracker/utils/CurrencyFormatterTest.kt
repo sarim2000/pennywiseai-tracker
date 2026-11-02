@@ -347,4 +347,21 @@ class CurrencyFormatterTest {
         }
         assertEquals("$1,200", CurrencyFormatter.formatCurrency(BigDecimal("1200"), "USD"))
     }
+
+    @Test
+    fun `amounts baked into free text are masked only while hidden`() {
+        val text = "This month: $1,200.50 spent, 4 JOD received, 7 transactions on Nov 2."
+        assertEquals(text, CurrencyFormatter.maskAmountsIn(text))
+        AmountPrivacy.hidden = true
+        try {
+            assertEquals(
+                "This month: •••• spent, •••• received, 7 transactions on Nov 2.",
+                CurrencyFormatter.maskAmountsIn(text)
+            )
+            // What formatCurrency itself writes, isolate marks included.
+            assertEquals("Deleted ••••.", CurrencyFormatter.maskAmountsIn("Deleted \u2066₹500\u2069."))
+        } finally {
+            AmountPrivacy.hidden = false
+        }
+    }
 }

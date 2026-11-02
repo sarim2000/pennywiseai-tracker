@@ -156,7 +156,6 @@
     <string name="import_statement_balance_statement">حسب الكشف</string>
     <string name="import_statement_balance_app">حسب PennyWise</string>
     <string name="import_statement_balance_difference">الفرق</string>
-    <string name="import_statement_balance_unknown">—</string>
     <string name="import_statement_balance_unknown_note">لا يملك PennyWise رصيدًا لهذا الحساب في %1$s أو قبله، لذا لا يوجد ما يُقارن به بعد.</string>
     <string name="import_statement_balance_match">الأرصدة متطابقة.</string>
     <string name="import_statement_balance_set">تعيين الرصيد إلى %1$s</string>

@@ -193,12 +193,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
         transactionId: Long,
         excluded: Boolean
     ): TransactionEntity? {
-        val txn = repository.getTransactionById(transactionId) ?: return null
-        if (txn.excludedFromAnalytics == excluded) return txn
-        val updated = txn.copy(excludedFromAnalytics = excluded, updatedAt = LocalDateTime.now())
-        repository.updateTransaction(updated)
-        WidgetRefresher.refreshTransactionWidgets(context)
-        return updated
+        if (repository.setExcludedFromAnalytics(transactionId, excluded) > 0) {
+            WidgetRefresher.refreshTransactionWidgets(context)
+        }
+        return repository.getTransactionById(transactionId)
     }
 
     private fun confirmTransaction(context: Context, notificationId: Int) {

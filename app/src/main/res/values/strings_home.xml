@@ -313,9 +313,9 @@
     <string name="notif_txn_action_not_income">Not income</string>
     <string name="notif_txn_excluded_spending">Won\'t count as spending</string>
     <string name="notif_txn_excluded_income">Won\'t count as income</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">Your %1$s balance is %2$s higher than recorded</string>
-    <string name="notif_balance_lower">Your %1$s balance is %2$s lower than recorded</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">Your balance is %1$s higher than recorded</string>
+    <string name="notif_balance_lower">Your balance is %1$s lower than recorded</string>
     <string name="notif_balance_text">A transaction may be missing. Tap to review.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Saved as %1$s</string>

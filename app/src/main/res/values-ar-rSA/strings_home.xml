@@ -334,9 +334,9 @@
     <string name="notif_txn_action_not_income">ليس دخلاً</string>
     <string name="notif_txn_excluded_spending">لن يُحسب كمصروف</string>
     <string name="notif_txn_excluded_income">لن يُحسب كدخل</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">رصيدك في %1$s أعلى بـ %2$s من المسجَّل</string>
-    <string name="notif_balance_lower">رصيدك في %1$s أقل بـ %2$s من المسجَّل</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">رصيدك أعلى بـ %1$s من المسجَّل</string>
+    <string name="notif_balance_lower">رصيدك أقل بـ %1$s من المسجَّل</string>
     <string name="notif_balance_text">قد تكون هناك معاملة لم تُسجَّل. اضغط للمراجعة.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">حُفظت في %1$s</string>

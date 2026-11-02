@@ -274,9 +274,9 @@
     <string name="notif_txn_action_not_income">आय नहीं</string>
     <string name="notif_txn_excluded_spending">खर्च में नहीं गिना जाएगा</string>
     <string name="notif_txn_excluded_income">आय में नहीं गिना जाएगा</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">आपका %1$s बैलेंस दर्ज रकम से %2$s ज़्यादा है</string>
-    <string name="notif_balance_lower">आपका %1$s बैलेंस दर्ज रकम से %2$s कम है</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">आपका बैलेंस दर्ज रकम से %1$s ज़्यादा है</string>
+    <string name="notif_balance_lower">आपका बैलेंस दर्ज रकम से %1$s कम है</string>
     <string name="notif_balance_text">शायद कोई लेन-देन छूट गया है। देखने के लिए टैप करें।</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">%1$s में सहेजा गया</string>

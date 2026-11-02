@@ -279,9 +279,9 @@
     <string name="notif_txn_action_not_income">Keine Einnahme</string>
     <string name="notif_txn_excluded_spending">Zählt nicht als Ausgabe</string>
     <string name="notif_txn_excluded_income">Zählt nicht als Einnahme</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">Ihr Kontostand bei %1$s ist %2$s höher als erfasst</string>
-    <string name="notif_balance_lower">Ihr Kontostand bei %1$s ist %2$s niedriger als erfasst</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">Ihr Kontostand ist %1$s höher als erfasst</string>
+    <string name="notif_balance_lower">Ihr Kontostand ist %1$s niedriger als erfasst</string>
     <string name="notif_balance_text">Möglicherweise fehlt eine Transaktion. Tippen Sie zum Prüfen.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Als %1$s gespeichert</string>

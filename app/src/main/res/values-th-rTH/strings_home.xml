@@ -263,9 +263,9 @@
     <string name="notif_txn_action_not_income">ไม่ใช่รายรับ</string>
     <string name="notif_txn_excluded_spending">จะไม่นับเป็นรายจ่าย</string>
     <string name="notif_txn_excluded_income">จะไม่นับเป็นรายรับ</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">ยอดเงิน %1$s ของคุณสูงกว่าที่บันทึกไว้ %2$s</string>
-    <string name="notif_balance_lower">ยอดเงิน %1$s ของคุณต่ำกว่าที่บันทึกไว้ %2$s</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">ยอดเงินของคุณสูงกว่าที่บันทึกไว้ %1$s</string>
+    <string name="notif_balance_lower">ยอดเงินของคุณต่ำกว่าที่บันทึกไว้ %1$s</string>
     <string name="notif_balance_text">อาจมีธุรกรรมที่ขาดหายไป แตะเพื่อตรวจสอบ</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">บันทึกเป็น %1$s แล้ว</string>

@@ -342,7 +342,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency)
             val title = context.getString(
                 if (discrepancy.delta.signum() > 0) R.string.notif_balance_higher else R.string.notif_balance_lower,
-                bankName,
                 difference
             )
             val text = context.getString(R.string.notif_balance_text)
@@ -354,6 +353,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
                     .setContentText(text)
+                    // The bank sits in the header: in the title, a long name cut the figure off.
+                    .setSubText(bankName)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)

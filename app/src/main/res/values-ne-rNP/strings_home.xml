@@ -275,9 +275,9 @@
     <string name="notif_txn_action_not_income">आम्दानी होइन</string>
     <string name="notif_txn_excluded_spending">खर्चमा गनिने छैन</string>
     <string name="notif_txn_excluded_income">आम्दानीमा गनिने छैन</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">तपाईंको %1$s बालान्स रेकर्ड भन्दा %2$s बढी छ</string>
-    <string name="notif_balance_lower">तपाईंको %1$s बालान्स रेकर्ड भन्दा %2$s कम छ</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">तपाईंको बालान्स रेकर्ड भन्दा %1$s बढी छ</string>
+    <string name="notif_balance_lower">तपाईंको बालान्स रेकर्ड भन्दा %1$s कम छ</string>
     <string name="notif_balance_text">कुनै लेनदेन छुटेको हुन सक्छ। हेर्न ट्याप गर्नुहोस्।</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">%1$s को रूपमा सुरक्षित भयो</string>

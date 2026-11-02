@@ -280,9 +280,9 @@
     <string name="notif_txn_action_not_income">Não é receita</string>
     <string name="notif_txn_excluded_spending">Não vai contar como gasto</string>
     <string name="notif_txn_excluded_income">Não vai contar como receita</string>
-    <!-- Balance check (#734); %1$s bank name, %2$s the difference with currency -->
-    <string name="notif_balance_higher">Seu saldo no %1$s está %2$s acima do registrado</string>
-    <string name="notif_balance_lower">Seu saldo no %1$s está %2$s abaixo do registrado</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name is in the header -->
+    <string name="notif_balance_higher">Seu saldo está %1$s acima do registrado</string>
+    <string name="notif_balance_lower">Seu saldo está %1$s abaixo do registrado</string>
     <string name="notif_balance_text">Pode estar faltando uma transação. Toque para revisar.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Salvo como %1$s</string>

@@ -42,6 +42,9 @@ import com.pennywiseai.tracker.presentation.statement.ImportStatementScreen
 import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
+import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
@@ -95,6 +98,14 @@ fun MainScreen(
     val hazeState = remember { HazeState() }
 
     val isHomeScreen = baseRoute == "home"
+
+    // The floating bar docks the current tab's primary action beside it. Offered
+    // while prefs load too, so Home doesn't flash its own FABs before the bar
+    // style is known.
+    val navDock = remember { NavDockState() }
+    val dockForTabs = navDock.takeIf {
+        themeState.isLoading || themeState.navBarStyle == NavBarStyle.FLOATING
+    }
 
     // Back from non-Home tab goes to Home instead of popping (prevents overlap)
     BackHandler(enabled = !isHomeScreen) {
@@ -152,7 +163,10 @@ fun MainScreen(
         }
     }
 
-    CompositionLocalProvider(LocalMerchantDisplay provides merchantDisplay) {
+    CompositionLocalProvider(
+        LocalMerchantDisplay provides merchantDisplay,
+        LocalNavDock provides dockForTabs,
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -693,6 +707,7 @@ fun MainScreen(
                     hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
+                    dock = dockForTabs,
                     modifier = Modifier.align(Alignment.BottomCenter)
                 )
             }

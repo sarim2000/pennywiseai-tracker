@@ -77,6 +77,9 @@ import kotlinx.coroutines.delay
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
+import com.pennywiseai.tracker.ui.components.DockNavAction
+import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
@@ -196,6 +199,10 @@ fun HomeScreen(
 
     // Haptic feedback
     val view = LocalView.current
+
+    // Set while the floating nav bar is up: Sync docks beside it, and Add
+    // moves to the header so no FAB stack floats over the content.
+    val navDock = LocalNavDock.current
 
     // Haptic on successful SMS scan completion
     LaunchedEffect(smsScanWorkInfo?.state) {
@@ -383,6 +390,30 @@ fun HomeScreen(
                                 onDismiss = { showProfileFilterMenu = false }
                             )
                         }
+                        if (navDock != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(Dimensions.Component.iconButton)
+                                    .clip(CircleShape)
+                                    .background(
+                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                                        shape = CircleShape
+                                    )
+                                    .clickable(
+                                        onClick = onNavigateToAddScreen,
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = stringResource(R.string.home_fab_add),
+                                    tint = MaterialTheme.colorScheme.inverseSurface,
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
+                                )
+                            }
+                        }
                         // More options button
                         Box(
                             modifier = Modifier
@@ -415,6 +446,7 @@ fun HomeScreen(
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
+                        onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
@@ -1102,86 +1134,106 @@ fun HomeScreen(
         }
         
 
-        // FABs - Direct access (no speed dial)
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(
-                    end = Dimensions.Padding.content,
-                    bottom = Dimensions.Component.fabBottomInset
-                ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
-            horizontalAlignment = Alignment.End
-        ) {
-            // Add FAB (top, small)
-            SmallFloatingActionButton(
-                onClick = onNavigateToAddScreen,
-                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.home_fab_add)
+        if (navDock != null) {
+            // Sync docks beside the floating nav bar; Add lives in the header.
+            val syncLabel = stringResource(R.string.home_fab_sync)
+            val fullResyncLabel = stringResource(R.string.home_resync_title)
+            DockNavAction(
+                NavDockAction(
+                    icon = Icons.Default.Sync,
+                    contentDescription = syncLabel,
+                    onClick = { viewModel.scanSmsMessages() },
+                    onLongClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        showFullResyncDialog = true
+                    },
+                    onLongClickLabel = fullResyncLabel,
+                    loading = uiState.isScanning,
+                    onPositioned = onFabPositioned
                 )
-            }
-            
-            // Sync FAB (bottom, primary)
-            // Single tap: incremental scan, Long press: full resync
+            )
+        } else {
+            // FABs - Direct access (no speed dial)
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        end = Dimensions.Padding.content,
+                        bottom = Dimensions.Component.fabBottomInset
+                    ),
+                verticalArrangement = Arrangement.spacedBy(Spacing.smd),
+                horizontalAlignment = Alignment.End
             ) {
-                Surface(
-                    modifier = Modifier
-                        .spotlightTarget(onFabPositioned)
-                        .size(Dimensions.Component.fab)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = { viewModel.scanSmsMessages() },
-                                onLongPress = {
-                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                    showFullResyncDialog = true
-                                }
-                            )
-                        },
-                    shape = FloatingActionButtonDefaults.shape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shadowElevation = Dimensions.Elevation.fab,
-                    tonalElevation = Dimensions.Elevation.fab,
+                // Add FAB (top, small)
+                SmallFloatingActionButton(
+                    onClick = onNavigateToAddScreen,
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.home_fab_add)
+                    )
+                }
+            
+                // Sync FAB (bottom, primary)
+                // Single tap: incremental scan, Long press: full resync
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    Surface(
+                        modifier = Modifier
+                            .spotlightTarget(onFabPositioned)
+                            .size(Dimensions.Component.fab)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                    onTap = { viewModel.scanSmsMessages() },
+                                    onLongPress = {
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                        showFullResyncDialog = true
+                                    }
+                                )
+                            },
+                        shape = FloatingActionButtonDefaults.shape,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shadowElevation = Dimensions.Elevation.fab,
+                        tonalElevation = Dimensions.Elevation.fab,
                     ) {
-                        // M3 Expressive: the shape-morphing loading indicator
-                        // takes the icon's place while a scan runs.
-                        if (uiState.isScanning) {
-                            LoadingIndicator(
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.semantics {
-                                    contentDescription = context.getString(R.string.home_fab_sync)
-                                }
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Default.Sync,
-                                contentDescription = stringResource(R.string.home_fab_sync),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // M3 Expressive: the shape-morphing loading indicator
+                            // takes the icon's place while a scan runs.
+                            if (uiState.isScanning) {
+                                LoadingIndicator(
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = context.getString(R.string.home_fab_sync)
+                                    }
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = stringResource(R.string.home_fab_sync),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
-                }
-                // Hint for long-press functionality - only show for new users (no transactions yet)
-                if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
-                    Text(
-                        text = stringResource(R.string.home_fab_sync_hint),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // Hint for long-press functionality - only show for new users (no transactions yet)
+                    if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
+                        Text(
+                            text = stringResource(R.string.home_fab_sync_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }
-        
+
         // Full Resync Confirmation Dialog
         if (showFullResyncDialog) {
             AlertDialog(
@@ -1317,6 +1369,18 @@ fun HomeScreen(
                     onClick = {
                         showMenuSheet = false
                         showEditWidgetsSheet = true
+                    }
+                )
+
+                // Read messages again (Middle) — the full resync otherwise
+                // hides behind a long-press on Sync.
+                MenuListItem(
+                    headline = stringResource(R.string.home_resync_title),
+                    icon = { Icon(Icons.Default.Sync, contentDescription = null) },
+                    position = ListItemPosition.Middle,
+                    onClick = {
+                        showMenuSheet = false
+                        showFullResyncDialog = true
                     }
                 )
 

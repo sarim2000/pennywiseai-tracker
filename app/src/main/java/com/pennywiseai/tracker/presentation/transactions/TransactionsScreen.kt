@@ -314,6 +314,19 @@ fun TransactionsScreen(
     // stack need matching bottom clearance (whether or not a back arrow shows).
     val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
 
+    // As a tab under the floating nav bar, Add docks beside the bar and Export
+    // moves to the top bar instead of a FAB stack.
+    val navDock = if (reserveBottomBarSpace) LocalNavDock.current else null
+    if (navDock != null) {
+        DockNavAction(
+            NavDockAction(
+                icon = Icons.Default.Add,
+                contentDescription = stringResource(R.string.txn_list_add_transaction),
+                onClick = onAddTransactionClick
+            )
+        )
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
@@ -382,12 +395,22 @@ fun TransactionsScreen(
                             )
                         }
                     },
+                    actionContent = {
+                        if (navDock != null && uiState.transactions.isNotEmpty()) {
+                            IconButton(onClick = { showExportDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.FileDownload,
+                                    contentDescription = stringResource(R.string.txn_list_export_csv)
+                                )
+                            }
+                        }
+                    },
                     hazeState = hazeState
                 )
             }
         },
         floatingActionButton = {
-            Column(
+            if (navDock == null) Column(
                 modifier = Modifier.padding(bottom = bottomBarClearance),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {

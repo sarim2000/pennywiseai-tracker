@@ -400,6 +400,9 @@
     <string name="share_banner_dismiss">Descartar</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Alterar categoria</string>
+    <string name="quick_category_not_expense">Não é uma despesa</string>
+    <string name="quick_category_not_income">Não é uma receita</string>
+    <string name="quick_category_progress">%1$d de %2$d</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Despesa em dinheiro</string>
     <string name="quick_add_more_details">Mais detalhes</string>

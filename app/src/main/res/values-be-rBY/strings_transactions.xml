@@ -419,6 +419,9 @@
     <string name="share_banner_dismiss">Схаваць</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Змяніць катэгорыю</string>
+    <string name="quick_category_not_expense">Не выдатак</string>
+    <string name="quick_category_not_income">Не даход</string>
+    <string name="quick_category_progress">%1$d з %2$d</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Выдатак наяўнымі</string>
     <string name="quick_add_more_details">Больш падрабязнасцей</string>

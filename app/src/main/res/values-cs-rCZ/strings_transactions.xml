@@ -422,6 +422,9 @@
     <string name="share_banner_dismiss">Odmítnout</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Změnit kategorii</string>
+    <string name="quick_category_not_expense">Není výdaj</string>
+    <string name="quick_category_not_income">Není příjem</string>
+    <string name="quick_category_progress">%1$d z %2$d</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Platba hotově</string>
     <string name="quick_add_more_details">Další podrobnosti</string>

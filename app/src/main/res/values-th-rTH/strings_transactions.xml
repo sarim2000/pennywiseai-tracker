@@ -388,6 +388,9 @@
     <string name="share_banner_dismiss">ปิด</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">เปลี่ยนหมวดหมู่</string>
+    <string name="quick_category_not_expense">ไม่ใช่รายจ่าย</string>
+    <string name="quick_category_not_income">ไม่ใช่รายรับ</string>
+    <string name="quick_category_progress">%1$d จาก %2$d</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">จ่ายเงินสด</string>
     <string name="quick_add_more_details">รายละเอียดเพิ่มเติม</string>

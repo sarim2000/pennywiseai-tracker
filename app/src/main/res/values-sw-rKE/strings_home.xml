@@ -294,7 +294,12 @@
         <item quantity="one">%d unahitaji kategoria</item>
         <item quantity="other">%d inahitaji kategoria</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">ipange ili matumizi halisi tu yahesabiwe</item>
+        <item quantity="other">zipange ili matumizi halisi tu yahesabiwe</item>
+    </plurals>
     <string name="notif_daily_action_sort">Panga</string>
+    <string name="notif_daily_action_sort_all">Panga</string>
     <string name="notif_daily_action_cash">+ Pesa taslimu</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

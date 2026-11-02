@@ -422,6 +422,9 @@
     <string name="share_banner_dismiss">Закрыть</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Изменить категорию</string>
+    <string name="quick_category_not_expense">Не расход</string>
+    <string name="quick_category_not_income">Не доход</string>
+    <string name="quick_category_progress">%1$d из %2$d</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Расход наличными</string>
     <string name="quick_add_more_details">Подробнее</string>

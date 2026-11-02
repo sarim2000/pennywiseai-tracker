@@ -279,7 +279,11 @@
     <plurals name="notif_daily_uncategorized">
         <item quantity="other">%d รายการยังไม่มีหมวดหมู่</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="other">จัดหมวดหมู่เพื่อให้นับเฉพาะรายจ่ายจริง</item>
+    </plurals>
     <string name="notif_daily_action_sort">จัดหมวดหมู่</string>
+    <string name="notif_daily_action_sort_all">จัดหมวดหมู่</string>
     <string name="notif_daily_action_cash">+ เงินสด</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

@@ -330,7 +330,14 @@
         <item quantity="many">%d без категории</item>
         <item quantity="other">%d без категории</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">разберите её, чтобы учитывались только реальные траты</item>
+        <item quantity="few">разберите их, чтобы учитывались только реальные траты</item>
+        <item quantity="many">разберите их, чтобы учитывались только реальные траты</item>
+        <item quantity="other">разберите их, чтобы учитывались только реальные траты</item>
+    </plurals>
     <string name="notif_daily_action_sort">Разобрать</string>
+    <string name="notif_daily_action_sort_all">Разобрать</string>
     <string name="notif_daily_action_cash">+ Наличные</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

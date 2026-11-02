@@ -13,5 +13,10 @@
             android:name="com.pennywiseai.tracker.debug.SmsProbeReceiver"
             android:exported="true"
             android:permission="android.permission.DUMP" />
+        <!-- Debug-only "recap now" trigger; see DailySummaryProbeReceiver. Same DUMP guard. -->
+        <receiver
+            android:name="com.pennywiseai.tracker.debug.DailySummaryProbeReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>

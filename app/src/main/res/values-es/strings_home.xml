@@ -292,7 +292,12 @@
         <item quantity="one">%d necesita categoría</item>
         <item quantity="other">%d necesitan categoría</item>
     </plurals>
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">clasifícala para que solo cuente el gasto real</item>
+        <item quantity="other">clasifícalas para que solo cuente el gasto real</item>
+    </plurals>
     <string name="notif_daily_action_sort">Clasificar</string>
+    <string name="notif_daily_action_sort_all">Clasificar</string>
     <string name="notif_daily_action_cash">+ Efectivo</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">

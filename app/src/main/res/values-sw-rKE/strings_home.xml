@@ -308,6 +308,10 @@
     <string name="pro_home_card_body">Pro inaongeza kanuni, malengo, uhamishaji wa data na uingizaji wa taarifa za benki bila kikomo.</string>
     <string name="pro_home_card_action">Ona Pro</string>
     <string name="pro_home_card_dismiss">Ondoa</string>
+    <string name="home_payday_card_title">Anza bajeti siku ya mshahara?</string>
+    <string name="home_payday_card_body">Inaonekana mshahara wako hufika tarehe %1$d ya mwezi. Ungependa kila mwezi wa bajeti uanze siku hiyo? Unaweza kubadilisha hili kwenye Mipangilio.</string>
+    <string name="home_payday_card_action">Anza tarehe %1$d</string>
+    <string name="home_payday_card_dismiss">Ondoa</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Unaelekea %1$s kufikia %2$s</string>
     <string name="forecast_over_usual">%1$s zaidi ya kawaida</string>

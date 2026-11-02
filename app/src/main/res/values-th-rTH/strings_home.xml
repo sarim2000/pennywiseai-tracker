@@ -292,6 +292,10 @@
     <string name="pro_home_card_body">Pro เพิ่มกฎ เป้าหมาย การส่งออก และการนำเข้า Statement ได้ไม่จำกัด</string>
     <string name="pro_home_card_action">ดู Pro</string>
     <string name="pro_home_card_dismiss">ปิด</string>
+    <string name="home_payday_card_title">เริ่มงบประมาณในวันเงินเดือนออกไหม</string>
+    <string name="home_payday_card_body">ดูเหมือนเงินเดือนของคุณจะเข้าวันที่ %1$d ของเดือน ต้องการให้แต่ละเดือนของงบประมาณเริ่มวันนั้นไหม คุณเปลี่ยนได้ในการตั้งค่า</string>
+    <string name="home_payday_card_action">เริ่มวันที่ %1$d</string>
+    <string name="home_payday_card_dismiss">ปิด</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">มีแนวโน้มอยู่ที่ %1$s ภายใน %2$s</string>
     <string name="forecast_over_usual">มากกว่าปกติ %1$s</string>

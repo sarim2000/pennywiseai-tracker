@@ -314,6 +314,10 @@
     <string name="pro_home_card_body">O Pro adiciona regras, metas, exportações e importações de extratos ilimitadas.</string>
     <string name="pro_home_card_action">Ver o Pro</string>
     <string name="pro_home_card_dismiss">Dispensar</string>
+    <string name="home_payday_card_title">Começar o orçamento no dia do pagamento?</string>
+    <string name="home_payday_card_body">Parece que seu salário cai no dia %1$d do mês. Começar cada mês do orçamento nesse dia? Você pode mudar isso nas Configurações.</string>
+    <string name="home_payday_card_action">Começar no dia %1$d</string>
+    <string name="home_payday_card_dismiss">Dispensar</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">No ritmo para %1$s até %2$s</string>
     <string name="forecast_over_usual">%1$s acima do normal</string>

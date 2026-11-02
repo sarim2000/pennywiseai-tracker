@@ -308,6 +308,10 @@
     <string name="pro_home_card_body">Pro ले असीमित नियम, लक्ष्य, निर्यात र स्टेटमेन्ट आयात थप्छ।</string>
     <string name="pro_home_card_action">Pro हेर्नुहोस्</string>
     <string name="pro_home_card_dismiss">हटाउनुहोस्</string>
+    <string name="home_payday_card_title">तलब आउने दिनबाट बजेट सुरु गर्ने?</string>
+    <string name="home_payday_card_body">तपाईंको तलब महिनाको %1$d गते आउने देखिन्छ। हरेक बजेट महिना त्यही दिनबाट सुरु गर्ने? तपाईं यसलाई सेटिङमा परिवर्तन गर्न सक्नुहुन्छ।</string>
+    <string name="home_payday_card_action">%1$d गतेबाट सुरु गर्नुहोस्</string>
+    <string name="home_payday_card_dismiss">हटाउनुहोस्</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">%2$s सम्म %1$s को बाटोमा</string>
     <string name="forecast_over_usual">सधैंभन्दा %1$s बढी</string>

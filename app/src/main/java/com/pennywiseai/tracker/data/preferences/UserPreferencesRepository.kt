@@ -94,6 +94,7 @@ open class UserPreferencesRepository @Inject constructor(
         val SHARE_PROMPT_HANDLED_MONTH = stringPreferencesKey("share_prompt_handled_month")
         // Device-local on purpose: kept out of the backup's PreferencesSnapshot (#945).
         val PRO_HOME_CARD_HANDLED = booleanPreferencesKey("pro_home_card_handled")
+        val PAYDAY_SUGGESTION_HANDLED = booleanPreferencesKey("payday_suggestion_handled")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -523,6 +524,15 @@ open class UserPreferencesRepository @Inject constructor(
     /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
     suspend fun markProHomeCardHandled() {
         context.dataStore.edit { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] = true }
+    }
+
+    /** Whether the one-time "start budgets on payday?" Home card was accepted or dismissed. */
+    val paydaySuggestionHandled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] ?: false }
+
+    /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
+    suspend fun markPaydaySuggestionHandled() {
+        context.dataStore.edit { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] = true }
     }
 
     suspend fun setShareCardConfig(config: ShareCardConfig) {

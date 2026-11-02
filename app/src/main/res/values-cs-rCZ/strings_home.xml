@@ -346,6 +346,10 @@
     <string name="pro_home_card_body">Pro přidává neomezená pravidla, cíle, exporty a importy výpisů.</string>
     <string name="pro_home_card_action">Zobrazit Pro</string>
     <string name="pro_home_card_dismiss">Zavřít</string>
+    <string name="home_payday_card_title">Začínat rozpočet ve výplatní den?</string>
+    <string name="home_payday_card_body">Zdá se, že výplata vám chodí %1$d. dne v měsíci. Začínat každý rozpočtový měsíc tímto dnem? Můžete to změnit v Nastavení.</string>
+    <string name="home_payday_card_action">Začínat %1$d. dne</string>
+    <string name="home_payday_card_dismiss">Zavřít</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Směřujete k %1$s do %2$s</string>
     <string name="forecast_over_usual">%1$s nad obvyklou úrovní</string>

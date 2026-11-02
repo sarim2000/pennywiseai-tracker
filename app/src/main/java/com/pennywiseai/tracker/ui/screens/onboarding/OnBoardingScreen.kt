@@ -50,12 +50,14 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -647,6 +649,7 @@ private fun PermissionsStep(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SmsScanStep(uiState: OnBoardingUiState) {
     Column(
@@ -657,7 +660,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
         verticalArrangement = Arrangement.Center
     ) {
         if (uiState.isScanning) {
-            CircularProgressIndicator(
+            LoadingIndicator(
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer)
             )
 
@@ -674,7 +677,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
 
             if (uiState.scanTotal > 0) {
                 val progress = uiState.scanProcessed.toFloat() / uiState.scanTotal.toFloat()
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -700,7 +703,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                     )
                 }
             } else {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.onboarding_scan_preparing),

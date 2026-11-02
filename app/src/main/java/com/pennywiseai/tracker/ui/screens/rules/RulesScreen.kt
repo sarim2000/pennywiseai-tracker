@@ -39,7 +39,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RulesScreen(
     onNavigateBack: () -> Unit,
@@ -200,7 +200,7 @@ fun RulesScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         } else {
             val lazyListState = rememberLazyListState()
@@ -567,6 +567,7 @@ private fun RuleCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BatchApplyDialog(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
@@ -604,7 +605,7 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(stringResource(R.string.rules_batch_scanning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -737,7 +738,7 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(
                                 text = pluralStringResource(R.plurals.rules_batch_processing, progress.second, progress.first, progress.second),
                                 style = MaterialTheme.typography.bodySmall

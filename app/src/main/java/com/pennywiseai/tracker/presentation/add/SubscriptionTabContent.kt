@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.domain.model.icon
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
@@ -119,28 +120,20 @@ fun SubscriptionTabContent(
             // incoming bank-debit SMS like today.
             val isIncome = uiState.direction ==
                 com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = !isIncome,
-                    onClick = {
-                        viewModel.updateSubscriptionDirection(
-                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
-                        )
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    label = { Text(stringResource(R.string.add_sub_direction_expense)) }
-                )
-                SegmentedButton(
-                    selected = isIncome,
-                    onClick = {
-                        viewModel.updateSubscriptionDirection(
-                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
-                        )
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    label = { Text(stringResource(R.string.add_sub_direction_income)) }
-                )
-            }
+            ConnectedChoiceRow(
+                options = com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.entries,
+                selected = uiState.direction,
+                onSelect = { viewModel.updateSubscriptionDirection(it) },
+                label = { direction ->
+                    stringResource(
+                        if (direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME) {
+                            R.string.add_sub_direction_income
+                        } else {
+                            R.string.add_sub_direction_expense
+                        }
+                    )
+                }
+            )
 
             // Info Card — copy adapts to the chosen direction.
             PennyWiseCardV2(

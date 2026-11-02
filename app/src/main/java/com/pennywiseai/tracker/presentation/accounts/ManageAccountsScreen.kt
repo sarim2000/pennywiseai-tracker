@@ -38,6 +38,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -2029,19 +2030,23 @@ private fun EditCardDialog(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        val options = listOf(
-                            com.pennywiseai.tracker.data.database.entity.CardType.DEBIT to stringResource(R.string.manage_accounts_card_type_debit),
-                            com.pennywiseai.tracker.data.database.entity.CardType.CREDIT to stringResource(R.string.manage_accounts_card_type_credit)
-                        )
-                        options.forEachIndexed { index, (type, label) ->
-                            SegmentedButton(
-                                selected = cardType == type,
-                                onClick = { cardType = type },
-                                shape = SegmentedButtonDefaults.itemShape(index, options.size)
-                            ) { Text(label) }
+                    ConnectedChoiceRow(
+                        options = listOf(
+                            com.pennywiseai.tracker.data.database.entity.CardType.DEBIT,
+                            com.pennywiseai.tracker.data.database.entity.CardType.CREDIT
+                        ),
+                        selected = cardType,
+                        onSelect = { cardType = it },
+                        label = { type ->
+                            stringResource(
+                                if (type == com.pennywiseai.tracker.data.database.entity.CardType.CREDIT) {
+                                    R.string.manage_accounts_card_type_credit
+                                } else {
+                                    R.string.manage_accounts_card_type_debit
+                                }
+                            )
                         }
-                    }
+                    )
                 }
                 OutlinedTextField(
                     value = nickname,

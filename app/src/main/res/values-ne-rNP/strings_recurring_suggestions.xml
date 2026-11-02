@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscriptions_suggested_section">सुझाव गरिएका</string>
+    <string name="subscriptions_suggested_hint">तपाईंको इतिहासमा दोहोरिने भुक्तानीहरू। ट्र्याक नगरेसम्म यिनलाई गनिँदैन।</string>
+    <string name="subscriptions_suggested_show_all">सबै हेर्नुहोस् (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">कम हेर्नुहोस्</string>
+
+    <string name="subscription_suggestion_pattern">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d भुक्तानी</item>
+        <item quantity="other">%1$d भुक्तानी</item>
+    </plurals>
+    <string name="subscription_suggestion_amount_range">%1$s–%2$s</string>
+    <string name="subscription_suggestion_varies">रकम फरक पर्छ</string>
+    <string name="subscription_suggestion_review">हेर्नुहोस्</string>
+    <string name="subscription_suggestion_not_recurring">दोहोरिने होइन</string>
+
+    <string name="subscription_suggestion_sheet_subtitle">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">%1$d भुक्तानी भेटियो</item>
+        <item quantity="other">%1$d भुक्तानी भेटिए</item>
+    </plurals>
+    <string name="subscription_suggestion_sheet_amount">ट्र्याक गर्ने रकम (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">यो बिल हरेक पटक फरक हुन्छ। तपाईं पछि रकम सम्पादन गर्न सक्नुहुन्छ।</string>
+    <string name="subscription_suggestion_sheet_next">अर्को भुक्तानी %1$s मा अपेक्षित</string>
+    <string name="subscription_suggestion_sheet_track">बिल ट्र्याक गर्नुहोस्</string>
+    <string name="subscription_suggestion_sheet_helper">हरेक भुक्तानीको एक दिन अघि तपाईंलाई रिमाइन्डर आउनेछ।</string>
+
+    <string name="subscriptions_suggestion_tracked">%1$s अब ट्र्याक हुँदैछ</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s पहिले नै ट्र्याक भइरहेको छ</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s फेरि सुझाव गरिने छैन</string>
+
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d सम्भावित दोहोरिने बिल</item>
+        <item quantity="other">%1$d सम्भावित दोहोरिने बिलहरू</item>
+    </plurals>
+    <string name="home_recurring_card_body">%1$s। हरेक भुक्तानी अघि रिमाइन्डर पाउन हेर्नुहोस्।</string>
+    <string name="home_recurring_card_body_more">%1$s र थप %2$d। हरेक भुक्तानी अघि रिमाइन्डर पाउन हेर्नुहोस्।</string>
+    <string name="home_recurring_card_action">हेर्नुहोस्</string>
+    <string name="home_recurring_card_dismiss">लुकाउनुहोस्</string>
+</resources>

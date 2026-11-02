@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.domain.usecase
 
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
@@ -13,6 +15,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -28,7 +31,9 @@ class TrackRepeatChargeUseCaseTest {
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val subscriptions = mockk<SubscriptionRepository>(relaxed = true)
     private val database = mockk<PennyWiseDatabase>()
-    private val useCase = TrackRepeatChargeUseCase(database, transactionDao, transactions, subscriptions)
+    private val categoryDao = mockk<CategoryDao>()
+    private val preferences = mockk<UserPreferencesRepository>()
+    private val useCase = TrackRepeatChargeUseCase(database, transactionDao, transactions, subscriptions, categoryDao, preferences)
 
     private val now = LocalDateTime.of(2026, 10, 25, 9, 0)
     private fun charge(id: Long, at: LocalDateTime, type: TransactionType = TransactionType.EXPENSE) = TransactionEntity(
@@ -47,6 +52,8 @@ class TrackRepeatChargeUseCaseTest {
         coEvery { subscriptions.hasAnySubscriptionFor(any(), any()) } returns false
         every { subscriptions.advance(any(), any()) } answers { firstArg<java.time.LocalDate>().plusMonths(1) }
         coEvery { subscriptions.insertSubscription(any()) } returns 9L
+        coEvery { categoryDao.getAllCategoriesList() } returns emptyList()
+        every { preferences.dismissedRecurringSuggestions } returns flowOf(emptySet())
     }
 
     @After
@@ -82,6 +89,19 @@ class TrackRepeatChargeUseCaseTest {
         // otherwise find one ~30 days back and be offered as a monthly bill.
         coEvery { transactionDao.getChargesInCurrencyBetween(any(), any(), any(), any(), any()) } returns
             listOf(charge(3, now.minusDays(3)), charge(1, now.minusDays(30)))
+
+        assertNull(useCase.suggestedCycle(charge(2, now)))
+    }
+
+    @Test
+    fun `a repeat at an everyday-spending merchant is not offered`() = runBlocking {
+        assertNull(useCase.suggestedCycle(charge(2, now).copy(category = "Transportation")))
+        assertEquals("Monthly", useCase.suggestedCycle(charge(2, now)))
+    }
+
+    @Test
+    fun `a merchant marked not recurring is not offered`() = runBlocking {
+        every { preferences.dismissedRecurringSuggestions } returns flowOf(setOf("USD|netflixcom"))
 
         assertNull(useCase.suggestedCycle(charge(2, now)))
     }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscriptions_suggested_section">Vorschläge</string>
+    <string name="subscriptions_suggested_hint">Zahlungen, die sich in Ihrem Verlauf wiederholen. Sie werden erst gezählt, wenn Sie sie verfolgen.</string>
+    <string name="subscriptions_suggested_show_all">Alle anzeigen (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">Weniger anzeigen</string>
+
+    <string name="subscription_suggestion_pattern">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d Zahlung</item>
+        <item quantity="other">%1$d Zahlungen</item>
+    </plurals>
+    <string name="subscription_suggestion_amount_range">%1$s–%2$s</string>
+    <string name="subscription_suggestion_varies">Betrag variiert</string>
+    <string name="subscription_suggestion_review">Prüfen</string>
+    <string name="subscription_suggestion_not_recurring">Nicht regelmäßig</string>
+
+    <string name="subscription_suggestion_sheet_subtitle">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">%1$d Zahlung gefunden</item>
+        <item quantity="other">%1$d Zahlungen gefunden</item>
+    </plurals>
+    <string name="subscription_suggestion_sheet_amount">Zu verfolgender Betrag (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">Diese Rechnung ändert sich jedes Mal. Sie können den Betrag später bearbeiten.</string>
+    <string name="subscription_suggestion_sheet_next">Nächste Zahlung erwartet am %1$s</string>
+    <string name="subscription_suggestion_sheet_track">Rechnung verfolgen</string>
+    <string name="subscription_suggestion_sheet_helper">Sie erhalten am Tag vor jeder Zahlung eine Erinnerung.</string>
+
+    <string name="subscriptions_suggestion_tracked">%1$s wird jetzt verfolgt</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s wird bereits verfolgt</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s wird nicht mehr vorgeschlagen</string>
+
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d mögliche wiederkehrende Rechnung</item>
+        <item quantity="other">%1$d mögliche wiederkehrende Rechnungen</item>
+    </plurals>
+    <string name="home_recurring_card_body">%1$s. Prüfen Sie sie, um vor jeder Zahlung erinnert zu werden.</string>
+    <string name="home_recurring_card_body_more">%1$s und %2$d weitere. Prüfen Sie sie, um vor jeder Zahlung erinnert zu werden.</string>
+    <string name="home_recurring_card_action">Prüfen</string>
+    <string name="home_recurring_card_dismiss">Verstecken</string>
+</resources>

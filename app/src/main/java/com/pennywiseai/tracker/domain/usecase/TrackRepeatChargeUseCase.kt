@@ -2,14 +2,19 @@ package com.pennywiseai.tracker.domain.usecase
 
 import androidx.room.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.builtinKey
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import com.pennywiseai.tracker.domain.spending.RecurringSuggestions
+import kotlinx.coroutines.flow.first
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
@@ -22,18 +27,24 @@ class TrackRepeatChargeUseCase @Inject constructor(
     private val database: PennyWiseDatabase,
     private val transactionDao: TransactionDao,
     private val transactionRepository: TransactionRepository,
-    private val subscriptionRepository: SubscriptionRepository
+    private val subscriptionRepository: SubscriptionRepository,
+    private val categoryDao: CategoryDao,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) {
 
     /**
      * The billing cycle [transaction] repeats, or null when it isn't a repeat
      * worth offering: already recurring, not a spend, no earlier matching
-     * charge at a cycle's gap, or a subscription (in any state, so a cancelled
-     * one doesn't nag) already covers the merchant.
+     * charge at a cycle's gap, everyday spending (groceries, transport…), a
+     * merchant the user marked "Not recurring", or a subscription (in any
+     * state, so a cancelled one doesn't nag) already covers the merchant.
      */
     suspend fun suggestedCycle(transaction: TransactionEntity): String? {
         if (transaction.isRecurring || transaction.transactionType !in RecurringCharge.SPEND_TYPES) return null
         if (transaction.merchantName.isBlank()) return null
+        if (isEverydaySpending(transaction.category)) return null
+        val key = RecurringSuggestions.keyFor(transaction.merchantName, transaction.currency)
+        if (key in userPreferencesRepository.dismissedRecurringSuggestions.first()) return null
         val previous = transactionDao.getChargesInCurrencyBetween(
             currency = transaction.currency,
             types = RecurringCharge.SPEND_TYPES.map { it.name },
@@ -93,6 +104,12 @@ class TrackRepeatChargeUseCase @Inject constructor(
         subscriptionRepository.recordPriceChange(subscription, transaction.amount, transaction.dateTime.toLocalDate())
         transactionRepository.updateTransaction(transaction.copy(isRecurring = true))
         subscriptionRepository.getSubscriptionById(subscription.id)
+    }
+
+    private suspend fun isEverydaySpending(category: String): Boolean {
+        val row = categoryDao.getAllCategoriesList().firstOrNull { it.name == category }
+        val builtin = if (row != null) row.builtinKey else category
+        return builtin in RecurringSuggestions.EXCLUDED_CATEGORIES
     }
 
     private companion object {

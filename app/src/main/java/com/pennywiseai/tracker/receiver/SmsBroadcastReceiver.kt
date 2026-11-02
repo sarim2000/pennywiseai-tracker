@@ -61,6 +61,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun learnedSendersStore(): LearnedSendersStore
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
+        fun userPreferencesRepository(): com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
     }
 
     companion object {
@@ -137,6 +138,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         // Its own action keeps the alert's PendingIntent from matching (and overwriting) another MainActivity one.
         private const val ACTION_ADD_SUGGESTION = "com.pennywiseai.tracker.ACTION_ADD_SUGGESTION"
+        private const val RECURRING_OFFER_INTERVAL_DAYS = 90L
 
         fun cancelSuggestion(context: Context, unrecognizedSmsId: Long) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -708,7 +710,17 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val repository = entryPoint.transactionRepository()
             val saved = repository.getTransactionById(result.transactionId) ?: return
             // The same bill as last month (or week, or year)? Offer to track it.
-            val trackCycle = runCatching { entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved) }
+            // Capped (one offer per merchant per 90 days, one a day): a missed offer
+            // isn't lost, the Subscriptions screen lists it under "Suggested".
+            val trackCycle = runCatching {
+                entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved)?.takeIf {
+                    entryPoint.userPreferencesRepository().tryRecordRecurringOffer(
+                        com.pennywiseai.tracker.domain.spending.RecurringSuggestions.keyFor(saved.merchantName, saved.currency),
+                        java.time.LocalDate.now(),
+                        RECURRING_OFFER_INTERVAL_DAYS
+                    )
+                }
+            }
                 .onFailure { Log.e(TAG, "Error checking for a repeat charge", it) }
                 .getOrNull()
             // The open app shows the new row itself, but has nowhere to ask "Track

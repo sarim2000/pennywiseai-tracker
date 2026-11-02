@@ -82,6 +82,8 @@ fun SubscriptionsScreen(
     var markPaidCandidates by remember {
         mutableStateOf<List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>>(emptyList())
     }
+    // Suggested bill under review. Null = sheet closed.
+    var reviewTarget by remember { mutableStateOf<com.pennywiseai.tracker.domain.spending.RecurringSuggestion?>(null) }
     LaunchedEffect(markPaidTarget) {
         val target = markPaidTarget
         markPaidCandidates = if (target != null) viewModel.candidatesFor(target) else emptyList()
@@ -130,6 +132,22 @@ fun SubscriptionsScreen(
         markPaidText?.let { msg ->
             snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
             viewModel.clearMarkPaidMessage()
+        }
+    }
+
+    // "Not recurring" on a suggestion, undoable.
+    LaunchedEffect(uiState.lastDismissedSuggestion) {
+        uiState.lastDismissedSuggestion?.let { suggestion ->
+            val result = snackbarHostState.showSnackbar(
+                message = context.getString(R.string.subscriptions_suggestion_dismissed, suggestion.merchantName),
+                actionLabel = undoLabel,
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDismissSuggestion()
+            } else {
+                viewModel.clearDismissedSuggestion()
+            }
         }
     }
 
@@ -215,6 +233,43 @@ fun SubscriptionsScreen(
                 }
             }
 
+            // Suggested: repeating payments found in history, not tracked yet.
+            // Above the active list so they're seen; they never touch the totals.
+            if (uiState.suggestions.isNotEmpty()) {
+                item(key = "suggested-header") {
+                    SectionHeaderV2(
+                        title = stringResource(R.string.subscriptions_suggested_section),
+                        subtitle = stringResource(R.string.subscriptions_suggested_hint)
+                    )
+                }
+                item(key = "suggested-list") {
+                    var showAll by rememberSaveable { mutableStateOf(false) }
+                    val shown = if (showAll) uiState.suggestions else uiState.suggestions.take(SUGGESTIONS_PREVIEW)
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        shown.forEach { suggestion ->
+                            androidx.compose.runtime.key(suggestion.key) {
+                                SuggestedSubscriptionItem(
+                                    suggestion = suggestion,
+                                    onReview = { reviewTarget = suggestion },
+                                    onDismiss = { viewModel.dismissSuggestion(suggestion) }
+                                )
+                            }
+                        }
+                        if (uiState.suggestions.size > SUGGESTIONS_PREVIEW) {
+                            TextButton(
+                                onClick = { showAll = !showAll },
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            ) {
+                                Text(
+                                    if (showAll) stringResource(R.string.subscriptions_suggested_show_less)
+                                    else stringResource(R.string.subscriptions_suggested_show_all, uiState.suggestions.size)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Active Subscriptions (staggered 50ms per item, starting at 50ms)
             if (uiState.activeSubscriptions.isNotEmpty()) {
                 item {
@@ -278,6 +333,7 @@ fun SubscriptionsScreen(
             // Cancelled section, which is contradictory.
             if (uiState.activeSubscriptions.isEmpty() &&
                 uiState.endedSubscriptions.isEmpty() &&
+                uiState.suggestions.isEmpty() &&
                 !uiState.isLoading
             ) {
                 item {
@@ -298,6 +354,15 @@ fun SubscriptionsScreen(
         }
     }
 
+    reviewTarget?.let { target ->
+        RecurringSuggestionSheet(
+            suggestion = target,
+            onDismiss = { reviewTarget = null },
+            onTrack = { amount -> viewModel.acceptSuggestion(target, amount) },
+            onNotRecurring = { viewModel.dismissSuggestion(target) }
+        )
+    }
+
     // Mark-as-paid sheet (#412). Rendered at screen scope so a list item
     // re-composition (snackbar, scroll) can't tear down the sheet.
     markPaidTarget?.let { target ->
@@ -315,6 +380,9 @@ fun SubscriptionsScreen(
         )
     }
 }
+
+/** Suggestions shown before "Show all". */
+private const val SUGGESTIONS_PREVIEW = 3
 
 @Composable
 private fun EndedSubscriptionsSection(

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="subscriptions_suggested_section">Mapendekezo</string>
+    <string name="subscriptions_suggested_hint">Malipo yanayojirudia katika historia yako. Hayahesabiwi hadi uyafuatilie.</string>
+    <string name="subscriptions_suggested_show_all">Onyesha yote (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">Onyesha machache</string>
+
+    <string name="subscription_suggestion_pattern">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">Malipo %1$d</item>
+        <item quantity="other">Malipo %1$d</item>
+    </plurals>
+    <string name="subscription_suggestion_amount_range">%1$s–%2$s</string>
+    <string name="subscription_suggestion_varies">Kiasi hubadilika</string>
+    <string name="subscription_suggestion_review">Kagua</string>
+    <string name="subscription_suggestion_not_recurring">Hayajirudii</string>
+
+    <string name="subscription_suggestion_sheet_subtitle">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">Malipo %1$d yamepatikana</item>
+        <item quantity="other">Malipo %1$d yamepatikana</item>
+    </plurals>
+    <string name="subscription_suggestion_sheet_amount">Kiasi cha kufuatilia (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">Bili hii hubadilika kila mara. Unaweza kubadilisha kiasi baadaye.</string>
+    <string name="subscription_suggestion_sheet_next">Malipo yajayo yanatarajiwa %1$s</string>
+    <string name="subscription_suggestion_sheet_track">Fuatilia bili</string>
+    <string name="subscription_suggestion_sheet_helper">Utapata kikumbusho siku moja kabla ya kila malipo.</string>
+
+    <string name="subscriptions_suggestion_tracked">Sasa inafuatilia %1$s</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s tayari inafuatiliwa</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s haitapendekezwa tena</string>
+
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">Bili %1$d inayoweza kujirudia</item>
+        <item quantity="other">Bili %1$d zinazoweza kujirudia</item>
+    </plurals>
+    <string name="home_recurring_card_body">%1$s. Kagua ili upate kikumbusho kabla ya kila malipo.</string>
+    <string name="home_recurring_card_body_more">%1$s na nyingine %2$d. Kagua ili upate kikumbusho kabla ya kila malipo.</string>
+    <string name="home_recurring_card_action">Kagua</string>
+    <string name="home_recurring_card_dismiss">Ficha</string>
+</resources>

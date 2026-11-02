@@ -315,9 +315,15 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val base = userPreferencesRepository.baseCurrency.first()
             baseCurrency = base
+            // In unified mode every figure is converted into the display currency, so
+            // start there — starting on the base currency would label converted
+            // amounts with the wrong symbol (e.g. USD values shown as ₹).
+            val initial = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
+                userPreferencesRepository.displayCurrency.first()
+            } else base
             _uiState.value = _uiState.value.copy(
-                selectedCurrency = base,
-                availableCurrencies = listOf(base)
+                selectedCurrency = initial,
+                availableCurrencies = listOf(initial)
             )
             loadHomeData()
         }
@@ -380,6 +386,8 @@ class HomeViewModel @Inject constructor(
 
                 val currentSelected = _uiState.value.selectedCurrency
                 val availableCurrencies = _uiState.value.availableCurrencies
+                // Unified mode pins the selection to the display currency.
+                if (userPreferencesRepository.unifiedCurrencyMode.first()) return@onEach
                 if (baseCurrency != currentSelected && !hasUserSelectedCurrency) {
                     if (availableCurrencies.isEmpty() || availableCurrencies.contains(baseCurrency)) {
                         selectCurrency(baseCurrency)

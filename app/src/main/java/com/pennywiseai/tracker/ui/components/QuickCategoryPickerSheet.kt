@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -65,6 +66,9 @@ fun QuickCategoryPickerSheet(
     // recap's unsorted rows, and a "Not an expense" row that drops the
     // transaction from totals ([onExclude] persists and dismisses).
     progress: String? = null,
+    // Notification picker only: which transaction this is ("Merchant · JD21"),
+    // in place of the generic title — from the recap there's no alert beside it.
+    subject: String? = null,
     excludeLabel: String? = null,
     onExclude: (() -> Unit)? = null
 ) {
@@ -112,8 +116,10 @@ fun QuickCategoryPickerSheet(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = stringResource(R.string.quick_category_title),
+                text = subject ?: stringResource(R.string.quick_category_title),
                 style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
             if (progress != null) {

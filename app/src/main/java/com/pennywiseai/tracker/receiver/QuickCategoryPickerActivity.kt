@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -273,6 +274,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                     }
                 },
                 onDismiss = { finish() },
+                subject = "${txn.merchantName.ifBlank { stringResource(R.string.notif_txn_unknown_merchant) }} · ${CurrencyFormatter.formatCurrency(txn.amount, txn.currency)}",
                 progress = if (total > 1) stringResource(R.string.quick_category_progress, walked.value + 1, total) else null,
                 excludeLabel = stringResource(if (isIncome) R.string.quick_category_not_income else R.string.quick_category_not_expense),
                 onExclude = {

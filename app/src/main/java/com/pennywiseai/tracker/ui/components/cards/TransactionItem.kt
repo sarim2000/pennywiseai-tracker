@@ -88,7 +88,7 @@ fun TransactionItem(
     val categoryText = categoryLabel(transaction.category)
     val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
-            if (description != null) add(description)
+            if (description != null) add(CurrencyFormatter.maskAmountsIn(description))
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
                 !transaction.category.equals("Uncategorized", ignoreCase = true)

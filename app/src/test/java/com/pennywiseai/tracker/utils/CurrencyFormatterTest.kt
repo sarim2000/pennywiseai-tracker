@@ -349,17 +349,17 @@ class CurrencyFormatterTest {
     }
 
     @Test
-    fun `amounts baked into free text are masked only while hidden`() {
-        val text = "This month: $1,200.50 spent, 4 JOD received, 7 transactions on Nov 2."
+    fun `numbers baked into free text are masked only while hidden`() {
+        val text = "This month: $1,200.50 spent, 4 JOD received on Nov 2."
         assertEquals(text, CurrencyFormatter.maskAmountsIn(text))
         AmountPrivacy.hidden = true
         try {
-            assertEquals(
-                "This month: •••• spent, •••• received, 7 transactions on Nov 2.",
-                CurrencyFormatter.maskAmountsIn(text)
-            )
-            // What formatCurrency itself writes, isolate marks included.
+            assertEquals("This month: •••• spent, •••• received on Nov ••••.", CurrencyFormatter.maskAmountsIn(text))
+            // What the chat suggests typing: no currency, still an amount.
+            assertEquals("coffee •••• at Starbucks", CurrencyFormatter.maskAmountsIn("coffee 120 at Starbucks"))
+            // formatCurrency's own output, isolate marks included; a word ending in a code's letters isn't eaten.
             assertEquals("Deleted ••••.", CurrencyFormatter.maskAmountsIn("Deleted \u2066₹500\u2069."))
+            assertEquals("PAID ••••", CurrencyFormatter.maskAmountsIn("PAID 50"))
         } finally {
             AmountPrivacy.hidden = false
         }

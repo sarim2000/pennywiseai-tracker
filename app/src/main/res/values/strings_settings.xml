@@ -65,6 +65,10 @@
     <string name="settings_security_section">Security</string>
     <string name="settings_app_lock_title">App Lock</string>
     <string name="settings_app_lock_subtitle">Protect your data with biometric authentication</string>
+    <string name="settings_shake_to_hide_title">Shake to hide amounts</string>
+    <string name="settings_shake_to_hide_subtitle">Shake your phone to hide or show amounts on every screen</string>
+    <string name="shake_to_hide_first_hidden">Amounts hidden. Shake again to show them.</string>
+    <string name="shake_to_hide_first_shown">Amounts shown. Shake again to hide them.</string>
     <string name="settings_lock_timeout_title">Lock Timeout</string>
     <string name="settings_lock_timeout_immediately_subtitle">Lock immediately</string>
     <plurals name="settings_lock_timeout_after_minutes">

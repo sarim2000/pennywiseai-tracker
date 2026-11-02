@@ -56,6 +56,10 @@
     <string name="settings_security_section">ความปลอดภัย</string>
     <string name="settings_app_lock_title">ล็อกแอป</string>
     <string name="settings_app_lock_subtitle">ปกป้องข้อมูลของคุณด้วยการยืนยันตัวตนทางชีวมิติ</string>
+    <string name="settings_shake_to_hide_title">เขย่าเพื่อซ่อนจำนวนเงิน</string>
+    <string name="settings_shake_to_hide_subtitle">เขย่าโทรศัพท์เพื่อซ่อนหรือแสดงจำนวนเงินในทุกหน้าจอ</string>
+    <string name="shake_to_hide_first_hidden">ซ่อนจำนวนเงินแล้ว เขย่าอีกครั้งเพื่อแสดง</string>
+    <string name="shake_to_hide_first_shown">แสดงจำนวนเงินแล้ว เขย่าอีกครั้งเพื่อซ่อน</string>
     <string name="settings_lock_timeout_title">เวลาหมดอายุล็อก</string>
     <string name="settings_lock_timeout_immediately_subtitle">ล็อกทันที</string>
     <plurals name="settings_lock_timeout_after_minutes">

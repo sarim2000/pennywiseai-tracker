@@ -56,6 +56,10 @@
     <string name="settings_security_section">सुरक्षा</string>
     <string name="settings_app_lock_title">एप लॉक</string>
     <string name="settings_app_lock_subtitle">बायोमेट्रिक प्रमाणीकरण के साथ अपने डेटा की सुरक्षा करें</string>
+    <string name="settings_shake_to_hide_title">राशि छिपाने के लिए हिलाएँ</string>
+    <string name="settings_shake_to_hide_subtitle">सभी स्क्रीन पर राशि छिपाने या दिखाने के लिए फ़ोन हिलाएँ</string>
+    <string name="shake_to_hide_first_hidden">राशि छिपा दी गई। दिखाने के लिए फिर से हिलाएँ।</string>
+    <string name="shake_to_hide_first_shown">राशि दिखाई जा रही है। छिपाने के लिए फिर से हिलाएँ।</string>
     <string name="settings_lock_timeout_title">लॉक समय समाप्ति</string>
     <string name="settings_lock_timeout_immediately_subtitle">तुरंत लॉक करें</string>
     <plurals name="settings_lock_timeout_after_minutes">

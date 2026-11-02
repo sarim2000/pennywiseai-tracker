@@ -118,10 +118,12 @@ fun SettingsScreen(
     onNavigateToAiAccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
+    shakeToHideViewModel: com.pennywiseai.tracker.ui.ShakeToHideViewModel = hiltViewModel(),
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
+    val shakeToHideEnabled by shakeToHideViewModel.enabled.collectAsStateWithLifecycle()
     val downloadState by settingsViewModel.downloadState.collectAsStateWithLifecycle()
     val downloadProgress by settingsViewModel.downloadProgress.collectAsStateWithLifecycle()
     val downloadedMB by settingsViewModel.downloadedMB.collectAsStateWithLifecycle()
@@ -554,6 +556,16 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_security_section))
             SettingsGroup {
                 SettingsSwitchRow(
+                    icon = Icons.Default.Vibration,
+                    iconBgColor = teal_light,
+                    iconTint = teal_dark,
+                    title = stringResource(R.string.settings_shake_to_hide_title),
+                    subtitle = stringResource(R.string.settings_shake_to_hide_subtitle),
+                    checked = shakeToHideEnabled,
+                    onCheckedChange = { shakeToHideViewModel.setEnabled(it) },
+                    position = ListItemPosition.Top
+                )
+                SettingsSwitchRow(
                     icon = Icons.Default.Lock,
                     iconBgColor = red_light,
                     iconTint = red_dark,
@@ -567,7 +579,7 @@ fun SettingsScreen(
                     onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
                     // Turning it off always works, even after the screen lock was removed.
                     enabled = appLockUiState.canUseBiometric || appLockUiState.isLockEnabled,
-                    position = if (appLockUiState.isLockEnabled) ListItemPosition.Top else ListItemPosition.Single
+                    position = if (appLockUiState.isLockEnabled) ListItemPosition.Middle else ListItemPosition.Bottom
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(

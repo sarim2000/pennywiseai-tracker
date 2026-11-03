@@ -34,7 +34,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.DecimalFormat
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExportTransactionsDialog(
     transactions: List<TransactionEntity>,

@@ -466,7 +466,7 @@ private fun RecordPaymentBottomSheet(
     var manualAmount by remember { mutableStateOf("") }
     val isDark = isSystemInDarkTheme()
     val loanColor = if (isDark) loan_dark else loan_light
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

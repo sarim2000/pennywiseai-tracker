@@ -150,7 +150,7 @@ fun CategoryEditDialog(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             shape = MaterialTheme.shapes.large,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,

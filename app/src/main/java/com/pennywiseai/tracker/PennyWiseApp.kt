@@ -178,12 +178,16 @@ fun PennyWiseApp(
     // authenticated. So after each resume, wait for a fresh lock check; if it says
     // locked, wait for the lock screen to be passed (isLocked can stay true after an
     // "Immediately" unlock, see NavigateWhenUnlocked).
+    // A pass counts until the app locks again, so it resets when isLocked turns true,
+    // not on every resume: after an "Immediately" unlock isLocked never changes, the
+    // lock screen doesn't come back, and a reset on resume would leave shake off.
     val onLockScreen = currentRoute == AppLock::class.qualifiedName
     var lockChecksAtResume by remember { mutableIntStateOf(Int.MAX_VALUE) }
-    var passedLockScreen by remember { mutableStateOf(false) }
+    var passedLockScreen by remember(appLockUiState.isLocked && appLockUiState.isLockEnabled) {
+        mutableStateOf(false)
+    }
     LifecycleResumeEffect(Unit) {
         lockChecksAtResume = appLockUiState.checks
-        passedLockScreen = false
         // Ask for that check ourselves: on a cold start the resume's own check can
         // finish before this composes (themeUiState loads first), leaving none to wait for.
         actualAppLockViewModel.refreshLockState()

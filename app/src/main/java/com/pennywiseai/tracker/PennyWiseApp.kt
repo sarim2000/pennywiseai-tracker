@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -226,6 +227,8 @@ fun PennyWiseApp(
         Box(Modifier.fillMaxSize()) {
             PennyWiseNavHost(
                 navController = navController,
+                // Out of the accessibility tree too, or TalkBack reads what the cover hides.
+                modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
                 themeViewModel = actualThemeViewModel,
                 startDestination = startDestination,
                 onEditComplete = onEditComplete ?: {}

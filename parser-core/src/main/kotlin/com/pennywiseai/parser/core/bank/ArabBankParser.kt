@@ -19,6 +19,10 @@ import java.math.BigDecimal
  *   - merchant: text between "from " and " for <CCY>"
  *   - amount currency: the CCY token after "for " (EGP, USD or JOD)
  *   - JOD uses 3 fractional digits.
+ * - Jordan debit-card purchase reported against the bank account (EXPENSE):
+ *   "You have a purchase transaction on account <acct> from <MERCHANT>
+ *    amount JOD <amount> on <date> <time> . Balance JOD <balance> ."
+ *   - Uses the account identifier and balance; isFromCard = false keeps account linkage.
  * - Arabic credit to the card (INCOME), Egypt (isFromCard = true):
  *   "تم قيد مبلغ <amount> جنيه لبطاقتك الائتمانية رقم #<last4>"
  *   - amount in EGP ("جنيه"), no merchant, no balance
@@ -32,6 +36,11 @@ import java.math.BigDecimal
  * Sender: ArabBank (token ARABBANK) or DLT-style "AB-ARABBK-S".
  */
 class ArabBankParser : BankParser() {
+
+    private val accountPurchasePattern = Regex(
+        """purchase\s+transaction\s+on\s+account\s+([0-9*]+)\s+from\s+(.+?)\s+amount\s+(JOD|USD|EGP)\s+([0-9,]+(?:\.\d+)?)\s+on\b""",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+    )
 
     override fun getBankName() = "Arab Bank"
 
@@ -48,8 +57,9 @@ class ArabBankParser : BankParser() {
 
     /**
      * Override parse to surface the per-transaction currency (EGP, JOD or USD).
-     * isFromCard is decided by detectIsCard (card spends + Arabic credit = true,
-     * account transfers = false).
+     * isFromCard is decided by detectIsCard: card-number messages and Arabic
+     * card credits = true; debit-card purchases reported against an account
+     * and account transfers = false.
      */
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val transaction = super.parse(smsBody, sender, timestamp) ?: return null
@@ -80,6 +90,10 @@ class ArabBankParser : BankParser() {
             return false
         }
 
+        if (accountPurchasePattern.containsMatchIn(message)) {
+            return true
+        }
+
         // English card spend marker.
         if (Regex("""using\s+Card""", RegexOption.IGNORE_CASE).containsMatchIn(message)) {
             return true
@@ -100,6 +114,10 @@ class ArabBankParser : BankParser() {
 
     override fun extractTransactionType(message: String): TransactionType? {
         val lower = message.lowercase()
+
+        if (accountPurchasePattern.containsMatchIn(message)) {
+            return TransactionType.EXPENSE
+        }
 
         // Arabic credit to the card.
         if (message.contains("تم قيد")) {
@@ -123,6 +141,10 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractAmount(message: String): BigDecimal? {
+        accountPurchasePattern.find(message)?.let { match ->
+            return parseAmount(match.groupValues[4])
+        }
+
         // English card spend: "for <CCY> <amount>" e.g. "for EGP 123.45" / "for JOD 2.750".
         val cardPattern = Regex(
             """for\s+[A-Z]{3}\s+([0-9,]+(?:\.\d+)?)""",
@@ -151,6 +173,10 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractCurrency(message: String): String? {
+        accountPurchasePattern.find(message)?.let { match ->
+            return match.groupValues[3].uppercase()
+        }
+
         // English card spend: the CCY token after "for " (EGP, USD or JOD).
         val cardPattern = Regex(
             """for\s+([A-Z]{3})\s+[0-9,]+(?:\.\d+)?""",
@@ -178,6 +204,11 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
+        accountPurchasePattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[2].trim())
+            return merchant.takeIf { isValidMerchantName(it) }
+        }
+
         // English card spend: merchant is the text between "from " and " for <CCY>".
         val cardPattern = Regex(
             """from\s+(.+?)\s+for\s+[A-Z]{3}\s""",
@@ -226,6 +257,10 @@ class ArabBankParser : BankParser() {
     }
 
     override fun extractAccountLast4(message: String): String? {
+        accountPurchasePattern.find(message)?.let { match ->
+            return extractLast4Digits(match.groupValues[1])
+        }
+
         // English card spend: "Card XXXX2020" -> 2020.
         val englishCard = Regex(
             """Card\s+[X*]*(\d{4})""",

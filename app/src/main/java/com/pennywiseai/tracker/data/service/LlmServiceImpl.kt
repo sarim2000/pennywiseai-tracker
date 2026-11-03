@@ -40,6 +40,8 @@ class LlmServiceImpl @Inject constructor(
     // IllegalStateException for a close it can't perform (a 2.21.0 crash).
     private val lifecycle = Mutex()
 
+    private val backendPrefs by lazy { context.getSharedPreferences("llm_backend", Context.MODE_PRIVATE) }
+
     override suspend fun initialize(modelPath: String): Result<Unit> = withContext(Dispatchers.IO) {
         lifecycle.withLock { initializeLocked(modelPath) }
     }
@@ -47,11 +49,21 @@ class LlmServiceImpl @Inject constructor(
     private fun initializeLocked(modelPath: String): Result<Unit> {
         return try {
             // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
-            engine = try {
-                startEngine(modelPath, Backend.GPU()).also { Log.i(TAG, "Engine initialized on GPU backend") }
+            // A buggy driver can instead crash natively, which no catch sees: the flag is
+            // written before trying and cleared only on success, so a GPU attempt that
+            // crashed or threw is never retried and later starts go straight to CPU.
+            val cpu = { startEngine(modelPath, Backend.CPU()).also { Log.i(TAG, "Engine initialized on CPU backend") } }
+            engine = if (backendPrefs.getBoolean(KEY_GPU_FAILED, false)) {
+                cpu()
+            } else try {
+                backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit()
+                startEngine(modelPath, Backend.GPU()).also {
+                    backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).apply()
+                    Log.i(TAG, "Engine initialized on GPU backend")
+                }
             } catch (e: Throwable) { // incl. UnsatisfiedLinkError when the OpenCL lib is missing
                 Log.w(TAG, "GPU backend unavailable (${e.javaClass.simpleName}), falling back to CPU")
-                startEngine(modelPath, Backend.CPU()).also { Log.i(TAG, "Engine initialized on CPU backend") }
+                cpu()
             }
             Result.success(Unit)
         } catch (e: Exception) {
@@ -168,5 +180,6 @@ class LlmServiceImpl @Inject constructor(
 
     companion object {
         private const val TAG = "LlmServiceImpl"
+        private const val KEY_GPU_FAILED = "gpu_failed"
     }
 }

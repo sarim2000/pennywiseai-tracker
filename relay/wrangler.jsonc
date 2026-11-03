@@ -3,7 +3,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "pennywise-ai-relay",
 	"main": "src/index.ts",
-	"compatibility_date": "2026-09-01",
+	"compatibility_date": "2026-11-01",
 	// CIMD: the OAuth library fetches client metadata documents and must never reach private addresses.
 	"compatibility_flags": ["global_fetch_strictly_public"],
 	"routes": [{ "pattern": "ai.pennywise.zynth.dev", "custom_domain": true }],

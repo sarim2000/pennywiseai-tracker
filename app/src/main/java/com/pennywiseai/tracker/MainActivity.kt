@@ -84,10 +84,13 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Handle intent if activity is launched from notification
-        handleEditIntent(intent)
-        // Not on recreation: the launch intent comes back and would re-open the screen.
-        if (savedInstanceState == null) handleWidgetIntent(intent)
+        // Launch intents (notification, share, Add shortcut/tile, widget) — not on
+        // recreation: the restored back stack already holds what they opened, and
+        // replaying them would push a fresh screen over it (an Add draft lost on rotate).
+        if (savedInstanceState == null) {
+            handleEditIntent(intent)
+            handleWidgetIntent(intent)
+        }
 
         val editCompleteCallback = { editTransactionId = null }
         val addShortcutCallback = { openAddTransaction = null }

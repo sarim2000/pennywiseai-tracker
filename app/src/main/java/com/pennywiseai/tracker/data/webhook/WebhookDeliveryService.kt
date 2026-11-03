@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.webhook
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.CancellationException
 import io.ktor.client.request.header
@@ -23,7 +23,7 @@ class WebhookDeliveryService internal constructor(
     private val retryDelay: suspend (attempt: Int) -> Unit
 ) {
     @Inject constructor() : this(
-        engine = Android.create(),
+        engine = OkHttp.create(),
         retryDelay = { attempt -> delay(1_000L shl attempt) }
     )
 

@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.currency
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.android.*
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -37,7 +37,7 @@ interface ExchangeRateProvider {
  */
 class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
 
-    private val client = HttpClient(Android) {
+    private val client = HttpClient(OkHttp) {
         // Bound every request so a hung socket can't stall callers indefinitely —
         // important because rate fetches are serialized on a shared mutex, so one
         // stuck request would otherwise block all currency conversions.

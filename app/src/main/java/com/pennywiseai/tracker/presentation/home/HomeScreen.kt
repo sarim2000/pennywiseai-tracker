@@ -74,7 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction

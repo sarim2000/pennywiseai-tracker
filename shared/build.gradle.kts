@@ -14,7 +14,7 @@ kotlin {
     }
 
     if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {
-        iosX64()
+        // No iosX64: androidx.sqlite 2.7+ dropped Intel-simulator artifacts.
         iosArm64()
         iosSimulatorArm64()
     }
@@ -60,7 +60,6 @@ kotlin {
 dependencies {
     add("kspAndroid", libs.androidx.room.compiler)
     if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {
-        add("kspIosX64", libs.androidx.room.compiler)
         add("kspIosArm64", libs.androidx.room.compiler)
         add("kspIosSimulatorArm64", libs.androidx.room.compiler)
     }

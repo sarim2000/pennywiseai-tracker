@@ -38,7 +38,7 @@ workVersion = "2.12.0"
 coil = "2.7.0"
 zxing = "3.5.4"
 material3 = "1.5.0-beta02"
-haze = "1.7.3"
+haze = "2.1.0"
 composeCharts = "1.0.0"
 billingKtx = "9.1.0"
 
@@ -101,6 +101,7 @@ review = { module = "com.google.android.play:review", version.ref = "review" }
 litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
 
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
 

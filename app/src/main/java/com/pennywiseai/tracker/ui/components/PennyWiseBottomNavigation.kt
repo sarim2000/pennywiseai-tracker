@@ -60,11 +60,8 @@ import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 
 @OptIn(
     ExperimentalMaterial3Api::class
@@ -106,18 +103,7 @@ fun PennyWiseBottomNavigation(
                     ),
                     tonalElevation = Dimensions.Elevation.raisedCard,
                     modifier = Modifier.then(
-                        if (blurEffects) Modifier.hazeEffect(
-                            state = hazeState,
-                            block = fun HazeEffectScope.() {
-                                style = HazeDefaults.style(
-                                    backgroundColor = Color.Transparent,
-                                    tint = HazeDefaults.tint(containerColor),
-                                    blurRadius = 20.dp,
-                                    noiseFactor = -1f,
-                                )
-                                blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                            }
-                        ) else Modifier
+                        if (blurEffects) Modifier.frostedBlur(hazeState, tint = containerColor) else Modifier
                     )
                 ) {
                     navigationItems.forEach { item ->
@@ -267,17 +253,7 @@ private fun FloatingNavPill(
             )
             .clip(CircleShape)
             .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            blurRadius = 20.dp,
-                            noiseFactor = -1f,
-                        )
-                        blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                    }
-                ) else Modifier
+                if (blurEffects) Modifier.frostedBlur(hazeState) else Modifier
             )
             .background(containerColor.copy(alpha = if (blurEffects) 0.8f else 1f))
             .padding(horizontal = Spacing.sm)

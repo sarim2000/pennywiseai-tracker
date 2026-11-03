@@ -316,6 +316,7 @@ dependencies {
 
     // Haze blur effects
     implementation(libs.haze)
+    implementation(libs.haze.blur)
 
     // Compose Charts
     implementation(libs.compose.charts)

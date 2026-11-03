@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -58,13 +59,9 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
-import dev.chrisbanes.haze.ExperimentalHazeApi
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeDefaults.tint
-import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeProgressive
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -121,7 +118,7 @@ fun CustomTitleTopAppBar(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LargerTopAppBar(
     modifier: Modifier = Modifier,
@@ -180,18 +177,11 @@ private fun LargerTopAppBar(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            tint = tint(backgroundColor),
-                            blurRadius = 10.dp,
-                            noiseFactor = -1f,
-                        )
-                        progressive =
-                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                    }
+                if (blurEffects) Modifier.frostedBlur(
+                    hazeState,
+                    blurRadius = 10.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Rectangle,
+                    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f),
                 ) else Modifier
             )
             .background(
@@ -236,7 +226,7 @@ private fun TitleForLargeTopAppBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalHazeApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RegularTopAppBar(
     modifier: Modifier = Modifier,
@@ -274,17 +264,11 @@ private fun RegularTopAppBar(
         val barModifier = modifier
             .fillMaxWidth()
             .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            blurRadius = 10.dp,
-                            noiseFactor = -1f,
-                        )
-                        progressive =
-                            HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f)
-                    }
+                if (blurEffects) Modifier.frostedBlur(
+                    hazeState,
+                    blurRadius = 10.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Rectangle,
+                    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f),
                 ) else Modifier
             )
             .background(

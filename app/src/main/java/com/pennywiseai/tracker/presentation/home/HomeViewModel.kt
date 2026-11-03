@@ -107,6 +107,7 @@ class HomeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val categoryRepository: CategoryRepository,
+    private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
 ) : ViewModel() {
 
     /**
@@ -272,6 +273,29 @@ class HomeViewModel @Inject constructor(
         }
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * The compact "possible recurring bills" card: the untracked repeating payments
+     * found in history, or null to hide it. Dismissing hides it for 30 days, and
+     * after that it comes back only for a suggestion it hasn't shown before.
+     */
+    val recurringSuggestions: StateFlow<List<com.pennywiseai.tracker.domain.spending.RecurringSuggestion>?> = combine(
+        recurringSuggestionsUseCase.suggestions,
+        userPreferencesRepository.recurringHomeCardSeen,
+        userPreferencesRepository.recurringHomeCardDismissedAt,
+    ) { suggestions, seen, dismissedAt ->
+        val quiet = dismissedAt != null &&
+            System.currentTimeMillis() - dismissedAt < RECURRING_CARD_QUIET_MILLIS
+        suggestions.takeIf { list -> !quiet && list.any { it.key !in seen } }
+    }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun dismissRecurringSuggestions(shown: List<com.pennywiseai.tracker.domain.spending.RecurringSuggestion>) {
+        viewModelScope.launch {
+            userPreferencesRepository.dismissRecurringHomeCard(shown.map { it.key }, System.currentTimeMillis())
+        }
+    }
 
     /**
      * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
@@ -1876,6 +1900,8 @@ class HomeViewModel @Inject constructor(
     private companion object {
         /** Below this the summary is too thin to be worth sending. */
         const val MIN_TRANSACTIONS_FOR_SHARE_PROMPT = 20
+
+        const val RECURRING_CARD_QUIET_MILLIS = 30L * 24 * 60 * 60 * 1000
     }
 
 }

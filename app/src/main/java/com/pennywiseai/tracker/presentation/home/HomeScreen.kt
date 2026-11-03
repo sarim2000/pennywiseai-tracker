@@ -79,6 +79,7 @@ import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
+import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
 import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
@@ -169,6 +170,7 @@ fun HomeScreen(
     val showSharePrompt by viewModel.showSharePrompt.collectAsState()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
+    val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
     val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
@@ -518,6 +520,7 @@ fun HomeScreen(
             // prompt still sits high enough to be seen and dismissed.
             val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
                 val payday = paydaySuggestion
+                val recurring = recurringSuggestions
                 // Monthly share prompt. Offers the user something ("your month, summed
                 // up") rather than asking a favour, and only appears when the finished month
                 // actually has enough in it to be worth sending.
@@ -541,6 +544,17 @@ fun HomeScreen(
                             day = payday,
                             onAccept = { viewModel.acceptPaydaySuggestion(payday) },
                             onDismiss = { viewModel.dismissPaydaySuggestion() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                        )
+                    }
+                } else if (recurring != null) {
+                    // Untracked repeating payments: a compact entry to Subscriptions →
+                    // Suggested, where each one is reviewed.
+                    item {
+                        RecurringSuggestionsCard(
+                            merchantNames = recurring.map { it.merchantName },
+                            onReview = onNavigateToSubscriptions,
+                            onDismiss = { viewModel.dismissRecurringSuggestions(recurring) },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         )
                     }

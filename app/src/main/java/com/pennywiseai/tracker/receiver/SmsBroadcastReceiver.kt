@@ -61,6 +61,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun learnedSendersStore(): LearnedSendersStore
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
+        fun userPreferencesRepository(): com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
     }
 
     companion object {
@@ -137,6 +138,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
         // Its own action keeps the alert's PendingIntent from matching (and overwriting) another MainActivity one.
         private const val ACTION_ADD_SUGGESTION = "com.pennywiseai.tracker.ACTION_ADD_SUGGESTION"
+        private const val RECURRING_OFFER_INTERVAL_DAYS = 90L
 
         fun cancelSuggestion(context: Context, unrecognizedSmsId: Long) {
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -708,7 +710,18 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val repository = entryPoint.transactionRepository()
             val saved = repository.getTransactionById(result.transactionId) ?: return
             // The same bill as last month (or week, or year)? Offer to track it.
-            val trackCycle = runCatching { entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved) }
+            // Capped (one offer per merchant per 90 days, one a day): a missed offer
+            // isn't lost, the Subscriptions screen lists it under "Suggested".
+            // An offer nobody can see mustn't use up the merchant's 90 days: skip it
+            // while the alerts are off, and hand the slot back if posting fails.
+            val offerKey = com.pennywiseai.tracker.domain.spending.RecurringSuggestions.keyFor(saved.merchantName, saved.currency)
+            val today = java.time.LocalDate.now()
+            val trackCycle = runCatching {
+                entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved)?.takeIf {
+                    canShowTransactionAlerts(context) &&
+                        entryPoint.userPreferencesRepository().tryRecordRecurringOffer(offerKey, today, RECURRING_OFFER_INTERVAL_DAYS)
+                }
+            }
                 .onFailure { Log.e(TAG, "Error checking for a repeat charge", it) }
                 .getOrNull()
             // The open app shows the new row itself, but has nowhere to ask "Track
@@ -723,10 +736,13 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     CurrencyFormatter.formatCurrency(saved.amount, saved.currency, maskIfHidden = false)
                 )
             }
-            showTransactionNotification(
+            val posted = showTransactionNotification(
                 context, saved, repository, entryPoint.categoryRepository(),
                 priceLine, trackCycle, offerPriceUpdate = result.priceChange != null
             )
+            if (trackCycle != null && !posted) {
+                runCatching { entryPoint.userPreferencesRepository().releaseRecurringOffer(offerKey, today) }
+            }
             // #734: tell the user right away when the bank's balance disagrees with the ledger.
             runCatching { entryPoint.detectBalanceDiscrepancy().execute(saved) }
                 .getOrNull()
@@ -754,7 +770,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         priceLine: String? = null,
         trackCycle: String? = null,
         offerPriceUpdate: Boolean = false
-    ) {
+    ): Boolean {
         try {
             val notificationManager = ensureChannel(context)
             val transactionId = transaction.id
@@ -882,8 +898,17 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val notification = notificationBuilder.build()
             notificationManager.notify(notificationId, notification)
             updateAlertGroup(context, posted = notificationId to notification)
+            return true
         } catch (e: Exception) {
             Log.e(TAG, "Error showing notification", e)
+            return false
         }
+    }
+
+    /** Whether a transaction alert would be seen: the app's notifications and its alert channel are on. */
+    private fun canShowTransactionAlerts(context: Context): Boolean {
+        if (!androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()) return false
+        val channel = ensureChannel(context).getNotificationChannel(CHANNEL_ID)
+        return channel == null || channel.importance != NotificationManager.IMPORTANCE_NONE
     }
 }

@@ -303,6 +303,7 @@
         <item quantity="one">%d braucht eine Kategorie</item>
         <item quantity="other">%d brauchen eine Kategorie</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">zuordnen, damit nur echte Ausgaben zählen</item>
         <item quantity="other">zuordnen, damit nur echte Ausgaben zählen</item>

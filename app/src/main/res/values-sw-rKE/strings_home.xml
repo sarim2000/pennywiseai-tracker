@@ -299,6 +299,7 @@
         <item quantity="one">%d unahitaji kategoria</item>
         <item quantity="other">%d inahitaji kategoria</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">ipange ili matumizi halisi tu yahesabiwe</item>
         <item quantity="other">zipange ili matumizi halisi tu yahesabiwe</item>

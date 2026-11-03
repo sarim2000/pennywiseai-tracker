@@ -297,6 +297,7 @@
         <item quantity="one">%d necesita categoría</item>
         <item quantity="other">%d necesitan categoría</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">clasifícala para que solo cuente el gasto real</item>
         <item quantity="other">clasifícalas para que solo cuente el gasto real</item>

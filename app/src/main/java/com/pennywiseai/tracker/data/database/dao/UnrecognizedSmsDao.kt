@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.data.database.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.Query
+import androidx.room3.Dao
+import androidx.room3.Insert
+import androidx.room3.Query
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
@@ -13,10 +13,10 @@ import java.time.LocalDateTime
 @Dao
 interface UnrecognizedSmsDao {
     
-    @Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    @Insert(onConflict = androidx.room3.OnConflictStrategy.IGNORE)
     suspend fun insert(sms: UnrecognizedSmsEntity): Long
 
-    @Insert(onConflict = androidx.room.OnConflictStrategy.IGNORE)
+    @Insert(onConflict = androidx.room3.OnConflictStrategy.IGNORE)
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>): List<Long>
     
     @Query("SELECT * FROM unrecognized_sms WHERE reported = 0 AND is_deleted = 0 ORDER BY received_at DESC")

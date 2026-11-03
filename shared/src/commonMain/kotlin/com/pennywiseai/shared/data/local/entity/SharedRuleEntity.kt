@@ -1,8 +1,8 @@
 package com.pennywiseai.shared.data.local.entity
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.room3.ColumnInfo
+import androidx.room3.Entity
+import androidx.room3.PrimaryKey
 
 @Entity(tableName = "shared_transaction_rules")
 data class SharedRuleEntity(

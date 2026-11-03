@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.GoalDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -46,7 +46,7 @@ class GoalRepositoryTest {
 
     @Before
     fun setUp() {
-        mockkStatic("androidx.room.RoomDatabaseKt")
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
             secondArg<suspend () -> Any?>().invoke()
         }
@@ -54,7 +54,7 @@ class GoalRepositoryTest {
     }
 
     @After
-    fun tearDown() = unmockkStatic("androidx.room.RoomDatabaseKt")
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     @Test
     fun currencyIsImmutableOnceTheGoalHasContributions() = runBlocking {

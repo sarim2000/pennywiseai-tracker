@@ -24,7 +24,7 @@ navVersion = "2.10.2"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
-roomVersion = "2.8.5"
+roomVersion = "3.0.3"
 # litertlm >= 0.14 is compiled with -Xjvm-default=all and calls
 # SendChannel.close$default as an interface static. kotlinx-coroutines only
 # ships that static from 1.11.0 (built with jvm-default statics); the coroutines
@@ -59,11 +59,11 @@ androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "androi
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navVersion" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomVersion" }
-androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomVersion" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomVersion" }
-androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "roomVersion" }
+androidx-room-compiler = { module = "androidx.room3:room3-compiler", version.ref = "roomVersion" }
+androidx-room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "roomVersion" }
+androidx-room-testing = { module = "androidx.room3:room3-testing", version.ref = "roomVersion" }
 androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version = "2.7.1" }
+androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version = "2.7.1" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workVersion" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "workVersion" }
 app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdate" }

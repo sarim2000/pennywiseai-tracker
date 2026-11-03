@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.worker
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import kotlinx.coroutines.sync.withLock

@@ -185,8 +185,6 @@ kotlin {
 // Configure Room schema export
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.incremental", "true")
-    arg("room.generateKotlin", "true")
 }
 
 // Copy changelog from fastlane to generated assets for What's New dialog
@@ -267,7 +265,7 @@ dependencies {
     
     // Room
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.sqlite.framework) // AndroidSQLiteDriver (system SQLite)
     ksp(libs.androidx.room.compiler)
     
     // WorkManager

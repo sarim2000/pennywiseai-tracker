@@ -1,10 +1,17 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.core.TimeConstants.MILLIS_PER_MINUTE
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AppLockTimeoutTest {
     private val now = 1_000_000_000L
 
@@ -26,4 +33,56 @@ class AppLockTimeoutTest {
 
     @Test fun `a timeout with no unlock recorded locks`() =
         assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = 0L, unlockedSinceBackground = true, now = now))
+
+    @Test fun `changing a passed one-minute timeout to five never emits locked`() {
+        // Unlocked 90 s ago, then a trip out and back inside the minute cleared the flag.
+        val seen = emissionsOf(timeout = 1, lastAuth = now - 90_000, unlocked = false) { timeout, lastAuth, unlocked ->
+            // setTimeoutMinutes: the flag first, then one DataStore write of both values.
+            unlocked.value = true
+            timeout.value = 5
+            lastAuth.value = now
+        }
+        assertTrue(seen.first()) // the initial check: the minute has passed
+        assertTrue("locked mid-change: $seen", seen.drop(1).none { it })
+    }
+
+    @Test fun `picking Immediately after a trip out does not lock the screen it was set on`() {
+        val seen = emissionsOf(timeout = 1, lastAuth = now - 30_000, unlocked = false) { timeout, lastAuth, unlocked ->
+            unlocked.value = true
+            timeout.value = 0
+            lastAuth.value = now
+        }
+        assertEquals(listOf(false), seen.distinct())
+    }
+
+    @Test fun `with Immediately, leaving the app locks and unlocking clears it`() {
+        val seen = emissionsOf(timeout = 0, lastAuth = now, unlocked = true) { _, lastAuth, unlocked ->
+            unlocked.value = false
+            unlocked.value = true
+            lastAuth.value = now + 1
+        }
+        assertEquals(listOf(false, true, false), seen.take(3))
+        assertFalse(seen.last())
+    }
+
+    /** The lock flow's emissions while [changes] runs, from flows standing in for the settings. */
+    private fun emissionsOf(
+        timeout: Int,
+        lastAuth: Long,
+        unlocked: Boolean,
+        changes: (MutableStateFlow<Int>, MutableStateFlow<Long>, MutableStateFlow<Boolean>) -> Unit
+    ): List<Boolean> {
+        val seen = mutableListOf<Boolean>()
+        runTest(UnconfinedTestDispatcher()) {
+            val timeoutFlow = MutableStateFlow(timeout)
+            val lastAuthFlow = MutableStateFlow(lastAuth)
+            val unlockedFlow = MutableStateFlow(unlocked)
+            val job = launch {
+                lockStateFlow(MutableStateFlow(true), timeoutFlow, lastAuthFlow, unlockedFlow) { now }.collect { seen += it }
+            }
+            changes(timeoutFlow, lastAuthFlow, unlockedFlow)
+            job.cancel()
+        }
+        return seen
+    }
 }

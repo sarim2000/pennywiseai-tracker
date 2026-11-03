@@ -68,9 +68,15 @@ fun PennyWiseNavHost(
         ) {
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
-                    navController.navigate(Home) {
-                        launchSingleTop = true
-                        popUpTo(AppLock) { inclusive = true }
+                    // Back to the screen it covered. Pops AppLock itself, so a repeat
+                    // call (a second success mid-transition) doesn't pop that screen too.
+                    if (navController.previousBackStackEntry != null) {
+                        navController.popBackStack<AppLock>(inclusive = true)
+                    } else {
+                        navController.navigate(Home) {
+                            popUpTo(AppLock) { inclusive = true }
+                            launchSingleTop = true
+                        }
                     }
                 }
             )

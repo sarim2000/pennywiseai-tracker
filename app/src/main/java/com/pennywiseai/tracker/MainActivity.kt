@@ -46,6 +46,7 @@ class MainActivity : FragmentActivity() {
 
         /** Goal widgets (#914): open a goal, the Budgets screen, or "New goal" there. */
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
+        private const val KEY_LAUNCH_PENDING = "launch_request_pending"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
@@ -104,7 +105,9 @@ class MainActivity : FragmentActivity() {
         // Launch intents (notification, share, Add shortcut/tile, widget) — not on
         // recreation: the restored back stack already holds what they opened, and
         // replaying them would push a fresh screen over it (an Add draft lost on rotate).
-        if (savedInstanceState == null) {
+        // A request still waiting (e.g. behind the lock screen) is read again, since it
+        // lived only in this activity's fields.
+        if (savedInstanceState == null || savedInstanceState.getBoolean(KEY_LAUNCH_PENDING)) {
             handleEditIntent(intent)
             handleWidgetIntent(intent)
         }
@@ -146,8 +149,18 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(
+            KEY_LAUNCH_PENDING,
+            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null
+        )
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        // The intent a recreation reads again if its request is still pending.
+        setIntent(intent)
         // Handle intent when activity is already running
         handleEditIntent(intent)
         handleWidgetIntent(intent)

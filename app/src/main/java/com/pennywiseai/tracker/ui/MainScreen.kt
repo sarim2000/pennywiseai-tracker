@@ -171,7 +171,8 @@ fun MainScreen(
     fun open(tab: BottomNavItem, key: NavKey) {
         val target = tabOf(key)
         if (tab == BottomNavItem.Home && target != null && target != BottomNavItem.Home) {
-            tabStacks.getValue(target).resetTo(key)
+            val fresh = if (key is Transactions) key.copy(openId = System.nanoTime()) else key
+            tabStacks.getValue(target).resetTo(fresh)
             currentTabRoute = target.route
         } else if (target != null && target != tab && key == rootOf(target)) {
             // A plain tab root from another tab (e.g. Chat from Analytics): switch to it, don't duplicate it.

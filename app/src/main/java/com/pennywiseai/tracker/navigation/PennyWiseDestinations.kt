@@ -31,7 +31,10 @@ data class Transactions(
     val startDate: Long? = null,
     val endDate: Long? = null,
     val account: String? = null,
-    val tag: String? = null
+    val tag: String? = null,
+    // Set by an explicit open from Home ("See all", search): a new entry, so the
+    // list's ViewModel starts over instead of keeping filters picked in the tab.
+    val openId: Long = 0L
 ) : NavKey
 
 @Serializable

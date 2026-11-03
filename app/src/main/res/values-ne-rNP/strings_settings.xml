@@ -56,6 +56,10 @@
     <string name="settings_security_section">सुरक्षा</string>
     <string name="settings_app_lock_title">एप लक</string>
     <string name="settings_app_lock_subtitle">आफ्नो डेटा बायोमेट्रिक प्रमाणीकरणको प्रयोग गरेर सुरक्षित गर्नुहोस्</string>
+    <string name="settings_shake_to_hide_title">रकम लुकाउन हल्लाउनुहोस्</string>
+    <string name="settings_shake_to_hide_subtitle">सबै स्क्रिनमा रकम लुकाउन वा देखाउन फोन हल्लाउनुहोस्</string>
+    <string name="shake_to_hide_first_hidden">रकम लुकाइयो। देखाउन फेरि हल्लाउनुहोस्।</string>
+    <string name="shake_to_hide_first_shown">रकम देखाइयो। लुकाउन फेरि हल्लाउनुहोस्।</string>
     <string name="settings_lock_timeout_title">लक समय समाप्ति</string>
     <string name="settings_lock_timeout_immediately_subtitle">तुरुन्त लक गर्नुहोस्</string>
     <plurals name="settings_lock_timeout_after_minutes">

@@ -159,6 +159,8 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Balance Visibility
         val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
+        val SHAKE_TO_HIDE_AMOUNTS = booleanPreferencesKey("shake_to_hide_amounts")
+        val SHAKE_TO_HIDE_HINT_SHOWN = booleanPreferencesKey("shake_to_hide_hint_shown")
 
         // Selected Profile
         val SELECTED_PROFILE_ID = longPreferencesKey("selected_profile_id")
@@ -1022,12 +1024,40 @@ open class UserPreferencesRepository @Inject constructor(
         WidgetRefresher.refreshTransactionWidgets(context)
     }
 
-    /** Flips [isBalanceHidden] in one read-modify-write, so the eye and a shake can't race. */
-    suspend fun toggleBalanceHidden() {
+    /**
+     * Flips the saved hide choice in one read-modify-write, so the eye and a shake
+     * can't race. Returns the new value. [hiddenWhenUnset] is what the caller sees
+     * before any choice: Home's eye sees hidden ([isBalanceHidden]), a shake sees
+     * the rest of the app shown ([isAmountHiddenEverywhere]), so it hides.
+     */
+    suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean = true): Boolean {
+        var hidden = true
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.BALANCE_HIDDEN] = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true)
+            hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
+            preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         WidgetRefresher.refreshTransactionWidgets(context)
+        return hidden
+    }
+
+    /** Shake the phone to hide / show amounts. Off by default: a jolt in a pocket shouldn't reveal them. */
+    val shakeToHideAmounts: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SHAKE_TO_HIDE_AMOUNTS] ?: false }
+
+    suspend fun setShakeToHideAmounts(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHAKE_TO_HIDE_AMOUNTS] = enabled
+        }
+    }
+
+    /** True only the first time it's called: the first shake explains the gesture. */
+    suspend fun claimShakeToHideHint(): Boolean {
+        var first = false
+        context.dataStore.edit { preferences ->
+            first = preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] != true
+            preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] = true
+        }
+        return first
     }
 
     // Replace UPI VPAs with matching contact names at display time.

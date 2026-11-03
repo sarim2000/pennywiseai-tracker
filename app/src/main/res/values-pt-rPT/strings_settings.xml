@@ -58,6 +58,10 @@
     <string name="settings_security_section">Segurança</string>
     <string name="settings_app_lock_title">Bloqueio de apps</string>
     <string name="settings_app_lock_subtitle">Proteja seus dados com autenticação biométrica</string>
+    <string name="settings_shake_to_hide_title">Agitar para ocultar valores</string>
+    <string name="settings_shake_to_hide_subtitle">Agite o telemóvel para ocultar ou mostrar os valores em todos os ecrãs</string>
+    <string name="shake_to_hide_first_hidden">Valores ocultos. Agite novamente para os mostrar.</string>
+    <string name="shake_to_hide_first_shown">Valores visíveis. Agite novamente para os ocultar.</string>
     <string name="settings_lock_timeout_title">Timeout de Bloqueio</string>
     <string name="settings_lock_timeout_immediately_subtitle">Bloquear imediatamente</string>
     <plurals name="settings_lock_timeout_after_minutes">

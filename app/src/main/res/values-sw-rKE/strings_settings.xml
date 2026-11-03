@@ -56,6 +56,10 @@
     <string name="settings_security_section">Usalama</string>
     <string name="settings_app_lock_title">Kufunga App</string>
     <string name="settings_app_lock_subtitle">Linda data yako kwa alama ya kidole au uso</string>
+    <string name="settings_shake_to_hide_title">Tikisa ili kuficha kiasi</string>
+    <string name="settings_shake_to_hide_subtitle">Tikisa simu yako ili kuficha au kuonyesha kiasi kwenye kila skrini</string>
+    <string name="shake_to_hide_first_hidden">Kiasi kimefichwa. Tikisa tena ili kukionyesha.</string>
+    <string name="shake_to_hide_first_shown">Kiasi kinaonyeshwa. Tikisa tena ili kukificha.</string>
     <string name="settings_lock_timeout_title">Muda wa Kufunga</string>
     <string name="settings_lock_timeout_immediately_subtitle">Funga papo hapo</string>
     <plurals name="settings_lock_timeout_after_minutes">

@@ -55,6 +55,10 @@
     <string name="settings_security_section">Бяспека</string>
     <string name="settings_app_lock_title">Блакіроўка праграмы</string>
     <string name="settings_app_lock_subtitle">Абараніце свае даныя біяметрычнай аўтэнтыфікацыяй</string>
+    <string name="settings_shake_to_hide_title">Страсянуць, каб схаваць сумы</string>
+    <string name="settings_shake_to_hide_subtitle">Страсяніце тэлефон, каб схаваць або паказаць сумы на ўсіх экранах</string>
+    <string name="shake_to_hide_first_hidden">Сумы схаваны. Страсяніце яшчэ раз, каб паказаць іх.</string>
+    <string name="shake_to_hide_first_shown">Сумы паказаны. Страсяніце яшчэ раз, каб схаваць іх.</string>
     <string name="settings_lock_timeout_title">Час да блакіроўкі</string>
     <string name="settings_lock_timeout_immediately_subtitle">Блакіраваць адразу</string>
     <plurals name="settings_lock_timeout_after_minutes">

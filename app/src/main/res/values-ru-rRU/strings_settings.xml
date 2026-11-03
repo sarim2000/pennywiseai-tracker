@@ -58,6 +58,10 @@
     <string name="settings_security_section">Безопасность</string>
     <string name="settings_app_lock_title">Блокировка приложения</string>
     <string name="settings_app_lock_subtitle">Защитите свои данные с помощью биометрической аутентификации</string>
+    <string name="settings_shake_to_hide_title">Встряхнуть, чтобы скрыть суммы</string>
+    <string name="settings_shake_to_hide_subtitle">Встряхните телефон, чтобы скрыть или показать суммы на всех экранах</string>
+    <string name="shake_to_hide_first_hidden">Суммы скрыты. Встряхните ещё раз, чтобы показать их.</string>
+    <string name="shake_to_hide_first_shown">Суммы показаны. Встряхните ещё раз, чтобы скрыть их.</string>
     <string name="settings_lock_timeout_title">Время блокировки</string>
     <string name="settings_lock_timeout_immediately_subtitle">Заблокировать немедленно</string>
     <plurals name="settings_lock_timeout_after_minutes">

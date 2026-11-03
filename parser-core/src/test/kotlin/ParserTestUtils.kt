@@ -38,7 +38,9 @@ data class ExpectedTransaction(
     val accountCurrency: String? = null,
     // Assert the parser reports no separate account currency ("same as the
     // transaction") — a null accountCurrency alone isn't checked.
-    val expectNullAccountCurrency: Boolean = false
+    val expectNullAccountCurrency: Boolean = false,
+    // Assert no reference was extracted — a null `reference` alone isn't checked.
+    val expectNullReference: Boolean = false
 )
 
 data class ParserTestCase(
@@ -145,6 +147,9 @@ object ParserTestUtils {
         if (expected.expectNullAccountCurrency && result.accountCurrency != null) {
             errors.add("Expected no separate account currency but got ${result.accountCurrency}")
         }
+        if (expected.expectNullReference && result.reference != null) {
+            errors.add("Expected no reference but got ${result.reference}")
+        }
 
         return errors
     }
@@ -213,6 +218,9 @@ object ParserTestUtils {
                 }
                 if (expected.expectNullAccountCurrency) {
                     assertNull(parsed.accountCurrency, "Expected no separate account currency")
+                }
+                if (expected.expectNullReference) {
+                    assertNull(parsed.reference, "Expected no reference")
                 }
             }
         )

@@ -6,8 +6,6 @@ import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
 import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
@@ -145,7 +143,9 @@ class ArabBankParserTest {
         merchant = "EXAMPLE SHOP CORPORATI",
         accountLast4 = "3456",
         balance = BigDecimal("842.375"),
-        isFromCard = false
+        isFromCard = false,
+        // "purchase transaction on account" once saved "on" as the reference.
+        expectNullReference = true
     )
 
     @TestFactory
@@ -212,11 +212,4 @@ class ArabBankParserTest {
             ),
             "Arab Bank debit-card purchase factory tests"
         )
-
-    @Test
-    fun `purchase wording is not captured as a reference`() {
-        // "purchase transaction on account" once saved "on" as the reference.
-        val parsed = ArabBankParser().parse(accountPurchaseMessage, "ArabBank", 0L)
-        assertNull(parsed!!.reference)
-    }
 }

@@ -118,11 +118,10 @@ private fun popSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavK
 
 /** Home and Transaction detail cross-fade both ways (shared-element transaction rows). */
 private fun fadeOnly(m: MotionScheme): Map<String, Any> {
-    val fade: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
-        { fadeIn(m.defaultEffectsSpec()) togetherWith fadeOut(m.fastEffectsSpec()) }
-    return NavDisplay.transitionSpec(fade) +
-        NavDisplay.popTransitionSpec(fade) +
-        NavDisplay.predictivePopTransitionSpec { fade(this) }
+    fun fade() = fadeIn(m.defaultEffectsSpec()) togetherWith fadeOut(m.fastEffectsSpec())
+    return NavDisplay.transitionSpec { fade() } +
+        NavDisplay.popTransitionSpec { fade() } +
+        NavDisplay.predictivePopTransitionSpec { fade() }
 }
 
 @Composable

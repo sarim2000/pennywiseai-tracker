@@ -506,6 +506,7 @@ private fun DateRangeFilter(
         items(DateRange.values().toList()) { range ->
             FilterChip(
                 selected = selectedRange == range,
+                shapes = FilterChipDefaults.shapes(),
                 onClick = { onRangeSelected(range) },
                 label = { Text(stringResource(range.labelRes)) },
                 colors = FilterChipDefaults.filterChipColors(

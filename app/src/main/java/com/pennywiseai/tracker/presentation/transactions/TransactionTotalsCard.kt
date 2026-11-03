@@ -238,20 +238,21 @@ private fun CurrencyPickerPill(
             onDismissRequest = { expanded = false },
             shape = MaterialTheme.shapes.large
         ) {
-            availableCurrencies.forEach { currency ->
-                DropdownMenuItem(
+            availableCurrencies.forEachIndexed { index, currency ->
+                SelectableDropdownMenuItem(
+                    selected = currency == selectedCurrency,
                     text = { Text(currency) },
                     onClick = {
                         onCurrencySelected(currency)
                         expanded = false
                     },
-                    leadingIcon = {
-                        if (currency == selectedCurrency) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null
-                            )
-                        }
+                    shapes = MenuDefaults.itemShape(index, availableCurrencies.size),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                    selectedLeadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null
+                        )
                     }
                 )
             }

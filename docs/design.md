@@ -288,6 +288,20 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
+- **Tappable list rows morph too.** `GroupedRow` (with `onClick`) and
+  `ListItemCardV2` (with `onClick`) render as M3 `SegmentedListItem`s: same
+  resting corners, plus the native press/focus morph to `shapes.large`.
+  Static rows stay plain surfaces.
+- **Chips** use the `shapes =` overload (`FilterChipDefaults.shapes()`), which
+  morphs on press and selection. Pass `colors` explicitly; the overload
+  otherwise defaults to tonal colours.
+- **Single-choice menus** use `SelectableDropdownMenuItem` with
+  `MenuDefaults.itemShape(index, count)`, a check in `selectedLeadingIcon`
+  and `MenuDefaults.selectableItemColors(containerColor = Color.Transparent)`.
+  The transparent container matters: the classic `DropdownMenu` surface
+  differs from the item fill, and without it every row reads as a tile.
+  Action menus stay `DropdownMenuItem`. Include/exclude lists whose items are
+  all ticked by default keep checkbox rows (their icons identify them).
 - **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
   for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
   expanded app-bar title.

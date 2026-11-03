@@ -3,14 +3,18 @@ package com.pennywiseai.tracker.ui.components.cards
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,18 +99,7 @@ fun ListItemCardV2(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        shape = shape,
-        contentPadding = contentPadding,
-        containerColor = containerColor,
-        // Suppress the inherited 0.5dp dark-mode hairline on list rows: long
-        // lists of bordered rows read as a chunky grid; bare surfaces with the
-        // surrounding column's spacing carry the divisions better.
-        border = BorderStroke(0.dp, Color.Transparent),
-        onClick = onClick,
-        onLongClick = onLongClick
-    ) {
+    val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -156,4 +149,31 @@ fun ListItemCardV2(
             }
         }
     }
+    if (onClick == null) {
+        PennyWiseCardV2(
+            modifier = modifier.fillMaxWidth(),
+            shape = shape,
+            contentPadding = contentPadding,
+            containerColor = containerColor,
+            // Suppress the inherited 0.5dp dark-mode hairline on list rows: long
+            // lists of bordered rows read as a chunky grid; bare surfaces with the
+            // surrounding column's spacing carry the divisions better.
+            border = BorderStroke(0.dp, Color.Transparent),
+            onLongClick = onLongClick
+        ) { row() }
+        return
+    }
+    // Tappable rows are M3 Expressive segmented list items: same resting shape
+    // and fill as the card, plus the native press/focus shape morph.
+    SegmentedListItem(
+        onClick = onClick,
+        onLongClick = onLongClick,
+        shapes = ListItemDefaults.shapes(shape = shape),
+        modifier = modifier.fillMaxWidth(),
+        colors = (containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow).let {
+            ListItemDefaults.segmentedColors(containerColor = it, contentColor = contentColorFor(it))
+        },
+        contentPadding = PaddingValues(contentPadding),
+        content = row
+    )
 }

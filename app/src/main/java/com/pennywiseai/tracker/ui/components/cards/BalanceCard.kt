@@ -33,7 +33,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -570,16 +571,17 @@ private fun SpendingMetaRow(
                 onClick = { showMenu = true }
             )
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                currencies.forEach { code ->
-                    DropdownMenuItem(
+                currencies.forEachIndexed { index, code ->
+                    SelectableDropdownMenuItem(
+                        selected = code == currency,
                         text = { Text(code) },
                         onClick = {
                             if (code != currency) onCurrencySelected(code)
                             showMenu = false
                         },
-                        trailingIcon = if (code == currency) {
-                            { Icon(Icons.Default.Check, contentDescription = null) }
-                        } else null
+                        shapes = MenuDefaults.itemShape(index, currencies.size),
+                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                     )
                 }
             }

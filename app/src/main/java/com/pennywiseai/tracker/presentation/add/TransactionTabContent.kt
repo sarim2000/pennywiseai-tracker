@@ -302,6 +302,7 @@ fun TransactionTabContent(
                 TransactionType.values().forEach { type ->
                     FilterChip(
                         selected = uiState.transactionType == type,
+                        shapes = FilterChipDefaults.shapes(),
                         onClick = { viewModel.updateTransactionType(type) },
                         label = {
                             Text(stringResource(transactionTypeLabel(type)))
@@ -584,8 +585,11 @@ fun TransactionTabContent(
                         onClick = {},
                         enabled = false
                     )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
+                    accountList.forEachIndexed { index, account ->
+                        SelectableDropdownMenuItem(
+                            selected = selectedForTarget?.id == account.id,
+                            shapes = MenuDefaults.itemShape(index, accountList.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = {
                                 Column {
                                     Text(account.displayLabel)
@@ -610,11 +614,7 @@ fun TransactionTabContent(
                                     contentDescription = null
                                 )
                             },
-                            trailingIcon = {
-                                if (selectedForTarget?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }

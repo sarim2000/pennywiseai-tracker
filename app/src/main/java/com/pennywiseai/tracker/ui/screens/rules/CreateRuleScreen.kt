@@ -849,6 +849,8 @@ private fun ConditionFieldSelector(
         operators.forEach { (op, label) ->
             FilterChip(
                 selected = condition.operator == op,
+                shapes = FilterChipDefaults.shapes(),
+                colors = FilterChipDefaults.filterChipColors(),
                 onClick = { onConditionChange(condition.copy(operator = op)) },
                 label = { Text(stringResource(label)) }
             )
@@ -872,6 +874,8 @@ private fun ConditionFieldSelector(
                 RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                     FilterChip(
                         selected = condition.value.equals(type, ignoreCase = true),
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = { onConditionChange(condition.copy(value = type)) },
                         label = {
                             Text(stringResource(displayLabel), style = MaterialTheme.typography.bodySmall)
@@ -895,6 +899,8 @@ private fun ConditionFieldSelector(
                     days.forEach { (value, label) ->
                         FilterChip(
                             selected = value in selectedDays,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 val newSet = if (value in selectedDays) selectedDays - value else selectedDays + value
                                 onConditionChange(condition.copy(value = newSet.sorted().joinToString(",")))
@@ -906,6 +912,8 @@ private fun ConditionFieldSelector(
                     days.forEach { (value, label) ->
                         FilterChip(
                             selected = condition.value == value,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = { onConditionChange(condition.copy(value = value)) },
                             label = { Text(stringResource(label), style = MaterialTheme.typography.bodySmall) }
                         )
@@ -1281,6 +1289,8 @@ private fun ActionEditor(
                         commonCategories.forEach { category ->
                             FilterChip(
                                 selected = action.value == category,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = category)) },
                                 label = { Text(categoryLabel(category), style = MaterialTheme.typography.bodySmall) }
                             )
@@ -1312,6 +1322,8 @@ private fun ActionEditor(
                         RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                             FilterChip(
                                 selected = action.value.equals(type, ignoreCase = true),
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = type)) },
                                 label = {
                                     Text(

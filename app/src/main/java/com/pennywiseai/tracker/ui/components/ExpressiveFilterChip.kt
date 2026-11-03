@@ -36,7 +36,10 @@ fun ExpressiveFilterChip(
         selected = selected,
         onClick = onClick,
         enabled = enabled,
-        shape = if (selected) MaterialTheme.shapes.medium else MaterialTheme.shapes.extraLarge,
+        shapes = FilterChipDefaults.shapes(
+            shape = MaterialTheme.shapes.extraLarge,
+            selectedShape = MaterialTheme.shapes.medium
+        ),
         label = {
             Text(
                 text = text,

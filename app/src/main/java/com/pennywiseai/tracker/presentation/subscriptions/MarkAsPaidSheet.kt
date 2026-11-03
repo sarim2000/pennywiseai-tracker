@@ -465,6 +465,7 @@ private fun DateChips(
     ) {
         FilterChip(
             selected = isToday,
+            shapes = FilterChipDefaults.shapes(),
             onClick = { onSelect(today) },
             label = { Text(stringResource(R.string.mark_paid_today)) },
             colors = FilterChipDefaults.filterChipColors(
@@ -474,6 +475,7 @@ private fun DateChips(
         )
         FilterChip(
             selected = isYesterday,
+            shapes = FilterChipDefaults.shapes(),
             onClick = { onSelect(yesterday) },
             label = { Text(stringResource(R.string.mark_paid_yesterday)) },
             colors = FilterChipDefaults.filterChipColors(
@@ -483,6 +485,7 @@ private fun DateChips(
         )
         FilterChip(
             selected = isCustom,
+            shapes = FilterChipDefaults.shapes(),
             onClick = onPickDate,
             label = {
                 Text(

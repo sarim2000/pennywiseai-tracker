@@ -164,6 +164,8 @@ fun UnrecognizedSmsScreen(
                             ) {
                                 FilterChip(
                                     selected = showReported,
+                                    shapes = FilterChipDefaults.shapes(),
+                                    colors = FilterChipDefaults.filterChipColors(),
                                     onClick = { viewModel.toggleShowReported() },
                                     label = { Text(stringResource(R.string.unrecognized_show_reported)) },
                                     leadingIcon = if (showReported) {

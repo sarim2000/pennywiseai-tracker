@@ -557,20 +557,18 @@ private fun SwipeableSubscriptionItem(
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            when (dismissValue) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onHide()
-                    true
-                }
-                else -> false
-            }
-        }
-    )
-    
+    // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
+    // M3 re-runs onDismiss whenever the lambda changes while dismissed, so keep it stable.
+    val currentOnHide by rememberUpdatedState(onHide)
+    val onDismiss = remember { { _: SwipeToDismissBoxValue -> currentOnHide() } }
+
     SwipeToDismissBox(
         state = dismissState,
+        // Only swipe-left hides; there is no StartToEnd anchor to veto.
+        enableDismissFromStartToEnd = false,
+        onDismiss = onDismiss,
         backgroundContent = {
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
@@ -1056,8 +1054,11 @@ private fun EditSubscriptionDialog(
                             leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
                         )
                         HorizontalDivider()
-                        accounts.forEach { account ->
-                            DropdownMenuItem(
+                        accounts.forEachIndexed { index, account ->
+                            SelectableDropdownMenuItem(
+                                selected = selectedAccount?.id == account.id,
+                                shapes = MenuDefaults.itemShape(index, accounts.size),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                 text = {
                                     Column {
                                         Text(account.displayLabel)
@@ -1079,11 +1080,7 @@ private fun EditSubscriptionDialog(
                                         contentDescription = null
                                     )
                                 },
-                                trailingIcon = {
-                                    if (selectedAccount?.id == account.id) {
-                                        Icon(Icons.Default.Check, stringResource(R.string.subscriptions_edit_selected), tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                             )
                         }
                     }

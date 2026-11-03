@@ -260,6 +260,8 @@ fun BudgetGroupEditScreen(
                             ).forEach { (period, label) ->
                                 FilterChip(
                                     selected = uiState.periodType == period,
+                                    shapes = FilterChipDefaults.shapes(),
+                                    colors = FilterChipDefaults.filterChipColors(),
                                     onClick = { viewModel.updatePeriodType(period) },
                                     label = { Text(stringResource(label)) }
                                 )

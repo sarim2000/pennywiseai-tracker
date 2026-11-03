@@ -19,6 +19,7 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -85,6 +86,8 @@ fun TagInputField(
                 selectedTags.forEach { tag ->
                     InputChip(
                         selected = true,
+                        shapes = InputChipDefaults.shapes(),
+                        colors = InputChipDefaults.inputChipColors(),
                         onClick = { onRemoveTag(tag) },
                         label = {
                             Text(

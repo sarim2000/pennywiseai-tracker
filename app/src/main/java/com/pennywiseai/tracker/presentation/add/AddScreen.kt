@@ -42,7 +42,7 @@ fun AddScreen(
                 .padding(paddingValues)
         ) {
             // Tab Row
-            TabRow(
+            PrimaryTabRow(
                 selectedTabIndex = pagerState.currentPage,
                 containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface

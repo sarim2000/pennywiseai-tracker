@@ -14,7 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -81,7 +81,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
     fun mmss(seconds: Long) = (seconds / 60).toInt() to (seconds % 60).toInt()
 
     PennyWiseScaffold(title = stringResource(R.string.ai_access_title), navigationIcon = {
-        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) { Icon(Icons.Default.ArrowBack, stringResource(R.string.ai_access_back)) }
+        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ai_access_back)) }
     }) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).imePadding().padding(horizontal = Spacing.md),

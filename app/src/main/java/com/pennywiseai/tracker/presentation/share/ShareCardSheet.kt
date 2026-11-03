@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -156,6 +157,8 @@ fun ShareCardSheet(
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         FilterChip(
                             selected = effectiveHero == ShareHero.TRANSACTIONS,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 viewModel.updateConfig { it.copy(hero = ShareHero.TRANSACTIONS) }
                             },
@@ -163,6 +166,8 @@ fun ShareCardSheet(
                         )
                         FilterChip(
                             selected = effectiveHero == ShareHero.SUBSCRIPTIONS,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             // Disabled rather than silently ignored: tapping a chip and
                             // seeing nothing happen reads as a bug, not as a choice the
                             // data can't support.
@@ -190,6 +195,8 @@ fun ShareCardSheet(
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         FilterChip(
                             selected = config.period == SharePeriod.THIS_MONTH,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 viewModel.updateConfig { it.copy(period = SharePeriod.THIS_MONTH) }
                             },
@@ -197,6 +204,8 @@ fun ShareCardSheet(
                         )
                         FilterChip(
                             selected = config.period == SharePeriod.LAST_MONTH,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 viewModel.updateConfig { it.copy(period = SharePeriod.LAST_MONTH) }
                             },
@@ -204,6 +213,8 @@ fun ShareCardSheet(
                         )
                         FilterChip(
                             selected = config.period == SharePeriod.ALL_TIME,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 viewModel.updateConfig { it.copy(period = SharePeriod.ALL_TIME) }
                             },

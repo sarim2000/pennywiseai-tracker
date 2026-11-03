@@ -123,6 +123,8 @@ fun CategoryEditDialog(
                             FilterChip(
                                 enabled = !hasChildren,
                                 selected = !isIncome,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { isIncome = false; parentId = null },
                                 label = { Text(stringResource(R.string.category_edit_type_expense)) },
                                 modifier = Modifier.weight(1f)
@@ -130,6 +132,8 @@ fun CategoryEditDialog(
                             FilterChip(
                                 enabled = !hasChildren,
                                 selected = isIncome,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { isIncome = true; parentId = null },
                                 label = { Text(stringResource(R.string.category_edit_type_income)) },
                                 modifier = Modifier.weight(1f)

@@ -331,6 +331,8 @@ private fun RecurringEditorDialog(
                     // Switching type picks that type's default category (#876).
                     FilterChip(
                         selected = state.transactionType == TransactionType.EXPENSE,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             if (state.transactionType != TransactionType.EXPENSE) {
                                 state = state.copy(transactionType = TransactionType.EXPENSE, category = categoryFor(TransactionType.EXPENSE))
@@ -340,6 +342,8 @@ private fun RecurringEditorDialog(
                     )
                     FilterChip(
                         selected = state.transactionType == TransactionType.INCOME,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             if (state.transactionType != TransactionType.INCOME) {
                                 state = state.copy(transactionType = TransactionType.INCOME, category = categoryFor(TransactionType.INCOME))

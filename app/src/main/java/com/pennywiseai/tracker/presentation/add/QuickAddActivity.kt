@@ -25,6 +25,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -259,6 +260,8 @@ class QuickAddActivity : FragmentActivity() {
                 setup.categories.forEach { c ->
                     FilterChip(
                         selected = category == c.name,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             category = c.name
                             // Typing is done once the category is picked; on a short phone the keyboard hides Save.

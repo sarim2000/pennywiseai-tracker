@@ -1491,6 +1491,7 @@ private fun EditableTransactionHeader(
             TransactionType.values().forEach { type ->
                 FilterChip(
                     selected = transaction.transactionType == type,
+                    shapes = FilterChipDefaults.shapes(),
                     onClick = { viewModel.updateTransactionType(type) },
                     label = {
                         Text(

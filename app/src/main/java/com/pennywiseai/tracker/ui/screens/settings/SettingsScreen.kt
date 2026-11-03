@@ -405,8 +405,9 @@ fun SettingsScreen(
                     onExpandedChange = { showCurrencyDropdown = it },
                     position = ListItemPosition.Middle
                 ) {
-                    availableCurrencies.forEach { currency ->
-                        DropdownMenuItem(
+                    availableCurrencies.forEachIndexed { index, currency ->
+                        SelectableDropdownMenuItem(
+                            selected = currency == baseCurrency,
                             text = {
                                 Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency")
                             },
@@ -414,15 +415,9 @@ fun SettingsScreen(
                                 settingsViewModel.updateBaseCurrency(currency)
                                 showCurrencyDropdown = false
                             },
-                            leadingIcon = if (currency == baseCurrency) {
-                                {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            } else null
+                            shapes = MenuDefaults.itemShape(index, availableCurrencies.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }
@@ -446,25 +441,20 @@ fun SettingsScreen(
                         onExpandedChange = { showMainAccountDropdown = it },
                         position = ListItemPosition.Middle
                     ) {
-                        accounts.forEach { account ->
+                        accounts.forEachIndexed { index, account ->
                             val name = account.alias?.takeIf { it.isNotBlank() } ?: account.bankName
                             val label = AccountBalanceEntity.accountLabel(name, account.accountLast4)
                             val key = "${account.bankName}_${account.accountLast4}"
-                            DropdownMenuItem(
+                            SelectableDropdownMenuItem(
+                                selected = key == mainAccountKey,
                                 text = { Text(label) },
                                 onClick = {
                                     settingsViewModel.setMainAccount(account)
                                     showMainAccountDropdown = false
                                 },
-                                leadingIcon = if (key == mainAccountKey) {
-                                    {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                } else null
+                                shapes = MenuDefaults.itemShape(index, accounts.size),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                             )
                         }
                     }

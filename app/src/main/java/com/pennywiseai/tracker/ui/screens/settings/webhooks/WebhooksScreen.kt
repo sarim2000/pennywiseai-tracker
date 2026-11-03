@@ -190,7 +190,8 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
             WebhookDataType.entries.forEach { type ->
                 FilterChip(type in editor.types, onClick = { update {
                     it.copy(types = if (type in it.types) it.types - type else it.types + type)
-                } }, label = { Text(type.label()) })
+                } }, label = { Text(type.label()) }, shapes = FilterChipDefaults.shapes(),
+                    colors = FilterChipDefaults.filterChipColors())
             }
         }
         Box {

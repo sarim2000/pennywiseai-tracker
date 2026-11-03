@@ -187,24 +187,17 @@ private fun SwipeableCategoryItem(
     onDelete: () -> Unit,
     onToggleHidden: () -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            when (dismissValue) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    if (!category.isSystem) {
-                        onDelete()
-                        true
-                    } else {
-                        false // Don't allow swipe for system categories
-                    }
-                }
-                else -> false
-            }
-        }
-    )
-    
+    // Only EndToStart has an anchor, and only for non-system categories, so any dismiss is a delete.
+    // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
+    // M3 re-runs onDismiss whenever the lambda changes while dismissed, so keep it stable.
+    val currentOnDelete by rememberUpdatedState(onDelete)
+    val onDismiss = remember { { _: SwipeToDismissBoxValue -> currentOnDelete() } }
+
     SwipeToDismissBox(
         state = dismissState,
+        onDismiss = onDismiss,
         backgroundContent = {
             if (!category.isSystem) {
                 val color by animateColorAsState(

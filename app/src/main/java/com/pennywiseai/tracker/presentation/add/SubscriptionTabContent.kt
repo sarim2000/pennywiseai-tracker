@@ -473,8 +473,11 @@ fun SubscriptionTabContent(
                         onClick = {},
                         enabled = false
                     )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
+                    accountList.forEachIndexed { index, account ->
+                        SelectableDropdownMenuItem(
+                            selected = uiState.selectedAccount?.id == account.id,
+                            shapes = MenuDefaults.itemShape(index, accountList.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = {
                                 Column {
                                     Text(account.displayLabel)
@@ -495,11 +498,7 @@ fun SubscriptionTabContent(
                                     contentDescription = null
                                 )
                             },
-                            trailingIcon = {
-                                if (uiState.selectedAccount?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }

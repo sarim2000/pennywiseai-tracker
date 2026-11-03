@@ -258,7 +258,6 @@
     <string name="add_field_reference">Referenznummer (optional)</string>
     <string name="add_field_category">Kategorie</string>
     <string name="add_clear">Leeren</string>
-    <string name="add_selected">Ausgewählt</string>
     <string name="add_save">Speichern</string>
     <string name="add_ok">Ok</string>
     <string name="add_cancel">Abbrechen</string>

@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -94,9 +93,7 @@ class AppLockRepository @Inject constructor(
      * Combines app lock enabled state with timeout calculation
      */
     fun shouldLockAppFlow(): Flow<Boolean> = lockStateFlow(
-        userPreferencesRepository.isAppLockEnabled,
-        userPreferencesRepository.appLockTimeoutMinutes,
-        userPreferencesRepository.getLastAuthTimestampFlow(),
+        userPreferencesRepository.appLockSettings,
         unlockedSinceBackground
     )
 
@@ -117,16 +114,13 @@ class AppLockRepository @Inject constructor(
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal fun lockStateFlow(
-    isEnabled: Flow<Boolean>,
-    timeoutMinutes: Flow<Int>,
-    lastAuthTimestamp: Flow<Long>,
+    // (enabled, timeout, last unlock) read from ONE settings snapshot. Three separate
+    // flows let "enabled" arrive before the unlock time written with it, so turning
+    // the lock on locked the app at once.
+    settings: Flow<Triple<Boolean, Int, Long>>,
     unlockedSinceBackground: Flow<Boolean>,
     now: () -> Long = System::currentTimeMillis
-): Flow<Boolean> = combine(
-    isEnabled.distinctUntilChanged(),
-    timeoutMinutes.distinctUntilChanged(),
-    lastAuthTimestamp.distinctUntilChanged()
-) { enabled, timeout, lastAuth -> Triple(enabled, timeout, lastAuth) }
+): Flow<Boolean> = settings.distinctUntilChanged()
     .flatMapLatest { (enabled, timeout, lastAuth) ->
         if (enabled && timeout == 0) {
             unlockedSinceBackground.map { unlocked -> shouldLock(true, 0, lastAuth, unlocked, now()) }

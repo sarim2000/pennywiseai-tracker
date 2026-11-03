@@ -187,8 +187,10 @@ fun MainScreen(
 
     // Tab bar tap: show that tab as it was left; reselecting the tab on screen
     // pops it back to its first screen (as navigation-compose's popUpTo did).
+    // Reads the tab from state at tap time: Compose memoizes `::onTabClick`, so a
+    // captured `currentTab` would be stale (reselect never popped).
     fun onTabClick(tab: BottomNavItem) {
-        if (tab == currentTab) tabStacks.getValue(tab).resetTo(rootOf(tab)) else selectTab(tab)
+        if (tab.route == currentTabRoute) tabStacks.getValue(tab).resetTo(rootOf(tab)) else selectTab(tab)
     }
 
     // What's New dialog state

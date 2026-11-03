@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.tracker.core.TimeConstants.MILLIS_PER_MINUTE
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -78,11 +79,23 @@ class AppLockTimeoutTest {
             val lastAuthFlow = MutableStateFlow(lastAuth)
             val unlockedFlow = MutableStateFlow(unlocked)
             val job = launch {
-                lockStateFlow(MutableStateFlow(true), timeoutFlow, lastAuthFlow, unlockedFlow) { now }.collect { seen += it }
+                lockStateFlow(combine(MutableStateFlow(true), timeoutFlow, lastAuthFlow, ::Triple), unlockedFlow) { now }.collect { seen += it }
             }
             changes(timeoutFlow, lastAuthFlow, unlockedFlow)
             job.cancel()
         }
         return seen
+    }
+
+    @Test
+    fun `turning the lock on with a fresh unlock time never locks`() {
+        val seen = mutableListOf<Boolean>()
+        runTest(UnconfinedTestDispatcher()) {
+            val settings = MutableStateFlow(Triple(false, 1, 0L))
+            val job = launch { lockStateFlow(settings, MutableStateFlow(false)) { now }.collect { seen += it } }
+            settings.value = Triple(true, 1, now) // enabled + unlock time land in one write
+            job.cancel()
+        }
+        assertEquals(listOf(false), seen.distinct())
     }
 }

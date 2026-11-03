@@ -2,8 +2,15 @@ package com.pennywiseai.tracker
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,9 +66,15 @@ fun PennyWiseApp(
     val navController = rememberNavController()
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    // The lock-check count as the app last came on screen; see coverForLock.
+    var checksAtStart by remember { mutableIntStateOf(-1) }
+
     // Observe lifecycle events and refresh lock state when app resumes from background
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                checksAtStart = actualAppLockViewModel.uiState.value.checks
+            }
             if (event == Lifecycle.Event.ON_RESUME) {
                 // App came to foreground - check if it should be locked
                 actualAppLockViewModel.refreshLockState()
@@ -203,6 +216,15 @@ fun PennyWiseApp(
         WidgetRefresher.refreshTransactionWidgets(context.applicationContext)
     }
 
+    // The lock screen is pushed only once the check on return (or at launch) has
+    // run, so until then, and while locked with the lock screen not up yet, the
+    // screen under it would show. On a return past the timeout that was a third
+    // of a second of balances before the lock screen came up.
+    val coverForLock = with(appLockUiState) {
+        (checks <= checksAtStart && (checks == 0 || isLockEnabled)) ||
+            (isLockEnabled && isLocked && currentRoute != AppLock::class.qualifiedName)
+    }
+
     PennyWiseTheme(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled,
@@ -212,12 +234,27 @@ fun PennyWiseApp(
         appFont = themeUiState.appFont,
         blurEffects = themeUiState.blurEffectsEnabled
     ) {
-        PennyWiseNavHost(
-            navController = navController,
-            themeViewModel = actualThemeViewModel,
-            startDestination = startDestination,
-            onEditComplete = onEditComplete ?: {}
-        )
+        Box(Modifier.fillMaxSize()) {
+            PennyWiseNavHost(
+                navController = navController,
+                themeViewModel = actualThemeViewModel,
+                startDestination = startDestination,
+                onEditComplete = onEditComplete ?: {}
+            )
+            if (coverForLock) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        // Swallow touches meant for the screen it hides.
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) awaitPointerEvent().changes.forEach { it.consume() }
+                            }
+                        }
+                )
+            }
+        }
     }
 }
 

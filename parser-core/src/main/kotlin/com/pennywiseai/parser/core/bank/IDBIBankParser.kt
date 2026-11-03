@@ -13,7 +13,7 @@ import java.math.BigDecimal
  *
  * Common senders: IDBIBK, IDBIBANK, variations with DLT patterns
  */
-class IDBIBankParser : BankParser() {
+class IDBIBankParser : BaseIndianBankParser() {
 
     override fun getBankName() = "IDBI Bank"
 
@@ -36,7 +36,7 @@ class IDBIBankParser : BankParser() {
     override fun extractAmount(message: String): BigDecimal? {
         // Pattern 1: "debited with Rs 59.00"
         val debitWithPattern = Regex(
-            """debited\s+with\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            """debited\s+with\s+(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         debitWithPattern.find(message)?.let { match ->
@@ -48,9 +48,9 @@ class IDBIBankParser : BankParser() {
             }
         }
 
-        // Pattern 2: "debited for Rs 1040.00"
+        // Pattern 2: "debited for Rs 1040.00" or "debited for INR 1040.00"
         val debitForPattern = Regex(
-            """debited\s+for\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            """debited\s+for\s+(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         debitForPattern.find(message)?.let { match ->
@@ -62,9 +62,9 @@ class IDBIBankParser : BankParser() {
             }
         }
 
-        // Pattern 3: "credited with Rs XXX"
+        // Pattern 3: "credited with Rs XXX", "credited for INR XXX", or "credited by Rs. XXX"
         val creditPattern = Regex(
-            """credited\s+with\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            """credited\s+(?:with|for|by)\s+(?:Rs\.?|INR|₹)\s*([0-9,]+(?:\.\d{2})?)""",
             RegexOption.IGNORE_CASE
         )
         creditPattern.find(message)?.let { match ->
@@ -93,9 +93,10 @@ class IDBIBankParser : BankParser() {
             }
         }
 
-        // Pattern 2: "; <merchant> credited."
+        // Pattern 2: UPI Debit: "Bal Rs <bal> <merchant> credited." or "; <merchant> credited."
+        // Example: "IDBI Bank Acct XX1234 debited for Rs 500.00 on 31-Oct-26; Bal Rs 50000.00 TEST MERCHANT credited. UPI:..."
         val creditedMerchantPattern = Regex(
-            """;\s*([^.\n]+?)\s+credited\.""",
+            """(?:(?:;\s*)?Bal\s+(?:Rs\.?|INR|₹)?\s*[0-9,]+(?:\.\d{1,2})?\s+|;\s*)([^.\n]+?)\s+credited\.""",
             RegexOption.IGNORE_CASE
         )
         creditedMerchantPattern.find(message)?.let { match ->
@@ -105,7 +106,20 @@ class IDBIBankParser : BankParser() {
             }
         }
 
-        // Pattern 3: AutoPay/Mandate specific
+        // Pattern 3: UPI Credit: "from <sender>. UPI:" or "from <sender> UPI:"
+        // Example: "Dear Customer, Acct XX1234 is credited with Rs 500.00 on 24-Oct-26 from JOHN DOE. UPI:..."
+        val fromUpiPattern = Regex(
+            """from\s+([^.\n]+?)(?:\.\s*UPI|\s+UPI)""",
+            RegexOption.IGNORE_CASE
+        )
+        fromUpiPattern.find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) {
+                return merchant
+            }
+        }
+
+        // Pattern 4: AutoPay/Mandate specific
         if (message.contains("AutoPay", ignoreCase = true) ||
             message.contains("MANDATE", ignoreCase = true)
         ) {
@@ -125,15 +139,16 @@ class IDBIBankParser : BankParser() {
 
     override fun extractAccountLast4(message: String): String? {
         super.extractAccountLast4(message)?.let { return it }
-        // Pattern 1: "Acct XX1234" or "IDBI Bank Acct XX1234"
+        // Pattern 1: "Acct XX1234" or "IDBI Bank Acct XX1234" or "A/c NN84608" or "a/c XXXX4608"
         val acctPatterns = listOf(
             Regex("""IDBI\s+Bank\s+Acct\s+([X*\d]+)""", RegexOption.IGNORE_CASE),
-            Regex("""Acct\s+([X*\d]+)""", RegexOption.IGNORE_CASE)
+            Regex("""Acct\s+([X*\d]+)""", RegexOption.IGNORE_CASE),
+            Regex("""(?:A/c|a/c)\s+([A-Za-z0-9*X]+)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in acctPatterns) {
             pattern.find(message)?.let { match ->
-                return extractLast4Digits(match.groupValues[1])
+                extractLast4Digits(match.groupValues[1])?.let { return it }
             }
         }
 
@@ -141,9 +156,9 @@ class IDBIBankParser : BankParser() {
     }
 
     override fun extractReference(message: String): String? {
-        // Pattern 1: "RRN 519766155631"
+        // Pattern 1: "RRN 519766155631" or "Ref no 630212702154"
         val rrnPattern = Regex(
-            """RRN\s+([A-Za-z0-9]+)""",
+            """(?:RRN|Ref\s+no)\s+([A-Za-z0-9]+)""",
             RegexOption.IGNORE_CASE
         )
         rrnPattern.find(message)?.let { match ->
@@ -164,9 +179,9 @@ class IDBIBankParser : BankParser() {
     }
 
     override fun extractBalance(message: String): BigDecimal? {
-        // Pattern: "Bal Rs 3694.38"
+        // Pattern: "Bal Rs 3694.38" or "Avl Bal Rs. 16,252.65" or "Bal INR 16252.65" or "Bal Rs 50000"
         val balancePattern = Regex(
-            """Bal\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""",
+            """(?:Avl\s+Bal|Bal)\s+(?:Rs\.?|INR|₹)?\s*([0-9,]+(?:\.\d{1,2})?)""",
             RegexOption.IGNORE_CASE
         )
         balancePattern.find(message)?.let { match ->

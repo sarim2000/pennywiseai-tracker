@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -33,14 +33,14 @@ class LearnCategoryUseCaseTest {
 
     @Before
     fun setUp() {
-        mockkStatic("androidx.room.RoomDatabaseKt")
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
             secondArg<suspend () -> Any?>().invoke()
         }
     }
 
     @After
-    fun tearDown() = unmockkStatic("androidx.room.RoomDatabaseKt")
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     private fun given(merchant: String, type: TransactionType = TransactionType.EXPENSE, deleted: Boolean = false, id: Long = 1) =
         coEvery { transactions.getTransactionById(id) } returns TransactionEntity(

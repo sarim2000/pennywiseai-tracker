@@ -1,9 +1,9 @@
 package com.pennywiseai.shared.data.local
 
-import androidx.room.Database
-import androidx.room.ConstructedBy
-import androidx.room.RoomDatabase
-import androidx.room.RoomDatabaseConstructor
+import androidx.room3.Database
+import androidx.room3.ConstructedBy
+import androidx.room3.RoomDatabase
+import androidx.room3.RoomDatabaseConstructor
 import com.pennywiseai.shared.data.local.dao.SharedCategoryDao
 import com.pennywiseai.shared.data.local.dao.SharedCategoryBudgetLimitDao
 import com.pennywiseai.shared.data.local.dao.SharedAccountBalanceDao

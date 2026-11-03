@@ -48,7 +48,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -59,10 +58,8 @@ import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income_dark
 import com.pennywiseai.tracker.ui.theme.income_light
@@ -149,18 +146,7 @@ fun BalanceCard(
                 .then(
                     if (blurEffects) Modifier
                         .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                        .hazeEffect(
-                            state = hazeState,
-                            block = fun HazeEffectScope.() {
-                                style = HazeDefaults.style(
-                                    backgroundColor = Color.Transparent,
-                                    tint = HazeDefaults.tint(containerColor),
-                                    blurRadius = 20.dp,
-                                    noiseFactor = -1f,
-                                )
-                                blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                            }
-                        )
+                        .frostedBlur(hazeState, tint = containerColor)
                     else Modifier
                 ),
             onClick = {

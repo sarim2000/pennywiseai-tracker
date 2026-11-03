@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -43,7 +43,7 @@ class TrackRepeatChargeUseCaseTest {
 
     @Before
     fun setUp() {
-        mockkStatic("androidx.room.RoomDatabaseKt")
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
             secondArg<suspend () -> Any?>().invoke()
         }
@@ -57,7 +57,7 @@ class TrackRepeatChargeUseCaseTest {
     }
 
     @After
-    fun tearDown() = unmockkStatic("androidx.room.RoomDatabaseKt")
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     @Test
     fun `a charge that still repeats is tracked`() = runBlocking {

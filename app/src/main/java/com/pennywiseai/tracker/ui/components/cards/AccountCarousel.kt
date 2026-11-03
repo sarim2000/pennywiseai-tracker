@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -41,10 +40,8 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 
 @Composable
 fun AccountCarousel(
@@ -136,18 +133,7 @@ private fun AccountCarouselCard(
             .then(
                 if (blurEffects && hazeState != null) Modifier
                     .clip(cardShape)
-                    .hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                tint = HazeDefaults.tint(containerColor),
-                                blurRadius = 20.dp,
-                                noiseFactor = -1f,
-                            )
-                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                        }
-                    )
+                    .frostedBlur(hazeState, tint = containerColor)
                 else Modifier
             ),
         onClick = onClick,

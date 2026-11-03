@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.database.converter
 
-import androidx.room.TypeConverter
+import androidx.room3.ColumnTypeConverter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
@@ -24,22 +24,22 @@ class Converters {
     private val dateTimeFormatterWithSpace = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromBigDecimal(value: BigDecimal?): String? {
         return value?.toString()
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun toBigDecimal(value: String?): BigDecimal? {
         return value?.let { BigDecimal(it) }
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromLocalDateTime(value: LocalDateTime?): String? {
         return value?.format(dateTimeFormatter)
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun toLocalDateTime(value: String?): LocalDateTime? {
         return value?.let { dateStr ->
             try {
@@ -52,12 +52,12 @@ class Converters {
         }
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromLocalDate(value: LocalDate?): String? {
         return value?.format(dateFormatter)
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun toLocalDate(value: String?): LocalDate? {
         return value?.let { dateString ->
             // Handle invalid dates
@@ -73,92 +73,92 @@ class Converters {
         }
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromTransactionType(value: TransactionType): String {
         return value.name
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun toTransactionType(value: String): TransactionType {
         return TransactionType.valueOf(value)
     }
     
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromSubscriptionState(value: SubscriptionState): String {
         return value.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toSubscriptionState(value: String): SubscriptionState {
         return SubscriptionState.valueOf(value)
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromSubscriptionDirection(value: SubscriptionDirection): String {
         return value.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toSubscriptionDirection(value: String): SubscriptionDirection {
         return SubscriptionDirection.valueOf(value)
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromBudgetPeriodType(value: BudgetPeriodType): String {
         return value.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toBudgetPeriodType(value: String): BudgetPeriodType {
         return BudgetPeriodType.valueOf(value)
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromBudgetGroupType(value: BudgetGroupType): String {
         return value.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toBudgetGroupType(value: String): BudgetGroupType {
         return BudgetGroupType.valueOf(value)
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromBudgetImpactType(value: BudgetImpactType?): String? {
         return value?.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toBudgetImpactType(value: String?): BudgetImpactType? {
         return value?.let { BudgetImpactType.valueOf(it) }
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromLoanDirection(value: LoanDirection): String {
         return value.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toLoanDirection(value: String): LoanDirection {
         return LoanDirection.valueOf(value)
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun fromLoanStatus(value: LoanStatus): String {
         return value.name
     }
 
-    @TypeConverter
+    @ColumnTypeConverter
     fun toLoanStatus(value: String): LoanStatus {
         return LoanStatus.valueOf(value)
     }
 
-    @TypeConverter fun fromWebhookDataType(value: WebhookDataType): String = value.name
-    @TypeConverter fun toWebhookDataType(value: String): WebhookDataType = WebhookDataType.valueOf(value)
-    @TypeConverter fun fromWebhookLogStatus(value: WebhookLogStatus): String = value.name
-    @TypeConverter fun toWebhookLogStatus(value: String): WebhookLogStatus = WebhookLogStatus.valueOf(value)
-    @TypeConverter fun fromWebhookRangePreset(value: WebhookRangePreset): String = value.name
-    @TypeConverter fun toWebhookRangePreset(value: String): WebhookRangePreset = WebhookRangePreset.valueOf(value)
-    @TypeConverter fun fromWebhookSyncReason(value: WebhookSyncReason): String = value.name
-    @TypeConverter fun toWebhookSyncReason(value: String): WebhookSyncReason = WebhookSyncReason.valueOf(value)
+    @ColumnTypeConverter fun fromWebhookDataType(value: WebhookDataType): String = value.name
+    @ColumnTypeConverter fun toWebhookDataType(value: String): WebhookDataType = WebhookDataType.valueOf(value)
+    @ColumnTypeConverter fun fromWebhookLogStatus(value: WebhookLogStatus): String = value.name
+    @ColumnTypeConverter fun toWebhookLogStatus(value: String): WebhookLogStatus = WebhookLogStatus.valueOf(value)
+    @ColumnTypeConverter fun fromWebhookRangePreset(value: WebhookRangePreset): String = value.name
+    @ColumnTypeConverter fun toWebhookRangePreset(value: String): WebhookRangePreset = WebhookRangePreset.valueOf(value)
+    @ColumnTypeConverter fun fromWebhookSyncReason(value: WebhookSyncReason): String = value.name
+    @ColumnTypeConverter fun toWebhookSyncReason(value: String): WebhookSyncReason = WebhookSyncReason.valueOf(value)
 }

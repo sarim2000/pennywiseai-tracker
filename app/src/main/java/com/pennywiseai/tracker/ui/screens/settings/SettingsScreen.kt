@@ -47,7 +47,7 @@ import androidx.compose.ui.text.AnnotatedString
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.UiText
@@ -1691,7 +1691,7 @@ private fun SettingsDropdownItem(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 shape = MaterialTheme.shapes.large,
                 colors = TextFieldDefaults.colors(
                     // A field nested inside an already-tonal row needs a step
@@ -1712,7 +1712,6 @@ private fun SettingsDropdownItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AiChatSettingsItem(
     downloadState: DownloadState,

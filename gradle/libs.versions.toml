@@ -1,58 +1,46 @@
 [versions]
-agp = "9.2.1"
+agp = "9.5.0"
 appUpdate = "2.1.0"
-appUpdateKtx = "2.1.0"
-biometric = "1.1.0"
-colorpickerCompose = "1.1.4"
+biometric = "1.4.0-alpha07"
 coreSplashscreen = "1.2.0"
-datastorePreferences = "1.2.1"
+datastorePreferences = "1.3.0"
 documentfile = "1.1.0"
-glance = "1.1.1"
-gson = "2.14.0"
-hiltAndroid = "2.59.2"
-hiltAndroidCompiler = "2.59.2"
-hiltCompiler = "1.3.0"
-hiltNavigationCompose = "1.3.0"
-hiltWork = "1.3.0"
-kotlin = "2.3.21"
-coreKtx = "1.18.0"
+glance = "1.2.0"
+hiltAndroid = "2.60.1"
+androidxHilt = "1.4.0"
+kotlin = "2.4.21"
+ksp = "2.3.13"
+coreKtx = "1.19.1"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-kotlinxSerializationJson = "1.11.0"
-ktorVersion = "2.3.13"
-lifecycleRuntimeCompose = "2.10.0"
-lifecycleRuntimeKtx = "2.10.0"
+kotlinxSerializationJson = "1.12.0"
+ktorVersion = "3.6.1"
+lifecycle = "2.11.0"
 activityCompose = "1.13.0"
-composeBom = "2026.05.01"
-lifecycleViewmodelCompose = "2.10.0"
-markdown = "0.7.3"
-mockk = "1.14.9"
-navVersion = "2.9.6"
+composeBom = "2026.09.00"
+mockk = "1.14.11"
+navigation3 = "1.2.0"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
-reviewKtx = "2.0.2"
-roomVersion = "2.8.4"
-# litertlm >= 0.14 is compiled with -Xjvm-default=all and calls
-# SendChannel.close$default as an interface static. kotlinx-coroutines only
-# ships that static from 1.11.0 (built with jvm-default statics); app/build.gradle.kts
-# pins coroutines-core/-android to 1.11.0 for exactly this reason. Verified on the
-# emulator: chat + generation complete without the #599 NoSuchMethodError, and
-# generation is ~3x faster than 0.13.1. 0.17.0 additionally needs a Hilt bump
-# (Kotlin 2.4 metadata) — not done yet.
-litertlm = "0.16.1"
-visionInternalVkp = "18.2.3"
-workVersion = "2.11.2"
-coil = "2.7.0"
-zxing = "3.5.3"
-material3 = "1.5.0-alpha12"
-haze = "1.7.1"
-composeCharts = "0.2.5"
-billingKtx = "9.0.0"
+roomVersion = "3.0.3"
+# litertlm >= 0.14 is built with -Xjvm-default=all and calls
+# SendChannel.close$default as an interface static, which kotlinx-coroutines
+# only ships from 1.11.0 — keep coroutines >= 1.11.0 (#599). 0.17+ needs
+# Kotlin 2.4 metadata (Hilt >= 2.60).
+litertlm = "0.19.0"
+coroutines = "1.11.0"
+workVersion = "2.12.0"
+coil = "3.6.3"
+zxing = "3.5.4"
+material3 = "1.5.0-beta02"
+haze = "2.1.0"
+composeCharts = "1.0.0"
+billingKtx = "9.1.0"
 
 [libraries]
-coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
@@ -62,29 +50,28 @@ androidx-datastore-preferences = { module = "androidx.datastore:datastore-prefer
 androidx-documentfile = { module = "androidx.documentfile:documentfile", version.ref = "documentfile" }
 androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 androidx-glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
-androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "hiltCompiler" }
-androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
-androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "hiltWork" }
-androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeCompose" }
-androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
-androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navVersion" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomVersion" }
-androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomVersion" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomVersion" }
-androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "roomVersion" }
-androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version = "2.6.1" }
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "androidxHilt" }
+androidx-hilt-lifecycle-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "androidxHilt" }
+androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "androidxHilt" }
+androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
+androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
+androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
+androidx-room-compiler = { module = "androidx.room3:room3-compiler", version.ref = "roomVersion" }
+androidx-room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "roomVersion" }
+androidx-room-testing = { module = "androidx.room3:room3-testing", version.ref = "roomVersion" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version = "2.7.1" }
+androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version = "2.7.1" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workVersion" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "workVersion" }
 app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdate" }
-app-update-ktx = { module = "com.google.android.play:app-update-ktx", version.ref = "appUpdateKtx" }
-colorpicker-compose = { module = "com.github.skydoves:colorpicker-compose", version.ref = "colorpickerCompose" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
-hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroid" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
@@ -94,12 +81,13 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorVersion" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
-markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktorVersion" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktorVersion" }
@@ -108,11 +96,10 @@ mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 opencsv = { module = "com.opencsv:opencsv", version.ref = "opencsv" }
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
 review = { module = "com.google.android.play:review", version.ref = "review" }
-review-ktx = { module = "com.google.android.play:review-ktx", version.ref = "reviewKtx" }
 litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
-vision-internal-vkp = { group = "com.google.mlkit", name = "vision-internal-vkp", version.ref = "visionInternalVkp" }
 
 haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
+haze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "haze" }
 compose-charts = { module = "io.github.ehsannarmani:compose-charts", version.ref = "composeCharts" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billingKtx" }
 
@@ -123,3 +110,5 @@ android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

@@ -1,12 +1,20 @@
 package com.pennywiseai.tracker.ui.effects
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import dev.chrisbanes.haze.HazeEffectScope
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
-import dev.chrisbanes.haze.hazeEffect
-import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 /**
  * CompositionLocal providing whether blur effects are enabled.
@@ -16,29 +24,29 @@ import dev.chrisbanes.haze.hazeSource
 val LocalBlurEffects = staticCompositionLocalOf { true }
 
 /**
- * Applies [hazeSource] only when blur effects are enabled via [LocalBlurEffects].
- * When blur is disabled, returns the modifier unchanged.
+ * The app's frosted-glass blur over the [state]'s sources: no noise, transparent background, and
+ * [tint] at 70% of its alpha (Haze 1.x `HazeDefaults.tint`). [Color.Unspecified] means no tint.
  */
-fun Modifier.conditionalHazeSource(
+@Composable
+fun Modifier.frostedBlur(
     state: HazeState,
-    enabled: Boolean,
-): Modifier = if (enabled) {
-    this.hazeSource(state = state)
-} else {
-    this
-}
-
-/**
- * Applies [hazeEffect] only when blur effects are enabled via [LocalBlurEffects].
- * When blur is disabled, returns the modifier unchanged.
- */
-fun Modifier.conditionalHazeEffect(
-    state: HazeState,
-    enabled: Boolean,
-    style: HazeStyle = HazeStyle.Unspecified,
-    block: (HazeEffectScope.() -> Unit)? = null,
-): Modifier = if (enabled) {
-    this.hazeEffect(state = state, style = style, block = block)
-} else {
-    this
+    tint: Color = Color.Unspecified,
+    blurRadius: Dp = 20.dp,
+    edgeTreatment: BlurredEdgeTreatment = BlurredEdgeTreatment.Unbounded,
+    progressive: HazeProgressive? = null,
+): Modifier {
+    // Haze 2 styles compare by identity, so remember it or every recomposition re-resolves it.
+    val style = remember(tint, blurRadius, edgeTreatment, progressive) {
+        HazeBlurStyle {
+            blurRadius(blurRadius)
+            noiseFactor(0f)
+            if (tint.isSpecified) {
+                colorEffects(listOf(HazeColorEffect.tint(tint.copy(alpha = tint.alpha * 0.7f))))
+            }
+            blurredEdgeTreatment(edgeTreatment)
+            progressive(progressive)
+        }
+    }
+    val input = remember(state) { HazeInput.Sources(state) }
+    return hazeBlur(input = input, style = style)
 }

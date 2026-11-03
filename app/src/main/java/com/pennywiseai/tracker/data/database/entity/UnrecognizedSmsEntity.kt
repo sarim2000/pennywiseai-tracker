@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.data.database.entity
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.room3.ColumnInfo
+import androidx.room3.Entity
+import androidx.room3.PrimaryKey
 import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -15,7 +15,7 @@ import kotlinx.serialization.Serializable
 @Entity(
     tableName = "unrecognized_sms",
     indices = [
-        androidx.room.Index(
+        androidx.room3.Index(
             value = ["sender", "sms_body"],
             unique = true
         )

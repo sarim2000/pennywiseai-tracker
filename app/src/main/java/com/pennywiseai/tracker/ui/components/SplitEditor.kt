@@ -235,7 +235,7 @@ private fun SplitRow(
                 readOnly = true,
                 singleLine = true,
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

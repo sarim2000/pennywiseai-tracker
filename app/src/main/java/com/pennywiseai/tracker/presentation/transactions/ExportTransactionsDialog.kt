@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -34,7 +34,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.DecimalFormat
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExportTransactionsDialog(
     transactions: List<TransactionEntity>,

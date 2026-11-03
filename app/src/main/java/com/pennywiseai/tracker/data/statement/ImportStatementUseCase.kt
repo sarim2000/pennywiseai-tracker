@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.statement
 
 import android.content.Context
 import android.net.Uri
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase

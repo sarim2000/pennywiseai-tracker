@@ -3,7 +3,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/sarim2000/pennywiseai-tracker?style=social)](https://github.com/sarim2000/pennywiseai-tracker)
 [![License](https://img.shields.io/badge/license-AGPL%20v3-blue)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84)](https://developer.android.com/about/versions/oreo/android-8.0)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-7F52FF)](https://kotlinlang.org/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-7F52FF)](https://kotlinlang.org/)
 [![Privacy](https://img.shields.io/badge/AI-100%25_On--Device-FF6B6B)](https://ai.google.dev/edge)
 [![Downloads](https://img.shields.io/badge/Downloads-100+-green)](https://play.google.com/store/apps/details?id=com.pennywiseai.tracker)
 [![F-Droid](https://img.shields.io/f-droid/v/com.pennywiseai.tracker?color=1976d2)](https://f-droid.org/packages/com.pennywiseai.tracker/)

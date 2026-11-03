@@ -4,8 +4,8 @@ import org.gradle.api.tasks.PathSensitivity
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -147,8 +147,8 @@ android {
         generateLocaleConfig = true
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     packaging {
         resources {
@@ -178,15 +178,13 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
 // Configure Room schema export
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.incremental", "true")
-    arg("room.generateKotlin", "true")
 }
 
 // Copy changelog from fastlane to generated assets for What's New dialog
@@ -231,9 +229,6 @@ dependencies {
     // Material Icons Extended
     implementation(libs.androidx.compose.material.icons.extended)
     
-    // Color Picker for Compose
-    implementation(libs.colorpicker.compose)
-    
     // Splash Screen API
     implementation(libs.androidx.core.splashscreen)
     
@@ -242,22 +237,20 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Navigation
-    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     
     // Kotlin Serialization
     implementation(libs.kotlinx.serialization.json)
 
     // Ktor for HTTP requests
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     // AI access: WebSocket line to the relay (ADR 0002)
     implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
     implementation(libs.ktor.client.websockets)
-    
-    // Gson for backup/restore
-    implementation(libs.gson)
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -269,11 +262,11 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     
     // Room
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.sqlite.framework) // AndroidSQLiteDriver (system SQLite)
     ksp(libs.androidx.room.compiler)
     
     // WorkManager
@@ -289,21 +282,19 @@ dependencies {
 
     // LiteRT-LM >= 0.14 calls SendChannel.close$default as an interface static; only
     // coroutines >= 1.11.0 provides it (see the litertlm note in libs.versions.toml, #599).
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     // LiteRT-LM for on-device LLM inference
     implementation(libs.litertlm.android)
     
     // Google Play In-App Updates (only for standard flavor)
     "standardImplementation"(libs.app.update)
-    "standardImplementation"(libs.app.update.ktx)
     
     // Google Play In-App Reviews (only for standard flavor)
     "standardImplementation"(libs.review)
-    "standardImplementation"(libs.review.ktx)
     
     testImplementation(libs.mockk)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
@@ -324,13 +315,11 @@ dependencies {
 
     // Haze blur effects
     implementation(libs.haze)
+    implementation(libs.haze.blur)
 
     // Compose Charts
     implementation(libs.compose.charts)
 
-    // Markdown support
-    implementation(libs.markdown)
-    
     // OpenCSV for CSV export
     implementation(libs.opencsv)
 

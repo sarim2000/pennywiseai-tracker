@@ -20,13 +20,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -34,6 +33,7 @@ import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
+import com.pennywiseai.tracker.navigation.navigate
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
@@ -50,7 +50,7 @@ fun PennyWiseApp(
     onAddTransactionShortcutHandled: (() -> Unit)? = null,
     sharedText: String? = null,
     onSharedTextHandled: (() -> Unit)? = null,
-    widgetDestination: Any? = null,
+    widgetDestination: NavKey? = null,
     onWidgetDestinationHandled: (() -> Unit)? = null
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
@@ -63,7 +63,6 @@ fun PennyWiseApp(
 
     val darkTheme = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
 
-    val navController = rememberNavController()
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // Observe lifecycle events and refresh lock state when app comes back from background
@@ -99,21 +98,22 @@ fun PennyWiseApp(
         }
     }
 
-    // Set correct start destination based on loaded preferences
-    val startDestination: Any = remember(themeUiState.hasCompletedOnboarding) {
+    // Start destination from the loaded preferences; only used when there's no
+    // saved back stack (first launch, not a config change or process death).
+    val backStack = rememberNavBackStack(
         if (themeUiState.hasCompletedOnboarding) Home else OnBoarding
-    }
+    )
 
     // Observe lock state changes and navigate to lock screen if needed.
     // On top of the current screen, which unlocking returns to: with "Immediately"
     // this runs after every trip out of the app (a file picker, the camera), and
     // the screen and its pending result have to survive it. Back can't leave it.
     val showLockScreen = {
-        navController.navigate(AppLock) { launchSingleTop = true }
+        backStack.navigate(AppLock)
     }
     LaunchedEffect(appLockUiState.isLocked, appLockUiState.isLockEnabled) {
         if (appLockUiState.isLocked && appLockUiState.isLockEnabled &&
-            navController.currentDestination?.route != AppLock::class.qualifiedName
+            backStack.lastOrNull() != AppLock
         ) {
             showLockScreen()
         }
@@ -123,7 +123,7 @@ fun PennyWiseApp(
     // the Add widget/shortcut, "Share to PennyWise" and goal widget taps (#914) —
     // opens a screen with private data, so they all wait for onboarding and an
     // unlocked app (see NavigateWhenUnlocked).
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val currentRoute = backStack.lastOrNull()
     NavigateWhenUnlocked(
         request = editTransactionId,
         onboarded = themeUiState.hasCompletedOnboarding,
@@ -132,7 +132,7 @@ fun PennyWiseApp(
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
     ) { transactionId ->
-        navController.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId)) { launchSingleTop = true }
+        backStack.navigate(com.pennywiseai.tracker.navigation.TransactionDetail(transactionId))
         // Consume now, or leaving the detail screen would re-run this and reopen it.
         onEditComplete?.invoke()
     }
@@ -144,7 +144,7 @@ fun PennyWiseApp(
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
     ) { add ->
-        navController.navigate(add) { launchSingleTop = true }
+        backStack.navigate(add)
         onAddTransactionShortcutHandled?.invoke()
     }
     NavigateWhenUnlocked(
@@ -155,7 +155,7 @@ fun PennyWiseApp(
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
     ) { text ->
-        navController.navigate(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
+        backStack.add(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
         onSharedTextHandled?.invoke()
     }
     NavigateWhenUnlocked(
@@ -168,9 +168,11 @@ fun PennyWiseApp(
     ) { destination ->
         // Replace the same kind of screen only when it's on top, so a repeated "+"
         // starts New goal again; anything under it (an unsaved edit) stays.
-        val top = navController.currentBackStackEntry?.destination
-        navController.navigate(destination) {
-            if (top != null && top.hasRoute(destination::class)) popUpTo(top.id) { inclusive = true }
+        val top = backStack.lastOrNull()
+        if (top != null && top::class == destination::class) {
+            backStack[backStack.lastIndex] = destination
+        } else {
+            backStack.add(destination)
         }
         onWidgetDestinationHandled?.invoke()
     }
@@ -184,7 +186,7 @@ fun PennyWiseApp(
     // A pass counts until the app locks again, so it resets when isLocked turns true,
     // not on every resume: after an "Immediately" unlock isLocked never changes, the
     // lock screen doesn't come back, and a reset on resume would leave shake off.
-    val onLockScreen = currentRoute == AppLock::class.qualifiedName
+    val onLockScreen = currentRoute == AppLock
     var lockChecksAtResume by remember { mutableIntStateOf(Int.MAX_VALUE) }
     var passedLockScreen by remember(appLockUiState.isLocked && appLockUiState.isLockEnabled) {
         mutableStateOf(false)
@@ -226,11 +228,10 @@ fun PennyWiseApp(
     ) {
         Box(Modifier.fillMaxSize()) {
             PennyWiseNavHost(
-                navController = navController,
+                backStack = backStack,
                 // Out of the accessibility tree too, or TalkBack reads what the cover hides.
                 modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
                 themeViewModel = actualThemeViewModel,
-                startDestination = startDestination,
                 onEditComplete = onEditComplete ?: {}
             )
             if (covered) {
@@ -286,7 +287,7 @@ private fun <T : Any> NavigateWhenUnlocked(
     request: T?,
     onboarded: Boolean,
     lock: com.pennywiseai.tracker.ui.viewmodel.AppLockUiState,
-    currentRoute: String?,
+    currentRoute: NavKey?,
     refreshLock: () -> Unit,
     showLockScreen: () -> Unit,
     navigate: (T) -> Unit,
@@ -301,7 +302,7 @@ private fun <T : Any> NavigateWhenUnlocked(
     }
     LaunchedEffect(request, onboarded, lock.checks, lock.isLocked, currentRoute) {
         val pending = request ?: return@LaunchedEffect
-        val onLockScreen = currentRoute == AppLock::class.qualifiedName
+        val onLockScreen = currentRoute == AppLock
         if (onLockScreen) passedLockScreen = true
         if (!onboarded || lock.checks <= checksAtRequest || currentRoute == null || onLockScreen) return@LaunchedEffect
         val ready = !lock.isLocked || passedLockScreen

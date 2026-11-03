@@ -56,7 +56,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
@@ -74,7 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction
@@ -84,7 +83,6 @@ import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
-import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -115,10 +113,8 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -142,7 +138,7 @@ private val STACKED_AVATAR_RING = Spacing.xxs
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    navController: NavController,
+    onAccountClick: (bankName: String, accountLast4: String) -> Unit,
     coverStyle: CoverStyle = CoverStyle.AURORA,
     blurEffects: Boolean = false,
     onNavigateToSettings: () -> Unit = {},
@@ -191,7 +187,7 @@ fun HomeScreen(
     // Period the sheet should open on. The monthly banner points it at the finished
     // month; opening from the overflow menu uses whatever the user saved.
     var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
     // Profile filter dropdown state
     var showProfileFilterMenu by remember { mutableStateOf(false) }
@@ -534,14 +530,7 @@ fun HomeScreen(
                             creditCards = uiState.creditCards,
                             totalAvailableCredit = uiState.totalAvailableCredit,
                             forecast = uiState.spendForecast,
-                            onAccountClick = { bankName, accountLast4 ->
-                                navController.navigate(
-                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                        bankName = bankName,
-                                        accountLast4 = accountLast4
-                                    )
-                                ) { launchSingleTop = true }
-                            }
+                            onAccountClick = onAccountClick
                         )
                     }
                 }
@@ -1010,14 +999,7 @@ fun HomeScreen(
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             bankAccounts = uiState.accountBalances,
                                             creditCards = uiState.creditCards,
-                                            onAccountClick = { bankName, accountLast4 ->
-                                                navController.navigate(
-                                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                                        bankName = bankName,
-                                                        accountLast4 = accountLast4
-                                                    )
-                                                ) { launchSingleTop = true }
-                                            },
+                                            onAccountClick = onAccountClick,
                                             isUnifiedMode = uiState.isUnifiedMode,
                                             selectedCurrency = uiState.selectedCurrency,
                                             blurEffects = blurEffects,
@@ -1471,7 +1453,7 @@ fun HomeScreen(
     if (showEditWidgetsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showEditWidgetsSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
             containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {
@@ -1702,18 +1684,7 @@ private fun UpcomingSubscriptionsCard(
             .then(
                 if (blurEffects && hazeState != null) Modifier
                     .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .hazeEffect(
-                        state = hazeState,
-                        block = fun HazeEffectScope.() {
-                            style = HazeDefaults.style(
-                                backgroundColor = Color.Transparent,
-                                tint = HazeDefaults.tint(containerColor),
-                                blurRadius = 20.dp,
-                                noiseFactor = -1f,
-                            )
-                            blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                        }
-                    )
+                    .frostedBlur(hazeState, tint = containerColor)
                 else Modifier
             ),
         onClick = onClick,

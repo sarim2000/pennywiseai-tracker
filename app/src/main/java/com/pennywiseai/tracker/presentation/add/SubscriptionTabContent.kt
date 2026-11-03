@@ -177,7 +177,7 @@ fun SubscriptionTabContent(
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = subFullShape,
                         colors = subFilledColors()
@@ -233,7 +233,7 @@ fun SubscriptionTabContent(
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = subFullShape,
                         colors = subFilledColors()
@@ -333,7 +333,7 @@ fun SubscriptionTabContent(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         shape = subMiddleShape,
                         leadingIcon = { SelectedCategoryIcon(categories.find { it.name == uiState.category }) },
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },

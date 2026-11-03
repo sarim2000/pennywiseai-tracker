@@ -117,7 +117,7 @@ class LlmRepository @Inject constructor(
             message = userMessage,
             isUser = true
         )
-        Log.d(TAG, "Saving user message: ${userMessage.take(50)}...")
+        Log.d(TAG, "Saving user message (${userMessage.length} chars)")
         chatDao.insertMessage(userChatMessage)
 
         // Check if model is downloading
@@ -159,7 +159,7 @@ class LlmRepository @Inject constructor(
 
         // Save the complete AI response
         val finalResponse = responseBuilder.toString()
-        Log.d(TAG, "Saving AI response: ${finalResponse.take(50)}...")
+        Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
         val aiMessage = ChatMessage(
             message = finalResponse,
             isUser = false

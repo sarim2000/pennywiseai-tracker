@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
 import android.util.Log
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity

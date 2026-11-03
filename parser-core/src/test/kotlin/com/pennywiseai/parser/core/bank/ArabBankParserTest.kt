@@ -143,7 +143,9 @@ class ArabBankParserTest {
         merchant = "EXAMPLE SHOP CORPORATI",
         accountLast4 = "3456",
         balance = BigDecimal("842.375"),
-        isFromCard = false
+        isFromCard = false,
+        // "purchase transaction on account" once saved "on" as the reference.
+        expectNullReference = true
     )
 
     @TestFactory
@@ -210,5 +212,4 @@ class ArabBankParserTest {
             ),
             "Arab Bank debit-card purchase factory tests"
         )
-
 }

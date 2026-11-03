@@ -58,10 +58,6 @@
     <string name="settings_security_section">الأمان</string>
     <string name="settings_app_lock_title">قفل التطبيق</string>
     <string name="settings_app_lock_subtitle">حافظ على بياناتك باستخدام المصادقة البيومترية</string>
-    <string name="settings_shake_to_hide_title">هزّ الجهاز لإخفاء المبالغ</string>
-    <string name="settings_shake_to_hide_subtitle">هزّ هاتفك لإخفاء المبالغ أو إظهارها في كل الشاشات</string>
-    <string name="shake_to_hide_first_hidden">تم إخفاء المبالغ. هزّ الجهاز مرة أخرى لإظهارها.</string>
-    <string name="shake_to_hide_first_shown">تم إظهار المبالغ. هزّ الجهاز مرة أخرى لإخفائها.</string>
     <string name="settings_lock_timeout_title">مهلة القفل</string>
     <string name="settings_lock_timeout_immediately_subtitle">قفل على الفور</string>
     <plurals name="settings_lock_timeout_after_minutes">

@@ -58,10 +58,6 @@
     <string name="settings_security_section">Sécurité</string>
     <string name="settings_app_lock_title">Verrouillage de l\'application</string>
     <string name="settings_app_lock_subtitle">Protégez vos données avec l\'authentification biométrique</string>
-    <string name="settings_shake_to_hide_title">Secouer pour masquer les montants</string>
-    <string name="settings_shake_to_hide_subtitle">Secouez votre téléphone pour masquer ou afficher les montants sur tous les écrans</string>
-    <string name="shake_to_hide_first_hidden">Montants masqués. Secouez à nouveau pour les afficher.</string>
-    <string name="shake_to_hide_first_shown">Montants affichés. Secouez à nouveau pour les masquer.</string>
     <string name="settings_lock_timeout_title">Délai de verrouillage</string>
     <string name="settings_lock_timeout_immediately_subtitle">Verrouiller immédiatement</string>
     <plurals name="settings_lock_timeout_after_minutes">

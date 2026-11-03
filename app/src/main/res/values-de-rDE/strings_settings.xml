@@ -58,10 +58,6 @@
     <string name="settings_security_section">Sicherheit</string>
     <string name="settings_app_lock_title">App-Sperre</string>
     <string name="settings_app_lock_subtitle">Schützen Sie Ihre Daten mit biometrischer Authentifizierung</string>
-    <string name="settings_shake_to_hide_title">Schütteln, um Beträge auszublenden</string>
-    <string name="settings_shake_to_hide_subtitle">Schüttle dein Handy, um Beträge auf allen Bildschirmen aus- oder einzublenden</string>
-    <string name="shake_to_hide_first_hidden">Beträge ausgeblendet. Erneut schütteln, um sie anzuzeigen.</string>
-    <string name="shake_to_hide_first_shown">Beträge angezeigt. Erneut schütteln, um sie auszublenden.</string>
     <string name="settings_lock_timeout_title">Sperr-Timeout</string>
     <string name="settings_lock_timeout_immediately_subtitle">Sofort sperren</string>
     <plurals name="settings_lock_timeout_after_minutes">

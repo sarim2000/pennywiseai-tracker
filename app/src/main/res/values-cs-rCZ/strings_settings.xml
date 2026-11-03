@@ -58,10 +58,6 @@
     <string name="settings_security_section">Zabezpečení</string>
     <string name="settings_app_lock_title">Zámek aplikací</string>
     <string name="settings_app_lock_subtitle">Chraňte svá data biometrickým ověřením</string>
-    <string name="settings_shake_to_hide_title">Zatřesením skrýt částky</string>
-    <string name="settings_shake_to_hide_subtitle">Zatřeste telefonem a skryjte nebo zobrazte částky na všech obrazovkách</string>
-    <string name="shake_to_hide_first_hidden">Částky skryty. Dalším zatřesením je zobrazíte.</string>
-    <string name="shake_to_hide_first_shown">Částky zobrazeny. Dalším zatřesením je skryjete.</string>
     <string name="settings_lock_timeout_title">Časový limit zámku</string>
     <string name="settings_lock_timeout_immediately_subtitle">Zamknout ihned</string>
     <plurals name="settings_lock_timeout_after_minutes">

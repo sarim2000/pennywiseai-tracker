@@ -55,10 +55,6 @@
     <string name="settings_security_section">Seguridad</string>
     <string name="settings_app_lock_title">Bloqueo de la app</string>
     <string name="settings_app_lock_subtitle">Protege tus datos con autenticación biométrica</string>
-    <string name="settings_shake_to_hide_title">Agitar para ocultar importes</string>
-    <string name="settings_shake_to_hide_subtitle">Agita el teléfono para ocultar o mostrar los importes en todas las pantallas</string>
-    <string name="shake_to_hide_first_hidden">Importes ocultos. Vuelve a agitar para mostrarlos.</string>
-    <string name="shake_to_hide_first_shown">Importes visibles. Vuelve a agitar para ocultarlos.</string>
     <string name="settings_lock_timeout_title">Tiempo de bloqueo</string>
     <string name="settings_lock_timeout_immediately_subtitle">Bloquear de inmediato</string>
     <plurals name="settings_lock_timeout_after_minutes">

@@ -15,7 +15,8 @@ import com.pennywiseai.parser.core.TransactionType
  *    الرصيد: 1,234.567 JOD"
  *
  * The header decides the type: purchase / CliQ / CliQ purchase / ATM withdrawal are
- * EXPENSE; purchase reversal / CliQ reversal / ATM deposit are INCOME. Every message
+ * EXPENSE; purchase reversal / CliQ reversal / ATM deposit are INCOME. A plain CliQ
+ * ("حركة كليك") is EXPENSE with an "إلى:" (to) line and INCOME with a "من:" (from) line. Every message
  * names the account (not a card), so isFromCard = false.
  *
  * The masked account "4321*1234" is laid out right-to-left: the group BEFORE the
@@ -34,11 +35,14 @@ class IslamicInternationalArabBankParser : BankParser() {
     private val accountPattern = Regex("""حساب:\s*(\d+)(?:\*\d+)?""")
     private val balancePattern = Regex("""الرصيد:\s*(-?[\d,]+(?:\.\d+)?)""")
     private val cliqRecipient = Regex("""إلى:?\s*(.+)""")
+    // Incoming CliQ shares the outgoing header; only the "من:" (from) line tells them apart.
+    private val cliqSender = Regex("""^من:\s*(.+)""", RegexOption.MULTILINE)
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val header = smsBody.lineSequence().first().trim()
         val amount = amountPattern.find(smsBody) ?: return null
         val recipient = cliqRecipient.find(smsBody)?.groupValues?.get(1)?.trim()
+        val cliqFrom = cliqSender.find(smsBody)?.groupValues?.get(1)?.trim()
 
         val (type, merchant) = when {
             header.startsWith("عكس حركة شراء من ") ->
@@ -48,6 +52,7 @@ class IslamicInternationalArabBankParser : BankParser() {
             header.startsWith("عكس دفعة CliQ من ") ->
                 TransactionType.INCOME to header.removePrefix("عكس دفعة CliQ من ").trim()
             header == "حركة كليك" && recipient != null -> TransactionType.EXPENSE to recipient
+            header == "حركة كليك" && cliqFrom != null -> TransactionType.INCOME to cliqFrom
             header == "مشتريات CliQ" && recipient != null -> TransactionType.EXPENSE to recipient
             header.startsWith("سحب صراف") -> TransactionType.EXPENSE to "ATM Withdrawal"
             header.startsWith("إيداع صراف") -> TransactionType.INCOME to "ATM Deposit"

@@ -84,6 +84,21 @@ class IslamicInternationalArabBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "CliQ transfer in is income",
+                // The bank leaves a trailing space after the header on incoming CliQ.
+                message = "حركة كليك \nالمبلغ: 2.400 JOD\nحساب: 4321*1234\nمن: JOHN SMITH\n" +
+                    "تاريخ: 01/11/2026 13:44:30 \nالرصيد: 3,221.180 JOD",
+                sender = "ARABIISLAMI",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2.400"),
+                    currency = "JOD",
+                    type = TransactionType.INCOME,
+                    merchant = "JOHN SMITH",
+                    accountLast4 = "4321",
+                    balance = BigDecimal("3221.180")
+                )
+            ),
+            ParserTestCase(
                 name = "CliQ purchase (balance without currency)",
                 message = "مشتريات CliQ\nإلى SAMPLE SUPERMARKET\nالمبلغ: 45.000 JOD\nحساب: 4321*1234\n" +
                     "تاريخ: 27/09/2026 15:15:47\nالرصيد: 2,575.070",

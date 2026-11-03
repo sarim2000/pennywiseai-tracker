@@ -147,7 +147,7 @@ fun PennyWiseApp(
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
     ) { text ->
-        backStack.add(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text, shareId = android.os.SystemClock.elapsedRealtime()))
+        backStack.add(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
         onSharedTextHandled?.invoke()
     }
     NavigateWhenUnlocked(

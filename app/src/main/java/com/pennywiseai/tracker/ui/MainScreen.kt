@@ -170,11 +170,11 @@ fun MainScreen(
     // that tab, fresh with those filters; anything else opens in the same tab.
     fun open(tab: BottomNavItem, key: NavKey) {
         val target = tabOf(key)
-        if (target != null && target != tab && key == rootOf(target)) {
-            // A plain tab root (e.g. Chat from Analytics): switch to that tab, don't duplicate it.
-            currentTabRoute = target.route
-        } else if (tab == BottomNavItem.Home && target != null && target != BottomNavItem.Home) {
+        if (tab == BottomNavItem.Home && target != null && target != BottomNavItem.Home) {
             tabStacks.getValue(target).resetTo(key)
+            currentTabRoute = target.route
+        } else if (target != null && target != tab && key == rootOf(target)) {
+            // A plain tab root from another tab (e.g. Chat from Analytics): switch to it, don't duplicate it.
             currentTabRoute = target.route
         } else {
             tabStacks.getValue(tab).navigate(key)

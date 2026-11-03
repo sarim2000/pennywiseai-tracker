@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.navigation
 
 import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 
 // Navigation 3 keys: @Serializable so rememberNavBackStack survives process death.
@@ -47,12 +49,11 @@ data object Chat : NavKey
 @Serializable
 data class TransactionDetail(val transactionId: Long) : NavKey
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class AddTransaction(
     val sourceTransactionId: Long? = null,
     val sharedText: String? = null,
-    // Makes each share its own entry, so sharing the same text twice gets a fresh screen.
-    val shareId: Long = 0L,
     // The quick add sheet's draft ("More details"): what was typed there.
     val amount: String? = null,
     val merchant: String? = null,
@@ -64,7 +65,11 @@ data class AddTransaction(
     val currency: String? = null,
     val type: String? = null,
     val dateTime: String? = null,
-    val unrecognizedSmsId: Long? = null
+    val unrecognizedSmsId: Long? = null,
+    // Unique per open, so two Add screens on the stack never share one ViewModel/draft
+    // (Navigation 3 keys an entry's ViewModels by its key). Always encoded, so the
+    // same value comes back after process death.
+    @EncodeDefault val openId: Long = System.nanoTime(),
 ) : NavKey
 
 @Serializable

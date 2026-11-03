@@ -4,6 +4,8 @@ import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import kotlinx.serialization.json.Json
 import org.junit.Test
 
 /** The navigation-compose behaviours the Navigation 3 back stack helpers stand in for. */
@@ -54,5 +56,14 @@ class BackStackOpsTest {
         for (key in listOf<NavKey>(Home, Analytics, Chat, Settings, AppLock, OnBoarding)) {
             assertFalse(key.toString(), key.toString().contains('@'))
         }
+    }
+
+    @Test
+    fun `each Add screen is its own entry and keeps its identity across process death`() {
+        val first = AddTransaction()
+        assertNotEquals(first, AddTransaction())
+        // Json skips defaults unless told otherwise; @EncodeDefault must keep openId.
+        val restored = Json.decodeFromString<AddTransaction>(Json.encodeToString(first))
+        assertEquals(first, restored)
     }
 }

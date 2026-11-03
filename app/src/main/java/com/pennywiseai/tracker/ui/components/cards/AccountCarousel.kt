@@ -25,10 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
@@ -41,6 +37,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
 import dev.chrisbanes.haze.HazeDefaults
@@ -57,7 +54,9 @@ fun AccountCarousel(
     isUnifiedMode: Boolean = false,
     selectedCurrency: String,
     blurEffects: Boolean = false,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    isAmountHidden: Boolean = true,
+    onToggleAmountsHidden: () -> Unit = {}
 ) {
     val allAccounts = bankAccounts + creditCards
 
@@ -73,7 +72,9 @@ fun AccountCarousel(
             isUnifiedMode = isUnifiedMode,
             selectedCurrency = selectedCurrency,
             blurEffects = blurEffects,
-            hazeState = hazeState
+            hazeState = hazeState,
+            isAmountHidden = isAmountHidden,
+            onToggleAmountsHidden = onToggleAmountsHidden
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { allAccounts.size })
@@ -93,7 +94,9 @@ fun AccountCarousel(
                 isUnifiedMode = isUnifiedMode,
                 selectedCurrency = selectedCurrency,
                 blurEffects = blurEffects,
-                hazeState = hazeState
+                hazeState = hazeState,
+                isAmountHidden = isAmountHidden,
+                onToggleAmountsHidden = onToggleAmountsHidden
             )
         }
     }
@@ -108,9 +111,10 @@ private fun AccountCarouselCard(
     isUnifiedMode: Boolean = false,
     selectedCurrency: String,
     blurEffects: Boolean = false,
-    hazeState: HazeState? = null
+    hazeState: HazeState? = null,
+    isAmountHidden: Boolean = true,
+    onToggleAmountsHidden: () -> Unit = {}
 ) {
-    var isAmountHidden by remember { mutableStateOf(true) }
     // Low-balance alert: tint the home card red when a non-credit account's balance
     // is at or below its user-set threshold (matches Manage Accounts). #509
     val isLowBalance = !isCreditCard &&
@@ -232,8 +236,8 @@ private fun AccountCarouselCard(
                     // is the display currency when a rate was found), so format with the
                     // account's own currency. This keeps an un-convertible balance honest
                     // (shows "$400", not "MZN400") instead of forcing the display label.
-                    text = if (isAmountHidden) "••••••"
-                           else account.formatBalance(),
+                    // Home's eye, not a per-card one: hidden by default like the rest of Home.
+                    text = if (isAmountHidden) AmountPrivacy.MASK else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -243,7 +247,7 @@ private fun AccountCarouselCard(
                 )
 
                 IconButton(
-                    onClick = { isAmountHidden = !isAmountHidden },
+                    onClick = onToggleAmountsHidden,
                     modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                 ) {
                     Icon(

@@ -975,7 +975,9 @@ fun HomeScreen(
                                             isUnifiedMode = uiState.isUnifiedMode,
                                             selectedCurrency = uiState.selectedCurrency,
                                             blurEffects = blurEffects,
-                                            hazeState = hazeStateBanner
+                                            hazeState = hazeStateBanner,
+                                            isAmountHidden = uiState.isBalanceHidden,
+                                            onToggleAmountsHidden = { viewModel.toggleBalanceVisibility() }
                                         )
                                     }
                                 }

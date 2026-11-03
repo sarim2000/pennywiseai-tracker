@@ -196,13 +196,13 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val currency = userPreferencesRepository.baseCurrency.first()
-                val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
+                val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency, maskIfHidden = false) }
                 when (action) {
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
                         deleteTransactionUseCase(action.transaction)
                         llmRepository.clearPendingAction()
                         val t = action.transaction
-                        llmRepository.appendAssistantMessage("Deleted ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency)} at ${t.merchantName}.")
+                        llmRepository.appendAssistantMessage("Deleted ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency, maskIfHidden = false)} at ${t.merchantName}.")
                         return@launch
                     }
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
@@ -214,7 +214,7 @@ class ChatViewModel @Inject constructor(
                         llmRepository.clearPendingAction()
                         val t = action.transaction
                         llmRepository.appendAssistantMessage(
-                            "Updated ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency)} at ${action.newMerchant ?: t.merchantName}" +
+                            "Updated ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency, maskIfHidden = false)} at ${action.newMerchant ?: t.merchantName}" +
                                 (action.newCategory?.let { " → $it" } ?: "") + "."
                         )
                         return@launch
@@ -235,7 +235,7 @@ class ChatViewModel @Inject constructor(
                 )
                 llmRepository.clearPendingAction()
                 llmRepository.appendAssistantMessage(
-                    "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency)} " +
+                    "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency, maskIfHidden = false)} " +
                         "${if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "from" else "at"} ${draft.merchant} (${draft.category})."
                 )
             } catch (e: Exception) {

@@ -658,7 +658,7 @@ private fun BatchApplyDialog(
                                         Column(modifier = Modifier.padding(Spacing.sm)) {
                                             val orig = diff.original
                                             Text(
-                                                text = "${orig.merchantName} - ${orig.amount}",
+                                                text = "${orig.merchantName} - ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(orig.amount, orig.currency)}",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Medium
                                             )

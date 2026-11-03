@@ -929,11 +929,27 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true // hidden until the user reveals it
         }
 
+    /**
+     * Whether every screen masks amounts, not just Home. Only a saved choice counts:
+     * until the user taps the eye, Home stays hidden ([isBalanceHidden]) and the rest
+     * of the app shows its numbers, so a fresh install doesn't look empty.
+     */
+    val isAmountHiddenEverywhere: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false }
+
     suspend fun setBalanceHidden(hidden: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
+        WidgetRefresher.refreshTransactionWidgets(context)
+    }
+
+    /** Flips [isBalanceHidden] in one read-modify-write, so the eye and a shake can't race. */
+    suspend fun toggleBalanceHidden() {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BALANCE_HIDDEN] = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true)
+        }
         WidgetRefresher.refreshTransactionWidgets(context)
     }
 

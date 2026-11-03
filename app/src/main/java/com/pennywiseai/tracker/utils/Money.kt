@@ -25,9 +25,10 @@ data class Money(val amount: BigDecimal, val currency: String) {
 
     val isPositive: Boolean get() = amount.signum() > 0
 
-    /** Renders with the correct symbol for [currency]. [signPrefix] is e.g. "-" / "+". */
-    fun format(signPrefix: String = ""): String =
-        CurrencyFormatter.signed(signPrefix, CurrencyFormatter.formatCurrency(amount, currency))
+    /** Renders with the correct symbol for [currency]. [signPrefix] is e.g. "-" / "+". See [CurrencyFormatter.formatCurrency] for [maskIfHidden]. */
+    fun format(signPrefix: String = "", maskIfHidden: Boolean = true): String =
+        if (maskIfHidden && AmountPrivacy.hidden) AmountPrivacy.MASK
+        else CurrencyFormatter.signed(signPrefix, CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false))
 
     companion object {
         fun zero(currency: String) = Money(BigDecimal.ZERO, currency)

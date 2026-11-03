@@ -201,6 +201,7 @@ private data class BarData(
 )
 
 private fun formatCompactValue(value: Double, currencyCode: String): String {
+    if (com.pennywiseai.tracker.utils.AmountPrivacy.hidden) return com.pennywiseai.tracker.utils.AmountPrivacy.MASK
     val absValue = abs(value)
     val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
     return when {

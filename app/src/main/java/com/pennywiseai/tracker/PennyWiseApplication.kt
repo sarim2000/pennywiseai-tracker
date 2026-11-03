@@ -12,12 +12,14 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.webhook.WebhookSyncScheduler
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -76,6 +78,8 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // was taken, and reading it inside that snapshot crashed with "Reading a
         // state that was created after the snapshot was taken" (Play vitals, 2.22.0).
         CategoryMapping.userStyles
+        // Same for the hide-amounts switch, which every money format reads.
+        AmountPrivacy.hidden
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
         com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
@@ -121,6 +125,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             userPreferencesRepository.numberFormatStyle.collectLatest { style ->
                 CurrencyFormatter.numberFormatStyle = style
             }
+        }
+        applicationScope.launch {
+            userPreferencesRepository.isAmountHiddenEverywhere
+                // Unreadable: keep amounts hidden, and don't hold the splash forever.
+                .catch { emit(true) }
+                .collectLatest { hidden ->
+                    AmountPrivacy.hidden = hidden
+                    AmountPrivacy.loaded = true
+                }
         }
         applicationScope.launch {
             userPreferencesRepository.dateFormatStyle.collectLatest { style ->

@@ -119,7 +119,7 @@ fun SplitSection(
 
     fun request(person: SplitPerson, id: String) {
         val owed = owedFor(person)
-        val amount = CurrencyFormatter.formatCurrency(owed, currency)
+        val amount = CurrencyFormatter.formatCurrency(owed, currency, maskIfHidden = false) // sent to the other person
         val uri = UpiRequest.payUri(id, payeeName, owed, transaction.merchantName)
         val text = context.getString(R.string.split_request_text, amount, id, transaction.merchantName) + "\n" + uri
         val title = context.getString(R.string.split_request, amount)

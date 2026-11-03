@@ -432,7 +432,7 @@ private fun LoanTransactionItem(
                 // This transaction's own note, not the loan's (#876).
                 transaction.description?.takeIf { it.isNotBlank() }?.let { note ->
                     Text(
-                        note,
+                        CurrencyFormatter.maskAmountsIn(note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,

@@ -1423,7 +1423,7 @@ internal fun balanceAdjustment(
         transactionType = balanceAdjustmentType(d),
         dateTime = at,
         description = "Untracked amount so the app matches the bank's reported balance of " +
-            CurrencyFormatter.formatCurrency(d.reported, d.currency),
+            CurrencyFormatter.formatCurrency(d.reported, d.currency, maskIfHidden = false), // stored text
         smsBody = null,
         bankName = tx.bankName,
         smsSender = null,

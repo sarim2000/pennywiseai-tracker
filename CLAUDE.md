@@ -20,7 +20,10 @@ complaint.
    `CurrencyFormatter.formatCurrency(amount, currencyCode)` (or the
    `formatBalance()` / `formatAmount()` entity extensions) — never the
    currency-less overload (it defaults to ₹ and is `@Deprecated(ERROR)`, so it
-   won't compile).
+   won't compile). It returns `••••` while the user hides amounts
+   (`AmountPrivacy`); anything that leaves the screen or is stored
+   (notifications, AI prompts/chat text, logs, widgets) passes
+   `maskIfHidden = false`.
 2. **Never sum amounts across currencies.** "₹500 + $10" is not 510 of anything.
    Total a possibly-mixed list with `Iterable.sumByCurrency({ it.currency },
    { it.amount })` (`utils/MoneyTotals.kt`) → `Map<currency, Money>`, and render

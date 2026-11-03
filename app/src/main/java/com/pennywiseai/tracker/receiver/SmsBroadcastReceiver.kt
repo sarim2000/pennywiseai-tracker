@@ -415,7 +415,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     context.getString(
                         R.string.recurring_alert_price_updated,
                         tracked.merchantName,
-                        CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency),
+                        CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency, maskIfHidden = false),
                         next
                     )
                 } else {
@@ -449,7 +449,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          */
         internal fun showBalanceDiscrepancyNotification(context: Context, transaction: TransactionEntity, discrepancy: BalanceDiscrepancy) {
             val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
-            val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency)
+            val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency, maskIfHidden = false)
             val title = context.getString(
                 if (discrepancy.delta.signum() > 0) R.string.notif_balance_higher else R.string.notif_balance_lower,
                 difference
@@ -507,7 +507,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
-                    .setContentText("$merchant · ${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)}")
+                    .setContentText("$merchant · ${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)}")
                     .setContentIntent(openTransactionIntent(context, transaction.id))
                     .addAction(
                         0,
@@ -590,7 +590,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         private fun showSuggestionNotification(context: Context, suggestion: Suggestion) {
             val draft = suggestion.draft()
             val tx = suggestion.transaction
-            val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency)
+            val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency, maskIfHidden = false)
             val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
             val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
                 context.getString(R.string.notif_suggestion_title_received, amount, merchant)
@@ -719,8 +719,8 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 context.getString(
                     if (saved.amount > change.previousAmount) R.string.recurring_alert_price_up else R.string.recurring_alert_price_down,
                     change.subscriptionName,
-                    CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency),
-                    CurrencyFormatter.formatCurrency(saved.amount, saved.currency)
+                    CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency, maskIfHidden = false),
+                    CurrencyFormatter.formatCurrency(saved.amount, saved.currency, maskIfHidden = false)
                 )
             }
             showTransactionNotification(
@@ -760,7 +760,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val transactionId = transaction.id
             val pendingIntent = openTransactionIntent(context, transactionId)
 
-            val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)
+            val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)
             val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
             val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
             val title = when (transaction.transactionType) {

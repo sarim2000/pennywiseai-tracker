@@ -109,7 +109,7 @@ class DailySummaryWorker @AssistedInject constructor(
         ).joinToString(" · ")
         val title = context.getString(
             R.string.notif_daily_title,
-            CurrencyFormatter.formatByCurrency(spent, fallbackCurrency = userPreferencesRepository.baseCurrency.first())
+            CurrencyFormatter.formatByCurrency(spent, fallbackCurrency = userPreferencesRepository.baseCurrency.first(), maskIfHidden = false)
         )
 
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

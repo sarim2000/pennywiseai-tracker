@@ -945,7 +945,7 @@ private fun TransactionReceipt(
                 DetailInfoRow(
                     icon = Icons.Default.Description,
                     label = stringResource(R.string.txn_detail_label_description),
-                    value = it
+                    value = CurrencyFormatter.maskAmountsIn(it)
                 )
             }
 
@@ -1313,7 +1313,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                 exit = fadeOut() + slideOutVertically()
             ) {
                 Text(
-                    text = smsBody,
+                    text = CurrencyFormatter.maskAmountsIn(smsBody),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = FontFamily.Monospace
                     ),

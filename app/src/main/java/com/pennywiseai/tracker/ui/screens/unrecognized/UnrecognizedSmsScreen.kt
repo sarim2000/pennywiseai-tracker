@@ -344,7 +344,7 @@ private fun UnrecognizedSmsItem(
 
             // Message content (truncated)
             Text(
-                text = message.smsBody,
+                text = CurrencyFormatter.maskAmountsIn(message.smsBody),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,

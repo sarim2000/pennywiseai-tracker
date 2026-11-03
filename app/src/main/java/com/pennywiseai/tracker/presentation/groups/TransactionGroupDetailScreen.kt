@@ -374,7 +374,7 @@ private fun GroupTransactionItem(
             val description = transaction.description?.takeIf { it.isNotBlank() }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    description ?: transaction.merchantName,
+                    description?.let(CurrencyFormatter::maskAmountsIn) ?: transaction.merchantName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -503,7 +503,7 @@ private fun AddTransactionToGroupSheet(
                                 val txnDescription = txn.description?.takeIf { it.isNotBlank() }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        txnDescription ?: txn.merchantName,
+                                        txnDescription?.let(CurrencyFormatter::maskAmountsIn) ?: txn.merchantName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface

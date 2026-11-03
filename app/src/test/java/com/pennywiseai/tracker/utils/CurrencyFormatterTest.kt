@@ -327,4 +327,41 @@ class CurrencyFormatterTest {
             }
         }
     }
+
+    @Test
+    fun `hidden amounts mask on screen but not where output leaves it`() {
+        AmountPrivacy.hidden = true
+        try {
+            val amount = BigDecimal("1200")
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatCurrency(amount, "USD"))
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatAbbreviated(1200.0, "USD"))
+            assertEquals(AmountPrivacy.MASK, Money(amount, "USD").format("-"))
+            // One mask for a mixed set: a mask per currency would still say how many.
+            val mixed = mapOf("USD" to Money(amount, "USD"), "INR" to Money(amount, "INR"))
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatByCurrency(mixed))
+            // Notifications, AI prompts and stored chat text opt out.
+            assertEquals("$1,200", CurrencyFormatter.formatCurrency(amount, "USD", maskIfHidden = false))
+            assertTrue(CurrencyFormatter.formatByCurrency(mixed, maskIfHidden = false).contains(" · "))
+        } finally {
+            AmountPrivacy.hidden = false
+        }
+        assertEquals("$1,200", CurrencyFormatter.formatCurrency(BigDecimal("1200"), "USD"))
+    }
+
+    @Test
+    fun `numbers baked into free text are masked only while hidden`() {
+        val text = "This month: $1,200.50 spent, 4 JOD received on Nov 2."
+        assertEquals(text, CurrencyFormatter.maskAmountsIn(text))
+        AmountPrivacy.hidden = true
+        try {
+            assertEquals("This month: •••• spent, •••• received on Nov ••••.", CurrencyFormatter.maskAmountsIn(text))
+            // What the chat suggests typing: no currency, still an amount.
+            assertEquals("coffee •••• at Starbucks", CurrencyFormatter.maskAmountsIn("coffee 120 at Starbucks"))
+            // formatCurrency's own output, isolate marks included; a word ending in a code's letters isn't eaten.
+            assertEquals("Deleted ••••.", CurrencyFormatter.maskAmountsIn("Deleted \u2066₹500\u2069."))
+            assertEquals("PAID ••••", CurrencyFormatter.maskAmountsIn("PAID 50"))
+        } finally {
+            AmountPrivacy.hidden = false
+        }
+    }
 }

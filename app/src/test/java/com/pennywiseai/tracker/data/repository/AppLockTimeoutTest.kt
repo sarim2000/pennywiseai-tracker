@@ -20,34 +20,41 @@ class AppLockTimeoutTest {
         assertFalse(shouldLock(isEnabled = false, timeoutMinutes = 5, lastAuthTimestamp = 0L, unlockedSinceBackground = false, now = now))
     }
 
-    @Test fun `immediately stays unlocked until the app leaves the screen`() =
-        assertFalse(shouldLock(isEnabled = true, timeoutMinutes = 0, lastAuthTimestamp = now - 60 * MILLIS_PER_MINUTE, unlockedSinceBackground = true, now = now))
+    @Test fun `unlocked on screen never locks, however long it's been`() {
+        for (timeout in listOf(0, 1, 5, 15)) {
+            assertFalse(shouldLock(isEnabled = true, timeoutMinutes = timeout, lastAuthTimestamp = now - 60 * MILLIS_PER_MINUTE, unlockedSinceBackground = true, now = now))
+        }
+    }
 
     @Test fun `immediately locks after a trip to the background, however short`() =
         assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 0, lastAuthTimestamp = now - 1, unlockedSinceBackground = false, now = now))
 
-    @Test fun `a timeout locks once it has passed since the last unlock`() {
+    @Test fun `a timeout counts from leaving the app`() {
         assertFalse(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = now - 4 * MILLIS_PER_MINUTE, unlockedSinceBackground = false, now = now))
-        assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = now - 5 * MILLIS_PER_MINUTE, unlockedSinceBackground = true, now = now))
+        assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = now - 5 * MILLIS_PER_MINUTE, unlockedSinceBackground = false, now = now))
     }
 
     @Test fun `a timeout with no unlock recorded locks`() =
-        assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = 0L, unlockedSinceBackground = true, now = now))
+        assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = 0L, unlockedSinceBackground = false, now = now))
 
-    @Test fun `changing a passed one-minute timeout to five never emits locked`() {
-        // Unlocked 90 s ago, then a trip out and back inside the minute cleared the flag.
-        val seen = emissionsOf(timeout = 1, lastAuth = now - 90_000, unlocked = false) { timeout, lastAuth, unlocked ->
-            // setTimeoutMinutes: the flag first, then one DataStore write of both values.
-            unlocked.value = true
-            timeout.value = 5
-            lastAuth.value = now
+    @Test fun `a clock set back before the last unlock locks`() =
+        assertTrue(shouldLock(isEnabled = true, timeoutMinutes = 5, lastAuthTimestamp = now + MILLIS_PER_MINUTE, unlockedSinceBackground = false, now = now))
+
+    @Test fun `changing the timeout on screen never emits locked, whatever order the values land in`() {
+        // Unlocked 90 s ago; setTimeoutMinutes sets the flag, then one DataStore write
+        // whose two values reach the combined flow one at a time.
+        for ((from, to) in listOf(1 to 5, 5 to 1, 15 to 1)) {
+            val seen = emissionsOf(timeout = from, lastAuth = now - 90_000, unlocked = true) { timeout, lastAuth, unlocked ->
+                unlocked.value = true
+                timeout.value = to
+                lastAuth.value = now
+            }
+            assertTrue("locked mid-change $from -> $to: $seen", seen.none { it })
         }
-        assertTrue(seen.first()) // the initial check: the minute has passed
-        assertTrue("locked mid-change: $seen", seen.drop(1).none { it })
     }
 
-    @Test fun `picking Immediately after a trip out does not lock the screen it was set on`() {
-        val seen = emissionsOf(timeout = 1, lastAuth = now - 30_000, unlocked = false) { timeout, lastAuth, unlocked ->
+    @Test fun `picking Immediately on screen does not lock the screen it was set on`() {
+        val seen = emissionsOf(timeout = 1, lastAuth = now - 30_000, unlocked = true) { timeout, lastAuth, unlocked ->
             unlocked.value = true
             timeout.value = 0
             lastAuth.value = now
@@ -63,6 +70,15 @@ class AppLockTimeoutTest {
         }
         assertEquals(listOf(false, true, false), seen.take(3))
         assertFalse(seen.last())
+    }
+
+    @Test fun `with a timeout, leaving the app stays unlocked until it runs out`() {
+        // onAppBackgrounded: the leave time is written first, then the flag clears.
+        val seen = emissionsOf(timeout = 5, lastAuth = now - 30 * MILLIS_PER_MINUTE, unlocked = true) { _, lastAuth, unlocked ->
+            lastAuth.value = now
+            unlocked.value = false
+        }
+        assertEquals(listOf(false), seen.distinct())
     }
 
     /** The lock flow's emissions while [changes] runs, from flows standing in for the settings. */

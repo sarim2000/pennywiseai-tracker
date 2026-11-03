@@ -2,15 +2,11 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,14 +29,25 @@ class AppLockRepository @Inject constructor(
     val timeoutMinutes: Flow<Int> = userPreferencesRepository.appLockTimeoutMinutes
 
     /**
-     * Whether the user unlocked (or changed a lock setting, which counts as one)
-     * since the app last left the screen. The "Immediately" timeout locks
-     * whenever it's false. In memory, so a new process starts locked.
+     * Whether the app is unlocked since it last came on screen: set by an unlock,
+     * a lock setting change (which counts as one) or a check that finds the
+     * timeout hasn't run out; cleared when the app leaves the screen. Nothing
+     * locks while it's true. In memory, so a new process starts from the
+     * persisted timestamp.
      */
     private val unlockedSinceBackground = MutableStateFlow(false)
 
-    /** Every PennyWise screen has left the foreground (not a rotation). */
-    fun onAppBackgrounded() {
+    /**
+     * Every PennyWise screen has left the foreground (not a rotation). Leaving
+     * unlocked restarts the timeout: "After 5 minutes" counts from here, not
+     * from the unlock. The timestamp is persisted first, so a check in between
+     * never sees the flag cleared against the old time.
+     */
+    suspend fun onAppBackgrounded() {
+        if (!unlockedSinceBackground.value) return
+        if (userPreferencesRepository.isAppLockEnabled.first()) {
+            userPreferencesRepository.setLastAuthTimestamp(System.currentTimeMillis())
+        }
         unlockedSinceBackground.value = false
     }
 
@@ -78,16 +85,21 @@ class AppLockRepository @Inject constructor(
     }
 
     /**
-     * Check if the app should be locked based on timeout
-     * Returns true if app lock is enabled and timeout has elapsed
+     * Check if the app should be locked based on timeout. Called as a screen
+     * comes up: when the timeout hasn't run out, the app is unlocked from here
+     * on, so staying on screen past it doesn't lock.
      */
-    suspend fun shouldLockApp(): Boolean = shouldLock(
-        isEnabled = userPreferencesRepository.isAppLockEnabled.first(),
-        timeoutMinutes = userPreferencesRepository.getAppLockTimeoutMinutes(),
-        lastAuthTimestamp = userPreferencesRepository.getLastAuthTimestamp(),
-        unlockedSinceBackground = unlockedSinceBackground.value,
-        now = System.currentTimeMillis()
-    )
+    suspend fun shouldLockApp(): Boolean {
+        val locked = shouldLock(
+            isEnabled = userPreferencesRepository.isAppLockEnabled.first(),
+            timeoutMinutes = userPreferencesRepository.getAppLockTimeoutMinutes(),
+            lastAuthTimestamp = userPreferencesRepository.getLastAuthTimestamp(),
+            unlockedSinceBackground = unlockedSinceBackground.value,
+            now = System.currentTimeMillis()
+        )
+        if (!locked) unlockedSinceBackground.value = true
+        return locked
+    }
 
     /**
      * Flow that emits whether the app should be locked
@@ -109,13 +121,12 @@ class AppLockRepository @Inject constructor(
 }
 
 /**
- * [shouldLock] as a flow. Re-checks only when an input really changes: every
- * DataStore write re-emits the settings, and a re-check with a fresh clock would
- * lock mid-use once a timeout has passed since the unlock. The in-memory flag
- * only feeds the "Immediately" rule, so setting it ahead of a settings write
- * can't re-run a timed rule against the old timeout and unlock time.
+ * [shouldLock] as a flow. Re-checks only when an input really changes, since
+ * every DataStore write re-emits the settings. While the app is unlocked on
+ * screen the flag keeps it unlocked whatever the other inputs say, so the
+ * separate DataStore values of one settings write arriving one at a time can't
+ * lock it mid-change.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 internal fun lockStateFlow(
     isEnabled: Flow<Boolean>,
     timeoutMinutes: Flow<Int>,
@@ -125,20 +136,15 @@ internal fun lockStateFlow(
 ): Flow<Boolean> = combine(
     isEnabled.distinctUntilChanged(),
     timeoutMinutes.distinctUntilChanged(),
-    lastAuthTimestamp.distinctUntilChanged()
-) { enabled, timeout, lastAuth -> Triple(enabled, timeout, lastAuth) }
-    .flatMapLatest { (enabled, timeout, lastAuth) ->
-        if (enabled && timeout == 0) {
-            unlockedSinceBackground.map { unlocked -> shouldLock(true, 0, lastAuth, unlocked, now()) }
-        } else {
-            flowOf(shouldLock(enabled, timeout, lastAuth, unlockedSinceBackground = false, now = now()))
-        }
-    }
+    lastAuthTimestamp.distinctUntilChanged(),
+    unlockedSinceBackground
+) { enabled, timeout, lastAuth, unlocked -> shouldLock(enabled, timeout, lastAuth, unlocked, now()) }
 
 /**
- * "Immediately" (timeout 0) locks each time the app comes back from the
- * background; any other timeout locks once that long has passed since the last
- * unlock.
+ * Never locks while the app is unlocked on screen. Once it has left: with
+ * "Immediately" (timeout 0) it locks on return; otherwise once that long has
+ * passed since it was last unlocked on screen ([lastAuthTimestamp], refreshed
+ * on leaving), or if the clock now reads earlier than that.
  */
 internal fun shouldLock(
     isEnabled: Boolean,
@@ -147,9 +153,10 @@ internal fun shouldLock(
     unlockedSinceBackground: Boolean,
     now: Long
 ): Boolean {
-    if (!isEnabled) return false
-    if (timeoutMinutes == 0) return !unlockedSinceBackground
+    if (!isEnabled || unlockedSinceBackground) return false
+    if (timeoutMinutes == 0) return true
     // No unlock recorded yet
     if (lastAuthTimestamp == 0L) return true
-    return now - lastAuthTimestamp >= timeoutMinutes * TimeConstants.MILLIS_PER_MINUTE
+    val away = now - lastAuthTimestamp
+    return away < 0 || away >= timeoutMinutes * TimeConstants.MILLIS_PER_MINUTE
 }

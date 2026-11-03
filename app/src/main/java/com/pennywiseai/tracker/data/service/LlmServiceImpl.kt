@@ -13,6 +13,7 @@ import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.tool
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.transform
 import com.pennywiseai.tracker.domain.service.LlmService
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -40,6 +41,9 @@ class LlmServiceImpl @Inject constructor(
     // IllegalStateException for a close it can't perform (a 2.21.0 crash).
     private val lifecycle = Mutex()
 
+    // True from a GPU start until its first streamed reply; KEY_GPU_FAILED stays armed meanwhile.
+    @Volatile private var gpuUnconfirmed = false
+
     private val backendPrefs by lazy { context.getSharedPreferences("llm_backend", Context.MODE_PRIVATE) }
 
     override suspend fun initialize(modelPath: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -50,15 +54,19 @@ class LlmServiceImpl @Inject constructor(
         return try {
             // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
             // A buggy driver can instead crash natively, which no catch sees: the flag is
-            // written before trying and cleared only on success, so a GPU attempt that
-            // crashed or threw is never retried and later starts go straight to CPU.
-            val cpu = { startEngine(modelPath, Backend.CPU()).also { Log.i(TAG, "Engine initialized on CPU backend") } }
+            // written before trying and cleared only once the GPU streams its first reply
+            // (a driver can also die creating the conversation or generating), so a GPU
+            // attempt that crashed or threw is never retried and later starts go to CPU.
+            val cpu = {
+                gpuUnconfirmed = false
+                startEngine(modelPath, Backend.CPU()).also { Log.i(TAG, "Engine initialized on CPU backend") }
+            }
             engine = if (backendPrefs.getBoolean(KEY_GPU_FAILED, false)) {
                 cpu()
             } else try {
                 backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit()
                 startEngine(modelPath, Backend.GPU()).also {
-                    backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).apply()
+                    gpuUnconfirmed = true
                     Log.i(TAG, "Engine initialized on GPU backend")
                 }
             } catch (e: Throwable) { // incl. UnsatisfiedLinkError when the OpenCL lib is missing
@@ -123,6 +131,12 @@ class LlmServiceImpl @Inject constructor(
         Log.d(TAG, "Sending message: ${message.take(50)}...")
 
         return activeConversation.sendMessageAsync(message)
+            .onEach {
+                if (gpuUnconfirmed) {
+                    gpuUnconfirmed = false
+                    backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).apply()
+                }
+            }
             .catch { e ->
                 Log.e(TAG, "Error during streaming response", e)
                 throw e

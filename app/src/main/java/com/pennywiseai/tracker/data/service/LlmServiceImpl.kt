@@ -13,10 +13,12 @@ import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.tool
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transform
 import com.pennywiseai.tracker.domain.service.LlmService
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -41,7 +43,7 @@ class LlmServiceImpl @Inject constructor(
     // IllegalStateException for a close it can't perform (a 2.21.0 crash).
     private val lifecycle = Mutex()
 
-    // True from a GPU start until its first streamed reply; KEY_GPU_FAILED stays armed meanwhile.
+    // True from a GPU start until its first reply completes; KEY_GPU_FAILED stays armed meanwhile.
     @Volatile private var gpuUnconfirmed = false
 
     private val backendPrefs by lazy { context.getSharedPreferences("llm_backend", Context.MODE_PRIVATE) }
@@ -54,7 +56,7 @@ class LlmServiceImpl @Inject constructor(
         return try {
             // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
             // A buggy driver can instead crash natively, which no catch sees: the flag is
-            // written before trying and cleared only once the GPU streams its first reply
+            // written before trying and cleared only once the GPU finishes its first reply
             // (a driver can also die creating the conversation or generating), so a GPU
             // attempt that crashed or threw is never retried and later starts go to CPU.
             val cpu = {
@@ -128,12 +130,16 @@ class LlmServiceImpl @Inject constructor(
         val activeConversation = conversation
             ?: throw IllegalStateException("No active conversation")
 
-        Log.d(TAG, "Sending message: ${message.take(50)}...")
+        Log.d(TAG, "Sending message (${message.length} chars)")
 
         return activeConversation.sendMessageAsync(message)
-            .onEach {
-                if (gpuUnconfirmed) {
-                    gpuUnconfirmed = false
+            // Re-arm after a cancelled first reply; commit() so a native crash still finds it.
+            .onStart { if (gpuUnconfirmed) backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit() }
+            .onCompletion { cause ->
+                // Finished: the GPU works. Cancelled (chat closed): no verdict, so the next
+                // start may try GPU again. A thrown error keeps the flag, so it starts on CPU.
+                if (gpuUnconfirmed && (cause == null || cause is CancellationException)) {
+                    if (cause == null) gpuUnconfirmed = false
                     backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).apply()
                 }
             }

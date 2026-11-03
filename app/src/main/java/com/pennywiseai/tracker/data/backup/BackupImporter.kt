@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.builtinKey
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.billing.license.LicenseManager

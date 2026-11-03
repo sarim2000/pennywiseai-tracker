@@ -40,6 +40,15 @@ Two quirks worth knowing:
 - `MIGRATION_1_2` sits in the file as a live but unregistered example. v1→2 runs as an auto-migration.
 - Some manual migrations skip intermediate versions (`MIGRATION_12_14`) so devices several releases behind can jump directly.
 
+## Room 3 plumbing
+
+Room 3 (`androidx.room3`) has no SupportSQLite. A `Migration.migrate`, an `AutoMigrationSpec.onPostMigrate` and a `RoomDatabase.Callback.onCreate` are `suspend` and get an `androidx.sqlite.SQLiteConnection`:
+
+- `db.execSQL(sql)` is `androidx.sqlite.execSQL`; `db.execSQL(sql, arrayOf(...))` and `db.hasColumn(table, column)` (the `PRAGMA table_info` guard) live in `data/database/RoomCompat.kt`.
+- Use the connection only inside the call. Room 3 confines it, so don't hand it to a launched coroutine.
+- App code calls `database.withTransaction { }` from `RoomCompat.kt`, which runs Room 3's `withWriteTransaction`. A nested call becomes a savepoint inside the outer transaction.
+- Both builders set `AndroidSQLiteDriver`, the phone's own SQLite that Room 2 used. A bundled driver would put a newer SQLite under existing users' files and change the rule below. Don't switch drivers without updating it.
+
 ## Adding a migration: checklist
 
 1. Bump `SCHEMA_VERSION` at the top of `PennyWiseDatabase.kt`. It's a top-level constant so non-Room code like `BackupExporter` can stamp backups with the same number.

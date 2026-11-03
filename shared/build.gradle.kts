@@ -64,7 +64,3 @@ dependencies {
         add("kspIosSimulatorArm64", libs.androidx.room.compiler)
     }
 }
-
-ksp {
-    arg("room.generateKotlin", "true")
-}

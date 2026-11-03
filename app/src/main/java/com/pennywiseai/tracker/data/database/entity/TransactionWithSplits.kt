@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.data.database.entity
 
-import androidx.room.Embedded
-import androidx.room.Relation
+import androidx.room3.Embedded
+import androidx.room3.Relation
 import java.math.BigDecimal
 
 data class TransactionWithSplits(
@@ -9,8 +9,8 @@ data class TransactionWithSplits(
     val transaction: TransactionEntity,
 
     @Relation(
-        parentColumn = "id",
-        entityColumn = "transaction_id"
+        parentColumns = ["id"],
+        entityColumns = ["transaction_id"]
     )
     val splits: List<TransactionSplitEntity>
 ) {

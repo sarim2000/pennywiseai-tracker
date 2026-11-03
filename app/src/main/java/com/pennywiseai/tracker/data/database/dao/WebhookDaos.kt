@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.data.database.dao
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room3.Dao
+import androidx.room3.Insert
+import androidx.room3.OnConflictStrategy
+import androidx.room3.Query
+import androidx.room3.Update
 import com.pennywiseai.tracker.data.database.entity.*
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDateTime
@@ -14,7 +14,7 @@ interface WebhookProfileDao {
     @Query("SELECT * FROM webhook_profiles ORDER BY created_at DESC") fun observeAll(): Flow<List<WebhookProfileEntity>>
     @Query("SELECT * FROM webhook_profiles WHERE enabled = 1") suspend fun enabled(): List<WebhookProfileEntity>
     @Query("SELECT * FROM webhook_profiles WHERE id = :id") suspend fun byId(id: String): WebhookProfileEntity?
-    @androidx.room.Upsert suspend fun upsert(profile: WebhookProfileEntity)
+    @androidx.room3.Upsert suspend fun upsert(profile: WebhookProfileEntity)
     @Update suspend fun update(profile: WebhookProfileEntity)
     @Query("UPDATE webhook_profiles SET enabled = :enabled, updated_at = :at WHERE id = :id")
     suspend fun setEnabled(id: String, enabled: Boolean, at: LocalDateTime)

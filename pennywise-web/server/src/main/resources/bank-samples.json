@@ -8,7 +8,7 @@
       "type": "EXPENSE",
       "merchant": "WE EGIES",
       "accountLast4": "101",
-      "reference": "from",
+      "reference": null,
       "balance": null
     },
     "AU Small Finance Bank": {
@@ -239,7 +239,7 @@
       "type": "INCOME",
       "merchant": "ORACLE IRELAND",
       "accountLast4": "8016",
-      "reference": "on",
+      "reference": null,
       "balance": null
     },
     "CIMB Thai": {
@@ -294,7 +294,7 @@
       "type": "INCOME",
       "merchant": "NEXTBILLION TECHNOLOGY PRIVATE LIMI",
       "accountLast4": "1234",
-      "reference": "No",
+      "reference": null,
       "balance": null
     },
     "Charles Schwab": {
@@ -305,7 +305,7 @@
       "type": "EXPENSE",
       "merchant": null,
       "accountLast4": "5678",
-      "reference": "was",
+      "reference": null,
       "balance": null
     },
     "Chase": {
@@ -316,7 +316,7 @@
       "type": "EXPENSE",
       "merchant": "TACO BELL 740493",
       "accountLast4": null,
-      "reference": "with",
+      "reference": null,
       "balance": null
     },
     "Chase UK": {
@@ -338,7 +338,7 @@
       "type": "EXPENSE",
       "merchant": "BP#1234E",
       "accountLast4": "1234",
-      "reference": "was",
+      "reference": null,
       "balance": null
     },
     "Citizens Bank": {
@@ -536,7 +536,7 @@
       "type": "EXPENSE",
       "merchant": "Debit Transaction",
       "accountLast4": "5207",
-      "reference": "of",
+      "reference": null,
       "balance": "1127.55"
     },
     "HDFC Bank": {
@@ -899,7 +899,7 @@
       "type": "INCOME",
       "merchant": "CEFT Inward Transfer Deposit",
       "accountLast4": "1234",
-      "reference": "CEFT",
+      "reference": null,
       "balance": "12653.61"
     },
     "Nations Trust Bank": {
@@ -910,7 +910,7 @@
       "type": "CREDIT",
       "merchant": "BILL PAYMENT VIA NATIONS",
       "accountLast4": "1234",
-      "reference": "Approved",
+      "reference": null,
       "balance": "12345.73"
     },
     "Navy Federal Credit Union": {
@@ -921,7 +921,7 @@
       "type": "EXPENSE",
       "merchant": "Target",
       "accountLast4": "5678",
-      "reference": "for",
+      "reference": null,
       "balance": null
     },
     "Nepal Bank Limited": {
@@ -1113,14 +1113,14 @@
     },
     "Standard Chartered Bank": {
       "sender": "9220",
-      "message": "Dear Client, an ATM cash withdrawal transaction of PKR 30,000.00 has been made on 01-12-25 using credit card no 0141. Avail Limit PKR18062.81. SCBPL",
+      "message": "Dear Client, PKR 1,958.98 have been paid at FOOD PANDA KARACHI PAK on 23-03-26 using Credit Card no 0141. Avail Limit PKR5174.79. SCBPL",
       "currency": "PKR",
-      "amount": "30000.00",
+      "amount": "1958.98",
       "type": "CREDIT",
-      "merchant": "ATM Cash Withdrawal",
+      "merchant": "FOOD PANDA KARACHI PAK",
       "accountLast4": "0141",
-      "reference": "of",
-      "balance": "18062.81"
+      "reference": null,
+      "balance": "5174.79"
     },
     "Standard Chartered Bank Nepal": {
       "sender": "SC_ALERT",

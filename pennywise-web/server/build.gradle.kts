@@ -1,17 +1,13 @@
-val h2_version: String by project
-val koin_version: String by project
-val kotlin_version: String by project
-val kotlinx_browser_version: String by project
-val kotlinx_html_version: String by project
-val logback_version: String by project
-val postgres_version: String by project
-val exposed_version: String by project
-val hikari_version: String by project
+val h2_version = project.property("h2_version")
+val kotlin_version = project.property("kotlin_version")
+val kotlinx_html_version = project.property("kotlinx_html_version")
+val logback_version = project.property("logback_version")
+val postgres_version = project.property("postgres_version")
 
 plugins {
-    kotlin("jvm") version "2.3.0"
-    id("io.ktor.plugin") version "3.2.3"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0"
+    kotlin("jvm") version "2.4.21"
+    id("io.ktor.plugin") version "3.6.1"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.21"
 }
 
 application {

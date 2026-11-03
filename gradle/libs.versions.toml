@@ -25,14 +25,11 @@ opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
 roomVersion = "2.8.5"
-# litertlm >= 0.14 is compiled with -Xjvm-default=all and calls
-# SendChannel.close$default as an interface static. kotlinx-coroutines only
-# ships that static from 1.11.0 (built with jvm-default statics); the coroutines
-# version below must stay >= 1.11.0 for exactly this reason. Verified on the
-# emulator: chat + generation complete without the #599 NoSuchMethodError, and
-# generation is ~3x faster than 0.13.1. 0.17.0 additionally needs a Hilt bump
-# (Kotlin 2.4 metadata) — not done yet.
-litertlm = "0.16.1"
+# litertlm >= 0.14 is built with -Xjvm-default=all and calls
+# SendChannel.close$default as an interface static, which kotlinx-coroutines
+# only ships from 1.11.0 — keep coroutines >= 1.11.0 (#599). 0.17+ needs
+# Kotlin 2.4 metadata (Hilt >= 2.60).
+litertlm = "0.19.0"
 coroutines = "1.11.0"
 workVersion = "2.12.0"
 coil = "3.6.3"

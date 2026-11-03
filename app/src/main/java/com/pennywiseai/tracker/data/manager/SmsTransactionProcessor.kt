@@ -4,7 +4,7 @@ import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import android.content.Context
 import android.util.Log
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase

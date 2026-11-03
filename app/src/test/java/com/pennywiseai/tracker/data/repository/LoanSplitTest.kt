@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -56,7 +56,7 @@ class LoanSplitTest {
 
     @Before
     fun setUp() {
-        mockkStatic("androidx.room.RoomDatabaseKt")
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
 
         coEvery { loanDao.getLoanById(any()) } answers { loans[firstArg()] }
@@ -105,7 +105,7 @@ class LoanSplitTest {
     }
 
     @After
-    fun tearDown() = unmockkStatic("androidx.room.RoomDatabaseKt")
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     @Test
     fun `each share becomes money owed on its own loan and the bill counts only your part`() = runBlocking {

@@ -1,8 +1,9 @@
 package com.pennywiseai.tracker.data.database
 
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.SQLiteConnection
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -18,12 +19,13 @@ class MigrationSqlCompatibilityTest {
     @Test
     fun `no migration uses HAVING without GROUP BY`() {
         val statements = mutableListOf<String>()
-        val db = mockk<SupportSQLiteDatabase>(relaxed = true)
-        every { db.execSQL(any()) } answers { statements += firstArg<String>() }
-        every { db.execSQL(any(), any()) } answers { statements += firstArg<String>() }
+        // Every statement a migration runs goes through prepare() on the driver connection.
+        val db = mockk<SQLiteConnection>(relaxed = true)
+        every { db.prepare(any()) } answers { statements += firstArg<String>(); mockk(relaxed = true) }
 
-        PennyWiseDatabase.ALL_MIGRATIONS.forEach { it.migrate(db) }
+        runBlocking { PennyWiseDatabase.ALL_MIGRATIONS.forEach { it.migrate(db) } }
 
+        assertTrue("no migration SQL captured", statements.size > 50)
         val offending = statements.filter {
             it.contains("HAVING", ignoreCase = true) && !it.contains("GROUP BY", ignoreCase = true)
         }

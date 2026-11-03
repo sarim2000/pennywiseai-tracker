@@ -1,258 +1,306 @@
 package com.pennywiseai.tracker.navigation
 
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.DEFAULT_ARGS_KEY
+import androidx.lifecycle.HasDefaultViewModelProviderFactory
+import androidx.lifecycle.SavedStateViewModelFactory
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.toRoute
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.MutableCreationExtras
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.scene.Scene
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import androidx.navigation3.ui.NavDisplay
+import androidx.savedstate.serialization.encodeToSavedState
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.MainScreen
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
+import kotlinx.serialization.serializer
+
+/** navigate(key) { launchSingleTop = true }: the same kind of screen on top is replaced, not stacked. */
+fun NavBackStack<NavKey>.navigate(key: NavKey) {
+    val top = lastOrNull()
+    when {
+        top == key -> Unit
+        top != null && top::class == key::class -> set(lastIndex, key)
+        else -> add(key)
+    }
+}
 
 /**
- * Safe version of popBackStack that prevents rapid back presses from causing
- * screen overlap. Only pops if the current entry is fully RESUMED.
+ * Back from the screen [key]: pops only while it's still on top, so a double tap
+ * on a back arrow can't pop the screen under it too (was safePopBackStack).
  */
-fun NavHostController.safePopBackStack() {
-    if (currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED) {
-        popBackStack()
+fun NavBackStack<NavKey>.pop(key: NavKey) {
+    if (size > 1 && lastOrNull() == key) removeAt(lastIndex)
+}
+
+/** popUpTo(the last screen matching [match]) { inclusive = true }, then [key] in its place. */
+fun NavBackStack<NavKey>.replaceLast(key: NavKey, match: (NavKey) -> Boolean) {
+    val i = indexOfLast(match)
+    if (i < 0) return navigate(key)
+    subList(i + 1, size).clear()
+    set(i, key)
+}
+
+/** Per-entry saveable state and ViewModelStore, so ViewModels stay scoped to their entry. */
+@Composable
+fun rememberEntryDecorators(): List<NavEntryDecorator<NavKey>> = listOf(
+    rememberSaveableStateHolderNavEntryDecorator(),
+    rememberViewModelStoreNavEntryDecorator()
+)
+
+/**
+ * Hands each key's properties to its entry's ViewModels as SavedStateHandle
+ * arguments, as navigation-compose did, so `savedStateHandle.get<Long>("goalId")`
+ * keeps working. Replaces the inherited default args rather than merging them,
+ * or the activity's intent extras would leak into every screen's handle.
+ */
+fun withRouteArgs(provider: (NavKey) -> NavEntry<NavKey>): (NavKey) -> NavEntry<NavKey> = { key ->
+    val entry = provider(key)
+    NavEntry(navEntry = entry) { k: NavKey -> RouteArgs(k) { entry.Content() } }
+}
+
+@Composable
+private fun RouteArgs(key: NavKey, content: @Composable () -> Unit) {
+    val parent = checkNotNull(LocalViewModelStoreOwner.current) { "No ViewModelStoreOwner" }
+    val owner = remember(parent, key) {
+        val args = encodeToSavedState(serializer(key.javaClass), key)
+        val defaults = parent as? HasDefaultViewModelProviderFactory
+        object : ViewModelStoreOwner by parent, HasDefaultViewModelProviderFactory {
+            override val defaultViewModelProviderFactory =
+                defaults?.defaultViewModelProviderFactory ?: SavedStateViewModelFactory()
+            override val defaultViewModelCreationExtras: CreationExtras
+                get() = MutableCreationExtras(defaults?.defaultViewModelCreationExtras ?: CreationExtras.Empty)
+                    .apply { set(DEFAULT_ARGS_KEY, args) }
+        }
     }
+    CompositionLocalProvider(LocalViewModelStoreOwner provides owner, content = content)
+}
+
+// M3 Expressive motion: spatial spring for the slide, effects spring for the
+// fade, both from the theme's MotionScheme.
+private fun enterSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+    fadeIn(m.defaultEffectsSpec()) + slideInVertically(m.defaultSpatialSpec()) { it / 4 } togetherWith
+        fadeOut(m.fastEffectsSpec())
+}
+private fun popSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+    fadeIn(m.defaultEffectsSpec()) togetherWith
+        fadeOut(m.fastEffectsSpec()) + slideOutVertically(m.fastSpatialSpec()) { it / 4 }
+}
+
+/** Home and Transaction detail cross-fade both ways (shared-element transaction rows). */
+private fun fadeOnly(m: MotionScheme): Map<String, Any> {
+    val fade: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform =
+        { fadeIn(m.defaultEffectsSpec()) togetherWith fadeOut(m.fastEffectsSpec()) }
+    return NavDisplay.transitionSpec(fade) +
+        NavDisplay.popTransitionSpec(fade) +
+        NavDisplay.predictivePopTransitionSpec { fade(this) }
 }
 
 @Composable
 fun PennyWiseNavHost(
-    navController: NavHostController,
+    backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
     themeViewModel: ThemeViewModel = hiltViewModel(),
-    startDestination: Any = Home,
     onEditComplete: () -> Unit = {}
 ) {
-    // Use a stable start destination
-    val stableStartDestination = remember { startDestination }
     val motion = MaterialTheme.motionScheme
-
+    val enterSlide = remember(motion) { enterSlide(motion) }
+    val popSlide = remember(motion) { popSlide(motion) }
+    val fadeOnly = remember(motion) { fadeOnly(motion) }
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
-    NavHost(
-        navController = navController,
-        startDestination = stableStartDestination,
+    NavDisplay(
+        backStack = backStack,
         modifier = modifier.background(MaterialTheme.colorScheme.background),
-        // M3 Expressive motion: spatial spring for the slide, effects spring
-        // for the fade, both from the theme's MotionScheme.
-        enterTransition = {
-            fadeIn(motion.defaultEffectsSpec()) +
-                slideInVertically(motion.defaultSpatialSpec()) { it / 4 }
-        },
-        exitTransition = { fadeOut(motion.fastEffectsSpec()) },
-        popEnterTransition = { fadeIn(motion.defaultEffectsSpec()) },
-        popExitTransition = {
-            fadeOut(motion.fastEffectsSpec()) +
-                slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
-        }
-    ) {
-        composable<AppLock>(
-            // At once: a fade-in shows the screen it's locking through it.
-            // The other three transitions fall back to the NavHost defaults.
-            enterTransition = { EnterTransition.None }
-        ) {
+        entryDecorators = rememberEntryDecorators(),
+        transitionSpec = enterSlide,
+        popTransitionSpec = popSlide,
+        predictivePopTransitionSpec = { popSlide(this) },
+        entryProvider = withRouteArgs(entryProvider {
+        // At once: a fade-in shows the screen it's locking through it.
+        entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     // Back to the screen it covered. Pops AppLock itself, so a repeat
                     // call (a second success mid-transition) doesn't pop that screen too.
-                    if (navController.previousBackStackEntry != null) {
-                        navController.popBackStack<AppLock>(inclusive = true)
-                    } else {
-                        navController.navigate(Home) {
-                            popUpTo(AppLock) { inclusive = true }
-                            launchSingleTop = true
-                        }
+                    val i = backStack.lastIndexOf(AppLock)
+                    if (i > 0) {
+                        backStack.subList(i, backStack.size).clear()
+                    } else if (i == 0) {
+                        backStack.replaceLast(Home) { it == AppLock }
                     }
                 }
             )
         }
-        composable<OnBoarding> {
+        entry<OnBoarding> {
             com.pennywiseai.tracker.ui.screens.onboarding.OnBoardingScreen(
                 onOnboardingComplete = {
-                    navController.navigate(Home) {
-                        launchSingleTop = true
-                        popUpTo(OnBoarding) { inclusive = true }
-                    }
+                    backStack.replaceLast(Home) { it == OnBoarding }
                 }
             )
         }
-        composable<Home>(
-            enterTransition = { fadeIn(motion.defaultEffectsSpec()) },
-            exitTransition = { fadeOut(motion.fastEffectsSpec()) },
-            popEnterTransition = { fadeIn(motion.defaultEffectsSpec()) },
-            popExitTransition = { fadeOut(motion.fastEffectsSpec()) }
-        ) {
-            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
+        entry<Home>(metadata = fadeOnly) {
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
                 MainScreen(
-                    rootNavController = navController
+                    rootBackStack = backStack
                 )
             }
         }
 
-        composable<Settings> {
+        entry<Settings> { key ->
             com.pennywiseai.tracker.ui.screens.settings.SettingsScreen(
                 themeViewModel = themeViewModel,
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToCategories = {
-                    navController.navigate(Categories) { launchSingleTop = true }
+                    backStack.navigate(Categories)
                 },
                 onNavigateToUnrecognizedSms = {
-                    navController.navigate(UnrecognizedSms) { launchSingleTop = true }
+                    backStack.navigate(UnrecognizedSms)
                 },
                 onNavigateToFaq = {
-                    navController.navigate(Faq) { launchSingleTop = true }
+                    backStack.navigate(Faq)
                 },
                 onNavigateToBudgets = {
-                    navController.navigate(BudgetGroups()) { launchSingleTop = true }
+                    backStack.navigate(BudgetGroups())
                 },
                 onNavigateToExchangeRates = {
-                    navController.navigate(ExchangeRates) { launchSingleTop = true }
+                    backStack.navigate(ExchangeRates)
                 },
                 onNavigateToImportStatement = {
-                    navController.navigate(ImportStatement) { launchSingleTop = true }
+                    backStack.navigate(ImportStatement)
                 },
                 onNavigateToTransactionGroups = {
-                    navController.navigate(TransactionGroups) { launchSingleTop = true }
+                    backStack.navigate(TransactionGroups)
                 },
                 onNavigateToWebhooks = {
-                    navController.navigate(Webhooks) { launchSingleTop = true }
+                    backStack.navigate(Webhooks)
                 },
                 onNavigateToAiAccess = {
-                    navController.navigate(AiAccess) { launchSingleTop = true }
+                    backStack.navigate(AiAccess)
                 }
             )
         }
 
-        composable<AiAccess> {
+        entry<AiAccess> { key ->
             com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
-                onNavigateBack = { navController.safePopBackStack() }
+                onNavigateBack = { backStack.pop(key) }
             )
         }
 
-        composable<Webhooks> {
+        entry<Webhooks> { key ->
             com.pennywiseai.tracker.ui.screens.settings.webhooks.WebhooksScreen(
-                onNavigateBack = { navController.safePopBackStack() }
+                onNavigateBack = { backStack.pop(key) }
             )
         }
 
-        composable<Categories> {
+        entry<Categories> { key ->
             com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
-        
-        composable<TransactionDetail>(
-            enterTransition = { fadeIn(motion.defaultEffectsSpec()) },
-            exitTransition = { fadeOut(motion.fastEffectsSpec()) },
-            popEnterTransition = { fadeIn(motion.defaultEffectsSpec()) },
-            popExitTransition = { fadeOut(motion.fastEffectsSpec()) }
-        ) { backStackEntry ->
-            val transactionDetail = backStackEntry.toRoute<TransactionDetail>()
-            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
+
+        entry<TransactionDetail>(metadata = fadeOnly) { key ->
+            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
                 com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
-                    transactionId = transactionDetail.transactionId,
+                    transactionId = key.transactionId,
                     onNavigateBack = {
                         onEditComplete()
-                        navController.safePopBackStack()
+                        backStack.pop(key)
                     },
                     onNavigateToLoanDetail = { loanId ->
-                        navController.navigate(LoanDetail(loanId)) {
-                            launchSingleTop = true
-                        }
+                        backStack.navigate(LoanDetail(loanId))
                     },
                     onDuplicateTransaction = { sourceId ->
-                        navController.navigate(AddTransaction(sourceTransactionId = sourceId)) {
-                            launchSingleTop = true
-                        }
+                        backStack.navigate(AddTransaction(sourceTransactionId = sourceId))
                     },
                     onNavigateToGoal = { goalId ->
-                        navController.navigate(GoalDetail(goalId)) { launchSingleTop = true }
+                        backStack.navigate(GoalDetail(goalId))
                     },
                     onCreateGoal = {
-                        navController.navigate(GoalEdit()) { launchSingleTop = true }
+                        backStack.navigate(GoalEdit())
                     }
                 )
             }
         }
 
-        composable<AddTransaction> {
+        entry<AddTransaction> { key ->
             com.pennywiseai.tracker.presentation.add.AddScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
-        
-        composable<UnrecognizedSms> {
+
+        entry<UnrecognizedSms> { key ->
             com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onAddSuggestion = { draft ->
-                    navController.navigate(draft) { launchSingleTop = true }
+                    backStack.navigate(draft)
                 }
             )
         }
-        
-        composable<Faq> {
+
+        entry<Faq> { key ->
             com.pennywiseai.tracker.ui.screens.settings.FAQScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
 
-        composable<Rules> {
+        entry<Rules> { key ->
             com.pennywiseai.tracker.ui.screens.rules.RulesScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToCreateRule = {
-                    navController.navigate(CreateRule()) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(CreateRule())
                 },
                 onNavigateToEditRule = { ruleId ->
-                    navController.navigate(CreateRule(ruleId = ruleId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(CreateRule(ruleId = ruleId))
                 },
                 onNavigateToDuplicateRule = { ruleId ->
-                    navController.navigate(CreateRule(duplicateFromId = ruleId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(CreateRule(duplicateFromId = ruleId))
                 }
             )
         }
 
-        composable<CreateRule> { backStackEntry ->
-            val createRule = backStackEntry.toRoute<CreateRule>()
+        entry<CreateRule> { createRule ->
             val rulesViewModel: com.pennywiseai.tracker.ui.viewmodel.RulesViewModel = hiltViewModel()
 
             // Collect rules from the flow to find the rule being edited or duplicated.
@@ -281,7 +329,7 @@ fun PennyWiseNavHost(
 
             com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(createRule)
                 },
                 onSaveRule = { rule ->
                     // Edit updates in place; create/duplicate inserts a new rule.
@@ -290,187 +338,168 @@ fun PennyWiseNavHost(
                     } else {
                         rulesViewModel.createRule(rule)
                     }
-                    navController.safePopBackStack()
+                    backStack.pop(createRule)
                 },
                 existingRule = prefillRule,
                 isEditing = isEditing,
                 allAccounts = accounts
             )
         }
-        
-        composable<AccountDetail> {
+
+        entry<AccountDetail> { key ->
             com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
-                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateBack = { backStack.pop(key) },
                 onTransactionClick = { id ->
-                    navController.navigate(TransactionDetail(id)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(TransactionDetail(id))
                 }
             )
         }
 
-        composable<BudgetGroups> { backStackEntry ->
+        entry<BudgetGroups> { key ->
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
-                createGoalOnOpen = backStackEntry.toRoute<BudgetGroups>().createGoal,
+                createGoalOnOpen = key.createGoal,
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToGroupEdit = { groupId ->
-                    navController.navigate(BudgetGroupEdit(groupId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(BudgetGroupEdit(groupId))
                 },
                 onNavigateToHistory = { groupId, year, month ->
-                    navController.navigate(BudgetHistory(groupId, year, month)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(BudgetHistory(groupId, year, month))
                 },
                 onNavigateToCategory = { category, yearMonth, currency ->
-                    navController.navigate(TransactionsWithFilter(category, yearMonth, currency)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(TransactionsWithFilter(category, yearMonth, currency))
                 },
                 onNavigateToGoal = { goalId ->
-                    navController.navigate(GoalDetail(goalId)) { launchSingleTop = true }
+                    backStack.navigate(GoalDetail(goalId))
                 },
                 onNavigateToGoalEdit = { goalId ->
-                    navController.navigate(GoalEdit(goalId)) { launchSingleTop = true }
+                    backStack.navigate(GoalEdit(goalId))
                 }
             )
         }
 
-        composable<GoalDetail> {
+        entry<GoalDetail> { key ->
             com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
-                onNavigateBack = { navController.safePopBackStack() },
-                onEdit = { goalId -> navController.navigate(GoalEdit(goalId)) { launchSingleTop = true } },
+                onNavigateBack = { backStack.pop(key) },
+                onEdit = { goalId -> backStack.navigate(GoalEdit(goalId)) },
                 onOpenTransaction = { transactionId ->
-                    navController.navigate(TransactionDetail(transactionId)) { launchSingleTop = true }
+                    backStack.navigate(TransactionDetail(transactionId))
                 },
                 // Repeat for next year opens the new copy in place of this one.
                 onOpenGoal = { goalId ->
-                    navController.navigate(GoalDetail(goalId)) {
-                        popUpTo<GoalDetail> { inclusive = true }
-                    }
+                    backStack.replaceLast(GoalDetail(goalId)) { it is GoalDetail }
                 }
             )
         }
 
-        composable<GoalEdit> {
+        entry<GoalEdit> { key ->
             com.pennywiseai.tracker.presentation.goals.GoalEditScreen(
-                onNavigateBack = { navController.safePopBackStack() }
+                onNavigateBack = { backStack.pop(key) }
             )
         }
 
-        composable<BudgetGroupEdit> {
+        entry<BudgetGroupEdit> { key ->
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
 
-        composable<BudgetHistory> {
+        entry<BudgetHistory> { key ->
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
-                onNavigateBack = { navController.safePopBackStack() }
+                onNavigateBack = { backStack.pop(key) }
             )
         }
 
-        composable<Loans> {
+        entry<Loans> { key ->
             com.pennywiseai.tracker.presentation.loans.LoansScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToLoanDetail = { loanId ->
-                    navController.navigate(LoanDetail(loanId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(LoanDetail(loanId))
                 }
             )
         }
 
-        composable<RecurringTransactions> {
+        entry<RecurringTransactions> { key ->
             com.pennywiseai.tracker.presentation.recurring.RecurringTransactionsScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
 
-        composable<LoanDetail> {
+        entry<LoanDetail> { key ->
             com.pennywiseai.tracker.presentation.loans.LoanDetailScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToTransactionDetail = { txId ->
-                    navController.navigate(TransactionDetail(txId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(TransactionDetail(txId))
                 }
             )
         }
 
-        composable<TransactionGroups> {
+        entry<TransactionGroups> { key ->
             com.pennywiseai.tracker.presentation.groups.TransactionGroupsScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToGroupDetail = { groupId ->
-                    navController.navigate(TransactionGroupDetail(groupId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(TransactionGroupDetail(groupId))
                 }
             )
         }
 
-        composable<TransactionGroupDetail> {
+        entry<TransactionGroupDetail> { key ->
             com.pennywiseai.tracker.presentation.groups.TransactionGroupDetailScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 },
                 onNavigateToTransactionDetail = { txId ->
-                    navController.navigate(TransactionDetail(txId)) {
-                        launchSingleTop = true
-                    }
+                    backStack.navigate(TransactionDetail(txId))
                 }
             )
         }
 
-        composable<ExchangeRates> {
+        entry<ExchangeRates> { key ->
             com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
 
-        composable<ImportStatement> {
+        entry<ImportStatement> { key ->
             com.pennywiseai.tracker.presentation.statement.ImportStatementScreen(
                 onNavigateBack = {
-                    navController.safePopBackStack()
+                    backStack.pop(key)
                 }
             )
         }
 
-        composable<TransactionsWithFilter> { backStackEntry ->
-            val args = backStackEntry.toRoute<TransactionsWithFilter>()
+        entry<TransactionsWithFilter> { args ->
             com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                 initialCategory = args.category,
                 initialPeriod = args.period,
                 initialCurrency = args.currency,
-                onNavigateBack = { navController.safePopBackStack() },
+                onNavigateBack = { backStack.pop(args) },
                 onTransactionClick = { transactionId ->
-                    navController.navigate(TransactionDetail(transactionId)) { launchSingleTop = true }
+                    backStack.navigate(TransactionDetail(transactionId))
                 },
                 onAddTransactionClick = {
-                    navController.navigate(AddTransaction()) { launchSingleTop = true }
+                    backStack.navigate(AddTransaction())
                 },
                 onNavigateToSettings = {
-                    navController.navigate(Settings) { launchSingleTop = true }
+                    backStack.navigate(Settings)
                 }
             )
         }
-
-    }
+        })
+    )
     }
     }
 }

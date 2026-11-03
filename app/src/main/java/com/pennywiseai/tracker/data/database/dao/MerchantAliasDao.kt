@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.database.dao
 
-import androidx.room.*
+import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import kotlinx.coroutines.flow.Flow
 

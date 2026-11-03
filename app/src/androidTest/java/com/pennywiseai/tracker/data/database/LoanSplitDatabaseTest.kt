@@ -1,8 +1,7 @@
 package com.pennywiseai.tracker.data.database
 
-import androidx.room.Room
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import androidx.room3.Room
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
@@ -34,7 +33,7 @@ class LoanSplitDatabaseTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     @get:Rule
-    val helper = MigrationTestHelper(instrumentation, PennyWiseDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
+    val helper = pennyWiseMigrationHelper(instrumentation, MIGRATION_DB)
 
     private lateinit var db: PennyWiseDatabase
     private lateinit var repo: LoanRepository
@@ -60,9 +59,8 @@ class LoanSplitDatabaseTest {
     private suspend fun loanOf(name: String) = db.loanDao().getAllLoans().first().single { it.personName == name }
 
     @Test
-    fun migration66To67AddsTheTableAndColumnAndKeepsRows() {
-        val name = "split-migration-test"
-        helper.createDatabase(name, 66).apply {
+    fun migration66To67AddsTheTableAndColumnAndKeepsRows() = runBlocking {
+        helper.createDatabase(66).apply {
             execSQL(
                 """INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
                 transaction_hash, is_recurring, created_at, updated_at) VALUES
@@ -71,16 +69,15 @@ class LoanSplitDatabaseTest {
             )
             close()
         }
-        helper.runMigrationsAndValidate(name, 67, true).use { m ->
-            m.query("SELECT amount, lent_shares_total FROM transactions WHERE id = 1").use {
-                assertTrue(it.moveToFirst())
-                assertEquals("1000", it.getString(0))
-                assertTrue(it.isNull(1))
-            }
-            m.query("SELECT COUNT(*) FROM loan_shares").use { assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0)) }
+        helper.runMigrationsAndValidate(67, emptyList()).use { m ->
+            assertEquals(listOf(listOf("1000", null)), m.rows("SELECT amount, lent_shares_total FROM transactions WHERE id = 1"))
+            assertEquals(listOf(listOf("0")), m.rows("SELECT COUNT(*) FROM loan_shares"))
         }
-        instrumentation.targetContext.deleteDatabase(name)
+        instrumentation.targetContext.deleteDatabase(MIGRATION_DB)
+        Unit
     }
+
+    private companion object { const val MIGRATION_DB = "split-migration-test" }
 
     @Test
     fun splitWritesSharesLoansAndTotalAndUndoesCleanly() = runBlocking {

@@ -11,14 +11,14 @@
     "pretest": "npm run build"
   },
   "dependencies": {
-    "@cloudflare/workers-oauth-provider": "^1.2.3"
+    "@cloudflare/workers-oauth-provider": "^1.2.4"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.5",
-    "@cloudflare/workers-types": "^5.20261019.1",
+    "@cloudflare/vitest-plugin": "^1.5.0",
+    "@cloudflare/workers-types": "^5.20261103.1",
     "typescript": "^7.0.2",
-    "vitest": "^4.1.11",
-    "wrangler": "^4.151.2",
-    "ws": "^8.22.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.156.2",
+    "ws": "^8.22.1"
   }
 }

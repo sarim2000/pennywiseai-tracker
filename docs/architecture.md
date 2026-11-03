@@ -181,7 +181,7 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 [state-management.md](state-management.md) has the full patterns.
 
 ### Navigation
-- **Navigation Compose** for type-safe navigation
+- **Navigation 3** (`NavDisplay`) with `@Serializable` `NavKey` back stacks; MainScreen keeps one back stack per bottom tab
 - Single Activity architecture
 - Deep linking support
 

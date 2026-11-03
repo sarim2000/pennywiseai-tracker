@@ -27,7 +27,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -53,29 +52,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavHostController
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeDefaults
-import dev.chrisbanes.haze.HazeEffectScope
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeEffect
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 
 @OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
+    ExperimentalMaterial3Api::class
 )
 @Composable
 fun PennyWiseBottomNavigation(
     modifier: Modifier = Modifier,
-    navController: NavHostController,
-    currentDestination: NavDestination?,
+    /** Route of the tab on screen ([BottomNavItem.route]), or null. */
+    selectedRoute: String?,
+    onTabSelected: (BottomNavItem) -> Unit,
     navBarStyle: NavBarStyle,
     hideLabels: Boolean = false,
     hidePill: Boolean = false,
@@ -108,25 +101,14 @@ fun PennyWiseBottomNavigation(
                     ),
                     tonalElevation = Dimensions.Elevation.raisedCard,
                     modifier = Modifier.then(
-                        if (blurEffects) Modifier.hazeEffect(
-                            state = hazeState,
-                            block = fun HazeEffectScope.() {
-                                style = HazeDefaults.style(
-                                    backgroundColor = Color.Transparent,
-                                    tint = HazeDefaults.tint(containerColor),
-                                    blurRadius = 20.dp,
-                                    noiseFactor = -1f,
-                                )
-                                blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                            }
-                        ) else Modifier
+                        if (blurEffects) Modifier.frostedBlur(hazeState, tint = containerColor) else Modifier
                     )
                 ) {
                     navigationItems.forEach { item ->
-                        val selected = isSelected(currentDestination, item)
+                        val selected = item.route == selectedRoute
                         NavigationBarItem(
                             selected = selected,
-                            onClick = { navController.navigateToTab(item) },
+                            onClick = { onTabSelected(item) },
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
@@ -201,8 +183,8 @@ fun PennyWiseBottomNavigation(
                 ) {
                     FloatingNavPill(
                         items = navigationItems,
-                        selectedIndex = navigationItems.indexOfFirst { isSelected(currentDestination, it) },
-                        onSelect = { navController.navigateToTab(it) },
+                        selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
+                        onSelect = onTabSelected,
                         blurEffects = blurEffects,
                         hazeState = hazeState,
                         modifier = Modifier.weight(1f)
@@ -232,24 +214,7 @@ fun PennyWiseBottomNavigation(
     }
 }
 
-private fun isSelected(currentDestination: NavDestination?, item: BottomNavItem): Boolean =
-    currentDestination?.hierarchy?.any {
-        // Match on the route base so query-arg routes (e.g.
-        // "transactions?type=…") still light up their tab.
-        it.route?.substringBefore('?') == item.route
-    } == true
-
-private fun NavHostController.navigateToTab(item: BottomNavItem) {
-    navigate(item.route) {
-        popUpTo(graph.startDestinationId) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FloatingNavPill(
     items: List<BottomNavItem>,
@@ -269,17 +234,7 @@ private fun FloatingNavPill(
             )
             .clip(CircleShape)
             .then(
-                if (blurEffects) Modifier.hazeEffect(
-                    state = hazeState,
-                    block = fun HazeEffectScope.() {
-                        style = HazeDefaults.style(
-                            backgroundColor = Color.Transparent,
-                            blurRadius = 20.dp,
-                            noiseFactor = -1f,
-                        )
-                        blurredEdgeTreatment = BlurredEdgeTreatment.Unbounded
-                    }
-                ) else Modifier
+                if (blurEffects) Modifier.frostedBlur(hazeState) else Modifier
             )
             .background(containerColor.copy(alpha = if (blurEffects) 0.8f else 1f))
             .padding(horizontal = Spacing.sm)

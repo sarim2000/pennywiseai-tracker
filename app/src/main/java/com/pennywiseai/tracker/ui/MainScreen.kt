@@ -141,7 +141,9 @@ fun MainScreen(
     val currentTab = BottomNavItem.all.firstOrNull { it.route == currentTabRoute } ?: BottomNavItem.Home
     val stack = tabStacks.getValue(currentTab)
     val topKey = stack.last()
-    val baseRoute = tabOf(topKey)?.route ?: ""
+    // The bar shows on a tab-level screen and always highlights the tab on screen,
+    // even when that tab drilled into another tab's screen (Analytics → Transactions).
+    val baseRoute = if (tabOf(topKey) != null) currentTab.route else ""
     val spotlightState by spotlightViewModel.spotlightState.collectAsState()
     val themeState by themeViewModel.themeUiState.collectAsState()
 
@@ -168,7 +170,10 @@ fun MainScreen(
     // that tab, fresh with those filters; anything else opens in the same tab.
     fun open(tab: BottomNavItem, key: NavKey) {
         val target = tabOf(key)
-        if (tab == BottomNavItem.Home && target != null && target != BottomNavItem.Home) {
+        if (target != null && target != tab && key == rootOf(target)) {
+            // A plain tab root (e.g. Chat from Analytics): switch to that tab, don't duplicate it.
+            currentTabRoute = target.route
+        } else if (tab == BottomNavItem.Home && target != null && target != BottomNavItem.Home) {
             tabStacks.getValue(target).resetTo(key)
             currentTabRoute = target.route
         } else {
@@ -176,9 +181,14 @@ fun MainScreen(
         }
     }
 
-    // Tab bar tap: show that tab as it was left. Reselecting the tab on screen does nothing.
     fun selectTab(tab: BottomNavItem) {
         currentTabRoute = tab.route
+    }
+
+    // Tab bar tap: show that tab as it was left; reselecting the tab on screen
+    // pops it back to its first screen (as navigation-compose's popUpTo did).
+    fun onTabClick(tab: BottomNavItem) {
+        if (tab == currentTab) tabStacks.getValue(tab).resetTo(rootOf(tab)) else selectTab(tab)
     }
 
     // What's New dialog state
@@ -557,7 +567,7 @@ fun MainScreen(
             if (!themeState.isLoading && baseRoute in listOf("home", "transactions", "analytics", "chat")) {
                 PennyWiseBottomNavigation(
                     selectedRoute = baseRoute,
-                    onTabSelected = ::selectTab,
+                    onTabSelected = ::onTabClick,
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.

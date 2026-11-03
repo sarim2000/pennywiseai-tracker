@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.navigation
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /** The navigation-compose behaviours the Navigation 3 back stack helpers stand in for. */
@@ -44,5 +45,14 @@ class BackStackOpsTest {
         onboarding.replaceLast(Home) { it == OnBoarding }
         onboarding.replaceLast(Home) { it == OnBoarding } // repeat: Home already on top
         assertEquals(listOf<NavKey>(Home), onboarding.toList())
+    }
+
+    @Test
+    fun `object keys are data objects so their content key survives process death`() {
+        // NavEntry's default contentKey uses toString(); a plain object's includes an
+        // identity hash that changes per process, orphaning the entry's saved state.
+        for (key in listOf<NavKey>(Home, Analytics, Chat, Settings, AppLock, OnBoarding)) {
+            assertFalse(key.toString(), key.toString().contains('@'))
+        }
     }
 }

@@ -844,11 +844,13 @@ class BackupImporter @Inject constructor(
         val existingBudgetNames = database.budgetDao().getAllBudgets().first().map { it.name }.toSet()
 
         budgets.insertEachCounting(onSkip) { budget ->
-            if (!existingBudgetNames.contains(budget.name)) {
+            // One savepoint per budget: a failing category rolls back the whole
+            // budget instead of committing it with only some of its categories.
+            if (!existingBudgetNames.contains(budget.name)) database.withTransaction {
                 // Use the return value from insertBudget to get the new ID directly
                 // instead of querying (which would miss inactive budgets)
                 val newBudgetId = database.budgetDao().insertBudget(budget.copy(id = 0))
-                
+
                 // Import categories for this budget using the returned ID
                 budgetCategories.filter { it.budgetId == budget.id }.forEach { category ->
                     val updatedCategory = category.copy(id = 0, budgetId = newBudgetId)

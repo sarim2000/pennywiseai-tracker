@@ -233,9 +233,13 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // App went to background
                 isInForeground = false
                 isAppInForeground = false
-                // Ends the unlock for the "Immediately" timeout. A rotation stops
+                // Ends the unlock and starts the lock timeout. A rotation stops
                 // the only activity too, but the user never left.
-                if (!activity.isChangingConfigurations) appLockRepository.onAppBackgrounded()
+                if (!activity.isChangingConfigurations) {
+                    appLockRepository.onAppBackgrounded()?.let { leftAt ->
+                        applicationScope.launch { appLockRepository.recordLeftAt(leftAt) }
+                    }
+                }
             }
         }
 

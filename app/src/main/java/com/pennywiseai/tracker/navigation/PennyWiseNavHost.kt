@@ -68,7 +68,11 @@ fun PennyWiseNavHost(
                 slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
         }
     ) {
-        composable<AppLock> {
+        composable<AppLock>(
+            // At once: a fade-in shows the screen it's locking through it.
+            // The other three transitions fall back to the NavHost defaults.
+            enterTransition = { EnterTransition.None }
+        ) {
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     // Back to the screen it covered. Pops AppLock itself, so a repeat

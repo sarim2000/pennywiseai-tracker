@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.DisposableEffect
@@ -66,17 +65,12 @@ fun PennyWiseApp(
     val navController = rememberNavController()
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // The lock-check count as the app last came on screen; see coverForLock.
-    var checksAtStart by remember { mutableIntStateOf(-1) }
-
-    // Observe lifecycle events and refresh lock state when app resumes from background
+    // Observe lifecycle events and refresh lock state when app comes back from background
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            // On start, not resume: until it runs the screen stays covered
+            // (coverForLock), and a split-screen half can start without resuming.
             if (event == Lifecycle.Event.ON_START) {
-                checksAtStart = actualAppLockViewModel.uiState.value.checks
-            }
-            if (event == Lifecycle.Event.ON_RESUME) {
-                // App came to foreground - check if it should be locked
                 actualAppLockViewModel.refreshLockState()
             }
         }
@@ -216,13 +210,8 @@ fun PennyWiseApp(
         WidgetRefresher.refreshTransactionWidgets(context.applicationContext)
     }
 
-    // The lock screen is pushed only once the check on return (or at launch) has
-    // run, so until then, and while locked with the lock screen not up yet, the
-    // screen under it would show. On a return past the timeout that was a third
-    // of a second of balances before the lock screen came up.
-    val coverForLock = with(appLockUiState) {
-        (checks <= checksAtStart && (checks == 0 || isLockEnabled)) ||
-            (isLockEnabled && isLocked && currentRoute != AppLock::class.qualifiedName)
+    val covered = with(appLockUiState) {
+        coverForLock(checks, isLockEnabled, isLocked, unlockedOnScreen, onLockScreen)
     }
 
     PennyWiseTheme(
@@ -241,7 +230,7 @@ fun PennyWiseApp(
                 startDestination = startDestination,
                 onEditComplete = onEditComplete ?: {}
             )
-            if (coverForLock) {
+            if (covered) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -257,6 +246,22 @@ fun PennyWiseApp(
         }
     }
 }
+
+/**
+ * Whether to hide the app behind a plain cover. The lock screen is pushed only
+ * once a check has run on return (or at launch), so until then, and while
+ * locked with the lock screen not up yet, the screen under it would show: on a
+ * return past the timeout, over half a second of it. So with App Lock on,
+ * nothing but the lock screen shows unless the app is unlocked on screen, and
+ * nothing at all before the first check says whether the lock is on.
+ */
+internal fun coverForLock(
+    checks: Int,
+    isLockEnabled: Boolean,
+    isLocked: Boolean,
+    unlockedOnScreen: Boolean,
+    onLockScreen: Boolean
+): Boolean = !onLockScreen && (checks == 0 || (isLockEnabled && (isLocked || !unlockedOnScreen)))
 
 /**
  * Runs [navigate] for [request] once onboarding is done and the app is unlocked,

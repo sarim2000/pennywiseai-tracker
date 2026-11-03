@@ -236,7 +236,9 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // Ends the unlock and starts the lock timeout. A rotation stops
                 // the only activity too, but the user never left.
                 if (!activity.isChangingConfigurations) {
-                    applicationScope.launch { appLockRepository.onAppBackgrounded() }
+                    appLockRepository.onAppBackgrounded()?.let { leftAt ->
+                        applicationScope.launch { appLockRepository.recordLeftAt(leftAt) }
+                    }
                 }
             }
         }

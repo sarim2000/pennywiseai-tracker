@@ -40,7 +40,8 @@ fun <T> ExpandableList(
         if (items.size > visibleItemCount) {
             TextButton(
                 onClick = { isExpanded = !isExpanded },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(
                     text = if (isExpanded) {

@@ -295,7 +295,7 @@ fun CreateRuleScreen(
                 title = stringResource(if (isEditing) R.string.rules_edit_title else R.string.rules_create_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rules_close))
                     }
                 },
@@ -328,7 +328,8 @@ fun CreateRuleScreen(
                                  conditions.isNotEmpty() &&
                                  conditions.all { it.validate() } &&
                                  actions.isNotEmpty() &&
-                                 actions.all { it.validate() }
+                                 actions.all { it.validate() },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.rules_save))
                     }
@@ -432,7 +433,8 @@ fun CreateRuleScreen(
                                     operator = ConditionOperator.LESS_THAN,
                                     value = ""
                                 )).toMutableList()
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
@@ -479,7 +481,8 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 conditions = conditions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                            shapes = IconButtonDefaults.shapes()
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
@@ -543,7 +546,8 @@ fun CreateRuleScreen(
                                         actionType = ActionType.SET,
                                         value = ""
                                     )
-                                }
+                                },
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                                 Spacer(modifier = Modifier.width(Spacing.xs))
@@ -580,7 +584,8 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 actions = actions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                            shapes = IconButtonDefaults.shapes()
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
@@ -762,10 +767,10 @@ fun CreateRuleScreen(
                 TextButton(onClick = {
                     actions = listOf(pendingBlockAction!!)
                     pendingBlockAction = null
-                }) { Text(stringResource(R.string.rules_block_confirm_action)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_block_confirm_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingBlockAction = null }) { Text(stringResource(R.string.rules_cancel)) }
+                TextButton(onClick = { pendingBlockAction = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
             }
         )
     }
@@ -937,7 +942,7 @@ private fun ConditionFieldSelector(
                 label = { Text(stringResource(R.string.rules_time_label)) },
                 placeholder = { Text(stringResource(R.string.rules_time_placeholder)) },
                 trailingIcon = {
-                    IconButton(onClick = { showTimePicker = true }) {
+                    IconButton(onClick = { showTimePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.rules_pick_time))
                     }
                 },
@@ -953,10 +958,10 @@ private fun ConditionFieldSelector(
                             val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                             onConditionChange(condition.copy(value = formatted))
                             showTimePicker = false
-                        }) { Text(stringResource(R.string.rules_ok)) }
+                        }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_ok)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                     },
                     text = { TimePicker(state = timePickerState) }
                 )

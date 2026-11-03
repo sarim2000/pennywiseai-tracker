@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -85,7 +86,7 @@ fun ShareMonthBanner(
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            IconButton(onClick = onDismiss) {
+            IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.share_banner_dismiss),

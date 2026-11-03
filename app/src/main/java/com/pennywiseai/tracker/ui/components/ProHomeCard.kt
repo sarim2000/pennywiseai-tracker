@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,10 +89,11 @@ fun ProHomeCard(
                 onClick = onSeePro,
                 // yellow_dark on yellow_light is ~2.5:1 — too faint for a text label (AA 4.5:1).
                 colors = ButtonDefaults.textButtonColors(contentColor = if (dark) accent else ink),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.pro_home_card_action))
             }
-            IconButton(onClick = onDismiss) {
+            IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.pro_home_card_dismiss),

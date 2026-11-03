@@ -75,14 +75,14 @@ fun LoanDetailScreen(
                 title = loan?.personName ?: stringResource(R.string.loan_detail_title_fallback),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
                     if (loan != null) {
                         var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.loan_detail_more))
                         }
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -285,12 +285,12 @@ fun LoanDetailScreen(
             title = { Text(stringResource(R.string.loan_detail_settle_title)) },
             text = { Text(stringResource(R.string.loan_detail_settle_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.settleLoan() }) {
+                TextButton(onClick = { viewModel.settleLoan() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.loan_detail_settle))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideSettleDialog() }) {
+                TextButton(onClick = { viewModel.hideSettleDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -329,13 +329,14 @@ fun LoanDetailScreen(
                     onClick = {
                         editAmount.toBigDecimalOrNull()?.let { viewModel.updateLoanAmount(it) }
                     },
-                    enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true
+                    enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.accounts_action_save))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideEditAmountDialog() }) {
+                TextButton(onClick = { viewModel.hideEditAmountDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -349,12 +350,12 @@ fun LoanDetailScreen(
             title = { Text(stringResource(R.string.loan_detail_delete_title)) },
             text = { Text(stringResource(R.string.loan_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteLoan() }) {
+                TextButton(onClick = { viewModel.deleteLoan() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }

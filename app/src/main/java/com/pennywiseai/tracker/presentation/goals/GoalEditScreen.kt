@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
@@ -28,6 +29,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
@@ -81,7 +83,7 @@ fun GoalEditScreen(
     PennyWiseScaffold(
         title = stringResource(if (state.isEditing) R.string.goal_edit_title_edit else R.string.goal_edit_title_new),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
             }
         },
@@ -98,6 +100,7 @@ fun GoalEditScreen(
                         onClick = viewModel::save,
                         enabled = !state.isLoading && !state.isSaving,
                         modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes(),
                     ) {
                         Text(stringResource(if (state.isEditing) R.string.goal_edit_save else R.string.goal_edit_create))
                     }
@@ -161,7 +164,7 @@ fun GoalEditScreen(
                 readOnly = true,
                 label = { Text(stringResource(R.string.goal_edit_due)) },
                 trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
+                    IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.goal_edit_due))
                     }
                 },
@@ -238,10 +241,10 @@ fun GoalEditScreen(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { ms -> viewModel.update { it.copy(dueDate = ms.toUtcDate()) } }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.goal_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.goal_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
             },
         ) { DatePicker(state = pickerState) }
     }

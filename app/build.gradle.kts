@@ -179,6 +179,9 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        // M3 Expressive (motionScheme, button shapes, LoadingIndicator, emphasized
+        // type) is still @Experimental; the whole app is built on it.
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
     }
 }
 

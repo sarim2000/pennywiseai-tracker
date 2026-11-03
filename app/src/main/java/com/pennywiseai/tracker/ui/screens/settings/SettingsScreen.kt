@@ -1025,7 +1025,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDisplayCurrencyDialog = false }) {
+                TextButton(onClick = { showDisplayCurrencyDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1068,7 +1068,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDateFormatDialog = false }) {
+                TextButton(onClick = { showDateFormatDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1120,7 +1120,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showNumberFormatDialog = false }) {
+                TextButton(onClick = { showNumberFormatDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1189,7 +1189,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showBudgetCycleDialog = false }) {
+                TextButton(onClick = { showBudgetCycleDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1283,7 +1283,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSmsScanDialog = false }) {
+                TextButton(onClick = { showSmsScanDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1326,13 +1326,14 @@ fun SettingsScreen(
                             settingsViewModel.updateSmsScanCustomDate(millis)
                         }
                         showSmsScanDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.settings_action_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { reopenScanDialog() }) {
+                TextButton(onClick = { reopenScanDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1388,7 +1389,8 @@ fun SettingsScreen(
                     enabled = confirmed && !isDeletingAllTransactions,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(if (isDeletingAllTransactions) stringResource(R.string.settings_delete_all_dialog_deleting) else stringResource(R.string.settings_delete_all_dialog_confirm))
                 }
@@ -1396,7 +1398,8 @@ fun SettingsScreen(
             dismissButton = {
                 TextButton(
                     onClick = { settingsViewModel.cancelDeleteAllTransactions() },
-                    enabled = !isDeletingAllTransactions
+                    enabled = !isDeletingAllTransactions,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
@@ -1410,7 +1413,7 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_delete_all_result_title)) },
             text = { Text(sentences.map { it.asString() }.joinToString(" ")) },
             confirmButton = {
-                TextButton(onClick = { settingsViewModel.clearDeleteAllTransactionsResult() }) {
+                TextButton(onClick = { settingsViewModel.clearDeleteAllTransactionsResult() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_ok))
                 }
             }
@@ -1432,7 +1435,7 @@ fun SettingsScreen(
                 title = { Text(stringResource(R.string.settings_backup_status_title)) },
                 text = { Text(message.asString()) },
                 confirmButton = {
-                    TextButton(onClick = { settingsViewModel.clearImportExportMessage() }) {
+                    TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.settings_action_ok))
                     }
                 }
@@ -1467,7 +1470,8 @@ fun SettingsScreen(
                             exportSaveLauncher.launch(fileName)
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.SaveAlt, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1479,7 +1483,8 @@ fun SettingsScreen(
                             settingsViewModel.shareBackup()
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1492,7 +1497,8 @@ fun SettingsScreen(
                     onClick = {
                         showExportOptionsDialog = false
                         settingsViewModel.clearImportExportMessage()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
@@ -1550,7 +1556,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showTimeoutDialog = false }) {
+                TextButton(onClick = { showTimeoutDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_action_done))
                 }
             }
@@ -1745,7 +1751,7 @@ private fun AiChatSettingsItem(
 
             when (downloadState) {
                 DownloadState.NOT_DOWNLOADED -> {
-                    Button(onClick = onDownload) {
+                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.settings_ai_download))
@@ -1760,7 +1766,7 @@ private fun AiChatSettingsItem(
                     )
                 }
                 DownloadState.PAUSED -> {
-                    Button(onClick = onDownload) {
+                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.settings_ai_retry))
@@ -1777,7 +1783,7 @@ private fun AiChatSettingsItem(
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
-                        TextButton(onClick = onDelete) {
+                        TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.settings_ai_delete))
                         }
                     }
@@ -1787,7 +1793,8 @@ private fun AiChatSettingsItem(
                         onClick = onDownload,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
-                        )
+                        ),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1829,7 +1836,8 @@ private fun AiChatSettingsItem(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Cancel, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -1869,7 +1877,8 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 contentColor = MaterialTheme.colorScheme.onBackground
-            )
+            ),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,

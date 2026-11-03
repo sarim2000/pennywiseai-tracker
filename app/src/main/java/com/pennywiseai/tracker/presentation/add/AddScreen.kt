@@ -31,7 +31,7 @@ fun AddScreen(
     PennyWiseScaffold(
         title = stringResource(R.string.add_title),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.add_back))
             }
         }

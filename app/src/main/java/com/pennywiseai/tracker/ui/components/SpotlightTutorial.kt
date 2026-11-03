@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.components
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -38,7 +37,7 @@ fun SpotlightTutorial(
     
     val alpha by animateFloatAsState(
         targetValue = 1f,
-        animationSpec = tween(durationMillis = 300),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "spotlight_alpha"
     )
     

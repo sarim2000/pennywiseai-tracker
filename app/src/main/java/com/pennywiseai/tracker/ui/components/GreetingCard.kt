@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -203,7 +204,8 @@ fun GreetingCard(
             Box {
                 IconButton(
                     onClick = { showProfileMenu = true },
-                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         imageVector = profileFilterIcon(profiles, selectedProfileId),
@@ -224,7 +226,8 @@ fun GreetingCard(
         if (onAddClick != null) {
             IconButton(
                 onClick = onAddClick,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -237,7 +240,8 @@ fun GreetingCard(
         // Menu button — plain IconButton, no circular background
         IconButton(
             onClick = onMenuClick,
-            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = Icons.Default.MoreHoriz,

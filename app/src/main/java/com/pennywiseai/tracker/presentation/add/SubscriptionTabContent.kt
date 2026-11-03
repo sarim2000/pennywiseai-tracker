@@ -417,7 +417,8 @@ fun SubscriptionTabContent(
                     if (uiState.selectedAccount != null) {
                         IconButton(
                             onClick = { viewModel.updateSubscriptionAccount(null) },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.Clear,
@@ -531,7 +532,8 @@ fun SubscriptionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -565,11 +567,12 @@ fun SubscriptionTabContent(
                             viewModel.updateSubscriptionNextPaymentDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

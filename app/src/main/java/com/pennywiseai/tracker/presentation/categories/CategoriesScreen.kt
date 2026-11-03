@@ -78,7 +78,7 @@ fun CategoriesScreen(
                 title = stringResource(R.string.categories_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.categories_back))
                     }
                 },
@@ -271,7 +271,7 @@ private fun CategoryItem(
 
             // Hide / unhide toggle — available for every category, including
             // system defaults (the whole point of #736).
-            IconButton(onClick = onToggleHidden) {
+            IconButton(onClick = onToggleHidden, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = if (category.isHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                     contentDescription = stringResource(

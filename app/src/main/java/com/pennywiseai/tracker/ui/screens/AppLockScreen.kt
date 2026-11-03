@@ -128,7 +128,8 @@ fun AppLockScreen(
                             triggerAuthentication(context, viewModel)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.applock_unlock))
                 }

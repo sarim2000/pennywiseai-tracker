@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -223,7 +224,7 @@ class QuickAddActivity : FragmentActivity() {
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { openFullForm(amountText, where, category, account) }) {
+                TextButton(onClick = { openFullForm(amountText, where, category, account) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.quick_add_more_details))
                 }
             }
@@ -270,7 +271,8 @@ class QuickAddActivity : FragmentActivity() {
             Button(
                 onClick = { save(amount!!, category!!, where, account, setup.currency) },
                 enabled = amount != null && category != null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget)
+                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.add_save))
             }

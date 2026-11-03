@@ -324,7 +324,8 @@ fun AnalyticsScreen(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 ),
-                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs)
+                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     imageVector = when (chartType) {
@@ -450,7 +451,7 @@ fun AnalyticsScreen(
                                 } else {
                                     CategoryViewType.CHART
                                 }
-                            }) {
+                            }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = if (categoryViewType == CategoryViewType.CHART)
                                         Icons.AutoMirrored.Filled.List
@@ -526,7 +527,7 @@ fun AnalyticsScreen(
                                 } else {
                                     CategoryViewType.CHART
                                 }
-                            }) {
+                            }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = if (tagViewType == CategoryViewType.CHART)
                                         Icons.AutoMirrored.Filled.List

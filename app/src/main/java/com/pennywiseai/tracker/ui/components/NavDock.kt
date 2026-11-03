@@ -1,12 +1,15 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -85,14 +88,22 @@ fun DockNavAction(action: NavDockAction) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun DockedActionButton(
     action: NavDockAction,
     modifier: Modifier = Modifier,
     elevated: Boolean = true,
 ) {
-    val shape = RoundedCornerShape(Dimensions.Component.dockedActionCornerRadius)
+    // M3 Expressive press morph: the squircle squares off while held.
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val cornerRadius by animateDpAsState(
+        targetValue = if (pressed) Dimensions.Component.dockedActionPressedCornerRadius else Dimensions.Component.dockedActionCornerRadius,
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "dockedActionCorner"
+    )
+    val shape = RoundedCornerShape(cornerRadius)
     Box(
         modifier = modifier
             .then(action.onPositioned?.let { Modifier.spotlightTarget(it) } ?: Modifier)
@@ -104,6 +115,8 @@ internal fun DockedActionButton(
             .clip(shape)
             .background(MaterialTheme.colorScheme.primary)
             .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
                 role = Role.Button,
                 onLongClickLabel = action.onLongClickLabel,
                 onLongClick = action.onLongClick,

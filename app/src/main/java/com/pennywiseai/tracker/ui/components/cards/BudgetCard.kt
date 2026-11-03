@@ -6,7 +6,6 @@ import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -59,7 +58,7 @@ fun BudgetCard(
     var animatedProgress by remember { mutableFloatStateOf(0f) }
     val animatedProgressState by animateFloatAsState(
         targetValue = animatedProgress,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
 

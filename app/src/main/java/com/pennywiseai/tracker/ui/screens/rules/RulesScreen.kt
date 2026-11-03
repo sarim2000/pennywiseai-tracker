@@ -87,7 +87,7 @@ fun RulesScreen(
                 title = stringResource(R.string.rules_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.rules_navigate_back)
@@ -96,7 +96,7 @@ fun RulesScreen(
                 },
                 actionContent = {
                     Box {
-                        IconButton(onClick = { showOverflowMenu = true }) {
+                        IconButton(onClick = { showOverflowMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = stringResource(R.string.rules_more_options)
@@ -164,7 +164,7 @@ fun RulesScreen(
                 title = { Text(stringResource(R.string.rules_title)) },
                 text = { Text(message.map { it.asString() }.joinToString(" ")) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.clearSharingMessage() }) {
+                    TextButton(onClick = { viewModel.clearSharingMessage() }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.rules_ok))
                     }
                 }
@@ -181,13 +181,14 @@ fun RulesScreen(
                         onClick = {
                             viewModel.resetToDefaults()
                             showResetDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.rules_reset))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }) {
+                    TextButton(onClick = { showResetDialog = false }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.rules_cancel))
                     }
                 }
@@ -463,7 +464,8 @@ private fun RuleCard(
                 if (rule.isActive) {
                     Box {
                         IconButton(
-                            onClick = { showActionsMenu = true }
+                            onClick = { showActionsMenu = true },
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
@@ -553,13 +555,14 @@ private fun RuleCard(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.rules_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.rules_cancel))
                 }
             }
@@ -813,10 +816,10 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                         if (dryRunResult.totalMatched > 0) {
-                            TextButton(onClick = onApplyToUncategorized) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
-                            TextButton(onClick = onApplyToAll) { Text(stringResource(R.string.rules_batch_apply_all)) }
+                            TextButton(onClick = onApplyToUncategorized, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
+                            TextButton(onClick = onApplyToAll, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_all)) }
                         }
                     }
                 }
@@ -827,8 +830,8 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
-                        OutlinedButton(onClick = onPreview) {
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
+                        OutlinedButton(onClick = onPreview, shapes = ButtonDefaults.shapes()) {
                             Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.rules_batch_preview))
@@ -838,7 +841,7 @@ private fun BatchApplyDialog(
 
                 // Done — close button
                 result != null -> {
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_close)) }
+                    TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_close)) }
                 }
             }
         }

@@ -279,6 +279,20 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
   stay flat `LinearProgressIndicator` — the wave signals *work happening*.
 - Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
   specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
+  **Spatial** specs (offset, size, scale, rotation) are springs that
+  overshoot: `fast` for small parts, `default` for cards/panels, `slow` for
+  full-screen moves. **Effects** specs (alpha, colour) don't overshoot — also
+  use them for bounded data values (progress fractions, chart sweeps), where
+  a bounce past 100% reads as wrong. `tween` stays only inside
+  `infiniteRepeatable` loops or where a duration is load-bearing.
+- **Buttons morph on press.** Every Material button passes
+  `shapes = ButtonDefaults.shapes()` (icon buttons:
+  `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
+- **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
+  for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
+  expanded app-bar title.
+- The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
+  (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 
 ---
 

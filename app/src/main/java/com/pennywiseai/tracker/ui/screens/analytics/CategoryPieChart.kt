@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.screens.analytics
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import java.math.BigDecimal
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -47,6 +46,8 @@ fun CategoryPieChart(
     val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.amount }.toDouble()
     if (total == 0.0) return
 
+    // Slice scale is the tap-to-select pop (1 → selectedScale), not the data sweep.
+    val motion = MaterialTheme.motionScheme
     val pieData = remember(categories) {
         categories.map { category ->
             val sliceColor = CategoryMapping.colorFor(category.name, category.color)
@@ -56,8 +57,8 @@ fun CategoryPieChart(
                 color = sliceColor,
                 selectedColor = sliceColor.copy(alpha = 0.8f),
                 selected = false,
-                scaleAnimEnterSpec = tween(400),
-                colorAnimEnterSpec = tween(500)
+                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec()
             )
         }
     }
@@ -90,8 +91,8 @@ fun CategoryPieChart(
                     categories.find { it.name == categoryName }?.let(onCategoryClick)
                 },
                 selectedScale = 1.1f,
-                scaleAnimEnterSpec = tween(400),
-                colorAnimEnterSpec = tween(500),
+                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec(),
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),

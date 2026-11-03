@@ -173,7 +173,7 @@ fun ManageAccountsScreen(
                 title = stringResource(R.string.manage_accounts_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
@@ -185,7 +185,7 @@ fun ManageAccountsScreen(
                         IconButton(onClick = {
                             if (isProEntitled) showMergeSheet = true
                             else showUpgradeSheet = true
-                        }) {
+                        }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.Merge, contentDescription = stringResource(R.string.merge_accounts_title))
                         }
                     }
@@ -707,12 +707,12 @@ fun ManageAccountsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.applyPendingProfileReassign() }) {
+                TextButton(onClick = { viewModel.applyPendingProfileReassign() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.manage_accounts_reassign_move))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }) {
+                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.manage_accounts_reassign_keep))
                 }
             }
@@ -896,7 +896,8 @@ private fun CreditCardItem(
             ) {
                 // Primary action
                 OutlinedButton(
-                    onClick = if (isManualAccount) onEditAccount else onUpdateBalance
+                    onClick = if (isManualAccount) onEditAccount else onUpdateBalance,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Edit,
@@ -909,7 +910,7 @@ private fun CreditCardItem(
 
                 // Overflow menu
                 Box {
-                    IconButton(onClick = { showMenu = true }) {
+                    IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = stringResource(R.string.manage_accounts_more_options)
@@ -1036,7 +1037,8 @@ private fun StatementDayPickerDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     IconButton(
-                        onClick = { if (selectedDay > 1) selectedDay-- }
+                        onClick = { if (selectedDay > 1) selectedDay-- },
+                        shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.manage_accounts_decrease))
                     }
@@ -1046,7 +1048,8 @@ private fun StatementDayPickerDialog(
                         modifier = Modifier.padding(horizontal = Spacing.lg)
                     )
                     IconButton(
-                        onClick = { if (selectedDay < 28) selectedDay++ }
+                        onClick = { if (selectedDay < 28) selectedDay++ },
+                        shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.manage_accounts_increase))
                     }
@@ -1054,17 +1057,17 @@ private fun StatementDayPickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(selectedDay) }) {
+            TextButton(onClick = { onConfirm(selectedDay) }, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
             if (currentDay != null) {
-                TextButton(onClick = { onConfirm(null) }) {
+                TextButton(onClick = { onConfirm(null) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.manage_accounts_action_clear))
                 }
             } else {
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -1321,7 +1324,8 @@ private fun AccountItem(
                                 }
                                 IconButton(
                                     onClick = { onUnlinkCard(card.id) },
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
+                                    shapes = IconButtonDefaults.shapes()
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.LinkOff,
@@ -1346,7 +1350,8 @@ private fun AccountItem(
             ) {
                 // Primary action
                 OutlinedButton(
-                    onClick = if (isManualAccount) onEditAccount else onUpdateBalance
+                    onClick = if (isManualAccount) onEditAccount else onUpdateBalance,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Edit,
@@ -1359,7 +1364,7 @@ private fun AccountItem(
 
                 // Overflow menu
                 Box {
-                    IconButton(onClick = { showMenu = true }) {
+                    IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.MoreVert,
                             contentDescription = stringResource(R.string.manage_accounts_more_options)
@@ -1547,15 +1552,16 @@ private fun LowBalanceThresholdDialog(
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(parsed) },
-                enabled = parsed != null && parsed >= BigDecimal.ZERO
+                enabled = parsed != null && parsed >= BigDecimal.ZERO,
+                shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 if (currentThreshold != null) {
-                    TextButton(onClick = { onConfirm(null) }) { Text(stringResource(R.string.manage_accounts_action_clear)) }
+                    TextButton(onClick = { onConfirm(null) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.manage_accounts_action_clear)) }
                 }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.accounts_action_cancel)) }
+                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
             }
         }
     )
@@ -1597,12 +1603,12 @@ private fun AccountAliasDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }) {
+            TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -1664,13 +1670,14 @@ private fun UpdateBalanceDialog(
                         onConfirm(balance)
                     }
                 },
-                enabled = isValid
+                enabled = isValid,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.manage_accounts_action_update))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -1831,13 +1838,14 @@ private fun UpdateCreditCardDialog(
                     val limit = limitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                     onConfirm(outstanding, limit)
                 },
-                enabled = isValid
+                enabled = isValid,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.manage_accounts_action_update))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -1923,7 +1931,8 @@ private fun OrphanedCardItem(
             ) {
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { showLinkDialog = true }
+                    onClick = { showLinkDialog = true },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Link,
@@ -1936,7 +1945,8 @@ private fun OrphanedCardItem(
 
                 OutlinedButton(
                     modifier = Modifier.weight(1f),
-                    onClick = { showEditDialog = true }
+                    onClick = { showEditDialog = true },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Edit,
@@ -1952,7 +1962,8 @@ private fun OrphanedCardItem(
                     onClick = { onDeleteCard(card.id) },
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Delete,
@@ -2062,11 +2073,12 @@ private fun EditCardDialog(
                 onClick = {
                     onConfirm(bankName, cardType, nickname.ifBlank { null })
                 },
-                enabled = bankName.isNotBlank()
+                enabled = bankName.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.accounts_action_cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
         }
     )
 }
@@ -2165,13 +2177,14 @@ private fun LinkCardDialog(
         confirmButton = {
             TextButton(
                 onClick = { selectedAccount?.let(onConfirm) },
-                enabled = selectedAccount != null
+                enabled = selectedAccount != null,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.manage_accounts_action_link))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -2248,13 +2261,14 @@ private fun DeleteAccountConfirmDialog(
                 onClick = onConfirm,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
-                )
+                ),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.accounts_action_delete))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -2594,13 +2608,14 @@ private fun EditAccountDialog(
                     } else null
                     onConfirm(bankNameText, balance, creditLimit, currencyText, selectedType)
                 },
-                enabled = isValid
+                enabled = isValid,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }

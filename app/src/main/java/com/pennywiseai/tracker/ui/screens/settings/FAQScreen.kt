@@ -156,7 +156,7 @@ fun FAQScreen(
                 title = stringResource(R.string.faq_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.faq_back))
                     }
                 },

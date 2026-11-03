@@ -138,7 +138,8 @@ private fun AccountSelectorCard(
             if (account != null) {
                 IconButton(
                     onClick = onClear,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Clear,
@@ -667,7 +668,8 @@ fun TransactionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -702,11 +704,12 @@ fun TransactionTabContent(
                             viewModel.updateTransactionDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -729,11 +732,12 @@ fun TransactionTabContent(
                     onClick = {
                         viewModel.updateTransactionTime(timePickerState.hour, timePickerState.minute)
                         showTimePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         )
     }
@@ -787,7 +791,8 @@ fun ReceiptPickerSection(
                         .size(28.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    ),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Close,
@@ -808,7 +813,8 @@ fun ReceiptPickerSection(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -820,7 +826,8 @@ fun ReceiptPickerSection(
                         cameraUri = uri
                         cameraLauncher.launch(uri)
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))

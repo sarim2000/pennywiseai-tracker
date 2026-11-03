@@ -75,7 +75,7 @@ fun AccountDetailScreen(
                 title = AccountBalanceEntity.accountLabel(uiState.bankName, uiState.accountLast4),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },

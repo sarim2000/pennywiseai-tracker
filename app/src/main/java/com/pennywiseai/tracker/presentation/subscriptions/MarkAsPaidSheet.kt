@@ -319,10 +319,10 @@ fun MarkAsPaidSheet(
                             .atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)

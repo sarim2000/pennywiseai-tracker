@@ -63,7 +63,7 @@ fun TransactionGroupsScreen(
                 title = stringResource(R.string.groups_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
@@ -266,13 +266,14 @@ private fun CreateGroupDialog(
         confirmButton = {
             TextButton(
                 onClick = { onCreate(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.group_cancel))
             }
         }

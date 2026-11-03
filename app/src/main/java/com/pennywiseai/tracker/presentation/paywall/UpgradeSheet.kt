@@ -3,9 +3,7 @@ package com.pennywiseai.tracker.presentation.paywall
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -402,6 +400,7 @@ private fun ProAvailableLine() {
                 copied = true
             },
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text(
                 text = stringResource(if (copied) R.string.upgrade_copied else R.string.upgrade_copy_address),
@@ -488,6 +487,7 @@ private fun TrustRow(
             onClick = onRestore,
             enabled = !isRestoring,
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text(
                 text = stringResource(if (isRestoring) R.string.upgrade_restoring else R.string.upgrade_restore),
@@ -499,6 +499,7 @@ private fun TrustRow(
         TextButton(
             onClick = onHelp,
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text(
                 text = stringResource(R.string.upgrade_get_help),
@@ -530,10 +531,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
 
     val iconScale by animateFloatAsState(
         targetValue = if (animateIn) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow,
-        ),
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "celebration-icon-scale",
     )
     val contentAlpha by animateFloatAsState(
@@ -702,7 +700,7 @@ private fun ManageRow(
         if (isLicensed) {
             // Frees the one allowed activation so the key can be used on
             // another phone. Play subscribers get the Play manage link instead.
-            TextButton(onClick = onRemoveLicense) {
+            TextButton(onClick = onRemoveLicense, shapes = ButtonDefaults.shapes()) {
                 Text(
                     text = stringResource(R.string.upgrade_remove_license_key),
                     style = MaterialTheme.typography.bodyMedium,
@@ -723,6 +721,7 @@ private fun ManageRow(
                     context.startActivity(intent)
                 }
             },
+            shapes = ButtonDefaults.shapes(),
         ) {
             Text(
                 text = stringResource(R.string.upgrade_manage_subscription),
@@ -731,7 +730,7 @@ private fun ManageRow(
                 fontWeight = FontWeight.Medium,
             )
         }
-        TextButton(onClick = onRestore) {
+        TextButton(onClick = onRestore, shapes = ButtonDefaults.shapes()) {
             Text(
                 text = stringResource(R.string.upgrade_restore),
                 style = MaterialTheme.typography.bodyMedium,

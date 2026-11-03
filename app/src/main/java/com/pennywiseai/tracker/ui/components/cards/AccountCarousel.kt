@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -248,7 +249,8 @@ private fun AccountCarouselCard(
 
                 IconButton(
                     onClick = onToggleAmountsHidden,
-                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         imageVector = if (isAmountHidden) Icons.Default.VisibilityOff

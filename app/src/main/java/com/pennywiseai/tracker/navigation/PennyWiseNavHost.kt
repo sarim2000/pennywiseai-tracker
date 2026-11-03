@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -48,6 +47,7 @@ fun PennyWiseNavHost(
 ) {
     // Use a stable start destination
     val stableStartDestination = remember { startDestination }
+    val motion = MaterialTheme.motionScheme
 
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
@@ -55,17 +55,20 @@ fun PennyWiseNavHost(
         navController = navController,
         startDestination = stableStartDestination,
         modifier = modifier.background(MaterialTheme.colorScheme.background),
-        enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-        exitTransition = { fadeOut(tween(200)) },
-        popEnterTransition = { fadeIn(tween(300)) },
-        popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
+        // M3 Expressive motion: spatial spring for the slide, effects spring
+        // for the fade, both from the theme's MotionScheme.
+        enterTransition = {
+            fadeIn(motion.defaultEffectsSpec()) +
+                slideInVertically(motion.defaultSpatialSpec()) { it / 4 }
+        },
+        exitTransition = { fadeOut(motion.fastEffectsSpec()) },
+        popEnterTransition = { fadeIn(motion.defaultEffectsSpec()) },
+        popExitTransition = {
+            fadeOut(motion.fastEffectsSpec()) +
+                slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
+        }
     ) {
-        composable<AppLock>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<AppLock> {
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     // Back to the screen it covered. Pops AppLock itself, so a repeat
@@ -81,12 +84,7 @@ fun PennyWiseNavHost(
                 }
             )
         }
-        composable<OnBoarding>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<OnBoarding> {
             com.pennywiseai.tracker.ui.screens.onboarding.OnBoardingScreen(
                 onOnboardingComplete = {
                     navController.navigate(Home) {
@@ -97,10 +95,10 @@ fun PennyWiseNavHost(
             )
         }
         composable<Home>(
-            enterTransition = { fadeIn() },
-            exitTransition = { fadeOut() },
-            popEnterTransition = { fadeIn() },
-            popExitTransition = { fadeOut() }
+            enterTransition = { fadeIn(motion.defaultEffectsSpec()) },
+            exitTransition = { fadeOut(motion.fastEffectsSpec()) },
+            popEnterTransition = { fadeIn(motion.defaultEffectsSpec()) },
+            popExitTransition = { fadeOut(motion.fastEffectsSpec()) }
         ) {
             CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
                 MainScreen(
@@ -109,12 +107,7 @@ fun PennyWiseNavHost(
             }
         }
 
-        composable<Settings>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<Settings> {
             com.pennywiseai.tracker.ui.screens.settings.SettingsScreen(
                 themeViewModel = themeViewModel,
                 onNavigateBack = {
@@ -162,12 +155,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<Categories>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<Categories> {
             com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -176,10 +164,10 @@ fun PennyWiseNavHost(
         }
         
         composable<TransactionDetail>(
-            enterTransition = { fadeIn() },
-            exitTransition = { fadeOut() },
-            popEnterTransition = { fadeIn() },
-            popExitTransition = { fadeOut() }
+            enterTransition = { fadeIn(motion.defaultEffectsSpec()) },
+            exitTransition = { fadeOut(motion.fastEffectsSpec()) },
+            popEnterTransition = { fadeIn(motion.defaultEffectsSpec()) },
+            popExitTransition = { fadeOut(motion.fastEffectsSpec()) }
         ) { backStackEntry ->
             val transactionDetail = backStackEntry.toRoute<TransactionDetail>()
             CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this@composable) {
@@ -209,12 +197,7 @@ fun PennyWiseNavHost(
             }
         }
 
-        composable<AddTransaction>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<AddTransaction> {
             com.pennywiseai.tracker.presentation.add.AddScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -222,12 +205,7 @@ fun PennyWiseNavHost(
             )
         }
         
-        composable<UnrecognizedSms>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<UnrecognizedSms> {
             com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -238,12 +216,7 @@ fun PennyWiseNavHost(
             )
         }
         
-        composable<Faq>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<Faq> {
             com.pennywiseai.tracker.ui.screens.settings.FAQScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -251,12 +224,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<Rules>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<Rules> {
             com.pennywiseai.tracker.ui.screens.rules.RulesScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -279,12 +247,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<CreateRule>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) { backStackEntry ->
+        composable<CreateRule> { backStackEntry ->
             val createRule = backStackEntry.toRoute<CreateRule>()
             val rulesViewModel: com.pennywiseai.tracker.ui.viewmodel.RulesViewModel = hiltViewModel()
 
@@ -331,12 +294,7 @@ fun PennyWiseNavHost(
             )
         }
         
-        composable<AccountDetail>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<AccountDetail> {
             com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
                 onNavigateBack = { navController.safePopBackStack() },
                 onTransactionClick = { id ->
@@ -347,12 +305,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<BudgetGroups>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) { backStackEntry ->
+        composable<BudgetGroups> { backStackEntry ->
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                 createGoalOnOpen = backStackEntry.toRoute<BudgetGroups>().createGoal,
                 onNavigateBack = {
@@ -382,12 +335,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<GoalDetail>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<GoalDetail> {
             com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
                 onNavigateBack = { navController.safePopBackStack() },
                 onEdit = { goalId -> navController.navigate(GoalEdit(goalId)) { launchSingleTop = true } },
@@ -403,23 +351,13 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<GoalEdit>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<GoalEdit> {
             com.pennywiseai.tracker.presentation.goals.GoalEditScreen(
                 onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
-        composable<BudgetGroupEdit>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<BudgetGroupEdit> {
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -427,23 +365,13 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<BudgetHistory>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<BudgetHistory> {
             com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
                 onNavigateBack = { navController.safePopBackStack() }
             )
         }
 
-        composable<Loans>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<Loans> {
             com.pennywiseai.tracker.presentation.loans.LoansScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -456,12 +384,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<RecurringTransactions>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<RecurringTransactions> {
             com.pennywiseai.tracker.presentation.recurring.RecurringTransactionsScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -469,12 +392,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<LoanDetail>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<LoanDetail> {
             com.pennywiseai.tracker.presentation.loans.LoanDetailScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -487,12 +405,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<TransactionGroups>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<TransactionGroups> {
             com.pennywiseai.tracker.presentation.groups.TransactionGroupsScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -505,12 +418,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<TransactionGroupDetail>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<TransactionGroupDetail> {
             com.pennywiseai.tracker.presentation.groups.TransactionGroupDetailScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -523,12 +431,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<ExchangeRates>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<ExchangeRates> {
             com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -536,12 +439,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<ImportStatement>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) {
+        composable<ImportStatement> {
             com.pennywiseai.tracker.presentation.statement.ImportStatementScreen(
                 onNavigateBack = {
                     navController.safePopBackStack()
@@ -549,12 +447,7 @@ fun PennyWiseNavHost(
             )
         }
 
-        composable<TransactionsWithFilter>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
-            exitTransition = { fadeOut(tween(200)) },
-            popEnterTransition = { fadeIn(tween(300)) },
-            popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
-        ) { backStackEntry ->
+        composable<TransactionsWithFilter> { backStackEntry ->
             val args = backStackEntry.toRoute<TransactionsWithFilter>()
             com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                 initialCategory = args.category,

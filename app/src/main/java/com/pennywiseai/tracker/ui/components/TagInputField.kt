@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
@@ -118,7 +119,7 @@ fun TagInputField(
             },
             trailingIcon = {
                 if (trimmed.isNotEmpty()) {
-                    IconButton(onClick = { commit(input) }) {
+                    IconButton(onClick = { commit(input) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.Add,
                             contentDescription = stringResource(R.string.tag_input_add),

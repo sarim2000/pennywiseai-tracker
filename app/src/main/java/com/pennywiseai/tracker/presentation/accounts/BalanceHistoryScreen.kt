@@ -68,7 +68,7 @@ fun BalanceHistoryScreen(
                 title = stringResource(R.string.balance_history_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 }
@@ -180,13 +180,14 @@ fun BalanceHistoryScreen(
                     onClick = {
                         viewModel.deleteBalance(balanceId)
                         showDeleteConfirmation = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = null }) {
+                TextButton(onClick = { showDeleteConfirmation = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -324,7 +325,7 @@ private fun BalanceHistoryItem(
                 // Action buttons
                 if (editingId != balance.id && !isOnlyRecord) {
                     Row {
-                        IconButton(onClick = onEditClick) {
+                        IconButton(onClick = onEditClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = stringResource(R.string.balance_history_edit_balance),
@@ -332,7 +333,7 @@ private fun BalanceHistoryItem(
                                 modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                         }
-                        IconButton(onClick = onDeleteClick) {
+                        IconButton(onClick = onDeleteClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.balance_history_delete_balance),
@@ -389,7 +390,8 @@ private fun BalanceHistoryItem(
                         Button(
                             onClick = onSaveEdit,
                             enabled = editingValue.toBigDecimalOrNull() != null,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
@@ -397,7 +399,8 @@ private fun BalanceHistoryItem(
                         }
                         OutlinedButton(
                             onClick = onCancelEdit,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
@@ -494,7 +497,8 @@ private fun BalanceHistoryItem(
                                     IconButton(
                                         onClick = {
                                             clipboard.setText(AnnotatedString(smsSource))
-                                        }
+                                        },
+                                        shapes = IconButtonDefaults.shapes()
                                     ) {
                                         Icon(
                                             Icons.Default.ContentCopy,

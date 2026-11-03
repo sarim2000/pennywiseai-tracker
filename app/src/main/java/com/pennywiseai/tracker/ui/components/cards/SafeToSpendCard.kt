@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -206,7 +207,7 @@ fun SafeToSpendSheet(
             SectionHeaderV2(
                 title = stringResource(R.string.safe_to_spend_accounts),
                 action = {
-                    TextButton(onClick = { choosing = !choosing }) {
+                    TextButton(onClick = { choosing = !choosing }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(if (choosing) R.string.safe_to_spend_done else R.string.safe_to_spend_choose_accounts))
                     }
                 }

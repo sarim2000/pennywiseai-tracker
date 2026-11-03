@@ -59,7 +59,7 @@ fun AddAccountScreen(
                 title = stringResource(R.string.add_account_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
@@ -318,7 +318,8 @@ fun AddAccountScreen(
                 enabled = formState.isValid,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.Done, contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))

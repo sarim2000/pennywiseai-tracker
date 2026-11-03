@@ -70,14 +70,14 @@ fun TransactionGroupDetailScreen(
                 title = group?.name ?: stringResource(R.string.group_detail_title_fallback),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
                 actionContent = {
                     if (group != null) {
                         var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_detail_more))
                         }
                         DropdownMenu(
@@ -329,12 +329,12 @@ fun TransactionGroupDetailScreen(
             title = { Text(stringResource(R.string.group_detail_delete_title)) },
             text = { Text(stringResource(R.string.group_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteGroup() }) {
+                TextButton(onClick = { viewModel.deleteGroup() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.group_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.group_cancel))
                 }
             }
@@ -399,7 +399,7 @@ private fun GroupTransactionItem(
                 color = color
             )
             Spacer(modifier = Modifier.width(Spacing.xs))
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     Icons.Default.RemoveCircleOutline,
                     contentDescription = stringResource(R.string.group_detail_remove_from_group),
@@ -588,13 +588,14 @@ private fun EditGroupDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.group_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.group_cancel))
             }
         }

@@ -2,7 +2,6 @@ package com.pennywiseai.tracker.ui.screens.analytics
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -39,6 +38,8 @@ fun TagPieChart(
     val total = tags.fold(BigDecimal.ZERO) { acc, tag -> acc + tag.amount }.toDouble()
     if (total == 0.0) return
 
+    // Slice scale is the tap-to-select pop (1 → selectedScale), not the data sweep.
+    val motion = MaterialTheme.motionScheme
     val pieData = remember(tags) {
         tags.map { tag ->
             Pie(
@@ -47,8 +48,8 @@ fun TagPieChart(
                 color = tagColor(tag.name),
                 selectedColor = tagColor(tag.name).copy(alpha = 0.8f),
                 selected = false,
-                scaleAnimEnterSpec = tween(400),
-                colorAnimEnterSpec = tween(500)
+                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec()
             )
         }
     }
@@ -84,8 +85,8 @@ fun TagPieChart(
                     tags.getOrNull(pieIndex)?.let(onTagClick)
                 },
                 selectedScale = 1.1f,
-                scaleAnimEnterSpec = tween(400),
-                colorAnimEnterSpec = tween(500),
+                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec(),
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),

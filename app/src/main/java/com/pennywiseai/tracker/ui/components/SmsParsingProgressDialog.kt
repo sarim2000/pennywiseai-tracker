@@ -78,7 +78,8 @@ fun SmsParsingProgressDialog(
                     if (onCancel != null && workInfo.state == WorkInfo.State.RUNNING) {
                         OutlinedButton(
                             onClick = onCancel,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.Cancel,
@@ -91,7 +92,8 @@ fun SmsParsingProgressDialog(
                     } else if (workInfo.state == WorkInfo.State.SUCCEEDED) {
                         TextButton(
                             onClick = onDismiss,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.sms_scan_done))
                         }
@@ -101,7 +103,8 @@ fun SmsParsingProgressDialog(
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
-                            )
+                            ),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.sms_scan_close))
                         }

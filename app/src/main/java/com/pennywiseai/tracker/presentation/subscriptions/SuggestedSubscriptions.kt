@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -156,11 +157,11 @@ internal fun SuggestedSubscriptionItem(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.subscription_suggestion_not_recurring))
             }
             Spacer(Modifier.width(Spacing.xs))
-            FilledTonalButton(onClick = onReview) {
+            FilledTonalButton(onClick = onReview, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.subscription_suggestion_review))
             }
         }
@@ -263,7 +264,7 @@ internal fun RecurringSuggestionSheet(
                 }
             }
             if (newestFirst.size > PAYMENTS_PREVIEW) {
-                TextButton(onClick = { showAllPayments = !showAllPayments }) {
+                TextButton(onClick = { showAllPayments = !showAllPayments }, shapes = ButtonDefaults.shapes()) {
                     Text(
                         if (showAllPayments) stringResource(R.string.subscriptions_suggested_show_less)
                         else stringResource(R.string.subscriptions_suggested_show_all, newestFirst.size)
@@ -312,6 +313,7 @@ internal fun RecurringSuggestionSheet(
             TextButton(
                 onClick = { closeThen(onNotRecurring) },
                 modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.subscription_suggestion_not_recurring))
             }

@@ -140,6 +140,8 @@ object Dimensions {
 
         /** Corner of the squircle action docked beside the floating nav pill. */
         val dockedActionCornerRadius = 20.dp
+        /** Corner while the docked action is held — the M3 Expressive press morph. */
+        val dockedActionPressedCornerRadius = 12.dp
 
         val buttonHeight = 48.dp
 

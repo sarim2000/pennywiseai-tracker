@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.components
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -113,7 +112,7 @@ private fun TagBar(
 
     val animatedFraction by animateFloatAsState(
         targetValue = if (visible) targetFraction else 0f,
-        animationSpec = tween(800),
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "tag_bar_${tag.name}"
     )
 

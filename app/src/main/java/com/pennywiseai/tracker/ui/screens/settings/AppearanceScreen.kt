@@ -370,7 +370,8 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                 contentColor = MaterialTheme.colorScheme.onBackground
-            )
+            ),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,

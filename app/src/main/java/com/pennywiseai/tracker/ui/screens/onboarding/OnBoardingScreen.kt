@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,6 +58,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
@@ -643,7 +645,8 @@ private fun PermissionsStep(
                     }
                     permissionLauncher.launch(permissions.toTypedArray())
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.onboarding_enable_permissions))
             }
@@ -807,7 +810,8 @@ private fun MissingBankCard() {
                     // ponytail: no browser installed → ActivityNotFoundException is swallowed, nothing else to offer
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
                 },
-                modifier = Modifier.align(Alignment.End)
+                modifier = Modifier.align(Alignment.End),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.onboarding_bank_missing_action))
             }
@@ -1013,7 +1017,7 @@ private fun OnBoardingBottomBar(
     ) {
         // Back button
         if (canGoBack) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.onboarding_back)
@@ -1030,7 +1034,7 @@ private fun OnBoardingBottomBar(
         ) {
             when (uiState.currentStep) {
                 OnBoardingStep.WELCOME -> {
-                    Button(onClick = onNext) {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.onboarding_get_started))
                     }
                 }
@@ -1038,7 +1042,8 @@ private fun OnBoardingBottomBar(
                 OnBoardingStep.PROFILE -> {
                     Button(
                         onClick = onNext,
-                        enabled = uiState.userName.isNotBlank()
+                        enabled = uiState.userName.isNotBlank(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.onboarding_save_continue))
                     }
@@ -1046,12 +1051,12 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.PERMISSIONS -> {
                     if (!uiState.smsPermissionGranted) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     }
                     if (uiState.smsPermissionGranted) {
-                        Button(onClick = onNext) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     }
@@ -1059,18 +1064,18 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.SMS_SCAN -> {
                     if (!uiState.isScanning && !uiState.scanCompleted) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
-                        Button(onClick = onStartScan) {
+                        Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_start_scanning))
                         }
                     } else if (uiState.isScanning) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     } else if (uiState.scanCompleted) {
-                        Button(onClick = onNext) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     }
@@ -1078,18 +1083,19 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.ACCOUNT_SETUP -> {
                     if (uiState.accounts.isEmpty()) {
-                        Button(onClick = onNext) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_finish))
                         }
                     } else {
                         if (uiState.selectedAccountKey == null) {
-                            TextButton(onClick = onSkip) {
+                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.onboarding_skip))
                             }
                         }
                         Button(
                             onClick = onNext,
-                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty()
+                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             if (uiState.isCompleting) {
                                 CircularProgressIndicator(

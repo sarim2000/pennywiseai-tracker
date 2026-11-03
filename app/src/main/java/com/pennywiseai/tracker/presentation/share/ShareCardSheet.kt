@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -124,12 +125,13 @@ fun ShareCardSheet(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(Icons.Default.Share, contentDescription = null)
                 Text(stringResource(R.string.share_sheet_share), modifier = Modifier.padding(start = Spacing.sm))
             }
 
-            TextButton(onClick = { showCustomise = !showCustomise }) {
+            TextButton(onClick = { showCustomise = !showCustomise }, shapes = ButtonDefaults.shapes()) {
                 Text(if (showCustomise) stringResource(R.string.share_sheet_done) else stringResource(R.string.share_sheet_customise))
             }
 

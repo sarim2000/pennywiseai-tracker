@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.theme
 
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -59,7 +60,7 @@ val SNProFontFamily = FontFamily(
  * | `labelLarge` | Buttons, prominent inline actions |
  * | `labelMedium`/`Small` | Chips, badges, axis ticks, overlines |
  */
-fun getTypography(fontFamily: FontFamily = FontFamily.Default): Typography = Typography(
+private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = fontFamily,
         fontWeight = FontWeight.SemiBold,
@@ -169,5 +170,44 @@ fun getTypography(fontFamily: FontFamily = FontFamily.Default): Typography = Typ
         letterSpacing = 0.5.sp
     )
 )
+
+/**
+ * The scale plus M3 Expressive's emphasized styles (`*Emphasized`).
+ *
+ * Material's stock emphasized styles carry their own font family, so they'd
+ * ignore the user's font choice. Derive them from our scale instead: same
+ * size and tracking, one weight step heavier. Reserve them for hero moments
+ * (the Home balance, a screen's large title) — emphasis everywhere is emphasis
+ * nowhere.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+fun getTypography(fontFamily: FontFamily = FontFamily.Default): Typography {
+    val b = baseTypography(fontFamily)
+    // 400 → 500, 600 → 700: Material's own emphasized step.
+    fun TextStyle.emphasized() =
+        copy(fontWeight = FontWeight(((fontWeight ?: FontWeight.Normal).weight + 100).coerceAtMost(900)))
+    return Typography(
+        displayLarge = b.displayLarge, displayMedium = b.displayMedium, displaySmall = b.displaySmall,
+        headlineLarge = b.headlineLarge, headlineMedium = b.headlineMedium, headlineSmall = b.headlineSmall,
+        titleLarge = b.titleLarge, titleMedium = b.titleMedium, titleSmall = b.titleSmall,
+        bodyLarge = b.bodyLarge, bodyMedium = b.bodyMedium, bodySmall = b.bodySmall,
+        labelLarge = b.labelLarge, labelMedium = b.labelMedium, labelSmall = b.labelSmall,
+        displayLargeEmphasized = b.displayLarge.emphasized(),
+        displayMediumEmphasized = b.displayMedium.emphasized(),
+        displaySmallEmphasized = b.displaySmall.emphasized(),
+        headlineLargeEmphasized = b.headlineLarge.emphasized(),
+        headlineMediumEmphasized = b.headlineMedium.emphasized(),
+        headlineSmallEmphasized = b.headlineSmall.emphasized(),
+        titleLargeEmphasized = b.titleLarge.emphasized(),
+        titleMediumEmphasized = b.titleMedium.emphasized(),
+        titleSmallEmphasized = b.titleSmall.emphasized(),
+        bodyLargeEmphasized = b.bodyLarge.emphasized(),
+        bodyMediumEmphasized = b.bodyMedium.emphasized(),
+        bodySmallEmphasized = b.bodySmall.emphasized(),
+        labelLargeEmphasized = b.labelLarge.emphasized(),
+        labelMediumEmphasized = b.labelMedium.emphasized(),
+        labelSmallEmphasized = b.labelSmall.emphasized(),
+    )
+}
 
 val Typography = getTypography()

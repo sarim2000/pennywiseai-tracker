@@ -59,14 +59,15 @@ fun ExchangeRatesScreen(
                 title = stringResource(R.string.exchange_rates_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
                     IconButton(
                         onClick = { viewModel.refreshRates() },
-                        enabled = !uiState.isRefreshing
+                        enabled = !uiState.isRefreshing,
+                        shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
                     }
@@ -173,7 +174,8 @@ fun ExchangeRatesScreen(
                             Spacer(modifier = Modifier.height(Spacing.md))
                             OutlinedButton(
                                 onClick = { viewModel.clearAllCustomRates() },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.exchange_rates_reset_all))
                             }
@@ -312,7 +314,8 @@ private fun EditRateDialog(
                 if (rate.isCustomRate) {
                     TextButton(
                         onClick = onResetToAuto,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.exchange_rates_reset))
                     }
@@ -327,13 +330,14 @@ private fun EditRateDialog(
                         onSetCustomRate(newRate)
                     }
                 },
-                enabled = !isError && rateText.isNotBlank()
+                enabled = !isError && rateText.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.exchange_rates_set_custom))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }

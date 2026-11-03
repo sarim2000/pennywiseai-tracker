@@ -348,7 +348,7 @@ fun TransactionsScreen(
                     title = stringResource(R.string.txn_list_selected_count, selectedIds.size),
                     hasBackButton = true,
                     navigationContent = {
-                        IconButton(onClick = { viewModel.clearSelection() }) {
+                        IconButton(onClick = { viewModel.clearSelection() }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_list_exit_selection))
                         }
                     },
@@ -360,23 +360,23 @@ fun TransactionsScreen(
                             // manual counterpart to the auto-detected chip (#614),
                             // covering pairs the detector misses (fees, wide gaps).
                             if (selectedIds.size == 2) {
-                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }) {
+                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(
                                         Icons.Default.SwapHoriz,
                                         contentDescription = stringResource(R.string.txn_list_mark_as_transfer)
                                     )
                                 }
                             }
-                            IconButton(onClick = { showBulkCategorySheet = true }) {
+                            IconButton(onClick = { showBulkCategorySheet = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Default.Category, contentDescription = stringResource(R.string.txn_list_change_category))
                             }
-                            IconButton(onClick = { showBulkGroupSheet = true }) {
+                            IconButton(onClick = { showBulkGroupSheet = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.PlaylistAdd,
                                     contentDescription = stringResource(R.string.txn_list_add_to_group)
                                 )
                             }
-                            IconButton(onClick = { viewModel.bulkDelete() }) {
+                            IconButton(onClick = { viewModel.bulkDelete() }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = stringResource(R.string.txn_list_delete_selected),
@@ -394,7 +394,7 @@ fun TransactionsScreen(
                     title = stringResource(R.string.txn_list_title),
                     hasBackButton = showBackButton,
                     navigationContent = {
-                        IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.txn_list_back)
@@ -403,7 +403,7 @@ fun TransactionsScreen(
                     },
                     actionContent = {
                         if (navDock != null && uiState.transactions.isNotEmpty()) {
-                            IconButton(onClick = { showExportDialog = true }) {
+                            IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = Icons.Default.FileDownload,
                                     contentDescription = stringResource(R.string.txn_list_export_csv)
@@ -942,7 +942,8 @@ private fun BulkGroupPickerSheet(
                                     onCreateGroup(newGroupName.trim())
                                 }
                             },
-                            enabled = newGroupName.isNotBlank()
+                            enabled = newGroupName.isNotBlank(),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.txn_list_group_create))
                         }
@@ -951,7 +952,8 @@ private fun BulkGroupPickerSheet(
             } else {
                 TextButton(
                     onClick = { showCreateField = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -1142,7 +1144,7 @@ private fun TransactionFilterHeader(
                 focusRequester = focusRequester,
                 trailingContent = {
                     Box {
-                        IconButton(onClick = onSortClick) {
+                        IconButton(onClick = onSortClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = Icons.Rounded.MoreHoriz,
                                 contentDescription = stringResource(R.string.txn_list_more_options),
@@ -1519,7 +1521,7 @@ private fun TransactionSearchBar(
                 }
             )
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+                IconButton(onClick = { onQueryChange("") }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Icons.Default.Clear,
                         contentDescription = stringResource(R.string.txn_list_clear_search),

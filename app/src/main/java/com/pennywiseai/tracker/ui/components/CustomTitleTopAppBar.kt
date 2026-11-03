@@ -225,7 +225,7 @@ private fun TitleForLargeTopAppBar(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineMediumEmphasized,
                 textAlign = TextAlign.Start,
                 modifier = modifier
                     .fillMaxWidth()

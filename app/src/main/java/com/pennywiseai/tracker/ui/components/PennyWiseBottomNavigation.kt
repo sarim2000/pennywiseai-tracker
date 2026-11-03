@@ -27,7 +27,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -68,8 +67,7 @@ import dev.chrisbanes.haze.hazeEffect
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 
 @OptIn(
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class
+    ExperimentalMaterial3Api::class
 )
 @Composable
 fun PennyWiseBottomNavigation(
@@ -249,7 +247,7 @@ private fun NavHostController.navigateToTab(item: BottomNavItem) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FloatingNavPill(
     items: List<BottomNavItem>,

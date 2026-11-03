@@ -166,7 +166,7 @@ fun AddAccountScreen(
                     trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                     leadingIcon = {
                         Icon(
                             imageVector = formState.accountType.icon,
@@ -217,7 +217,7 @@ fun AddAccountScreen(
                     leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                     shape = acctFullShape,
                     colors = acctColors
                 )

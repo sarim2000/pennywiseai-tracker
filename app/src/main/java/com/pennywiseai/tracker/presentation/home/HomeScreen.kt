@@ -191,7 +191,7 @@ fun HomeScreen(
     // Period the sheet should open on. The monthly banner points it at the finished
     // month; opening from the overflow menu uses whatever the user saved.
     var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
     // Profile filter dropdown state
     var showProfileFilterMenu by remember { mutableStateOf(false) }
@@ -1471,7 +1471,7 @@ fun HomeScreen(
     if (showEditWidgetsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showEditWidgetsSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
             containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle() }
         ) {

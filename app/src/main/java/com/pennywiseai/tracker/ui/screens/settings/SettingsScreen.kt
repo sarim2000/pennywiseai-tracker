@@ -1685,7 +1685,7 @@ private fun SettingsDropdownItem(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 shape = MaterialTheme.shapes.large,
                 colors = TextFieldDefaults.colors(
                     // A field nested inside an already-tonal row needs a step
@@ -1706,7 +1706,6 @@ private fun SettingsDropdownItem(
     }
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun AiChatSettingsItem(
     downloadState: DownloadState,

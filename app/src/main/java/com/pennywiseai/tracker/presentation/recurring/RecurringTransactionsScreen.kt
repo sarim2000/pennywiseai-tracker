@@ -361,7 +361,7 @@ private fun RecurringEditorDialog(
                         label = { Text(stringResource(R.string.recurring_field_category)) },
                         leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoryExpanded) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = categoryExpanded,
@@ -389,7 +389,7 @@ private fun RecurringEditorDialog(
                         readOnly = true,
                         label = { Text(stringResource(R.string.recurring_field_frequency)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(freqExpanded) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = freqExpanded,
@@ -433,7 +433,7 @@ private fun RecurringEditorDialog(
                                 readOnly = true,
                                 label = { Text(stringResource(R.string.recurring_field_day_of_week)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dowExpanded) },
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
                             ExposedDropdownMenu(
                                 expanded = dowExpanded,

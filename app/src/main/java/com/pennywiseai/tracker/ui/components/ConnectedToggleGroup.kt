@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ButtonGroupDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
@@ -27,7 +26,6 @@ import androidx.compose.ui.text.style.TextOverflow
  * With [fillMaxWidth] the row fills the available width and the buttons share
  * it equally; otherwise each button wraps its label.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun <T> ConnectedChoiceRow(
     options: List<T>,

@@ -92,23 +92,18 @@ fun PennyWiseApp(
         if (themeUiState.hasCompletedOnboarding) Home else OnBoarding
     }
 
-    // Observe lock state changes and navigate to lock screen if needed
-    // But don't navigate when user is actively in Settings configuring app lock
+    // Observe lock state changes and navigate to lock screen if needed.
+    // On top of the current screen, which unlocking returns to: with "Immediately"
+    // this runs after every trip out of the app (a file picker, the camera), and
+    // the screen and its pending result have to survive it. Back can't leave it.
     val showLockScreen = {
-        navController.navigate(AppLock) {
-            // Don't add to back stack, force lock screen
-            popUpTo(navController.graph.startDestinationId) { inclusive = false }
-            launchSingleTop = true
-        }
+        navController.navigate(AppLock) { launchSingleTop = true }
     }
     LaunchedEffect(appLockUiState.isLocked, appLockUiState.isLockEnabled) {
-        if (appLockUiState.isLocked && appLockUiState.isLockEnabled) {
-            val currentRoute = navController.currentDestination?.route
-            // Don't navigate if already on lock screen or in Settings (user is configuring)
-            if (currentRoute != AppLock::class.qualifiedName &&
-                currentRoute != com.pennywiseai.tracker.navigation.Settings::class.qualifiedName) {
-                showLockScreen()
-            }
+        if (appLockUiState.isLocked && appLockUiState.isLockEnabled &&
+            navController.currentDestination?.route != AppLock::class.qualifiedName
+        ) {
+            showLockScreen()
         }
     }
     
@@ -201,9 +196,10 @@ fun PennyWiseApp(
  *
  * Passing through the lock screen also counts as unlocked: it can only be left by
  * authenticating (back is blocked), while [lock] (the activity's view model, not
- * the lock screen's) can keep `isLocked` after an unlock with the "Immediately"
- * timeout. So when a fresh check says locked and the lock screen isn't showing,
- * this shows it ([showLockScreen]) rather than waiting for one that never comes.
+ * the lock screen's) can still say locked for a moment after it closes. When a
+ * fresh check says locked and the lock screen isn't showing, this shows it
+ * ([showLockScreen]) rather than waiting for the lock-state effect, which only
+ * runs when `isLocked` changes.
  */
 @Composable
 private fun <T : Any> NavigateWhenUnlocked(

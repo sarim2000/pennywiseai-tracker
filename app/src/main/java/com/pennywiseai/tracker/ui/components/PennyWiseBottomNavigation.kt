@@ -53,9 +53,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.NavHostController
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
@@ -74,8 +71,9 @@ import androidx.compose.ui.draw.BlurredEdgeTreatment
 @Composable
 fun PennyWiseBottomNavigation(
     modifier: Modifier = Modifier,
-    navController: NavHostController,
-    currentDestination: NavDestination?,
+    /** Route of the tab on screen ([BottomNavItem.route]), or null. */
+    selectedRoute: String?,
+    onTabSelected: (BottomNavItem) -> Unit,
     navBarStyle: NavBarStyle,
     hideLabels: Boolean = false,
     hidePill: Boolean = false,
@@ -123,10 +121,10 @@ fun PennyWiseBottomNavigation(
                     )
                 ) {
                     navigationItems.forEach { item ->
-                        val selected = isSelected(currentDestination, item)
+                        val selected = item.route == selectedRoute
                         NavigationBarItem(
                             selected = selected,
-                            onClick = { navController.navigateToTab(item) },
+                            onClick = { onTabSelected(item) },
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
@@ -201,8 +199,8 @@ fun PennyWiseBottomNavigation(
                 ) {
                     FloatingNavPill(
                         items = navigationItems,
-                        selectedIndex = navigationItems.indexOfFirst { isSelected(currentDestination, it) },
-                        onSelect = { navController.navigateToTab(it) },
+                        selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
+                        onSelect = onTabSelected,
                         blurEffects = blurEffects,
                         hazeState = hazeState,
                         modifier = Modifier.weight(1f)
@@ -229,23 +227,6 @@ fun PennyWiseBottomNavigation(
                 }
             }
         }
-    }
-}
-
-private fun isSelected(currentDestination: NavDestination?, item: BottomNavItem): Boolean =
-    currentDestination?.hierarchy?.any {
-        // Match on the route base so query-arg routes (e.g.
-        // "transactions?type=…") still light up their tab.
-        it.route?.substringBefore('?') == item.route
-    } == true
-
-private fun NavHostController.navigateToTab(item: BottomNavItem) {
-    navigate(item.route) {
-        popUpTo(graph.startDestinationId) {
-            saveState = true
-        }
-        launchSingleTop = true
-        restoreState = true
     }
 }
 

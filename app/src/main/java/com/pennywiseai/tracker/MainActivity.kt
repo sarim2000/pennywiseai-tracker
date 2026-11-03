@@ -65,7 +65,7 @@ class MainActivity : FragmentActivity() {
         private set
 
     // Screen a goal widget asked for (a nav destination), consumed by PennyWiseApp.
-    var widgetDestination by mutableStateOf<Any?>(null)
+    var widgetDestination by mutableStateOf<androidx.navigation3.runtime.NavKey?>(null)
         private set
 
     // Text shared to PennyWise from another app; opens Add Transaction pre-filled.
@@ -122,7 +122,10 @@ class MainActivity : FragmentActivity() {
         widgetDestination = when {
             goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
-                com.pennywiseai.tracker.navigation.BudgetGroups(createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false))
+                com.pennywiseai.tracker.navigation.BudgetGroups(
+                    createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false),
+                    tapId = android.os.SystemClock.elapsedRealtime()
+                )
             else -> return
         }
     }

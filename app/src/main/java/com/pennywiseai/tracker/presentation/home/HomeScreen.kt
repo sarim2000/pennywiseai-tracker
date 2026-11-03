@@ -84,7 +84,6 @@ import com.pennywiseai.tracker.ui.components.ShareMonthBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
-import androidx.navigation.NavController
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -142,7 +141,7 @@ private val STACKED_AVATAR_RING = Spacing.xxs
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    navController: NavController,
+    onAccountClick: (bankName: String, accountLast4: String) -> Unit,
     coverStyle: CoverStyle = CoverStyle.AURORA,
     blurEffects: Boolean = false,
     onNavigateToSettings: () -> Unit = {},
@@ -534,14 +533,7 @@ fun HomeScreen(
                             creditCards = uiState.creditCards,
                             totalAvailableCredit = uiState.totalAvailableCredit,
                             forecast = uiState.spendForecast,
-                            onAccountClick = { bankName, accountLast4 ->
-                                navController.navigate(
-                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                        bankName = bankName,
-                                        accountLast4 = accountLast4
-                                    )
-                                ) { launchSingleTop = true }
-                            }
+                            onAccountClick = onAccountClick
                         )
                     }
                 }
@@ -1010,14 +1002,7 @@ fun HomeScreen(
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             bankAccounts = uiState.accountBalances,
                                             creditCards = uiState.creditCards,
-                                            onAccountClick = { bankName, accountLast4 ->
-                                                navController.navigate(
-                                                    com.pennywiseai.tracker.navigation.AccountDetail(
-                                                        bankName = bankName,
-                                                        accountLast4 = accountLast4
-                                                    )
-                                                ) { launchSingleTop = true }
-                                            },
+                                            onAccountClick = onAccountClick,
                                             isUnifiedMode = uiState.isUnifiedMode,
                                             selectedCurrency = uiState.selectedCurrency,
                                             blurEffects = blurEffects,

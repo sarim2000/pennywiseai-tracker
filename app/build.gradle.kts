@@ -283,8 +283,8 @@ dependencies {
 
     // LiteRT-LM >= 0.14 calls SendChannel.close$default as an interface static; only
     // coroutines >= 1.11.0 provides it (see the litertlm note in libs.versions.toml, #599).
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     // LiteRT-LM for on-device LLM inference
     implementation(libs.litertlm.android)
     
@@ -295,7 +295,7 @@ dependencies {
     "standardImplementation"(libs.review)
     
     testImplementation(libs.mockk)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)

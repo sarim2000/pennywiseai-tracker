@@ -27,12 +27,13 @@ review = "2.0.2"
 roomVersion = "2.8.5"
 # litertlm >= 0.14 is compiled with -Xjvm-default=all and calls
 # SendChannel.close$default as an interface static. kotlinx-coroutines only
-# ships that static from 1.11.0 (built with jvm-default statics); app/build.gradle.kts
-# pins coroutines-core/-android to 1.11.0 for exactly this reason. Verified on the
+# ships that static from 1.11.0 (built with jvm-default statics); the coroutines
+# version below must stay >= 1.11.0 for exactly this reason. Verified on the
 # emulator: chat + generation complete without the #599 NoSuchMethodError, and
 # generation is ~3x faster than 0.13.1. 0.17.0 additionally needs a Hilt bump
 # (Kotlin 2.4 metadata) — not done yet.
 litertlm = "0.16.1"
+coroutines = "1.11.0"
 workVersion = "2.12.0"
 coil = "2.7.0"
 zxing = "3.5.4"
@@ -81,6 +82,9 @@ androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "ktorVersion" }
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }

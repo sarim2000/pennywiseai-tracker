@@ -8,7 +8,7 @@ plugins {
 kotlin {
     android {
         namespace = "com.pennywiseai.shared"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
         withHostTest {}
     }
@@ -29,7 +29,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+                implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1") // same as parser-core's
                 implementation(libs.androidx.room.runtime)
@@ -40,7 +40,7 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(kotlin("test"))
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
         val androidMain by getting {

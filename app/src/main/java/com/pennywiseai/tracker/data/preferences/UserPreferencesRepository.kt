@@ -778,14 +778,9 @@ open class UserPreferencesRepository @Inject constructor(
         return first
     }
 
-    /** App lock (enabled, timeout minutes, last unlock) from one snapshot, so they always agree. */
-    val appLockSettings: Flow<Triple<Boolean, Int, Long>> = context.dataStore.data
+    fun getLastAuthTimestampFlow(): Flow<Long> = context.dataStore.data
         .map { preferences ->
-            Triple(
-                preferences[PreferencesKeys.APP_LOCK_ENABLED] ?: false,
-                preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] ?: 1,
-                preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L
-            )
+            preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L
         }
 
     // Feature discovery - Full resync hint

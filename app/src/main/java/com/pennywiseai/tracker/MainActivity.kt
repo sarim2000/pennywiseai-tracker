@@ -3,7 +3,9 @@ package com.pennywiseai.tracker
 import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
@@ -15,8 +17,13 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
+import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -72,6 +79,8 @@ class MainActivity : FragmentActivity() {
     var sharedText by mutableStateOf<String?>(null)
         private set
 
+    @Inject lateinit var appLockRepository: AppLockRepository
+
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
     }
@@ -83,6 +92,14 @@ class MainActivity : FragmentActivity() {
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // With App Lock on, the Recents card is blank instead of the last screen
+        // (balances, transactions), which anyone could read there without unlocking.
+        // Hidden until the setting is read, in case the app is left right away.
+        hideFromRecents(true)
+        lifecycleScope.launch {
+            appLockRepository.isAppLockEnabled.distinctUntilChanged().collect(::hideFromRecents)
+        }
 
         // Launch intents (notification, share, Add shortcut/tile, widget) — not on
         // recreation: the restored back stack already holds what they opened, and
@@ -109,6 +126,23 @@ class MainActivity : FragmentActivity() {
                 widgetDestination = widgetDestination,
                 onWidgetDestinationHandled = { widgetDestination = null }
             )
+        }
+    }
+
+    /**
+     * Before Android 13 there's no setRecentsScreenshotEnabled, and marking the
+     * window secure only as the app pauses is too late: a gesture-navigation
+     * swipe to Recents captures the card while the app is still resumed. So
+     * there the window stays secure while App Lock is on, which also blocks
+     * screenshots in the app.
+     */
+    private fun hideFromRecents(hide: Boolean) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            setRecentsScreenshotEnabled(!hide)
+        } else if (hide) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
 

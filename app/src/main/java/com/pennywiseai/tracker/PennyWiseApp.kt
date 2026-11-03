@@ -2,8 +2,15 @@ package com.pennywiseai.tracker
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,11 +65,12 @@ fun PennyWiseApp(
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Observe lifecycle events and refresh lock state when app resumes from background
+    // Observe lifecycle events and refresh lock state when app comes back from background
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                // App came to foreground - check if it should be locked
+            // On start, not resume: until it runs the screen stays covered
+            // (coverForLock), and a split-screen half can start without resuming.
+            if (event == Lifecycle.Event.ON_START) {
                 actualAppLockViewModel.refreshLockState()
             }
         }
@@ -205,6 +213,10 @@ fun PennyWiseApp(
         WidgetRefresher.refreshTransactionWidgets(context.applicationContext)
     }
 
+    val covered = with(appLockUiState) {
+        coverForLock(checks, isLockEnabled, isLocked, unlockedOnScreen, onLockScreen)
+    }
+
     PennyWiseTheme(
         darkTheme = darkTheme,
         dynamicColor = themeUiState.isDynamicColorEnabled,
@@ -214,13 +226,46 @@ fun PennyWiseApp(
         appFont = themeUiState.appFont,
         blurEffects = themeUiState.blurEffectsEnabled
     ) {
-        PennyWiseNavHost(
-            backStack = backStack,
-            themeViewModel = actualThemeViewModel,
-            onEditComplete = onEditComplete ?: {}
-        )
+        Box(Modifier.fillMaxSize()) {
+            PennyWiseNavHost(
+                backStack = backStack,
+                // Out of the accessibility tree too, or TalkBack reads what the cover hides.
+                modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
+                themeViewModel = actualThemeViewModel,
+                onEditComplete = onEditComplete ?: {}
+            )
+            if (covered) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        // Swallow touches meant for the screen it hides.
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) awaitPointerEvent().changes.forEach { it.consume() }
+                            }
+                        }
+                )
+            }
+        }
     }
 }
+
+/**
+ * Whether to hide the app behind a plain cover. The lock screen is pushed only
+ * once a check has run on return (or at launch), so until then, and while
+ * locked with the lock screen not up yet, the screen under it would show: on a
+ * return past the timeout, over half a second of it. So with App Lock on,
+ * nothing but the lock screen shows unless the app is unlocked on screen, and
+ * nothing at all before the first check says whether the lock is on.
+ */
+internal fun coverForLock(
+    checks: Int,
+    isLockEnabled: Boolean,
+    isLocked: Boolean,
+    unlockedOnScreen: Boolean,
+    onLockScreen: Boolean
+): Boolean = !onLockScreen && (checks == 0 || (isLockEnabled && (isLocked || !unlockedOnScreen)))
 
 /**
  * Runs [navigate] for [request] once onboarding is done and the app is unlocked,

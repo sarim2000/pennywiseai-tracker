@@ -5,6 +5,7 @@ import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -134,7 +135,8 @@ fun PennyWiseNavHost(
         popTransitionSpec = popSlide,
         predictivePopTransitionSpec = { popSlide(this) },
         entryProvider = withRouteArgs(entryProvider {
-        entry<AppLock> {
+        // At once: a fade-in shows the screen it's locking through it.
+        entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(tween(200)) }) {
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     // Back to the screen it covered. Pops AppLock itself, so a repeat

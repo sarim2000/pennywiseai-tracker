@@ -24,7 +24,7 @@
 -keep class com.google.ai.edge.litertlm.** { *; }
 -dontwarn com.google.ai.edge.litertlm.**
 
-# Room, Hilt, Compose, WorkManager, kotlinx.serialization and Markdown ship
+# Room, Hilt, Compose, WorkManager and kotlinx.serialization ship
 # their own consumer rules, and nothing here serializes via reflection (backup
 # uses kotlinx.serialization codegen). Blanket `-keep X.** { *; }` rules for them
 # disabled R8 on ~70% of classes (all of material-icons-extended) — Play Console

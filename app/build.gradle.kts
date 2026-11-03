@@ -231,9 +231,6 @@ dependencies {
     // Material Icons Extended
     implementation(libs.androidx.compose.material.icons.extended)
     
-    // Color Picker for Compose
-    implementation(libs.colorpicker.compose)
-    
     // Splash Screen API
     implementation(libs.androidx.core.splashscreen)
     
@@ -255,9 +252,6 @@ dependencies {
     // AI access: WebSocket line to the relay (ADR 0002)
     implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
     implementation(libs.ktor.client.websockets)
-    
-    // Gson for backup/restore
-    implementation(libs.gson)
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -296,11 +290,9 @@ dependencies {
     
     // Google Play In-App Updates (only for standard flavor)
     "standardImplementation"(libs.app.update)
-    "standardImplementation"(libs.app.update.ktx)
     
     // Google Play In-App Reviews (only for standard flavor)
     "standardImplementation"(libs.review)
-    "standardImplementation"(libs.review.ktx)
     
     testImplementation(libs.mockk)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
@@ -328,9 +320,6 @@ dependencies {
     // Compose Charts
     implementation(libs.compose.charts)
 
-    // Markdown support
-    implementation(libs.markdown)
-    
     // OpenCSV for CSV export
     implementation(libs.opencsv)
 

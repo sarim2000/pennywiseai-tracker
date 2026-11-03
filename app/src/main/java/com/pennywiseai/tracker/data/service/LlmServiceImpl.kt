@@ -46,14 +46,13 @@ class LlmServiceImpl @Inject constructor(
 
     private fun initializeLocked(modelPath: String): Result<Unit> {
         return try {
-            val engineConfig = EngineConfig(
-                modelPath = modelPath,
-                backend = Backend.CPU(),
-                cacheDir = context.cacheDir.path
-            )
-
-            engine = Engine(engineConfig).also { it.initialize() }
-            Log.d(TAG, "Engine initialized successfully")
+            // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
+            engine = try {
+                startEngine(modelPath, Backend.GPU()).also { Log.i(TAG, "Engine initialized on GPU backend") }
+            } catch (e: Throwable) { // incl. UnsatisfiedLinkError when the OpenCL lib is missing
+                Log.w(TAG, "GPU backend unavailable (${e.javaClass.simpleName}), falling back to CPU")
+                startEngine(modelPath, Backend.CPU()).also { Log.i(TAG, "Engine initialized on CPU backend") }
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize engine", e)
@@ -144,6 +143,18 @@ class LlmServiceImpl @Inject constructor(
             }
             Log.d(TAG, "Engine and conversation reset")
         }
+    }
+
+    /** Builds and initializes an engine on [backend], releasing it if initialization fails. */
+    private fun startEngine(modelPath: String, backend: Backend): Engine {
+        val e = Engine(EngineConfig(modelPath = modelPath, backend = backend, cacheDir = context.cacheDir.path))
+        try {
+            e.initialize()
+        } catch (t: Throwable) {
+            runCatching { e.close() }
+            throw t
+        }
+        return e
     }
 
     private fun takeConversation(): Conversation? = conversation.also { conversation = null }

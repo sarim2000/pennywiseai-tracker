@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.billing.license
 import com.pennywiseai.tracker.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
@@ -39,7 +39,7 @@ class LicenseClient @Inject constructor() {
         data class Error(val message: String) : ValidateResult()
     }
 
-    private val client = HttpClient(Android) {
+    private val client = HttpClient(OkHttp) {
         install(HttpTimeout) {
             requestTimeoutMillis = 20_000
             connectTimeoutMillis = 10_000

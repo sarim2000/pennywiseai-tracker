@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit

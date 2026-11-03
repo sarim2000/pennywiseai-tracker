@@ -378,7 +378,12 @@ data class AppPreferences(
 
     // The user's own UPI ID for split-bill requests (#346). FULL exports only.
     @SerialName("upi_id")
-    val upiId: String? = null
+    val upiId: String? = null,
+
+    // Recurring-bill suggestions marked "Not recurring" ("CUR|merchantkey"), so a
+    // restore doesn't ask again. FULL exports only: they name merchants.
+    @SerialName("dismissed_recurring_suggestions")
+    val dismissedRecurringSuggestions: List<String> = emptyList()
 )
 
 /**

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +60,9 @@ fun GreetingCard(
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
+    // Shows an Add button when set (the floating nav bar docks Sync instead
+    // of Home keeping an Add FAB).
+    onAddClick: (() -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -199,7 +203,7 @@ fun GreetingCard(
             Box {
                 IconButton(
                     onClick = { showProfileMenu = true },
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget)
                 ) {
                     Icon(
                         imageVector = profileFilterIcon(profiles, selectedProfileId),
@@ -217,10 +221,23 @@ fun GreetingCard(
             }
         }
 
+        if (onAddClick != null) {
+            IconButton(
+                onClick = onAddClick,
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.home_fab_add),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         // Menu button — plain IconButton, no circular background
         IconButton(
             onClick = onMenuClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
         ) {
             Icon(
                 imageVector = Icons.Default.MoreHoriz,

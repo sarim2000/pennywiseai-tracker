@@ -370,6 +370,7 @@
         <item quantity="many">%d بلا تصنيف</item>
         <item quantity="other">%d بلا تصنيف</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="zero">رتّبها ليُحسب صرفك الحقيقي فقط</item>
         <item quantity="one">رتّبها ليُحسب صرفك الحقيقي فقط</item>

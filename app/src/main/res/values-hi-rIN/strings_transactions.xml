@@ -401,6 +401,7 @@
     <string name="quick_category_title">श्रेणी बदलें</string>
     <string name="quick_category_not_expense">खर्च नहीं है</string>
     <string name="quick_category_not_income">आय नहीं है</string>
+    <!-- Walking the recap's unsorted rows: "2 of 3" -->
     <string name="quick_category_progress">%2$d में से %1$d</string>
     <string name="quick_category_save_failed">सेव नहीं हो सका। फिर से कोशिश करें।</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->

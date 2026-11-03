@@ -299,6 +299,7 @@
         <item quantity="one">%d लाई वर्ग चाहिन्छ</item>
         <item quantity="other">%d लाई वर्ग चाहिन्छ</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">यसलाई वर्ग दिनुहोस्, ताकि वास्तविक खर्च मात्र गनियोस्</item>
         <item quantity="other">यिनलाई वर्ग दिनुहोस्, ताकि वास्तविक खर्च मात्र गनियोस्</item>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
+    <string name="subscriptions_suggested_section">Suggested</string>
+    <string name="subscriptions_suggested_hint">Payments that repeat in your history. Not counted until you track them.</string>
+    <!-- %1$d: total number of suggestions -->
+    <string name="subscriptions_suggested_show_all">Show all (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">Show less</string>
+
+    <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <string name="subscription_suggestion_pattern">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d payment</item>
+        <item quantity="other">%1$d payments</item>
+    </plurals>
+    <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_amount_range">%1$s–%2$s</string>
+    <string name="subscription_suggestion_varies">Amount varies</string>
+    <string name="subscription_suggestion_review">Review</string>
+    <string name="subscription_suggestion_not_recurring">Not recurring</string>
+
+    <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <string name="subscription_suggestion_sheet_subtitle">%1$s · %2$s</string>
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">%1$d payment found</item>
+        <item quantity="other">%1$d payments found</item>
+    </plurals>
+    <!-- %1$s: currency code, e.g. "USD" -->
+    <string name="subscription_suggestion_sheet_amount">Amount to track (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">This bill changes each time. You can edit the amount later.</string>
+    <!-- %1$s: date, e.g. "15 Nov 2026" -->
+    <string name="subscription_suggestion_sheet_next">Next payment expected %1$s</string>
+    <string name="subscription_suggestion_sheet_track">Track bill</string>
+    <string name="subscription_suggestion_sheet_helper">You\'ll get a reminder the day before each payment.</string>
+
+    <!-- Snackbars. %1$s: merchant name -->
+    <string name="subscriptions_suggestion_tracked">Now tracking %1$s</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s is already tracked</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s won\'t be suggested again</string>
+
+    <!-- Home card linking to the suggestions -->
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d possible recurring bill</item>
+        <item quantity="other">%1$d possible recurring bills</item>
+    </plurals>
+    <!-- %1$s: one or two merchant names, comma-separated -->
+    <string name="home_recurring_card_body">%1$s. Review to get a reminder before each payment.</string>
+    <!-- %1$s: two merchant names, comma-separated; %2$d: how many more, shown as "+2" -->
+    <string name="home_recurring_card_body_more">%1$s +%2$d. Review to get a reminder before each payment.</string>
+    <string name="home_recurring_card_action">Review</string>
+    <string name="home_recurring_card_dismiss">Hide</string>
+</resources>

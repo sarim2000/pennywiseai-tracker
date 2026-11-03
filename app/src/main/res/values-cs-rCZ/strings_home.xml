@@ -334,6 +334,7 @@
         <item quantity="many">%d potřebuje kategorii</item>
         <item quantity="other">%d potřebuje kategorii</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
         <item quantity="one">roztřiďte ji, ať se počítají jen skutečné výdaje</item>
         <item quantity="few">roztřiďte je, ať se počítají jen skutečné výdaje</item>

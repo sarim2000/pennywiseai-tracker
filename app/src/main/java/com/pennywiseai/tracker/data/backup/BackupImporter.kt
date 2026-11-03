@@ -1011,6 +1011,9 @@ class BackupImporter @Inject constructor(
         preferences.app.lastReviewPromptTime?.let {
             userPreferencesRepository.updateLastReviewPromptTime(it)
         }
+        // Additive, like ignored accounts: a restore never brings back a suggestion
+        // dismissed on this device.
+        userPreferencesRepository.addDismissedRecurringSuggestions(preferences.app.dismissedRecurringSuggestions)
 
         // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
         preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->

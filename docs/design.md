@@ -112,6 +112,14 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
+The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,
+`floatingNavBottomGap` 12dp above the system bar) with a sliding selected
+indicator (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
+`primary` tint at `Alpha.selectedIndicator`). A tab's one primary action docks
+beside it as a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): the
+screen calls `DockNavAction(...)` when `LocalNavDock.current` is non-null and
+drops its own FAB, so the bar and the action never stack over content.
+
 ### Elevation (`Dimensions.Elevation`)
 
 The app is **flat**. Containers separate via tonal surfaces

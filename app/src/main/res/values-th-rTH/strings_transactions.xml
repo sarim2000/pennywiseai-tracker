@@ -390,6 +390,7 @@
     <string name="quick_category_title">เปลี่ยนหมวดหมู่</string>
     <string name="quick_category_not_expense">ไม่ใช่รายจ่าย</string>
     <string name="quick_category_not_income">ไม่ใช่รายรับ</string>
+    <!-- Walking the recap's unsorted rows: "2 of 3" -->
     <string name="quick_category_progress">%1$d จาก %2$d</string>
     <string name="quick_category_save_failed">บันทึกไม่สำเร็จ ลองอีกครั้ง</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->

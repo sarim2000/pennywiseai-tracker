@@ -441,7 +441,10 @@ fun SubscriptionTabContent(
                 expanded = showAccountMenu,
                 onDismissRequest = { showAccountMenu = false }
             ) {
-                DropdownMenuItem(
+                SelectableDropdownMenuItem(
+                    selected = uiState.selectedAccount == null,
+                    shapes = MenuDefaults.itemShape(0, 1),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                     text = {
                         Column {
                             Text(stringResource(R.string.add_sub_no_account))
@@ -456,7 +459,8 @@ fun SubscriptionTabContent(
                         viewModel.updateSubscriptionAccount(null)
                         showAccountMenu = false
                     },
-                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                 )
                 HorizontalDivider()
                 val groupedAccounts = accounts.groupBy { it.getAccountType() }

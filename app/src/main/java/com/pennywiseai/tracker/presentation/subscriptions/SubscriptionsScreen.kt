@@ -1044,14 +1044,18 @@ private fun EditSubscriptionDialog(
                         expanded = showAccountMenu,
                         onDismissRequest = { showAccountMenu = false }
                     ) {
-                        DropdownMenuItem(
+                        SelectableDropdownMenuItem(
+                            selected = selectedAccount == null,
+                            shapes = MenuDefaults.itemShape(0, 1),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = { Text(stringResource(R.string.subscriptions_edit_no_account)) },
                             onClick = {
                                 selectedAccount = null
                                 accountChanged = true
                                 showAccountMenu = false
                             },
-                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                         HorizontalDivider()
                         accounts.forEachIndexed { index, account ->

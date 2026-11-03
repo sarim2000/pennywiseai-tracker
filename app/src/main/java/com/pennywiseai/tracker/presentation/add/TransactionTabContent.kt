@@ -548,7 +548,10 @@ fun TransactionTabContent(
                 // "No account" only makes sense outside a transfer — both transfer
                 // legs must reference a real account to move money.
                 if (!isTransfer) {
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
+                        selected = uiState.selectedAccount == null,
+                        shapes = MenuDefaults.itemShape(0, 1),
+                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                         text = {
                             Column {
                                 Text(stringResource(R.string.add_txn_no_account))
@@ -563,7 +566,8 @@ fun TransactionTabContent(
                             viewModel.updateSelectedAccount(null)
                             accountPickerTarget = null
                         },
-                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                     )
                     HorizontalDivider()
                 }

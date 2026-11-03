@@ -61,7 +61,8 @@ fun PennyWiseNavHost(
         popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }
     ) {
         composable<AppLock>(
-            enterTransition = { fadeIn(tween(300)) + slideInVertically { it / 4 } },
+            // At once: a fade-in shows the screen it's locking through it.
+            enterTransition = { EnterTransition.None },
             exitTransition = { fadeOut(tween(200)) },
             popEnterTransition = { fadeIn(tween(300)) },
             popExitTransition = { fadeOut(tween(200)) + slideOutVertically { it / 4 } }

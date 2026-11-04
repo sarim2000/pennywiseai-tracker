@@ -78,6 +78,7 @@ import com.pennywiseai.tracker.ui.theme.indigo_light
 import com.pennywiseai.tracker.ui.theme.indigo_dark
 import com.pennywiseai.tracker.ui.theme.red_light
 import com.pennywiseai.tracker.ui.theme.red_dark
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.ui.theme.pink_light
 import com.pennywiseai.tracker.ui.theme.pink_dark
 import com.pennywiseai.tracker.ui.theme.purple_light
@@ -611,16 +612,18 @@ fun SettingsScreen(
             // ── Data Management ──
             SectionHeaderV2(title = stringResource(R.string.settings_data_section))
             SettingsGroup {
+                // Without SMS access there's no tracking to protect, so nothing to nag about.
+                val backgroundStepsLeft = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }
+                val backgroundStepsColor = MaterialTheme.colorScheme.warning
                 SettingsNavItem(
                     icon = Icons.Default.BatteryChargingFull,
-                    iconBgColor = red_light,
-                    iconTint = red_dark,
+                    iconBgColor = if (backgroundStepsLeft != null) backgroundStepsColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.secondaryContainer,
+                    iconTint = if (backgroundStepsLeft != null) backgroundStepsColor else MaterialTheme.colorScheme.onSecondaryContainer,
                     title = stringResource(R.string.background_access_title),
                     subtitle = stringResource(R.string.background_access_settings_subtitle),
                     onClick = onNavigateToBackgroundAccess,
                     position = ListItemPosition.Top,
-                    // Without SMS access there's no tracking to protect, so nothing to nag about.
-                    trailingText = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }?.let {
+                    trailingText = backgroundStepsLeft?.let {
                         pluralStringResource(R.plurals.background_access_settings_left, it, it)
                     }
                 )

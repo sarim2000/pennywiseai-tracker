@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -174,7 +175,8 @@ fun PermissionScreen(
                                 val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                                 notificationAccessLauncher.launch(intent)
                             },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Text(stringResource(R.string.permission_notification_open_settings))
                         }
@@ -214,7 +216,8 @@ fun PermissionScreen(
 
                     multiplePermissionLauncher.launch(permissions.toTypedArray())
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.permission_enable_button))
             }

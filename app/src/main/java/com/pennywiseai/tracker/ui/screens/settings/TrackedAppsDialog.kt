@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -115,7 +116,7 @@ fun TrackedAppsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!hasNotificationAccess) {
-                    TextButton(onClick = onEnableAccess) {
+                    TextButton(onClick = onEnableAccess, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.settings_tracked_apps_enable_access))
                     }
                 }
@@ -153,7 +154,7 @@ fun TrackedAppsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_tracked_apps_done)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_tracked_apps_done)) }
         }
     )
 }

@@ -108,7 +108,7 @@ fun WhatsNewDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
+            Button(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.whats_new_got_it))
             }
         }

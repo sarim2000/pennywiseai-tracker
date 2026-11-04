@@ -13,13 +13,13 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,9 +49,10 @@ fun BlurredAnimatedVisibility(
         label = "blurTransition"
     )
 
+    val motion = MaterialTheme.motionScheme
     val blurRadius by transition.animateFloat(
         label = "blurRadius",
-        transitionSpec = { tween(durationMillis = 300) }
+        transitionSpec = { motion.defaultEffectsSpec() }
     ) { state ->
         if (state && transition.currentState == transition.targetState) 0f else 5f
     }

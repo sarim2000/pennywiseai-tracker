@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -99,13 +100,13 @@ internal fun LicenseKeyDialog(
                     strokeWidth = Spacing.xxs,
                 )
             } else if (canMove) {
-                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow) { Text(stringResource(R.string.upgrade_license_move_here)) }
+                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.upgrade_license_move_here)) }
             } else {
-                TextButton(onClick = { onActivate(key) }, enabled = canSubmit) { Text(stringResource(R.string.upgrade_license_activate)) }
+                TextButton(onClick = { onActivate(key) }, enabled = canSubmit, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.upgrade_license_activate)) }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isActivating) { Text(stringResource(R.string.upgrade_cancel)) }
+            TextButton(onClick = onDismiss, enabled = !isActivating, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.upgrade_cancel)) }
         },
     )
 }

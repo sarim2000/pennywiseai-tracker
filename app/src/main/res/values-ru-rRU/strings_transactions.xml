@@ -276,7 +276,6 @@
     <string name="add_field_reference">Номер операции (необязательно)</string>
     <string name="add_field_category">Категория</string>
     <string name="add_clear">Очистить</string>
-    <string name="add_selected">Выбрано</string>
     <string name="add_save">Сохранить</string>
     <string name="add_ok">ОК</string>
     <string name="add_cancel">Отмена</string>

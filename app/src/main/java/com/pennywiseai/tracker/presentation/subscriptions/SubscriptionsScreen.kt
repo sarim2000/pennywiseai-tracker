@@ -9,7 +9,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -218,9 +217,9 @@ fun SubscriptionsScreen(
                 }
                 AnimatedVisibility(
                     visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                         initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                     )
                 ) {
                     TotalSubscriptionsSummary(
@@ -259,7 +258,8 @@ fun SubscriptionsScreen(
                         if (uiState.suggestions.size > SUGGESTIONS_PREVIEW) {
                             TextButton(
                                 onClick = { showAll = !showAll },
-                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(
                                     if (showAll) stringResource(R.string.subscriptions_suggested_show_less)
@@ -286,9 +286,9 @@ fun SubscriptionsScreen(
                     }
                     AnimatedVisibility(
                         visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
+                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                             initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                         )
                     ) {
                         SwipeableSubscriptionItem(
@@ -458,8 +458,8 @@ private fun EndedSubscriptionItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            TextButton(onClick = onReactivate) { Text(stringResource(R.string.subscriptions_reactivate)) }
-            IconButton(onClick = { showDeleteConfirm = true }) {
+            TextButton(onClick = onReactivate, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_reactivate)) }
+            IconButton(onClick = { showDeleteConfirm = true }, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = stringResource(R.string.subscriptions_action_delete),
@@ -481,13 +481,14 @@ private fun EndedSubscriptionItem(
                     onClick = {
                         showDeleteConfirm = false
                         onDelete()
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         )
     }
@@ -556,20 +557,18 @@ private fun SwipeableSubscriptionItem(
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            when (dismissValue) {
-                SwipeToDismissBoxValue.EndToStart -> {
-                    onHide()
-                    true
-                }
-                else -> false
-            }
-        }
-    )
-    
+    // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
+    // M3 re-runs onDismiss whenever the lambda changes while dismissed, so keep it stable.
+    val currentOnHide by rememberUpdatedState(onHide)
+    val onDismiss = remember { { _: SwipeToDismissBoxValue -> currentOnHide() } }
+
     SwipeToDismissBox(
         state = dismissState,
+        // Only swipe-left hides; there is no StartToEnd anchor to veto.
+        enableDismissFromStartToEnd = false,
+        onDismiss = onDismiss,
         backgroundContent = {
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
@@ -773,7 +772,8 @@ private fun SwipeableSubscriptionItem(
                         Box {
                             IconButton(
                                 onClick = { showMenu = true },
-                                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                shapes = IconButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.MoreVert,
@@ -919,13 +919,14 @@ private fun SwipeableSubscriptionItem(
                     onClick = {
                         onDelete()
                         showDeleteConfirm = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         )
     }
@@ -1008,7 +1009,7 @@ private fun EditSubscriptionDialog(
                         .clickable { showDatePicker = true },
                     enabled = false,
                     trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }) {
+                        IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.subscriptions_edit_pick_date))
                         }
                     }
@@ -1034,7 +1035,7 @@ private fun EditSubscriptionDialog(
                             .clickable { showAccountMenu = true },
                         enabled = false,
                         trailingIcon = {
-                            IconButton(onClick = { showAccountMenu = true }) {
+                            IconButton(onClick = { showAccountMenu = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Default.AccountBalance, contentDescription = stringResource(R.string.subscriptions_edit_pick_account))
                             }
                         }
@@ -1043,18 +1044,25 @@ private fun EditSubscriptionDialog(
                         expanded = showAccountMenu,
                         onDismissRequest = { showAccountMenu = false }
                     ) {
-                        DropdownMenuItem(
+                        SelectableDropdownMenuItem(
+                            selected = selectedAccount == null,
+                            shapes = MenuDefaults.itemShape(0, 1),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = { Text(stringResource(R.string.subscriptions_edit_no_account)) },
                             onClick = {
                                 selectedAccount = null
                                 accountChanged = true
                                 showAccountMenu = false
                             },
-                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                         HorizontalDivider()
-                        accounts.forEach { account ->
-                            DropdownMenuItem(
+                        accounts.forEachIndexed { index, account ->
+                            SelectableDropdownMenuItem(
+                                selected = selectedAccount?.id == account.id,
+                                shapes = MenuDefaults.itemShape(index, accounts.size),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                 text = {
                                     Column {
                                         Text(account.displayLabel)
@@ -1076,11 +1084,7 @@ private fun EditSubscriptionDialog(
                                         contentDescription = null
                                     )
                                 },
-                                trailingIcon = {
-                                    if (selectedAccount?.id == account.id) {
-                                        Icon(Icons.Default.Check, stringResource(R.string.subscriptions_edit_selected), tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                             )
                         }
                     }
@@ -1094,11 +1098,12 @@ private fun EditSubscriptionDialog(
                     parsedAmount?.let { amt ->
                         onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
                     }
-                }
+                },
+                shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.subscriptions_edit_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
         }
     )
 
@@ -1114,10 +1119,10 @@ private fun EditSubscriptionDialog(
                         nextDate = LocalDate.ofEpochDay(millis / 86_400_000)
                     }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

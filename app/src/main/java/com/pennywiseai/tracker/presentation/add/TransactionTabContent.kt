@@ -138,7 +138,8 @@ private fun AccountSelectorCard(
             if (account != null) {
                 IconButton(
                     onClick = onClear,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Clear,
@@ -301,6 +302,7 @@ fun TransactionTabContent(
                 TransactionType.values().forEach { type ->
                     FilterChip(
                         selected = uiState.transactionType == type,
+                        shapes = FilterChipDefaults.shapes(),
                         onClick = { viewModel.updateTransactionType(type) },
                         label = {
                             Text(stringResource(transactionTypeLabel(type)))
@@ -546,7 +548,10 @@ fun TransactionTabContent(
                 // "No account" only makes sense outside a transfer — both transfer
                 // legs must reference a real account to move money.
                 if (!isTransfer) {
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
+                        selected = uiState.selectedAccount == null,
+                        shapes = MenuDefaults.itemShape(0, 1),
+                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                         text = {
                             Column {
                                 Text(stringResource(R.string.add_txn_no_account))
@@ -561,7 +566,8 @@ fun TransactionTabContent(
                             viewModel.updateSelectedAccount(null)
                             accountPickerTarget = null
                         },
-                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                     )
                     HorizontalDivider()
                 }
@@ -583,8 +589,11 @@ fun TransactionTabContent(
                         onClick = {},
                         enabled = false
                     )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
+                    accountList.forEachIndexed { index, account ->
+                        SelectableDropdownMenuItem(
+                            selected = selectedForTarget?.id == account.id,
+                            shapes = MenuDefaults.itemShape(index, accountList.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = {
                                 Column {
                                     Text(account.displayLabel)
@@ -609,11 +618,7 @@ fun TransactionTabContent(
                                     contentDescription = null
                                 )
                             },
-                            trailingIcon = {
-                                if (selectedForTarget?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }
@@ -667,7 +672,8 @@ fun TransactionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -702,11 +708,12 @@ fun TransactionTabContent(
                             viewModel.updateTransactionDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -729,11 +736,12 @@ fun TransactionTabContent(
                     onClick = {
                         viewModel.updateTransactionTime(timePickerState.hour, timePickerState.minute)
                         showTimePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         )
     }
@@ -787,7 +795,8 @@ fun ReceiptPickerSection(
                         .size(28.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    ),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Close,
@@ -808,7 +817,8 @@ fun ReceiptPickerSection(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -820,7 +830,8 @@ fun ReceiptPickerSection(
                         cameraUri = uri
                         cameraLauncher.launch(uri)
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))

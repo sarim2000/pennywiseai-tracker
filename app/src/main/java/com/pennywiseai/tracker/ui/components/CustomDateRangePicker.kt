@@ -48,13 +48,14 @@ fun CustomDateRangePickerDialog(
                     }
                 },
                 enabled = dateRangePickerState.selectedStartDateMillis != null &&
-                         dateRangePickerState.selectedEndDateMillis != null
+                         dateRangePickerState.selectedEndDateMillis != null,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.date_range_ok))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.date_range_cancel))
             }
         },

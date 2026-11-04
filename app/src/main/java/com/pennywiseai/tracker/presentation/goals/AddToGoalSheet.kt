@@ -17,9 +17,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -109,7 +111,7 @@ fun AddToGoalSheet(
 
             if (goals.isEmpty()) {
                 Text(stringResource(R.string.goal_add_to_goal_no_goals), style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.goals_empty_action)) }
+                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goals_empty_action)) }
                 return@Column
             }
 
@@ -178,7 +180,7 @@ fun AddToGoalSheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f))
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.goal_action_cancel)) }
+                OutlinedButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
                 Button(
                     onClick = {
                         selected?.let {
@@ -186,6 +188,7 @@ fun AddToGoalSheet(
                         }
                     },
                     enabled = !state.saving && left != null && left.signum() > 0 && selected != null,
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_add_to_goal)) }
             }
         }
@@ -249,7 +252,7 @@ fun TowardGoalsSection(linked: List<LinkedGoal>, onOpenGoal: (Long) -> Unit, onR
                         style = PennyWiseText.amountRow,
                         color = MaterialTheme.colorScheme.success,
                     )
-                    IconButton(onClick = { onRemove(c.id) }) {
+                    IconButton(onClick = { onRemove(c.id) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = stringResource(R.string.goal_toward_remove, goal.name),

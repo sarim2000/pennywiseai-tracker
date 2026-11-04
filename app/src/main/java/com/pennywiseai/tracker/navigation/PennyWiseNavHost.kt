@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.navigation
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeOut
@@ -12,6 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -105,18 +105,24 @@ private fun RouteArgs(key: NavKey, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalViewModelStoreOwner provides owner, content = content)
 }
 
-private val enterSlide: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-    fadeIn(tween(300)) + slideInVertically { it / 4 } togetherWith fadeOut(tween(200))
+// M3 Expressive motion: spatial spring for the slide, effects spring for the
+// fade, both from the theme's MotionScheme.
+private fun enterSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+    fadeIn(m.defaultEffectsSpec()) + slideInVertically(m.defaultSpatialSpec()) { it / 4 } togetherWith
+        fadeOut(m.fastEffectsSpec())
 }
-private val popSlide: AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-    fadeIn(tween(300)) togetherWith fadeOut(tween(200)) + slideOutVertically { it / 4 }
+private fun popSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
+    fadeIn(m.defaultEffectsSpec()) togetherWith
+        fadeOut(m.fastEffectsSpec()) + slideOutVertically(m.fastSpatialSpec()) { it / 4 }
 }
 
 /** Home and Transaction detail cross-fade both ways (shared-element transaction rows). */
-private val fadeOnly: Map<String, Any> =
-    NavDisplay.transitionSpec { fadeIn() togetherWith fadeOut() } +
-        NavDisplay.popTransitionSpec { fadeIn() togetherWith fadeOut() } +
-        NavDisplay.predictivePopTransitionSpec { fadeIn() togetherWith fadeOut() }
+private fun fadeOnly(m: MotionScheme): Map<String, Any> {
+    fun fade() = fadeIn(m.defaultEffectsSpec()) togetherWith fadeOut(m.fastEffectsSpec())
+    return NavDisplay.transitionSpec { fade() } +
+        NavDisplay.popTransitionSpec { fade() } +
+        NavDisplay.predictivePopTransitionSpec { fade() }
+}
 
 @Composable
 fun PennyWiseNavHost(
@@ -125,6 +131,10 @@ fun PennyWiseNavHost(
     themeViewModel: ThemeViewModel = hiltViewModel(),
     onEditComplete: () -> Unit = {}
 ) {
+    val motion = MaterialTheme.motionScheme
+    val enterSlide = remember(motion) { enterSlide(motion) }
+    val popSlide = remember(motion) { popSlide(motion) }
+    val fadeOnly = remember(motion) { fadeOnly(motion) }
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
     NavDisplay(
@@ -136,7 +146,7 @@ fun PennyWiseNavHost(
         predictivePopTransitionSpec = { popSlide(this) },
         entryProvider = withRouteArgs(entryProvider {
         // At once: a fade-in shows the screen it's locking through it.
-        entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(tween(200)) }) {
+        entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {
             com.pennywiseai.tracker.ui.screens.AppLockScreen(
                 onUnlocked = {
                     // Back to the screen it covered. Pops AppLock itself, so a repeat

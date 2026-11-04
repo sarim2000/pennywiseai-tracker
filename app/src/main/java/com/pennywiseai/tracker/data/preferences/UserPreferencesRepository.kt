@@ -414,9 +414,9 @@ open class UserPreferencesRepository @Inject constructor(
         return claimed
     }
 
-    /** True once per dip of this [account] under its threshold; [isLow] false rearms it. */
-    suspend fun claimLowBalanceAlert(account: String, isLow: Boolean): Boolean {
-        val key = booleanPreferencesKey("low_balance_told_$account")
+    /** True once per dip of this account under its threshold; [isLow] false rearms it. */
+    suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
+        val key = booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
         var claimed = false
         context.dataStore.edit { preferences ->
             if (!isLow) {

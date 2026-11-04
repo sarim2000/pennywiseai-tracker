@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.utils.BalanceCalculator
@@ -23,7 +24,8 @@ import javax.inject.Singleton
 open class AccountBalanceRepository @Inject constructor(
     private val accountBalanceDao: AccountBalanceDao,
     private val transactionDao: TransactionDao,
-    private val database: PennyWiseDatabase
+    private val database: PennyWiseDatabase,
+    private val userPreferencesRepository: UserPreferencesRepository
 ) {
     companion object {
         const val SOURCE_OPENING = "OPENING"
@@ -332,7 +334,26 @@ open class AccountBalanceRepository @Inject constructor(
      * across all of the account's balance rows. (#509)
      */
     suspend fun setLowBalanceThreshold(bankName: String, accountLast4: String, threshold: BigDecimal?): Int {
-        return accountBalanceDao.setLowBalanceThreshold(bankName, accountLast4, threshold)
+        val updated = accountBalanceDao.setLowBalanceThreshold(bankName, accountLast4, threshold)
+        accountBalanceDao.getLatestBalance(bankName, accountLast4)?.let {
+            rearmLowBalanceAlert(bankName, accountLast4, it.balance, threshold)
+        }
+        return updated
+    }
+
+    /**
+     * Above the threshold, or with none: the next dip is news again. Done at the
+     * write, not in MoneyAlertWorker, which only sees the newest figure and doesn't
+     * run after an edit. Never fails the write around it; worst case is one missed alert.
+     */
+    private suspend fun rearmLowBalanceAlert(
+        bankName: String,
+        accountLast4: String,
+        balance: BigDecimal,
+        threshold: BigDecimal?
+    ) {
+        if (threshold != null && balance <= threshold) return
+        runCatching { userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false) }
     }
 
     suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {
@@ -926,6 +947,7 @@ open class AccountBalanceRepository @Inject constructor(
                 opening.copy(id = 0, balance = current, timestamp = now, sourceType = SOURCE_MANUAL)
             )
         }
+        rearmLowBalanceAlert(bankName, accountLast4, current, opening.lowBalanceThreshold)
     }
 
     /**

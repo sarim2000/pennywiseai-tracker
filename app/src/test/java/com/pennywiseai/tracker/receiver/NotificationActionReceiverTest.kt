@@ -199,7 +199,8 @@ class NotificationActionReceiverTest {
         accountBalanceRepository = object : AccountBalanceRepository(
             accountBalanceDao,
             transactionDao,
-            TestDb()
+            TestDb(),
+            io.mockk.mockk(relaxed = true)
         ) {
             override suspend fun applyDeleteBalanceShift(transaction: TransactionEntity) {
                 val bank = transaction.bankName ?: return

@@ -55,7 +55,8 @@ class MoneyAlertChecker @Inject constructor(
     /**
      * Manual and cash accounts: no SMS reports their balance, so there is no
      * crossing to catch in [com.pennywiseai.tracker.data.manager.SmsTransactionProcessor].
-     * One alert per dip, rearmed once the balance is back above the threshold.
+     * One alert per dip. [AccountBalanceRepository] rearms it on the balance write
+     * itself; the reset here only covers figures that skip it, like a restore.
      */
     // ponytail: an account already under its threshold gets one true alert on its next transaction; seed it if that annoys.
     suspend fun checkManualBalances() {
@@ -63,7 +64,7 @@ class MoneyAlertChecker @Inject constructor(
             val threshold = account.lowBalanceThreshold ?: continue
             if (!accountBalanceRepository.isManualAccount(account.bankName, account.accountLast4)) continue
             val isLow = account.balance <= threshold
-            if (userPreferencesRepository.claimLowBalanceAlert("${account.bankName}|${account.accountLast4}", isLow)) {
+            if (userPreferencesRepository.claimLowBalanceAlert(account.bankName, account.accountLast4, isLow)) {
                 MoneyAlertNotifications.showLowBalance(context, account)
             }
         }

@@ -61,6 +61,9 @@ class LlmServiceImpl @Inject constructor(
     }
 
     private fun initializeLocked(modelPath: String): Result<Unit> {
+        // A caller that queued behind another start (or the CPU retry) must not replace,
+        // and leak, the engine the live conversation runs on.
+        if (engine != null) return Result.success(Unit)
         this.modelPath = modelPath
         return try {
             // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
@@ -157,7 +160,8 @@ class LlmServiceImpl @Inject constructor(
                 }
             }
             .catch { e ->
-                Log.e(TAG, "Error during streaming response", e)
+                // Class only: LiteRT's messages can quote the model's reply or the prompt.
+                Log.e(TAG, "Error during streaming response (${e.javaClass.simpleName})")
                 throw e
             }
             .transform { chunk ->
@@ -187,7 +191,7 @@ class LlmServiceImpl @Inject constructor(
                 Log.i(TAG, "Engine restarted on CPU backend")
                 cpu.createConversation(config).also { conversation = it }
             } catch (e: Exception) {
-                Log.e(TAG, "CPU restart failed", e)
+                Log.e(TAG, "CPU restart failed (${e.javaClass.simpleName})")
                 null
             }
         }

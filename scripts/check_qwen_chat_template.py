@@ -26,7 +26,8 @@ KT = Path(__file__).resolve().parent.parent / (
 
 
 def model_template(model_path: str) -> str:
-    data = Path(model_path).read_bytes()[:64 << 20]
+    with open(model_path, "rb") as f:
+        data = f.read(64 << 20)  # the template sits in the header, before the weights
     start = data.find(b"{%- if tools %}")
     if start < 0:
         sys.exit("No Qwen chat template found in the model file")

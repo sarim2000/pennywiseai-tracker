@@ -28,8 +28,6 @@ internal object QwenChatTemplate {
                 {{- part -}}
             {%- elif part.type == 'text' -%}
                 {{- part.text -}}
-            {%- elif part.type == 'tool_response' -%}
-                {{- part.response | tojson -}}
             {%- endif -%}
         {%- endfor -%}
     {%- endif -%}

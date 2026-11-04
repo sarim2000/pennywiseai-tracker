@@ -99,6 +99,20 @@ object GenericTransactionExtractor {
         }
     }
 
+    /** Money out or in, by the first direction word; null if the message has none. */
+    internal fun directionOf(body: String): TransactionType? = DIRECTION.find(body)
+        ?.let { if (it.groups[1] != null) TransactionType.EXPENSE else TransactionType.INCOME }
+
+    /** A person's number, an OTP, a promo or a failed attempt: never a transaction, whatever else it says. */
+    internal fun isNeverTransaction(sender: String, body: String): Boolean =
+        PERSONAL_NUMBER.matches(sender.replace(" ", "")) || Base.isNonTransaction(body) || FAILED.containsMatchIn(body)
+
+    /** Says the payment didn't go through or was undone, so a taught shape must not read it as normal. */
+    internal fun saysItFailed(text: String): Boolean = FAILED.containsMatchIn(text) || UNDONE.containsMatchIn(text)
+
+    /** "your a/c", "the card": words that name an account, not who the money went to. */
+    internal fun namesAnAccount(text: String): Boolean = NOT_MERCHANT.containsMatchIn(text)
+
     private fun merchant(body: String): String? = MERCHANT.findAll(body)
         .map { Base.clean(it.groupValues[1].trim()) }
         .firstOrNull { !NOT_MERCHANT.containsMatchIn(it) && Base.isValidMerchant(it) }
@@ -154,5 +168,6 @@ object GenericTransactionExtractor {
         """\b(declined|failed|unsuccessful|rejected|could not be processed|was not processed)\b""",
         RegexOption.IGNORE_CASE
     )
+    private val UNDONE = Regex("""\b(reversed|reversal|refund|refunded|cancelled|canceled|voided)\b""", RegexOption.IGNORE_CASE)
     private val PERSONAL_NUMBER = Regex("""\+?\d{10,}""")
 }

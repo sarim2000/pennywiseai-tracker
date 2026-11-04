@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.billing.license.LicenseManager
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -1016,6 +1017,7 @@ class BackupImporter @Inject constructor(
         // Additive, like ignored accounts: a restore never brings back a suggestion
         // dismissed on this device.
         userPreferencesRepository.addDismissedRecurringSuggestions(preferences.app.dismissedRecurringSuggestions)
+        TaughtTemplatesStore(context).restore(preferences.app.taughtTemplates)
 
         // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
         preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->

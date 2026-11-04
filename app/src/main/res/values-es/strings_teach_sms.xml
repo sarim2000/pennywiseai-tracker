@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Enseñar</string>
+    <string name="teach_title">Enséñale este mensaje a PennyWise</string>
+    <string name="teach_field_amount">Monto</string>
+    <string name="teach_field_merchant">Comercio</string>
+    <string name="teach_field_account">Cuenta</string>
+    <string name="teach_hint_amount">Toca el monto en el mensaje.</string>
+    <string name="teach_hint_merchant">Toca el nombre del comercio palabra por palabra. Sin marcarlo, la próxima vez solo coincidirá este nombre exacto.</string>
+    <string name="teach_hint_account">Toca los dígitos de la cuenta o tarjeta. Opcional.</string>
+    <string name="teach_amount_placeholder">Aún sin monto</string>
+    <string name="teach_amount_source">Leído de: «%1$s»</string>
+    <string name="teach_direction_out">Gasto</string>
+    <string name="teach_direction_in">Ingreso</string>
+    <string name="teach_currency">Moneda</string>
+    <string name="teach_format_question">¿Cuál es el monto?</string>
+    <string name="teach_merchant_label">Comercio (opcional)</string>
+    <string name="teach_account_value">Cuenta ••%1$s</string>
+    <string name="teach_account_none">Sin cuenta</string>
+    <string name="teach_note">Los mensajes similares de este remitente te preguntarán antes de agregarse.</string>
+    <string name="teach_save_expense">Guardar gasto de %1$s</string>
+    <string name="teach_save_income">Guardar ingreso de %1$s</string>
+    <string name="teach_need_amount">Toca primero el monto</string>
+    <string name="teach_need_currency">Elige la moneda</string>
+    <string name="teach_need_format">Elige cuál es el monto</string>
+    <string name="teach_need_direction">Elige si es gasto o ingreso</string>
+    <string name="teach_cannot_learn">PennyWise no puede volver a leer este mensaje de forma fiable. Prueba tocando otras palabras o agrega más del nombre del comercio.</string>
+    <string name="teach_saved">Agregado. Los mensajes similares te preguntarán antes de agregarse.</string>
+    <string name="teach_added">Añadida.</string>
+    <string name="teach_settled">No se agregó: ya existe o tus ajustes lo omiten.</string>
+    <string name="teach_booking_failed">No se pudo agregar. Sigue en SMS no reconocidos.</string>
+    <string name="teach_format_changed">Formato nuevo de este remitente. Enséñalo también.</string>
+    <string name="teach_find_message">Buscar un mensaje</string>
+    <string name="teach_picker_title">Mensajes recientes con dinero</string>
+    <string name="teach_picker_body">De tu bandeja de entrada: mensajes que parecen de dinero pero no están en tus transacciones. Nada sale de tu teléfono.</string>
+    <string name="teach_picker_empty">No hay nada que enseñar por ahora.</string>
+    <string name="teach_taught_count">Enseñados (%1$d)</string>
+    <string name="teach_taught_title">Mensajes enseñados</string>
+    <string name="teach_taught_body">PennyWise lee estos formatos y te pregunta antes de agregar. Quitar uno conserva las transacciones que agregó.</string>
+    <string name="teach_delete_template">Quitar</string>
+    <string name="notif_taught_text">De %1$s. Agrégalo o toca para revisar.</string>
+</resources>

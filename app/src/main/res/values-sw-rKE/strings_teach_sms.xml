@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Fundisha</string>
+    <string name="teach_title">Fundisha PennyWise ujumbe huu</string>
+    <string name="teach_field_amount">Kiasi</string>
+    <string name="teach_field_merchant">Muuzaji</string>
+    <string name="teach_field_account">Akaunti</string>
+    <string name="teach_hint_amount">Gusa kiasi kwenye ujumbe.</string>
+    <string name="teach_hint_merchant">Gusa jina la mfanyabiashara, neno kwa neno. Bila kuliweka alama, wakati ujao jina hili tu ndilo litalingana.</string>
+    <string name="teach_hint_account">Gusa tarakimu za akaunti au kadi. Si lazima.</string>
+    <string name="teach_amount_placeholder">Bado hakuna kiasi</string>
+    <string name="teach_amount_source">Imesomwa kutoka: “%1$s”</string>
+    <string name="teach_direction_out">Pesa zimetoka</string>
+    <string name="teach_direction_in">Pesa zimeingia</string>
+    <string name="teach_currency">Sarafu</string>
+    <string name="teach_format_question">Ni kiasi kipi?</string>
+    <string name="teach_merchant_label">Muuzaji (si lazima)</string>
+    <string name="teach_account_value">Akaunti ••%1$s</string>
+    <string name="teach_account_none">Hakuna akaunti</string>
+    <string name="teach_note">Ujumbe unaofanana kutoka kwa mtumaji huyu utakuuliza kabla ya kuongezwa.</string>
+    <string name="teach_save_expense">Hifadhi matumizi ya %1$s</string>
+    <string name="teach_save_income">Hifadhi mapato ya %1$s</string>
+    <string name="teach_need_amount">Gusa kiasi kwanza</string>
+    <string name="teach_need_currency">Chagua sarafu</string>
+    <string name="teach_need_format">Chagua ni kiasi kipi</string>
+    <string name="teach_need_direction">Chagua pesa zimetoka au zimeingia</string>
+    <string name="teach_cannot_learn">PennyWise haiwezi kusoma ujumbe huu tena kwa uhakika. Jaribu kugusa maneno mengine, au ongeza sehemu zaidi ya jina la muuzaji.</string>
+    <string name="teach_saved">Imeongezwa. Ujumbe unaofanana utakuuliza kabla ya kuongezwa.</string>
+    <string name="teach_added">Imeongezwa.</string>
+    <string name="teach_settled">Haikuongezwa: tayari ipo, au mipangilio yako huiruka.</string>
+    <string name="teach_booking_failed">Haikuweza kuongezwa. Bado iko kwenye SMS Zisizotambuliwa.</string>
+    <string name="teach_format_changed">Muundo mpya kutoka kwa mtumaji huyu. Fundisha huu pia.</string>
+    <string name="teach_find_message">Tafuta ujumbe</string>
+    <string name="teach_picker_title">Jumbe za hivi karibuni za pesa</string>
+    <string name="teach_picker_body">Kutoka kwenye kikasha chako: jumbe zinazoonekana kuhusu pesa lakini hazimo kwenye miamala yako. Hakuna kinachotoka kwenye simu yako.</string>
+    <string name="teach_picker_empty">Hakuna cha kufundisha kwa sasa.</string>
+    <string name="teach_taught_count">Zilizofundishwa (%1$d)</string>
+    <string name="teach_taught_title">Jumbe zilizofundishwa</string>
+    <string name="teach_taught_body">PennyWise husoma miundo hii na kukuuliza kabla ya kuongeza. Ukiondoa mmoja, miamala aliyoongeza inabaki.</string>
+    <string name="teach_delete_template">Ondoa</string>
+    <string name="notif_taught_text">Kutoka %1$s. Iongeze, au gusa ili kukagua.</string>
+</resources>

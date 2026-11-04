@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Научить</string>
+    <string name="teach_title">Научите PennyWise этому сообщению</string>
+    <string name="teach_field_amount">Сумма</string>
+    <string name="teach_field_merchant">Продавец</string>
+    <string name="teach_field_account">Счет</string>
+    <string name="teach_hint_amount">Нажмите на сумму в сообщении.</string>
+    <string name="teach_hint_merchant">Нажимайте на название продавца слово за словом. Без отметки в следующий раз подойдёт только это название.</string>
+    <string name="teach_hint_account">Нажмите на цифры счета или карты. Необязательно.</string>
+    <string name="teach_amount_placeholder">Суммы пока нет</string>
+    <string name="teach_amount_source">Прочитано из: «%1$s»</string>
+    <string name="teach_direction_out">Расход</string>
+    <string name="teach_direction_in">Доход</string>
+    <string name="teach_currency">Валюта</string>
+    <string name="teach_format_question">Какая это сумма?</string>
+    <string name="teach_merchant_label">Продавец (необязательно)</string>
+    <string name="teach_account_value">Счет ••%1$s</string>
+    <string name="teach_account_none">Без счета</string>
+    <string name="teach_note">О похожих сообщениях от этого отправителя приложение спросит вас, прежде чем добавить их.</string>
+    <string name="teach_save_expense">Сохранить расход %1$s</string>
+    <string name="teach_save_income">Сохранить доход %1$s</string>
+    <string name="teach_need_amount">Сначала нажмите на сумму</string>
+    <string name="teach_need_currency">Выберите валюту</string>
+    <string name="teach_need_format">Выберите, какая это сумма</string>
+    <string name="teach_need_direction">Выберите расход или доход</string>
+    <string name="teach_cannot_learn">PennyWise не может надежно прочитать такое сообщение снова. Попробуйте нажать на другие слова или добавьте больше от названия продавца.</string>
+    <string name="teach_saved">Добавлено. О похожих сообщениях приложение спросит перед добавлением.</string>
+    <string name="teach_added">Добавлено.</string>
+    <string name="teach_settled">Не добавлено: оно уже есть или ваши настройки его пропускают.</string>
+    <string name="teach_booking_failed">Не удалось добавить. Сообщение осталось в разделе «Нераспознанные СМС».</string>
+    <string name="teach_format_changed">Новый формат от этого отправителя. Научите и ему.</string>
+    <string name="teach_find_message">Найти сообщение</string>
+    <string name="teach_picker_title">Недавние сообщения о деньгах</string>
+    <string name="teach_picker_body">Из вашего входящего: сообщения, похожие на денежные, но их нет в ваших транзакциях. Ничего не покидает ваш телефон.</string>
+    <string name="teach_picker_empty">Сейчас учить нечему.</string>
+    <string name="teach_taught_count">Обученные (%1$d)</string>
+    <string name="teach_taught_title">Обученные сообщения</string>
+    <string name="teach_taught_body">PennyWise читает эти шаблоны и спрашивает вас перед добавлением. Удаление шаблона сохраняет добавленные им транзакции.</string>
+    <string name="teach_delete_template">Убрать</string>
+    <string name="notif_taught_text">От %1$s. Добавьте или нажмите, чтобы проверить.</string>
+</resources>

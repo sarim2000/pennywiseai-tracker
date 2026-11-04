@@ -45,6 +45,13 @@ internal fun latestReviewOffset(kind: ReviewKind): Int = if (kind == ReviewKind.
 internal fun defaultReviewOffset(kind: ReviewKind, today: LocalDate): Int =
     if (kind == ReviewKind.YEAR && today.monthValue == 1) -1 else latestReviewOffset(kind)
 
+/** The [reviewRange] offset of the week holding [date], never newer than the last full week. */
+internal fun weekOffsetOf(date: LocalDate, today: LocalDate, firstDayOfWeek: DayOfWeek): Int {
+    val weekOf = TemporalAdjusters.previousOrSame(firstDayOfWeek)
+    return ChronoUnit.WEEKS.between(today.with(weekOf), date.with(weekOf)).toInt()
+        .coerceAtMost(latestReviewOffset(ReviewKind.WEEK))
+}
+
 /** [offset] counts back from the period containing [today], which is 0. */
 internal fun reviewRange(
     kind: ReviewKind,

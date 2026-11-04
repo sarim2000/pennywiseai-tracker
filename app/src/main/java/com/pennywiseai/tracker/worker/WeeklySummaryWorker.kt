@@ -91,13 +91,13 @@ class WeeklySummaryWorker @AssistedInject constructor(
                 change,
                 count.takeIf { it > 0 }?.let { context.resources.getQuantityString(R.plurals.notif_daily_count, it, it) },
             ).joinToString(" · ")
-            notify(context, title, text)
+            notify(context, title, text, week)
         }
         userPreferencesRepository.setWeeklySummaryLastWeek(week)
         return Result.success()
     }
 
-    private fun notify(context: Context, title: String, text: String) {
+    private fun notify(context: Context, title: String, text: String, week: String) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
             NotificationChannel(
@@ -109,6 +109,8 @@ class WeeklySummaryWorker @AssistedInject constructor(
         val open = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(MainActivity.EXTRA_OPEN_REVIEW, ReviewKind.WEEK.name)
+            // A recap can sit in the shade for weeks; the tap must open the week it reports.
+            .putExtra(MainActivity.EXTRA_REVIEW_WEEK_START, week)
         manager.notify(
             NOTIFICATION_ID,
             NotificationCompat.Builder(context, CHANNEL_ID)

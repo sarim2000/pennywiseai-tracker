@@ -57,6 +57,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.SharingStarted
@@ -225,7 +226,7 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
-     * order, and init calls refreshReviewPrompt(). Leaving this further down the class
+     * order, and init calls observeReviewPrompt(). Leaving this further down the class
      * means the flow does not exist yet when that runs.
      */
     private val _reviewPrompt = MutableStateFlow<ReviewPrompt?>(null)
@@ -366,7 +367,7 @@ class HomeViewModel @Inject constructor(
     init {
         loadUnifiedModePreferences()
         loadUserName()
-        refreshReviewPrompt()
+        observeReviewPrompt()
         // Mirror the "count card spend as expense" pref into UI state so the
         // "Money in motion" card can hide its Credit chip when it's on (#705).
         viewModelScope.launch {
@@ -1403,16 +1404,27 @@ class HomeViewModel @Inject constructor(
      * managers that dominate this app's install base (Xiaomi, Oppo, Vivo, Realme) kill
      * background work aggressively, so a scheduled job would fire late, or never. Users
      * open their expense tracker anyway, which makes the scheduler unnecessary.
+     *
+     * Follows the date, the cycle and the rows in scope. The handled keys are read, not
+     * watched: ✕ on January's year banner shouldn't swap in the cycle's banner on the
+     * spot, so that one waits until something else changes or the next launch.
      */
-    private fun refreshReviewPrompt() {
+    private fun observeReviewPrompt() {
         viewModelScope.launch {
-            _reviewPrompt.value = reviewPromptFor(
-                today = LocalDate.now(),
-                cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay(),
-                handledYear = userPreferencesRepository.reviewPromptHandledYear.first(),
-                handledMonth = userPreferencesRepository.sharePromptHandledMonth.first(),
-                rowCount = periodReviewLoader::rowCount,
-            )
+            combine(
+                today,
+                userPreferencesRepository.budgetCycleStartDay,
+                periodReviewLoader.rowCountChanges(),
+            ) { day, cycleStartDay, _ -> day to cycleStartDay }
+                .collectLatest { (day, cycleStartDay) ->
+                    _reviewPrompt.value = reviewPromptFor(
+                        today = day,
+                        cycleStartDay = cycleStartDay,
+                        handledYear = userPreferencesRepository.reviewPromptHandledYear.first(),
+                        handledMonth = userPreferencesRepository.sharePromptHandledMonth.first(),
+                        rowCount = periodReviewLoader::rowCount,
+                    )
+                }
         }
     }
 

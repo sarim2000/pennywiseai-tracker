@@ -68,6 +68,14 @@ class PeriodReviewLoader @Inject constructor(
         )
     }
 
+    /** Emits when what [rowCount] depends on may have changed. */
+    fun rowCountChanges(): Flow<Unit> = combine(
+        ignoredAccountsStore.keysFlow,
+        userPreferencesRepository.selectedProfileId,
+        accountBalanceRepository.getAllLatestBalances(),
+        transactionRepository.observeActiveTransactionCount(),
+    ) { _, _, _, _ -> }
+
     /** How many transactions a period holds, by the same scope the review itself uses. */
     suspend fun rowCount(start: LocalDate, end: LocalDate): Int {
         val keep = scopeOf(

@@ -158,9 +158,12 @@ data class TransactionsWithFilter(
     val endDate: Long? = null
 ) : NavKey
 
-/** The week, cycle and year reviews; [kind] is a ReviewKind name, the tab it opens on. */
+/**
+ * The week, cycle and year reviews; [kind] is a ReviewKind name, the tab it opens on.
+ * [weekStart] pins the Week tab to a date, for the recap that reported that week.
+ */
 @Serializable
-data class Review(val kind: String = "MONTH") : NavKey
+data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
 
 // Screens inside MainScreen's tab stacks (Home, Settings, Categories, Faq,
 // UnrecognizedSms and ImportStatement are reused there too).

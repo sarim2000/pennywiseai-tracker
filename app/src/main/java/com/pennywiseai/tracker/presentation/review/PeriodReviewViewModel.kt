@@ -27,7 +27,7 @@ class PeriodReviewViewModel @Inject constructor(
     private val _selection = MutableStateFlow(
         savedStateHandle.get<Int>(KEY_OFFSET)?.let { offset ->
             ReviewSelection(ReviewKind.fromName(savedStateHandle.get<String>(KEY_KIND)), offset)
-        } ?: selectionFor(ReviewKind.fromName(savedStateHandle.get<String>("kind")))
+        } ?: routeSelection()
     )
     val selection: StateFlow<ReviewSelection> = _selection.asStateFlow()
 
@@ -51,6 +51,17 @@ class PeriodReviewViewModel @Inject constructor(
         _selection.value = selection
         savedStateHandle[KEY_KIND] = selection.kind.name
         savedStateHandle[KEY_OFFSET] = selection.offset
+    }
+
+    private fun routeSelection(): ReviewSelection {
+        val kind = ReviewKind.fromName(savedStateHandle.get<String>("kind"))
+        // MainActivity is exported, so this date isn't necessarily one the recap wrote.
+        val week = savedStateHandle.get<String>("weekStart")?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        return if (kind == ReviewKind.WEEK && week != null) {
+            ReviewSelection(kind, weekOffsetOf(week, LocalDate.now(), localFirstDayOfWeek()))
+        } else {
+            selectionFor(kind)
+        }
     }
 
     private fun selectionFor(kind: ReviewKind) =

@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.share.ShareWindow
+import com.pennywiseai.tracker.data.statement.isStatementSender
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
@@ -61,10 +62,11 @@ data class ShareCardData(
 }
 
 /**
- * Manual entries, recurring templates and imported statements have no SMS sender, so
- * they don't count: "bank texts tracked, 0 typed" is the claim on the image.
+ * Manual entries and recurring templates have no sender and statements have a parser's
+ * name, so neither counts: "bank texts tracked, 0 typed" is the claim on the image.
  */
-internal fun trackedFromBankTexts(rows: List<TransactionEntity>): Int = rows.count { it.smsSender != null }
+internal fun trackedFromBankTexts(rows: List<TransactionEntity>): Int =
+    rows.count { row -> row.smsSender?.let { !isStatementSender(it) } == true }
 
 /** Distinct merchants actually spent at; loan-only and excluded rows drop out via [forTotals]. */
 internal fun merchantsPaid(rows: List<TransactionEntity>): Int = rows.forTotals()

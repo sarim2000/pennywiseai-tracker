@@ -52,6 +52,17 @@ class PeriodReviewTest {
     // --- Ranges
 
     @Test
+    fun `a recap's week can be found again after later weeks have ended`() {
+        val week = range(ReviewKind.WEEK, -1, "2026-11-04")
+        val threeWeeksOn = LocalDate.parse("2026-11-25")
+        val offset = weekOffsetOf(week.start, threeWeeksOn, DayOfWeek.SUNDAY)
+        assertEquals(-4, offset)
+        assertEquals(week.start, reviewRange(ReviewKind.WEEK, offset, threeWeeksOn, 1, DayOfWeek.SUNDAY).start)
+        // The week still running hasn't got a review; it falls back to the last full one.
+        assertEquals(-1, weekOffsetOf(threeWeeksOn, threeWeeksOn, DayOfWeek.SUNDAY))
+    }
+
+    @Test
     fun `week is the last full one, starting on the local first day`() {
         val sunday = range(ReviewKind.WEEK, -1, "2026-11-04")
         assertEquals(LocalDate.parse("2026-10-25"), sunday.start)
@@ -294,7 +305,9 @@ class PeriodReviewTest {
             tx("2026-10-02").transaction.copy(smsSender = "BANK", smsBody = "x"),
             tx("2026-10-03").transaction,
             tx("2026-10-04").transaction.copy(smsBody = "statement block"),
-        )
+        ) + listOf("STATEMENT", "GPay PDF", "PhonePe PDF", "Paytm PDF", "Slice PDF", "ICICI PDF").map {
+            tx("2026-10-05").transaction.copy(smsSender = it, smsBody = "statement block")
+        }
         assertEquals(1, trackedFromBankTexts(rows))
     }
 

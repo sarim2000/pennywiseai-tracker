@@ -145,6 +145,7 @@ fun SettingsScreen(
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val countCreditCardAsExpense by settingsViewModel.countCreditCardAsExpense.collectAsStateWithLifecycle(initialValue = false)
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT)
+    val budgetAlertsEnabled by settingsViewModel.budgetAlertsEnabled.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
@@ -203,6 +204,21 @@ fun SettingsScreen(
             Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
+    val budgetAlertsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setBudgetAlertsEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_budget_alerts_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    fun needsNotificationPermission() =
+        android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
 
     // File picker for import
     val importLauncher = rememberLauncherForActivityResult(
@@ -853,16 +869,26 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_daily_summary_subtitle),
                     checked = dailySummaryEnabled,
                     onCheckedChange = { enabled ->
-                        val needsPermission = enabled &&
-                            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.POST_NOTIFICATIONS
-                            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                        if (needsPermission) {
+                        if (enabled && needsNotificationPermission()) {
                             dailySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                         } else {
                             settingsViewModel.setDailySummaryEnabled(enabled)
+                        }
+                    },
+                    position = ListItemPosition.Middle
+                )
+                SettingsSwitchRow(
+                    icon = Icons.Default.Notifications,
+                    iconBgColor = indigo_light,
+                    iconTint = indigo_dark,
+                    title = stringResource(R.string.settings_budget_alerts_title),
+                    subtitle = stringResource(R.string.settings_budget_alerts_subtitle, 80),
+                    checked = budgetAlertsEnabled,
+                    onCheckedChange = { enabled ->
+                        if (enabled && needsNotificationPermission()) {
+                            budgetAlertsPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            settingsViewModel.setBudgetAlertsEnabled(enabled)
                         }
                     },
                     position = ListItemPosition.Bottom

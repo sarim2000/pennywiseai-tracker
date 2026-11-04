@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="money_alert_channel_name">Budget and balance alerts</string>
+    <string name="money_alert_channel_description">When a budget runs high or an account balance falls low</string>
+    <string name="budget_alert_warning_title">%1$s: %2$d%% used</string>
+    <string name="budget_alert_warning_text">%1$s left, about %2$s a day</string>
+    <string name="budget_alert_over_title">%1$s: over budget</string>
+    <string name="budget_alert_over_text">Over by %1$s. Limit: %2$s</string>
+    <string name="low_balance_alert_title">Low balance: %1$s</string>
+    <string name="low_balance_alert_text">%1$s, alert set at %2$s</string>
+    <string name="settings_budget_alerts_title">Budget alerts</string>
+    <string name="settings_budget_alerts_subtitle">Warns at %1$d%% early in a period, and when you go over</string>
+    <string name="settings_budget_alerts_needs_permission">Budget alerts need notification permission</string>
+</resources>

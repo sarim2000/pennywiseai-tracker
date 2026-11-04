@@ -333,7 +333,10 @@ class QuickAddActivity : FragmentActivity() {
             }.onFailure { Log.e(TAG, "Quick add failed", it) }.isSuccess
             // Apart from the save: a refresh that fails mustn't report a saved
             // expense as failed and have it entered twice.
-            if (saved) runCatching { WidgetRefresher.refreshTransactionWidgets(app) }.onFailure { Log.w(TAG, "Widget refresh failed", it) }
+            if (saved) runCatching {
+                WidgetRefresher.refreshTransactionWidgets(app)
+                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(app)
+            }.onFailure { Log.w(TAG, "Widget refresh failed", it) }
             val message = if (saved) {
                 app.getString(R.string.quick_add_saved, CurrencyFormatter.formatCurrency(amount, currency), CategoryMapping.label(app, category))
             } else {

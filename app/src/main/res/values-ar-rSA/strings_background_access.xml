@@ -31,7 +31,7 @@
     <string name="background_access_status_optional">اختياري</string>
 
     <string name="background_access_battery_title">البطارية: غير مقيّدة</string>
-    <string name="background_access_battery_why">يمنع أندرويد من وضع PennyWise في السكون، لتصل معاملاتك البنكية في وقتها. بنقرة واحدة.</string>
+    <string name="background_access_battery_why">يمنع أندرويد من وضع PennyWise في السكون، لتصل معاملاتك البنكية في وقتها. ابحث عن PennyWise في القائمة واختر «عدم التحسين».</string>
     <string name="background_access_activity_title">النشاط في الخلفية</string>
     <string name="background_access_activity_why">تم ضبط PennyWise على «مقيّد». افتح إعدادات البطارية الخاصة به واختر «غير مقيّد».</string>
     <string name="background_access_keep_title">إبقاء الوصول عند عدم فتح التطبيق</string>

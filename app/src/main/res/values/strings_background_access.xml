@@ -23,7 +23,7 @@
     <string name="background_access_status_optional">Optional</string>
 
     <string name="background_access_battery_title">Battery: Unrestricted</string>
-    <string name="background_access_battery_why">Stops Android from putting PennyWise to sleep, so your bank transactions arrive on time. One tap.</string>
+    <string name="background_access_battery_why">Stops Android from putting PennyWise to sleep, so your bank transactions arrive on time. Find PennyWise in the list and choose Don\'t optimize.</string>
     <string name="background_access_activity_title">Background activity</string>
     <string name="background_access_activity_why">PennyWise is set to Restricted. Open its battery settings and choose Unrestricted.</string>
     <string name="background_access_keep_title">Keep access when not opened</string>

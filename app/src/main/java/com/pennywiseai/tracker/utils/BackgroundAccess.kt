@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.utils
 
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
@@ -187,10 +186,9 @@ fun Context.isBackgroundRestricted(): Boolean? =
         null
     }
 
-// Play allows the direct request only when Doze/standby hurts the app's core function.
-@SuppressLint("BatteryLife")
+// The system list, not the one-tap request: Play allows REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+// only when Doze breaks the app's core function, and SMS broadcasts still arrive in Doze.
 fun Context.batteryUnrestrictedIntents(): List<Intent> = listOf(
-    Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, "package:$packageName".toUri()),
     Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 )
 

@@ -6,9 +6,7 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Abbrechen</string>
     <string name="settings_action_ok">Ok</string>
-    <string name="settings_action_done">Fertig</string>
     <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
     <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">Upgrade auf PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Aktiv · Alle Leistungsmerkmale entsperrt</string>
@@ -34,7 +32,6 @@
     <string name="settings_main_account_title">Hauptkonto</string>
     <string name="settings_main_account_subtitle">Setzt deine Standardwährung</string>
     <string name="settings_main_account_not_set">Nicht gesetzt</string>
-    <string name="settings_currency_field_label">Währung</string>
     <string name="settings_number_format_title">Zahlenformat</string>
     <string name="settings_number_format_subtitle">Wie große Beträge gruppiert werden</string>
     <string name="settings_number_format_auto">Automatisch</string>
@@ -46,9 +43,7 @@
     <string name="settings_date_format_title">Datumsformat</string>
     <string name="settings_date_format_subtitle">Wie Daten angezeigt werden</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Budgetzyklus-Starttag</string>
-    <string name="settings_budget_cycle_subtitle">Verschiebt den Beginn jeder monatlichen Budgetperiode; z. B. 25 bedeutet, dass dein Zyklus 25. → 24. läuft</string>
     <string name="settings_budget_cycle_dialog_body">Wählen Sie den Tag, an dem jeder monatliche Budgetzyklus beginnt, z. B. 25 bedeutet der Zyklus vom 25. bis zum 24. des nächsten Monats.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Kontakte</string>

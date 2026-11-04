@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Ghairi</string>
     <string name="settings_action_ok">Sawa</string>
-    <string name="settings_action_done">Imekamilika</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">Pandisha hadi PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Inatumika · vipengele vyote vya ziada vimefunguliwa</string>
@@ -32,7 +31,6 @@
     <string name="settings_main_account_title">Akaunti Kuu</string>
     <string name="settings_main_account_subtitle">Inaweka sarafu yako chaguomsingi</string>
     <string name="settings_main_account_not_set">Haijawekwa</string>
-    <string name="settings_currency_field_label">Sarafu</string>
     <string name="settings_number_format_title">Muundo wa Namba</string>
     <string name="settings_number_format_subtitle">Jinsi kiasi kikubwa kinavyopangwa</string>
     <string name="settings_number_format_auto">Otomatiki</string>
@@ -44,9 +42,7 @@
     <string name="settings_date_format_title">Muundo wa Tarehe</string>
     <string name="settings_date_format_subtitle">Jinsi tarehe zinavyoonyeshwa</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Bajeti</string>
     <string name="settings_budget_cycle_title">Siku ya Kuanza Mzunguko wa Bajeti</string>
-    <string name="settings_budget_cycle_subtitle">Husogeza mwanzo wa kila kipindi cha bajeti ya mwezi; k.m. 25 inamaanisha mzunguko wako ni tarehe 25 → 24</string>
     <string name="settings_budget_cycle_dialog_body">Chagua siku ambayo kila mzunguko wa bajeti ya mwezi unaanza. k.m. 25 inamaanisha mzunguko ni kuanzia tarehe 25 hadi tarehe 24 ya mwezi unaofuata.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Anwani</string>

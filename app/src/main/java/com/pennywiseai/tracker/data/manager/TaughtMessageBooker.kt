@@ -1,12 +1,15 @@
 package com.pennywiseai.tracker.data.manager
 
+import android.util.Log
 import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -83,19 +86,49 @@ class TaughtMessageBooker @Inject constructor(
         return if (result.success) Outcome.SAVED else Outcome.SETTLED
     }
 
-    /** Books a waiting message, read afresh so it reflects the templates as they are now. */
+    /** Books a waiting message. */
     suspend fun bookWaiting(unrecognizedSmsId: Long): Outcome {
         val sms = unrecognizedSms.getById(unrecognizedSmsId) ?: return Outcome.SETTLED
         if (sms.isDeleted) return Outcome.SETTLED
-        val timestamp = sms.receivedAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val parsed = read(sms.sender, sms.smsBody, timestamp) ?: return Outcome.FAILED
-        return book(parsed)
+        return bookMessage(sms.sender, sms.smsBody, sms.receivedAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
+    }
+
+    /**
+     * Reads a message afresh, so it reflects the templates as they are now, and books it.
+     * If that fails it waits in the list for Add to retry: one picked from the inbox has no row yet.
+     */
+    suspend fun bookMessage(sender: String, body: String, timestamp: Long): Outcome {
+        val outcome = attempt { read(sender, body, timestamp)?.let { book(it) } } ?: Outcome.FAILED
+        if (outcome == Outcome.FAILED) {
+            attempt {
+                unrecognizedSms.insertOrRevive(
+                    UnrecognizedSmsEntity(
+                        sender = sender,
+                        smsBody = body,
+                        receivedAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault())
+                    )
+                )
+            }
+        }
+        return outcome
+    }
+
+    /** A database error here is a booking that failed, not a crash of the screen that asked for it. */
+    private inline fun <T> attempt(block: () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.e(TAG, "Couldn't book a taught message", e)
+        null
     }
 
     private fun builtInReads(sender: String, body: String, timestamp: Long): Boolean =
         BankParserFactory.getParsers(sender).any { it.parse(body, sender, timestamp) != null }
 
     private companion object {
+        const val TAG = "TaughtMessageBooker"
+
         /**
          * Marks a row "Rebuild from scratch" must keep. A rebuild deletes what the inbox can
          * bring back, and a taught message only comes back if the user confirms it again.

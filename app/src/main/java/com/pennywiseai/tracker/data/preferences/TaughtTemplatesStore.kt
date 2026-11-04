@@ -45,11 +45,11 @@ class TaughtTemplatesStore @Inject constructor(
     }
 
     /** Adds [template], dropping the ones listed in [replacing]: teaching a message again corrects it. */
-    fun save(template: MessageTemplate, replacing: Collection<String> = emptyList()) {
+    fun save(template: MessageTemplate, replacing: Collection<String> = emptyList()) = synchronized(LOCK) {
         write(stored().filter { it.id != template.id && it.id !in replacing } + template.toStored())
     }
 
-    fun delete(id: String) = write(stored().filter { it.id != id })
+    fun delete(id: String) = synchronized(LOCK) { write(stored().filter { it.id != id }) }
 
     /** Everything stored, including templates a newer version wrote that this one can't read. */
     fun exported(): List<TaughtTemplate> = stored()
@@ -57,9 +57,11 @@ class TaughtTemplatesStore @Inject constructor(
     /** Additive, like ignored accounts: a restore never drops a template taught on this device. */
     fun restore(templates: List<TaughtTemplate>) {
         if (templates.isEmpty()) return
-        val here = stored()
-        val ids = here.map { it.id }.toSet()
-        write(here + templates.filter { it.id !in ids })
+        synchronized(LOCK) {
+            val here = stored()
+            val ids = here.map { it.id }.toSet()
+            write(here + templates.filter { it.id !in ids })
+        }
     }
 
     /** The last decode: a list screen reads this for every row, and the JSON rarely changes. */
@@ -85,6 +87,9 @@ class TaughtTemplatesStore @Inject constructor(
         private const val TAG = "TaughtTemplatesStore"
         private const val PREFS_NAME = "taught_sms_templates"
         private const val KEY_TEMPLATES = "templates"
+
+        /** Each change rewrites the whole list, and a backup restore writes through its own instance. */
+        private val LOCK = Any()
         private val SERIALIZER = ListSerializer(TaughtTemplate.serializer())
         private val JSON = Json { ignoreUnknownKeys = true }
 

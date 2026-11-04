@@ -196,11 +196,7 @@ class UnrecognizedSmsViewModel @Inject constructor(
         taughtTemplatesStore.save(template, replacing = misread)
         _teach.value = null
         viewModelScope.launch {
-            val parsed = taughtMessageBooker.read(state.sender, state.body, state.timestamp)
-            notify(
-                if (parsed != null) taughtMessageBooker.book(parsed) else TaughtMessageBooker.Outcome.FAILED,
-                saved = R.string.teach_saved
-            )
+            notify(taughtMessageBooker.bookMessage(state.sender, state.body, state.timestamp), saved = R.string.teach_saved)
         }
     }
 

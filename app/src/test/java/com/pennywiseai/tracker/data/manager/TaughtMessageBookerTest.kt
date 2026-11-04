@@ -173,6 +173,40 @@ class TaughtMessageBookerTest {
     }
 
     @Test
+    fun `a message picked from the inbox that fails to book waits for Add`() = runBlocking {
+        coEvery { processor.saveParsedTransaction(any(), any(), any()) } returns
+            SmsTransactionProcessor.ProcessingResult(false, reason = "disk full", failed = true)
+        assertEquals(TaughtMessageBooker.Outcome.FAILED, booker.bookMessage(sender, later, 1L))
+        coVerify { waiting.insertOrRevive(match { it.sender == sender && it.smsBody == later }) }
+    }
+
+    @Test
+    fun `a database error fails the booking instead of crashing, and the message still waits`() = runBlocking {
+        coEvery { cards.getCard(any(), any()) } throws IllegalStateException("closed")
+        val withCard = "Paid SAR 8.00 card 1234 now"
+        every { store.forSender(any()) } returns listOf(
+            MessageTemplates.build(
+                id = "c", senderKey = "ZQTBNK", body = withCard,
+                selection = TeachSelection(
+                    amount = 9..12,
+                    account = withCard.indexOf("1234").let { it until it + 4 }
+                ),
+                type = TransactionType.EXPENSE, currency = "SAR", bankName = "Zqt Bank"
+            )!!
+        )
+        assertEquals(TaughtMessageBooker.Outcome.FAILED, booker.bookMessage(sender, withCard, 1L))
+        coVerify { waiting.insertOrRevive(any()) }
+    }
+
+    @Test
+    fun `a booked message leaves no waiting row`() = runBlocking {
+        coEvery { processor.saveParsedTransaction(any(), any(), any()) } returns
+            SmsTransactionProcessor.ProcessingResult(true, transactionId = 7)
+        assertEquals(TaughtMessageBooker.Outcome.SAVED, booker.bookMessage(sender, later, 1L))
+        coVerify(exactly = 0) { waiting.insertOrRevive(any()) }
+    }
+
+    @Test
     fun `tapping Add twice books once`() = runBlocking {
         coEvery { waiting.getById(5) } returns UnrecognizedSmsEntity(
             id = 5, sender = sender, smsBody = later, receivedAt = LocalDateTime.of(2026, 10, 12, 9, 0), isDeleted = true

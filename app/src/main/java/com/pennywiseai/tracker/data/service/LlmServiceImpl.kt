@@ -12,7 +12,10 @@ import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.tool
 import com.pennywiseai.tracker.domain.service.LlmEvent
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transform
@@ -38,6 +41,11 @@ class LlmServiceImpl @Inject constructor(
     private var engine: Engine? = null
     private var conversation: Conversation? = null
 
+    // What the engine and the live conversation were built from, so a GPU that fails
+    // its first reply can be swapped for the CPU in the middle of that send.
+    private var modelPath: String? = null
+    private var conversationConfig: ConversationConfig? = null
+
     // Create / close / reset run on Dispatchers.IO from different callers; without
     // this two closes could race on one Conversation, and LiteRT throws
     // IllegalStateException for a close it can't perform (a 2.21.0 crash).
@@ -53,6 +61,7 @@ class LlmServiceImpl @Inject constructor(
     }
 
     private fun initializeLocked(modelPath: String): Result<Unit> {
+        this.modelPath = modelPath
         return try {
             // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
             // A buggy driver can instead crash natively, which no catch sees: the flag is
@@ -96,25 +105,9 @@ class LlmServiceImpl @Inject constructor(
             // leave a dead conversation behind for the next caller to close again.
             takeConversation()?.closeQuietly()
 
-            val initialMessages = history.map { (message, isUser) ->
-                if (isUser) Message.user(message) else Message.model(message)
-            }
-
-            val conversationConfig = ConversationConfig(
-                systemInstruction = Contents.of(systemPrompt),
-                initialMessages = initialMessages,
-                // Tool calls are surfaced, never auto-executed (#170): every
-                // mutation goes through the user first.
-                tools = if (withTools) listOf(tool(PennyWiseTools())) else emptyList(),
-                automaticToolCalling = false,
-                samplerConfig = SamplerConfig(
-                    topK = 10,
-                    topP = 0.95,
-                    temperature = 0.8
-                )
-            )
-
-            conversation = currentEngine.createConversation(conversationConfig)
+            val config = chatConversationConfig(systemPrompt, history, withTools)
+            conversation = currentEngine.createConversation(config)
+            conversationConfig = config
             Log.d(TAG, "Conversation created with ${history.size} history messages")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -132,7 +125,27 @@ class LlmServiceImpl @Inject constructor(
 
         Log.d(TAG, "Sending message (${message.length} chars)")
 
-        return activeConversation.sendMessageAsync(message)
+        // A GPU engine can start fine and only fail once it generates (the emulator's
+        // "Can not find OpenCL library"). Rather than fail the user's first message,
+        // retry it once on the CPU, if nothing was streamed yet.
+        return flow {
+            val onUnconfirmedGpu = gpuUnconfirmed
+            var streamed = false
+            emitAll(
+                stream(activeConversation, message)
+                    .onEach { streamed = true }
+                    .catch { e ->
+                        if (e is CancellationException || !onUnconfirmedGpu || streamed) throw e
+                        Log.w(TAG, "GPU failed its first reply (${e.javaClass.simpleName}), retrying on CPU")
+                        val cpuConversation = restartOnCpu(activeConversation) ?: throw e
+                        emitAll(stream(cpuConversation, message))
+                    }
+            )
+        }
+    }
+
+    private fun stream(activeConversation: Conversation, message: String): Flow<LlmEvent> =
+        activeConversation.sendMessageAsync(message)
             // Re-arm after a cancelled first reply; commit() so a native crash still finds it.
             .onStart { if (gpuUnconfirmed) backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit() }
             .onCompletion { cause ->
@@ -155,6 +168,29 @@ class LlmServiceImpl @Inject constructor(
                 chunk.toolCalls.forEach { emit(LlmEvent.ToolCall(it.name, it.arguments)) }
             }
             .flowOn(Dispatchers.IO)
+
+    /**
+     * Replaces the GPU engine whose first reply failed with a CPU one and rebuilds the
+     * conversation that failed on it. Null if that conversation was closed or replaced
+     * meanwhile, or the CPU start failed (the next start then begins on CPU).
+     */
+    private suspend fun restartOnCpu(failed: Conversation): Conversation? = withContext(Dispatchers.IO) {
+        lifecycle.withLock {
+            val path = modelPath
+            val config = conversationConfig
+            if (conversation !== failed || path == null || config == null) return@withLock null
+            takeConversation()?.closeQuietly()
+            closeEngine()
+            try {
+                gpuUnconfirmed = false
+                val cpu = startEngine(path, Backend.CPU()).also { engine = it }
+                Log.i(TAG, "Engine restarted on CPU backend")
+                cpu.createConversation(config).also { conversation = it }
+            } catch (e: Exception) {
+                Log.e(TAG, "CPU restart failed", e)
+                null
+            }
+        }
     }
 
     override fun hasActiveConversation(): Boolean = conversation != null
@@ -170,8 +206,7 @@ class LlmServiceImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             lifecycle.withLock {
                 takeConversation()?.closeQuietly()
-                engine?.let { e -> runCatching { e.close() }.onFailure { Log.w(TAG, "Ignoring failed engine close", it) } }
-                engine = null
+                closeEngine()
             }
             Log.d(TAG, "Engine and conversation reset")
         }
@@ -191,6 +226,11 @@ class LlmServiceImpl @Inject constructor(
 
     private fun takeConversation(): Conversation? = conversation.also { conversation = null }
 
+    private fun closeEngine() {
+        engine?.let { e -> runCatching { e.close() }.onFailure { Log.w(TAG, "Ignoring failed engine close", it) } }
+        engine = null
+    }
+
     /** Closing is cleanup: a close LiteRT refuses (already closed, mid-generation) must not crash the app. */
     private fun Conversation.closeQuietly() {
         runCatching { close() }.onFailure { Log.w(TAG, "Ignoring failed conversation close", it) }
@@ -201,5 +241,28 @@ class LlmServiceImpl @Inject constructor(
     companion object {
         private const val TAG = "LlmServiceImpl"
         private const val KEY_GPU_FAILED = "gpu_failed"
+
+        /** The chat's conversation setup; the debug LLM probe builds the same one. */
+        internal fun chatConversationConfig(
+            systemPrompt: String,
+            history: List<Pair<String, Boolean>>,
+            withTools: Boolean
+        ) = ConversationConfig(
+            systemInstruction = Contents.of(systemPrompt),
+            initialMessages = history.map { (message, isUser) ->
+                if (isUser) Message.user(message) else Message.model(message)
+            },
+            // Tool calls are surfaced, never auto-executed (#170): every
+            // mutation goes through the user first.
+            tools = if (withTools) listOf(tool(PennyWiseTools())) else emptyList(),
+            automaticToolCalling = false,
+            samplerConfig = SamplerConfig(
+                topK = 10,
+                topP = 0.95,
+                temperature = 0.8
+            ),
+            // The model's built-in template can't read LiteRT-LM >= 0.18's message format.
+            chatTemplate = QwenChatTemplate.TEMPLATE
+        )
     }
 }

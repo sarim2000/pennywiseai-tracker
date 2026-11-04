@@ -17,7 +17,10 @@ import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
 import com.google.ai.edge.litertlm.tool
+import com.google.ai.edge.litertlm.ExperimentalApi
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.data.service.LlmServiceImpl
+import com.pennywiseai.tracker.data.service.QwenChatTemplate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
@@ -31,10 +34,15 @@ import java.io.File
  * android.permission.DUMP, which adb shell holds and third-party apps can't:
  *   adb shell am broadcast -n <pkg>/com.pennywiseai.tracker.debug.LlmProbeReceiver \
  *       -a LLM_PROBE --es system "<system prompt>" --es text "<user text>" \
- *       [--ef temp 0.1] [--es model /abs/path.litertlm] [--es mode text|tools|json] [--es schema '<json schema>']
+ *       [--ef temp 0.1] [--es model /abs/path.litertlm] [--es mode text|tools|json|chat] [--es schema '<json schema>']
+ *       [--esa history "user turn","model turn",...] [--ez builtinTemplate true]
  * mode=tools registers PennyTools (addTransaction / spendingByCategory) with
  * automaticToolCalling=false and records the model's tool calls; mode=json uses
- * constrained decoding (ResponseFormat.json) with the given schema.
+ * constrained decoding (ResponseFormat.json) with the given schema. mode=chat
+ * builds the Chat screen's own conversation (LlmServiceImpl's config and tools,
+ * the alternating user/model `history` replayed), records the rendered preface
+ * and streams the reply the way the app does. Every mode uses the app's Qwen
+ * chat template; builtinTemplate=true uses the model file's own instead.
  * Logs "LlmProbe: RESULT …" with timings only. The reply is written to the
  * app's private cache (llm_probe_reply.txt — read it with `run-as <pkg> cat
  * cache/llm_probe_reply.txt`), never to logcat, so prompt contents stay off
@@ -71,6 +79,8 @@ class LlmProbeReceiver : BroadcastReceiver() {
         val temp = intent.getFloatExtra("temp", 0.1f).toDouble()
         val mode = intent.getStringExtra("mode") ?: "text"
         val schema = intent.getStringExtra("schema")
+        val history = intent.getStringArrayExtra("history").orEmpty().mapIndexed { i, turn -> turn to (i % 2 == 0) }
+        val template = if (intent.getBooleanExtra("builtinTemplate", false)) null else QwenChatTemplate.TEMPLATE
         // Optional: absolute path of another .litertlm to probe (e.g. a smaller model).
         val modelPath = intent.getStringExtra("model")
             ?: File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME).absolutePath
@@ -94,7 +104,8 @@ class LlmProbeReceiver : BroadcastReceiver() {
                                 systemInstruction = Contents.of(system),
                                 tools = listOf(tool(PennyTools())),
                                 automaticToolCalling = false,
-                                samplerConfig = sampler
+                                samplerConfig = sampler,
+                                chatTemplate = template
                             )
                         ).use { conv ->
                             // Two turns in ONE conversation, to see whether the tool-schema
@@ -113,14 +124,28 @@ class LlmProbeReceiver : BroadcastReceiver() {
                             ConversationConfig(
                                 systemInstruction = Contents.of(system),
                                 samplerConfig = sampler,
-                                enableResponseFormat = true
+                                enableResponseFormat = true,
+                                chatTemplate = template
                             )
                         ).use { conv ->
                             val msg = conv.sendMessage(text, responseFormat = ResponseFormat.json(schema ?: "{\"type\":\"object\"}"))
                             msg.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
                         }
+                        "chat" -> eng.createConversation(
+                            LlmServiceImpl.chatConversationConfig(system, history, withTools = true)
+                                .let { if (template == null) it.copy(chatTemplate = null) else it }
+                        ).use { conv ->
+                            @OptIn(ExperimentalApi::class)
+                            val preface = conv.renderPrefaceIntoString()
+                            val calls = mutableListOf<String>()
+                            val txt = conv.sendMessageAsync(text).toList().joinToString("") { m ->
+                                m.toolCalls.forEach { calls += "${it.name}(${it.arguments})" }
+                                m.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
+                            }
+                            "PREFACE=\n$preface\nTOOL_CALLS=[${calls.joinToString("; ")}] TEXT=$txt"
+                        }
                         else -> eng.createConversation(
-                            ConversationConfig(systemInstruction = Contents.of(system), samplerConfig = sampler)
+                            ConversationConfig(systemInstruction = Contents.of(system), samplerConfig = sampler, chatTemplate = template)
                         ).use { conv ->
                             conv.sendMessageAsync(text).toList()
                                 .joinToString("") { m -> m.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text } }

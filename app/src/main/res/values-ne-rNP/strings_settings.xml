@@ -29,6 +29,10 @@
     <string name="settings_card_spend_as_expense_subtitle">\"यो महिना खर्च\" मा क्रेडिट कार्ड खर्च समावेश गर्नुहोस्</string>
     <string name="settings_default_currency_title">पूर्वनिर्धारित मुद्रा</string>
     <string name="settings_default_currency_subtitle">रूपान्तरणको लागि प्रयोग हुने मुद्रा</string>
+    <string name="settings_budget_convert_title">तपाईंको बजेट रूपान्तरण गर्ने?</string>
+    <string name="settings_budget_convert_message">तपाईंको बजेट सीमा %1$s मा थिए र अहिले %2$s मा देखिन्छन्। तिनलाई पछिल्लो उपलब्ध दर (%3$s) मा रूपान्तरण गर्नुहोस्, वा उही सङ्ख्या राख्नुहोस्।</string>
+    <string name="settings_budget_convert_confirm">रूपान्तरण गर्नुहोस्</string>
+    <string name="settings_budget_convert_keep">सङ्ख्या राख्नुहोस्</string>
     <string name="settings_main_account_title">मुख्य खाता</string>
     <string name="settings_main_account_subtitle">तपाईंको पूर्वनिर्धारित मुद्रा सेट गर्छ</string>
     <string name="settings_main_account_not_set">सेट गरिएको छैन</string>

@@ -31,6 +31,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Включить трату кредитной карты в \"Потрачено в этом месяце\"</string>
     <string name="settings_default_currency_title">Валюта по умолчанию</string>
     <string name="settings_default_currency_subtitle">Валюта, используемая для конверсий</string>
+    <string name="settings_budget_convert_title">Конвертировать бюджеты?</string>
+    <string name="settings_budget_convert_message">Лимиты ваших бюджетов были в %1$s и теперь показываются в %2$s. Конвертируйте их по последнему доступному курсу (%3$s) или оставьте те же числа.</string>
+    <string name="settings_budget_convert_confirm">Конвертировать</string>
+    <string name="settings_budget_convert_keep">Оставить числа</string>
     <string name="settings_main_account_title">Основной счет</string>
     <string name="settings_main_account_subtitle">Устанавливает валюту по умолчанию</string>
     <string name="settings_main_account_not_set">Не задано</string>

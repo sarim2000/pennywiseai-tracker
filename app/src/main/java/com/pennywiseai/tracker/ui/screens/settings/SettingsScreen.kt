@@ -459,7 +459,10 @@ internal class SettingsChoice(
     val onSelect: () -> Unit
 )
 
-/** Pick one of [choices]: picking applies it and closes the sheet. */
+/**
+ * Pick one of [choices]: picking applies it and closes the sheet.
+ * A choice that opens another surface should do so from [onDismiss], once the sheet is gone.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SettingsChoiceSheet(

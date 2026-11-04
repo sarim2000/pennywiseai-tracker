@@ -161,6 +161,7 @@ private fun TrackingPage(
     val hasNotificationAccess = permissionUiState.hasNotificationAccess
     var showSmsScanSheet by remember { mutableStateOf(false) }
     var showSmsScanDatePicker by remember { mutableStateOf(false) }
+    var customDatePicked by remember { mutableStateOf(false) }
     var showTrackedAppsDialog by remember { mutableStateOf(false) }
     val notificationAccessLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -248,7 +249,15 @@ private fun TrackingPage(
         SettingsChoiceSheet(
             title = stringResource(R.string.settings_sms_scan_title),
             body = stringResource(R.string.settings_sms_scan_dialog_body),
-            onDismiss = { showSmsScanSheet = false },
+            onDismiss = {
+                showSmsScanSheet = false
+                // Opened only once the sheet is gone: cancelling the picker reopens the sheet,
+                // and a hide still running would close it again.
+                if (customDatePicked) {
+                    customDatePicked = false
+                    showSmsScanDatePicker = true
+                }
+            },
             choices = buildList {
                 add(
                     SettingsChoice(stringResource(R.string.settings_sms_scan_all_time), smsScanAllTime) {
@@ -260,7 +269,7 @@ private fun TrackingPage(
                         label = if (customDate != null) stringResource(R.string.settings_sms_scan_option_custom_with_date, customDate)
                             else stringResource(R.string.settings_sms_scan_option_custom),
                         selected = smsScanUseCustomDate && !smsScanAllTime,
-                    ) { showSmsScanDatePicker = true }
+                    ) { customDatePicked = true }
                 )
                 listOf(1, 2, 3, 6, 12, 24).forEach { months ->
                     add(

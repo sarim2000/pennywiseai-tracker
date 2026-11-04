@@ -44,6 +44,10 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 ### Notifications (`POST_NOTIFICATIONS`)
 - Subscription due-date reminders and budget alerts
 
+### Battery (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`)
+- Lets the optional "Keep tracking working" checklist ask Android, only when you tap Allow, to stop restricting PennyWise in the background
+- Gives no access to any data
+
 ### Biometrics (`USE_BIOMETRIC`)
 - Optional app lock via fingerprint or face unlock
 

@@ -50,6 +50,7 @@ enum class OnBoardingStep {
     WELCOME,
     PROFILE,
     PERMISSIONS,
+    BACKGROUND_ACCESS,
     SMS_SCAN,
     ACCOUNT_SETUP
 }
@@ -179,12 +180,13 @@ class OnBoardingViewModel @Inject constructor(
             OnBoardingStep.PROFILE -> OnBoardingStep.PERMISSIONS
             OnBoardingStep.PERMISSIONS -> {
                 if (_uiState.value.smsPermissionGranted) {
-                    OnBoardingStep.SMS_SCAN
+                    OnBoardingStep.BACKGROUND_ACCESS
                 } else {
-                    // Skip scan step if permissions not granted
+                    // Skip the SMS-only steps if permissions not granted
                     OnBoardingStep.ACCOUNT_SETUP
                 }
             }
+            OnBoardingStep.BACKGROUND_ACCESS -> OnBoardingStep.SMS_SCAN
             OnBoardingStep.SMS_SCAN -> OnBoardingStep.ACCOUNT_SETUP
             OnBoardingStep.ACCOUNT_SETUP -> OnBoardingStep.ACCOUNT_SETUP // Already last
         }
@@ -197,7 +199,8 @@ class OnBoardingViewModel @Inject constructor(
             OnBoardingStep.WELCOME -> OnBoardingStep.WELCOME
             OnBoardingStep.PROFILE -> OnBoardingStep.WELCOME
             OnBoardingStep.PERMISSIONS -> OnBoardingStep.PROFILE
-            OnBoardingStep.SMS_SCAN -> OnBoardingStep.PERMISSIONS
+            OnBoardingStep.BACKGROUND_ACCESS -> OnBoardingStep.PERMISSIONS
+            OnBoardingStep.SMS_SCAN -> OnBoardingStep.BACKGROUND_ACCESS
             OnBoardingStep.ACCOUNT_SETUP -> {
                 if (_uiState.value.smsPermissionGranted) {
                     OnBoardingStep.SMS_SCAN

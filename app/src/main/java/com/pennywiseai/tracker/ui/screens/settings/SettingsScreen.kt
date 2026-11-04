@@ -116,11 +116,18 @@ fun SettingsScreen(
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToWebhooks: () -> Unit = {},
     onNavigateToAiAccess: () -> Unit = {},
+    onNavigateToBackgroundAccess: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     shakeToHideViewModel: com.pennywiseai.tracker.ui.ShakeToHideViewModel = hiltViewModel(),
-    permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
+    permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel(),
+    backgroundAccessViewModel: com.pennywiseai.tracker.ui.viewmodel.BackgroundAccessViewModel = hiltViewModel()
 ) {
+    val backgroundAccess by backgroundAccessViewModel.state.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        backgroundAccessViewModel.refresh()
+        onPauseOrDispose {}
+    }
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val shakeToHideEnabled by shakeToHideViewModel.enabled.collectAsStateWithLifecycle()
@@ -605,13 +612,26 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_data_section))
             SettingsGroup {
                 SettingsNavItem(
+                    icon = Icons.Default.BatteryChargingFull,
+                    iconBgColor = red_light,
+                    iconTint = red_dark,
+                    title = stringResource(R.string.background_access_title),
+                    subtitle = stringResource(R.string.background_access_settings_subtitle),
+                    onClick = onNavigateToBackgroundAccess,
+                    position = ListItemPosition.Top,
+                    // Without SMS access there's no tracking to protect, so nothing to nag about.
+                    trailingText = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }?.let {
+                        pluralStringResource(R.plurals.background_access_settings_left, it, it)
+                    }
+                )
+                SettingsNavItem(
                     icon = Icons.Default.AccountBalance,
                     iconBgColor = red_light,
                     iconTint = red_dark,
                     title = stringResource(R.string.settings_manage_accounts_title),
                     subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
                     onClick = onNavigateToManageAccounts,
-                    position = ListItemPosition.Top
+                    position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Category,

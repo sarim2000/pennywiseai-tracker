@@ -197,7 +197,16 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToAiAccess = {
                     backStack.navigate(AiAccess)
+                },
+                onNavigateToBackgroundAccess = {
+                    backStack.navigate(BackgroundAccess)
                 }
+            )
+        }
+
+        entry<BackgroundAccess> { key ->
+            com.pennywiseai.tracker.ui.screens.settings.BackgroundAccessScreen(
+                onNavigateBack = { backStack.pop(key) }
             )
         }
 

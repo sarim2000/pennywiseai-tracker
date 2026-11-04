@@ -973,7 +973,15 @@ fun SettingsScreen(
 
     // ── Dialogs ──
 
-    // Display Currency Dialog
+    // Budget conversion question: only asked while the user is still here. Back
+    // from Budgets it would convert limits they've since entered in the new
+    // currency. A rotation isn't leaving, the ViewModel carries it across.
+    val activity = androidx.activity.compose.LocalActivity.current
+    DisposableEffect(settingsViewModel) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) settingsViewModel.dropBudgetConversion()
+        }
+    }
     budgetConversionPrompt?.let { prompt ->
         // Isolated: a Latin "1 INR = 84 JOD" reads in order inside Arabic text.
         val rate = "\u20661 ${prompt.from} = ${prompt.rate.round(java.math.MathContext(4)).toPlainString()} ${prompt.to}\u2069"
@@ -982,18 +990,19 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_budget_convert_title)) },
             text = { Text(stringResource(R.string.settings_budget_convert_message, prompt.from, prompt.to, rate)) },
             confirmButton = {
-                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = true) }) {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = true) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_budget_convert_confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = false) }) {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = false) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.settings_budget_convert_keep))
                 }
             }
         )
     }
 
+    // Display Currency Dialog
     if (showDisplayCurrencyDialog) {
         AlertDialog(
             onDismissRequest = { showDisplayCurrencyDialog = false },

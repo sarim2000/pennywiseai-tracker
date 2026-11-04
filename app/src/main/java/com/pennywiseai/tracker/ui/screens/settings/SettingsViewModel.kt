@@ -82,6 +82,7 @@ class SettingsViewModel @Inject constructor(
     private val _budgetConversionPrompt = MutableStateFlow<BudgetConversionPrompt?>(null)
     val budgetConversionPrompt: StateFlow<BudgetConversionPrompt?> = _budgetConversionPrompt.asStateFlow()
     private var budgetConversionJob: kotlinx.coroutines.Job? = null
+    private var budgetConversionDrops = 0
     private val baseCurrencyChange = kotlinx.coroutines.sync.Mutex()
 
     /** Drives the Settings → Pro row: shows "Active" when true, "Upgrade" when false. */
@@ -789,6 +790,7 @@ class SettingsViewModel @Inject constructor(
      * turn their 360 into 2.71. No rate, or leaving first, means the numbers stay.
      */
     private fun changeBaseCurrency(save: suspend () -> Unit) {
+        val drops = budgetConversionDrops
         viewModelScope.launch {
             // NonCancellable: leaving Settings must not stop a pick the user just made.
             val (from, to) = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
@@ -804,7 +806,7 @@ class SettingsViewModel @Inject constructor(
                     from to to
                 }
             }
-            if (to == from) return@launch
+            if (to == from || drops != budgetConversionDrops) return@launch
             // A newer change replaces the question; a no-op must not lose it, so only here.
             budgetConversionJob?.cancel()
             budgetConversionJob = launch {
@@ -813,6 +815,13 @@ class SettingsViewModel @Inject constructor(
                 _budgetConversionPrompt.value = BudgetConversionPrompt(from, to, rate)
             }
         }
+    }
+
+    /** The user left Settings, so the question is off, even one the save hasn't reached yet. */
+    fun dropBudgetConversion() {
+        budgetConversionDrops++
+        budgetConversionJob?.cancel()
+        _budgetConversionPrompt.value = null
     }
 
     fun resolveBudgetConversion(convert: Boolean) {

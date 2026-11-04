@@ -24,7 +24,7 @@ object TransactionFinder {
         daysAgo: Int?,
         today: LocalDate = LocalDate.now()
     ): TransactionEntity? {
-        val tokens = words.lowercase().split(Regex("[^a-z0-9]+")).filter { it.length >= 3 && it !in STOP }
+        val tokens = tokensOf(words).filter { it.length >= 3 && it !in STOP }
         // An amount or a day the user stated is a hard constraint, never a tie-breaker:
         // a wrong row on a delete/update card is worse than "not found".
         val wantedDay = daysAgo?.takeIf { it >= 0 }?.let { today.minusDays(it.toLong()) }
@@ -42,33 +42,50 @@ object TransactionFinder {
     }
 
     private fun score(tx: TransactionEntity, tokens: List<String>): Int {
-        val hay = listOfNotNull(tx.merchantName, tx.category, tx.description).joinToString(" ").lowercase()
+        val hay = tokensOf(listOfNotNull(tx.merchantName, tx.category, tx.description).joinToString(" ")).joinToString(" ")
         return tokens.count { hay.contains(it) }
     }
 
-    private val STOP = setOf("the", "one", "from", "for", "and", "that", "this", "delete", "remove", "update", "change", "yesterday", "today", "transaction", "entry")
+    /**
+     * Words in any script, folded so spellings meet: "القهوة" finds "قهوة", "أمس" equals "امس".
+     * ponytail: only the Arabic article is stripped; "وقهوة" or "بقهوة" still miss a match.
+     */
+    private fun tokensOf(text: String): List<String> =
+        text.lowercase()
+            .replace(Regex("[\\u064B-\\u0652]"), "")
+            .replace(Regex("[أإآ]"), "ا").replace('ة', 'ه').replace('ى', 'ي')
+            .split(Regex("[^\\p{L}\\p{M}\\p{N}]+"))
+            .map { if (it.length > 4 && it.startsWith("ال")) it.removePrefix("ال") else it }
 
-    /** A [findBest] result; [loosened] when the model's amount had to be dropped to find it. */
+    private val STOP = setOf(
+        "the", "one", "from", "for", "and", "that", "this", "delete", "remove", "update", "change", "yesterday", "today", "transaction", "entry",
+        "امس", "يوم", "حذف", "احذف", "امسح", "غير", "عدل", "معامله", "هذا", "هذه",
+        "हटाओ", "बदलो", "बदल", "वाला", "वाली"
+    )
+
+    /** A [findBest] result; [loosened] when a stated day or the model's amount had to be dropped to find it. */
     data class Match(val transaction: TransactionEntity, val loosened: Boolean)
 
     /**
      * [findBest] with the model's day and amount first, then without the day,
      * then without the amount, then without both. A small model fills those
      * fields even when the user never said them (often days_ago = 0, "today"),
-     * and as hard filters a guess hides the row the user meant. Dropping the
-     * day isn't flagged: it's almost always the model's own guess, and the card
-     * shows the date. Dropping the amount is, so the reply says it's the
-     * closest one. Nothing changes until the user taps the card.
+     * and as hard filters a guess hides the row the user meant. Dropping a day
+     * is flagged only when [dayStated], the user's own message naming one:
+     * otherwise it's the model's guess, and the card shows the date. Dropping
+     * the amount is always flagged, so the reply says it's the closest one.
+     * Nothing changes until the user taps the card.
      */
     fun findWithFallback(
         candidates: List<TransactionEntity>,
         words: String,
         amount: BigDecimal?,
         daysAgo: Int?,
-        today: LocalDate = LocalDate.now()
+        today: LocalDate = LocalDate.now(),
+        dayStated: Boolean = false
     ): Match? {
         findBest(candidates, words, amount, daysAgo, today)?.let { return Match(it, false) }
-        if (daysAgo != null) findBest(candidates, words, amount, null, today)?.let { return Match(it, false) }
+        if (daysAgo != null) findBest(candidates, words, amount, null, today)?.let { return Match(it, dayStated) }
         if (amount == null) return null
         return (findBest(candidates, words, null, daysAgo, today) ?: findBest(candidates, words, null, null, today))
             ?.let { Match(it, true) }

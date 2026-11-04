@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.data.repository
 
+import android.content.Context
 import android.util.Log
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -9,18 +11,21 @@ import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.service.LlmService
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.model.TransactionFinder
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.TokenUtils
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
@@ -30,6 +35,7 @@ import javax.inject.Singleton
 
 @Singleton
 class LlmRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val llmService: LlmService,
     private val chatDao: ChatDao,
     private val modelRepository: ModelRepository,
@@ -46,11 +52,22 @@ class LlmRepository @Inject constructor(
     private val _pendingAction = MutableStateFlow<PendingChatAction?>(null)
     val pendingAction: StateFlow<PendingChatAction?> = _pendingAction.asStateFlow()
 
-    fun clearPendingAction() { _pendingAction.value = null }
+    // What became of the last card. The live conversation can't see the app's own
+    // writes, so the model hears this in front of the next message; never shown or saved.
+    // No amount or merchant in it: told "Added ₹90 at Tea Stall", Qwen2.5 records that again.
+    private var cardOutcome: String? = null
 
-    /** Adds an assistant line to the history (e.g. "Added ₹120 at Starbucks"). */
-    suspend fun appendAssistantMessage(text: String) {
-        chatDao.insertMessage(ChatMessage(message = text, isUser = false))
+    /** The card was cancelled, left or superseded: nothing changed, and the model hears that. */
+    fun clearPendingAction() {
+        if (_pendingAction.value != null) cardOutcome = "The user cancelled the last card. Nothing was changed."
+        _pendingAction.value = null
+    }
+
+    /** The user's tap went through: [line] (e.g. "Added ₹120 at Starbucks") joins the chat. */
+    suspend fun completePendingAction(line: String) {
+        _pendingAction.value = null
+        cardOutcome = "The user confirmed the last card. It is saved."
+        chatDao.insertMessage(ChatMessage(message = line, isUser = false))
     }
 
     fun getAllMessages(): Flow<List<ChatMessage>> = chatDao.getAllMessages()
@@ -138,23 +155,45 @@ class LlmRepository @Inject constructor(
         val responseBuilder = StringBuilder()
         val toolCalls = mutableListOf<LlmEvent.ToolCall>()
 
-        llmService.sendMessageEvents(userMessage)
+        val prompt = cardOutcome?.let { "($it)\n$userMessage" } ?: userMessage
+        cardOutcome = null
+        var unreadableToolCall = false
+        llmService.sendMessageEvents(prompt)
+            .catch { e ->
+                if (e.message?.contains(TOOL_CALL_PARSE_FAILURE, ignoreCase = true) != true) throw e
+                Log.w(TAG, "The model wrote a tool call that doesn't parse")
+                unreadableToolCall = true
+            }
             .collect { event ->
                 when (event) {
-                    is LlmEvent.Text -> { responseBuilder.append(event.delta); emit(event.delta) }
+                    is LlmEvent.Text -> {
+                        // The model can open with bare newlines before a tool call: no empty lines on top.
+                        val text = if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta
+                        if (text.isNotEmpty()) { responseBuilder.append(text); emit(text) }
+                    }
                     is LlmEvent.ToolCall -> toolCalls.add(event)
                 }
             }
-        for (call in toolCalls) {
-            val line = handleToolCall(call, userMessage) ?: continue
-            if (responseBuilder.isNotEmpty()) { responseBuilder.append("\n"); emit("\n") }
+        suspend fun addLine(line: String) {
+            if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) { responseBuilder.append("\n"); emit("\n") }
             responseBuilder.append(line); emit(line)
+        }
+        // One card at a time for now: a second proposal would replace the first unseen.
+        var skippedCards = 0
+        for (call in toolCalls) {
+            if (call.name in CARD_TOOLS && _pendingAction.value != null) { skippedCards++; continue }
+            handleToolCall(call, userMessage)?.let { addLine(it) }
+        }
+        if (skippedCards > 0) addLine(context.getString(R.string.chat_reply_one_card_at_a_time))
+        if (unreadableToolCall) {
+            // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
+            llmService.closeConversation()
+            addLine(context.getString(R.string.chat_reply_unreadable))
         }
         // A small model sometimes narrates a change instead of calling the tool.
         // Nothing happened — say so, or the user walks away believing it did.
         if (toolCalls.isEmpty() && CLAIMS_A_CHANGE.containsMatchIn(responseBuilder)) {
-            val note = "\n(Nothing was changed — I can only add, update or delete through a confirmation card. Try: \"change the tea to Groceries\" or \"delete the tea from today\".)"
-            responseBuilder.append(note); emit(note)
+            addLine(context.getString(R.string.chat_reply_nothing_changed))
         }
 
         // Save the complete AI response
@@ -194,13 +233,8 @@ class LlmRepository @Inject constructor(
         if (!llmService.hasActiveConversation()) {
             val allMessages = chatDao.getAllMessagesForContext()
 
-            // Extract system prompt
-            val systemPrompt = allMessages
-                .firstOrNull { it.isSystemPrompt }
-                ?.message ?: run {
-                    val chatContext = aiContextRepository.getChatContext()
-                    buildSystemPrompt(chatContext)
-                }
+            // Always fresh: the row saved when the chat began carries that day's date and figures.
+            val systemPrompt = buildSystemPrompt(aiContextRepository.getChatContext())
 
             // Build history (excluding system prompt, and the message being sent —
             // replaying it too would put it in front of the model twice)
@@ -219,6 +253,7 @@ class LlmRepository @Inject constructor(
     suspend fun deleteAllMessages() {
         llmService.closeConversation()
         chatDao.deleteAllMessages()
+        cardOutcome = null
     }
 
     suspend fun deleteOldMessages(beforeTimestamp: Long) {
@@ -244,7 +279,7 @@ class LlmRepository @Inject constructor(
 
     /** Category the user named, tolerant of "Food", "food and dining", "FOOD & DINING". */
     private fun matchCategory(wanted: String, categories: List<com.pennywiseai.tracker.data.database.entity.CategoryEntity>): String? {
-        val norm = { x: String -> x.lowercase().replace("&", "and").replace(Regex("[^a-z0-9]+"), " ").trim() }
+        val norm = { x: String -> x.lowercase().replace("&", "and").replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ").trim() }
         val w = norm(wanted); if (w.isEmpty()) return null
         return categories.firstOrNull { norm(it.name) == w }?.name
             ?: categories.firstOrNull { norm(it.name).startsWith(w) || w.startsWith(norm(it.name)) }?.name
@@ -258,29 +293,31 @@ class LlmRepository @Inject constructor(
                 sourceText = userMessage,
                 categories = categoryRepository.getVisibleCategories().first(),
                 accounts = accountBalanceRepository.getAllLatestBalancesOnce(),
+                baseCurrency = userPreferencesRepository.baseCurrency.first(),
+                noAccountLabel = context.getString(R.string.chat_account_none),
+                ambiguousAccountLabel = context.getString(R.string.chat_account_ambiguous),
                 fallbackCategory = { merchant ->
                     com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(SharedCategoryMapping.getCategory(merchant))
                 }
             )
             if (draft == null) {
-                "I couldn't work out the amount. Try something like \"coffee 120 at Starbucks\"."
+                context.getString(R.string.chat_reply_amount_unclear)
             } else {
                 _pendingAction.value = PendingChatAction.Add(draft)
-                val currency = userPreferencesRepository.baseCurrency.first()
-                "Here's what I'll add — confirm below:\n${CurrencyFormatter.formatCurrency(draft.amount, currency, maskIfHidden = false)} " +
-                    "${if (draft.type == TransactionType.INCOME) "from" else "at"} ${draft.merchant} · ${draft.category} · ${draft.accountLabel}"
+                val line = amountLine(draft.amount, draft.currency, draft.type, draft.merchant)
+                context.getString(R.string.chat_reply_add, "$line · ${draft.category} · ${draft.accountLabel} · ${draft.date.format(DAY_MONTH)}")
             }
         }
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
-            val match = findTransaction(call.arguments)
+            val match = findTransaction(call.arguments, userMessage)
             val target = match?.transaction
             // Say so when the day or amount had to be dropped to find it.
-            val closest = if (match?.loosened == true) "I couldn't find an exact match — this is the closest one. " else ""
+            val closest = if (match?.loosened == true) context.getString(R.string.chat_reply_closest_match) + " " else ""
             if (target == null) {
-                "I couldn't find a matching transaction in the last 30 days. Try the merchant name and amount."
+                context.getString(R.string.chat_reply_not_found)
             } else if (call.name == PennyWiseTools.DELETE_TRANSACTION) {
                 _pendingAction.value = PendingChatAction.Delete(target)
-                "${closest}Delete this one? Confirm below:\n${describe(target)}"
+                closest + context.getString(R.string.chat_reply_delete, describe(target))
             } else {
                 val newCategory = (call.arguments.arg("newCategory") as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { wanted ->
                     matchCategory(wanted, categoryRepository.getVisibleCategories().first())
@@ -288,43 +325,72 @@ class LlmRepository @Inject constructor(
                 val newMerchant = (call.arguments.arg("newMerchant") as? String)?.trim()
                     ?.takeIf { it.isNotEmpty() && !it.equals(target.merchantName, ignoreCase = true) }
                 if (newCategory == null && newMerchant == null) {
-                    "What should I change it to? Say a category from your list or a new merchant name."
+                    context.getString(R.string.chat_reply_update_what)
                 } else {
                     _pendingAction.value = PendingChatAction.Update(target, newCategory, newMerchant)
-                    "${closest}Update this one? Confirm below:\n${describe(target)} → " +
-                        listOfNotNull(newMerchant?.let { "merchant $it" }, newCategory?.let { "category $it" }).joinToString(", ")
+                    closest + context.getString(
+                        R.string.chat_reply_update,
+                        describe(target),
+                        listOfNotNull(
+                            newMerchant?.let { context.getString(R.string.chat_action_change_merchant, it) },
+                            newCategory?.let { context.getString(R.string.chat_action_change_category, it) }
+                        ).joinToString(", ")
+                    )
                 }
             }
         }
         PennyWiseTools.MONTH_SUMMARY -> {
             val m = aiContextRepository.getChatContext().monthSummary
             val currency = userPreferencesRepository.baseCurrency.first()
-            "This month: ${CurrencyFormatter.formatCurrency(m.totalExpense, currency, maskIfHidden = false)} spent, " +
-                "${CurrencyFormatter.formatCurrency(m.totalIncome, currency, maskIfHidden = false)} received, ${m.transactionCount} transactions."
+            context.getString(
+                R.string.chat_reply_month_summary,
+                CurrencyFormatter.formatCurrency(m.totalExpense, currency, maskIfHidden = false),
+                CurrencyFormatter.formatCurrency(m.totalIncome, currency, maskIfHidden = false),
+                m.transactionCount
+            )
         }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
-            val category = (call.arguments["category"] as? String)?.trim().orEmpty()
+            val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
+            val category = matchCategory(wanted, categoryRepository.getVisibleCategories().first())
             val currency = userPreferencesRepository.baseCurrency.first()
-            val spend = aiContextRepository.getCategorySpending(category)
-            if (spend == null) "Nothing spent on $category this month."
-            else "${CurrencyFormatter.formatCurrency(spend.amount, currency, maskIfHidden = false)} on ${spend.category} this month across ${spend.transactionCount} transactions."
+            val spend = category?.let { aiContextRepository.getCategorySpending(it) }
+            when {
+                // "Nothing spent" would be a false figure for a category that doesn't exist.
+                category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
+                spend == null -> context.getString(R.string.chat_reply_nothing_spent, category)
+                else -> context.getString(
+                    R.string.chat_reply_category_spend,
+                    CurrencyFormatter.formatCurrency(spend.amount, currency, maskIfHidden = false),
+                    spend.category,
+                    spend.transactionCount
+                )
+            }
         }
         else -> null
     }
 
-    private suspend fun findTransaction(args: Map<String, Any?>): TransactionFinder.Match? {
+    private suspend fun findTransaction(args: Map<String, Any?>, userMessage: String): TransactionFinder.Match? {
         val words = (args["merchant"] as? String).orEmpty()
-        val amount = (args["amount"] as? Number)?.toDouble()?.takeIf { it > 0 }?.let { BigDecimal.valueOf(it) }
-        val daysAgo = (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
+        val amount = ChatMessageFacts.parseAmount(args["amount"])
+        // A day the user stated beats the model's reading of it.
+        val dayStated = ChatMessageFacts.statesADay(userMessage)
+        val daysAgo = if (dayStated) ChatMessageFacts.daysAgo(userMessage, args.arg("daysAgo"))
+            else (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
         val now = java.time.LocalDateTime.now()
         val recent = transactionRepository.getTransactionsBetweenDates(now.minusDays(30), now).first()
-        return TransactionFinder.findWithFallback(recent, words, amount, daysAgo)
+        return TransactionFinder.findWithFallback(recent, words, amount, daysAgo, dayStated = dayStated)
     }
 
     /** An existing row is shown in ITS currency, never relabelled with the base one. */
     private fun describe(tx: TransactionEntity): String =
-        "${CurrencyFormatter.formatCurrency(tx.amount, tx.currency, maskIfHidden = false)} ${if (tx.transactionType == TransactionType.INCOME) "from" else "at"} ${tx.merchantName} · ${tx.category} · " +
-            tx.dateTime.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
+        "${amountLine(tx.amount, tx.currency, tx.transactionType, tx.merchantName)} · ${tx.category} · ${tx.dateTime.format(DAY_MONTH)}"
+
+    /** "₹120 at Starbucks", in the transaction's own currency. Also used for the line after a confirmed card. */
+    fun amountLine(amount: BigDecimal, currency: String, type: TransactionType, merchant: String): String = context.getString(
+        if (type == TransactionType.INCOME) R.string.chat_line_income else R.string.chat_line_expense,
+        CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false),
+        merchant
+    )
 
     /**
      * Thin system prompt (#170): who the assistant is, the month at a glance,
@@ -364,14 +430,11 @@ class LlmRepository @Inject constructor(
         val monthSummary = chatContext.monthSummary
         val currency = userPreferencesRepository.baseCurrency.first()
 
-        return """
-        Hi! I'm PennyWise AI.
-
-        Tell me what you spent and I'll add it after you confirm — e.g. "coffee 120 at Starbucks" or "got 50000 salary". Ask "how much on groceries this month?" for a total.
-
-        This month so far: ${monthSummary.transactionCount} transactions, ${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)} spent.
-        Nothing is saved without your tap.
-        """.trimIndent()
+        return context.getString(
+            R.string.chat_welcome,
+            monthSummary.transactionCount,
+            CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)
+        )
     }
 
     companion object {
@@ -401,6 +464,9 @@ class LlmRepository @Inject constructor(
             Accounts: ${promptList(accounts, MAX_ACCOUNT_CHARS).ifEmpty { "none yet" }}
 
             Plain text only: no markdown, asterisks or backticks.
+            If a message mentions several transactions, call addTransaction once for each of them.
+            Every amount the user states is its own transaction: never add amounts together and never merge items.
+            Leave account empty unless the user names a bank, card or cash in this message.
             """.trimIndent()
 
         /** Names joined in order until [maxChars]; the rest are counted, not listed. */
@@ -415,7 +481,17 @@ class LlmRepository @Inject constructor(
         private const val MAX_EXPENSE_CATEGORY_CHARS = 1200
         private const val MAX_INCOME_CATEGORY_CHARS = 400
         private const val MAX_ACCOUNT_CHARS = 500
-        private val CLAIMS_A_CHANGE = Regex("\\b(I(?:'ve| have)?|has been|have been|is now|was) (added|updated|changed|deleted|removed|recorded)\\b", RegexOption.IGNORE_CASE)
+        // The model replies in the user's language, so a false claim comes in it too.
+        private val CLAIMS_A_CHANGE = Regex(
+            "\\b(I(?:'ve| have)?|has been|have been|is now|was) (added|updated|changed|deleted|removed|recorded)\\b" +
+                "|أضفت|اضفت|سجلت|حذفت|عدلت|غيرت|تمت? (?:إضافة|اضافة|تسجيل|حذف|تعديل|تغيير)" +
+                "|जोड़ दिया|जोड़ दी|हटा दिया|हटा दी|बदल दिया|बदल दी|दर्ज कर",
+            RegexOption.IGNORE_CASE
+        )
+        private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+        private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTION, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
+        // LiteRT-LM has no error type for it, only this message (0.19.0).
+        private const val TOOL_CALL_PARSE_FAILURE = "Failed to parse tool calls"
         private const val TAG = "LlmRepository"
     }
 }

@@ -2,14 +2,25 @@ package com.pennywiseai.tracker.presentation.share
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.share.ShareCardConfig
+import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.data.share.ShareWindow
+import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
+import com.pennywiseai.tracker.presentation.review.isCalendarMonth
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.DateRangeUtils
+import com.pennywiseai.tracker.utils.forTotals
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -26,9 +37,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 
@@ -37,15 +45,34 @@ import javax.inject.Inject
  * design, which is why nothing in this file touches CurrencyFormatter or sumByCurrency.
  */
 data class ShareCardData(
+    /** Rows that really came from a bank text: the card's "0 typed" has to be true. */
     val transactionCount: Int = 0,
     val topCategories: List<String> = emptyList(),
     val subscriptionCount: Int = 0,
+    val merchantCount: Int = 0,
     // null = all time; ShareCard renders the translated label.
     val periodLabel: String? = "",
-)
+) {
+    fun countFor(hero: ShareHero): Int = when (hero) {
+        ShareHero.TRANSACTIONS -> transactionCount
+        ShareHero.SUBSCRIPTIONS -> subscriptionCount
+        ShareHero.MERCHANTS -> merchantCount
+    }
+}
 
-private val MONTH_LABEL: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH)
+/**
+ * Manual entries, recurring templates and imported statements have no SMS sender, so
+ * they don't count: "bank texts tracked, 0 typed" is the claim on the image.
+ */
+internal fun trackedFromBankTexts(rows: List<TransactionEntity>): Int = rows.count { it.smsSender != null }
+
+/** Distinct merchants actually spent at; loan-only and excluded rows drop out via [forTotals]. */
+internal fun merchantsPaid(rows: List<TransactionEntity>): Int = rows.forTotals()
+    .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
+    .map { it.merchantName.trim().lowercase() }
+    .filter { it.isNotEmpty() }
+    .distinct()
+    .size
 
 @HiltViewModel
 class ShareCardViewModel @Inject constructor(
@@ -53,26 +80,14 @@ class ShareCardViewModel @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
 ) : ViewModel() {
 
     private val _config = MutableStateFlow(ShareCardConfig())
     val config: StateFlow<ShareCardConfig> = _config.asStateFlow()
 
-    /**
-     * Period the caller asked for, if any. Held separately because it can arrive before
-     * the saved config finishes loading: the sheet's LaunchedEffect fires on first
-     * composition, while [init] is still suspended reading DataStore. Without this the
-     * load completes second and silently clobbers the override — the monthly prompt then
-     * opens on the current (nearly empty) month instead of the finished one.
-     */
-    private var pendingPeriodOverride: SharePeriod? = null
-
-    /**
-     * The period as persisted, mirrored here so an override can be undone without an
-     * async DataStore read (which could race the write [updateConfig] just started).
-     * Null until the saved config has loaded.
-     */
-    private var savedPeriod: SharePeriod? = null
+    /** The dates a review opened the sheet on; null uses the saved period. Never persisted. */
+    private val window = MutableStateFlow<ShareWindow?>(null)
 
     /**
      * Gates [data]: queries wait for the saved config so the card never loads the
@@ -91,18 +106,14 @@ class ShareCardViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val saved = userPreferencesRepository.shareCardConfig.first()
-            // An explicit period change before the load already recorded the newest
-            // saved period; only fall back to the snapshot when it didn't.
-            if (savedPeriod == null) savedPeriod = saved.period
-            var merged = pendingPeriodOverride?.let { saved.copy(period = it) } ?: saved
+            var merged = userPreferencesRepository.shareCardConfig.first()
             preLoadEdits.forEach { merged = it(merged) }
             _config.value = merged
             if (preLoadEdits.isNotEmpty()) {
                 preLoadEdits.clear()
                 // The pre-load updateConfig persisted its default-derived candidate;
                 // re-persist the merge to put the fields it never touched back.
-                userPreferencesRepository.setShareCardConfig(merged.copy(period = savedPeriod!!))
+                userPreferencesRepository.setShareCardConfig(merged)
             }
             configLoaded.value = true
         }
@@ -127,39 +138,52 @@ class ShareCardViewModel @Inject constructor(
         combine(
             configLoaded,
             _config,
+            window,
             userPreferencesRepository.selectedProfileId,
-        ) { loaded, config, profileId -> if (loaded) config.period to profileId else null }
+            userPreferencesRepository.budgetCycleStartDay,
+        ) { loaded, config, window, profileId, cycleStartDay ->
+            if (loaded) CardQuery(window, config.period, profileId, cycleStartDay) else null
+        }
             .filterNotNull()
             .distinctUntilChanged()
-            .flatMapLatest { (period, profileId) -> cardData(period, profileId) }
+            .flatMapLatest { cardData(it) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private fun cardData(period: SharePeriod, profileId: Long?): Flow<ShareCardData?> {
+    private data class CardQuery(
+        val window: ShareWindow?,
+        val period: SharePeriod,
+        val profileId: Long?,
+        val cycleStartDay: Int,
+    )
+
+    private fun cardData(query: CardQuery): Flow<ShareCardData?> {
         val now = LocalDate.now()
-        val (start, end) = when (period) {
-            SharePeriod.THIS_MONTH ->
-                YearMonth.from(now).atDay(1).atStartOfDay() to now.atTime(23, 59, 59)
-            SharePeriod.LAST_MONTH -> {
-                val month = YearMonth.from(now).minusMonths(1)
-                month.atDay(1).atStartOfDay() to month.atEndOfMonth().atTime(23, 59, 59)
-            }
-            SharePeriod.ALL_TIME ->
-                LocalDateTime.of(2000, 1, 1, 0, 0) to LocalDateTime.now().plusYears(10)
+        fun cycle(period: TimePeriod) = getCycleAwareDateRange(period, query.cycleStartDay, now)!!
+        val (start, end) = when {
+            query.window != null -> query.window.start to query.window.end
+            query.period == SharePeriod.THIS_MONTH -> cycle(TimePeriod.THIS_MONTH).first to now
+            query.period == SharePeriod.LAST_MONTH -> cycle(TimePeriod.LAST_MONTH)
+            else -> LocalDate.of(2000, 1, 1) to now.plusYears(10)
+        }
+        val label = when {
+            query.window != null -> query.window.label
+            query.period == SharePeriod.ALL_TIME -> null
+            else -> cycleLabel(if (query.period == SharePeriod.THIS_MONTH) cycle(TimePeriod.THIS_MONTH) else start to end)
         }
 
         return combine(
-            transactionRepository.getTransactionsBetweenDates(start, end),
+            transactionRepository.getTransactionsBetweenDates(start.atStartOfDay(), end.atTime(23, 59, 59)),
             accountBalanceRepository.getAllLatestBalances(),
             subscriptionRepository.getActiveSubscriptions(),
-        ) { allTransactions, balances, subscriptions ->
-            // Scope to the profile the user is currently viewing. Home does this for
-            // every figure it shows (filterTransactionsByProfile); a recap that ignored
-            // it would count a Business profile's card using the owner's personal
-            // transactions too — wrong, and it would put those counts into an image
-            // built for sharing.
+            ignoredAccountsStore.keysFlow,
+        ) { allTransactions, balances, subscriptions, ignored ->
+            // Scope to the profile the user is currently viewing, without ignored accounts,
+            // as Home does for every figure it shows. A recap that didn't would count a
+            // Business profile's card, or someone else's account, as the owner's — wrong,
+            // and it would put those counts into an image built for sharing.
             val transactions = filterTransactionsByProfile(
-                allTransactions,
-                profileId,
+                allTransactions.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
+                query.profileId,
                 buildProfileAccountKeys(balances),
             )
 
@@ -178,21 +202,27 @@ class ShareCardViewModel @Inject constructor(
                 .map { it.key }
 
             ShareCardData(
-                transactionCount = transactions.size,
+                transactionCount = trackedFromBankTexts(transactions),
                 topCategories = categories,
-                // Subscriptions are deliberately not filtered: SubscriptionEntity
-                // carries no profileId and Home doesn't scope them either, so filtering
-                // here would invent semantics the rest of the app doesn't have.
-                subscriptionCount = subscriptions.size,
-                periodLabel = when (period) {
-                    SharePeriod.THIS_MONTH ->
-                        now.format(MONTH_LABEL).uppercase()
-                    SharePeriod.LAST_MONTH ->
-                        now.minusMonths(1).format(MONTH_LABEL).uppercase()
-                    SharePeriod.ALL_TIME -> null
-                },
+                // Subscriptions are today's count, so a card about a chosen period can't
+                // claim them. Deliberately not filtered by profile otherwise:
+                // SubscriptionEntity carries no profileId and Home doesn't scope them
+                // either, so filtering here would invent semantics the rest of the app
+                // doesn't have.
+                subscriptionCount = if (query.window != null) 0 else subscriptions.size,
+                merchantCount = merchantsPaid(transactions),
+                periodLabel = label,
             )
         }.onStart<ShareCardData?> { emit(null) }
+    }
+
+    /** "OCTOBER 2026", or the dates on a non-calendar cycle, where a month name would be wrong. */
+    private fun cycleLabel(cycle: Pair<LocalDate, LocalDate>): String {
+        val (start, end) = cycle
+        return (
+            if (isCalendarMonth(start, end)) start.format(AppDates.pattern("MMMM yyyy"))
+            else DateRangeUtils.formatDateRange(start, end)
+            ).uppercase(Locale.getDefault())
     }
 
     /**
@@ -202,37 +232,15 @@ class ShareCardViewModel @Inject constructor(
     fun updateConfig(update: (ShareCardConfig) -> ShareCardConfig) {
         if (!configLoaded.value) preLoadEdits += update
         val candidate = update(_config.value)
-        if (candidate.period != _config.value.period) {
-            // An explicit choice in Customise supersedes whatever the caller opened on.
-            pendingPeriodOverride = null
-            savedPeriod = candidate.period
-        }
         _config.value = candidate
-        // Persist the user's choices, but never an active override's period: editing
-        // the hero while the banner's override is showing shouldn't silently rewrite
-        // the period the user saved in Customise.
-        val persisted = savedPeriod
-            ?.takeIf { pendingPeriodOverride != null }
-            ?.let { candidate.copy(period = it) }
-            ?: candidate
-        viewModelScope.launch { userPreferencesRepository.setShareCardConfig(persisted) }
+        viewModelScope.launch { userPreferencesRepository.setShareCardConfig(candidate) }
     }
 
     /**
-     * Points the card at [period] for this viewing only, without writing it to
-     * preferences — the monthly prompt opens on last month, but that shouldn't silently
-     * rewrite a choice the user made in Customise. Null means "no override": because
-     * this ViewModel survives the sheet closing, a later plain opening (the overflow
-     * menu) must actively put the saved period back or it would inherit the previous
-     * viewing's override.
+     * Points the card at a review's exact dates for this viewing only. Null means the
+     * saved period.
      */
-    fun setPeriodOverride(period: SharePeriod?) {
-        pendingPeriodOverride = period
-        // Before the saved config loads there is nothing to restore (and nothing shown);
-        // init applies pendingPeriodOverride on top of the load, covering both cases.
-        val target = period ?: savedPeriod ?: return
-        if (_config.value.period != target) {
-            _config.value = _config.value.copy(period = target)
-        }
+    fun setWindow(window: ShareWindow?) {
+        this.window.value = window
     }
 }

@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Lê de novo as transações de SMS para aplicar correções de leitura. Edições em transações de SMS são desfeitas. Transações manuais, importadas, de empréstimo e agrupadas são mantidas.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Mais opções</string>
-    <string name="home_menu_monthly_recap">Resumo mensal</string>
     <string name="home_menu_settings">Configurações</string>
     <string name="home_menu_edit_home">Editar tela inicial</string>
     <string name="home_menu_discord">Junte-se ao Discord para feedback</string>

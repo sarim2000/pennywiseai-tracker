@@ -160,6 +160,7 @@ class SettingsViewModel @Inject constructor(
     val countCreditCardAsExpense = userPreferencesRepository.countCreditCardAsExpense
 
     val dailySummaryEnabled = userPreferencesRepository.dailySummaryEnabled
+    val weeklySummaryEnabled = userPreferencesRepository.weeklySummaryEnabled
 
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
@@ -424,6 +425,13 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setDailySummaryEnabled(enabled)
             com.pennywiseai.tracker.worker.DailySummaryWorker.sync(context, enabled)
+        }
+    }
+
+    fun setWeeklySummaryEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setWeeklySummaryEnabled(enabled)
+            com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(context, enabled)
         }
     }
 

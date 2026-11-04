@@ -153,8 +153,14 @@ data object AiAccess : NavKey
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,
-    val currency: String? = null
+    val currency: String? = null,
+    val startDate: Long? = null,
+    val endDate: Long? = null
 ) : NavKey
+
+/** The week, cycle and year reviews; [kind] is a ReviewKind name, the tab it opens on. */
+@Serializable
+data class Review(val kind: String = "MONTH") : NavKey
 
 // Screens inside MainScreen's tab stacks (Home, Settings, Categories, Faq,
 // UnrecognizedSms and ImportStatement are reused there too).

@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Vuelve a leer las transacciones de SMS para aplicar correcciones del lector. Se restablecen los cambios en transacciones de SMS. Se conservan las transacciones manuales, importadas, de préstamos y agrupadas.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Más opciones</string>
-    <string name="home_menu_monthly_recap">Resumen mensual</string>
     <string name="home_menu_settings">Ajustes</string>
     <string name="home_menu_edit_home">Editar pantalla de inicio</string>
     <string name="home_menu_discord">Únete a Discord para dar tu opinión</string>

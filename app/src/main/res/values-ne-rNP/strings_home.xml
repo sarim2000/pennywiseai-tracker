@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">पार्सर सुधारहरू लागू गर्न SMS लेनदेन फेरि पढिन्छ। SMS लेनदेनमा गरिएका सम्पादन रिसेट हुन्छन्। म्यानुअल, आयात गरिएका, ऋण र समूहमा राखिएका लेनदेन जोगाइन्छन्।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">थप विकल्पहरू</string>
-    <string name="home_menu_monthly_recap">मासिक सारांश</string>
     <string name="home_menu_settings">सेटिङ्स</string>
     <string name="home_menu_edit_home">होम स्क्रिन सम्पादन गर्नुहोस्</string>
     <string name="home_menu_discord">सुझावको लागि Discord मा जोडिनुहोस्</string>

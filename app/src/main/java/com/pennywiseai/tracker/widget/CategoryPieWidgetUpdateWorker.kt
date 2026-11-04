@@ -23,7 +23,9 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -42,8 +44,8 @@ import java.util.concurrent.TimeUnit
  *
  * Currency: a pie mixing currencies is meaningless, so either everything is
  * converted into the display currency (unified mode, same as the other
- * widgets) or the cycle's dominant spend currency is shown and the rest are
- * left out — the total in the hole says which currency the pie is in. In unified
+ * widgets) or one currency ([pieCurrency]) is shown and the rest are left
+ * out — the total in the hole says which currency the pie is in. In unified
  * mode a transaction whose exchange rate is unavailable is left out rather
  * than counted at its raw foreign face value, which would corrupt the total
  * and every percentage.
@@ -152,10 +154,10 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     }
                 }
             } else {
-                currency = transactions
-                    .groupBy { it.transaction.currency.uppercase() }
-                    .maxByOrNull { (_, txs) -> txs.sumOf { it.transaction.amount } }
-                    ?.key ?: displayCurrency
+                currency = pieCurrency(
+                    transactions.sumByCurrency({ it.transaction.currency.uppercase() }, { it.transaction.amount }),
+                    userPreferencesRepository.baseCurrency.first()
+                )
                 transactions
                     .filter { it.transaction.currency.equals(currency, ignoreCase = true) }
                     .forEach { tw ->
@@ -219,4 +221,17 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
             Result.retry()
         }
     }
+}
+
+/**
+ * The pie's one currency outside unified mode: the user's own if they spent in
+ * it, as the in-app pie opens on it, so ₹5,000 can't outrank JD 40 on face value.
+ * ponytail: with no base-currency spend, foreign currencies still rank by face
+ * value (INR 5,000 beats USD 500); rank by converted amount if that case matters.
+ */
+internal fun pieCurrency(spendByCurrency: Map<String, Money>, baseCurrency: String): String {
+    val base = baseCurrency.uppercase()
+    return base.takeIf { (spendByCurrency[it]?.amount?.signum() ?: 0) > 0 }
+        ?: spendByCurrency.maxByOrNull { it.value.amount }?.key
+        ?: base
 }

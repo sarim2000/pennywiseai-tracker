@@ -210,8 +210,12 @@ fun BudgetCard(
                 }
             }
             groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
-                val startDay = groupSpending.group.budget.monthStartDay
-                    ?: groupSpending.windowStart.dayOfMonth
+                val rawStart = groupSpending.group.budget.monthStartDay
+                val startDay = if (rawStart == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) {
+                    groupSpending.windowStart.dayOfMonth
+                } else {
+                    rawStart ?: groupSpending.windowStart.dayOfMonth
+                }
                 val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
                 when {
                     renewalIn == 0 -> stringResource(R.string.budget_card_resets_today_day, startDay)

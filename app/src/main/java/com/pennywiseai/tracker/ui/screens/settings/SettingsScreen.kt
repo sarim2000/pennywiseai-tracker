@@ -499,7 +499,7 @@ fun SettingsScreen(
                     onClick = { showBudgetCycleDialog = true },
                     position = ListItemPosition.Single,
                     trailingText = if (com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(budgetCycleStartDay)) {
-                        stringResource(R.string.settings_budget_cycle_last_working_day)
+                        stringResource(R.string.settings_budget_cycle_last_working_day_short)
                     } else {
                         ordinalSuffix(budgetCycleStartDay)
                     }

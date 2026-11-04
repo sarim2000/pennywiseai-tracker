@@ -6,6 +6,8 @@ import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -400,6 +402,7 @@ class CurrencyConversionService @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             // Log error but don't crash
             println("Failed to fetch exchange rate for $fromCurrency to $toCurrency: ${e.message}")
         }

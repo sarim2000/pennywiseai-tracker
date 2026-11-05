@@ -41,10 +41,12 @@ import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -404,6 +406,7 @@ class TransactionsViewModel @Inject constructor(
     // the originals.
     val suggestedTransferPartnerOf: StateFlow<Map<Long, Long>> = _uiState
         .map { state -> computeSelfTransferPairs(state.transactions) }
+        .flowOn(Dispatchers.Default)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -781,6 +784,11 @@ class TransactionsViewModel @Inject constructor(
             }
         }
 
+        // A converted amount only means anything in the currency it was built for. Rows
+        // format it with the live selection, so drop the old map on a switch: until the
+        // new one lands, a row with no entry shows its own amount and currency.
+        _selectedCurrency.drop(1).onEach { _convertedAmounts.value = emptyMap() }.launchIn(viewModelScope)
+
         // Compute available categories from transactions filtered by period only (no category filter)
         // This drives the category chips row in the UI
         merge(
@@ -821,6 +829,7 @@ class TransactionsViewModel @Inject constructor(
                                 (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
                             }
                     }
+                    .flowOn(Dispatchers.Default)
                     .collect { emit(it) }
             }
             .onEach { categories ->
@@ -880,9 +889,11 @@ class TransactionsViewModel @Inject constructor(
                     LocalDate.now() to LocalDate.now()
                 }
 
-                // Get filtered transactions (without currency filter first)
+                // Get filtered transactions (without currency filter first).
+                // The list is computed off the main thread and published whole below;
+                // transformLatest cancels a stale computation before starting the next.
                 getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
-                    .collect { allTransactions ->
+                    .map { allTransactions ->
                         // Apply profile, account, then tag filters
                         val profileAndAccountFiltered = filterTransactionsByAccount(
                             filterByProfile(allTransactions, profileId),
@@ -896,9 +907,9 @@ class TransactionsViewModel @Inject constructor(
                         } else {
                             profileAndAccountFiltered
                         }
-                        if (isUnified) {
+                        val sorted = if (isUnified) {
                             // Show all transactions regardless of currency
-                            emit(sortTransactions(transactions, sort))
+                            sortTransactions(transactions, sort)
                         } else {
                             // Calculate available currencies from ALL filtered transactions (before currency filtering)
                             val allAvailableCurrencies = CurrencyUtils.sortCurrencies(
@@ -921,7 +932,8 @@ class TransactionsViewModel @Inject constructor(
                                         } else {
                                             allAvailableCurrencies.first()
                                         }
-                                    _selectedCurrency.value = newCurrency
+                                    // Off main now: never overwrite a choice made since this was read.
+                                    _selectedCurrency.compareAndSet(currentCurrency, newCurrency)
                                     newCurrency
                                 } else {
                                     currentCurrency
@@ -932,42 +944,45 @@ class TransactionsViewModel @Inject constructor(
                                 it.currency.equals(finalCurrency, ignoreCase = true)
                             }
 
-                            emit(sortTransactions(currencyFilteredTransactions, sort))
+                            sortTransactions(currencyFilteredTransactions, sort)
                         }
+                        ComputedList(
+                            transactions = sorted,
+                            grouped = groupTransactionsByDate(sorted),
+                            // Calculate totals for filtered transactions
+                            totals = calculateCurrencyGroupedTotals(sorted)
+                        )
                     }
+                    .flowOn(Dispatchers.Default)
+                    .collect { emit(it) }
             }
-            .onEach { transactions ->
+            .onEach { computed ->
                 _uiState.value = _uiState.value.copy(
-                    transactions = transactions,
-                    groupedTransactions = groupTransactionsByDate(transactions),
+                    transactions = computed.transactions,
+                    groupedTransactions = computed.grouped,
                     isLoading = false
                 )
-                // Calculate totals for filtered transactions
-                _currencyGroupedTotals.value = calculateCurrencyGroupedTotals(transactions)
+                _currencyGroupedTotals.value = computed.totals
 
                 // Auto-select primary currency if not already selected or if current currency no longer exists
                 if (!_isUnifiedMode.value) {
                     val currentCurrency = selectedCurrency.value
-                    if (!_currencyGroupedTotals.value.availableCurrencies.contains(currentCurrency) && _currencyGroupedTotals.value.hasAnyCurrency()) {
+                    if (!computed.totals.availableCurrencies.contains(currentCurrency) && computed.totals.hasAnyCurrency()) {
                         val baseCurrency = userPreferencesRepository.baseCurrency.first()
-                        _selectedCurrency.value = _currencyGroupedTotals.value.getPrimaryCurrency(baseCurrency)
+                        _selectedCurrency.value = computed.totals.getPrimaryCurrency(baseCurrency)
                     }
                     _convertedAmounts.value = emptyMap()
                 } else {
-                    // Build converted amounts map for transactions in foreign currencies
+                    // After publishing: conversion can wait on the network for rates, and the
+                    // rows and grouped totals shouldn't. The map only means anything in the
+                    // currency it was built for, so a switch meanwhile discards it.
                     val displayCurrency = _selectedCurrency.value
-                    val converted = mutableMapOf<Long, BigDecimal>()
-                    for (tx in transactions) {
-                        if (!tx.currency.equals(displayCurrency, ignoreCase = true)) {
-                            // Omit unconvertible rows from the map; the row then shows
-                            // its native amount + currency instead of a mislabeled
-                            // face-value figure in the display currency (#670).
-                            currencyConversionService.convertAmountOrNull(
-                                tx.amount, tx.currency, displayCurrency
-                            )?.let { converted[tx.id] = it }
-                        }
+                    val converted = withContext(Dispatchers.Default) {
+                        convertedAmountsFor(computed.transactions, displayCurrency)
                     }
-                    _convertedAmounts.value = converted
+                    if (_selectedCurrency.value == displayCurrency) {
+                        _convertedAmounts.value = converted
+                    }
                 }
             }
             .launchIn(viewModelScope)
@@ -1343,6 +1358,25 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    /** Converted amounts for transactions in foreign currencies (unified mode). */
+    private suspend fun convertedAmountsFor(
+        transactions: List<TransactionEntity>,
+        displayCurrency: String
+    ): Map<Long, BigDecimal> {
+        val converted = mutableMapOf<Long, BigDecimal>()
+        for (tx in transactions) {
+            if (!tx.currency.equals(displayCurrency, ignoreCase = true)) {
+                // Omit unconvertible rows from the map; the row then shows
+                // its native amount + currency instead of a mislabeled
+                // face-value figure in the display currency (#670).
+                currencyConversionService.convertAmountOrNull(
+                    tx.amount, tx.currency, displayCurrency
+                )?.let { converted[tx.id] = it }
+            }
+        }
+        return converted
+    }
+
     private fun filterByProfile(
         transactions: List<TransactionEntity>,
         profileId: Long?
@@ -1379,7 +1413,17 @@ class TransactionsViewModel @Inject constructor(
         // A parent category includes its sub-categories (#374).
         val effectiveCategories = (categories?.takeIf { it.isNotEmpty() } ?: category?.let { listOf(it) })
             ?.let { this.categories.value.values.toList().expandWithChildren(it) }
-        val baseFlow = transactionRepository.getAllTransactions()
+        val range = periodRange(period, cycleRange)
+        val baseFlow = if (range == null) {
+            transactionRepository.getAllTransactions()
+        } else {
+            val (rangeStart, rangeEnd) = range
+            val (queryStart, queryEnd) = dateQueryWindow(rangeStart, rangeEnd)
+            transactionRepository.getTransactionsBetweenDates(queryStart, queryEnd).map { transactions ->
+                // The exact filter: the query window is deliberately wider, see dateQueryWindow.
+                transactions.filter { it.dateTime in rangeStart..rangeEnd }
+            }
+        }
 
         // Apply the category filter. A transaction is included if its main category OR
         // any of its split categories matches.
@@ -1400,60 +1444,8 @@ class TransactionsViewModel @Inject constructor(
             baseFlow
         }
         
-        // Apply period filter
-        val periodFilteredFlow = when (period) {
-            TimePeriod.ALL -> categoriesFilteredFlow
-            TimePeriod.CUSTOM -> {
-                val customRange = customDateRange.value
-                // Guard against invalid state: CUSTOM period must have a date range
-                // This should never happen due to clearCustomDateRange() logic, but be defensive
-                if (customRange == null) {
-                    android.util.Log.e("TransactionsViewModel",
-                        "CUSTOM period selected but no date range set - falling back to THIS_MONTH")
-                    // Auto-correct the invalid state
-                    _selectedPeriod.value = TimePeriod.THIS_MONTH
-                    val (startDate, endDate) = cycleRange
-                    val startDateTime = startDate.atStartOfDay()
-                    val endDateTime = endDate.atTime(23, 59, 59)
-                    categoriesFilteredFlow.map { transactions ->
-                        transactions.filter { it.dateTime in startDateTime..endDateTime }
-                    }
-                } else {
-                    val (startDate, endDate) = customRange
-                    val startDateTime = startDate.atStartOfDay()
-                    val endDateTime = endDate.atTime(23, 59, 59)
-
-                    categoriesFilteredFlow.map { transactions ->
-                        transactions.filter { it.dateTime in startDateTime..endDateTime }
-                    }
-                }
-            }
-            TimePeriod.THIS_MONTH, TimePeriod.LAST_MONTH -> {
-                val (startDate, endDate) = cycleRange
-                val startDateTime = startDate.atStartOfDay()
-                val endDateTime = endDate.atTime(23, 59, 59)
-                categoriesFilteredFlow.map { transactions ->
-                    transactions.filter { it.dateTime in startDateTime..endDateTime }
-                }
-            }
-            else -> {
-                val dateRange = getDateRangeForPeriod(period)
-                if (dateRange != null) {
-                    val (startDate, endDate) = dateRange
-                    val startDateTime = startDate.atStartOfDay()
-                    val endDateTime = endDate.atTime(23, 59, 59)
-
-                    categoriesFilteredFlow.map { transactions ->
-                        transactions.filter { it.dateTime in startDateTime..endDateTime }
-                    }
-                } else {
-                    categoriesFilteredFlow
-                }
-            }
-        }
-        
         // Apply transaction type filter
-        val typeFilteredFlow = periodFilteredFlow.map { transactions ->
+        val typeFilteredFlow = categoriesFilteredFlow.map { transactions ->
             val types = typeFilter.transactionTypes
             if (types == null) transactions else transactions.filter { it.transactionType in types }
         }
@@ -1505,6 +1497,28 @@ class TransactionsViewModel @Inject constructor(
         }
     }
     
+    /** The inclusive date-time range [period] covers, or null when it covers all history. */
+    private fun periodRange(
+        period: TimePeriod,
+        cycleRange: Pair<LocalDate, LocalDate>
+    ): Pair<LocalDateTime, LocalDateTime>? {
+        val dates = when (period) {
+            TimePeriod.ALL -> null
+            TimePeriod.CUSTOM -> customDateRange.value ?: run {
+                // Guard against invalid state: CUSTOM period must have a date range
+                // This should never happen due to clearCustomDateRange() logic, but be defensive
+                android.util.Log.e("TransactionsViewModel",
+                    "CUSTOM period selected but no date range set - falling back to THIS_MONTH")
+                // Auto-correct the invalid state
+                _selectedPeriod.value = TimePeriod.THIS_MONTH
+                cycleRange
+            }
+            TimePeriod.THIS_MONTH, TimePeriod.LAST_MONTH -> cycleRange
+            else -> getDateRangeForPeriod(period)
+        } ?: return null
+        return dates.first.atStartOfDay() to dates.second.atTime(23, 59, 59)
+    }
+
     private fun sortTransactions(transactions: List<TransactionEntity>, sortOption: SortOption): List<TransactionEntity> {
         return when (sortOption) {
             SortOption.DATE_NEWEST -> transactions.sortedByDescending { it.dateTime }
@@ -1622,6 +1636,13 @@ data class TransactionsUiState(
     val isLoading: Boolean = true
 )
 
+/** One finished computation of the list, published to the UI state in one go. */
+private class ComputedList(
+    val transactions: List<TransactionEntity>,
+    val grouped: Map<DateGroup, List<TransactionEntity>>,
+    val totals: CurrencyGroupedTotals
+)
+
 data class FilterParams(
     val query: String,
     val period: TimePeriod,
@@ -1684,6 +1705,17 @@ private data class BudgetParams(
     val categories: String?,
     val transactionType: String?
 )
+
+/**
+ * The window to ask SQL for so that it returns every row between [start] and [end].
+ * date_time is compared as text, and the converter reads more forms than it writes:
+ * "2026-11-01 08:30:15" and "2026-11-01T00:00" both sort before a "2026-11-01T00:00:00"
+ * bound, though neither is before that moment, and "2026-10-31 24:00:00" reads as
+ * November 1 yet carries the previous date. So the lower bound clears all of the previous
+ * date in every form, and the caller filters the parsed values to the exact boundary.
+ */
+internal fun dateQueryWindow(start: LocalDateTime, end: LocalDateTime): Pair<LocalDateTime, LocalDateTime> =
+    start.minusDays(2) to end.plusDays(1)
 
 /**
  * Self-transfer suggestion heuristic (#385): pair each EXPENSE with an INCOME row

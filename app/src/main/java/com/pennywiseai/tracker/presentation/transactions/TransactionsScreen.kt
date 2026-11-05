@@ -601,7 +601,7 @@ fun TransactionsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
-                    stickyHeader {
+                    stickyHeader(contentType = "totals") {
                         Surface(
                             // Match the Scaffold's `background` so AMOLED-style
                             // themes (true-black bg + tinted surface) don't paint
@@ -635,7 +635,7 @@ fun TransactionsScreen(
 
                     // Show info banner when viewing budget transactions
                     if (categoriesFromBudget) {
-                        item {
+                        item(contentType = "budgetNotice") {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = MaterialTheme.shapes.small,
@@ -676,12 +676,13 @@ fun TransactionsScreen(
                             val headerContent: @Composable LazyItemScope.(Int) -> Unit = { _ ->
                                 TransactionDateHeader(title = stringResource(dateGroup.labelRes))
                             }
-                            stickyHeader(content = headerContent)
+                            stickyHeader(contentType = "dateHeader", content = headerContent)
                             
                             // Transactions in this group
                             itemsIndexed(
                                 items = transactions,
-                                key = { _, transaction -> transaction.id }
+                                key = { _, transaction -> transaction.id },
+                                contentType = { _, _ -> "transaction" }
                             ) { index, transaction ->
                                 val isSelected = transaction.id in selectedIds
                                 // Selected highlight via the Card's container colour — the prior

@@ -248,6 +248,14 @@ class TransactionDraftTest {
         assertEquals(listOf("JPY", "JPY"), turn("train 1200, lunch 800, all in JPY", item(1200, currency = "JPY"), item(800, currency = "JPY")).map { it.currency })
         assertEquals(listOf("JPY", "JPY"), turn("in JPY: train 1200, lunch 800", item(1200, currency = "JPY"), item(800)).map { it.currency })
         assertEquals(listOf("JPY", "USD"), turn("paid 1200 JPY for train and 20 USD for lunch", item(1200, currency = "JPY"), item(20, currency = "USD")).map { it.currency })
+        // With equal amounts, another row's currency never spreads. "both" is about the cash here.
+        assertEquals(listOf("JPY", "USD"), turn("coffee in JPY: 800, train 800 USD", item(800, currency = "JPY"), item(800)).map { it.currency })
+        assertEquals(listOf("JPY", "INR"), turn("train 800 JPY, lunch 800 INR, both paid in cash", item(800, currency = "JPY"), item(800)).map { it.currency })
+        assertEquals(listOf("JPY", "INR"), turn("train 800 JPY, lunch 800, both paid in cash", item(800, currency = "JPY"), item(800)).map { it.currency })
+        assertEquals(listOf("JPY", "INR"), turn("train 800 JPY, lunch 800 INR all paid", item(800, currency = "JPY"), item(800)).map { it.currency })
+        assertEquals(listOf("EUR", "JPY"), turn("coffee in euros: 800, train 800 JPY", item(800, currency = "EUR"), item(800, currency = "JPY")).map { it.currency })
+        assertEquals(listOf("JPY", "EUR"), turn("train 800 JPY, lunch 800; euros: lunch only", item(800, currency = "JPY"), item(800, currency = "EUR")).map { it.currency })
+        assertEquals(listOf("JPY", "INR"), turn("train 800 JPY, lunch 800 INR; both were reimbursed in euros", item(800, currency = "JPY"), item(800, currency = "INR")).map { it.currency })
         assertEquals(listOf("USD", "USD", "USD"), turn("Paid at three places, all in US dollars: tea 4, books 16, taxi 9", item(4), item(16), item(9)).map { it.currency })
     }
 

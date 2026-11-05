@@ -542,6 +542,7 @@ class LlmRepository @Inject constructor(
         private const val MAX_ACCOUNT_CHARS = 500
         // The model replies in the user's language, so a false claim comes in it too.
         private val CLAIMS_A_CHANGE = Regex(
+            // ponytail: "the rate has been changed by the bank" matches too. That adds one harmless line, and a missed claim is worse.
             "\\b(I(?:'ve| have)?|has been|have been|is now) (added|updated|changed|deleted|removed|recorded)\\b" +
                 "|\\b(transaction|expense|income|payment|purchase|amount|it)s? (is|are|was|were) (added|updated|changed|deleted|removed|recorded)\\b" +
                 "|\\b(added|recorded) successfully\\b" +

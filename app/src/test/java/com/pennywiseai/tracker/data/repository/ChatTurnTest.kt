@@ -254,6 +254,13 @@ class ChatTurnTest {
         assertTrue(send("got my salary 52000").contains("NOTHING_CHANGED"))
         events = listOf(LlmEvent.Text("Transaction added successfully!"))
         assertTrue(send("coffee 50").contains("NOTHING_CHANGED"))
+        // The subject can be anything.
+        events = listOf(LlmEvent.Text("Your groceries, milk 62, eggs 90, bread 45 have been recorded."))
+        assertTrue(send("groceries").contains("NOTHING_CHANGED"))
+        events = listOf(LlmEvent.Text("Your coffee at Starbucks has been updated to 60."))
+        assertTrue(send("change my coffee to 60").contains("NOTHING_CHANGED"))
+        events = listOf(LlmEvent.Text("Your rent has been changed by fifty rupees."))
+        assertTrue(send("rent is 50 more").contains("NOTHING_CHANGED"))
         // Ordinary advice isn't a claim.
         events = listOf(LlmEvent.Text("Sugar is added to many packaged foods."))
         assertFalse(send("is soda bad?").contains("NOTHING_CHANGED"))

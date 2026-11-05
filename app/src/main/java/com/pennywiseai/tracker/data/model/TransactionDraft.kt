@@ -178,6 +178,8 @@ data class TransactionDraft(
             val codes = usable.map { it["currency"] as? String }
             val sharedText = clauses?.filter { ChatMessageFacts.sharesCurrency(it, codes) }?.joinToString(" ")
             // "in JPY: train 1200, lunch 800": a row the model left blank takes the code the others read.
+            // ponytail: equal amounts have no clauses, so "in JPY: train 800, lunch 800" leaves that row on the base
+            // currency, on the card for the user to see. Reading it from the whole message gave rows another row's currency.
             val sharedCode = sharedText?.let { text -> codes.firstOrNull { !it.isNullOrBlank() && ChatMessageFacts.namesCurrency(text, it) } }
             return usable.mapIndexedNotNull { index, args ->
                 val rowArgs = if ((args["currency"] as? String).isNullOrBlank() && sharedCode != null) args + ("currency" to sharedCode) else args

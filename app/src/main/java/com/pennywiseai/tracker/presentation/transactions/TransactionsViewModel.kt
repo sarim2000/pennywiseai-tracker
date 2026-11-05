@@ -810,8 +810,10 @@ class TransactionsViewModel @Inject constructor(
                         // category that exists only inside a split is still one the
                         // user can filter on, and the auto-clear below must not
                         // discard it (#749). Observed, so a split edit refreshes the chips.
-                        transactionSplitDao.observeSplitsForTransactions(transactions.map { it.id })
-                            .map { splits ->
+                        transactionSplitDao.observeSplitsForActiveTransactions()
+                            .map { allSplits ->
+                                val ids = transactions.mapTo(HashSet()) { it.id }
+                                val splits = allSplits.filter { it.transactionId in ids }
                                 // Parents of present sub-categories are filterable too (#374),
                                 // and the auto-clear below must not drop them.
                                 val present = (transactions.map { it.category } + splits.map { it.category }).distinct()
@@ -1385,7 +1387,7 @@ class TransactionsViewModel @Inject constructor(
             baseFlow.flatMapLatest { transactions ->
                 // Observe the splits rather than snapshot them, so editing a split while
                 // this list is open re-evaluates the filter instead of leaving it stale.
-                transactionSplitDao.observeSplitsForTransactions(transactions.map { it.id })
+                transactionSplitDao.observeSplitsForActiveTransactions()
                     .map { allSplits ->
                         val splitsByTxId = allSplits.groupBy { it.transactionId }
                         transactions.filter { tx ->

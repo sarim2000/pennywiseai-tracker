@@ -69,15 +69,20 @@ internal object ChatMessageFacts {
 
     // Currencies
 
+    /** Also a name ("JD Sports", "Sr manager"), so it counts only beside a number. */
+    private fun beside(mark: String) = "(?<=\\p{Nd}\\s{0,3})$mark|$mark(?=\\s*\\p{Nd})"
+
     /** A word for money, and the currencies it can mean, most likely first. */
     private val CURRENCY_WORDS = listOf(
         regex("\\$|${word("dollars?|bucks?")}|دولار|डॉलर") to listOf("USD", "CAD", "AUD", "NZD", "SGD", "HKD"),
         regex("${word("euros?")}|يورو|यूरो") to listOf("EUR"),
-        regex("(?<!e)£|${word("pounds?")}") to listOf("GBP", "EGP"),
+        // "2 pounds of apples" and "a 5-pound bag" are weights.
+        // ponytail: "2 pounds apples for 300" still reads as money; the card shows the currency.
+        regex("(?<!e)£|${word("(?<!-)pounds?(?!\\s+of\\b)")}") to listOf("GBP", "EGP"),
         regex("e£|جنيه") to listOf("EGP", "SDG"),
-        regex("${word("sr|riyals?|rials?")}|ريال|रियाल") to listOf("SAR", "QAR", "OMR", "YER"),
+        regex("${word(beside("sr") + "|riyals?|rials?")}|ريال|रियाल") to listOf("SAR", "QAR", "OMR", "YER"),
         regex("${word("dirhams?|dhs?")}|درهم|دراهم|दिरहम") to listOf("AED", "MAD"),
-        regex("${word("jd|dinars?")}|دينار|دنانير") to listOf("JOD", "KWD", "BHD", "IQD", "TND", "LYD", "DZD"),
+        regex("${word(beside("jd") + "|dinars?")}|دينار|دنانير") to listOf("JOD", "KWD", "BHD", "IQD", "TND", "LYD", "DZD"),
         regex("${word("rs\\.?|rupees?|rupaye|rupay|rupaiya|rupiya")}|रुपये|रुपए|रुपया|रूपये|روبية") to listOf("INR", "PKR", "NPR", "LKR")
     )
 
@@ -111,6 +116,32 @@ internal object ChatMessageFacts {
     private fun isCurrencyCode(code: String) =
         code.length == 3 && code.all { it in 'A'..'Z' } && runCatching { java.util.Currency.getInstance(code) }.isSuccess
 
+    // Received money
+
+    private val MONEY_MARK = "(?:[₹$€£]|rs\\.?|sr|jd|dhs?|rupees?|rupaye|रुपये|रुपए|रुपया|dollars?|डॉलर|euros?|pounds?|riyals?|dirhams?|dinars?|" +
+        CURRENCY_WORDS.flatMap { it.second }.distinct().joinToString("|") + ")?"
+    private val COUNT = "\\.?\\d[\\d,.]*(?:\\s*(?:$SCALE_PATTERN)(?![\\p{L}\\p{M}]))?"
+    private val GOT_MONEY = regex(
+        "\\b(?:got|mila|mili)\\s+(?:(?:back|paid|my|some|the)\\s+)*$MONEY_MARK\\s*$COUNT" +
+            "|(?<![\\p{L}\\p{M}])(?:मिला|मिली|मिले)\\s+$MONEY_MARK\\s*$COUNT" +
+            "|$COUNT\\s*$MONEY_MARK\\s*(?:mila|mili|मिला|मिली|मिले)(?![\\p{L}\\p{M}])"
+    )
+
+    private val GOT_CASH = regex("\\bgot\\s+(?:(?:back|my|some|the)\\s+)*(?:money|cash)\\b")
+    private val GOT_WORD = regex("\\b(?:got|mila|mili)\\b|(?<![\\p{L}\\p{M}])(?:मिला|मिली|मिले)(?![\\p{L}\\p{M}])")
+
+    /**
+     * "got" and "mila" also mean buying, so they say income only next to [amount] ("got ₹500",
+     * "500 रुपये मिले", not "got a phone for 500"), with money itself ("got some cash from mom 500"),
+     * or when the message has no digits to place ("got five hundred from mom").
+     */
+    fun gotMoney(message: String, amount: BigDecimal): Boolean {
+        val text = latin(message).lowercase()
+        return GOT_CASH.containsMatchIn(text) ||
+            GOT_MONEY.findAll(text).any { statesAmount(it.value, amount) } ||
+            (text.none { it.isDigit() } && GOT_WORD.containsMatchIn(text))
+    }
+
     // Dates
 
     private const val MAX_DAYS_AGO = 365
@@ -120,7 +151,7 @@ internal object ChatMessageFacts {
         "${word("yesterday|last night|kal")}|(?<![\\p{L}\\p{M}])[وب]?(?:امس|أمس)(?![\\p{L}\\p{M}])|البارح|مبارح|امبارح|${word("कल")}"
     )
     private val TODAY = regex("${word("today|tonight|this morning|aaj")}|اليوم|${word("आज")}")
-    private val TWO_DAYS_AGO = regex("قبل\\s*يومين|${word("do din (?:pehle|pahle)")}|दो दिन पहले")
+    private val TWO_DAYS_AGO = regex("(?:قبل|من)\\s*يومين|${word("two days (?:ago|back)|do din (?:pehle|pahle)")}|दो दिन पहले")
     private val N_DAYS_AGO = regex("(\\d+)\\s*(?:days?\\s*ago|din\\s*(?:pehle|pahle)|दिन\\s*पहले)|قبل\\s*(\\d+)\\s*(?:يوم|ايام|أيام)")
     private val N_WEEKS_AGO = regex("(\\d+)\\s*(?:weeks?\\s*ago|hafte\\s*(?:pehle|pahle)|हफ्ते\\s*पहले)|قبل\\s*(\\d+)\\s*(?:اسبوع|أسبوع|اسابيع|أسابيع)")
     private val WEEK_AGO = regex("${word("a week ago|one week ago|ek hafta pehle|قبل\\s*(?:اسبوع|أسبوع)")}|एक हफ्ते पहले")
@@ -133,8 +164,10 @@ internal object ChatMessageFacts {
     // A day the words name but this code can't turn into a number: the model's reading counts.
     private val OTHER_DAY = regex(
         word(
-            "(?:on|last)\\s+(?:mon|tues|wednes|thurs|fri|satur|sun)day|last week|last month|\\d+\\s*days?\\s*back|(?:a|one|\\d+)\\s*months?\\s*ago" +
-                "|الاسبوع الماضي|الأسبوع الماضي|الشهر الماضي|قبل\\s*شهر|पिछले हफ्ते|पिछले महीने|pichhle (?:hafte|mahine)" +
+            "(?:on|last)\\s+(?:mon|tues|wednes|thurs|fri|satur|sun)day|last week|last month" +
+                // Any other count: "three days ago", "a few weeks back", "3 months ago".
+                "|(?:days?|weeks?|months?)\\s+(?:ago|back)|(?:din|hafte|mahine)\\s*(?:pehle|pahle)|(?:दिन|हफ्ते|महीने)\\s*पहले" +
+                "|الاسبوع الماضي|الأسبوع الماضي|الشهر الماضي|قبل\\s*شهر(?:ين)?|पिछले हफ्ते|पिछले महीने|pichhle (?:hafte|mahine)" +
                 // A bare "24/7" is a shop's hours, not a date.
                 "|(?:on|في|بتاريخ)\\s*\\d{1,2}[/-]\\d{1,2}|\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}" +
                 "|\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:$MONTHS)|(?:$MONTHS)\\s+\\d{1,2}(?:st|nd|rd|th)?"
@@ -168,9 +201,12 @@ internal object ChatMessageFacts {
         return days
     }
 
+    /** A day the code can't count. A number it refused ("60 weeks ago") isn't one. */
+    private fun namesOtherDay(message: String) =
+        OTHER_DAY.containsMatchIn(N_DAYS_AGO.replace(N_WEEKS_AGO.replace(latin(message), " "), " "))
+
     /** Whether the message names a particular day at all. */
-    fun statesADay(message: String): Boolean =
-        statedDays(message).isNotEmpty() || OTHER_DAY.containsMatchIn(latin(message))
+    fun statesADay(message: String): Boolean = statedDays(message).isNotEmpty() || namesOtherDay(message)
 
     /** How many days ago to date the transaction: today unless the message says otherwise. */
     fun daysAgo(message: String, modelDays: Any?): Int {
@@ -183,7 +219,7 @@ internal object ChatMessageFacts {
         return when {
             model != null && model in stated -> model
             stated.size == 1 -> stated.single()
-            stated.isEmpty() && model != null && model in 1..MAX_DAYS_AGO && OTHER_DAY.containsMatchIn(latin(message)) -> model
+            stated.isEmpty() && model != null && model in 1..MAX_DAYS_AGO && namesOtherDay(message) -> model
             else -> 0
         }
     }

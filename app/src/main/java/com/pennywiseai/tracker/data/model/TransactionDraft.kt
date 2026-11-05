@@ -41,13 +41,13 @@ data class TransactionDraft(
         // user's own words decide: a spend verb wins ("spent my salary on rent"),
         // then an income word, then the model's type.
         private val SPEND_WORDS = Regex(
-            "\\b(spent|spend|paid|pay|bought|buy|purchased|gave|sent|ordered|bill|fee|fees|rent|recharge|donated|subscription|diya|diye|kharch|kharida|bhara)\\b" +
+            "\\b(spent|spend|(?<!got )paid|pay|bought|buy|purchased|gave|sent|ordered|bill|fee|fees|rent|recharge|donated|subscription|diya|diye|kharch|kharida|bhara)\\b" +
                 "|${arabicWord("دفعت|اشتريت|شريت|صرفت|سددت")}|${hindiWord("दिया|दिए|खर्च|खरीदा|खरीदी|भरा|चुकाया")}",
             RegexOption.IGNORE_CASE
         )
         private val INCOME_WORDS = Regex(
-            "\\b(received|got|salary|refund|refunded|cashback|credited|sold|bonus|interest|income|won|earned|reimburse\\w*|mila|mili|aayi|tankha)\\b" +
-                "|${arabicWord("راتب|استلمت|$MONEY_CAME_BACK|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("सैलरी|वेतन|रिफंड|कैशबैक|मिला|मिली|मिले")}",
+            "\\b(received|salary|refund|refunded|cashback|credited|sold|bonus|interest|income|won|earned|reimburse\\w*|aayi|tankha)\\b" +
+                "|${arabicWord("راتب|استلمت|$MONEY_CAME_BACK|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("सैलरी|वेतन|रिफंड|कैशबैक")}",
             RegexOption.IGNORE_CASE
         )
 
@@ -75,6 +75,7 @@ data class TransactionDraft(
             val type = when {
                 SPEND_WORDS.containsMatchIn(sourceText) -> TransactionType.EXPENSE
                 INCOME_WORDS.containsMatchIn(sourceText) -> TransactionType.INCOME
+                ChatMessageFacts.gotMoney(sourceText, amount) -> TransactionType.INCOME
                 modelSaysIncome && incomeOnlyCategory -> TransactionType.INCOME
                 else -> TransactionType.EXPENSE
             }

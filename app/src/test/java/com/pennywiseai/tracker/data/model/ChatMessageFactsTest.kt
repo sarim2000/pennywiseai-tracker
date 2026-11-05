@@ -123,6 +123,27 @@ class ChatMessageFactsTest {
     }
 
     @Test
+    fun `a weight in pounds is not a currency`() {
+        assertEquals("INR", currency("bought 2 pounds of apples for 300", "INR"))
+        assertEquals("INR", currency("a pound of coffee 300", "GBP"))
+        assertEquals("GBP", currency("paid 300 pounds", ""))
+        assertEquals("GBP", currency("taxi 20 pounds", ""))
+        assertEquals("INR", currency("bought a 5-pound bag of rice for 300", "INR"))
+    }
+
+    @Test
+    fun `a name is not a currency`() {
+        assertEquals("INR", currency("shoes at JD Sports 500", "JOD"))
+        assertEquals("INR", currency("gift for Sr manager 500", ""))
+        assertEquals("JOD", currency("shoes at JD Sports for 50 JD", ""))
+        assertEquals("JOD", currency("taxi JD 5", ""))
+        assertEquals("SAR", currency("lunch 50 SR", ""))
+        assertEquals("SAR", currency("lunch 50SR", ""))
+        assertEquals("SAR", currency("lunch 50  SR", ""))
+        assertEquals("SAR", currency("lunch ٥٠ SR", ""))
+    }
+
+    @Test
     fun `a code counts only as an upper-case real currency`() {
         assertEquals("CHF", currency("hotel 50 CHF", "CHF"))
         assertEquals("INR", currency("coffee cup 50", "cup"))
@@ -184,10 +205,27 @@ class ChatMessageFactsTest {
         assertEquals(4, days("coffee 50 on 1/11", 4))
         assertEquals(4, days("coffee 50 1/11/2026", 4))
         assertEquals(90, days("3 months ago lunch 50", 90))
+        assertEquals(3, days("coffee 50 three days ago", 3))
+        assertEquals(4, days("coffee 50 a few days back", 4))
+        assertEquals(21, days("three weeks ago lunch 50", 21))
+        assertEquals(3, days("तीन दिन पहले चाय 50", 3))
+        assertEquals(3, days("teen din pehle chai 50", 3))
+        assertEquals(60, days("قبل شهرين قهوة 50", 60))
         assertEquals(30, days("دفعت 50 الشهر الماضي", 30))
         assertEquals(0, days("99999999999 weeks ago lunch 50", 3)) // Absurd, and it must not overflow.
+        assertEquals(0, days("coffee 50 60 weeks ago", 3))
         assertEquals(0, days("paid rent on monday 500", -1))
         assertEquals(0, days("paid rent on monday 500", 9999))
+    }
+
+    @Test
+    fun `two days ago is counted in every language`() {
+        assertEquals(2, days("coffee 50 two days ago", 0))
+        assertEquals(2, days("coffee 50 two days back", null))
+        assertEquals(2, days("من يومين قهوة 50", 0))
+        assertEquals(2, days("قبل يومين قهوة 50", 0))
+        assertEquals(2, days("do din pehle chai 50", 0))
+        assertEquals(2, days("दो दिन पहले चाय 50", 0))
     }
 
     @Test

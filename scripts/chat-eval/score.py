@@ -12,7 +12,9 @@ Every metric below requires the run to have finished without an engine error.
   badAmt   runs with a recorded amount the user never said, or a transaction on a no-call case
   merged   runs where a recorded amount is the sum of two or more expected amounts
   fakeAcc  recorded items carrying an account the message doesn't mention
-Effective type applies TransactionDraft.fromToolArgs; rawType is the model's own type.
+Effective type: a replayed run keeps what the app's TransactionDraft decided (ChatReplayTest.kt). A raw run
+gets the English-only rule from before the PR, which is the "before" number, not what the app does today.
+rawType is the model's own type on a raw run; replay overwrites it, so there it repeats the app's.
 ADD row: only the add cases, the common ground for comparing extraction shapes.
 """
 import collections
@@ -40,7 +42,7 @@ def amount(v):
 
 
 def effective_type(text, item):
-    """Mirrors TransactionDraft.fromToolArgs: the whole message's words beat the model."""
+    """The rule before the PR, for raw runs. Replay a run to score the app's current rule."""
     if SPEND.search(text):
         return "EXPENSE"
     if INCOME.search(text):
@@ -200,7 +202,7 @@ def report(cases, path, show_fails):
     eligible = [c for c in cases.values() if r0["shape"] != "json" or c["expect"] in ("add", "none")]
     missing = [c["id"] for c in eligible if c["id"] not in per_case]
     uneven = len(set(per_case.values())) > 1
-    print(f"\n== {path.split('/')[-1]}  {r0['model'][:24]} {r0['shape']} {r0['backend']} T={r0['temp']} k={r0['topk']} runs={len(rows)} load={r0['load_ms']}ms rss={max(r.get('rss_peak_mb', 0) for r in rows)}MB"
+    print(f"\n== {path.split('/')[-1]}  {'replayed' if r0.get('replayed') else 'raw (old type rule)'} {r0['model'][:24]} {r0['shape']} {r0['backend']} T={r0['temp']} k={r0['topk']} runs={len(rows)} load={r0['load_ms']}ms rss={max(r.get('rss_peak_mb', 0) for r in rows)}MB"
           + (f"  !! INCOMPLETE missing={len(missing)} uneven={uneven}" if missing or uneven else ""))
     by = collections.defaultdict(list)
     fails = []

@@ -20,6 +20,6 @@ def mcnemar(a,b,key):
 base=sys.argv[2]; a=load(base)
 for other in sys.argv[3:]:
     b=load(other)
-    for key in ("amounts","exact","strict","rawtype","post"):
+    for key in ("amounts","exact","strict","rawtype"):
         n,pa,pb,x,y,p=mcnemar(a,b,key)
         print(f"{base} vs {other:18} {key:8} n={n} {pa}/{n} vs {pb}/{n}  only-first={x} only-second={y} p={p:.3f}")

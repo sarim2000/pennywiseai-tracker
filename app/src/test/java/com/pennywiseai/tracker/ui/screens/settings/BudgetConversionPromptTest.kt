@@ -120,4 +120,37 @@ class BudgetConversionPromptTest {
         assertNull(viewModel.budgetConversionPrompt.value)
         coVerify(exactly = 0) { budgets.moveBudgetsToCurrency(any(), BigDecimal("133.9")) }
     }
+
+    @Test
+    fun `a newer pick takes the old question off screen`() {
+        viewModel.updateBaseCurrency("INR")
+        saved.complete(Unit)
+        rate.complete(BigDecimal("133.9"))
+        coEvery { conversion.getExchangeRate("INR", "USD", any()) } coAnswers { CompletableDeferred<BigDecimal?>().await() }
+
+        viewModel.updateBaseCurrency("USD")
+
+        assertNull(viewModel.budgetConversionPrompt.value)
+    }
+
+    @Test
+    fun `converting while a newer pick is saving doesn't apply the old rate`() {
+        viewModel.updateBaseCurrency("INR")
+        saved.complete(Unit)
+        rate.complete(BigDecimal("133.9"))
+        val usdSaved = CompletableDeferred<Unit>()
+        coEvery { preferences.updateBaseCurrency("USD") } coAnswers {
+            usdSaved.await()
+            baseCurrency.value = "USD"
+        }
+        coEvery { conversion.getExchangeRate("INR", "USD", any()) } returns null
+
+        viewModel.updateBaseCurrency("USD")
+        viewModel.resolveBudgetConversion(convert = true)
+        usdSaved.complete(Unit)
+
+        assertEquals("USD", baseCurrency.value)
+        coVerify(exactly = 0) { budgets.moveBudgetsToCurrency(any(), BigDecimal("133.9")) }
+        coVerify(exactly = 1) { budgets.moveBudgetsToCurrency("USD", null) }
+    }
 }

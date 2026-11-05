@@ -809,6 +809,7 @@ class SettingsViewModel @Inject constructor(
             if (to == from || drops != budgetConversionDrops) return@launch
             // A newer change replaces the question; a no-op must not lose it, so only here.
             budgetConversionJob?.cancel()
+            _budgetConversionPrompt.value = null
             budgetConversionJob = launch {
                 if (!budgetGroupRepository.hasActiveBudgets()) return@launch
                 val rate = currencyConversionService.getExchangeRate(from, to) ?: return@launch
@@ -831,7 +832,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
                 baseCurrencyChange.withLock {
-                    budgetGroupRepository.moveBudgetsToCurrency(prompt.to, prompt.rate)
+                    // A newer pick may have saved while this question was still on screen.
+                    if (userPreferencesRepository.baseCurrency.first() == prompt.to) {
+                        budgetGroupRepository.moveBudgetsToCurrency(prompt.to, prompt.rate)
+                    }
                 }
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             }

@@ -193,6 +193,7 @@ object ProViews {
           var button = panel.querySelector('.offer-code');
           var action = panel.querySelector('.offer-code-action');
           button.addEventListener('click', function () {
+            if (!navigator.clipboard) { action.textContent = 'Copy it from here'; return; }
             navigator.clipboard.writeText(button.dataset.code).then(function () {
               action.textContent = 'Copied';
               panel.classList.remove('flare');

@@ -474,7 +474,7 @@ class AnalyticsViewModel @Inject constructor(
                         unifiedConvertedCount++
                     }
                 } else {
-                    totalSpending = filteredTransactions.map { it.amount.toDouble() }.sum().toBigDecimal()
+                    totalSpending = filteredTransactions.sumOf { it.amount }
                 }
                 val effectiveCount = if (isUnified) unifiedConvertedCount else filteredTransactions.size
 
@@ -585,7 +585,7 @@ class AnalyticsViewModel @Inject constructor(
                             sum
                         } else {
                             convertedCount = txns.size
-                            txns.map { it.amount.toDouble() }.sum().toBigDecimal()
+                            txns.sumOf { it.amount }
                         }
                         // Net any refund that carries this merchant's name (floored at zero).
                         val merchantAmount = netOf(gross, refunds.byMerchant[merchant])

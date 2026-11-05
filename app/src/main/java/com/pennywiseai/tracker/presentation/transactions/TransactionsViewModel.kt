@@ -1534,86 +1534,80 @@ class TransactionsViewModel @Inject constructor(
         }
     }
     
-    private fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {
-        // Loan disbursements/repayments and analytics-excluded transactions still
-        // appear in the list (it's the full ledger) but must not count toward the
-        // period's Income/Expense/etc. totals — loans are tracked in the Loans
-        // feature, and excluded txns are opted out of every spend figure by the
-        // user. Matches the Home/Analytics convention (HomeViewModel#1142).
-        val nonLoanTransactions = transactions.forTotals()
-        val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
-
-        val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
-            // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
-            // expense, so it shrinks "Expenses" (floored at zero) and does not
-            // appear in "Income". "Extra budget" (ADD_TO_LIMIT) is real money in
-            // and stays in income — same treatment as HomeViewModel.
-            val refundTotal = currencyTransactions
-                .filter {
-                    it.transactionType == TransactionType.INCOME &&
-                        it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
-                }
-                .map { it.amount.toDouble() }.sum()
-                .toBigDecimal()
-
-            val income = currencyTransactions
-                .filter {
-                    it.transactionType == TransactionType.INCOME &&
-                        it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
-                }
-                .map { it.amount.toDouble() }.sum()
-                .toBigDecimal()
-
-            val rawExpenses = currencyTransactions
-                .filter { it.transactionType == TransactionType.EXPENSE }
-                .map { it.amount.toDouble() }.sum()
-                .toBigDecimal()
-            val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
-
-            val credit = currencyTransactions
-                .filter { it.transactionType == TransactionType.CREDIT }
-                .map { it.amount.toDouble() }.sum()
-                .toBigDecimal()
-
-            val transfer = currencyTransactions
-                .filter { it.transactionType == TransactionType.TRANSFER }
-                .map { it.amount.toDouble() }.sum()
-                .toBigDecimal()
-
-            val investment = currencyTransactions
-                .filter { it.transactionType == TransactionType.INVESTMENT }
-                .map { it.amount.toDouble() }.sum()
-                .toBigDecimal()
-
-            CurrencyTotals(
-                currency = currency,
-                income = income,
-                expenses = expenses,
-                credit = credit,
-                transfer = transfer,
-                investment = investment,
-                transactionCount = currencyTransactions.size
-            )
-        }
-
-        // Note: availableCurrencies are now provided by the separate availableCurrencies StateFlow
-        // We'll keep the old behavior for compatibility but the UI should use availableCurrencies property
-        // Use standard currency sorting (INR first, then alphabetical)
-        val filteredAvailableCurrencies = CurrencyUtils.sortCurrencies(
-            totalsByCurrency.keys.toList()
-        )
-
-        return CurrencyGroupedTotals(
-            totalsByCurrency = totalsByCurrency,
-            availableCurrencies = filteredAvailableCurrencies,
-            transactionCount = nonLoanTransactions.size
-        )
-    }
-    
     fun getReportUrl(transaction: TransactionEntity): String {
         return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
     }
     
+}
+
+internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {
+    // Loan disbursements/repayments and analytics-excluded transactions still
+    // appear in the list (it's the full ledger) but must not count toward the
+    // period's Income/Expense/etc. totals — loans are tracked in the Loans
+    // feature, and excluded txns are opted out of every spend figure by the
+    // user. Matches the Home/Analytics convention (HomeViewModel#1142).
+    val nonLoanTransactions = transactions.forTotals()
+    val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
+
+    val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
+        // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
+        // expense, so it shrinks "Expenses" (floored at zero) and does not
+        // appear in "Income". "Extra budget" (ADD_TO_LIMIT) is real money in
+        // and stays in income — same treatment as HomeViewModel.
+        val refundTotal = currencyTransactions
+            .filter {
+                it.transactionType == TransactionType.INCOME &&
+                    it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+            }
+            .sumOf { it.amount }
+
+        val income = currencyTransactions
+            .filter {
+                it.transactionType == TransactionType.INCOME &&
+                    it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
+            }
+            .sumOf { it.amount }
+
+        val rawExpenses = currencyTransactions
+            .filter { it.transactionType == TransactionType.EXPENSE }
+            .sumOf { it.amount }
+        val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
+
+        val credit = currencyTransactions
+            .filter { it.transactionType == TransactionType.CREDIT }
+            .sumOf { it.amount }
+
+        val transfer = currencyTransactions
+            .filter { it.transactionType == TransactionType.TRANSFER }
+            .sumOf { it.amount }
+
+        val investment = currencyTransactions
+            .filter { it.transactionType == TransactionType.INVESTMENT }
+            .sumOf { it.amount }
+
+        CurrencyTotals(
+            currency = currency,
+            income = income,
+            expenses = expenses,
+            credit = credit,
+            transfer = transfer,
+            investment = investment,
+            transactionCount = currencyTransactions.size
+        )
+    }
+
+    // Note: availableCurrencies are now provided by the separate availableCurrencies StateFlow
+    // We'll keep the old behavior for compatibility but the UI should use availableCurrencies property
+    // Use standard currency sorting (INR first, then alphabetical)
+    val filteredAvailableCurrencies = CurrencyUtils.sortCurrencies(
+        totalsByCurrency.keys.toList()
+    )
+
+    return CurrencyGroupedTotals(
+        totalsByCurrency = totalsByCurrency,
+        availableCurrencies = filteredAvailableCurrencies,
+        transactionCount = nonLoanTransactions.size
+    )
 }
 
 data class TransactionsUiState(

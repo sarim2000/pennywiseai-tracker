@@ -39,7 +39,8 @@ class ChatReplayTest {
                     }
                 }
                 val rescued = if (adds.isEmpty()) {
-                    TransactionDraft.itemsInBrokenCall((row["error"] as? String).orEmpty()) ?: TransactionDraft.itemsInBrokenCall((row["text"] as? String).orEmpty())
+                    TransactionDraft.itemsInBrokenCall((row["error"] as? String).orEmpty())
+                        ?: (row["text"] as? String).orEmpty().trimStart().takeIf { it.startsWith("<tool_call>") }?.let(TransactionDraft::itemsInBrokenCall)
                 } else null
                 if (rescued != null) row.remove("error")
                 val drafts = TransactionDraft.fromToolCalls(rescued ?: adds, case["text"] as String, categories, emptyList(), base, today) { null }

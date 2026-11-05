@@ -92,17 +92,28 @@ class ChatTurnTest {
         ignoredAccountsStore = mockk(relaxed = true)
     )
 
-    private fun add(amount: Double) =
-        LlmEvent.ToolCall(PennyWiseTools.ADD_TRANSACTION, mapOf("amount" to amount, "merchant" to "shop"))
+    private fun add(vararg amounts: Double) = LlmEvent.ToolCall(
+        PennyWiseTools.ADD_TRANSACTIONS,
+        mapOf("items" to amounts.map { mapOf("amount" to it, "merchant" to "shop") })
+    )
 
     private suspend fun send(message: String) = repository.sendMessageStream(message).toList().joinToString("")
 
     @Test
-    fun `the first card stays and the user hears the rest were not proposed`() = runTest {
-        events = listOf(add(120.0), add(300.0))
+    fun `every add of a turn lands on one review card`() = runTest {
+        events = listOf(add(120.0, 300.0))
         val reply = send("coffee 120 and lunch 300")
         val card = repository.pendingAction.value as PendingChatAction.Add
-        assertEquals(0, BigDecimal("120").compareTo(card.draft.amount))
+        assertEquals(listOf(0, 0), card.rows.zip(listOf("120", "300")).map { (row, want) -> BigDecimal(want).compareTo(row.draft.amount) })
+        assertTrue(card.rows.all { it.selected })
+        assertFalse(reply, reply.contains("ONE_CARD"))
+    }
+
+    @Test
+    fun `a delete after an add waits, and the user hears it`() = runTest {
+        events = listOf(add(120.0), LlmEvent.ToolCall(PennyWiseTools.DELETE_TRANSACTION, mapOf("merchant" to "shop")))
+        val reply = send("coffee 120 and delete the shop")
+        assertTrue(repository.pendingAction.value is PendingChatAction.Add)
         assertTrue(reply, reply.contains("ONE_CARD"))
     }
 
@@ -225,5 +236,90 @@ class ChatTurnTest {
         send("hello")
         assertTrue(prompt.captured, prompt.captured.contains("Today is 2026-11-04."))
         verify { llmService.sendMessageEvents("hello") }
+    }
+
+    @Test
+    fun `an add call the runtime let through as text becomes a card, not a reply`() = runTest {
+        every { context.getString(R.string.chat_reply_add_many) } returns "CARD"
+        val call = "<tool_call>\n{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 300, \"merchant\": \"shoes\"}, {\"amount\": 150, \"merchant\": \"socks\"}]}}\n\nI have recorded your expenses."
+        events = listOf(LlmEvent.Text(call))
+        assertEquals("CARD", send("shoes 300 and socks 150"))
+        assertEquals(2, (repository.pendingAction.value as PendingChatAction.Add).rows.size)
+        assertFalse(saved.any { it.message.contains("tool_call") })
+    }
+
+    @Test
+    fun `a reply that claims a save without a tool call is corrected`() = runTest {
+        events = listOf(LlmEvent.Text("₹52,000 income is added successfully."))
+        assertTrue(send("got my salary 52000").contains("NOTHING_CHANGED"))
+        events = listOf(LlmEvent.Text("Transaction added successfully!"))
+        assertTrue(send("coffee 50").contains("NOTHING_CHANGED"))
+        // Ordinary advice isn't a claim.
+        events = listOf(LlmEvent.Text("Sugar is added to many packaged foods."))
+        assertFalse(send("is soda bad?").contains("NOTHING_CHANGED"))
+        events = listOf(LlmEvent.Text("The interest was changed by the bank."))
+        assertFalse(send("why is my bill higher?").contains("NOTHING_CHANGED"))
+    }
+
+    @Test
+    fun `prose that mentions the tool stays a reply`() = runTest {
+        val prose = "Use add_transactions with {\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 50}]}}."
+        events = listOf(LlmEvent.Text(prose))
+        assertEquals(prose, send("show me the json for coffee 50"))
+        assertEquals(null, repository.pendingAction.value)
+    }
+
+    @Test
+    fun `the start of a tag isn't shown, and ordinary text after a false start is`() = runTest {
+        events = listOf(LlmEvent.Text("<tool"), LlmEvent.Text("_call>\n{\"na"))
+        assertFalse(send("x").contains("<tool"))
+        events = listOf(LlmEvent.Text("<"), LlmEvent.Text("5 is small"))
+        assertEquals("<5 is small", send("y"))
+    }
+
+    @Test
+    fun `a rescued add waits behind a card already proposed`() = runTest {
+        val transaction = mockk<TransactionEntity>(relaxed = true)
+        every { transaction.merchantName } returns "shop"
+        every { transaction.isDeleted } returns false
+        every { transaction.amount } returns BigDecimal.TEN
+        every { transaction.currency } returns "INR"
+        every { transaction.dateTime } returns LocalDateTime.now()
+        every { transactions.getTransactionsBetweenDates(any<LocalDateTime>(), any<LocalDateTime>()) } returns flowOf(listOf(transaction))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.DELETE_TRANSACTION, mapOf("merchant" to "shop")))
+        failure = RuntimeException("Failed to parse tool calls from code block: {\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 30, \"merchant\": \"lunch\"}]}};")
+        val reply = send("delete the shop and add lunch 30")
+        assertTrue(repository.pendingAction.value is PendingChatAction.Delete)
+        assertTrue(reply, reply.contains("ONE_CARD"))
+    }
+
+    @Test
+    fun `a call lost after a readable one is still reported`() = runTest {
+        events = listOf(add(50.0))
+        failure = RuntimeException("Failed to parse tool calls from code block: {\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amou")
+        val reply = send("coffee 50 and lunch 100")
+        assertTrue(repository.pendingAction.value is PendingChatAction.Add)
+        assertTrue(reply, reply.contains("UNREADABLE"))
+    }
+
+    @Test
+    fun `text held back in case of a tag isn't lost, or left in front of a card`() = runTest {
+        events = listOf(LlmEvent.Text("<"))
+        assertEquals("<", send("x"))
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = listOf(LlmEvent.Text("<"), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        assertEquals("CARD", saved.last().message)
+    }
+
+    @Test
+    fun `a half-written call shows no JSON and says it wasn't read`() = runTest {
+        events = listOf(LlmEvent.Text("<tool_call>\n{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amou"))
+        every { context.getString(R.string.chat_reply_unreadable) } returns "Nothing was changed."
+        val reply = send("shoes 300")
+        assertFalse(reply, reply.contains("tool_call"))
+        assertFalse(reply, reply.contains("NOTHING_CHANGED"))
+        assertEquals(null, repository.pendingAction.value)
+        coVerify { llmService.closeConversation() }
     }
 }

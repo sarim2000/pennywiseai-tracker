@@ -54,17 +54,60 @@ internal object ChatMessageFacts {
      * not 15. A guard, not a guarantee: a right number on the wrong item, a stated total or
      * a digit from a name all pass. An ambiguous "12,50" states nothing, so it gets checked.
      */
-    fun statesAmount(message: String, amount: BigDecimal): Boolean {
-        val wanted = amount.abs().stripTrailingZeros()
-        val text = latin(message).lowercase()
-        return NUMBER.findAll(text).any { m ->
-            val number = m.groupValues[1].trimEnd(',').takeIf { PLAIN_NUMBER.matches(it) } ?: return@any false
-            // ".50" is half a unit, but the dot in "rs.500" only ends an abbreviation.
-            val start = m.range.first
-            val fraction = text.getOrNull(start - 1) == '.' && text.getOrNull(start - 2)?.isLetter() != true
-            val value = (if (fraction) "0.$number" else number).replace(",", "").toBigDecimalOrNull() ?: return@any false
-            value.multiply(BigDecimal(SCALES[m.groupValues[2]] ?: 1L)).compareTo(wanted) == 0
+    fun statesAmount(message: String, amount: BigDecimal): Boolean = timesStated(message, amount) > 0
+
+    fun timesStated(message: String, amount: BigDecimal): Int =
+        statedNumbers(latin(message)).count { it.second.compareTo(amount.abs()) == 0 }
+
+    /** Every usable number in [text], scale included, with where it stands. */
+    private fun statedNumbers(text: String): List<Pair<IntRange, BigDecimal>> = NUMBER.findAll(text).mapNotNull { m ->
+        val number = m.groupValues[1].trimEnd(',').takeIf { PLAIN_NUMBER.matches(it) } ?: return@mapNotNull null
+        // ".50" is half a unit, but the dot in "rs.500" only ends an abbreviation.
+        val start = m.range.first
+        val fraction = text.getOrNull(start - 1) == '.' && text.getOrNull(start - 2)?.isLetter() != true
+        val value = (if (fraction) "0.$number" else number).replace(",", "").toBigDecimalOrNull() ?: return@mapNotNull null
+        // A comma right after the number ends a clause, not the number.
+        val end = if (m.groupValues[2].isEmpty()) start + number.length - 1 else m.range.last
+        start..end to value.multiply(BigDecimal(SCALES[m.groupValues[2].lowercase()] ?: 1L))
+    }.toList()
+
+    // Clauses
+
+    // A dot only ends a sentence before a space: "12.50" and "rs.500" go on.
+    private val CLAUSE_MARK = Regex("[,;\\n]|\\.\\s")
+    private val CLAUSE_WORD = regex("\\s(?:and|then|also|but|plus)\\s")
+
+    /**
+     * The part of [message] that belongs to each of [amounts], in order, or null when they
+     * can't be placed one to one with a clear break between them. Evidence for reading a row,
+     * not proof: a merchant named "Bun and Bean" can move a break, and the card shows the result.
+     * Punctuation beats "and", which is more often inside a name. Equal amounts or an amount stated
+     * twice say nothing: which "450" is the refund and which the haircut depends on the model's order.
+     */
+    fun clauses(message: String, amounts: List<BigDecimal>): List<String>? {
+        val text = latin(message)
+        val numbers = statedNumbers(text)
+        val anchors = amounts.map { amount ->
+            numbers.indices.singleOrNull { numbers[it].second.compareTo(amount.abs()) == 0 } ?: return null
         }
+        if (anchors.distinct().size != anchors.size) return null
+        val order = anchors.sortedBy { numbers[it].first.first }
+        val cuts = order.zipWithNext { left, right ->
+            val from = numbers[left].first.last + 1
+            val gap = text.substring(from, numbers[right].first.first)
+            val mark = CLAUSE_MARK.findAll(gap).lastOrNull() ?: CLAUSE_WORD.findAll(gap).lastOrNull() ?: return null
+            from + mark.range.first to from + mark.range.last + 1
+        }
+        val parts = order.indices.map { i ->
+            text.substring(if (i == 0) 0 else cuts[i - 1].second, if (i == cuts.size) text.length else cuts[i].first)
+        }
+        return anchors.map { parts[order.indexOf(it)] }
+    }
+
+    /** The indices of [clauses] in the order the message says them. */
+    fun inMessageOrder(message: String, clauses: List<String>): List<Int> {
+        val text = latin(message)
+        return clauses.indices.sortedBy { text.indexOf(clauses[it]) }
     }
 
     // Currencies
@@ -97,20 +140,39 @@ internal object ChatMessageFacts {
      */
     fun currency(message: String, modelCode: String?, base: String): String {
         val model = modelCode?.trim()?.uppercase().orEmpty()
-        // Upper case only: "cup" or "try" in a message is a word, not a currency.
-        if (isCurrencyCode(model) && Regex("(?<![A-Z])$model(?![A-Z])").containsMatchIn(message)) return model
-        val marked = CURRENCY_MARKS.filter { (mark, _) -> mark.containsMatchIn(message) }.map { it.second }
-        val named = (
-            marked + CURRENCY_WORDS
-                // "USD $5": the mark already says which dollar.
-                .filter { (words, codes) -> words.containsMatchIn(message) && codes.none { it in marked } }
-                .map { (_, codes) -> codes.firstOrNull { it == base } ?: codes.firstOrNull { it == model } ?: codes.first() }
-            ).distinct()
+        if (statesCode(message, model)) return model
+        val named = namedCurrencies(message, model, base)
         return when {
             model in named -> model
             named.size == 1 -> named.single()
             else -> base
         }
+    }
+
+    // Upper case only: "cup" or "try" in a message is a word, not a currency.
+    private fun statesCode(message: String, code: String) =
+        isCurrencyCode(code) && Regex("(?<![A-Z])$code(?![A-Z])").containsMatchIn(message)
+
+    /** Whether [message] names any currency, as a word, a mark, or the code the model read from it. */
+    fun namesCurrency(message: String, modelCode: String? = null): Boolean =
+        namedCurrencies(message, "", "").isNotEmpty() || statesCode(message, modelCode?.trim()?.uppercase().orEmpty())
+
+    /** "lunch 12, taxi 30, all in USD", "in dollars: lunch 12": this clause's currency is every row's. "coffee: 5 euros" is one row's. */
+    fun sharesCurrency(clause: String, modelCodes: List<String?>): Boolean {
+        fun names(text: String) = namesCurrency(text) || modelCodes.any { namesCurrency(text, it) }
+        return (SHARED_SCOPE.containsMatchIn(clause) && names(clause)) || (':' in clause && names(clause.substringBefore(':')))
+    }
+
+    private val SHARED_SCOPE = regex("\\b(?:all|both|each|every\\w*|these)\\b")
+
+    private fun namedCurrencies(message: String, model: String, base: String): List<String> {
+        val marked = CURRENCY_MARKS.filter { (mark, _) -> mark.containsMatchIn(message) }.map { it.second }
+        return (
+            marked + CURRENCY_WORDS
+                // "USD $5": the mark already says which dollar.
+                .filter { (words, codes) -> words.containsMatchIn(message) && codes.none { it in marked } }
+                .map { (_, codes) -> codes.firstOrNull { it == base } ?: codes.firstOrNull { it == model } ?: codes.first() }
+            ).distinct()
     }
 
     private fun isCurrencyCode(code: String) =
@@ -133,12 +195,13 @@ internal object ChatMessageFacts {
     /**
      * "got" and "mila" also mean buying, so they say income only next to [amount] ("got ₹500",
      * "500 रुपये मिले", not "got a phone for 500"), with money itself ("got some cash from mom 500"),
-     * or when the message has no digits to place ("got five hundred from mom").
+     * or when the message has no digits to place ("got five hundred from mom"). With no [amount],
+     * next to any number.
      */
-    fun gotMoney(message: String, amount: BigDecimal): Boolean {
+    fun gotMoney(message: String, amount: BigDecimal? = null): Boolean {
         val text = latin(message).lowercase()
         return GOT_CASH.containsMatchIn(text) ||
-            GOT_MONEY.findAll(text).any { statesAmount(it.value, amount) } ||
+            GOT_MONEY.findAll(text).any { amount == null || statesAmount(it.value, amount) } ||
             (text.none { it.isDigit() } && GOT_WORD.containsMatchIn(text))
     }
 
@@ -150,7 +213,7 @@ internal object ChatMessageFacts {
     private val YESTERDAY = regex(
         "${word("yesterday|last night|kal")}|(?<![\\p{L}\\p{M}])[وب]?(?:امس|أمس)(?![\\p{L}\\p{M}])|البارح|مبارح|امبارح|${word("कल")}"
     )
-    private val TODAY = regex("${word("today|tonight|this morning|aaj")}|اليوم|${word("आज")}")
+    private val TODAY = regex("${word("today|tonight|this morning|just now|right now|aaj")}|اليوم|${word("आज")}")
     private val TWO_DAYS_AGO = regex("(?:قبل|من)\\s*يومين|${word("two days (?:ago|back)|do din (?:pehle|pahle)")}|दो दिन पहले")
     private val N_DAYS_AGO = regex("(\\d+)\\s*(?:days?\\s*ago|din\\s*(?:pehle|pahle)|दिन\\s*पहले)|قبل\\s*(\\d+)\\s*(?:يوم|ايام|أيام)")
     private val N_WEEKS_AGO = regex("(\\d+)\\s*(?:weeks?\\s*ago|hafte\\s*(?:pehle|pahle)|हफ्ते\\s*पहले)|قبل\\s*(\\d+)\\s*(?:اسبوع|أسبوع|اسابيع|أسابيع)")

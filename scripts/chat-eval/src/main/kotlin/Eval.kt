@@ -67,6 +67,7 @@ internal fun systemPrompt(base: String, hint: String): String {
 private const val ONE_CALL_EACH = "\nIf a message mentions several transactions, call addTransaction once for each of them."
 private const val RULES = """
 Every amount the user states is its own transaction: never add amounts together and never merge items.
+Money received, such as salary, is a transaction too: call addTransactions, don't just acknowledge it.
 Leave account empty unless the user names a bank, card or cash in this message."""
 
 private const val EXAMPLES = RULES + """

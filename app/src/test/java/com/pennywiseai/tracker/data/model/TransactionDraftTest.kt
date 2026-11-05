@@ -181,4 +181,148 @@ class TransactionDraftTest {
         assertNull(foreign.accountLast4) // Its INR balance would drop by a raw 20.
         assertEquals("Cash / manual", foreign.accountLabel)
     }
+
+    private fun turn(text: String, vararg items: Map<String, Any?>, base: String = "INR") =
+        TransactionDraft.fromToolCalls(items.toList(), text, cats, emptyList(), base, today = TODAY) { null }
+
+    private fun item(amount: Any, type: String = "EXPENSE", currency: String = "", daysAgo: Int = 0) =
+        mapOf("amount" to amount, "merchant" to "x", "category" to "Others", "type" to type, "currency" to currency, "days_ago" to daysAgo)
+
+    @Test
+    fun `each row of a message takes its own direction`() {
+        fun types(text: String, vararg items: Map<String, Any?>) = turn(text, *items).map { it.type }
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.EXPENSE),
+            types("got 45000 salary and paid 12000 rent", item(45000), item(12000))
+        )
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.EXPENSE),
+            types("sold my bike for 30000, paid 500 for the ad", item(30000), item(500))
+        )
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.EXPENSE, TransactionType.EXPENSE),
+            types("salary 60000, rent 15000, groceries 3000", item(60000), item(15000, "INCOME"), item(3000))
+        )
+        // A row with no word of its own: the model decides, but only if money came in at all.
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.INCOME),
+            types("received 500 from mom and 300 from dad", item(500, "INCOME"), item(300, "INCOME"))
+        )
+        assertEquals(
+            listOf(TransactionType.EXPENSE, TransactionType.EXPENSE),
+            types("bought shoes for 300 and socks for 100", item(300), item(100, "INCOME"))
+        )
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.EXPENSE),
+            types("received 500 for rent and 300 was lunch", item(500), item(300))
+        )
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.INCOME),
+            types("got 500 from mom and 300 from dad", item(500, "INCOME"), item(300, "INCOME"))
+        )
+        assertEquals(
+            listOf(TransactionType.INCOME, TransactionType.INCOME),
+            types("500 रुपये मिले और 300 रुपये मिले", item(500, "INCOME"), item(300, "INCOME"))
+        )
+    }
+
+    @Test
+    fun `each row takes its own day and currency, or the one the message shares`() {
+        val mixedDays = turn("movie 600 yesterday and popcorn 250 today", item(600), item(250))
+        assertEquals(listOf(TODAY.minusDays(1), TODAY), mixedDays.map { it.date })
+        val shared = turn("lunch 200, dinner 400, all of it yesterday", item(200), item(400))
+        assertEquals(listOf(TODAY.minusDays(1), TODAY.minusDays(1)), shared.map { it.date })
+        assertEquals(listOf(TODAY.minusDays(1), TODAY), turn("lunch 300 yesterday and tea 70 just now", item(300), item(70)).map { it.date })
+
+        assertEquals(listOf("USD", "EUR"), turn("$12 for lunch and €8 for coffee", item(12), item(8)).map { it.currency })
+        assertEquals(listOf("USD", "USD"), turn("in dollars: lunch 12, taxi 30", item(12), item(30)).map { it.currency })
+        assertEquals(listOf("USD", "USD"), turn("coffee 12 and lunch 16, both in USD", item(12), item(16)).map { it.currency })
+        // A currency right by one number stays with that number.
+        // Even when the model spreads it, as Qwen2.5 does here.
+        assertEquals(listOf("USD", "EUR"), turn("train 45 and hotel 200 euros", item(45, currency = "EUR"), item(200, currency = "EUR"), base = "USD").map { it.currency })
+        assertEquals(listOf("EUR", "INR"), turn("€5 for tea, 300 for lunch", item(5), item(300)).map { it.currency })
+        assertEquals(listOf("EUR", "INR"), turn("coffee 5 in euros and lunch 100", item(5), item(100, currency = "INR")).map { it.currency })
+        assertEquals(listOf("EUR", "INR"), turn("coffee: 5 euros and lunch 100", item(5), item(100, currency = "INR")).map { it.currency })
+        // A code the words don't know still counts when the model read it from the message.
+        assertEquals(listOf("JPY", "JPY"), turn("in JPY: train 1200, lunch 800", item(1200, currency = "JPY"), item(800, currency = "JPY")).map { it.currency })
+        assertEquals(listOf("JPY", "JPY"), turn("train 1200, lunch 800, all in JPY", item(1200, currency = "JPY"), item(800, currency = "JPY")).map { it.currency })
+        assertEquals(listOf("JPY", "JPY"), turn("in JPY: train 1200, lunch 800", item(1200, currency = "JPY"), item(800)).map { it.currency })
+        assertEquals(listOf("JPY", "USD"), turn("paid 1200 JPY for train and 20 USD for lunch", item(1200, currency = "JPY"), item(20, currency = "USD")).map { it.currency })
+        assertEquals(listOf("USD", "USD", "USD"), turn("Paid at three places, all in US dollars: tea 4, books 16, taxi 9", item(4), item(16), item(9)).map { it.currency })
+    }
+
+    @Test
+    fun `a single row reads the whole message`() {
+        val one = turn("got 500 and paid nothing back yesterday", item(500)).single()
+        assertEquals(TransactionType.EXPENSE, one.type)
+        // A word for a bill still beats a word for income on one row.
+        listOf("Rent 500 from the salary I received yesterday", "Got 500 rupees of mobile recharge", "Subscription fee 500, refund refused").forEach {
+            assertEquals(it, TransactionType.EXPENSE, turn(it, item(500)).single().type)
+        }
+    }
+
+    @Test
+    fun `equal amounts keep the types the model gave them`() {
+        val types = turn("received 450 refund from shoe shop, then paid 450 for haircut", item(450, "EXPENSE"), item(450, "INCOME")).map { it.type }
+        assertEquals(listOf(TransactionType.EXPENSE, TransactionType.INCOME), types)
+    }
+
+    @Test
+    fun `a doubtful row starts unticked, and nothing is dropped`() {
+        fun rows(text: String, vararg items: Map<String, Any?>) = TransactionDraft.reviewRows(turn(text, *items))
+        val merged = rows("coffee 120 and lunch 300", item(420), item(300))
+        assertEquals(listOf(ReviewRow.Check.AMOUNT_NOT_IN_MESSAGE, null), merged.map { it.check })
+        assertEquals(listOf(false, true), merged.map { it.selected })
+
+        val twice = rows("bought coffee twice today, 50 each", item(50), item(50))
+        assertEquals(listOf(null, ReviewRow.Check.REPEATED), twice.map { it.check })
+        // Two stated amounts make two honest rows, even with the same name.
+        assertEquals(listOf(null, null), rows("uber 180 and uber 180", item(180), item(180)).map { it.check })
+        // Same amount in opposite directions isn't a repeat.
+        assertEquals(listOf(null, null), rows("received 450, paid 450", item(450), item(450)).map { it.check })
+
+        assertEquals(TransactionDraft.MAX_ROWS, rows((1..12).joinToString(", ") { "item $it" }, *(1..12).map { item(it) }.toTypedArray()).size)
+    }
+
+    @Test
+    fun `an add call in a broken wrapper is still read, a half-written one isn't`() {
+        val broken = "<tool_call>\n{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 300, \"merchant\": \"sho]es\"}, {\"amount\": 150, \"merchant\": \"socks\"}]}};\n<tool_call>"
+        val items = TransactionDraft.itemsInBrokenCall(broken)!!
+        assertEquals(listOf("sho]es", "socks"), items.map { it["merchant"] })
+        assertEquals(0, BigDecimal("150").compareTo(ChatMessageFacts.parseAmount(items[1]["amount"])))
+        assertEquals(null, TransactionDraft.itemsInBrokenCall("{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 180, \"merch"))
+        assertEquals(null, TransactionDraft.itemsInBrokenCall("I would add items [1, 2] here"))
+        assertEquals(null, TransactionDraft.itemsInBrokenCall("Use add_transactions with {\"items\":[{\"amount\":50,\"merchant\":\"coffee\"}]}."))
+        val fraction = TransactionDraft.itemsInBrokenCall("{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": .50, \"merchant\": \"postage\"}]}}")!!
+        assertEquals(0, BigDecimal("0.5").compareTo(ChatMessageFacts.parseAmount(fraction.single()["amount"])))
+        assertEquals(1, TransactionDraft.itemsOfCall(mapOf("amount" to 5, "merchant" to "x")).size)
+        assertEquals(0, TransactionDraft.itemsOfCall(mapOf("merchant" to "x")).size)
+    }
+
+    @Test
+    fun `an account the message doesn't name is no merchant`() {
+        val args = mapOf("amount" to 500, "merchant" to "HDFC Bank 1234", "category" to "Salary", "type" to "INCOME")
+        assertEquals("Salary", draft(args, "got 500 salary")!!.merchant)
+        assertEquals("HDFC Bank 1234", draft(args, "paid HDFC Bank 1234 500")!!.merchant)
+    }
+
+    @Test
+    fun `a plan or someone else's spending starts unticked`() {
+        fun check(text: String) = TransactionDraft.reviewRows(turn(text, item(500))).single().check
+        listOf(
+            "I plan to spend 500 on shoes", "my brother spent 500 on coffee", "should I pay 500 for gym?",
+            "tomorrow I might spend 500 on lunch", "I'm going to pay 500 rent next week"
+        ).forEach { assertEquals(it, ReviewRow.Check.NOT_A_PAYMENT, check(it)) }
+        listOf("paid 500 for shoes", "my brother paid me 500", "spent 500 at the cafe yesterday", "paid 500 at Budget").forEach {
+            assertEquals(it, null, check(it))
+        }
+        fun checks(text: String, vararg items: Map<String, Any?>) = TransactionDraft.reviewRows(turn(text, *items)).map { it.check }
+        // Each row answers for itself, and one with no verb of its own follows the last.
+        assertEquals(listOf(null, ReviewRow.Check.NOT_A_PAYMENT), checks("paid 50 for lunch and will pay 100 for rent tomorrow", item(50), item(100)))
+        assertEquals(listOf(ReviewRow.Check.NOT_A_PAYMENT, ReviewRow.Check.NOT_A_PAYMENT), checks("my brother spent 200 on coffee and 400 on lunch", item(200), item(400)))
+        assertEquals(listOf(ReviewRow.Check.NOT_A_PAYMENT, null), checks("will pay 100 for rent, paid 50 for lunch", item(100), item(50)))
+        // In the message's order, whatever order the model wrote them in.
+        assertEquals(listOf(ReviewRow.Check.NOT_A_PAYMENT, ReviewRow.Check.NOT_A_PAYMENT), checks("my brother spent 200 on coffee and 400 on lunch", item(400), item(200)))
+        assertEquals(listOf(ReviewRow.Check.NOT_A_PAYMENT, ReviewRow.Check.NOT_A_PAYMENT), checks("I will pay 100 for rent and buy shoes for 200", item(100), item(200)))
+    }
 }

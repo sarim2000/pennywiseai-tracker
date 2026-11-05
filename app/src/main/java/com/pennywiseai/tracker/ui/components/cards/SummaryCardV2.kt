@@ -53,6 +53,8 @@ fun SummaryCardV2(
             Text(
                 text = amount,
                 style = PennyWiseText.heroAmount,
+                maxLines = 1,
+                autoSize = PennyWiseText.fit(PennyWiseText.heroAmount),
                 color = amountColor,
                 textAlign = TextAlign.Center
             )

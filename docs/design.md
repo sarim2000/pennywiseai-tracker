@@ -181,7 +181,8 @@ the jobs the plain roles don't cover:
 - **Money:** `heroAmount`, `amountLarge`, `amountMedium`, `amountRow`,
   `amountSmall`. All carry `tnum` (**tabular figures**) so a column of amounts
   lines up instead of shimmering as digits change width. Never ellipsize, marquee
-  or clip a figure: wrap or shrink the label beside it.
+  or clip a figure: wrap or shrink the label beside it, and give the figure
+  `maxLines = 1` with `autoSize = PennyWiseText.fit(style)`.
 - **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
 - **Structure:** `sectionHeader`, `fieldLabel`.
 - **Charts:** `chartLabel` — one style for every axis tick, value label and

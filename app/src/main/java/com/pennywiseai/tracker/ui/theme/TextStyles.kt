@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.theme
 
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -113,4 +114,13 @@ object PennyWiseText {
      * scale. Shared so shrinking labels don't each pick their own floor.
      */
     val autoSizeFloor: TextUnit = 8.sp
+
+    /**
+     * For a money figure, with `maxLines = 1`: it shrinks to fit, so digits are never clipped
+     * or broken across lines. Long totals are ordinary in currencies like IDR and VND.
+     */
+    fun fit(style: TextStyle): TextAutoSize = TextAutoSize.StepBased(
+        minFontSize = autoSizeFloor,
+        maxFontSize = style.fontSize
+    )
 }

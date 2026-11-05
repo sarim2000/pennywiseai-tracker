@@ -139,6 +139,16 @@ private fun ConditionOperator.labelFor(field: TransactionField): Int = when (fie
     }
 }
 
+private val COMMON_RULE_CATEGORIES = listOf(
+    "Food & Dining", "Transportation", "Shopping",
+    "Bills & Utilities", "Entertainment", "Healthcare",
+    "Investments", "Others"
+)
+
+/** A value that isn't a shortcut always shows its text field: Save would use it, so it can't be hidden. */
+internal fun isCustomRuleCategory(value: String, otherChosen: Boolean): Boolean =
+    otherChosen || (value.isNotBlank() && value !in COMMON_RULE_CATEGORIES)
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CreateRuleScreen(
@@ -1278,30 +1288,25 @@ private fun ActionEditor(
             // Dynamic value input based on selected action field
             when (action.field) {
                 TransactionField.CATEGORY -> {
-                    // Category chips and input
-                    val commonCategories = listOf(
-                        "Food & Dining", "Transportation", "Shopping",
-                        "Bills & Utilities", "Entertainment", "Healthcare",
-                        "Investments", "Others"
-                    )
                     // The text field is for a category that isn't one of the shortcuts. Always
                     // on screen, it read as a second, competing way to pick the same thing.
-                    var customCategory by remember {
-                        mutableStateOf(action.value.isNotBlank() && action.value !in commonCategories)
-                    }
+                    // Derived from the value because this editor outlives its action: a saved rule
+                    // arrives after the first frame, and removing an action shifts the next into it.
+                    var otherChosen by remember { mutableStateOf(false) }
+                    val customCategory = isCustomRuleCategory(action.value, otherChosen)
 
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        commonCategories.forEach { category ->
+                        COMMON_RULE_CATEGORIES.forEach { category ->
                             FilterChip(
                                 selected = !customCategory && action.value == category,
                                 shapes = FilterChipDefaults.shapes(),
                                 colors = FilterChipDefaults.filterChipColors(),
                                 onClick = {
-                                    customCategory = false
+                                    otherChosen = false
                                     onActionChange(action.copy(value = category))
                                 },
                                 label = { Text(categoryLabel(category)) }
@@ -1311,7 +1316,11 @@ private fun ActionEditor(
                             selected = customCategory,
                             shapes = FilterChipDefaults.shapes(),
                             colors = FilterChipDefaults.filterChipColors(),
-                            onClick = { customCategory = true },
+                            onClick = {
+                                // A shortcut's name isn't a starting point for a new category.
+                                if (!customCategory) onActionChange(action.copy(value = ""))
+                                otherChosen = true
+                            },
                             label = { Text(stringResource(R.string.rules_category_other)) }
                         )
                     }
@@ -1319,7 +1328,11 @@ private fun ActionEditor(
                     if (customCategory) {
                         RuleTextField(
                             value = action.value,
-                            onValueChange = { onActionChange(action.copy(value = it)) },
+                            onValueChange = {
+                                // Keeps the field up while typing through "" or "Shopping".
+                                otherChosen = true
+                                onActionChange(action.copy(value = it))
+                            },
                             label = { Text(stringResource(R.string.rules_category_name_label)) },
                             placeholder = { Text(stringResource(R.string.rules_category_name_placeholder)) },
                             modifier = Modifier.fillMaxWidth(),

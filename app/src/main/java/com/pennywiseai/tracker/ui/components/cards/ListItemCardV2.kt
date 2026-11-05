@@ -114,7 +114,7 @@ fun ListItemCardV2(
                 style = PennyWiseText.amountRow,
                 color = amountColor,
                 maxLines = 1,
-                softWrap = false
+                autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
             )
         }
     }

@@ -24,7 +24,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -731,10 +730,7 @@ private fun TransactionReceipt(
                     color = amountColor,
                     textAlign = TextAlign.Center,
                     maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = PennyWiseText.autoSizeFloor,
-                        maxFontSize = PennyWiseText.heroAmount.fontSize
-                    )
+                    autoSize = PennyWiseText.fit(PennyWiseText.heroAmount)
                 )
 
                 if (transaction.currency.isNotEmpty() &&

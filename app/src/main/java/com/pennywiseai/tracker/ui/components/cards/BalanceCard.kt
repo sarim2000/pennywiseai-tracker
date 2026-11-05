@@ -683,7 +683,7 @@ private fun SummaryItem(
             // Keep the amount on one line — never break a "MZN52,245.26" into
             // one-character-per-line text when the column gets narrow.
             maxLines = 1,
-            softWrap = false,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountMedium),
         )
         Text(
             text = label,

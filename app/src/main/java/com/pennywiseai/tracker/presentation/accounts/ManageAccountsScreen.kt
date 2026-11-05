@@ -1000,7 +1000,7 @@ private fun CreditCardFigure(
                 style = PennyWiseText.amountRow,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                softWrap = false
+                autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
             )
             if (note != null) {
                 Text(
@@ -1121,7 +1121,7 @@ private fun AccountItem(
                 style = PennyWiseText.amountRow,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
-                softWrap = false
+                autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
             )
             // Only a label that changes what the figure means earns a line.
             if (isLowBalance) {

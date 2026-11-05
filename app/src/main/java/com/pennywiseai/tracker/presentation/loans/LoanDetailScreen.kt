@@ -202,6 +202,8 @@ fun LoanDetailScreen(
                         Text(
                             text = CurrencyFormatter.formatCurrency(loan.remainingAmount, loan.currency),
                             style = PennyWiseText.amountLarge,
+                            maxLines = 1,
+                            autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
                             color = if (loan.status == LoanStatus.SETTLED) MaterialTheme.colorScheme.onSurfaceVariant
                             else MaterialTheme.colorScheme.loanAmount(loan.direction == LoanDirection.LENT)
                         )
@@ -426,7 +428,8 @@ private fun LoanTransactionItem(
             text = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.loanContribution ?: transaction.amount, transaction.currency)),
             style = PennyWiseText.amountRow,
             color = color,
-            softWrap = false
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
         )
     }
 }

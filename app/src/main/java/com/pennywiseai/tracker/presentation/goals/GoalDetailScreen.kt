@@ -341,7 +341,8 @@ private fun GoalDetailContent(
                                 CurrencyFormatter.signed("+", CurrencyFormatter.formatCurrency(goal.alreadySaved, currency)),
                                 style = PennyWiseText.amountRow,
                                 color = MaterialTheme.colorScheme.success,
-                                softWrap = false,
+                                maxLines = 1,
+                                autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
                             )
                         }
                     }
@@ -370,7 +371,8 @@ private fun ContributionRow(c: GoalContributionEntity, currency: String, merchan
             CurrencyFormatter.signed(if (withdrawal) "−" else "+", CurrencyFormatter.formatCurrency(c.amount.abs(), currency)),
             style = PennyWiseText.amountRow,
             color = if (withdrawal) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.success,
-            softWrap = false,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
         )
     }
 }

@@ -191,7 +191,7 @@ fun TransactionItem(
                     style = PennyWiseText.amountRow,
                     color = amountColor,
                     maxLines = 1,
-                    softWrap = false
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
                 )
                 if (convertedAmount != null && displayCurrency != null) {
                     Text(
@@ -199,7 +199,7 @@ fun TransactionItem(
                         style = PennyWiseText.amountSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        softWrap = false
+                        autoSize = PennyWiseText.fit(PennyWiseText.amountSmall)
                     )
                 }
                 balanceAfterText?.let {
@@ -208,7 +208,7 @@ fun TransactionItem(
                         style = PennyWiseText.amountSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
-                        softWrap = false
+                        autoSize = PennyWiseText.fit(PennyWiseText.amountSmall)
                     )
                 }
             }

@@ -7,7 +7,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.text.TextAutoSize
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -182,10 +181,7 @@ private fun TotalColumn(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = PennyWiseText.autoSizeFloor,
-                    maxFontSize = MaterialTheme.typography.labelMedium.fontSize
-                )
+                autoSize = PennyWiseText.fit(MaterialTheme.typography.labelMedium)
             )
         }
         // Shrinks to fit. A marquee here showed "580.802" mid-scroll with the sign and
@@ -196,10 +192,7 @@ private fun TotalColumn(
             color = color,
             textAlign = TextAlign.Center,
             maxLines = 1,
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = PennyWiseText.autoSizeFloor,
-                maxFontSize = PennyWiseText.amountRow.fontSize
-            )
+            autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
         )
     }
 }

@@ -99,6 +99,8 @@ fun SafeToSpendCard(
         Text(
             text = if (isBalanceHidden) MASK else primary.formatAmount(),
             style = PennyWiseText.amountLarge,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
             fontWeight = FontWeight.Bold,
             color = if (!isBalanceHidden && primary.amount.signum() < 0) MaterialTheme.colorScheme.error
             else MaterialTheme.colorScheme.onSurface
@@ -198,6 +200,8 @@ fun SafeToSpendSheet(
             Text(
                 text = primary.formatAmount(),
                 style = PennyWiseText.amountLarge,
+                maxLines = 1,
+                autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
                 fontWeight = FontWeight.Bold,
                 color = if (primary.amount.signum() < 0) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurface
@@ -289,6 +293,8 @@ fun SafeToSpendSheet(
                 Text(
                     text = primary.formatAmount(),
                     style = PennyWiseText.amountMedium,
+                    maxLines = 1,
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountMedium),
                     fontWeight = FontWeight.Bold,
                     color = if (primary.amount.signum() < 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface

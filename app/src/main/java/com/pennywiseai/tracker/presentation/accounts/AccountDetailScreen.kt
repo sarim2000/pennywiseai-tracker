@@ -605,7 +605,7 @@ private fun AccountTransactionItem(
                     style = PennyWiseText.amountRow,
                     color = amountColor,
                     maxLines = 1,
-                    softWrap = false
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
                 )
                 
                 // Transaction type indicator

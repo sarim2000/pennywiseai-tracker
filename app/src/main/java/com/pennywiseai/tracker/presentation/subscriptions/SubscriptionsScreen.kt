@@ -569,6 +569,8 @@ private fun TotalSubscriptionsSummary(
                     else -> totalAmount.toPlainString()
                 },
                 style = PennyWiseText.amountLarge,
+                maxLines = 1,
+                autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )

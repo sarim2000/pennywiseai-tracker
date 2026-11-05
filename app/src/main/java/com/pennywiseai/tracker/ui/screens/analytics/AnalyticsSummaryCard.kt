@@ -85,7 +85,7 @@ fun AnalyticsSummaryCard(
                         style = PennyWiseText.amountLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        softWrap = false
+                        autoSize = PennyWiseText.fit(PennyWiseText.amountLarge)
                     )
                 }
 
@@ -137,7 +137,12 @@ fun AnalyticsSummaryCard(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Row(verticalAlignment = Alignment.Bottom) {
+                    // FlowRow: a long figure pushes the label to its own line rather than
+                    // squeezing it to one letter per line.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                        itemVerticalAlignment = Alignment.Bottom
+                    ) {
                         Text(
                             text = if (transactionCount > 0) {
                                 CurrencyFormatter.formatCurrency(averageAmount, currency)
@@ -145,10 +150,12 @@ fun AnalyticsSummaryCard(
                                 CurrencyFormatter.formatCurrency(BigDecimal.ZERO, currency)
                             },
                             style = PennyWiseText.amountMedium,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            autoSize = PennyWiseText.fit(PennyWiseText.amountMedium)
                         )
                         Text(
-                            text = stringResource(R.string.analytics_summary_per_transaction),
+                            text = stringResource(R.string.analytics_summary_per_transaction).trim(),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 2.dp)
@@ -220,7 +227,9 @@ private fun ForecastSection(forecast: SpendForecast) {
         text = CurrencyFormatter.formatEstimate(forecast.projected, forecast.currency),
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 1,
+        autoSize = PennyWiseText.fit(MaterialTheme.typography.titleLarge)
     )
     val over = forecast.overUsual ?: return
     Spacer(modifier = Modifier.height(Spacing.sm))

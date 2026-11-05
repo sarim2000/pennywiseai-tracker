@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -173,10 +172,7 @@ internal fun DonutBreakdown(
                     style = PennyWiseText.amountLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = PennyWiseText.autoSizeFloor,
-                        maxFontSize = PennyWiseText.amountLarge.fontSize
-                    )
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountLarge)
                 )
             }
         }
@@ -250,7 +246,7 @@ internal fun DonutLegendRow(
                 style = PennyWiseText.amountRow,
                 color = textColor,
                 maxLines = 1,
-                softWrap = false
+                autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
             )
             Text(
                 text = stringResource(R.string.analytics_percent, percentage),

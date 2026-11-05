@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -207,10 +206,7 @@ private fun AccountCarouselCard(
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     // Shrinks to fit: a balance is never ellipsized.
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = PennyWiseText.autoSizeFloor,
-                        maxFontSize = PennyWiseText.amountLarge.fontSize
-                    ),
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
                     modifier = Modifier.weight(1f, fill = false)
                 )
 

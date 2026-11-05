@@ -338,6 +338,16 @@ dependencies {
 }
 
 android.sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
+// androidx.test asks for concurrent-futures 1.2.0, but AGP holds test classpaths to
+// the app's runtime version (1.1.0, via Glance), so no androidTest resolves without
+// this. Test-only: the app stays on 1.1.0.
+// ponytail: hard-coded versions, drop this once Glance moves the app to 1.2.0.
+configurations.matching { "AndroidTest" in it.name }.configureEach {
+    resolutionStrategy.force(
+        "androidx.concurrent:concurrent-futures:1.1.0",
+        "androidx.concurrent:concurrent-futures-ktx:1.1.0",
+    )
+}
 // StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
 // infer. Without this the test task stays UP-TO-DATE when only translations
 // change — i.e. for exactly the pull requests it exists to check.

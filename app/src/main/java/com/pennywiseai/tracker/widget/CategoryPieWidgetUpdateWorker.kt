@@ -154,10 +154,11 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                     }
                 }
             } else {
+                val baseCurrency = userPreferencesRepository.baseCurrency.first()
                 currency = pieCurrency(
                     transactions.sumByCurrency({ it.transaction.currency.uppercase() }, { it.transaction.amount }),
-                    userPreferencesRepository.baseCurrency.first()
-                )
+                    baseCurrency
+                ) { currencyConversionService.convertAmountOrNull(it.amount, it.currency, baseCurrency) }
                 transactions
                     .filter { it.transaction.currency.equals(currency, ignoreCase = true) }
                     .forEach { tw ->
@@ -226,12 +227,20 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
 /**
  * The pie's one currency outside unified mode: the user's own if they spent in
  * it, as the in-app pie opens on it, so ₹5,000 can't outrank JD 40 on face value.
- * ponytail: with no base-currency spend, foreign currencies still rank by face
- * value (INR 5,000 beats USD 500); rank by converted amount if that case matters.
+ * Otherwise the largest spend by value in the base currency ([toBase]); one with
+ * no rate ranks last, and if none has a rate the largest face value wins.
  */
-internal fun pieCurrency(spendByCurrency: Map<String, Money>, baseCurrency: String): String {
+internal suspend fun pieCurrency(
+    spendByCurrency: Map<String, Money>,
+    baseCurrency: String,
+    toBase: suspend (Money) -> BigDecimal?
+): String {
     val base = baseCurrency.uppercase()
-    return base.takeIf { (spendByCurrency[it]?.amount?.signum() ?: 0) > 0 }
-        ?: spendByCurrency.maxByOrNull { it.value.amount }?.key
-        ?: base
+    if ((spendByCurrency[base]?.amount?.signum() ?: 0) > 0) return base
+    // One currency has nothing to rank against: no rate lookup, possibly network.
+    spendByCurrency.keys.singleOrNull()?.let { return it }
+    return spendByCurrency.values
+        .map { it to (toBase(it) ?: BigDecimal.ZERO) }
+        .maxWithOrNull(compareBy({ it.second }, { it.first.amount }))
+        ?.first?.currency ?: base
 }

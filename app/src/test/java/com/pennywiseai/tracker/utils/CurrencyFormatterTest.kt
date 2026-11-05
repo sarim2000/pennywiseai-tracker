@@ -65,7 +65,7 @@ class CurrencyFormatterTest {
     }
 
     @Test
-    fun `sms-tracked account on an unknown bank keeps a non-INR stored currency`() {
+    fun `an account on a bank with no parser keeps its stored currency`() {
         assertEquals(
             "USD",
             CurrencyFormatter.resolveAccountCurrency(

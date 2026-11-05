@@ -407,8 +407,9 @@ object CurrencyFormatter {
      * Resolves the effective currency for an account. Manual accounts store the
      * currency the user chose — trust it. SMS-tracked accounts fall back to the bank
      * parser's currency (their stored value may be the INR default even for a non-INR
-     * bank). Shared by Account Detail, onboarding, and Settings so the rule stays
-     * consistent everywhere.
+     * bank). With no parser for the bank, the stored value is all we know: a USD
+     * account must not become INR. Shared by Account Detail, onboarding, and Settings
+     * so the rule stays consistent everywhere.
      */
     fun resolveAccountCurrency(
         sourceType: String?,
@@ -418,8 +419,6 @@ object CurrencyFormatter {
         return if (sourceType == "MANUAL") {
             storedCurrency
         } else {
-            // No parser for this bank: the stored value is all we know, so a USD row
-            // stays USD instead of being relabelled with the INR default.
             bankName?.let { BankParserFactory.getParserByName(it)?.getCurrency() } ?: storedCurrency
         }
     }

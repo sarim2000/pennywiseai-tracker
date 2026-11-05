@@ -31,6 +31,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Inclure les dépenses de la carte de crédit dans « Dépensé ce mois-ci»</string>
     <string name="settings_default_currency_title">Devise par défaut</string>
     <string name="settings_default_currency_subtitle">Devise utilisée pour les conversions</string>
+    <string name="settings_budget_convert_title">Convertir vos budgets ?</string>
+    <string name="settings_budget_convert_message">Les limites de vos budgets étaient en %1$s et sont maintenant affichées en %2$s. Convertissez-les au dernier taux disponible (%3$s) ou gardez les mêmes chiffres.</string>
+    <string name="settings_budget_convert_confirm">Convertir</string>
+    <string name="settings_budget_convert_keep">Garder les chiffres</string>
     <string name="settings_main_account_title">Compte principal</string>
     <string name="settings_main_account_subtitle">Définit votre devise par défaut</string>
     <string name="settings_main_account_not_set">Non défini</string>

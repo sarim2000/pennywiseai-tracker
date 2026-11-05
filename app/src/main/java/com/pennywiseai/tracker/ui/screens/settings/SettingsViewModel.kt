@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.ui.UiText
@@ -72,8 +73,17 @@ class SettingsViewModel @Inject constructor(
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
     private val modelDownloader: com.pennywiseai.tracker.data.manager.ModelDownloader,
+    private val budgetGroupRepository: com.pennywiseai.tracker.data.repository.BudgetGroupRepository,
+    private val currencyConversionService: com.pennywiseai.tracker.data.currency.CurrencyConversionService,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
+
+    /** Set while Settings asks whether to convert the budgets to a new base currency. */
+    private val _budgetConversionPrompt = MutableStateFlow<BudgetConversionPrompt?>(null)
+    val budgetConversionPrompt: StateFlow<BudgetConversionPrompt?> = _budgetConversionPrompt.asStateFlow()
+    private var budgetConversionJob: kotlinx.coroutines.Job? = null
+    private var budgetConversionDrops = 0
+    private val baseCurrencyChange = kotlinx.coroutines.sync.Mutex()
 
     /** Drives the Settings → Pro row: shows "Active" when true, "Upgrade" when false. */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
@@ -770,10 +780,65 @@ class SettingsViewModel @Inject constructor(
     }
     
     fun updateBaseCurrency(currency: String) {
+        changeBaseCurrency { userPreferencesRepository.updateBaseCurrency(currency) }
+    }
+
+    /**
+     * Applies the change straight away, keeping the budgets' numbers, then asks
+     * whether to convert them. That's the user's call, not ours: someone correcting
+     * a wrong currency typed their limits meaning the new one, and converting would
+     * turn their 360 into 2.71. No rate, or leaving first, means the numbers stay.
+     */
+    private fun changeBaseCurrency(save: suspend () -> Unit) {
+        val drops = budgetConversionDrops
         viewModelScope.launch {
-            userPreferencesRepository.updateBaseCurrency(currency)
-            // The widgets' snapshots still carry the old currency.
-            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+            // NonCancellable: leaving Settings must not stop a pick the user just made.
+            val (from, to) = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                baseCurrencyChange.withLock {
+                    val from = userPreferencesRepository.baseCurrency.first()
+                    save()
+                    val to = userPreferencesRepository.baseCurrency.first()
+                    if (to != from) {
+                        budgetGroupRepository.moveBudgetsToCurrency(to, rate = null)
+                        // The widgets' snapshots still carry the old currency.
+                        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+                    }
+                    from to to
+                }
+            }
+            if (to == from || drops != budgetConversionDrops) return@launch
+            // A newer change replaces the question; a no-op must not lose it, so only here.
+            budgetConversionJob?.cancel()
+            _budgetConversionPrompt.value = null
+            budgetConversionJob = launch {
+                if (!budgetGroupRepository.hasActiveBudgets()) return@launch
+                val rate = currencyConversionService.getExchangeRate(from, to) ?: return@launch
+                _budgetConversionPrompt.value = BudgetConversionPrompt(from, to, rate)
+            }
+        }
+    }
+
+    /** The user left Settings, so the question is off, even one the save hasn't reached yet. */
+    fun dropBudgetConversion() {
+        budgetConversionDrops++
+        budgetConversionJob?.cancel()
+        _budgetConversionPrompt.value = null
+    }
+
+    fun resolveBudgetConversion(convert: Boolean) {
+        val prompt = _budgetConversionPrompt.value ?: return
+        _budgetConversionPrompt.value = null
+        if (!convert) return
+        viewModelScope.launch {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                baseCurrencyChange.withLock {
+                    // A newer pick may have saved while this question was still on screen.
+                    if (userPreferencesRepository.baseCurrency.first() == prompt.to) {
+                        budgetGroupRepository.moveBudgetsToCurrency(prompt.to, prompt.rate)
+                    }
+                }
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+            }
         }
     }
 
@@ -808,18 +873,19 @@ class SettingsViewModel @Inject constructor(
             userPreferencesRepository.updateMainAccountKey(
                 "${account.bankName}_${account.accountLast4}"
             )
-            val currency = CurrencyFormatter.resolveAccountCurrency(
-                sourceType = account.sourceType,
-                storedCurrency = account.currency,
-                bankName = account.bankName
-            )
-            userPreferencesRepository.applyMainAccountCurrency(currency)
-            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
+        val currency = CurrencyFormatter.resolveAccountCurrency(
+            sourceType = account.sourceType,
+            storedCurrency = account.currency,
+            bankName = account.bankName
+        )
+        changeBaseCurrency { userPreferencesRepository.applyMainAccountCurrency(currency) }
     }
 }
 
 private const val BYTES_PER_MB = 1024L * 1024L
+
+data class BudgetConversionPrompt(val from: String, val to: String, val rate: java.math.BigDecimal)
 
 enum class DownloadState {
     NOT_DOWNLOADED,

@@ -35,6 +35,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Include credit-card spend in \"Spent this month\"</string>
     <string name="settings_default_currency_title">Default Currency</string>
     <string name="settings_default_currency_subtitle">Totals and conversions use this</string>
+    <string name="settings_budget_convert_title">Convert your budgets?</string>
+    <string name="settings_budget_convert_message">Your budget limits were in %1$s and now read as %2$s. Convert them at the latest available rate (%3$s), or keep the same numbers.</string>
+    <string name="settings_budget_convert_confirm">Convert</string>
+    <string name="settings_budget_convert_keep">Keep numbers</string>
     <string name="settings_main_account_title">Main Account</string>
     <string name="settings_main_account_subtitle">Default currency follows this account</string>
     <string name="settings_main_account_not_set">Not set</string>

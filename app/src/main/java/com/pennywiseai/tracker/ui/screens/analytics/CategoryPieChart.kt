@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import java.math.BigDecimal
@@ -146,7 +147,8 @@ internal fun BreakdownStrip(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Canvas(
+        // Not while hidden: the lengths give the split away.
+        if (!AmountPrivacy.hidden) Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(BreakdownStripHeight)
@@ -234,7 +236,7 @@ internal fun DonutLegendRow(
                 autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
             )
             Text(
-                text = stringResource(R.string.analytics_percent, percentage),
+                text = if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.analytics_percent, percentage),
                 style = PennyWiseText.amountSmall,
                 color = secondaryColor,
                 maxLines = 1,

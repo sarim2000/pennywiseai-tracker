@@ -383,4 +383,5 @@
         <item quantity="many">يتجدد خلال %1$d يومًا</item>
         <item quantity="other">يتجدد خلال %1$d يوم</item>
     </plurals>
+    <string name="analytics_summary_top_category">الفئة الأعلى</string>
 </resources>

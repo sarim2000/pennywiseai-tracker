@@ -383,4 +383,5 @@
     <string name="chat_activation_body">The assistant runs entirely on this device. Download its model once and your questions never leave your phone.</string>
 
     <string name="analytics_hidden_chart">The chart is hidden while amounts are hidden.</string>
+    <string name="analytics_summary_top_category">Top category</string>
 </resources>

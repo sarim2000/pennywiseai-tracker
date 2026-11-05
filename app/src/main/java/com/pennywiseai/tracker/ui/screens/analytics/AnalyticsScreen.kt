@@ -1139,7 +1139,7 @@ private fun CategoryListItem(
         amount = CurrencyFormatter.formatCurrency(category.amount, currency),
         trailingContent = {
             Text(
-                text = stringResource(R.string.analytics_percent, category.percentage.toInt()),
+                text = if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.analytics_percent, category.percentage.toInt()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1219,7 +1219,7 @@ private fun AccountBreakdownListItem(
                     maxLines = 1
                 )
                 Text(
-                    text = stringResource(R.string.analytics_percent, account.percentage.toInt()),
+                    text = if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.analytics_percent, account.percentage.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

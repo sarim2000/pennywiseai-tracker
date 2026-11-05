@@ -274,7 +274,7 @@ colours the user didn't choose follow the accent.
 `BalanceSparkline` under Home's hero: this month's running total against the same days last
 month, ending on a dot at today. It's the screen's one flourish and the answer to "am I on
 track?". It isn't drawn while amounts are hidden, because its shape gives them away. The
-same goes for budget fills, percentages and Analytics' trend chart.
+same goes for budget fills, percentages, Analytics' trend chart and the category strip.
 
 ### `FilterChipRow`
 

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.ui.components.cards.StatementLine
 import com.pennywiseai.tracker.utils.AppDates
 
@@ -98,7 +99,8 @@ fun AnalyticsSummaryCard(
         )
         if (topCategory != null && topCategoryPercentage > 0) {
             StatementLine(
-                label = stringResource(R.string.analytics_summary_percent_of_total, topCategoryPercentage.toInt()),
+                label = if (AmountPrivacy.hidden) stringResource(R.string.analytics_summary_top_category)
+                else stringResource(R.string.analytics_summary_percent_of_total, topCategoryPercentage.toInt()),
                 value = categoryLabel(topCategory),
                 leading = {
                     CategoryIcon(

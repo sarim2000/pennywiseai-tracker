@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.home
 
 import com.pennywiseai.tracker.utils.AppDates
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -157,6 +158,8 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // Time to full display: the balance and recent list show data, not skeletons.
+    ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
     val isProEntitled by viewModel.isProEntitled.collectAsState()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsState()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }

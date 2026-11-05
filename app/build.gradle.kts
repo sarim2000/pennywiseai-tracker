@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -185,6 +186,26 @@ kotlin {
     }
 }
 
+// A single profile for both flavors. Generation runs only when asked for
+// (docs/performance.md), never as part of assemble.
+baselineProfile {
+    mergeIntoMain = true
+}
+
+// The plugin's two profileable variants (benchmarkRelease measures, nonMinifiedRelease
+// generates) install beside any real build, and they alone carry the benchmark seed.
+// release has no isProfileable and no src/benchmarkSeed.
+val benchmarkBuildTypes = listOf("benchmarkRelease", "nonMinifiedRelease")
+android.sourceSets {
+    benchmarkBuildTypes.forEach { maybeCreate(it).kotlin.directories.add("src/benchmarkSeed/java") }
+}
+androidComponents.onVariants { variant ->
+    if (variant.buildType in benchmarkBuildTypes) {
+        variant.applicationId.set("com.pennywiseai.tracker.benchmark")
+        variant.sources.manifests.addStaticManifestFile("src/benchmarkSeed/AndroidManifest.xml")
+    }
+}
+
 // Configure Room schema export
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
@@ -219,7 +240,9 @@ dependencies {
     // Local modules
     implementation(project(":parser-core"))
     implementation(project(":shared"))
+    baselineProfile(project(":baselineprofile"))
 
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

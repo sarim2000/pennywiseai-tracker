@@ -558,6 +558,7 @@ private fun CurrencyPage(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
+    val budgetConversionPrompt by settingsViewModel.budgetConversionPrompt.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
@@ -661,6 +662,35 @@ private fun CurrencyPage(
             choices = availableCurrencies.map { currency ->
                 SettingsChoice(currencyLabel(currency), currency == displayCurrency) {
                     settingsViewModel.setDisplayCurrency(currency)
+                }
+            }
+        )
+    }
+
+    // Budget conversion question: only asked while the user is still here. Back
+    // from Budgets it would convert limits they've since entered in the new
+    // currency. A rotation isn't leaving, the ViewModel carries it across.
+    val activity = androidx.activity.compose.LocalActivity.current
+    DisposableEffect(settingsViewModel) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) settingsViewModel.dropBudgetConversion()
+        }
+    }
+    budgetConversionPrompt?.let { prompt ->
+        // Isolated: a Latin "1 INR = 84 JOD" reads in order inside Arabic text.
+        val rate = "⁦1 ${prompt.from} = ${prompt.rate.round(java.math.MathContext(4)).toPlainString()} ${prompt.to}⁩"
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.resolveBudgetConversion(convert = false) },
+            title = { Text(stringResource(R.string.settings_budget_convert_title)) },
+            text = { Text(stringResource(R.string.settings_budget_convert_message, prompt.from, prompt.to, rate)) },
+            confirmButton = {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = true) }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_budget_convert_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = false) }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_budget_convert_keep))
                 }
             }
         )

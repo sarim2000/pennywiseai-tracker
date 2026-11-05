@@ -29,6 +29,10 @@
     <string name="settings_card_spend_as_expense_subtitle">تضمين مشتريات البطاقة الائتمانية في \"إنفاق هذا الشهر\"</string>
     <string name="settings_default_currency_title">العملة الافتراضية</string>
     <string name="settings_default_currency_subtitle">العملة المستخدمة للتحويلات</string>
+    <string name="settings_budget_convert_title">تحويل ميزانياتك؟</string>
+    <string name="settings_budget_convert_message">كانت حدود ميزانياتك بعملة %1$s وتظهر الآن بعملة %2$s. يمكنك تحويلها بأحدث سعر متاح (%3$s)، أو إبقاء الأرقام نفسها.</string>
+    <string name="settings_budget_convert_confirm">تحويل</string>
+    <string name="settings_budget_convert_keep">إبقاء الأرقام</string>
     <string name="settings_main_account_title">الحساب الرئيسي</string>
     <string name="settings_main_account_subtitle">يحدد عملتك الافتراضية</string>
     <string name="settings_main_account_not_set">غير محدد</string>

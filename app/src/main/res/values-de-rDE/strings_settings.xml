@@ -29,6 +29,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Kreditkarten-Ausgaben in \"Diesen Monat vergeben\" einbeziehen</string>
     <string name="settings_default_currency_title">Standardwährung</string>
     <string name="settings_default_currency_subtitle">Währung für Konversionen</string>
+    <string name="settings_budget_convert_title">Budgets umrechnen?</string>
+    <string name="settings_budget_convert_message">Deine Budgetlimits waren in %1$s und werden jetzt in %2$s angezeigt. Rechne sie zum letzten verfügbaren Kurs (%3$s) um oder behalte die Zahlen bei.</string>
+    <string name="settings_budget_convert_confirm">Umrechnen</string>
+    <string name="settings_budget_convert_keep">Zahlen behalten</string>
     <string name="settings_main_account_title">Hauptkonto</string>
     <string name="settings_main_account_subtitle">Setzt deine Standardwährung</string>
     <string name="settings_main_account_not_set">Nicht gesetzt</string>

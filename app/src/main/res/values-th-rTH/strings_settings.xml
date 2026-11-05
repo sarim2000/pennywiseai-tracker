@@ -28,6 +28,10 @@
     <string name="settings_card_spend_as_expense_subtitle">รวมยอดใช้บัตรเครดิตใน \"ใช้ไปเดือนนี้\"</string>
     <string name="settings_default_currency_title">สกุลเงินเริ่มต้น</string>
     <string name="settings_default_currency_subtitle">สกุลเงินที่ใช้ในการแปลง</string>
+    <string name="settings_budget_convert_title">แปลงงบประมาณของคุณไหม</string>
+    <string name="settings_budget_convert_message">วงเงินงบประมาณของคุณเคยเป็น %1$s และตอนนี้แสดงเป็น %2$s แปลงตามอัตราล่าสุดที่มี (%3$s) หรือคงตัวเลขเดิมไว้</string>
+    <string name="settings_budget_convert_confirm">แปลง</string>
+    <string name="settings_budget_convert_keep">คงตัวเลขเดิม</string>
     <string name="settings_main_account_title">บัญชีหลัก</string>
     <string name="settings_main_account_subtitle">ใช้กำหนดสกุลเงินเริ่มต้นของคุณ</string>
     <string name="settings_main_account_not_set">ยังไม่ได้ตั้งค่า</string>

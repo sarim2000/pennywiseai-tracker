@@ -2,9 +2,10 @@
 #
 # init.sh — the verification gate for coding agents (and humans).
 #
-# Runs exactly what CI (.github/workflows/test.yml) gates on, so "green here"
-# means "green in CI". Prefer this over `./gradlew build` / `lint`, which are
-# heavier and are NOT part of the gate.
+# Runs exactly what .github/workflows/test.yml gates on, so "green here" means
+# "green there". Schema changes also run database-upgrade-test.yml, which needs
+# an emulator and isn't run here. Prefer this over `./gradlew build` / `lint`,
+# which are heavier and are NOT part of the gate.
 #
 # Usage:
 #   ./init.sh            # verify everything (default)

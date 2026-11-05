@@ -29,6 +29,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Incluir valor gasto com cartão de crédito em \"Gasto este mês\"</string>
     <string name="settings_default_currency_title">Moeda Padrão</string>
     <string name="settings_default_currency_subtitle">Moeda usada para conversões</string>
+    <string name="settings_budget_convert_title">Converter seus orçamentos?</string>
+    <string name="settings_budget_convert_message">Os limites dos seus orçamentos estavam em %1$s e agora aparecem em %2$s. Converta-os pela última taxa disponível (%3$s) ou mantenha os mesmos números.</string>
+    <string name="settings_budget_convert_confirm">Converter</string>
+    <string name="settings_budget_convert_keep">Manter números</string>
     <string name="settings_main_account_title">Conta principal</string>
     <string name="settings_main_account_subtitle">Define a sua moeda padrão</string>
     <string name="settings_main_account_not_set">Não definido</string>

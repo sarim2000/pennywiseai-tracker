@@ -28,6 +28,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Jumuisha matumizi ya kadi ya mkopo kwenye \"Matumizi mwezi huu\"</string>
     <string name="settings_default_currency_title">Sarafu Chaguomsingi</string>
     <string name="settings_default_currency_subtitle">Sarafu inayotumika kwa ubadilishaji</string>
+    <string name="settings_budget_convert_title">Badilisha bajeti zako?</string>
+    <string name="settings_budget_convert_message">Vikomo vya bajeti zako vilikuwa katika %1$s na sasa vinaonyeshwa katika %2$s. Vibadilishe kwa kiwango cha hivi karibuni kilichopo (%3$s), au baki na namba zilezile.</string>
+    <string name="settings_budget_convert_confirm">Badilisha</string>
+    <string name="settings_budget_convert_keep">Baki na namba</string>
     <string name="settings_main_account_title">Akaunti Kuu</string>
     <string name="settings_main_account_subtitle">Inaweka sarafu yako chaguomsingi</string>
     <string name="settings_main_account_not_set">Haijawekwa</string>

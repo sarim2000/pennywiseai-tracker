@@ -27,7 +27,11 @@ data class TransactionDraft(
     companion object {
         // Whole words, so "مراتب" isn't "راتب" and Milan's "मिलान" isn't "मिला". Arabic keeps its
         // prefixes and suffixes ("الراتب", "راتبي"), and lookarounds because \\b differs on ICU.
-        // "رجع" alone also means "came back", so a refund needs "to me": "رجعلي", "رجعولي".
+        // "رجع" alone also means "came back" ("رجعت البيت"), so a refund must say to whom or what:
+        // "رجعلي", "رجعت لي", "رجعوا فلوسي", "الفلوس رجعت". "رجعت ليلا" (came back at night) isn't "لي".
+        private const val MONEY_CAME_BACK = "رجع(?:وا|و|ت)?\\s*(?:لي|لنا)(?![\\p{L}\\p{M}])" +
+            "|رجع(?:وا|و|ت)?\\s+(?:ال)?(?:فلوس|مصاري|مبلغ)" +
+            "|(?:فلوس|مصاري|مبلغ)\\S*\\s+رجع"
         private fun arabicWord(words: String) = "(?<![\\p{L}\\p{M}])[وفب]?(?:ال)?(?:$words)"
         private fun hindiWord(words: String) = "(?<![\\p{L}\\p{M}])(?:$words)(?![\\p{L}\\p{M}])"
 
@@ -41,7 +45,7 @@ data class TransactionDraft(
         )
         private val INCOME_WORDS = Regex(
             "\\b(received|got|salary|refund|refunded|cashback|credited|sold|bonus|interest|income|won|earned|reimburse\\w*|mila|mili|aayi|tankha)\\b" +
-                "|${arabicWord("راتب|استلمت|رجعولي|رجعوا لي|رجعلي|رجع لي|رجعتلي|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("सैलरी|वेतन|रिफंड|कैशबैक|मिला|मिली|मिले")}",
+                "|${arabicWord("راتب|استلمت|$MONEY_CAME_BACK|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("सैलरी|वेतन|रिफंड|कैशबैक|मिला|मिली|मिले")}",
             RegexOption.IGNORE_CASE
         )
 

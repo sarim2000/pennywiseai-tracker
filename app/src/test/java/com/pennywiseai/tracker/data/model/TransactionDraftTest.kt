@@ -132,7 +132,12 @@ class TransactionDraftTest {
         assertEquals(TransactionType.EXPENSE, type("مراتب 50", "EXPENSE"))
         assertEquals(TransactionType.EXPENSE, type("تذكرة رجعة 50", "EXPENSE"))
         assertEquals(TransactionType.EXPENSE, type("رجعت البيت بتاكسي 50", "EXPENSE")) // "I came home", not a refund.
+        assertEquals(TransactionType.EXPENSE, type("رجعت ليلا بتاكسي 50", "EXPENSE")) // "At night", not "to me".
         assertEquals(TransactionType.INCOME, type("محل الورق رجعلي 260 جنيه", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعت لي 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعولنا 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعوا فلوسي 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("الفلوس رجعت 50", "EXPENSE"))
         assertEquals(TransactionType.EXPENSE, type("मिलान में कॉफी 500", "EXPENSE"))
     }
 

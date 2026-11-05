@@ -154,7 +154,7 @@ class TransactionDraftTest {
             "got 500 from mom", "got 500 for 2 hours of tutoring", "got ₹500", "got rs.500", "got USD 500", "got back 500",
             "got my money back 500", "500 mila", "mila 500", "मुझे 500 रुपये मिले", "मिले ५०० रुपये", "got a refund for 500",
             "got JD 500 from mom", "got SR 500", "got DHS 500", "got five hundred from mom", "got some cash from mom 500", "got paid 500",
-            "got a payment of 500 from a client", "got payment from a client 500", "got a tip of 500", "got an advance of 500"
+            "got a payment of 500 from a client", "got payment from a client 500", "got a tip of 500", "got an advance of 500", "got a transfer of 500 from dad"
         ).forEach { assertEquals(it, TransactionType.INCOME, type(it)) }
         assertEquals(TransactionType.INCOME, type("got 5k", 5000))
         assertEquals(TransactionType.INCOME, type("got $.50", 0.5))
@@ -162,7 +162,7 @@ class TransactionDraftTest {
         assertEquals(TransactionType.INCOME, type("10 हजार मिले", 10000))
 
         listOf(
-            "got a phone for 500", "got tea 500", "got paid version of the app for 500", "got shoes for ₹500", "got a phone for USD 500", "got coffee 50 and tea 500", "मुझे फोन 500 में मिला",
+            "got a transfer to the airport for 500", "got a tip for the waiter 500", "got a phone for 500", "got tea 500", "got paid version of the app for 500", "got shoes for ₹500", "got a phone for USD 500", "got coffee 50 and tea 500", "मुझे फोन 500 में मिला",
             "मुझे फोन 500 रुपये में मिला", "phone 500 me mila", "got back home by taxi for 500"
         ).forEach { assertEquals(it, TransactionType.EXPENSE, type(it)) }
         assertEquals(TransactionType.EXPENSE, type("got 2 shirts for rs 500", model = "INCOME"))

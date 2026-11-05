@@ -64,6 +64,10 @@ internal fun systemPrompt(base: String, hint: String): String {
 """.trimIndent() + hint
 }
 
+/** The prompt the app sends today: LlmRepository.composeSystemPrompt names the array tool and adds these rules. */
+internal fun appSystemPrompt(base: String) =
+    systemPrompt(base, ONE_CALL_ITEMS + RULES).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
+
 private const val ONE_CALL_EACH = "\nIf a message mentions several transactions, call addTransaction once for each of them."
 private const val RULES = """
 Every amount the user states is its own transaction: never add amounts together and never merge items.
@@ -205,7 +209,7 @@ fun main(argv: Array<String>) = runBlocking {
         when (shape) {
             "app" -> {
                 tools = listOf(tool(AddTransactionsTool()), tool(PennyWiseTools()))
-                system = systemPrompt(c.currency, ONE_CALL_ITEMS + RULES).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
+                system = appSystemPrompt(c.currency)
             }
             "prod" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, "") }
             "prod_hint" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, ONE_CALL_EACH) }

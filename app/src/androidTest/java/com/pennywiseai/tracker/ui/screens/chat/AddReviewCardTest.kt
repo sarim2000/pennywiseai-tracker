@@ -8,6 +8,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -79,6 +82,19 @@ class AddReviewCardTest {
         // Ticking is the user's answer to the warning.
         compose.onAllNodes(isToggleable())[0].performClick()
         compose.onNodeWithText("Add 2").assertIsEnabled()
+    }
+
+    @Test fun aScreenReaderHearsWhatEachCheckboxIsFor() {
+        show(listOf(ReviewRow(0, draft("420", "Coffee"), ReviewRow.Check.AMOUNT_NOT_IN_MESSAGE)))
+        compose.onNode(isToggleable() and hasText("Coffee", substring = true) and hasText("Check the amount", substring = true)).assertIsOff()
+        compose.onNodeWithContentDescription("Edit Coffee").assertExists()
+    }
+
+    @Test fun theCurrencyMenuMarksTheCurrentCurrency() {
+        show(listOf(ReviewRow(0, draft("120", "Coffee"))))
+        compose.onNodeWithContentDescription("Edit Coffee").performClick()
+        compose.onNodeWithText("Currency").performClick()
+        compose.onNode(isSelected() and hasText("INR", substring = true)).assertExists()
     }
 
     @Test fun editingARowChangesItAndAnswersItsCheck() {

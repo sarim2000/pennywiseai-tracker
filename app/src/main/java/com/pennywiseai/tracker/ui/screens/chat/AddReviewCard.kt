@@ -3,14 +3,17 @@ package com.pennywiseai.tracker.ui.screens.chat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
@@ -20,7 +23,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -28,10 +30,13 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -44,8 +49,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.pennywiseai.tracker.R
@@ -138,45 +145,55 @@ private fun ReviewRowItem(row: ReviewRow, enabled: Boolean, onToggle: () -> Unit
     val fg = MaterialTheme.colorScheme.onTertiaryContainer
     val amount = CurrencyFormatter.formatCurrency(draft.amount, draft.currency)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(
-            checked = row.selected,
-            onCheckedChange = { onToggle() },
-            enabled = enabled,
-            colors = CheckboxDefaults.colors(checkedColor = fg, uncheckedColor = fg, checkmarkColor = MaterialTheme.colorScheme.tertiaryContainer)
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text(text = "$amount · ${draft.merchant}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
-            Text(
-                text = listOf(
-                    stringResource(if (draft.type == TransactionType.INCOME) R.string.rules_type_income else R.string.rules_type_expense),
-                    if (draft.date == LocalDate.now()) {
-                        stringResource(R.string.chat_action_add_detail, categoryLabel(draft.category), draft.accountLabel)
-                    } else {
-                        stringResource(R.string.chat_action_add_detail_dated, categoryLabel(draft.category), draft.accountLabel, draft.date.format(DATE))
-                    }
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
-                color = fg
+        // The whole row is the checkbox, so a screen reader says what ticking it means.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .weight(1f)
+                .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+                .toggleable(value = row.selected, enabled = enabled, role = Role.Checkbox, onValueChange = { onToggle() })
+        ) {
+            Checkbox(
+                checked = row.selected,
+                onCheckedChange = null,
+                enabled = enabled,
+                modifier = Modifier.padding(horizontal = Spacing.smd),
+                colors = CheckboxDefaults.colors(checkedColor = fg, uncheckedColor = fg, checkmarkColor = MaterialTheme.colorScheme.tertiaryContainer)
             )
-            row.check?.let { check ->
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.Top) {
-                    Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small), tint = fg)
-                    Text(
-                        text = stringResource(
-                            when (check) {
-                                ReviewRow.Check.AMOUNT_NOT_IN_MESSAGE -> R.string.chat_action_check_amount
-                                ReviewRow.Check.REPEATED -> R.string.chat_action_check_repeat
-                                ReviewRow.Check.NOT_A_PAYMENT -> R.string.chat_action_check_not_paid
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = fg
-                    )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(text = "$amount · ${draft.merchant}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = fg)
+                Text(
+                    text = listOf(
+                        stringResource(if (draft.type == TransactionType.INCOME) R.string.rules_type_income else R.string.rules_type_expense),
+                        if (draft.date == LocalDate.now()) {
+                            stringResource(R.string.chat_action_add_detail, categoryLabel(draft.category), draft.accountLabel)
+                        } else {
+                            stringResource(R.string.chat_action_add_detail_dated, categoryLabel(draft.category), draft.accountLabel, draft.date.format(DATE))
+                        }
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = fg
+                )
+                row.check?.let { check ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.Top) {
+                        Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small), tint = fg)
+                        Text(
+                            text = stringResource(
+                                when (check) {
+                                    ReviewRow.Check.AMOUNT_NOT_IN_MESSAGE -> R.string.chat_action_check_amount
+                                    ReviewRow.Check.REPEATED -> R.string.chat_action_check_repeat
+                                    ReviewRow.Check.NOT_A_PAYMENT -> R.string.chat_action_check_not_paid
+                                }
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = fg
+                        )
+                    }
                 }
             }
         }
-        IconButton(onClick = onEdit, enabled = enabled) {
+        IconButton(onClick = onEdit, enabled = enabled, shapes = IconButtonDefaults.shapes()) {
             Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.chat_action_edit_row, draft.merchant), tint = fg)
         }
     }
@@ -235,10 +252,15 @@ private fun ReviewRowEditSheet(
                         modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(expanded = showCurrencies, onDismissRequest = { showCurrencies = false }) {
-                        (listOf(currency) + CurrencyFormatter.getSupportedCurrencies()).distinct().forEach { code ->
-                            DropdownMenuItem(
+                        val codes = (listOf(currency) + CurrencyFormatter.getSupportedCurrencies()).distinct()
+                        codes.forEachIndexed { index, code ->
+                            SelectableDropdownMenuItem(
+                                selected = code == currency,
                                 text = { Text("${CurrencyFormatter.getCurrencySymbol(code)} $code") },
-                                onClick = { currency = code; showCurrencies = false }
+                                onClick = { currency = code; showCurrencies = false },
+                                shapes = MenuDefaults.itemShape(index, codes.size),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                             )
                         }
                     }

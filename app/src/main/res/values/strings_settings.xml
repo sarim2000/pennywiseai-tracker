@@ -59,6 +59,9 @@
     <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>
     <string name="settings_budget_cycle_subtitle">Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th</string>
     <string name="settings_budget_cycle_dialog_body">Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.</string>
+    <string name="settings_budget_cycle_last_working_day">Last working day of the month</string>
+    <string name="settings_budget_cycle_last_working_day_short">Last working day</string>
+    <string name="settings_budget_cycle_last_working_day_subtitle">Anchors to the last working day of each month, adjusting for weekends</string>
 
     <!-- Contacts -->
     <string name="settings_contacts_section">Contacts</string>

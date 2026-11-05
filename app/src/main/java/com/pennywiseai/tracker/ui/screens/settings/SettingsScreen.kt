@@ -499,7 +499,11 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_budget_cycle_subtitle),
                     onClick = { showBudgetCycleDialog = true },
                     position = ListItemPosition.Single,
-                    trailingText = ordinalSuffix(budgetCycleStartDay)
+                    trailingText = if (com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(budgetCycleStartDay)) {
+                        stringResource(R.string.settings_budget_cycle_last_working_day_short)
+                    } else {
+                        ordinalSuffix(budgetCycleStartDay)
+                    }
                 )
             }
 
@@ -1178,6 +1182,40 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(Spacing.md))
 
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(budgetCycleStartDay),
+                                onClick = {
+                                    settingsViewModel.updateBudgetCycleStartDay(com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY)
+                                    showBudgetCycleDialog = false
+                                }
+                            )
+                            .padding(vertical = Spacing.xs),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(budgetCycleStartDay),
+                            onClick = {
+                                settingsViewModel.updateBudgetCycleStartDay(com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY)
+                                showBudgetCycleDialog = false
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.sm))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.settings_budget_cycle_last_working_day),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_budget_cycle_last_working_day_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
                     (1..31).forEach { day ->
                         Row(
                             modifier = Modifier
@@ -1945,6 +1983,7 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
  * digits decide the suffix (the 11/12/13 teens are always "th").
  */
 private fun ordinalSuffix(day: Int): String {
+    if (day == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) return ""
     val safe = day.coerceIn(1, 31)
     // ponytail: English-only suffixes; other languages get the bare day number.
     if (java.util.Locale.getDefault().language != "en") return "$safe"

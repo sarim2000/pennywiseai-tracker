@@ -232,8 +232,8 @@ open class UserPreferencesRepository @Inject constructor(
                     try { ThemeStyle.valueOf(it) } catch (_: Exception) { ThemeStyle.DYNAMIC }
                 } ?: ThemeStyle.DYNAMIC,
                 accentColor = preferences[PreferencesKeys.ACCENT_COLOR]?.let {
-                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.SURFACE }
-                } ?: AccentColor.SURFACE,
+                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.IRIS }
+                } ?: AccentColor.IRIS,
                 isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
                 appFont = preferences[PreferencesKeys.APP_FONT]?.let {
                     try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.SYSTEM }
@@ -253,8 +253,8 @@ open class UserPreferencesRepository @Inject constructor(
                 } ?: NavBarStyle.FLOATING,
                 hiddenNavTabs = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet(),
                 coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
-                    try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
-                } ?: CoverStyle.AURORA,
+                    try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.NONE }
+                } ?: CoverStyle.NONE,
                 userName = preferences[PreferencesKeys.USER_NAME] ?: "User",
                 profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI]
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
@@ -1286,7 +1286,7 @@ data class UserPreferences(
     val isDarkThemeEnabled: Boolean? = null, // null means follow system
     val isDynamicColorEnabled: Boolean = false, // Default to custom brand colors
     val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
-    val accentColor: AccentColor = AccentColor.SURFACE,
+    val accentColor: AccentColor = AccentColor.IRIS,
     val isAmoledMode: Boolean = false,
     val appFont: AppFont = AppFont.SYSTEM,
     val hasSkippedSmsPermission: Boolean = false,
@@ -1300,7 +1300,7 @@ data class UserPreferences(
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
     val hiddenNavTabs: Set<String> = emptySet(),
-    val coverStyle: CoverStyle = CoverStyle.AURORA,
+    val coverStyle: CoverStyle = CoverStyle.NONE,
     val userName: String = "User",
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,

@@ -106,7 +106,7 @@
     <string name="txn_detail_label_account">Account</string>
     <string name="txn_detail_label_from">From</string>
     <string name="txn_detail_label_to">To</string>
-    <string name="txn_detail_label_balance">Balance</string>
+    <string name="txn_detail_label_balance">Balance after</string>
     <string name="txn_detail_label_balance_mismatch">Balance mismatch</string>
     <string name="txn_detail_balance_mismatch_value">Off by %1$s · expected %2$s</string>
     <string name="txn_detail_add_untracked_expense">Add %1$s untracked expense</string>
@@ -263,6 +263,11 @@
     <string name="add_field_notes">Notes (Optional)</string>
     <string name="add_field_reference">Reference number (Optional)</string>
     <string name="add_field_category">Category</string>
+    <string name="add_field_currency">Currency</string>
+    <string name="add_field_date">Date</string>
+    <string name="add_field_time">Time</string>
+    <string name="add_amount_placeholder">0</string>
+    <string name="add_more_details_hint">Notes, reference, tags, receipt</string>
     <string name="add_clear">Clear</string>
     <string name="add_save">Save</string>
     <string name="add_ok">OK</string>
@@ -447,4 +452,15 @@
     <string name="tag_input_add">Add tag</string>
     <string name="tag_input_create">Create \"%1$s\"</string>
 
+    <string name="add_hint_amount">Enter an amount to save</string>
+    <string name="add_hint_merchant">Add a merchant to save</string>
+    <string name="add_hint_category">Choose a category to save</string>
+    <string name="add_hint_transfer_accounts">Choose two different accounts in the same currency to save</string>
+    <string name="add_field_account">Account</string>
+    <string name="add_merchant_placeholder">Add merchant</string>
+    <string name="add_category_placeholder">Select category</string>
+    <string name="add_notes_placeholder">Add a note</string>
+    <string name="add_reference_placeholder">Add a reference</string>
+    <string name="add_sub_next_payment">Next payment</string>
+    <string name="add_sub_service_placeholder">Add service name</string>
 </resources>

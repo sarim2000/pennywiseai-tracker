@@ -24,9 +24,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +44,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil3.compose.AsyncImage
+import com.pennywiseai.tracker.presentation.add.CurrencyFieldWidth
+import com.pennywiseai.tracker.presentation.add.LARGE_FONT_SCALE
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
@@ -91,6 +97,10 @@ import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitEditor
@@ -99,8 +109,6 @@ import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.formatAmount
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -119,7 +127,7 @@ private fun editFilledColors() = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,
     unfocusedIndicatorColor = Color.Transparent,
     focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
     disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     disabledIndicatorColor = Color.Transparent,
     disabledLabelColor = MaterialTheme.colorScheme.primary,
@@ -244,7 +252,6 @@ fun TransactionDetailScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -389,7 +396,6 @@ fun TransactionDetailScreen(
                         }
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -411,7 +417,6 @@ fun TransactionDetailScreen(
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
                 onUnmarkLoanClick = { showUnmarkLoanConfirm = true },
                 accountProfileId = accountProfileId,
-                hazeState = hazeState,
                 towardGoals = {
                     TowardGoalsSection(linkedGoals, onOpenGoal = onNavigateToGoal, onRemove = goalsViewModel::remove)
                 },
@@ -578,7 +583,6 @@ private fun TransactionDetailContent(
     onNavigateToLoanDetail: (Long) -> Unit,
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long?,
-    hazeState: HazeState,
     towardGoals: @Composable () -> Unit,
     splitWith: @Composable () -> Unit,
     modifier: Modifier = Modifier
@@ -588,7 +592,6 @@ private fun TransactionDetailContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .hazeSource(hazeState)
             .background(MaterialTheme.colorScheme.background)
             .imePadding()
             .overScrollVertical()
@@ -651,20 +654,19 @@ private fun TransactionReceipt(
     towardGoals: @Composable () -> Unit = {},
     splitWith: @Composable () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-    val typeColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
-        TransactionType.EXPENSE -> if (isDark) expense_dark else expense_light
-        TransactionType.CREDIT -> if (isDark) credit_dark else credit_light
-        TransactionType.TRANSFER -> if (isDark) transfer_dark else transfer_light
-        TransactionType.INVESTMENT -> if (isDark) investment_dark else investment_light
+    // Same rule as the list rows: spending is ink plus a true minus, so red keeps meaning
+    // over budget. The other types keep their colour.
+    val amountColor = when (transaction.transactionType) {
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
     }
     val sign = when (transaction.transactionType) {
         TransactionType.INCOME -> "+"
-        TransactionType.EXPENSE -> "-"
-        TransactionType.CREDIT -> ""
+        TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "\u2212"
         TransactionType.TRANSFER -> ""
-        TransactionType.INVESTMENT -> ""
     }
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
@@ -674,17 +676,16 @@ private fun TransactionReceipt(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        // ── Hero Header ──
+        // ── Hero Header ── one surface: merchant, then the figure it's about.
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = Dimensions.Elevation.raisedCard
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerLow
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
+                    .padding(Spacing.lg),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val heroIconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -721,9 +722,35 @@ private fun TransactionReceipt(
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.sm))
+                Spacer(modifier = Modifier.height(Spacing.xs))
 
-                // Transaction type chip
+                // Shrinks rather than breaking the figure across lines at a large font scale.
+                Text(
+                    text = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)),
+                    style = PennyWiseText.heroAmount,
+                    color = amountColor,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = PennyWiseText.autoSizeFloor,
+                        maxFontSize = PennyWiseText.heroAmount.fontSize
+                    )
+                )
+
+                if (transaction.currency.isNotEmpty() &&
+                    !transaction.currency.equals(primaryCurrency, ignoreCase = true) &&
+                    convertedAmount != null
+                ) {
+                    Text(
+                        text = "\u2248 ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(Spacing.xs))
+
+                // The type's label, under the figure: a line of text, not a chip in the card.
                 val typeLabel = stringResource(
                     when (transaction.transactionType) {
                         TransactionType.INCOME -> R.string.txn_type_income
@@ -740,172 +767,61 @@ private fun TransactionReceipt(
                     TransactionType.TRANSFER -> Icons.Default.SwapHoriz
                     TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
                 }
-                SuggestionChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            text = typeLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    },
-                    icon = {
-                        Icon(
-                            typeIcon,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = typeColor
-                        )
-                    },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = typeColor.copy(alpha = 0.12f),
-                        labelColor = typeColor,
-                        iconContentColor = typeColor
-                    ),
-                    border = null as androidx.compose.foundation.BorderStroke?
-                )
-
-                // Loan chip
-                val isDarkTheme = isSystemInDarkTheme()
-                val loanColor = if (isDarkTheme) loan_dark else loan_light
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                if (loan != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        SuggestionChip(
-                            onClick = { onNavigateToLoanDetail(loan.id) },
-                            label = {
-                                Text(
-                                    text = if (loan.direction == LoanDirection.LENT)
-                                        stringResource(R.string.txn_detail_loan_lent_to, loan.personName) else stringResource(R.string.txn_detail_loan_borrowed_from, loan.personName),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            },
-                            icon = {
-                                Icon(
-                                    Icons.Default.SwapHoriz,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small),
-                                    tint = loanColor
-                                )
-                            },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = loanColor.copy(alpha = 0.12f),
-                                labelColor = loanColor,
-                                iconContentColor = loanColor
-                            ),
-                            border = null
-                        )
-                        // Unmark-as-loan (#444): removes the loan link; deletes the
-                        // loan too if no other transactions are linked.
-                        IconButton(onClick = onUnmarkLoanClick, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = stringResource(R.string.txn_detail_unmark_loan),
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                } else if (transaction.lentSharesTotal == null) {
-                    // A split bill (#346) is already on Loans, one share per person.
-                    SuggestionChip(
-                        onClick = { viewModel.showMarkAsLoanSheet() },
-                        label = {
-                            Text(
-                                text = stringResource(R.string.txn_detail_mark_as_loan),
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        },
-                        icon = {
-                            Icon(
-                                Icons.Default.SwapHoriz,
-                                contentDescription = null,
-                                modifier = Modifier.size(Dimensions.Icon.small)
-                            )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = null as androidx.compose.foundation.BorderStroke?
-                    )
+                val typeLabelColor = if (transaction.transactionType == TransactionType.EXPENSE) {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                } else {
+                    amountColor
                 }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                Text(
-                    text = CurrencyFormatter.signed(sign, transaction.formatAmount()),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = typeColor,
-                    textAlign = TextAlign.Center
-                )
-
-                if (transaction.currency.isNotEmpty() &&
-                    !transaction.currency.equals(primaryCurrency, ignoreCase = true) &&
-                    convertedAmount != null
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
+                    Icon(
+                        typeIcon,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                        tint = typeLabelColor
+                    )
                     Text(
-                        text = "\u2248 ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = typeLabel,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = typeLabelColor
                     )
                 }
             }
         }
 
-        // ── Exclude from analytics (#451) ── placed above the detail rows so its
-        // Switch never sits under the bottom-right floating action buttons.
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
-                    .padding(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        // ── Linked loan ── a fact about this transaction, so it stays with the facts.
+        if (loan != null) {
+            val loanColor = if (isAppInDarkTheme()) loan_dark else loan_light
+            GroupedRow(
+                position = ListItemPosition.Single,
+                onClick = { onNavigateToLoanDetail(loan.id) },
+                contentPadding = PaddingValues(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs)
             ) {
                 Icon(
-                    Icons.Default.QueryStats,
+                    Icons.Default.SwapHoriz,
                     contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.medium),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = loanColor
                 )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.txn_detail_exclude_analytics_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = stringResource(R.string.txn_detail_exclude_analytics_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                RowLabels(
+                    title = if (loan.direction == LoanDirection.LENT)
+                        stringResource(R.string.txn_detail_loan_lent_to, loan.personName)
+                    else stringResource(R.string.txn_detail_loan_borrowed_from, loan.personName),
+                    titleMaxLines = 2
+                )
+                // Unmark-as-loan (#444): removes the loan link; deletes the
+                // loan too if no other transactions are linked.
+                IconButton(onClick = onUnmarkLoanClick, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.txn_detail_unmark_loan),
+                        modifier = Modifier.size(Dimensions.Icon.inline),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                // Display-only — the Row's clickable is the single toggle handler
-                // so a tap can't fire the VM call twice (Greptile #454).
-                Switch(
-                    checked = transaction.excludedFromAnalytics,
-                    onCheckedChange = null
-                )
             }
         }
-
-        towardGoals()
-
-        splitWith()
 
         // ── Details Section ──
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -1000,9 +916,8 @@ private fun TransactionReceipt(
                 transaction.accountNumber?.takeIf { it.isNotBlank() }?.let {
                     if (transaction.fromAccount == null && transaction.toAccount == null) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        val masked = if (it.length > 4) {
-                            "*".repeat(it.length - 4) + it.takeLast(4)
-                        } else it
+                        // The same mask as the account lists.
+                        val masked = "\u2022\u2022${it.takeLast(4)}"
                         DetailInfoRow(
                             icon = Icons.Default.AccountBalanceWallet,
                             label = stringResource(R.string.txn_detail_label_account),
@@ -1178,6 +1093,56 @@ private fun TransactionReceipt(
                 currency = transaction.currency
             )
         }
+
+        towardGoals()
+
+        splitWith()
+
+        // ── Loan + Exclude from analytics (#451) ── what you can do with it, after the
+        // facts you opened the screen for. A split bill (#346) is already on Loans, one
+        // share per person, so it has no "Mark as loan".
+        val showMarkAsLoan = loan == null && transaction.lentSharesTotal == null
+        GroupedList {
+            if (showMarkAsLoan) {
+                GroupedRow(
+                    position = ListItemPosition.Top,
+                    onClick = { viewModel.showMarkAsLoanSheet() }
+                ) {
+                    Icon(
+                        Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    RowLabels(
+                        title = stringResource(R.string.txn_detail_mark_as_loan),
+                        titleMaxLines = 2
+                    )
+                }
+            }
+
+            GroupedRow(
+                position = if (showMarkAsLoan) ListItemPosition.Bottom else ListItemPosition.Single,
+                onClick = { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
+            ) {
+                Icon(
+                    Icons.Default.QueryStats,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                RowLabels(
+                    title = stringResource(R.string.txn_detail_exclude_analytics_title),
+                    subtitle = stringResource(R.string.txn_detail_exclude_analytics_subtitle),
+                    titleMaxLines = 2,
+                    subtitleMaxLines = 3
+                )
+                // Display-only — the row's click is the single toggle handler
+                // so a tap can't fire the VM call twice (Greptile #454).
+                Switch(
+                    checked = transaction.excludedFromAnalytics,
+                    onCheckedChange = null
+                )
+            }
+        }
     }
 }
 
@@ -1192,7 +1157,7 @@ private fun DetailInfoRow(
             .fillMaxWidth()
             .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
         Icon(
             icon,
@@ -1203,14 +1168,15 @@ private fun DetailInfoRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.weight(1f))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
         )
     }
 }
@@ -1342,28 +1308,40 @@ private fun EditableTransactionHeader(
     ) {
         // Amount and Currency
         val primaryCurrency by viewModel.primaryCurrency.collectAsStateWithLifecycle()
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.Top
-        ) {
-            CurrencyDropdown(
-                selectedCurrency = transaction.currency.ifEmpty { primaryCurrency },
-                onCurrencySelected = { viewModel.updateCurrency(it) },
-                modifier = Modifier.width(130.dp)
-            )
-
+        val amountField: @Composable (Modifier) -> Unit = { fieldModifier ->
             TextField(
                 value = transaction.amount.stripTrailingZeros().toPlainString(),
                 onValueChange = { viewModel.updateAmount(it) },
                 label = { Text(stringResource(R.string.txn_detail_field_amount), fontWeight = FontWeight.SemiBold) },
-                textStyle = MaterialTheme.typography.headlineSmall,
+                textStyle = PennyWiseText.amountLarge,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
-                modifier = Modifier.weight(1f),
+                modifier = fieldModifier,
                 shape = editFullShape,
                 colors = editFilledColors()
             )
+        }
+        // Stacked at a large font scale, where a fixed-width code field would clip.
+        if (LocalDensity.current.fontScale > LARGE_FONT_SCALE) {
+            CurrencyDropdown(
+                selectedCurrency = transaction.currency.ifEmpty { primaryCurrency },
+                onCurrencySelected = { viewModel.updateCurrency(it) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            amountField(Modifier.fillMaxWidth())
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.Top
+            ) {
+                CurrencyDropdown(
+                    selectedCurrency = transaction.currency.ifEmpty { primaryCurrency },
+                    onCurrencySelected = { viewModel.updateCurrency(it) },
+                    modifier = Modifier.width(CurrencyFieldWidth)
+                )
+                amountField(Modifier.weight(1f))
+            }
         }
 
         // Merchant + Description (connected group)
@@ -1503,9 +1481,9 @@ private fun EditableTransactionHeader(
                         { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
                     } else null,
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
+                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         labelColor = MaterialTheme.colorScheme.onSurface
                     ),
                     border = FilterChipDefaults.filterChipBorder(
@@ -2104,13 +2082,15 @@ private fun CurrencyDropdown(
         onExpandedChange = { expanded = it },
         modifier = modifier
     ) {
+        val currencyLabel = stringResource(R.string.add_field_currency)
         TextField(
-            value = "${CurrencyFormatter.getCurrencySymbol(selectedCurrency)} $selectedCurrency",
+            value = selectedCurrency,
             onValueChange = { },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .semantics { contentDescription = currencyLabel },
             readOnly = true,
             singleLine = true,
             shape = editFullShape,
@@ -2119,7 +2099,8 @@ private fun CurrencyDropdown(
 
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            matchAnchorWidth = false
         ) {
             currencies.forEach { currency ->
                 DropdownMenuItem(
@@ -2287,7 +2268,7 @@ private fun MarkAsLoanBottomSheet(
         parsedLoanAmount > BigDecimal.ZERO &&
         parsedLoanAmount <= transactionAmount
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val loanColor = if (isDark) loan_dark else loan_light
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
@@ -2487,7 +2468,7 @@ private fun BalanceAdjustmentSheet(
     var pickedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     val shownCategory = pickedCategory ?: categories.balanceAdjustmentDefaultCategory(type)
     var expanded by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val amountColor = when {
         isIncome -> if (isDark) income_dark else income_light
         else -> if (isDark) expense_dark else expense_light

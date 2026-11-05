@@ -40,6 +40,7 @@ fun AddScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
         ) {
             // Tab Row
             PrimaryTabRow(

@@ -108,22 +108,22 @@ fun SafeToSpendCard(
         val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
         Spacer(Modifier.height(Spacing.xs))
         PerDayLine(primary, state.periodEnd.format(SHORT_DATE), dueBefore)
-        Spacer(Modifier.height(Spacing.xxs))
-        Text(
-            text = stringResource(
-                R.string.safe_to_spend_breakdown,
-                CurrencyFormatter.formatCurrency(primary.balance, primary.currency),
-                CurrencyFormatter.formatCurrency(primary.bills, primary.currency),
-                dueBefore
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // The one thing that makes the figure trustworthy at a glance; the sheet has the rest.
+        if (primary.bills.signum() > 0) {
+            Text(
+                text = stringResource(
+                    R.string.safe_to_spend_after_bills,
+                    CurrencyFormatter.formatCurrency(primary.bills, primary.currency)
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         CappedLine(primary)
         if (state.others.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.safe_to_spend_other_currencies, state.others.formatAmounts()),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -152,7 +152,7 @@ private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
             // A date, not a day count: Home's "7 days left" excludes today, this includes it.
             perDay != null -> stringResource(
                 R.string.safe_to_spend_per_day,
-                CurrencyFormatter.formatCurrency(perDay, s.currency), until
+                CurrencyFormatter.formatEstimate(perDay, s.currency), until
             )
             short -> stringResource(R.string.safe_to_spend_short, dueBefore)
             else -> stringResource(R.string.safe_to_spend_none_left, dueBefore)
@@ -238,7 +238,7 @@ fun SafeToSpendSheet(
                             )
                         } else {
                             Text(
-                                text = account.formatBalance(),
+                                text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                 style = PennyWiseText.amountRow,
                                 color = if (included) MaterialTheme.colorScheme.onSurface
                                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -265,9 +265,9 @@ fun SafeToSpendSheet(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "-" + CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency),
+                                text = CurrencyFormatter.signed("\u2212", CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency)),
                                 style = PennyWiseText.amountRow,
-                                color = MaterialTheme.colorScheme.expense
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -287,11 +287,24 @@ fun SafeToSpendSheet(
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = (listOf(primary) + state.others).formatAmounts(),
+                    text = primary.formatAmount(),
                     style = PennyWiseText.amountMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (primary.amount.signum() < 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            // Other currencies under the total, never beside it: "JD1,573.930 · $800" read as
+            // one safe-to-spend figure that included the dollars.
+            if (state.others.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.safe_to_spend_other_currencies, state.others.formatAmounts()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.md),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
                 )
             }
             Spacer(Modifier.height(Spacing.sm))

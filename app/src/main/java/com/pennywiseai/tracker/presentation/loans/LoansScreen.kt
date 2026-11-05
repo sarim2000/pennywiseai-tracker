@@ -5,7 +5,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,8 +18,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,14 +30,20 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
+
+/**
+ * Money owed to you is on its way in, so it wears income's colour. Money you owe
+ * is plain ink: it's a fact, not an alarm. One rule for the summary, rows and detail.
+ */
+internal fun ColorScheme.loanAmount(owedToYou: Boolean): Color = if (owedToYou) income else onSurface
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -48,7 +55,6 @@ fun LoansScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -64,7 +70,6 @@ fun LoansScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -120,7 +125,6 @@ fun LoansScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
@@ -148,12 +152,7 @@ fun LoansScreen(
 
             if (activePeople.isNotEmpty()) {
                 item {
-                    Text(
-                        stringResource(R.string.loans_section_active),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = Spacing.xs)
-                    )
+                    SectionHeaderV2(title = stringResource(R.string.loans_section_active), topSpacing = Spacing.none)
                 }
                 personItems(activePeople, expandedPeople, onToggle = ::toggle, onNavigateToLoanDetail, onSettleUp = { settleUpPerson = it })
             }
@@ -189,7 +188,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.personItems(
     people.forEach { person ->
         val isExpanded = person.name in expanded
         item(key = "person-${person.name}") {
-            LoanPersonRow(person = person, expanded = isExpanded, onClick = { onToggle(person.name) })
+            LoanPersonRow(person = person, expanded = isExpanded, onClick = { onToggle(person.name) }, onSettleUp = { onSettleUp(person) })
         }
         if (isExpanded) {
             items(person.loans, key = { "loan-${it.id}" }) { loan ->
@@ -199,15 +198,6 @@ private fun androidx.compose.foundation.lazy.LazyListScope.personItems(
                     modifier = Modifier.padding(start = Spacing.lg)
                 )
             }
-            if (person.hasActive) {
-                item(key = "settle-${person.name}") {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                        FilledTonalButton(onClick = { onSettleUp(person) }, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.loans_settle_up))
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -216,15 +206,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.personItems(
 private fun LoanPersonRow(
     person: LoanPerson,
     expanded: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onSettleUp: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val owedColor = if (isDark) loan_dark else loan_light
-    val oweColor = if (isDark) income_dark else income_light
-    // Tint the avatar by the first open balance's direction; grey once all settled.
-    val accent = person.net.values.firstOrNull()?.let { if (it.isOwedToYou) owedColor else oweColor }
-        ?: MaterialTheme.colorScheme.onSurfaceVariant
-
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -235,14 +219,14 @@ private fun LoanPersonRow(
                 modifier = Modifier
                     .size(Dimensions.Icon.avatar)
                     .clip(CircleShape)
-                    .background(accent.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = person.name.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = accent
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
@@ -262,9 +246,9 @@ private fun LoanPersonRow(
                         Text(
                             if (money.isOwedToYou) stringResource(R.string.loans_person_owes_you, formatted)
                             else stringResource(R.string.loans_person_you_owe, formatted),
-                            style = MaterialTheme.typography.labelMedium,
+                            style = PennyWiseText.amountSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (money.isOwedToYou) owedColor else oweColor
+                            color = MaterialTheme.colorScheme.loanAmount(money.isOwedToYou)
                         )
                     }
                 }
@@ -275,6 +259,15 @@ private fun LoanPersonRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        if (expanded && person.hasActive) {
+            FilledTonalButton(
+                onClick = onSettleUp,
+                modifier = Modifier.align(Alignment.End),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.loans_settle_up))
+            }
+        }
     }
 }
 
@@ -284,50 +277,43 @@ private fun LoanSummaryCard(
     totalBorrowed: BigDecimal,
     currency: String
 ) {
-    val isDark = isSystemInDarkTheme()
-    val lentColor = if (isDark) loan_dark else loan_light
-    val borrowedColor = if (isDark) income_dark else income_light
-
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-        Row(
+        // Two figures side by side while they fit, stacked when they don't.
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.loans_owed_to_you), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.loans_owed_to_you), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     CurrencyFormatter.formatCurrency(totalLent, currency),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = lentColor
+                    style = PennyWiseText.amountMedium,
+                    color = MaterialTheme.colorScheme.loanAmount(owedToYou = true)
                 )
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.loans_you_owe), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.loans_you_owe), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     CurrencyFormatter.formatCurrency(totalBorrowed, currency),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = borrowedColor
+                    style = PennyWiseText.amountMedium,
+                    color = MaterialTheme.colorScheme.loanAmount(owedToYou = false)
                 )
             }
         }
     }
 }
 
+/**
+ * One loan under its person's expanded row. The person is the parent row's name, so this
+ * says how the loan differs from their others: direction, when, and any note.
+ */
 @Composable
 fun LoanListItem(
     loan: LoanEntity,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
-    val directionColor = if (loan.direction == LoanDirection.LENT) {
-        if (isDark) loan_dark else loan_light
-    } else {
-        if (isDark) income_dark else income_light
-    }
-    val progressColor = if (isDark) income_dark else income_light
     val progress = if (loan.originalAmount > BigDecimal.ZERO) {
         (BigDecimal.ONE - loan.remainingAmount.divide(loan.originalAmount, 2, java.math.RoundingMode.HALF_UP))
             .toFloat().coerceIn(0f, 1f)
@@ -337,90 +323,82 @@ fun LoanListItem(
         modifier = modifier.fillMaxWidth(),
         onClick = onClick
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Person initial avatar — colored by direction
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(directionColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // The amount drops below the direction at a large font rather than crushing it.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Text(
-                    text = loan.personName.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = directionColor
+                    if (loan.direction == LoanDirection.LENT) stringResource(R.string.loans_direction_lent) else stringResource(R.string.loans_direction_borrowed),
+                    style = PennyWiseText.rowTitle,
+                    modifier = Modifier
+                        .weight(1f)
+                        .widthIn(min = Spacing.xxxl)
+                )
+                // Settled loans show what the loan was; ₹0 remaining says nothing.
+                Text(
+                    CurrencyFormatter.formatCurrency(
+                        if (loan.status == LoanStatus.SETTLED) loan.originalAmount else loan.remainingAmount,
+                        loan.currency
+                    ),
+                    style = PennyWiseText.amountRow,
+                    color = if (loan.status == LoanStatus.SETTLED) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.loanAmount(loan.direction == LoanDirection.LENT)
                 )
             }
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
+            Spacer(modifier = Modifier.height(Spacing.xs))
+
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md, Alignment.End),
+                itemVerticalAlignment = Alignment.CenterVertically
+            ) {
+                val date = loan.createdAt.format(AppDates.dateFormatter())
+                Text(
+                    // A note can quote a figure, so it hides along with the amounts.
+                    loan.note?.takeIf { it.isNotBlank() }
+                        ?.let { "$date · ${CurrencyFormatter.maskAmountsIn(it)}" }
+                        ?: date,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .widthIn(min = Spacing.xxxl)
+                )
+                if (loan.status == LoanStatus.SETTLED) {
                     Text(
-                        loan.personName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium
-                    )
-                    // Settled loans show what the loan was; ₹0 remaining says nothing.
-                    Text(
-                        CurrencyFormatter.formatCurrency(
-                            if (loan.status == LoanStatus.SETTLED) loan.originalAmount else loan.remainingAmount,
-                            loan.currency
-                        ),
-                        style = MaterialTheme.typography.bodyLarge,
+                        stringResource(R.string.loans_status_settled),
+                        style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = if (loan.status == LoanStatus.SETTLED)
-                            MaterialTheme.colorScheme.onSurfaceVariant else directionColor
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.xs))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                } else {
                     Text(
-                        if (loan.direction == LoanDirection.LENT) stringResource(R.string.loans_direction_lent) else stringResource(R.string.loans_direction_borrowed),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = directionColor
+                        stringResource(R.string.loan_detail_remaining_of, CurrencyFormatter.formatCurrency(loan.originalAmount, loan.currency)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (loan.status == LoanStatus.SETTLED) {
-                        Text(
-                            stringResource(R.string.loans_status_settled),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        Text(
-                            stringResource(R.string.loans_of_original, CurrencyFormatter.formatCurrency(loan.originalAmount, loan.currency)),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                 }
+            }
 
-                if (loan.status == LoanStatus.ACTIVE) {
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(Spacing.xs)
-                            .clip(CircleShape),
-                        color = progressColor,
-                        trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
-                }
+            if (loan.status == LoanStatus.ACTIVE) {
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Spacing.xs)
+                        .clip(CircleShape),
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    // Fills as it's repaid. A stop dot at the end made an unpaid loan's
+                    // empty track look like a full bar.
+                    drawStopIndicator = {}
+                )
             }
         }
     }

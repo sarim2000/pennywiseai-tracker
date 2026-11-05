@@ -10,6 +10,8 @@
 
     <!-- Transaction type filter -->
     <string name="filter_type_all">All</string>
+    <!-- Transactions type chip with no type picked; alone on the chip, "All" wouldn't say what it filters -->
+    <string name="filter_type_all_types">Type</string>
     <string name="filter_type_income">Income</string>
     <string name="filter_type_expense">Expense</string>
     <string name="filter_type_credit">Credit</string>

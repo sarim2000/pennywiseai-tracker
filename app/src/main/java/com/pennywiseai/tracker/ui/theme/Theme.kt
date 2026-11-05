@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -12,8 +13,11 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -87,41 +91,46 @@ internal val DarkColorScheme = darkColorScheme(
     scrim = md_theme_dark_scrim,
 )
 
+/**
+ * True when the app is drawing a dark theme. Use this, not `isSystemInDarkTheme()`:
+ * Appearance lets the user override the system, and the system's answer then picks
+ * dark-on-dark semantic colours.
+ */
+val ColorScheme.isDark: Boolean get() = background.luminance() < 0.5f
+
+/** [isDark] for the current theme. */
+@Composable
+@ReadOnlyComposable
+fun isAppInDarkTheme(): Boolean = MaterialTheme.colorScheme.isDark
+
 // Custom color extensions
 val ColorScheme.success: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) success_dark else success_light
+    get() = if (isDark) success_dark else success_light
 
 val ColorScheme.warning: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) warning_dark else warning_light
+    get() = if (isDark) warning_dark else warning_light
 
 val ColorScheme.income: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) income_dark else income_light
+    get() = if (isDark) income_dark else income_light
 
 val ColorScheme.expense: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) expense_dark else expense_light
+    get() = if (isDark) expense_dark else expense_light
 
 val ColorScheme.credit: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) credit_dark else credit_light
+    get() = if (isDark) credit_dark else credit_light
 
 val ColorScheme.transfer: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) transfer_dark else transfer_light
+    get() = if (isDark) transfer_dark else transfer_light
 
 val ColorScheme.investment: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) investment_dark else investment_light
+    get() = if (isDark) investment_dark else investment_light
 
 @Composable
 fun PennyWiseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
-    accentColor: AccentColor = AccentColor.SURFACE,
+    accentColor: AccentColor = AccentColor.IRIS,
     isAmoledMode: Boolean = false,
     appFont: AppFont = AppFont.SYSTEM,
     blurEffects: Boolean = true,
@@ -142,6 +151,12 @@ fun PennyWiseTheme(
         }
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+
+    // Light dynamic palettes put surfaceContainerLow within a hair of the background, so
+    // cards vanish. One tonal step down makes them read as cards.
+    if (!darkTheme && themeStyle != ThemeStyle.BRANDED) {
+        colorScheme = colorScheme.copy(surfaceContainerLow = colorScheme.surfaceContainer)
     }
 
     // Apply AMOLED black if enabled in dark mode
@@ -218,6 +233,23 @@ private fun onColorFor(bg: Color, darkOnColor: Color, lightOnColor: Color = Colo
     return if (lightContrast >= darkContrast) lightOnColor else darkOnColor
 }
 
+/**
+ * This accent, moved toward [ink] just far enough to read on [surface] at 4.5:1.
+ *
+ * A Rose Pine accent is often a fill colour first: Surface is `#403D52`, which is a
+ * fine container but nearly invisible as text or a selected icon on a dark card.
+ */
+internal fun Color.readableOn(surface: Color, ink: Color): Color {
+    val surfaceLum = relativeLuminance(surface)
+    return generateSequence(0f) { it + 0.05f }
+        .takeWhile { it <= 1f }
+        .map { lerp(this, ink, it) }
+        .firstOrNull { contrastRatio(relativeLuminance(it), surfaceLum) >= 4.5 }
+        ?: ink
+}
+
+private const val BRANDED_SELECTION_TINT = 0.28f
+
 fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
     val primaryColor = when (accent) {
         AccentColor.ROSE -> Dawn_Rose
@@ -263,19 +295,25 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
     }
 
     val dawnDarkOnColor = Dawn_Text
+    // The cards' fill: an accent used as a foreground must read on this.
+    val dawnSurface = Color(0xFFF2E9E1)
+    val dawnInk = Color(0xFF3B3660)
+    val readablePrimary = primaryColor.readableOn(dawnSurface, dawnInk)
+    val readableSecondary = secondaryColor.readableOn(dawnSurface, dawnInk)
+    val readableTertiary = tertiaryColor.readableOn(dawnSurface, dawnInk)
 
     return lightColorScheme(
-        primary = primaryColor,
-        onPrimary = onColorFor(primaryColor, dawnDarkOnColor),
+        primary = readablePrimary,
+        onPrimary = onColorFor(readablePrimary, dawnDarkOnColor),
         primaryContainer = primaryColor,
         onPrimaryContainer = onColorFor(primaryColor, dawnDarkOnColor),
         inversePrimary = Color(0xFF000000),
-        secondary = secondaryColor,
-        onSecondary = onColorFor(secondaryColor, dawnDarkOnColor),
-        secondaryContainer = secondaryColor,
-        onSecondaryContainer = onColorFor(secondaryColor, dawnDarkOnColor),
-        tertiary = tertiaryColor,
-        onTertiary = onColorFor(tertiaryColor, dawnDarkOnColor),
+        secondary = readableSecondary,
+        onSecondary = onColorFor(readableSecondary, dawnDarkOnColor),
+        secondaryContainer = lerp(dawnSurface, readablePrimary, BRANDED_SELECTION_TINT),
+        onSecondaryContainer = dawnInk,
+        tertiary = readableTertiary,
+        onTertiary = onColorFor(readableTertiary, dawnDarkOnColor),
         tertiaryContainer = tertiaryColor,
         onTertiaryContainer = onColorFor(tertiaryColor, dawnDarkOnColor),
         background = Color(0xFFFAF4ED),
@@ -286,8 +324,8 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         onSurfaceVariant = Color(0xFF6E6A86),
         inverseSurface = Color(0xFF26233A),
         inverseOnSurface = Color(0xFFE0DEF4),
-        error = Dawn_Love,
-        onError = onColorFor(Dawn_Love, dawnDarkOnColor),
+        error = Dawn_Love.readableOn(dawnSurface, dawnInk),
+        onError = Color.White,
         errorContainer = Dawn_Love,
         onErrorContainer = onColorFor(Dawn_Love, dawnDarkOnColor),
         surfaceBright = Color(0xFFFFFAF3),
@@ -345,19 +383,26 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
     }
 
     val rosePineDarkOnColor = Color(0xFF191724)
+    // surfaceContainerHigh: the lightest surface an accent foreground sits on routinely.
+    val rosePineSurface = Color(0xFF26233A)
+    val rosePineInk = Color(0xFFE0DEF4)
+    val readablePrimary = primaryColor.readableOn(rosePineSurface, rosePineInk)
+    val readableSecondary = secondaryColor.readableOn(rosePineSurface, rosePineInk)
+    val readableTertiary = tertiaryColor.readableOn(rosePineSurface, rosePineInk)
 
     return darkColorScheme(
-        primary = primaryColor,
-        onPrimary = onColorFor(primaryColor, rosePineDarkOnColor),
+        primary = readablePrimary,
+        onPrimary = onColorFor(readablePrimary, rosePineDarkOnColor),
         primaryContainer = primaryColor,
         onPrimaryContainer = onColorFor(primaryColor, rosePineDarkOnColor),
         inversePrimary = Color(0xFFFFFFFF),
-        secondary = secondaryColor,
-        onSecondary = onColorFor(secondaryColor, rosePineDarkOnColor),
-        secondaryContainer = secondaryColor,
-        onSecondaryContainer = onColorFor(secondaryColor, rosePineDarkOnColor),
-        tertiary = tertiaryColor,
-        onTertiary = onColorFor(tertiaryColor, rosePineDarkOnColor),
+        secondary = readableSecondary,
+        onSecondary = onColorFor(readableSecondary, rosePineDarkOnColor),
+        // App-wide selection fill: a tint of the accent, so choices read as Rose Pine.
+        secondaryContainer = lerp(rosePineSurface, readablePrimary, BRANDED_SELECTION_TINT),
+        onSecondaryContainer = rosePineInk,
+        tertiary = readableTertiary,
+        onTertiary = onColorFor(readableTertiary, rosePineDarkOnColor),
         tertiaryContainer = tertiaryColor,
         onTertiaryContainer = onColorFor(tertiaryColor, rosePineDarkOnColor),
         background = Color(0xFF191724),
@@ -365,7 +410,7 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         surface = Color(0xFF1F1D2E),
         onSurface = Color(0xFFE0DEF4),
         surfaceVariant = Color(0xFF26233A),
-        onSurfaceVariant = Color(0xFF908CAA),
+        onSurfaceVariant = RosePine_Subtle_tertiary,
         inverseSurface = Color(0xFFE0DEF4),
         inverseOnSurface = Color(0xFF26233A),
         error = RosePine_Love,

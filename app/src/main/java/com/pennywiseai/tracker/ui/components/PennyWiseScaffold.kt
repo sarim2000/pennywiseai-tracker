@@ -26,12 +26,12 @@ fun PennyWiseScaffold(
     Scaffold(
         modifier = modifier,
         topBar = customTopBar ?: {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = { if (title.isNotEmpty()) Text(title) },
                 navigationIcon = navigationIcon ?: {},
                 actions = actions,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (transparentTopBar) Color.Transparent else MaterialTheme.colorScheme.surface
+                    containerColor = if (transparentTopBar) Color.Transparent else MaterialTheme.colorScheme.background
                 )
             )
         },

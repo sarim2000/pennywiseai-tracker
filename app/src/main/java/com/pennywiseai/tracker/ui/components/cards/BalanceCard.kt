@@ -10,7 +10,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -59,8 +60,6 @@ import androidx.compose.ui.unit.dp
 import android.view.HapticFeedbackConstants
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
-import com.pennywiseai.tracker.ui.effects.frostedBlur
-import dev.chrisbanes.haze.HazeState
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income_dark
 import com.pennywiseai.tracker.ui.theme.income_light
@@ -70,6 +69,7 @@ import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
+import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -103,9 +103,11 @@ fun BalanceCard(
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     forecast: SpendForecast? = null,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
+    /** False when the Bank Accounts section below already lists them. */
+    showAccountList: Boolean = true,
+    /** First day of the current spending period, for the chart's date axis. */
+    periodStart: java.time.LocalDate? = null,
     modifier: Modifier = Modifier,
-    blurEffects: Boolean = false,
-    hazeState: HazeState = remember { HazeState() },
 ) {
     var isExpanded by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
@@ -116,7 +118,7 @@ fun BalanceCard(
         label = "chevronRotation"
     )
 
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val isPositive = monthlyChange >= BigDecimal.ZERO
     // Inverted for spending context: more spending (positive) = red, less spending (negative) = green
     val changeColor = if (monthlyChangePercent == 0) {
@@ -127,11 +129,14 @@ fun BalanceCard(
         if (isDark) income_dark else income_light
     }
 
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-
     val changeText = monthlyChangePercent?.let { percent ->
         when {
             isBalanceHidden -> "••••"
+            // Shows the figure it compares with: this is last month to the same day, a
+            // different number from the full month above it.
+            percent == 0 -> stringResource(R.string.balance_card_change_same_point) +
+                lastMonthSpendingHistory.lastOrNull()
+                    ?.let { " (${CurrencyFormatter.formatCurrency(it, currency)})" }.orEmpty()
             isPositive -> stringResource(R.string.balance_card_change_more_same_point, kotlin.math.abs(percent))
             else -> stringResource(R.string.balance_card_change_less_same_point, kotlin.math.abs(percent))
         }
@@ -143,20 +148,11 @@ fun BalanceCard(
                 .fillMaxWidth()
                 .animateContentSize(
                     animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                )
-                .then(
-                    if (blurEffects) Modifier
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                        .frostedBlur(hazeState, tint = containerColor)
-                    else Modifier
                 ),
             onClick = {
                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                 isExpanded = !isExpanded
-            },
-            colors = CardDefaults.cardColors(
-                containerColor = if (blurEffects) containerColor.copy(alpha = 0.5f) else containerColor.copy(alpha = 0.92f)
-            )
+            }
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -171,7 +167,7 @@ fun BalanceCard(
                     ) {
                         SpendingAmountHeader(
                             amountText = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                            amountStyle = PennyWiseText.amountLarge,
+                            amountStyle = PennyWiseText.heroAmount,
                             isBalanceHidden = isBalanceHidden,
                             onToggleBalanceVisibility = {
                                 view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
@@ -196,27 +192,22 @@ fun BalanceCard(
 
                         // Balance line (only if accounts exist)
                         if (accountBalances.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(Spacing.sm))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (isBalanceHidden) {
-                                        stringResource(R.string.balance_card_balance, "••••••")
-                                    } else {
-                                        stringResource(R.string.balance_card_balance, "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}")
-                                    },
-                                    style = PennyWiseText.amountSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (accountBalances.size > 1) {
-                                    Text(
-                                        text = pluralStringResource(R.plurals.balance_card_account_count, accountBalances.size, accountBalances.size),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
+                            Spacer(modifier = Modifier.height(Spacing.smd))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = Dimensions.Alpha.divider * 2)
+                            )
+                            Spacer(modifier = Modifier.height(Spacing.smd))
+                            // One sentence, so at a large font it wraps like one.
+                            Text(
+                                text = stringResource(
+                                    R.string.balance_card_balance,
+                                    balanceText(totalBalance, currency, accountBalances, isBalanceHidden)
+                                ) + if (accountBalances.size > 1) {
+                                    pluralStringResource(R.plurals.balance_card_account_count, accountBalances.size, accountBalances.size)
+                                } else "",
+                                style = PennyWiseText.amountSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 } else {
@@ -247,20 +238,21 @@ fun BalanceCard(
                             Spacer(modifier = Modifier.height(Spacing.sm))
                             ForecastRow(it, isBalanceHidden)
                         }
-                        // Spending sparkline
-                        if (spendingHistory.isNotEmpty()) {
+                        // Spending sparkline. Not while hidden: its shape gives the amounts away.
+                        if (spendingHistory.isNotEmpty() && !isBalanceHidden) {
                             Spacer(modifier = Modifier.height(Spacing.md))
-                            val expenseColor = if (isDark) expense_dark else expense_light
+                            val lineColor = MaterialTheme.colorScheme.primary
                             BalanceSparkline(
                                 data = spendingHistory,
-                                lineColor = expenseColor,
+                                lineColor = lineColor,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(SPARKLINE_HEIGHT),
-                                currency = currency,
-                                isBalanceHidden = isBalanceHidden,
+                                startDate = periodStart,
+                                scaleLabel = (spendingHistory + lastMonthSpendingHistory).maxOrNull()
+                                    ?.let { CurrencyFormatter.formatEstimate(it, currency) },
                                 comparisonData = lastMonthSpendingHistory.ifEmpty { null },
-                                comparisonLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                comparisonLineColor = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             // Legend
                             if (lastMonthSpendingHistory.isNotEmpty()) {
@@ -273,29 +265,30 @@ fun BalanceCard(
                                     Box(
                                         modifier = Modifier
                                             .size(Spacing.sm)
-                                            .background(expenseColor, CircleShape)
+                                            .background(lineColor, CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(
                                         text = stringResource(R.string.balance_card_this_month),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.md))
-                                    Box(
-                                        modifier = Modifier
-                                            .width(Spacing.smd)
-                                            .height(Spacing.xxs)
-                                            .background(
-                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                                CircleShape
+                                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                                        repeat(2) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(Spacing.xs)
+                                                    .height(Spacing.xxs)
+                                                    .background(MaterialTheme.colorScheme.onSurfaceVariant)
                                             )
-                                    )
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(
                                         text = stringResource(R.string.balance_card_last_month),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -311,13 +304,12 @@ fun BalanceCard(
                         Text(
                             text = stringResource(R.string.balance_card_this_month),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
-                        // Summary row: Income | Expenses | Lent | Saved — with colored
-                        // accent bars. FlowRow so long amounts (e.g. a 3-char "MZN"
+                        // Summary row: Income | Expenses | Lent | Saved. FlowRow so long amounts (e.g. a 3-char "MZN"
                         // prefix + big numbers across all four items) wrap onto a second
                         // line instead of crushing the last column into vertical,
                         // one-character-per-line text.
@@ -337,12 +329,7 @@ fun BalanceCard(
                             SummaryItem(
                                 label = stringResource(R.string.balance_card_summary_income),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
-                                accentColor = incomeColor
-                            )
-                            SummaryItem(
-                                label = stringResource(R.string.balance_card_summary_expenses),
-                                value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                                accentColor = expenseColor
+                                accentColor = if (isBalanceHidden || currentMonthIncome.signum() == 0) MaterialTheme.colorScheme.onSurface else incomeColor
                             )
                             if (currentMonthLent > BigDecimal.ZERO) {
                                 SummaryItem(
@@ -351,15 +338,17 @@ fun BalanceCard(
                                     accentColor = MaterialTheme.colorScheme.tertiary
                                 )
                             }
+                            // Income minus expenses. "Saved"/"Overspent" read as a verdict, and
+                            // five days into a month with no income yet that's a false alarm.
                             SummaryItem(
-                                label = stringResource(R.string.balance_card_summary_saved),
-                                value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
-                                accentColor = netColor
+                                label = stringResource(R.string.balance_card_summary_net),
+                                value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatSigned(currentMonthTotal, currency),
+                                accentColor = if (isBalanceHidden) MaterialTheme.colorScheme.onSurface else netColor
                             )
                         }
 
                         // Accounts section (only if accounts exist)
-                        if (accountBalances.isNotEmpty()) {
+                        if (showAccountList && accountBalances.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.sm))
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
@@ -369,7 +358,7 @@ fun BalanceCard(
                             Text(
                                 text = stringResource(R.string.balance_card_accounts),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                             Spacer(modifier = Modifier.height(Spacing.sm))
@@ -378,6 +367,7 @@ fun BalanceCard(
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
                                         .clickable { onAccountClick(account.bankName, account.accountLast4) }
                                         .padding(vertical = Spacing.xs),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -391,17 +381,17 @@ fun BalanceCard(
                                         } else {
                                             "${account.bankName} •• ${account.accountLast4}"
                                         },
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f, fill = false).padding(end = Spacing.md)
                                     )
                                     Text(
                                         // Use the account's own (pre-converted) currency
                                         // so an un-convertible balance shows honestly as
                                         // "$400" rather than a raw amount mislabelled with
                                         // the display currency ("MZN400").
-                                        text = if (isBalanceHidden) "••••••" else account.formatBalance(),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold,
+                                        text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                                        style = PennyWiseText.amountRow,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
@@ -413,7 +403,7 @@ fun BalanceCard(
                                 Text(
                                     text = stringResource(R.string.balance_card_credit_cards),
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -422,6 +412,7 @@ fun BalanceCard(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
                                             .clickable { onAccountClick(card.bankName, card.accountLast4) }
                                             .padding(vertical = Spacing.xs),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -429,8 +420,9 @@ fun BalanceCard(
                                     ) {
                                         Text(
                                             text = "${card.bankName} •• ${card.accountLast4}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f, fill = false).padding(end = Spacing.md)
                                         )
                                         Text(
                                             // Show the amount spent (outstanding) on the card, not
@@ -438,8 +430,7 @@ fun BalanceCard(
                                             // `balance` is the outstanding debt. Format in the
                                             // card's own currency (it may be unconverted). (#684)
                                             text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(card.balance, card.currency),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold,
+                                            style = PennyWiseText.amountRow,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
@@ -459,28 +450,16 @@ fun BalanceCard(
                             ) {
                                 Text(
                                     text = stringResource(R.string.balance_card_total),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = if (isBalanceHidden) {
-                                        "••••••"
-                                    } else {
-                                        "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
-                                    },
-                                    style = MaterialTheme.typography.titleSmall,
+                                    text = balanceText(totalBalance, currency, accountBalances, isBalanceHidden),
+                                    style = PennyWiseText.amountRow,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            if (isApproximate) {
-                                Spacer(modifier = Modifier.height(Spacing.xs))
-                                Text(
-                                    text = stringResource(R.string.balance_card_other_currency_note),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.fillMaxWidth()
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.padding(start = Spacing.md)
                                 )
                             }
                         }
@@ -493,9 +472,9 @@ fun BalanceCard(
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) stringResource(R.string.card_collapse) else stringResource(R.string.card_expand),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
-                        .size(Dimensions.Icon.small)
+                        .size(Dimensions.Icon.inline)
                         .rotate(chevronRotation)
                 )
             }
@@ -511,43 +490,59 @@ private fun SpendingAmountHeader(
     onToggleBalanceVisibility: () -> Unit,
     supportingText: String? = null
 ) {
-    Text(
-        text = stringResource(R.string.balance_card_spent_this_month),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-        fontWeight = FontWeight.Medium
-    )
-    Spacer(modifier = Modifier.height(Spacing.xs))
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-    ) {
-        AnimatedCurrencyText(
-            text = amountText,
-            style = amountStyle,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.balance_card_spent_this_month),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
         )
         IconButton(
             onClick = onToggleBalanceVisibility,
-            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+            modifier = Modifier.size(Dimensions.Component.iconButton),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                 contentDescription = if (isBalanceHidden) stringResource(R.string.balance_show) else stringResource(R.string.balance_hide),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimensions.Icon.medium)
+                modifier = Modifier.size(Dimensions.Icon.inline)
             )
         }
     }
+    AnimatedCurrencyText(
+        text = amountText,
+        style = amountStyle,
+        color = MaterialTheme.colorScheme.onSurface
+    )
     supportingText?.let { text ->
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+/**
+ * "JD1,585.930, plus $800": the balance in the chosen currency, then any accounts in other
+ * currencies. They can't be added together, and a "*" with a footnote hid that the figure
+ * left money out.
+ */
+@Composable
+private fun balanceText(
+    total: BigDecimal,
+    currency: String,
+    accounts: List<AccountBalanceEntity>,
+    hidden: Boolean
+): String {
+    if (hidden) return "••••••"
+    val others = accounts
+        .filter { it.currency != currency }
+        .sumByCurrency({ it.currency }, { it.balance })
+    val main = CurrencyFormatter.formatCurrency(total, currency)
+    return if (others.isEmpty()) main
+    else stringResource(R.string.balance_card_plus_other_currencies, main, CurrencyFormatter.formatByCurrency(others))
 }
 
 @Composable
@@ -586,21 +581,11 @@ private fun SpendingMetaRow(
                 }
             }
         }
-        if (changeText != null) Surface(
-            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest
-        ) {
-            Text(
-                text = changeText,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Medium,
-                color = changeColor,
-                modifier = Modifier.padding(
-                    horizontal = Spacing.sm,
-                    vertical = Spacing.xs
-                )
-            )
-        }
+        if (changeText != null) Text(
+            text = changeText,
+            style = MaterialTheme.typography.bodySmall,
+            color = changeColor
+        )
     }
 }
 
@@ -608,7 +593,7 @@ private fun SpendingMetaRow(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -617,7 +602,7 @@ private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
         Text(
             text = stringResource(
                 R.string.forecast_on_track,
-                if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
+                if (isBalanceHidden) "••••" else CurrencyFormatter.formatEstimate(forecast.projected, forecast.currency),
                 forecast.periodEnd.format(SHORT_DATE)
             ),
             style = MaterialTheme.typography.bodySmall,
@@ -658,11 +643,7 @@ private fun CurrencyChip(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
-        border = BorderStroke(
-            Dimensions.Component.hairline,
-            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-        )
+        color = MaterialTheme.colorScheme.surfaceContainerHighest
     ) {
         Row(
             modifier = Modifier.padding(
@@ -676,12 +657,12 @@ private fun CurrencyChip(
                 text = currency,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                color = MaterialTheme.colorScheme.onSurface
             )
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = stringResource(R.string.balance_card_change_currency),
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
         }
@@ -694,38 +675,23 @@ private fun SummaryItem(
     value: String,
     accentColor: Color
 ) {
-    Row {
-        // Colored left-border accent bar
-        Box(
-            modifier = Modifier
-                .width(Spacing.xs)
-                .height(Dimensions.Component.iconButton)
-                .background(
-                    color = accentColor,
-                    shape = RoundedCornerShape(Dimensions.CornerRadius.small)
-                )
+    Column {
+        Text(
+            text = value,
+            style = PennyWiseText.amountMedium,
+            color = accentColor,
+            // Keep the amount on one line — never break a "MZN52,245.26" into
+            // one-character-per-line text when the column gets narrow.
+            maxLines = 1,
+            softWrap = false,
         )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Column {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleSmall,
-                color = accentColor,
-                fontWeight = FontWeight.Bold,
-                // Keep the amount on one line — never break a "MZN52,245.26" into
-                // one-character-per-line text when the column gets narrow.
-                maxLines = 1,
-                softWrap = false,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                fontWeight = FontWeight.Bold
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
 /** Height of the inline spending sparkline inside the expanded balance card. */
-private val SPARKLINE_HEIGHT = Spacing.xxl + Spacing.xl
+private val SPARKLINE_HEIGHT = Spacing.xxxl + Spacing.xxl

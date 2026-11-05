@@ -55,8 +55,6 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
 
 private val ROW_DATE: DateTimeFormatter get() = AppDates.dateFormatter()
@@ -108,7 +106,6 @@ fun ImportStatementScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -146,7 +143,6 @@ fun ImportStatementScreen(
                         }
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -169,13 +165,11 @@ fun ImportStatementScreen(
                 ),
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
             )
         } else Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())

@@ -34,11 +34,12 @@
     <string name="settings_card_spend_as_expense_title">Count card spend as expense</string>
     <string name="settings_card_spend_as_expense_subtitle">Include credit-card spend in \"Spent this month\"</string>
     <string name="settings_default_currency_title">Default Currency</string>
-    <string name="settings_default_currency_subtitle">Currency used for conversions</string>
+    <string name="settings_default_currency_subtitle">Totals and conversions use this</string>
     <string name="settings_main_account_title">Main Account</string>
-    <string name="settings_main_account_subtitle">Sets your default currency</string>
+    <string name="settings_main_account_subtitle">Default currency follows this account</string>
     <string name="settings_main_account_not_set">Not set</string>
     <string name="settings_currency_field_label">Currency</string>
+    <string name="settings_main_account_field_label">Account</string>
     <string name="settings_number_format_title">Number Format</string>
     <string name="settings_number_format_subtitle">How large amounts are grouped</string>
     <string name="settings_number_format_auto">Auto</string>
@@ -53,13 +54,13 @@
     <!-- Budget -->
     <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>
-    <string name="settings_budget_cycle_subtitle">Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th</string>
+    <string name="settings_budget_cycle_subtitle">The day each monthly budget period starts</string>
     <string name="settings_budget_cycle_dialog_body">Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.</string>
 
     <!-- Contacts -->
     <string name="settings_contacts_section">Contacts</string>
     <string name="settings_contacts_vpa_title">Replace UPI VPAs with contact names</string>
-    <string name="settings_contacts_vpa_subtitle">Show \'John Doe\' instead of \'9876543210@paytm\'. Needs contacts permission.</string>
+    <string name="settings_contacts_vpa_subtitle">Show a contact\'s name instead of their UPI ID. Needs contacts permission.</string>
 
     <!-- Security -->
     <string name="settings_security_section">Security</string>
@@ -287,35 +288,61 @@
 
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamic</string>
-    <string name="appearance_style_dynamic_subtitle">Wallpaper Colors</string>
-    <string name="appearance_style_default">Default</string>
-    <string name="appearance_style_default_subtitle">Rose Pine Colors</string>
+    <string name="appearance_style_dynamic_subtitle">Wallpaper colors</string>
+    <string name="appearance_style_default">Rose Pine</string>
+    <string name="appearance_style_default_subtitle">Built-in colors</string>
 
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED Black</string>
     <string name="appearance_amoled_subtitle">Use pure black background for deeper contrast</string>
     <string name="appearance_blur_title">Blur Effects</string>
-    <string name="appearance_blur_subtitle">Enable glassmorphism blur effects in UI components</string>
+    <string name="appearance_blur_subtitle">Translucent navigation bar</string>
 
     <!-- Navigation -->
     <string name="appearance_navigation_section">Navigation</string>
     <string name="appearance_bottom_bar_section">Bottom bar</string>
     <string name="appearance_bottom_bar_subtitle">Choose which tabs to show. Home always stays.</string>
     <string name="appearance_nav_floating">Floating</string>
-    <string name="appearance_nav_floating_subtitle">Modern &amp; Sleek</string>
-    <string name="appearance_nav_normal">Normal</string>
-    <string name="appearance_nav_normal_subtitle">Standard M3</string>
+    <string name="appearance_nav_floating_subtitle">Pill with docked action</string>
+    <string name="appearance_nav_normal">Fixed</string>
+    <string name="appearance_nav_normal_subtitle">Full-width bar</string>
 
     <!-- Cover style -->
     <string name="appearance_cover_section">Cover Style</string>
+    <string name="appearance_cover_change">Change</string>
+    <string name="appearance_cover_done">Done</string>
     <string name="appearance_cover_none">None</string>
     <string name="appearance_cover_selected">Selected</string>
+    <string name="appearance_cover_aurora">Aurora</string>
+    <string name="appearance_cover_sunset">Sunset</string>
+    <string name="appearance_cover_ocean">Ocean</string>
+    <string name="appearance_cover_forest">Forest</string>
+    <string name="appearance_cover_lavender_mist">Lavender Mist</string>
+    <string name="appearance_cover_midnight">Midnight</string>
+    <string name="appearance_cover_rose_gold">Rose Gold</string>
+    <string name="appearance_cover_northern_lights">Northern Lights</string>
+
+    <!-- Theme and colours -->
+    <string name="appearance_theme_section">Theme</string>
+    <string name="appearance_colours_section">Colors</string>
+    <string name="appearance_accent_rose">Rose</string>
+    <string name="appearance_accent_iris">Iris</string>
+    <string name="appearance_accent_pine">Pine</string>
+    <string name="appearance_accent_gold">Gold</string>
+    <string name="appearance_accent_love">Love</string>
+    <string name="appearance_accent_foam">Foam</string>
+    <string name="appearance_accent_muted">Muted</string>
+    <string name="appearance_accent_subtle">Subtle</string>
+    <string name="appearance_accent_text">Text</string>
+    <string name="appearance_accent_highlight">Highlight</string>
+    <string name="appearance_accent_surface">Surface</string>
+    <string name="appearance_accent_overlay">Overlay</string>
 
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fonts</string>
     <string name="appearance_font_default">Default</string>
     <string name="appearance_font_default_subtitle">System</string>
-    <string name="appearance_font_sn_pro_subtitle">Modern Mono</string>
+    <string name="appearance_font_sn_pro_subtitle">Rounded sans</string>
 
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Webhooks</string>

@@ -28,10 +28,14 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.icons.categoryDisplayColor
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AnalyticsSummaryCard(
+    /** The period this total covers, so the figure can't be misread. */
+    scopeLabel: String,
     totalAmount: BigDecimal,
     transactionCount: Int,
     averageAmount: BigDecimal,
@@ -58,38 +62,30 @@ fun AnalyticsSummaryCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
                 .alpha(loadAlpha)
         ) {
-            // Top Row - Total and Transaction Count Badge
-            Row(
+            // Top Row - Total and Transaction Count Badge. FlowRow: at a large font the badge
+            // takes its own line rather than squeezing the total into a sliver.
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 // Total Amount - bolder typography
-                Column(modifier = Modifier.weight(1f)) {
+                Column {
                     Text(
-                        text = stringResource(R.string.analytics_summary_total),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 1.sp
+                        text = "${stringResource(R.string.analytics_summary_total)} · $scopeLabel",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     val formattedTotal = CurrencyFormatter.formatCurrency(totalAmount, currency)
-                    val isLongAmount = formattedTotal.length > 14
                     Text(
                         text = formattedTotal,
-                        style = if (isLongAmount) {
-                            MaterialTheme.typography.headlineMedium
-                        } else {
-                            MaterialTheme.typography.headlineLarge
-                        },
-                        fontWeight = FontWeight.Bold,
+                        style = PennyWiseText.amountLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Clip
+                        softWrap = false
                     )
                 }
 
@@ -97,7 +93,7 @@ fun AnalyticsSummaryCard(
                 Box(
                     modifier = Modifier
                         .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
                             shape = RoundedCornerShape(Spacing.sm)
                         )
                         .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
@@ -110,13 +106,12 @@ fun AnalyticsSummaryCard(
                             imageVector = Icons.Default.Receipt,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = pluralStringResource(R.plurals.analytics_summary_txns, transactionCount, transactionCount),
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -124,25 +119,23 @@ fun AnalyticsSummaryCard(
 
             Spacer(modifier = Modifier.height(Spacing.md))
             HorizontalDivider(
-                thickness = Dimensions.Component.dividerThicknessEmphasis,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
             )
             Spacer(modifier = Modifier.height(Spacing.md))
 
             // Bottom Row - Average and Top Category
-            Row(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                itemVerticalAlignment = Alignment.CenterVertically
             ) {
                 // Average Amount with /day suffix
                 Column {
                     Text(
                         text = stringResource(R.string.analytics_summary_average),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        letterSpacing = 1.sp
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
@@ -151,12 +144,11 @@ fun AnalyticsSummaryCard(
                             } else {
                                 CurrencyFormatter.formatCurrency(BigDecimal.ZERO, currency)
                             },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
+                            style = PennyWiseText.amountMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = stringResource(R.string.analytics_summary_per_day),
+                            text = stringResource(R.string.analytics_summary_per_transaction),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 2.dp)
@@ -169,7 +161,7 @@ fun AnalyticsSummaryCard(
                     val categoryInfo = CategoryMapping.categories[topCategory]
                         ?: CategoryMapping.categories["Others"]!!
 
-                    Column(horizontalAlignment = Alignment.End) {
+                    Column {
                         Text(
                             text = stringResource(R.string.analytics_summary_percent_of_total, topCategoryPercentage.toInt()),
                             style = MaterialTheme.typography.labelSmall,
@@ -179,7 +171,7 @@ fun AnalyticsSummaryCard(
                         Row(
                             modifier = Modifier
                                 .background(
-                                    color = CategoryMapping.colorFor(topCategory).copy(alpha = 0.15f),
+                                    color = categoryDisplayColor(topCategory).copy(alpha = 0.15f),
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
@@ -189,7 +181,7 @@ fun AnalyticsSummaryCard(
                             CategoryIcon(
                                 category = topCategory,
                                 size = 16.dp,
-                                tint = CategoryMapping.colorFor(topCategory)
+                                tint = categoryDisplayColor(topCategory)
                             )
                             Text(
                                 text = categoryLabel(topCategory),
@@ -225,7 +217,7 @@ private fun ForecastSection(forecast: SpendForecast) {
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Text(
-        text = CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
+        text = CurrencyFormatter.formatEstimate(forecast.projected, forecast.currency),
         style = MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface
@@ -255,7 +247,7 @@ private fun ForecastSection(forecast: SpendForecast) {
             Text(
                 text = stringResource(
                     R.string.analytics_forecast_stay_under,
-                    CurrencyFormatter.formatCurrency(daily, forecast.currency),
+                    CurrencyFormatter.formatEstimate(daily, forecast.currency),
                     CurrencyFormatter.formatCurrency(forecast.usual!!, forecast.currency)
                 ),
                 style = MaterialTheme.typography.bodySmall,

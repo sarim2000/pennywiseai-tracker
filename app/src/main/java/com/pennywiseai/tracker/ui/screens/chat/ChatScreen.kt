@@ -26,8 +26,9 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,8 +38,6 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import androidx.compose.ui.graphics.Color
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.TokenUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -46,7 +45,7 @@ import java.util.Date
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -66,17 +65,30 @@ fun ChatScreen(
     val downloadedMB by viewModel.downloadedMB.collectAsStateWithLifecycle()
     val totalMB by viewModel.totalMB.collectAsStateWithLifecycle()
     
-    var inputText by remember { mutableStateOf("") }
+    var inputText by remember { mutableStateOf(TextFieldValue()) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     
-    // Auto-scroll to bottom when new messages arrive
-    LaunchedEffect(messages.size, currentResponse) {
+    // A real chat starts with the user's message, so a lone reply is the greeting.
+    val isFreshChat = messages.isEmpty() || messages.singleOrNull()?.isUser == false
+    val shownMessages = remember(messages) {
+        if (messages.size == 1 && !messages.first().isUser) {
+            messages.map { it.copy(message = shortGreeting(it.message)) }
+        } else {
+            messages
+        }
+    }
+    val modelMissing = modelState == ModelState.NOT_DOWNLOADED ||
+        modelState == ModelState.DOWNLOADING ||
+        modelState == ModelState.ERROR
+
+    // Auto-scroll to bottom when new messages arrive; without a model, to the panel below them
+    LaunchedEffect(messages.size, currentResponse, modelMissing) {
         if (messages.isNotEmpty() || currentResponse.isNotEmpty()) {
             scope.launch {
                 listState.animateScrollToItem(
-                    index = if (currentResponse.isNotEmpty()) messages.size else messages.size - 1
+                    index = if (currentResponse.isNotEmpty() || modelMissing) messages.size else messages.size - 1
                 )
             }
         }
@@ -85,7 +97,6 @@ fun ChatScreen(
     // Scroll behaviors for TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = scrollBehaviorSmall
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = modifier,
@@ -95,183 +106,53 @@ fun ChatScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.chat_title),
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .hazeSource(hazeState)
             .background(MaterialTheme.colorScheme.background)
             .padding(paddingValues)
     ) {
         when (modelState) {
             ModelState.NOT_DOWNLOADED, ModelState.DOWNLOADING, ModelState.ERROR -> {
-                val isDownloading = modelState == ModelState.DOWNLOADING
-                // Show existing messages if any, but disable input
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // If no messages, show the download prompt centered
-                    if (messages.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                            ) {
-                                Icon(
-                                    Icons.Default.CloudDownload,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
-                                    style = MaterialTheme.typography.headlineSmall
-                                )
-                                Text(
-                                    text = if (isDownloading) stringResource(R.string.chat_download_progress, downloadedMB, totalMB) else stringResource(R.string.chat_model_required_body),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (isDownloading) {
-                                    LinearWavyProgressIndicator(
-                                        progress = { downloadProgress / 100f },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                    OutlinedButton(onClick = { viewModel.cancelDownload() }, shapes = ButtonDefaults.shapes()) {
-                                        Icon(
-                                            Icons.Default.Close,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text(stringResource(R.string.chat_cancel))
-                                    }
-                                } else {
-                                    Button(onClick = { viewModel.startModelDownload() }, shapes = ButtonDefaults.shapes()) {
-                                        Icon(
-                                            Icons.Default.Download,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text(stringResource(R.string.chat_download_with_size, totalMB))
-                                    }
-                                }
-                                TextButton(onClick = onNavigateToSettings, shapes = ButtonDefaults.shapes()) {
-                                    Text(stringResource(R.string.chat_settings))
-                                }
-                            }
-                        }
-                    } else {
-                        // Show existing messages (read-only)
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .overScrollVertical(),
-                            contentPadding = PaddingValues(
-                                start = Dimensions.Padding.content,
-                                end = Dimensions.Padding.content,
-                                top = Dimensions.Padding.content,
-                                bottom = Spacing.lg
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                            flingBehavior = rememberOverscrollFlingBehavior { listState }
-                        ) {
-                            items(messages) { message ->
-                                ChatMessageItem(message = message)
-                            }
-                        }
-                    }
-
-                    // Show model required banner at bottom
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.tertiaryContainer,
-                        tonalElevation = 3.dp
+                    // Any existing messages stay readable above the panel; there's no composer.
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .overScrollVertical(),
+                        contentPadding = PaddingValues(
+                            start = Dimensions.Padding.content,
+                            end = Dimensions.Padding.content,
+                            top = Dimensions.Padding.content,
+                            bottom = Spacing.lg
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        flingBehavior = rememberOverscrollFlingBehavior { listState }
                     ) {
-                        if (isDownloading) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(Dimensions.Padding.content),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = stringResource(R.string.chat_downloading_model),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.chat_download_progress, downloadedMB, totalMB),
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                    OutlinedButton(
-                                        onClick = { viewModel.cancelDownload() },
-                                        modifier = Modifier.padding(start = Spacing.sm),
-                                        shapes = ButtonDefaults.shapes()
-                                    ) {
-                                        Text(stringResource(R.string.chat_cancel))
-                                    }
-                                }
-                                LinearWavyProgressIndicator(
-                                    progress = { downloadProgress / 100f },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(Dimensions.Padding.content),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = stringResource(R.string.chat_model_required_short),
-                                        style = MaterialTheme.typography.titleSmall,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        // 1.6 GB via the system Download Manager; some phones (Samsung
-                                        // with Data saver) won't start it on mobile data.
-                                        text = stringResource(R.string.chat_model_size_hint),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                                Button(
-                                    onClick = { viewModel.startModelDownload() },
-                                    modifier = Modifier.padding(start = Spacing.sm),
-                                    shapes = ButtonDefaults.shapes()
-                                ) {
-                                    Icon(
-                                        Icons.Default.Download,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                    )
-                                    Spacer(modifier = Modifier.width(Spacing.xs))
-                                    Text(stringResource(R.string.chat_download))
-                                }
-                            }
+                        items(shownMessages) { message ->
+                            ChatMessageItem(message = message)
+                        }
+                        item {
+                            ModelActivationPanel(
+                                isDownloading = modelState == ModelState.DOWNLOADING,
+                                downloadProgress = downloadProgress,
+                                downloadedMB = downloadedMB,
+                                totalMB = totalMB,
+                                error = uiState.error?.asString(),
+                                onDownload = {
+                                    viewModel.clearError()
+                                    viewModel.startModelDownload()
+                                },
+                                onCancel = { viewModel.cancelDownload() },
+                                onOpenSettings = onNavigateToSettings
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
@@ -382,19 +263,20 @@ fun ChatScreen(
                             flingBehavior = rememberOverscrollFlingBehavior { listState },
                             reverseLayout = false
                         ) {
-                            // Example prompts when no messages
-                            if (messages.isEmpty() && currentResponse.isEmpty() && !uiState.isLoading) {
+                            items(shownMessages) { message ->
+                                ChatMessageItem(message = message)
+                            }
+
+                            // Example prompts until the user has said something
+                            if (isFreshChat && currentResponse.isEmpty() && !uiState.isLoading) {
                                 item {
                                     ChatEmptyState(
                                         onPromptClick = { prompt ->
-                                            viewModel.sendMessage(prompt)
+                                            inputText = TextFieldValue(prompt, TextRange(prompt.length))
+                                            focusRequester.requestFocus()
                                         }
                                     )
                                 }
-                            }
-
-                            items(messages) { message ->
-                                ChatMessageItem(message = message)
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
@@ -498,12 +380,12 @@ fun ChatScreen(
 
                                 FilledIconButton(
                                     onClick = {
-                                        viewModel.sendMessage(inputText)
-                                        inputText = ""
+                                        viewModel.sendMessage(inputText.text)
+                                        inputText = TextFieldValue()
                                         // Keep keyboard open by requesting focus
                                         focusRequester.requestFocus()
                                     },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
+                                    enabled = inputText.text.isNotBlank() && !uiState.isLoading,
                                     modifier = Modifier.size(48.dp),
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
@@ -521,12 +403,109 @@ fun ChatScreen(
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        // The nav steps aside for the keyboard, so its room goes too.
+                        if (!WindowInsets.isImeVisible) {
+                            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        }
                     }
                 }
             }
         }
     }
+    }
+}
+
+/**
+ * LlmRepository's greeting is a hello, a how-to and this month's snapshot. The how-to is
+ * what the example prompts show, and it promises a chat a device without the model can't
+ * have yet, so only the first and last paragraphs are shown.
+ */
+private fun shortGreeting(text: String): String {
+    val paragraphs = text.split("\n\n")
+    return if (paragraphs.size > 2) "${paragraphs.first()}\n\n${paragraphs.last()}" else text
+}
+
+/** Says what the model is and gets it: the only way forward until it's on the device. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
+@Composable
+private fun ModelActivationPanel(
+    isDownloading: Boolean,
+    downloadProgress: Int,
+    downloadedMB: Long,
+    totalMB: Long,
+    error: String?,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (isDownloading) {
+                Text(
+                    text = stringResource(R.string.chat_download_progress, downloadedMB, totalMB),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                LinearWavyProgressIndicator(
+                    progress = { downloadProgress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.chat_activation_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    // 1.6 GB via the system Download Manager; some phones (Samsung
+                    // with Data saver) won't start it on mobile data.
+                    text = stringResource(R.string.chat_model_size_hint),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                error?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                if (isDownloading) {
+                    OutlinedButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text(stringResource(R.string.chat_cancel))
+                    }
+                } else {
+                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text(stringResource(R.string.chat_download))
+                    }
+                }
+                TextButton(onClick = onOpenSettings, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.chat_settings))
+                }
+            }
+        }
     }
 }
 
@@ -755,12 +734,7 @@ fun TypingIndicator(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Start
     ) {
-        PennyWiseCardV2(
-            modifier = Modifier.widthIn(max = 280.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
+        PennyWiseCardV2(modifier = Modifier.widthIn(max = 280.dp)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
@@ -789,7 +763,7 @@ fun TypingIndicator(
                         modifier = Modifier
                             .size(8.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
                                 shape = RoundedCornerShape(50)
                             )
                     )
@@ -799,7 +773,7 @@ fun TypingIndicator(
                     Text(
                         text = status,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -822,21 +796,17 @@ fun ChatMessageItem(
             modifier = Modifier
                 .widthIn(max = 280.dp)
                 .animateContentSize(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.secondaryContainer
-            )
+            // Tonal steps of the ordinary surface: the side of the screen says who's speaking.
+            containerColor = if (message.isUser)
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            else
+                MaterialTheme.colorScheme.surfaceContainerLow
         ) {
             Text(
                 // Amounts are baked into the stored text; mask them on screen only.
                 text = com.pennywiseai.tracker.utils.CurrencyFormatter.maskAmountsIn(message.message),
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (message.isUser)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -854,10 +824,7 @@ fun ChatMessageItem(
                 Text(
                     text = timeFormat.format(Date(message.timestamp)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (message.isUser)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    else
-                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -872,24 +839,15 @@ private fun ChatEmptyState(
     val examplePrompts = listOf(
         stringResource(R.string.chat_example_prompt_coffee),
         stringResource(R.string.chat_example_prompt_salary),
-        stringResource(R.string.chat_example_prompt_groceries),
-        stringResource(R.string.chat_example_prompt_spent)
+        stringResource(R.string.chat_example_prompt_groceries)
     )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = Spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            .padding(top = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Icon(
-            Icons.Default.AutoAwesome,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-        )
-
         Text(
             text = stringResource(R.string.chat_empty_title),
             style = MaterialTheme.typography.titleMedium,
@@ -902,24 +860,15 @@ private fun ChatEmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(Spacing.sm))
-
         FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             examplePrompts.forEach { prompt ->
                 SuggestionChip(
                     onClick = { onPromptClick(prompt) },
-                    label = { Text(prompt) },
-                    icon = {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                    }
+                    label = { Text(prompt) }
                 )
             }
         }

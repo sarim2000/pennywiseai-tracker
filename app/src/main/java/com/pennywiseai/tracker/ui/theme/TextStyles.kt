@@ -63,10 +63,11 @@ object PennyWiseText {
             fontFeatureSettings = TABULAR
         )
 
-    /** Heading above a group of rows or cards. Pair with `onSurface`. */
+    /** Heading above a group of rows or cards. Pair with `onSurface`. A size above the
+     *  16sp row titles it labels: at 14sp a heading read as less than its own rows. */
     val sectionHeader: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.titleSmall
+        get() = MaterialTheme.typography.titleMedium
 
     /** The primary line of a list row — merchant, account, setting name. */
     val rowTitle: TextStyle

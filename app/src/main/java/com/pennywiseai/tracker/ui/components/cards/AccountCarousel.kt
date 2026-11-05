@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -36,12 +37,11 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
-import com.pennywiseai.tracker.ui.effects.frostedBlur
-import dev.chrisbanes.haze.HazeState
 
 @Composable
 fun AccountCarousel(
@@ -51,10 +51,7 @@ fun AccountCarousel(
     modifier: Modifier = Modifier,
     isUnifiedMode: Boolean = false,
     selectedCurrency: String,
-    blurEffects: Boolean = false,
-    hazeState: HazeState? = null,
     isAmountHidden: Boolean = true,
-    onToggleAmountsHidden: () -> Unit = {}
 ) {
     val allAccounts = bankAccounts + creditCards
 
@@ -69,10 +66,7 @@ fun AccountCarousel(
             modifier = modifier.fillMaxWidth(),
             isUnifiedMode = isUnifiedMode,
             selectedCurrency = selectedCurrency,
-            blurEffects = blurEffects,
-            hazeState = hazeState,
             isAmountHidden = isAmountHidden,
-            onToggleAmountsHidden = onToggleAmountsHidden
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { allAccounts.size })
@@ -91,10 +85,7 @@ fun AccountCarousel(
                 modifier = Modifier.fillMaxWidth(),
                 isUnifiedMode = isUnifiedMode,
                 selectedCurrency = selectedCurrency,
-                blurEffects = blurEffects,
-                hazeState = hazeState,
                 isAmountHidden = isAmountHidden,
-                onToggleAmountsHidden = onToggleAmountsHidden
             )
         }
     }
@@ -108,34 +99,21 @@ private fun AccountCarouselCard(
     modifier: Modifier = Modifier,
     isUnifiedMode: Boolean = false,
     selectedCurrency: String,
-    blurEffects: Boolean = false,
-    hazeState: HazeState? = null,
     isAmountHidden: Boolean = true,
-    onToggleAmountsHidden: () -> Unit = {}
 ) {
     // Low-balance alert: tint the home card red when a non-credit account's balance
     // is at or below its user-set threshold (matches Manage Accounts). #509
     val isLowBalance = !isCreditCard &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
-    val containerColor = when {
-        isLowBalance -> MaterialTheme.colorScheme.errorContainer.copy(
-            alpha = if (blurEffects) 0.5f else 0.7f
-        )
-        blurEffects -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-        else -> MaterialTheme.colorScheme.surfaceContainerLow
-    }
+    val containerColor =
+        if (isLowBalance) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+        else MaterialTheme.colorScheme.surfaceContainerLow
 
     val cardShape = RoundedCornerShape(16.dp)
 
     PennyWiseCardV2(
-        modifier = modifier
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(cardShape)
-                    .frostedBlur(hazeState, tint = containerColor)
-                else Modifier
-            ),
+        modifier = modifier,
         onClick = onClick,
         shape = cardShape,
         colors = CardDefaults.cardColors(containerColor = containerColor),
@@ -168,7 +146,7 @@ private fun AccountCarouselCard(
                 Text(
                     text = "••${account.accountLast4}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
                 )
             }
@@ -207,7 +185,7 @@ private fun AccountCarouselCard(
                 color = if (isLowBalance) {
                     MaterialTheme.colorScheme.error
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 }
             )
 
@@ -224,28 +202,18 @@ private fun AccountCarouselCard(
                     // account's own currency. This keeps an un-convertible balance honest
                     // (shows "$400", not "MZN400") instead of forcing the display label.
                     // Home's eye, not a per-card one: hidden by default like the rest of Home.
-                    text = if (isAmountHidden) AmountPrivacy.MASK else account.formatBalance(),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    text = if (isAmountHidden) AmountPrivacy.MASK else CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                    style = PennyWiseText.amountLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    // Shrinks to fit: a balance is never ellipsized.
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = PennyWiseText.autoSizeFloor,
+                        maxFontSize = PennyWiseText.amountLarge.fontSize
+                    ),
                     modifier = Modifier.weight(1f, fill = false)
                 )
 
-                IconButton(
-                    onClick = onToggleAmountsHidden,
-                    modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                    shapes = IconButtonDefaults.shapes()
-                ) {
-                    Icon(
-                        imageVector = if (isAmountHidden) Icons.Default.VisibilityOff
-                                      else Icons.Default.Visibility,
-                        contentDescription = if (isAmountHidden) stringResource(R.string.balance_show) else stringResource(R.string.balance_hide),
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                    )
-                }
             }
         }
     }

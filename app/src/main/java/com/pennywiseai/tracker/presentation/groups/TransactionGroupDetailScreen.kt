@@ -5,7 +5,7 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -37,8 +37,6 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -51,7 +49,6 @@ fun TransactionGroupDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
     var showExportDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.isDeleted) {
@@ -110,11 +107,14 @@ fun TransactionGroupDetailScreen(
                         }
                     }
                 },
-                hazeState = hazeState
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showAddSheet() }) {
+            FloatingActionButton(
+                onClick = { viewModel.showAddSheet() },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.group_detail_add_transaction))
             }
         }
@@ -129,7 +129,7 @@ fun TransactionGroupDetailScreen(
             return@Scaffold
         }
 
-        val isDark = isSystemInDarkTheme()
+        val isDark = isAppInDarkTheme()
         val accentColor = if (isDark) income_dark else income_light
         val expenseColor = if (isDark) expense_dark else expense_light
         val lazyListState = rememberLazyListState()
@@ -138,7 +138,6 @@ fun TransactionGroupDetailScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
@@ -348,7 +347,7 @@ private fun GroupTransactionItem(
     onRemove: () -> Unit,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val color = when (transaction.transactionType) {
         TransactionType.EXPENSE, TransactionType.CREDIT -> if (isDark) expense_dark else expense_light
         TransactionType.INCOME -> if (isDark) income_dark else income_light
@@ -475,7 +474,7 @@ private fun AddTransactionToGroupSheet(
                     contentPadding = PaddingValues(bottom = Spacing.md)
                 ) {
                     items(ungroupedTransactions, key = { it.id }) { txn ->
-                        val isDark = isSystemInDarkTheme()
+                        val isDark = isAppInDarkTheme()
                         val color = when (txn.transactionType) {
                             TransactionType.EXPENSE, TransactionType.CREDIT ->
                                 if (isDark) expense_dark else expense_light

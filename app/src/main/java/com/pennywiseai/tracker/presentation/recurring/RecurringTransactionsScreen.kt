@@ -78,8 +78,8 @@ fun RecurringTransactionsScreen(
                     if (canAddMore) editing = RecurringFormState(currency = baseCurrency)
                     else showUpgradeSheet = true
                 },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
                 Icon(Icons.Default.Add, contentDescription = stringResource(R.string.recurring_add))
             }

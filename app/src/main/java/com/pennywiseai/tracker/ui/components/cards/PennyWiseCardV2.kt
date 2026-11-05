@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
@@ -20,10 +20,8 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 /**
  * The app's standard card container.
  *
- * One card style, everywhere: `shapes.large` corners, `surfaceContainerLow`
- * fill, no elevation, and — in dark mode only — a 0.5dp hairline so the card
- * separates from an AMOLED-black background where a tonal fill alone barely
- * registers. Light mode needs no border because the tonal step is visible.
+ * One card style, everywhere: `shapes.large` corners, `surfaceContainerLow` fill, no
+ * elevation and no outline. The tonal step alone separates it, in every theme.
  *
  * Pass [contentPadding] rather than padding the content yourself, so the
  * ripple on a clickable card covers the whole surface.
@@ -62,14 +60,7 @@ fun PennyWiseCardV2(
     contentPadding: Dp = Dimensions.Padding.card,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val effectiveBorder = border ?: if (isSystemInDarkTheme()) {
-        BorderStroke(
-            width = Dimensions.Component.hairline,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)
-        )
-    } else {
-        null
-    }
+    val effectiveBorder = border
 
     when {
         onLongClick != null -> {

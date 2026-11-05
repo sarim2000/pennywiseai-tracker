@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -253,11 +254,6 @@ private fun GoalDetailContent(
                     GoalRing(progress, Dimensions.Component.goalRingLarge, Dimensions.Component.goalRingLargeStroke) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(stringResource(R.string.budgets_percent, progress.percent()), style = MaterialTheme.typography.headlineMedium)
-                            Text(
-                                CurrencyFormatter.formatCurrency(progress.saved, currency),
-                                style = PennyWiseText.amountSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                     Text(
@@ -280,14 +276,13 @@ private fun GoalDetailContent(
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                StatTile(stringResource(R.string.goal_detail_left), CurrencyFormatter.formatCurrency(progress.left, currency), Modifier.weight(1f))
-                StatTile(stringResource(R.string.goal_detail_per_month), CurrencyFormatter.formatCurrency(progress.monthlyDisplay(), currency), Modifier.weight(1f))
-            }
-        }
-        item {
             GroupedList {
-                GroupedRow(position = ListItemPosition.Single) {
+                GroupedRow(position = ListItemPosition.Top) {
+                    Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    RowLabels(title = stringResource(R.string.goal_detail_left))
+                    Text(CurrencyFormatter.formatCurrency(progress.left, currency), style = PennyWiseText.amountMedium, fontWeight = FontWeight.SemiBold)
+                }
+                GroupedRow(position = ListItemPosition.Bottom) {
                     Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     RowLabels(title = stringResource(R.string.goal_edit_due), subtitle = goal.dueDate.format(goalDateFormat))
                     Text(
@@ -345,20 +340,14 @@ private fun GoalDetailContent(
                             Text(
                                 CurrencyFormatter.signed("+", CurrencyFormatter.formatCurrency(goal.alreadySaved, currency)),
                                 style = PennyWiseText.amountRow,
+                                color = MaterialTheme.colorScheme.success,
+                                softWrap = false,
                             )
                         }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
-    PennyWiseCardV2(modifier = modifier, contentPadding = Dimensions.Padding.cardCompact) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = PennyWiseText.amountMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -378,9 +367,10 @@ private fun ContributionRow(c: GoalContributionEntity, currency: String, merchan
             subtitle = subtitle,
         )
         Text(
-            CurrencyFormatter.signed(if (withdrawal) "-" else "+", CurrencyFormatter.formatCurrency(c.amount.abs(), currency)),
+            CurrencyFormatter.signed(if (withdrawal) "−" else "+", CurrencyFormatter.formatCurrency(c.amount.abs(), currency)),
             style = PennyWiseText.amountRow,
-            color = if (withdrawal) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.success,
+            color = if (withdrawal) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.success,
+            softWrap = false,
         )
     }
 }

@@ -395,7 +395,7 @@ class ManageAccountsViewModel @Inject constructor(
                         android.util.Log.d("ManageAccountsViewModel", "Balance copied to account. Insert ID: $insertedId")
                         
                         // Show success message with balance
-                        val message = UiText.Res(R.string.manage_accounts_msg_card_linked_balance, listOf(CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)))
+                        val message = UiText.Res(R.string.manage_accounts_msg_card_linked_balance, listOf(CurrencyFormatter.formatCurrency(card.lastBalance, CurrencyFormatter.resolveAccountCurrency(null, card.currency, card.bankName))))
                         _uiState.update { it.copy(successMessage = message) }
                     } catch (e: Exception) {
                         android.util.Log.e("ManageAccountsViewModel", "Failed to copy balance: ${e.message}", e)

@@ -72,6 +72,6 @@ class HomeSectionLayoutTest {
     fun `blank or absent pref yields the default layout`() {
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode(null))
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode("  "))
-        assertEquals(HomeSection.entries.map { it to true }, HomeSectionLayout.DEFAULT)
+        assertEquals(HomeSection.entries.map { it to (it != HomeSection.ACTIVITY) }, HomeSectionLayout.DEFAULT)
     }
 }

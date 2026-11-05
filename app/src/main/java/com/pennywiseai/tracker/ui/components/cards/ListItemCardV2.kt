@@ -18,6 +18,7 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -83,6 +84,8 @@ fun ListItemPosition.toShape(): CornerBasedShape {
  * [RowLabels][com.pennywiseai.tracker.ui.components.cards.RowLabels] instead,
  * which sets it at `bodyMedium`.
  */
+private const val STACK_AMOUNT_FONT_SCALE = 1.5f
+
 @Composable
 fun ListItemCardV2(
     title: String,
@@ -99,6 +102,22 @@ fun ListItemCardV2(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
+    // At a large font the figure takes the row's width and squeezes the merchant to a
+    // sliver, so it moves onto its own line instead.
+    val stackAmount = LocalDensity.current.fontScale >= STACK_AMOUNT_FONT_SCALE
+    val amountSlot: @Composable () -> Unit = {
+        if (trailingContent != null) {
+            trailingContent()
+        } else {
+            Text(
+                text = amount,
+                style = PennyWiseText.amountRow,
+                color = amountColor,
+                maxLines = 1,
+                softWrap = false
+            )
+        }
+    }
     val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -120,7 +139,7 @@ fun ListItemCardV2(
                 Text(
                     text = title,
                     style = PennyWiseText.rowTitle,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (subtitle.isNotBlank()) {
@@ -128,24 +147,17 @@ fun ListItemCardV2(
                         text = subtitle,
                         style = PennyWiseText.metadata,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
+                        // Two lines so a large font keeps the category, not just the date.
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                if (stackAmount) amountSlot()
             }
 
-            Spacer(modifier = Modifier.width(Spacing.sm))
-
-            if (trailingContent != null) {
-                trailingContent()
-            } else {
-                Text(
-                    text = amount,
-                    style = PennyWiseText.amountRow,
-                    color = amountColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            if (!stackAmount) {
+                Spacer(modifier = Modifier.width(Spacing.sm))
+                amountSlot()
             }
         }
     }

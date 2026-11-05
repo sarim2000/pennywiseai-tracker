@@ -8,7 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,11 +24,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
@@ -81,16 +83,10 @@ fun TransactionTotalsCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(if (hasCurrencyPill) Modifier.padding(bottom = Spacing.lg) else Modifier),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
             shape = MaterialTheme.shapes.large
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(Spacing.sm)
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 if (title != null) {
                     Text(
                         text = title,
@@ -99,8 +95,10 @@ fun TransactionTotalsCard(
                         modifier = Modifier.padding(start = Spacing.xs, bottom = Spacing.xs)
                     )
                 }
-                val dark = isSystemInDarkTheme()
+                val dark = isAppInDarkTheme()
                 val netColor = when {
+                    // While hidden, the colour mustn't give away the sign either.
+                    AmountPrivacy.hidden -> MaterialTheme.colorScheme.onSurface
                     netBalance > BigDecimal.ZERO -> if (!dark) income_light else income_dark
                     netBalance < BigDecimal.ZERO -> if (!dark) expense_light else expense_dark
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
@@ -109,7 +107,7 @@ fun TransactionTotalsCard(
                     add(TotalTileData(Icons.AutoMirrored.Filled.TrendingUp, stringResource(R.string.txn_totals_income),
                         CurrencyFormatter.formatCurrency(income, currency), if (!dark) income_light else income_dark, incomeAlpha))
                     add(TotalTileData(Icons.AutoMirrored.Filled.TrendingDown, stringResource(R.string.txn_totals_expenses),
-                        CurrencyFormatter.formatCurrency(expenses, currency), if (!dark) expense_light else expense_dark, expenseAlpha))
+                        CurrencyFormatter.formatCurrency(expenses, currency), MaterialTheme.colorScheme.onSurface, expenseAlpha))
                     if (extra != null) {
                         val (extraIcon, extraLabel, extraColor) = when (extra.kind) {
                             ExtraTotalKind.CREDIT -> Triple(Icons.Filled.CreditCard, stringResource(R.string.txn_totals_credit), if (dark) credit_dark else credit_light)
@@ -118,13 +116,17 @@ fun TransactionTotalsCard(
                         }
                         add(TotalTileData(extraIcon, extraLabel, CurrencyFormatter.formatCurrency(extra.amount, currency), extraColor, expenseAlpha))
                     }
-                    val netPrefix = if (netBalance > BigDecimal.ZERO) "+" else ""
                     add(TotalTileData(Icons.Filled.SettingsEthernet, stringResource(R.string.txn_totals_net),
-                        CurrencyFormatter.signed(netPrefix, CurrencyFormatter.formatCurrency(netBalance, currency)), netColor, netAlpha))
+                        CurrencyFormatter.formatSigned(netBalance, currency), netColor, netAlpha))
                 }
                 // Four tiles in one row squeezed the amounts into a scrolling
                 // marquee; two rows of two keep every figure whole.
-                val rows = if (tiles.size > 3) tiles.chunked(2) else listOf(tiles)
+                // At large font, one per row: side by side each shrank by a different amount.
+                val rows = when {
+                    LocalDensity.current.fontScale >= 1.5f -> tiles.chunked(1)
+                    tiles.size > 3 -> tiles.chunked(2)
+                    else -> listOf(tiles)
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     rows.forEachIndexed { r, row ->
                         Row(
@@ -186,14 +188,18 @@ private fun TotalColumn(
                 )
             )
         }
+        // Shrinks to fit. A marquee here showed "580.802" mid-scroll with the sign and
+        // currency off-screen, which is a different number.
         Text(
             text = amount,
             style = PennyWiseText.amountRow,
             color = color,
             textAlign = TextAlign.Center,
             maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = PennyWiseText.autoSizeFloor,
+                maxFontSize = PennyWiseText.amountRow.fontSize
+            )
         )
     }
 }
@@ -304,14 +310,7 @@ private fun TotalTile(tile: TotalTileData, shape: RoundedCornerShape, modifier: 
         contentAlignment = Alignment.Center
     ) {
         TotalColumn(
-            icon = {
-                Icon(
-                    imageVector = tile.icon,
-                    contentDescription = tile.label,
-                    modifier = Modifier.size(Dimensions.Icon.inline),
-                    tint = tile.color
-                )
-            },
+            icon = null,
             label = tile.label,
             amount = tile.amount,
             color = tile.color,

@@ -128,12 +128,24 @@ object Dimensions {
     object Component {
         val bottomBarHeight = 80.dp
 
+        /** Widest the app's content column grows on tablets and unfolded foldables. */
+        val contentMaxWidth = 720.dp
+
+        /** From this window width the tabs move to a side rail, out of the content's way. */
+        val navRailMinWindowWidth = 600.dp
+
+        /** Wider than the Material default, whose edges "Transactions" nearly touches. */
+        val navRailWidth = 96.dp
+
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
 
         /** The selected-tab indicator inside the floating nav pill. */
-        val floatingNavIndicatorHeight = 48.dp
-        val floatingNavIndicatorWidth = 64.dp
+        val floatingNavIndicatorHeight = 28.dp
+        val floatingNavIndicatorWidth = 56.dp
+
+        /** The indicator's offset from the pill's top: centred behind the icon. */
+        val floatingNavIndicatorTop = 8.dp
 
         /** Gap between the floating nav pill and the system navigation bar. */
         val floatingNavBottomGap = 12.dp
@@ -191,6 +203,9 @@ object Dimensions {
 
         /** One column of a spreadsheet preview (statement import's column mapping, #13). */
         val tableCellWidth = 112.dp
+
+        /** Widest a bar in a bar chart grows when there are few of them. */
+        val chartBarMaxWidth = 16.dp
 
         /** The colour dot beside a chart legend entry. */
         val legendDot = 10.dp

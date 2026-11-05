@@ -3,15 +3,9 @@ package com.pennywiseai.tracker.ui.components
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -68,17 +62,15 @@ fun PreferenceSwitch(
                     LocalContentColor provides MaterialTheme.colorScheme.secondary
                 ) { leadingIcon() }
             }
-            RowLabels(title = title, subtitle = subtitle.ifBlank { null })
+            RowLabels(
+                title = title,
+                subtitle = subtitle.ifBlank { null },
+                titleMaxLines = Int.MAX_VALUE,
+                subtitleMaxLines = Int.MAX_VALUE
+            )
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                thumbContent = {
-                    Icon(
-                        if (checked) Icons.Default.Check else Icons.Default.Close,
-                        contentDescription = null,
-                        modifier = Modifier.size(SwitchDefaults.IconSize),
-                    )
-                },
             )
         }
     }

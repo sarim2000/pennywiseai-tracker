@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.yellow_on_dark
 import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
 import androidx.compose.ui.graphics.luminance
@@ -45,7 +46,7 @@ fun ProHomeCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Follows the app's theme (which can override the system), not isSystemInDarkTheme().
+    // Follows the app's theme (which can override the system), not isAppInDarkTheme().
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val container = if (dark) yellow_surface_dark else yellow_light
     val ink = if (dark) yellow_on_dark else yellow_on_light

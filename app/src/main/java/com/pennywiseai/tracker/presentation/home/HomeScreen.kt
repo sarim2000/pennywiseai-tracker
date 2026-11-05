@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.home
 
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.annotation.StringRes
@@ -20,7 +21,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -60,8 +61,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -112,9 +115,6 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.effects.frostedBlur
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -133,13 +133,54 @@ private val STACKED_AVATAR_STEP = Spacing.lg - Spacing.xs
 /** The surface-coloured ring that separates one stacked avatar from the next. */
 private val STACKED_AVATAR_RING = Spacing.xxs
 
+/** Reads new SMS on tap; long press offers the full resync. */
+@Composable
+private fun HomeSyncButton(
+    isScanning: Boolean,
+    onSync: () -> Unit,
+    onFullResync: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val syncLabel = stringResource(R.string.home_fab_sync)
+    Box(
+        modifier = modifier
+            .size(Dimensions.Component.minTouchTarget)
+            .clip(CircleShape)
+            .combinedClickable(
+                role = androidx.compose.ui.semantics.Role.Button,
+                onClickLabel = syncLabel,
+                onLongClickLabel = stringResource(R.string.home_resync_title),
+                onLongClick = onFullResync,
+                onClick = onSync
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isScanning) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .size(Dimensions.Icon.inline)
+                    .semantics { contentDescription = syncLabel },
+                strokeWidth = Spacing.xxs
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Default.Sync,
+                contentDescription = syncLabel,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** How far the list scrolls before the greeting has gone and the small bar is fully in. */
+private val GREETING_SCROLL_DISTANCE = Dimensions.Icon.avatarLarge + Spacing.md
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onAccountClick: (bankName: String, accountLast4: String) -> Unit,
-    coverStyle: CoverStyle = CoverStyle.AURORA,
-    blurEffects: Boolean = false,
+    coverStyle: CoverStyle = CoverStyle.NONE,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
@@ -186,7 +227,7 @@ fun HomeScreen(
     // Period the sheet should open on. The monthly banner points it at the finished
     // month; opening from the overflow menu uses whatever the user saved.
     var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
-    val sheetState = rememberBottomSheetState(SheetValue.Hidden)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     // Profile filter dropdown state
     var showProfileFilterMenu by remember { mutableStateOf(false) }
@@ -208,18 +249,26 @@ fun HomeScreen(
         }
     }
 
-    // Scroll behaviors for collapsible TopAppBar
-    val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
-    // Haze state for TopAppBar blur
-    val hazeState = remember { HazeState() }
-
-    // Haze state for banner blur effect
-    val hazeStateBanner = remember { HazeState() }
+    // Everything on Home follows Home's eye, not just the cards that read it directly.
+    DisposableEffect(uiState.isBalanceHidden) {
+        AmountPrivacy.hiddenOnHome = uiState.isBalanceHidden
+        onDispose { AmountPrivacy.hiddenOnHome = false }
+    }
 
     // LazyColumn scroll state for overscroll physics
     val lazyListState = rememberLazyListState()
+
+    // The greeting is the list's first item. As it leaves, the small bar fades in and
+    // the cover fades out, so nothing decorative is left behind the money.
+    val greetingHeightPx = with(LocalDensity.current) { GREETING_SCROLL_DISTANCE.toPx() }
+    val barFraction by remember {
+        derivedStateOf {
+            if (lazyListState.firstVisibleItemIndex > 0) 1f
+            else (lazyListState.firstVisibleItemScrollOffset / greetingHeightPx).coerceIn(0f, 1f)
+        }
+    }
 
     // Staggered entrance animation state — only animates on first composition.
     // Each item's effect checks its own `visible`, not hasAnimated: an item composed
@@ -298,7 +347,6 @@ fun HomeScreen(
     }
     
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         // The bottom nav bar is overlaid on top of this Scaffold by MainScreen,
         // so pad the host clear of it — otherwise snackbars (notably the
@@ -311,61 +359,26 @@ fun HomeScreen(
         },
         topBar = {
             CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
+                scrollBehaviorSmall = scrollBehavior,
+                scrollBehaviorLarge = scrollBehavior,
+                collapsedFractionOverride = barFraction,
                 title = "PennyWise",
                 isHomeScreen = true,
                 userName = uiState.userName,
                 profileImageUri = uiState.profileImageUri,
                 profileBackgroundColor = uiState.profileBackgroundColor,
-                hazeState = hazeState,
-                blurEffects = blurEffects,
                 actionContent = {
-                    val containerColor = MaterialTheme.colorScheme.surfaceContainer
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(end = Dimensions.Padding.content),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        // Subtle Pro discovery chip — yellow sparkle that ties
-                        // back to the Settings → PennyWise Pro entry. Hidden
-                        // for already-entitled users so it's never pushy.
-                        // Tap → opens the same UpgradeSheet as Settings.
-                        if (!isProEntitled) {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = com.pennywiseai.tracker.ui.theme.yellow_light,
-                                        shape = CircleShape,
-                                    )
-                                    .clickable(
-                                        onClick = { showUpgradeSheet = true },
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = stringResource(R.string.home_upgrade_pro),
-                                    tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
-                                    modifier = Modifier.size(Dimensions.Icon.inline),
-                                )
-                            }
-                        }
-
                         // Business/Personal filter dropdown
                         Box {
                             Box(
                                 modifier = Modifier
                                     .size(Dimensions.Component.iconButton)
                                     .clip(CircleShape)
-                                    .background(
-                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                        shape = CircleShape
-                                    )
                                     .clickable(
                                         onClick = { showProfileFilterMenu = true },
                                         interactionSource = remember { MutableInteractionSource() },
@@ -376,7 +389,7 @@ fun HomeScreen(
                                 Icon(
                                     imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
                                     contentDescription = stringResource(R.string.home_profile_filter),
-                                    tint = MaterialTheme.colorScheme.inverseSurface,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(Dimensions.Icon.inline)
                                 )
                             }
@@ -389,38 +402,20 @@ fun HomeScreen(
                             )
                         }
                         if (navDock != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                        shape = CircleShape
-                                    )
-                                    .clickable(
-                                        onClick = onNavigateToAddScreen,
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = stringResource(R.string.home_fab_add),
-                                    tint = MaterialTheme.colorScheme.inverseSurface,
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
-                                )
-                            }
+                            HomeSyncButton(
+                                isScanning = uiState.isScanning,
+                                onSync = { viewModel.scanSmsMessages() },
+                                onFullResync = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    showFullResyncDialog = true
+                                }
+                            )
                         }
                         // More options button
                         Box(
                             modifier = Modifier
                                 .size(Dimensions.Component.iconButton)
-                                .clip(CircleShape)
-                                .background(
-                                    color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                    shape = CircleShape
-                                )
+                                    .clip(CircleShape)
                                 .clickable(
                                     onClick = { showMenuSheet = true },
                                     interactionSource = remember { MutableInteractionSource() },
@@ -431,27 +426,11 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Default.MoreHoriz,
                                 contentDescription = stringResource(R.string.home_more_options),
-                                tint = MaterialTheme.colorScheme.inverseSurface,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(Dimensions.Icon.medium)
                             )
                         }
                     }
-                },
-                extraInfoCard = {
-                    GreetingCard(
-                        userName = uiState.userName,
-                        profileImageUri = uiState.profileImageUri,
-                        profileBackgroundColor = uiState.profileBackgroundColor,
-                        onAvatarClick = onNavigateToSettings,
-                        onMenuClick = { showMenuSheet = true },
-                        onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
-                        profiles = uiState.profiles,
-                        selectedProfileId = uiState.selectedProfileId,
-                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                        isProEntitled = isProEntitled,
-                        onUpgradeClick = { showUpgradeSheet = true },
-                        cycleEnd = currentCycleWindow.second
-                    )
                 }
             )
         }
@@ -461,10 +440,10 @@ fun HomeScreen(
         if (coverStyle != CoverStyle.NONE) {
             CoverGradientBanner(
                 coverStyle = coverStyle,
-                hazeStateBanner = hazeStateBanner,
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
+                    .graphicsLayer { alpha = 1f - barFraction }
             )
         }
 
@@ -473,17 +452,45 @@ fun HomeScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .overScrollVertical(),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
             contentPadding = PaddingValues(
-                top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + Spacing.xs,
                 // Clears the nav bar plus the Add + Sync FAB stack above it.
                 bottom = Dimensions.Component.bottomBarHeight +
                     Dimensions.Component.fabScrollClearance
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
+            item {
+                GreetingCard(
+                    userName = uiState.userName,
+                    profileImageUri = uiState.profileImageUri,
+                    profileBackgroundColor = uiState.profileBackgroundColor,
+                    onAvatarClick = onNavigateToSettings,
+                    onMenuClick = { showMenuSheet = true },
+                    syncAction = if (navDock != null) {
+                        {
+                            HomeSyncButton(
+                                isScanning = uiState.isScanning,
+                                onSync = { viewModel.scanSmsMessages() },
+                                onFullResync = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    showFullResyncDialog = true
+                                },
+                                modifier = Modifier.spotlightTarget(onFabPositioned)
+                            )
+                        }
+                    } else null,
+                    profiles = uiState.profiles,
+                    selectedProfileId = uiState.selectedProfileId,
+                    onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                    isProEntitled = isProEntitled,
+                    onUpgradeClick = { showUpgradeSheet = true },
+                    cycleEnd = currentCycleWindow.second
+                )
+            }
+
             // 1. Balance Card (0ms delay)
             item {
                 val visible = remember { mutableStateOf(hasAnimated) }
@@ -504,8 +511,6 @@ fun HomeScreen(
                     } else {
                         com.pennywiseai.tracker.ui.components.cards.BalanceCard(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                            blurEffects = blurEffects,
-                            hazeState = hazeStateBanner,
                             userName = uiState.userName,
                             totalBalance = uiState.totalBalance,
                             monthlyChange = uiState.monthlyChange,
@@ -530,6 +535,10 @@ fun HomeScreen(
                             creditCards = uiState.creditCards,
                             totalAvailableCredit = uiState.totalAvailableCredit,
                             forecast = uiState.spendForecast,
+                            periodStart = currentCycleWindow.first,
+                            showAccountList = homeSectionLayout.none { (section, visible) ->
+                                section == HomeSection.ACCOUNTS && visible
+                            },
                             onAccountClick = onAccountClick
                         )
                     }
@@ -601,7 +610,7 @@ fun HomeScreen(
             val visibleSections = homeSectionLayout.filter { it.second }.map { it.first }
             // Mirrors each branch's own data guard below, so an empty section first in
             // line doesn't drag the promo up under the balance card.
-            val promoAfter = visibleSections.firstOrNull { section ->
+            val promoAfter = visibleSections.firstOrNull { it == HomeSection.RECENT_TRANSACTIONS } ?: visibleSections.firstOrNull { section ->
                 when (section) {
                     HomeSection.SAFE_TO_SPEND -> safeToSpend != null
                     HomeSection.BUDGETS -> uiState.budgetSummary != null
@@ -678,8 +687,7 @@ fun HomeScreen(
                                         BudgetCarousel(
                                             summary = summary,
                                             onClick = onNavigateToBudgets,
-                                            onCreateBudget = onNavigateToBudgets,
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                            onCreateBudget = onNavigateToBudgets
                                         )
                                     }
                                 }
@@ -907,6 +915,8 @@ fun HomeScreen(
                                         description = stringResource(R.string.home_empty_description),
                                         actionLabel = stringResource(R.string.home_empty_action),
                                         onAction = { viewModel.scanSmsMessages() },
+                                        secondaryActionLabel = stringResource(R.string.home_empty_add_manually),
+                                        onSecondaryAction = onNavigateToAddScreen,
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                         ghostContent = {
                                             Column(
@@ -935,18 +945,20 @@ fun HomeScreen(
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
                                     ) {
                                         val profileAccountKeys = remember(uiState.accountBalances) {
                                             buildProfileAccountKeys(uiState.accountBalances)
                                         }
-                                        uiState.recentItems.forEach { item ->
+                                        uiState.recentItems.forEachIndexed { index, item ->
                                             when (item) {
                                                 is HomeRecentItem.SingleTransaction -> TransactionItem(
                                                     transaction = item.transaction,
                                                     convertedAmount = item.convertedAmount,
                                                     displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
                                                     showTypeLabel = false,
+                                                    showBalanceAfter = false,
+                                                    listItemPosition = ListItemPosition.from(index, uiState.recentItems.size),
                                                     profileAccountKeys = profileAccountKeys,
                                                     onClick = { onTransactionClick(item.transaction.id) }
                                                 )
@@ -1003,10 +1015,7 @@ fun HomeScreen(
                                             onAccountClick = onAccountClick,
                                             isUnifiedMode = uiState.isUnifiedMode,
                                             selectedCurrency = uiState.selectedCurrency,
-                                            blurEffects = blurEffects,
-                                            hazeState = hazeStateBanner,
                                             isAmountHidden = uiState.isBalanceHidden,
-                                            onToggleAmountsHidden = { viewModel.toggleBalanceVisibility() }
                                         )
                                     }
                                 }
@@ -1053,9 +1062,7 @@ fun HomeScreen(
                                                 nextDue = uiState.nextDueSubscription,
                                                 isUnified = uiState.isUnifiedMode,
                                                 currency = uiState.selectedCurrency,
-                                                onClick = onNavigateToSubscriptions,
-                                                blurEffects = blurEffects,
-                                                hazeState = hazeStateBanner
+                                                onClick = onNavigateToSubscriptions
                                             )
                                         }
                                     }
@@ -1113,13 +1120,12 @@ fun HomeScreen(
                                 ) {
                                     SectionHeaderV2(
                                         title = stringResource(R.string.home_section_activity),
+                                        subtitle = stringResource(R.string.home_activity_subtitle),
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                     )
                                     com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
                                         transactionHeatmap = uiState.transactionHeatmap,
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        blurEffects = blurEffects,
-                                        hazeState = hazeStateBanner
+                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                     )
                                 }
                             }
@@ -1134,21 +1140,13 @@ fun HomeScreen(
         
 
         if (navDock != null) {
-            // Sync docks beside the floating nav bar; Add lives in the header.
-            val syncLabel = stringResource(R.string.home_fab_sync)
-            val fullResyncLabel = stringResource(R.string.home_resync_title)
+            // Add docks beside the floating nav bar, as on the Transactions tab, so that
+            // spot always means the same thing. Sync lives in the header.
             DockNavAction(
                 NavDockAction(
-                    icon = Icons.Default.Sync,
-                    contentDescription = syncLabel,
-                    onClick = { viewModel.scanSmsMessages() },
-                    onLongClick = {
-                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        showFullResyncDialog = true
-                    },
-                    onLongClickLabel = fullResyncLabel,
-                    loading = uiState.isScanning,
-                    onPositioned = onFabPositioned
+                    icon = Icons.Default.Add,
+                    contentDescription = stringResource(R.string.home_fab_add),
+                    onClick = onNavigateToAddScreen
                 )
             )
         } else {
@@ -1659,9 +1657,9 @@ private fun BreakdownRow(
                 fontWeight = FontWeight.Normal
             ),
             color = if (isIncome) {
-                if (!isSystemInDarkTheme()) income_light else income_dark
+                if (!isAppInDarkTheme()) income_light else income_dark
             } else {
-                if (!isSystemInDarkTheme()) expense_light else expense_dark
+                if (!isAppInDarkTheme()) expense_light else expense_dark
             }
         )
     }
@@ -1676,26 +1674,10 @@ private fun UpcomingSubscriptionsCard(
     isUnified: Boolean = false,
     currency: String,
     onClick: () -> Unit = {},
-    blurEffects: Boolean = false,
-    hazeState: HazeState? = null
 ) {
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.secondaryContainer
-
     PennyWiseCardV2(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .frostedBlur(hazeState, tint = containerColor)
-                else Modifier
-            ),
+        modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
         contentPadding = Dimensions.Padding.content
     ) {
         Row(
@@ -1710,7 +1692,7 @@ private fun UpcomingSubscriptionsCard(
                 modifier = Modifier.weight(1f)
             ) {
                 if (subscriptions.isNotEmpty()) {
-                    val maxIcons = 4
+                    val maxIcons = 1
                     val visibleSubs = subscriptions.take(maxIcons)
                     val extraCount = subscriptions.size - maxIcons
                     // Overlapping avatar stack. The trailing Spacer reserves the
@@ -1817,12 +1799,6 @@ private fun UpcomingSubscriptionsCard(
                     }
                 }
             }
-            Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }
@@ -1835,9 +1811,6 @@ private fun ActiveLoansSummaryCard(
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
-
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick
@@ -1851,7 +1824,7 @@ private fun ActiveLoansSummaryCard(
             Icon(
                 imageVector = Icons.Default.SwapHoriz,
                 contentDescription = null,
-                tint = loanColor,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -1878,12 +1851,6 @@ private fun ActiveLoansSummaryCard(
                     )
                 }
             }
-            Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = loanColor,
-                fontWeight = FontWeight.Medium
-            )
         }
     }
 }

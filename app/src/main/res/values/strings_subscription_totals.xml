@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- ══ Home subscriptions card: next due charge ══ -->
-    <!-- %1$s is the merchant, %2$s is when it is due (one of the strings below). -->
+    <!-- %1$s is the merchant (Home) or the date (Subscriptions), %2$s is when it is due (one of the strings below). -->
     <string name="home_subscriptions_next_due">Next: %1$s · %2$s</string>
     <string name="home_subscriptions_due_today">today</string>
     <string name="home_subscriptions_due_tomorrow">tomorrow</string>
@@ -10,4 +10,5 @@
         <item quantity="one">in %1$d day</item>
         <item quantity="other">in %1$d days</item>
     </plurals>
+    <string name="subscriptions_recurring_income_section">Recurring income</string>
 </resources>

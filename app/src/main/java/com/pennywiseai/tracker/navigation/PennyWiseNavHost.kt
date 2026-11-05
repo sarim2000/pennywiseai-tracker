@@ -1,5 +1,19 @@
 package com.pennywiseai.tracker.navigation
 
+import com.pennywiseai.tracker.ui.theme.Spacing
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.WindowInsets
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Box
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SharedTransitionLayout
@@ -85,7 +99,21 @@ fun rememberEntryDecorators(): List<NavEntryDecorator<NavKey>> = listOf(
  */
 fun withRouteArgs(provider: (NavKey) -> NavEntry<NavKey>): (NavKey) -> NavEntry<NavKey> = { key ->
     val entry = provider(key)
-    NavEntry(navEntry = entry) { k: NavKey -> RouteArgs(k) { entry.Content() } }
+    NavEntry(navEntry = entry) { k: NavKey ->
+        RouteArgs(k) {
+            // Phone layouts stretched across a tablet put amounts a screen-width away from
+            // what they belong to, so every screen keeps a readable, centred column. The
+            // root Home entry is the tab shell, which stays full width for its rail; the Home
+            // tab inside it caps itself.
+            // ponytail: one centred column plus a rail; two-pane screens if tablets matter.
+            if (k == Home) entry.Content()
+            else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Box(Modifier.fillMaxHeight().widthIn(max = Dimensions.Component.contentMaxWidth)) {
+                    entry.Content()
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -137,9 +165,13 @@ fun PennyWiseNavHost(
     val fadeOnly = remember(motion) { fadeOnly(motion) }
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
+    Box(
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.TopCenter
+    ) {
     NavDisplay(
         backStack = backStack,
-        modifier = modifier.background(MaterialTheme.colorScheme.background),
+        modifier = Modifier.fillMaxSize(),
         entryDecorators = rememberEntryDecorators(),
         transitionSpec = enterSlide,
         popTransitionSpec = popSlide,
@@ -499,6 +531,21 @@ fun PennyWiseNavHost(
         }
         })
     )
+    // Rows fade out above the gesture bar on every screen, instead of text running into it.
+    Box(
+        Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .windowInsetsBottomHeight(WindowInsets.navigationBars.add(WindowInsets(bottom = Spacing.sm)))
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    0.7f to MaterialTheme.colorScheme.background,
+                    1f to MaterialTheme.colorScheme.background
+                )
+            )
+    )
+    }
     }
     }
 }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import androidx.compose.foundation.layout.FlowRow
 import android.os.Build
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,14 +26,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,6 +44,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -52,12 +57,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -68,6 +76,7 @@ import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
@@ -153,8 +162,6 @@ import com.pennywiseai.tracker.ui.theme.RosePine_Text_tertiary
 import com.pennywiseai.tracker.ui.theme.SNProFontFamily
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,7 +173,6 @@ fun AppearanceScreen(
 
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -175,7 +181,6 @@ fun AppearanceScreen(
                 title = stringResource(R.string.appearance_title),
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                hazeState = hazeState,
                 hasBackButton = true,
                 navigationContent = { NavigationContent(onNavigateBack) }
             )
@@ -188,7 +193,6 @@ fun AppearanceScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(state = hazeState)
                     .overScrollVertical()
                     .verticalScroll(rememberScrollState())
                     .padding(
@@ -196,17 +200,60 @@ fun AppearanceScreen(
                     ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                // Theme section: Mode + Style + Accent + AMOLED/Blur toggles
-                Column(
-                    modifier = Modifier.animateContentSize(),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
+                // Theme section: Mode + AMOLED/Blur toggles
+                SectionHeaderV2(
+                    title = stringResource(R.string.appearance_theme_section),
+                    modifier = Modifier.padding(start = Dimensions.Padding.content),
+                    topSpacing = Spacing.none
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     // Theme Mode Selector (System / Light / Dark)
                     ThemeModeSelector(
                         currentMode = themeUiState.isDarkTheme,
                         onModeSelected = { themeViewModel.updateDarkTheme(it) }
                     )
 
+                    // AMOLED + Blur grouped toggles. Both rows are conditional,
+                    // so positions are derived from which ones are actually
+                    // showing — a hand-maintained isFirst/isLast pair got this
+                    // wrong whenever only one row was visible.
+                    val showAmoled = themeUiState.isDarkTheme != false
+                    val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                    val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0)
+                    GroupedList(modifier = Modifier.padding(horizontal = Spacing.md)) {
+                        if (showAmoled) {
+                            PreferenceSwitch(
+                                title = stringResource(R.string.appearance_amoled_title),
+                                subtitle = stringResource(R.string.appearance_amoled_subtitle),
+                                checked = themeUiState.isAmoledMode,
+                                onCheckedChange = { themeViewModel.updateAmoledMode(it) },
+                                leadingIcon = { NeutralIconTile(Icons.Default.DarkMode) },
+                                position = ListItemPosition.from(0, toggleCount)
+                            )
+                        }
+
+                        if (showBlur) {
+                            PreferenceSwitch(
+                                title = stringResource(R.string.appearance_blur_title),
+                                subtitle = stringResource(R.string.appearance_blur_subtitle),
+                                checked = themeUiState.blurEffectsEnabled,
+                                onCheckedChange = { themeViewModel.updateBlurEffects(it) },
+                                leadingIcon = { NeutralIconTile(Icons.Default.BlurOn) },
+                                position = ListItemPosition.from(toggleCount - 1, toggleCount)
+                            )
+                        }
+                    }
+                }
+
+                // Colours section: Style + Accent
+                SectionHeaderV2(
+                    title = stringResource(R.string.appearance_colours_section),
+                    modifier = Modifier.padding(start = Dimensions.Padding.content)
+                )
+                Column(
+                    modifier = Modifier.animateContentSize(),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
                     // Theme Style Selector (Dynamic / Branded)
                     ThemeStyleSelector(
                         currentStyle = themeUiState.themeStyle,
@@ -223,7 +270,7 @@ fun AppearanceScreen(
                         val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
 
                         LazyRow(
-                            contentPadding = PaddingValues(Spacing.md),
+                            contentPadding = PaddingValues(horizontal = Spacing.md),
                             horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
                             items(AccentColor.entries) { accent ->
@@ -233,6 +280,7 @@ fun AppearanceScreen(
                                 val isSelected = themeUiState.accentColor == accent
 
                                 ColorSchemeBox(
+                                    name = accentColorName(accent),
                                     accent = color,
                                     secondary = secondary,
                                     tertiary = tertiary,
@@ -240,46 +288,6 @@ fun AppearanceScreen(
                                     isSelected = isSelected
                                 )
                             }
-                        }
-                    }
-
-                    // AMOLED + Blur grouped toggles. Both rows are conditional,
-                    // so positions are derived from which ones are actually
-                    // showing — a hand-maintained isFirst/isLast pair got this
-                    // wrong whenever only one row was visible.
-                    val showAmoled = themeUiState.isDarkTheme != false
-                    val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0)
-                    GroupedList {
-                        if (showAmoled) {
-                            PreferenceSwitch(
-                                title = stringResource(R.string.appearance_amoled_title),
-                                subtitle = stringResource(R.string.appearance_amoled_subtitle),
-                                checked = themeUiState.isAmoledMode,
-                                onCheckedChange = { themeViewModel.updateAmoledMode(it) },
-                                leadingIcon = {
-                                    IconTile(
-                                        icon = Icons.Default.DarkMode,
-                                        containerColor = if (themeUiState.isAmoledMode) {
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        } else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        contentColor = if (themeUiState.isAmoledMode) {
-                                            MaterialTheme.colorScheme.onPrimaryContainer
-                                        } else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                },
-                                position = ListItemPosition.from(0, toggleCount)
-                            )
-                        }
-
-                        if (showBlur) {
-                            PreferenceSwitch(
-                                title = stringResource(R.string.appearance_blur_title),
-                                subtitle = stringResource(R.string.appearance_blur_subtitle),
-                                checked = themeUiState.blurEffectsEnabled,
-                                onCheckedChange = { themeViewModel.updateBlurEffects(it) },
-                                position = ListItemPosition.from(toggleCount - 1, toggleCount)
-                            )
                         }
                     }
                 }
@@ -301,39 +309,39 @@ fun AppearanceScreen(
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 val hideableTabs = BottomNavItem.hideable
-                GroupedList {
+                GroupedList(modifier = Modifier.padding(horizontal = Spacing.md)) {
                     hideableTabs.forEachIndexed { index, tab ->
                         val shown = tab.route !in themeUiState.hiddenNavTabs
                         PreferenceSwitch(
                             title = stringResource(tab.titleRes),
                             checked = shown,
                             onCheckedChange = { themeViewModel.setNavTabVisible(tab.route, it) },
-                            leadingIcon = {
-                                IconTile(
-                                    icon = tab.icon,
-                                    containerColor = if (shown) {
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    } else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    contentColor = if (shown) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            },
+                            leadingIcon = { NeutralIconTile(tab.icon) },
                             position = ListItemPosition.from(index, hideableTabs.size)
                         )
                     }
                 }
 
                 // Cover Style Section
+                // Folded: nine previews outweighed every setting around them.
+                var showCovers by rememberSaveable { mutableStateOf(false) }
                 SectionHeaderV2(
                     title = stringResource(R.string.appearance_cover_section),
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
+                    subtitle = coverStyleName(themeUiState.coverStyle),
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                    action = {
+                        TextButton(onClick = { showCovers = !showCovers }, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(if (showCovers) R.string.appearance_cover_done else R.string.appearance_cover_change))
+                        }
+                    }
                 )
-                CoverStyleSelector(
-                    currentStyle = themeUiState.coverStyle,
-                    isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme(),
-                    onStyleSelected = { themeViewModel.updateCoverStyle(it) }
-                )
+                AnimatedVisibility(visible = showCovers) {
+                    CoverStyleSelector(
+                        currentStyle = themeUiState.coverStyle,
+                        isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme(),
+                        onStyleSelected = { themeViewModel.updateCoverStyle(it) }
+                    )
+                }
 
                 // Font Selection Section
                 SectionHeaderV2(
@@ -358,7 +366,6 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
     Box(
         modifier = Modifier
             .animateContentSize()
-            .padding(start = 16.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -367,16 +374,11 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
     ) {
         IconButton(
             onClick = onNavigateBack,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onBackground
-            ),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.appearance_back),
-                modifier = Modifier.size(Dimensions.Icon.small)
+                contentDescription = stringResource(R.string.appearance_back)
             )
         }
     }
@@ -389,240 +391,243 @@ private fun ThemeModeSelector(
     currentMode: Boolean?,
     onModeSelected: (Boolean?) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        data class ModeOption(
-            val label: String,
-            val icon: androidx.compose.ui.graphics.vector.ImageVector,
-            val value: Boolean?,
-            val topStart: Int, val topEnd: Int,
-            val bottomStart: Int, val bottomEnd: Int
-        )
-
-        val options = listOf(
-            ModeOption(stringResource(R.string.appearance_mode_system), Icons.Default.AutoAwesome, null, 16, 4, 16, 4),
-            ModeOption(stringResource(R.string.appearance_mode_light), Icons.Default.LightMode, false, 4, 4, 4, 4),
-            ModeOption(stringResource(R.string.appearance_mode_dark), Icons.Default.DarkMode, true, 4, 16, 4, 16)
-        )
-
-        options.forEachIndexed { index, option ->
-            val isSelected = currentMode == option.value
-            val shape = RoundedCornerShape(
-                topStart = option.topStart.dp,
-                topEnd = option.topEnd.dp,
-                bottomStart = option.bottomStart.dp,
-                bottomEnd = option.bottomEnd.dp
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(shape)
-                    .background(
-                        color = if (isSelected) MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = shape
-                    )
-                    .padding(horizontal = Spacing.xs, vertical = Spacing.md)
-                    .clickable(
-                        onClick = { onModeSelected(option.value) },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        option.icon,
-                        contentDescription = null,
-                        tint = if (isSelected) MaterialTheme.colorScheme.onSecondary
-                        else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                    Text(
-                        text = option.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        color = if (isSelected) MaterialTheme.colorScheme.onSecondary
-                        else MaterialTheme.colorScheme.onSurface,
-                    )
+    ConnectedChoiceRow(
+        options = listOf<Boolean?>(null, false, true),
+        selected = currentMode,
+        onSelect = onModeSelected,
+        label = { mode ->
+            stringResource(
+                when (mode) {
+                    null -> R.string.appearance_mode_system
+                    false -> R.string.appearance_mode_light
+                    true -> R.string.appearance_mode_dark
                 }
-            }
-
-            if (index < options.lastIndex) {
-                Spacer(modifier = Modifier.width(2.dp))
-            }
-        }
-    }
+            )
+        },
+        modifier = Modifier.padding(horizontal = Spacing.md)
+    )
 }
 
-// --- Theme Style Selector (Dynamic / Branded) ---
+// --- Theme Style Selector (Dynamic / Rose Pine) ---
 
 @Composable
 private fun ThemeStyleSelector(
     currentStyle: ThemeStyle,
     onStyleSelected: (ThemeStyle) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            // Dynamic Option (only on Android 12+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(80.dp)
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                        .background(
-                            color = if (currentStyle == ThemeStyle.DYNAMIC)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                        .clickable { onStyleSelected(ThemeStyle.DYNAMIC) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(R.string.appearance_style_dynamic),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (currentStyle == ThemeStyle.DYNAMIC)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.appearance_style_dynamic_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (currentStyle == ThemeStyle.DYNAMIC)
-                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Default/Branded Option
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .background(
-                        color = if (currentStyle == ThemeStyle.BRANDED)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onStyleSelected(ThemeStyle.BRANDED) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.appearance_style_default),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (currentStyle == ThemeStyle.BRANDED)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_style_default_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (currentStyle == ThemeStyle.BRANDED)
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+    ConnectedChoiceRow(
+        // Dynamic colour needs Android 12+.
+        options = buildList<ThemeStyle> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) add(ThemeStyle.DYNAMIC)
+            add(ThemeStyle.BRANDED)
+        },
+        selected = currentStyle,
+        onSelect = onStyleSelected,
+        modifier = Modifier.padding(horizontal = Spacing.md)
+    ) { style ->
+        if (style == ThemeStyle.DYNAMIC) {
+            ChoiceLabels(
+                title = stringResource(R.string.appearance_style_dynamic),
+                subtitle = stringResource(R.string.appearance_style_dynamic_subtitle)
+            )
+        } else {
+            ChoiceLabels(
+                title = stringResource(R.string.appearance_style_default),
+                subtitle = stringResource(R.string.appearance_style_default_subtitle)
+            )
         }
     }
+}
+
+/** Title + supporting text inside a choice button; colour comes from the button's state. */
+@Composable
+private fun ChoiceLabels(
+    title: String,
+    subtitle: String,
+    fontFamily: FontFamily? = null
+) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            fontFamily = fontFamily,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = fontFamily,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/** A row's leading icon; the row's switch carries the on/off state. */
+@Composable
+private fun NeutralIconTile(icon: ImageVector) {
+    IconTile(
+        icon = icon,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+// --- Named tiles ---
+
+private val PaletteTileSize = 110.dp
+private val CoverTileWidth = 80.dp
+private val CoverTileHeight = 56.dp
+
+/**
+ * A preview tile with its name underneath, tappable as one. The column widens with the font
+ * scale so a long name wraps between words instead of inside one.
+ */
+@Composable
+private fun NamedTile(
+    name: String,
+    tileWidth: Dp,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    tile: @Composable () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(tileWidth * LocalDensity.current.fontScale.coerceAtLeast(1f))
+            .clip(RoundedCornerShape(Dimensions.CornerRadius.card))
+            .selectable(selected = isSelected, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        tile()
+        Text(
+            text = name,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isSelected) MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+/** The mark on a selected tile. In the corner so it never covers the tile's preview. */
+@Composable
+private fun SelectedMark(modifier: Modifier = Modifier) {
+    IconTile(
+        icon = Icons.Default.Check,
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        size = Dimensions.Icon.medium,
+        glyphSize = Dimensions.Icon.small,
+        contentDescription = stringResource(R.string.appearance_cover_selected),
+        modifier = modifier.padding(Spacing.xs)
+    )
 }
 
 // --- ColorSchemeBox ---
 
 @Composable
 private fun ColorSchemeBox(
+    name: String,
     accent: Color,
     secondary: Color,
     tertiary: Color,
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
     isSelected: Boolean = false
 ) {
-    Box(
-        modifier = modifier
-            .size(110.dp)
-            .clip(RoundedCornerShape(Spacing.md))
-            .then(
-                if (isSelected) {
-                    Modifier.border(
-                        width = 2.dp,
-                        color = accent.copy(0.7f),
-                        shape = RoundedCornerShape(Spacing.md)
-                    )
-                } else Modifier
-            )
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
+    NamedTile(
+        name = name,
+        tileWidth = PaletteTileSize,
+        isSelected = isSelected,
+        onClick = onClick
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = "Abc",
-                style = MaterialTheme.typography.labelMedium,
-                color = accent,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Column {
-                Box(
-                    modifier = Modifier
-                        .height(16.dp)
-                        .width(27.dp)
-                        .background(
-                            color = tertiary,
-                            shape = RoundedCornerShape(Spacing.sm)
+        Box(
+            modifier = Modifier
+                .size(PaletteTileSize)
+                .clip(RoundedCornerShape(Spacing.md))
+                .then(
+                    if (isSelected) {
+                        Modifier.border(
+                            width = Spacing.xxs,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            shape = RoundedCornerShape(Spacing.md)
                         )
+                    } else Modifier
                 )
-                Spacer(modifier = Modifier.height(Spacing.xs))
+                .background(
+                    if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerLow
+                )
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Text(
+                    text = "Abc",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = accent,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clearAndSetSemantics {}
+                )
+                Column {
+                    Box(
+                        modifier = Modifier
+                            .height(16.dp)
+                            .width(27.dp)
+                            .background(
+                                color = tertiary,
+                                shape = RoundedCornerShape(Spacing.sm)
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Box(
+                        modifier = Modifier
+                            .height(16.dp)
+                            .width(47.dp)
+                            .background(
+                                color = secondary,
+                                shape = RoundedCornerShape(Spacing.sm)
+                            )
+                    )
+                }
+
                 Box(
                     modifier = Modifier
-                        .height(16.dp)
-                        .width(47.dp)
+                        .align(Alignment.End)
+                        .size(20.dp)
                         .background(
-                            color = secondary,
-                            shape = RoundedCornerShape(Spacing.sm)
+                            accent,
+                            RoundedCornerShape(Spacing.xs)
                         )
                 )
             }
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .size(20.dp)
-                    .background(
-                        accent,
-                        RoundedCornerShape(Spacing.xs)
-                    )
-            )
+            if (isSelected) {
+                SelectedMark(Modifier.align(Alignment.TopEnd))
+            }
         }
     }
 }
+
+@Composable
+private fun accentColorName(accent: AccentColor): String = stringResource(
+    when (accent) {
+        AccentColor.ROSE -> R.string.appearance_accent_rose
+        AccentColor.IRIS -> R.string.appearance_accent_iris
+        AccentColor.PINE -> R.string.appearance_accent_pine
+        AccentColor.GOLD -> R.string.appearance_accent_gold
+        AccentColor.LOVE -> R.string.appearance_accent_love
+        AccentColor.FOAM -> R.string.appearance_accent_foam
+        AccentColor.MUTED -> R.string.appearance_accent_muted
+        AccentColor.SUBTLE -> R.string.appearance_accent_subtle
+        AccentColor.TEXT -> R.string.appearance_accent_text
+        AccentColor.HIGHLIGHT -> R.string.appearance_accent_highlight
+        AccentColor.SURFACE -> R.string.appearance_accent_surface
+        AccentColor.OVERLAY -> R.string.appearance_accent_overlay
+    }
+)
 
 // --- Navigation Bar Style Selector ---
 
@@ -631,89 +636,22 @@ private fun NavBarStyleSelector(
     currentStyle: NavBarStyle,
     onStyleSelected: (NavBarStyle) -> Unit
 ) {
-    Column(
-        modifier = Modifier.animateContentSize().fillMaxWidth().padding(horizontal = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            // Floating Option
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 16.dp, topEnd = 4.dp,
-                            bottomStart = 16.dp, bottomEnd = 4.dp
-                        )
-                    )
-                    .background(
-                        color = if (currentStyle == NavBarStyle.FLOATING)
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onStyleSelected(NavBarStyle.FLOATING) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.appearance_nav_floating),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (currentStyle == NavBarStyle.FLOATING)
-                            MaterialTheme.colorScheme.onTertiaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_nav_floating_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (currentStyle == NavBarStyle.FLOATING)
-                            MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Normal Option
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 4.dp, topEnd = 16.dp,
-                            bottomStart = 4.dp, bottomEnd = 16.dp
-                        )
-                    )
-                    .background(
-                        color = if (currentStyle == NavBarStyle.NORMAL)
-                            MaterialTheme.colorScheme.secondaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onStyleSelected(NavBarStyle.NORMAL) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.appearance_nav_normal),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (currentStyle == NavBarStyle.NORMAL)
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_nav_normal_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (currentStyle == NavBarStyle.NORMAL)
-                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+    ConnectedChoiceRow(
+        options = listOf(NavBarStyle.FLOATING, NavBarStyle.NORMAL),
+        selected = currentStyle,
+        onSelect = onStyleSelected,
+        modifier = Modifier.padding(horizontal = Spacing.md)
+    ) { style ->
+        if (style == NavBarStyle.FLOATING) {
+            ChoiceLabels(
+                title = stringResource(R.string.appearance_nav_floating),
+                subtitle = stringResource(R.string.appearance_nav_floating_subtitle)
+            )
+        } else {
+            ChoiceLabels(
+                title = stringResource(R.string.appearance_nav_normal),
+                subtitle = stringResource(R.string.appearance_nav_normal_subtitle)
+            )
         }
     }
 }
@@ -726,58 +664,68 @@ private fun CoverStyleSelector(
     isDark: Boolean,
     onStyleSelected: (CoverStyle) -> Unit
 ) {
-    LazyRow(
-        modifier = Modifier.padding(horizontal = Spacing.md),
+    // Wraps, so no option is left half off the screen.
+    FlowRow(
+        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(vertical = Spacing.xs)
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        items(CoverStyle.entries.toList()) { style ->
+        CoverStyle.entries.forEach { style ->
             val isSelected = currentStyle == style
 
-            Box(
-                modifier = Modifier
-                    .size(width = 80.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .then(
-                        if (style == CoverStyle.NONE) {
-                            Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        } else {
-                            Modifier.background(
-                                Brush.verticalGradient(
-                                    colors = getCoverGradientColors(style, isDark, forPreview = true)
-                                )
-                            )
-                        }
-                    )
-                    .then(
-                        if (isSelected) Modifier.border(
-                            width = 3.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
-                        ) else Modifier
-                    )
-                    .clickable { onStyleSelected(style) },
-                contentAlignment = Alignment.Center
+            NamedTile(
+                name = coverStyleName(style),
+                tileWidth = CoverTileWidth,
+                isSelected = isSelected,
+                onClick = { onStyleSelected(style) }
             ) {
-                if (style == CoverStyle.NONE) {
-                    Text(
-                        text = stringResource(R.string.appearance_cover_none),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isSelected) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = stringResource(R.string.appearance_cover_selected),
-                        tint = Color.White,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(CoverTileHeight)
+                        .clip(RoundedCornerShape(Dimensions.CornerRadius.card))
+                        .then(
+                            if (style == CoverStyle.NONE) {
+                                Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            } else {
+                                Modifier.background(
+                                    Brush.verticalGradient(
+                                        colors = getCoverGradientColors(style, isDark, forPreview = true)
+                                    )
+                                )
+                            }
+                        )
+                        .then(
+                            if (isSelected) Modifier.border(
+                                width = Spacing.xxs,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                shape = RoundedCornerShape(Dimensions.CornerRadius.card)
+                            ) else Modifier
+                        )
+                ) {
+                    if (isSelected) {
+                        SelectedMark(Modifier.align(Alignment.TopEnd))
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+private fun coverStyleName(style: CoverStyle): String = stringResource(
+    when (style) {
+        CoverStyle.NONE -> R.string.appearance_cover_none
+        CoverStyle.AURORA -> R.string.appearance_cover_aurora
+        CoverStyle.SUNSET -> R.string.appearance_cover_sunset
+        CoverStyle.OCEAN -> R.string.appearance_cover_ocean
+        CoverStyle.FOREST -> R.string.appearance_cover_forest
+        CoverStyle.LAVENDER_MIST -> R.string.appearance_cover_lavender_mist
+        CoverStyle.MIDNIGHT -> R.string.appearance_cover_midnight
+        CoverStyle.ROSE_GOLD -> R.string.appearance_cover_rose_gold
+        CoverStyle.NORTHERN_LIGHTS -> R.string.appearance_cover_northern_lights
+    }
+)
 
 // --- Font Selector ---
 
@@ -786,93 +734,25 @@ private fun FontSelector(
     currentFont: AppFont,
     onFontSelected: (AppFont) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            // System Default Option
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 16.dp, topEnd = 4.dp,
-                            bottomStart = 16.dp, bottomEnd = 4.dp
-                        )
-                    )
-                    .background(
-                        color = if (currentFont == AppFont.SYSTEM)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onFontSelected(AppFont.SYSTEM) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.appearance_font_default),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Default,
-                        color = if (currentFont == AppFont.SYSTEM)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_font_default_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Default,
-                        color = if (currentFont == AppFont.SYSTEM)
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // SN Pro Option
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 4.dp, topEnd = 16.dp,
-                            bottomStart = 4.dp, bottomEnd = 16.dp
-                        )
-                    )
-                    .background(
-                        color = if (currentFont == AppFont.SN_PRO)
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onFontSelected(AppFont.SN_PRO) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "SN Pro",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = SNProFontFamily,
-                        color = if (currentFont == AppFont.SN_PRO)
-                            MaterialTheme.colorScheme.onTertiaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_font_sn_pro_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = SNProFontFamily,
-                        color = if (currentFont == AppFont.SN_PRO)
-                            MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+    ConnectedChoiceRow(
+        options = listOf(AppFont.SYSTEM, AppFont.SN_PRO),
+        selected = currentFont,
+        onSelect = onFontSelected,
+        modifier = Modifier.padding(horizontal = Spacing.md)
+    ) { font ->
+        // Each option previews itself in its own font.
+        if (font == AppFont.SYSTEM) {
+            ChoiceLabels(
+                title = stringResource(R.string.appearance_font_default),
+                subtitle = stringResource(R.string.appearance_font_default_subtitle),
+                fontFamily = FontFamily.Default
+            )
+        } else {
+            ChoiceLabels(
+                title = "SN Pro",
+                subtitle = stringResource(R.string.appearance_font_sn_pro_subtitle),
+                fontFamily = SNProFontFamily
+            )
         }
     }
 }

@@ -83,8 +83,6 @@ import androidx.compose.foundation.shape.CircleShape
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -307,7 +305,6 @@ fun TransactionsScreen(
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     // When the app bottom nav is overlaid on this screen (#635), it sits over an
     // 80.dp strip the Scaffold inset here doesn't know about, so the list + FAB
@@ -385,7 +382,6 @@ fun TransactionsScreen(
                             }
                         }
                     },
-                    hazeState = hazeState
                 )
             } else {
                 CustomTitleTopAppBar(
@@ -411,7 +407,6 @@ fun TransactionsScreen(
                             }
                         }
                     },
-                    hazeState = hazeState
                 )
             }
         },
@@ -452,7 +447,6 @@ fun TransactionsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
         TransactionFilterHeader(
@@ -1037,38 +1031,15 @@ private fun TransactionDateHeader(
     title: String,
     modifier: Modifier = Modifier
 ) {
-    // Fade the sticky date header into a transparent base so scrolling content
-    // looks like it's passing under the label. Use `background` (the Scaffold
-    // surface) instead of `surface`, otherwise an AMOLED-style theme — where
-    // `background` is true-black but `surface` is tinted — paints a visible
-    // dark slab behind every date header.
-    val pageBg = MaterialTheme.colorScheme.background
+    // Opaque: rows pass fully behind a sticky date, never half-showing through it. Uses
+    // `background` (the Scaffold surface), not `surface`, so AMOLED stays true black.
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        pageBg,
-                        pageBg,
-                        pageBg.copy(alpha = 0.92f),
-                        pageBg.copy(alpha = 0f)
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = Spacing.md, bottom = Spacing.sm)
     ) {
-        Spacer(
-            modifier = Modifier
-                .width(DATE_MARKER_WIDTH)
-                .height(DATE_MARKER_HEIGHT)
-                .background(
-                    color = MaterialTheme.colorScheme.tertiary,
-                    shape = CircleShape
-                )
-        )
         SectionHeaderV2(
             title = title,
             modifier = Modifier.weight(1f),
@@ -1208,16 +1179,17 @@ private fun TransactionFilterHeader(
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
         ) {
-            LazyRow(
+            // Wraps rather than scrolls: a chip cut in half at the edge looks broken, and at a
+            // large font or on a small phone half the filters were off screen.
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                item {
+                run {
                     Box {
                         ExpressiveFilterChip(
-                            selected = true,
+                            selected = selectedPeriod != TimePeriod.THIS_MONTH,
                             text = periodChipLabel,
-                            icon = Icons.Default.CalendarMonth,
                             onClick = onPeriodClick
                         )
 
@@ -1239,12 +1211,15 @@ private fun TransactionFilterHeader(
                     }
                 }
 
-                item {
+                run {
                     Box {
                         ExpressiveFilterChip(
                             selected = transactionTypeFilter != TransactionTypeFilter.ALL,
-                            text = transactionTypeFilter.shortLabel(),
-                            icon = transactionTypeFilter.filterIcon(),
+                            text = if (transactionTypeFilter == TransactionTypeFilter.ALL) {
+                                stringResource(R.string.filter_type_all_types)
+                            } else {
+                                transactionTypeFilter.shortLabel()
+                            },
                             onClick = onTypeClick
                         )
 
@@ -1274,7 +1249,7 @@ private fun TransactionFilterHeader(
                     }
                 }
 
-                item {
+                run {
                     Box {
                         ExpressiveFilterChip(
                             selected = hasCategoryFilter || hasProfileFilter,
@@ -1284,7 +1259,6 @@ private fun TransactionFilterHeader(
                                 hasCategoryFilter = hasCategoryFilter,
                                 hasProfileFilter = hasProfileFilter
                             ),
-                            icon = Icons.Default.Tune,
                             onClick = onMoreFiltersClick,
                             enabled = availableCategories.isNotEmpty() || profiles.isNotEmpty() ||
                                     hasCategoryFilter || hasProfileFilter
@@ -1356,12 +1330,11 @@ private fun TransactionFilterHeader(
                 }
 
                 if (availableTags.isNotEmpty() || tagFilter != null) {
-                    item {
+                    run {
                         Box {
                             ExpressiveFilterChip(
                                 selected = tagFilter != null,
                                 text = tagFilter ?: stringResource(R.string.txn_list_filter_tag),
-                                icon = Icons.Default.Sell,
                                 onClick = onTagClick
                             )
 
@@ -1395,14 +1368,13 @@ private fun TransactionFilterHeader(
                 }
 
                 if (accountOptions.isNotEmpty()) {
-                    item {
+                    run {
                         Box {
                             val selectedAccountLabel =
                                 accountOptions.firstOrNull { it.key == accountFilter }?.label
                             ExpressiveFilterChip(
                                 selected = accountFilter != null,
                                 text = selectedAccountLabel ?: stringResource(R.string.txn_list_filter_account),
-                                icon = Icons.Outlined.AccountBalanceWallet,
                                 onClick = onAccountClick
                             )
 
@@ -1468,7 +1440,7 @@ private fun TransactionSearchBar(
     Surface(
         modifier = modifier.height(Dimensions.Component.minTouchTarget),
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Row(
             modifier = Modifier
@@ -1559,11 +1531,9 @@ private fun EmptyTransactionsState(
 }
 
 /** Width of the tertiary-coloured marker beside a sticky date header. */
-private val DATE_MARKER_WIDTH = Spacing.xs
 
 /** Height of that marker — set to the cap height of the header text so the two
  *  read as one unit rather than a bar next to a label. */
-private val DATE_MARKER_HEIGHT = Spacing.md + Spacing.xxs
 
 /** "All categories", one name, "All except X, Y", or "N categories" (#786). */
 @Composable

@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.effects.frostedBlur
-import dev.chrisbanes.haze.HazeState
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -36,8 +36,6 @@ import java.time.LocalDate
 fun HeatmapWidget(
     transactionHeatmap: Map<Long, Int>,
     modifier: Modifier = Modifier,
-    blurEffects: Boolean = false,
-    hazeState: HazeState? = null,
 ) {
     val weeksToShow = 26
     val today = LocalDate.now()
@@ -53,23 +51,7 @@ fun HeatmapWidget(
         scrollState.scrollTo(scrollState.maxValue)
     }
 
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.surfaceContainerLow
-
-    PennyWiseCardV2(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .frostedBlur(hazeState, tint = containerColor)
-                else Modifier
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        )
-    ) {
+    PennyWiseCardV2(modifier = modifier.fillMaxWidth()) {
         // No section header here: every caller places this card under an
         // "Activity" SectionHeaderV2, so a second one inside the card rendered
         // the word twice, one above the other.
@@ -109,60 +91,85 @@ fun HeatmapWidget(
                         }
                     }
 
-                    // Heatmap grid
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = Modifier
-                            .horizontalScroll(scrollState)
-                            .padding(bottom = Spacing.sm)
-                    ) {
-                        for (w in 0 until weeksToShow) {
-                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
-                                for (d in 0 until 7) {
-                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                    val epochDay = date.toEpochDay()
-                                    val count = transactionHeatmap[epochDay] ?: 0
+                    // Grid and month labels scroll together: labels outside the scroller
+                    // stayed on the oldest months while the grid sat on the newest.
+                    Column(modifier = Modifier.horizontalScroll(scrollState)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(gapSize),
+                            modifier = Modifier.padding(bottom = Spacing.sm)
+                        ) {
+                            for (w in 0 until weeksToShow) {
+                                Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                    for (d in 0 until 7) {
+                                        val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                        val epochDay = date.toEpochDay()
+                                        val count = transactionHeatmap[epochDay] ?: 0
 
-                                    val primary = MaterialTheme.colorScheme.primary
-                                    val color = when {
-                                        date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 1 -> primary.copy(alpha = 0.25f)
-                                        count == 2 -> primary.copy(alpha = 0.5f)
-                                        count in 3..4 -> primary.copy(alpha = 0.75f)
-                                        else -> primary
+                                        Box(
+                                            modifier = Modifier
+                                                .size(cellSize)
+                                                .clip(MaterialTheme.shapes.extraSmall)
+                                                .background(heatmapColor(if (date > today) 0 else count))
+                                        )
                                     }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .clip(MaterialTheme.shapes.extraSmall)
-                                            .background(color)
-                                    )
                                 }
+                            }
+                        }
+
+                        Box(modifier = Modifier.width((cellSize + gapSize) * weeksToShow)) {
+                            monthLabels.forEach { (weekIndex, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.offset(x = (cellSize + gapSize) * weekIndex)
+                                )
                             }
                         }
                     }
                 }
 
-                // Month labels
-                Box(
+                // What the shading means: fewer to more transactions a day.
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = dayLabelWidth)
+                        .padding(top = Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    monthLabels.forEach { (weekIndex, label) ->
-                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.offset(x = xOffset)
+                    Text(
+                        text = stringResource(R.string.heatmap_legend_less),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    listOf(0, 1, 2, 3, 5).forEach { count ->
+                        Box(
+                            modifier = Modifier
+                                .size(cellSize)
+                                .clip(MaterialTheme.shapes.extraSmall)
+                                .background(heatmapColor(count))
                         )
                     }
+                    Text(
+                        text = stringResource(R.string.heatmap_legend_more),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun heatmapColor(count: Int): Color {
+    val primary = MaterialTheme.colorScheme.primary
+    return when {
+        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
+        count == 1 -> primary.copy(alpha = 0.25f)
+        count == 2 -> primary.copy(alpha = 0.5f)
+        count in 3..4 -> primary.copy(alpha = 0.75f)
+        else -> primary
     }
 }
 

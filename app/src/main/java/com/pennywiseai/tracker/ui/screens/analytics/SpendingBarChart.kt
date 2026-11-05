@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.animation.core.Animatable
@@ -21,12 +22,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.BalancePoint
+import com.pennywiseai.tracker.ui.components.chartAxisLabels
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
-import kotlin.math.ceil
 
 @Composable
 fun SpendingBarChart(
@@ -43,14 +44,11 @@ fun SpendingBarChart(
 
     val barColor = themeColors.primary.copy(alpha = 0.8f)
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
-    val labelColor = themeColors.onSurface.copy(alpha = 0.7f)
-    val valueLabelColor = themeColors.onSurface.copy(alpha = 0.7f)
-    val indicatorColor = themeColors.onSurfaceVariant
+    val labelColor = themeColors.onSurfaceVariant
 
     val chartLabel = PennyWiseText.chartLabel
     val labelStyle = chartLabel.copy(color = labelColor, textAlign = TextAlign.Center)
-    val valueLabelStyle = chartLabel.copy(color = valueLabelColor, textAlign = TextAlign.Center)
-    val indicatorStyle = chartLabel.copy(color = indicatorColor, textAlign = TextAlign.End)
+    val indicatorStyle = chartLabel.copy(color = labelColor, textAlign = TextAlign.End)
 
     val chartData = remember(sortedData) {
         val isYearly = sortedData.size > 1 && sortedData.all { it.timestamp.dayOfYear == 1 }
@@ -70,9 +68,8 @@ fun SpendingBarChart(
         }
     }
 
-    val maxValue = remember(chartData) {
-        (chartData.map { it.value }.maxOrNull() ?: 0.0) * 1.2
-    }
+    val peakValue = remember(chartData) { chartData.maxOfOrNull { it.value } ?: 0.0 }
+    val maxValue = niceAxisMax(peakValue)
 
     val animationProgress = remember { Animatable(0f) }
     // Bar heights are data: an effects spec settles without overshooting the value.
@@ -87,13 +84,19 @@ fun SpendingBarChart(
         modifier = modifier
             .fillMaxWidth()
             .height(height.dp)
-            .padding(vertical = Spacing.md)
     ) {
         if (chartData.isEmpty() || maxValue <= 0.0) return@Canvas
 
-        val yAxisWidth = 48.dp.toPx()
-        val xLabelHeight = 40.dp.toPx()
-        val valueLabelReserve = 24.dp.toPx()
+        // The axis and label bands follow the text, so a large font can't clip or overlap them.
+        val widestIndicator = textMeasurer.measure(
+            CurrencyFormatter.formatAbbreviated(maxValue, primaryCurrency),
+            indicatorStyle
+        )
+        val sampleLabelMeasured = textMeasurer.measure(chartData.first().label, labelStyle)
+        val labelGap = 8.dp.toPx()
+        val yAxisWidth = maxOf(48.dp.toPx(), widestIndicator.size.width + labelGap)
+        val xLabelHeight = maxOf(40.dp.toPx(), sampleLabelMeasured.size.height + labelGap)
+        val valueLabelReserve = maxOf(24.dp.toPx(), sampleLabelMeasured.size.height + 4.dp.toPx())
         val rightPadding = 24.dp.toPx()
         val chartLeft = yAxisWidth
         val chartRight = size.width - rightPadding
@@ -134,23 +137,29 @@ fun SpendingBarChart(
             )
         }
 
-        // Bar geometry
+        // Bar geometry: each bar is centred in an equal slot, so two points span the axis
+        // like thirty do and their labels have room.
         val barCount = chartData.size
-        val totalSpacing = 8.dp.toPx() * (barCount - 1)
-        val barThickness = ((chartWidth - totalSpacing) / barCount).coerceAtMost(12.dp.toPx())
-        val actualTotalWidth = barThickness * barCount + totalSpacing
-        val startOffset = chartLeft + (chartWidth - actualTotalWidth) / 2f
+        val slotWidth = chartWidth / barCount
+        val barThickness = (slotWidth * 0.8f).coerceAtMost(Dimensions.Component.chartBarMaxWidth.toPx())
 
-        // X-axis label thinning: measure a representative label to calculate step
-        val sampleLabelMeasured = textMeasurer.measure(chartData.first().label, labelStyle)
-        val typicalLabelWidth = sampleLabelMeasured.size.width.toFloat()
-        val minGap = 8.dp.toPx()
-        val maxLabels = (chartWidth / (typicalLabelWidth + minGap)).toInt().coerceAtLeast(2)
-        val labelStep = if (barCount > maxLabels) ceil(barCount.toFloat() / maxLabels).toInt() else 1
+        // Same rule as the line chart: evenly spaced labels, each at its own bar's position.
+        val maxLabels = (chartWidth / (sampleLabelMeasured.size.width + 2 * labelGap)).toInt()
+            .coerceAtLeast(2)
+        val labelledBars = chartAxisLabels(chartData.indices.map(Int::toString), maxLabels)
+            .map(String::toInt)
+            .toSet()
+
+        // Dense bars have no room for a figure each: only the peak keeps one.
+        val peakLabelWidth = textMeasurer.measure(CurrencyFormatter.formatAbbreviated(peakValue, primaryCurrency), labelStyle)
+            .size.width
+        // At a large font the labels collide with the axis text, and the axis already gives the scale.
+        val showValueLabels = fontScale < LARGE_FONT_NO_BAR_LABELS
+        val valueLabelsFit = showValueLabels && slotWidth >= peakLabelWidth + 4.dp.toPx()
 
         chartData.forEachIndexed { index, bar ->
             val barHeight = ((bar.value / maxValue) * chartHeight * progress).toFloat()
-            val x = startOffset + index * (barThickness + 8.dp.toPx())
+            val x = chartLeft + index * slotWidth + (slotWidth - barThickness) / 2f
             val barTop = chartBottom - barHeight
 
             // Draw bar
@@ -164,9 +173,12 @@ fun SpendingBarChart(
             }
 
             // Draw value label above bar (clamped to avoid Y-axis and right-edge overlap)
-            if (bar.value > 0 && barHeight > 4.dp.toPx() && progress > 0.5f) {
-                val valueText = formatCompactValue(bar.value, primaryCurrency)
-                val valueMeasured = textMeasurer.measure(valueText, valueLabelStyle)
+            if (
+                (valueLabelsFit || (showValueLabels && bar.value == peakValue)) &&
+                bar.value > 0 && barHeight > 4.dp.toPx() && progress > 0.5f
+            ) {
+                val valueText = CurrencyFormatter.formatAbbreviated(bar.value, primaryCurrency)
+                val valueMeasured = textMeasurer.measure(valueText, labelStyle)
                 val rawLabelX = x + barThickness / 2f - valueMeasured.size.width / 2f
                 val minLabelX = yAxisWidth + 4.dp.toPx()
                 val maxLabelX = size.width - 4.dp.toPx() - valueMeasured.size.width
@@ -180,11 +192,11 @@ fun SpendingBarChart(
                 }
             }
 
-            // Draw x-axis label — only every Nth label to avoid overlap
-            if (index % labelStep == 0 || index == barCount - 1) {
+            if (index in labelledBars) {
                 val labelMeasured = textMeasurer.measure(bar.label, labelStyle)
-                val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
-                val labelY = chartBottom + 8.dp.toPx()
+                val labelX = (x + barThickness / 2f - labelMeasured.size.width / 2f)
+                    .coerceIn(0f, (size.width - labelMeasured.size.width).coerceAtLeast(0f))
+                val labelY = chartBottom + labelGap
                 if (labelY + labelMeasured.size.height <= size.height) {
                     drawText(
                         textLayoutResult = labelMeasured,
@@ -201,20 +213,15 @@ private data class BarData(
     val value: Double
 )
 
-private fun formatCompactValue(value: Double, currencyCode: String): String {
-    if (com.pennywiseai.tracker.utils.AmountPrivacy.hidden) return com.pennywiseai.tracker.utils.AmountPrivacy.MASK
-    val absValue = abs(value)
-    val useIndianNotation = currencyCode in setOf("INR", "NPR", "PKR")
-    return when {
-        useIndianNotation && absValue >= 1_00_00_000 ->
-            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_00_00_000)}Cr"
-        useIndianNotation && absValue >= 1_00_000 ->
-            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_00_000)}L"
-        absValue >= 10_000_000 ->
-            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_000_000)}M"
-        absValue >= 1_000 ->
-            "${String.format(java.util.Locale.US, "%.1f", absValue / 1_000)}K"
-        absValue > 0 -> absValue.toInt().toString()
-        else -> "0"
-    }
+/**
+ * The top of a four-step axis, so ticks land on round numbers: 179 gives 0/50/100/150/200,
+ * where 1.2x the peak gave 0/54/107/161/215.
+ */
+private const val LARGE_FONT_NO_BAR_LABELS = 1.3f
+
+internal fun niceAxisMax(peak: Double): Double {
+    if (peak <= 0.0) return 0.0
+    val magnitude = Math.pow(10.0, kotlin.math.floor(kotlin.math.log10(peak / 4)))
+    val step = listOf(1.0, 2.0, 2.5, 5.0, 10.0).map { it * magnitude }.first { it * 4 >= peak }
+    return step * 4
 }

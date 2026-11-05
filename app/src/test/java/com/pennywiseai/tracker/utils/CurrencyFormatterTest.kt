@@ -64,6 +64,47 @@ class CurrencyFormatterTest {
         )
     }
 
+    @Test
+    fun `sms-tracked account on an unknown bank keeps a non-INR stored currency`() {
+        assertEquals(
+            "USD",
+            CurrencyFormatter.resolveAccountCurrency(
+                sourceType = null,
+                storedCurrency = "USD",
+                bankName = "Totally Unknown Bank"
+            )
+        )
+    }
+
+    @Test
+    fun `text leaving the screen stays compact`() {
+        assertEquals("$800", CurrencyFormatter.formatCurrency(java.math.BigDecimal("800"), "USD", maskIfHidden = false))
+        assertEquals("$12.50", CurrencyFormatter.formatCurrency(java.math.BigDecimal("12.5"), "USD", maskIfHidden = false))
+    }
+
+    @Test
+    fun `net total shows its sign with a true minus`() {
+        assertEquals("\u2212JD40.000", CurrencyFormatter.formatSigned(java.math.BigDecimal("-40"), "JOD"))
+        assertEquals("+JD5.000", CurrencyFormatter.formatSigned(java.math.BigDecimal("5"), "JOD"))
+    }
+
+    @Test
+    fun `hidden net total does not reveal its sign`() {
+        AmountPrivacy.hidden = true
+        try {
+            assertEquals(AmountPrivacy.MASK, CurrencyFormatter.formatSigned(java.math.BigDecimal("-40"), "JOD"))
+        } finally {
+            AmountPrivacy.hidden = false
+        }
+    }
+
+    @Test
+    fun `on-screen format keeps every minor unit`() {
+        assertEquals("JD7.000", CurrencyFormatter.formatCurrency(java.math.BigDecimal("7"), "JOD"))
+        assertEquals("JD3.200", CurrencyFormatter.formatCurrency(java.math.BigDecimal("3.2"), "JOD"))
+        assertEquals("$800.00", CurrencyFormatter.formatCurrency(java.math.BigDecimal("800"), "USD"))
+    }
+
     // numberFormatStyle is a process-wide @Volatile field; reset after each test.
     @After
     fun resetNumberFormatStyle() {
@@ -279,7 +320,7 @@ class CurrencyFormatterTest {
                 CurrencyFormatter.formatCurrency(BigDecimal("100"), "USD"),
             )
         }
-        assertEquals("\u2066$50\u2069 \u0645\u0646 \u2066$100\u2069", text)
+        assertEquals("\u2066$50.00\u2069 \u0645\u0646 \u2066$100.00\u2069", text)
         val bidi = java.text.Bidi(text, java.text.Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT)
         assertFalse("paragraph must resolve RTL", bidi.baseIsLeftToRight())
     }
@@ -323,7 +364,7 @@ class CurrencyFormatterTest {
                 for (s in listOf(plain, signed, mixed)) {
                     assertFalse("$tag: unexpected bidi control in $s", bidiControls.containsMatchIn(s))
                 }
-                assertEquals("-$5", signed)
+                assertEquals("-$5.00", signed)
             }
         }
     }
@@ -345,7 +386,7 @@ class CurrencyFormatterTest {
         } finally {
             AmountPrivacy.hidden = false
         }
-        assertEquals("$1,200", CurrencyFormatter.formatCurrency(BigDecimal("1200"), "USD"))
+        assertEquals("$1,200.00", CurrencyFormatter.formatCurrency(BigDecimal("1200"), "USD"))
     }
 
     @Test

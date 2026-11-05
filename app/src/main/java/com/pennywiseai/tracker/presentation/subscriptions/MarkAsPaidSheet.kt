@@ -55,6 +55,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense_dark
 import com.pennywiseai.tracker.ui.theme.expense_light
@@ -102,9 +103,9 @@ fun MarkAsPaidSheet(
 
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) income_dark else income_light
+        if (isAppInDarkTheme()) income_dark else income_light
     } else {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+        if (isAppInDarkTheme()) expense_dark else expense_light
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -342,7 +343,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    val amountColor = if (isAppInDarkTheme()) expense_dark else expense_light
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),

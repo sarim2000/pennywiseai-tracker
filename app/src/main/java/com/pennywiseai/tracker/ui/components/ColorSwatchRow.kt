@@ -34,6 +34,9 @@ val PRESET_COLORS = listOf(
 )
 
 /** `"#RRGGBB"` → [Color], or [fallback] when the string is malformed. */
+/** What a budget has until the user picks a colour; shown as the theme's accent. */
+const val DEFAULT_BUDGET_COLOR = "#1565C0"
+
 fun String.toColorOr(fallback: Color): Color =
     runCatching { Color(android.graphics.Color.parseColor(this)) }.getOrDefault(fallback)
 

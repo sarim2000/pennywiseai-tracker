@@ -112,13 +112,22 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
-The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,
-`floatingNavBottomGap` 12dp above the system bar) with a sliding selected
-indicator (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
-`primary` tint at `Alpha.selectedIndicator`). A tab's one primary action docks
-beside it as a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): the
-screen calls `DockNavAction(...)` when `LocalNavDock.current` is non-null and
-drops its own FAB, so the bar and the action never stack over content.
+Tabs move to a `NavigationRail` from `navRailMinWindowWidth`. The Floating nav style is a pill of labelled tabs (`floatingNavHeight` 64dp,
+`floatingNavBottomGap` 12dp above the system bar) with a sliding indicator behind
+the selected icon (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
+`primary` tint at `Alpha.selectedIndicator`). All labels share one size, set by
+the longest. A tab's one primary action docks beside it as a 64dp `primary`
+squircle (`dockedActionCornerRadius` 20dp): the screen calls `DockNavAction(...)`
+when `LocalNavDock.current` is non-null and drops its own FAB, so the bar and the
+action never stack over content. On Home that action is Add, as on Transactions, so
+that spot always means the same thing; Sync sits in the header. Every other FAB is
+a standard `FloatingActionButton` in `primary` / `onPrimary`.
+
+The pill is only used where its labels fit; on a narrow phone or at a large font the
+full-width bar takes over, with the docked action floating above it.
+
+`contentMaxWidth` (720dp) caps every screen's column on tablets and unfolded foldables;
+the shared wrapper is `withRouteArgs` in `PennyWiseNavHost`.
 
 ### Elevation (`Dimensions.Elevation`)
 
@@ -156,8 +165,8 @@ at making hierarchy readable in a dense, number-heavy UI:
 | `displaySmall`+ | Hero balance on the Home balance card |
 | `headlineMedium` / `Small` | Screen-level totals, dialog titles |
 | `titleLarge` | Screen title in a top app bar |
-| `titleMedium` | Card heading |
-| `titleSmall` | Section header, grouped-list heading |
+| `titleMedium` | Section header, card heading |
+| `titleSmall` | Grouped-list heading inside a card |
 | `bodyLarge` | Primary row text (merchant, setting name) |
 | `bodyMedium` | Supporting row text, descriptions, paragraph copy |
 | `bodySmall` | Metadata: timestamps, counts, footnotes |
@@ -171,7 +180,8 @@ the jobs the plain roles don't cover:
 
 - **Money:** `heroAmount`, `amountLarge`, `amountMedium`, `amountRow`,
   `amountSmall`. All carry `tnum` (**tabular figures**) so a column of amounts
-  lines up instead of shimmering as digits change width.
+  lines up instead of shimmering as digits change width. Never ellipsize, marquee
+  or clip a figure: wrap or shrink the label beside it.
 - **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
 - **Structure:** `sectionHeader`, `fieldLabel`.
 - **Charts:** `chartLabel` — one style for every axis tick, value label and
@@ -250,7 +260,7 @@ don't shift or change height when data arrives.
 
 ### `SectionHeaderV2`
 
-`titleSmall`/SemiBold on **`onSurface`**, not `primary` — when every heading is
+`titleMedium`/SemiBold on **`onSurface`**, not `primary` — when every heading is
 accent-coloured none of them stands out and the accent stops meaning "this is
 actionable". The accent belongs to the `action` slot on the right, which *is* a
 control. A fixed minimum height keeps headers with a "View All" link the same
@@ -266,7 +276,10 @@ width-capped so centred text doesn't wrap into an awkward shape.
 ### `PennyWiseScaffold` / `CustomTitleTopAppBar`
 
 All screens use one of these for consistent system-bar and app-bar handling.
-App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
+App-bar titles use `titleLarge`.
+Every screen uses one compact centred bar, opaque so nothing reads through the title.
+Large titles pushed the money down a third of the screen and jumped position on scroll.
+Home keeps its greeting in the list and fades the small bar in by scroll position.
 
 ### Choices and progress (Material 3 Expressive)
 
@@ -318,7 +331,30 @@ true black. Always use semantic roles — never hard-code a colour.
 
 Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
 `income`, `expense`, `credit`, `transfer`, `investment` — each resolves
-light/dark automatically.
+light/dark from the theme in use. Check `isAppInDarkTheme()`, not
+`isSystemInDarkTheme()`: Appearance can override the system.
+
+What colour means:
+
+- **Spending is ink.** Expense rows are `onSurface` with a true minus (U+2212).
+  Income, credit, transfer and investment keep their colours. `error` and `warning`
+  are for over budget, overdue and negative, so they still mean something.
+- **Selection is one style:** `secondaryContainer` / `onSecondaryContainer`.
+- **Cards are `surfaceContainerLow`.** Don't use saturated containers as decoration.
+- A budget's colour lives on its progress bar, not on the card.
+- Branded `primary` / `secondary` / `tertiary` are nudged to 4.5:1 on every surface
+  (`readableOn`, guarded by `BrandedThemeContrastTest`). `*Container` keep the raw
+  accent, so use those for fills.
+- Category colours pass through `categoryDisplayColor` for display, which keeps dark
+  ones visible on dark surfaces without changing what's stored.
+
+## Money formatting
+
+On screen, `formatCurrency` always shows every minor unit (`JD40.000`, `$12.50`), so one
+currency never reads at two precisions and columns line up. With `maskIfHidden = false`
+(text leaving the screen) it stays compact (`JD40`). Estimates and rates use
+`formatEstimate` (`About JD60 a day`): `.000` there claims a precision it doesn't have.
+Net figures use `formatSigned`.
 
 ---
 

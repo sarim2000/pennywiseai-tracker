@@ -438,12 +438,13 @@ class TransactionDetailViewModel @Inject constructor(
         val primaryCurrency = if (isUnified) {
             userPreferencesRepository.displayCurrency.first()
         } else {
-            val bankName = transaction.bankName
-            if (!bankName.isNullOrEmpty()) {
-                com.pennywiseai.tracker.utils.CurrencyFormatter.getBankBaseCurrency(bankName)
-            } else {
-                transaction.currency.takeIf { it.isNotEmpty() } ?: "INR"
-            }
+            // Unknown bank (a manual entry, say): its own currency, or a USD row showed a
+            // "≈ ₹" conversion to a currency the user never chose.
+            com.pennywiseai.tracker.utils.CurrencyFormatter.resolveAccountCurrency(
+                sourceType = null,
+                storedCurrency = transaction.currency.takeIf { it.isNotEmpty() } ?: "INR",
+                bankName = transaction.bankName
+            )
         }
         _primaryCurrency.value = primaryCurrency
     }

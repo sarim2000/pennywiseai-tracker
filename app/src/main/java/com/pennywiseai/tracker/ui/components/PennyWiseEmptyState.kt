@@ -12,7 +12,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,6 +49,8 @@ fun PennyWiseEmptyState(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     ghostContent: @Composable (() -> Unit)? = null
 ) {
     Column(
@@ -94,12 +97,18 @@ fun PennyWiseEmptyState(
         )
 
         if (actionLabel != null && onAction != null) {
-            FilledTonalButton(
+            // The one thing to do on an empty screen: filled, or it reads as disabled.
+            Button(
                 onClick = onAction,
                 modifier = Modifier.padding(top = Spacing.md),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(actionLabel)
+            }
+        }
+        if (secondaryActionLabel != null && onSecondaryAction != null) {
+            TextButton(onClick = onSecondaryAction, shapes = ButtonDefaults.shapes()) {
+                Text(secondaryActionLabel)
             }
         }
 

@@ -29,6 +29,10 @@
     <string name="settings_card_spend_as_expense_subtitle">\"इस महीने खर्च\" में क्रेडिट कार्ड का खर्च भी शामिल करें</string>
     <string name="settings_default_currency_title">डिफ़ॉल्ट मुद्रा</string>
     <string name="settings_default_currency_subtitle">कन्वर्ज़न के लिए इस्तेमाल होने वाली मुद्रा</string>
+    <string name="settings_budget_convert_title">अपने बजट बदलें?</string>
+    <string name="settings_budget_convert_message">आपकी बजट सीमाएँ %1$s में थीं और अब %2$s में दिखती हैं। उन्हें नवीनतम उपलब्ध दर (%3$s) पर बदलें, या वही संख्याएँ रखें।</string>
+    <string name="settings_budget_convert_confirm">बदलें</string>
+    <string name="settings_budget_convert_keep">संख्याएँ रखें</string>
     <string name="settings_main_account_title">मुख्य खाता</string>
     <string name="settings_main_account_subtitle">आपकी डिफ़ॉल्ट मुद्रा तय करता है</string>
     <string name="settings_main_account_not_set">सेट नहीं है</string>

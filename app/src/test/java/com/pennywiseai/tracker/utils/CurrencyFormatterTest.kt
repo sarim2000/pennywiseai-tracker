@@ -64,6 +64,18 @@ class CurrencyFormatterTest {
         )
     }
 
+    @Test
+    fun `an account on a bank with no parser keeps its stored currency`() {
+        assertEquals(
+            "USD",
+            CurrencyFormatter.resolveAccountCurrency(
+                sourceType = null,
+                storedCurrency = "USD",
+                bankName = "Totally Unknown Bank"
+            )
+        )
+    }
+
     // numberFormatStyle is a process-wide @Volatile field; reset after each test.
     @After
     fun resetNumberFormatStyle() {

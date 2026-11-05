@@ -41,7 +41,7 @@ object ProViews {
     val plans = listOf(
         Plan("Monthly", "₹149", "per month", "Cancel any time from the email receipt.", "pdt_0NnzfnwsufJtgQ3kP5z6O"),
         Plan("Annual", "₹699", "per year", "Under ₹60 a month — 61% less than paying monthly.", "pdt_0NnzfRt53BXBEu7jThl0l",
-            offerPrice = "₹524", offerCadence = "first year, then ₹699 a year"),
+            offerPrice = "₹524.25", offerCadence = "first year, then ₹699 a year"),
         Plan("Lifetime", "₹2,000", "once", "Pay once. Every future Pro feature included.", "pdt_0Nnzf26RZJeP6eTyc2GCl", featured = true,
             offerPrice = "₹1,500", offerCadence = "once"),
     )

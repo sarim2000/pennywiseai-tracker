@@ -212,7 +212,7 @@ fun BudgetCard(
             groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
                 val rawStart = groupSpending.group.budget.monthStartDay
                 val startDay = if (rawStart == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) {
-                    groupSpending.windowStart.dayOfMonth
+                    groupSpending.windowEnd.plusDays(1).dayOfMonth
                 } else {
                     rawStart ?: groupSpending.windowStart.dayOfMonth
                 }

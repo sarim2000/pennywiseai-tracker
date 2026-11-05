@@ -7,8 +7,11 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -62,14 +65,24 @@ class SplitsForActiveTransactionsTest {
         assertEquals(listOf("Groceries"), observedCategories())
     }
 
+    /** One live collector throughout: a fresh read after each write would pass with no invalidation at all. */
     @Test
-    fun reEmitsWhenASplitChanges() = runBlocking {
+    fun reEmitsWhenASplitOrItsParentChanges() = runBlocking {
         val id = transactions.insertTransaction(tx(1))
-        val flow = splits.observeSplitsForActiveTransactions()
-        assertEquals(emptyList<String>(), flow.first().map { it.category })
+        val emissions = Channel<List<String>>(Channel.UNLIMITED)
+        val collector = launch {
+            splits.observeSplitsForActiveTransactions().collect { rows -> emissions.send(rows.map { it.category }) }
+        }
 
-        splits.insertSplit(split(id, "Groceries"))
+        withTimeout(10_000) {
+            assertEquals(emptyList<String>(), emissions.receive())
 
-        assertEquals(listOf("Groceries"), flow.first().map { it.category })
+            splits.insertSplit(split(id, "Groceries"))
+            assertEquals(listOf("Groceries"), emissions.receive())
+
+            transactions.softDeleteTransaction(id)
+            assertEquals(emptyList<String>(), emissions.receive())
+        }
+        collector.cancel()
     }
 }

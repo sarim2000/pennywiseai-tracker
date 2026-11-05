@@ -31,7 +31,9 @@ fun BalanceSparkline(
     /** The chart's top value, so the line has a scale to read against. */
     scaleLabel: String? = null,
     comparisonData: List<BigDecimal>? = null,
-    comparisonLineColor: Color = Color.Gray
+    comparisonLineColor: Color = Color.Gray,
+    /** Names the dashed line, between the two date labels. */
+    comparisonLabel: String? = null,
 ) {
     if (data.size < 2) return
 
@@ -54,6 +56,7 @@ fun BalanceSparkline(
 
     val startResult = textMeasurer.measure(startLabel, labelStyle)
     val endResult = textMeasurer.measure(endLabel, labelStyle)
+    val comparisonResult = comparisonLabel?.takeIf { hasComparison }?.let { textMeasurer.measure("- - $it", labelStyle) }
     val scaleResult = scaleLabel?.let { textMeasurer.measure(it, labelStyle) }
 
     Canvas(modifier = modifier.fillMaxSize()) {
@@ -168,6 +171,15 @@ fun BalanceSparkline(
                 labelY - endResult.size.height
             )
         )
+        // Only where it fits between the dates: a large font drops it before the dates.
+        comparisonResult?.let {
+            if (startResult.size.width + endResult.size.width + it.size.width + 16.dp.toPx() < width) {
+                drawText(
+                    textLayoutResult = it,
+                    topLeft = androidx.compose.ui.geometry.Offset((width - it.size.width) / 2, labelY - it.size.height)
+                )
+            }
+        }
     }
 }
 

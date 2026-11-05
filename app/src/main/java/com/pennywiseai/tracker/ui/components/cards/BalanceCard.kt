@@ -195,7 +195,8 @@ fun BalanceCard(
                                     .height(PACE_LINE_HEIGHT),
                                 startDate = periodStart,
                                 comparisonData = lastMonthSpendingHistory.ifEmpty { null },
-                                comparisonLineColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                comparisonLineColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                comparisonLabel = stringResource(R.string.balance_card_last_month)
                             )
                         }
 

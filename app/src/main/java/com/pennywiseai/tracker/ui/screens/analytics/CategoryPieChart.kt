@@ -152,10 +152,13 @@ internal fun BreakdownStrip(
                 .height(BreakdownStripHeight)
                 .pointerInput(slices) {
                     detectTapGestures { offset ->
-                        var end = 0f
+                        // The same geometry as the drawing below, or a tap lands one slice off.
+                        val gapPx = gap.toPx()
+                        val usable = size.width - gapPx * (slices.size - 1).coerceAtLeast(0)
                         val fromStart = if (rtl) size.width - offset.x else offset.x
+                        var end = 0f
                         val hit = slices.firstOrNull { pie ->
-                            end += (pie.data / sum).toFloat() * size.width
+                            end += (pie.data / sum).toFloat() * usable + gapPx
                             fromStart <= end
                         }
                         hit?.let(onSliceClick)

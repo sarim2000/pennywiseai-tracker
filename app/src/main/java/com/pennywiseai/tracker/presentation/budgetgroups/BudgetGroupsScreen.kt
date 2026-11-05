@@ -755,7 +755,8 @@ private fun BudgetCard(
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
                     // Per-budget spending pace chart
-                    if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty()) {
+                    // Not while hidden: the curve, a category's share and its bar all give amounts away.
+                    if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty() && !AmountPrivacy.hidden) {
                         Spacer(modifier = Modifier.height(Spacing.xs))
                         SpendingPaceChart(
                             cumulativeSpending = groupSpending.dailyCumulativeSpending,
@@ -823,7 +824,7 @@ private fun BudgetCard(
                                     )
                                     if (catSpending.budgetAmount > BigDecimal.ZERO) {
                                         Text(
-                                            text = stringResource(R.string.budgets_percent, catPctUsed.toInt()),
+                                            text = if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.budgets_percent, catPctUsed.toInt()),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = catStatusColor
                                         )
@@ -842,7 +843,7 @@ private fun BudgetCard(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .fillMaxWidth(fraction = (catPctUsed / 100f).coerceIn(0f, 1f))
+                                                .fillMaxWidth(fraction = if (AmountPrivacy.hidden) 0f else (catPctUsed / 100f).coerceIn(0f, 1f))
                                                 .fillMaxHeight()
                                                 .clip(catBarShape)
                                                 .background(catStatusColor)

@@ -133,12 +133,15 @@ object PennyWiseText {
         val last = text.indexOfLast { it.isDigit() }
         if (first < 0) return@buildAnnotatedString
         val style = SpanStyle(fontSize = HERO_CURRENCY_SCALE.em, color = muted, letterSpacing = HERO_CURRENCY_TRACKING.em)
-        val signEnd = text.indexOfFirst { it !in SIGNS }.coerceAtLeast(0)
-        if (first > signEnd) addStyle(style, signEnd, first)
-        if (last + 1 < text.length) addStyle(style, last + 1, text.length)
+        // Amounts carry directional isolates in some locales: those and the sign are left alone.
+        val leading = (0 until first).firstOrNull { !isSignOrControl(text[it]) }
+        if (leading != null) addStyle(style, leading, first)
+        val trailing = (text.lastIndex downTo last + 1).firstOrNull { !isSignOrControl(text[it]) }
+        if (trailing != null) addStyle(style, last + 1, trailing + 1)
     }
 
-    private val SIGNS = charArrayOf('+', '-', '\u2212')
+    private fun isSignOrControl(c: Char) =
+        c == '+' || c == '-' || c == '\u2212' || Character.getType(c) == Character.FORMAT.toInt()
     private const val HERO_CURRENCY_SCALE = 0.7f
     private const val HERO_CURRENCY_TRACKING = 0.08f
 

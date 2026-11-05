@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.platform.LocalDensity
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
@@ -105,20 +107,35 @@ private fun AccountRow(
             size = Dimensions.Icon.list,
             showBackground = true
         )
-        RowLabels(
-            title = account.bankName,
-            subtitle = accountLabel,
-            subtitleColor = if (isLowBalance) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            // For a credit card this is the amount owed, not the limit. The entity is already
-            // pre-converted in unified mode, so its own currency keeps an un-convertible balance
-            // honest ("$400", not "MZN400"). Home's eye governs it, like the rest of Home.
-            text = if (isAmountHidden) AmountPrivacy.MASK else CurrencyFormatter.formatCurrency(account.balance, account.currency),
-            style = PennyWiseText.amountRow,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
-        )
+        // For a credit card this is the amount owed, not the limit. The entity is already
+        // pre-converted in unified mode, so its own currency keeps an un-convertible balance
+        // honest ("$400", not "MZN400"). Home's eye governs it, like the rest of Home.
+        val balance: @Composable () -> Unit = {
+            Text(
+                text = if (isAmountHidden) AmountPrivacy.MASK else CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                style = PennyWiseText.amountRow,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
+            )
+        }
+        // At a large font a long balance would take the width and hide the account's name.
+        val stacked = LocalDensity.current.fontScale >= STACK_FONT_SCALE
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+            Text(
+                text = account.bankName,
+                style = PennyWiseText.rowTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = accountLabel,
+                style = PennyWiseText.metadata,
+                color = if (isLowBalance) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (stacked) balance()
+        }
+        if (!stacked) balance()
     }
 }

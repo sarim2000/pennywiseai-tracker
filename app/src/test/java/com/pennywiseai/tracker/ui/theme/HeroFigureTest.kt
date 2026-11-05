@@ -31,6 +31,12 @@ class HeroFigureTest {
     }
 
     @Test
+    fun `directional isolates in an RTL locale do not swallow the sign`() {
+        // LRI, minus, LRI, currency, digits, PDI, PDI: how the formatter wraps amounts in Arabic.
+        assertEquals(listOf("JD"), softened("\u2066\u2212\u2066JD41.350\u2069\u2069"))
+    }
+
+    @Test
     fun `a masked figure has nothing to soften`() {
         assertEquals(emptyList<String>(), softened("••••••"))
     }

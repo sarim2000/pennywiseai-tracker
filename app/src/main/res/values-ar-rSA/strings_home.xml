@@ -434,7 +434,7 @@
     <string name="sparkline_today">اليوم</string>
     <string name="safe_to_spend_after_bills">بعد فواتير بقيمة %1$s</string>
     <string name="balance_chart_not_enough">لا يوجد سجل كافٍ لعرض الاتجاه بعد</string>
-    <string name="budget_ahead_of_pace">أسرع من وتيرة الميزانية</string>
+    <string name="budget_ahead_of_pace">إنفاق أسرع من المخطط</string>
     <plurals name="balance_card_accounts_count">
         <item quantity="zero">%1$d حساب</item>
         <item quantity="one">%1$d حساب</item>

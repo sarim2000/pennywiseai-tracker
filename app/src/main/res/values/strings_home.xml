@@ -170,7 +170,7 @@
     <string name="safe_to_spend_other_currency_row">Other currency, kept separate</string>
     <string name="budgets_pace_hint">The mark on each bar is today</string>
     <string name="balance_chart_not_enough">Not enough history for a trend yet</string>
-    <string name="budget_ahead_of_pace">Ahead of pace</string>
+    <string name="budget_ahead_of_pace">Spending faster than planned</string>
     <string name="balance_card_balance_label">Balance</string>
     <string name="balance_card_plus_other">Plus %1$s</string>
     <plurals name="balance_card_accounts_count">

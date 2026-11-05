@@ -202,7 +202,7 @@ private fun GoalPickRow(progress: GoalProgress, selected: Boolean, position: Lis
     GroupedRow(
         position = position,
         onClick = onClick,
-        containerColor = if (selected) MaterialTheme.colorScheme.inverseSurface else MaterialTheme.colorScheme.surfaceContainerLow,
+        containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         GoalRing(progress, Dimensions.Component.goalRingSmall, Dimensions.Component.goalRingSmallStroke) {}
         RowLabels(

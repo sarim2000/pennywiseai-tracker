@@ -17,7 +17,6 @@ import java.math.BigDecimal
 @Composable
 fun TagPieChart(
     tags: List<TagData>,
-    total: BigDecimal,
     currency: String,
     modifier: Modifier = Modifier,
     onTagClick: (TagData) -> Unit = {}
@@ -56,10 +55,8 @@ fun TagPieChart(
         tags.getOrNull(sliceIndex)?.let(onTagClick)
     }
 
-    DonutBreakdown(
+    BreakdownStrip(
         slices = chartData,
-        total = total,
-        currency = currency,
         onSliceClick = { select(indexOfPie(it)) },
         modifier = modifier
     ) {

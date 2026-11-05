@@ -494,4 +494,7 @@
     <string name="faq_still_need_help_section">لا تزال بحاجة إلى مساعدة؟</string>
     <string name="faq_report_issue_title">الإبلاغ عن مشكلة</string>
     <string name="faq_report_issue_subtitle">تقديم تقارير الأخطاء، طلبات البنك، أو تحسينات الميزات على GitHub</string>
+    <string name="appearance_accent_verdigris">زنجاري</string>
+    <string name="appearance_font_ledger">PennyWise</string>
+    <string name="appearance_font_ledger_subtitle">أرقام بخط مميز</string>
 </resources>

@@ -47,7 +47,7 @@ object Spacing {
         val screenHorizontal = 16.dp
 
         /** Vertical gap between two top-level sections (header + its content). */
-        val sectionGap = 20.dp
+        val sectionGap = 24.dp
 
         /** Gap between a section header and the content it labels. */
         val headerToContent = 8.dp
@@ -56,11 +56,10 @@ object Spacing {
         val listGap = 8.dp
 
         /**
-         * Gap between rows of a *grouped* list — the connected
-         * rounded-corner-block pattern where rows read as one unit.
-         * Deliberately tiny; the shape does the separating.
+         * Gap between rows of a *grouped* list. None: a hairline rule between
+         * rows does the separating, as in a ledger.
          */
-        val groupedListGap = 2.dp
+        val groupedListGap = 0.dp
 
         /** Inset for content nested inside an already-padded card. */
         val nestedContent = 12.dp

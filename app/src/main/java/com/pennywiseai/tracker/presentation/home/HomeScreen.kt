@@ -36,20 +36,20 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -164,7 +164,7 @@ private fun HomeSyncButton(
             )
         } else {
             Icon(
-                imageVector = Icons.Default.Sync,
+                imageVector = Icons.Outlined.Sync,
                 contentDescription = syncLabel,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -424,7 +424,7 @@ fun HomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MoreHoriz,
+                                imageVector = Icons.Outlined.MoreHoriz,
                                 contentDescription = stringResource(R.string.home_more_options),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(Dimensions.Icon.medium)
@@ -460,7 +460,7 @@ fun HomeScreen(
                 bottom = Dimensions.Component.bottomBarHeight +
                     Dimensions.Component.fabScrollClearance
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
             item {
                 GreetingCard(
@@ -674,10 +674,10 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_budgets),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToBudgets, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -716,10 +716,10 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_goals),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToBudgets, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -758,10 +758,10 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_loans),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToLoans, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToLoans, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -808,10 +808,10 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_groups),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToTransactionGroups, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToTransactionGroups, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -863,17 +863,17 @@ fun HomeScreen(
                                                     shapes = IconButtonDefaults.shapes()
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Search,
+                                                        imageVector = Icons.Outlined.Search,
                                                         contentDescription = stringResource(R.string.home_search_transactions),
                                                         tint = MaterialTheme.colorScheme.primary
                                                     )
                                                 }
 
                                                 // View All button
-                                                TextButton(onClick = onNavigateToTransactions, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToTransactions, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -910,7 +910,7 @@ fun HomeScreen(
                                     )
                                 ) {
                                     PennyWiseEmptyState(
-                                        icon = Icons.Default.Sync,
+                                        icon = Icons.Outlined.Sync,
                                         headline = stringResource(R.string.home_empty_headline),
                                         description = stringResource(R.string.home_empty_description),
                                         actionLabel = stringResource(R.string.home_empty_action),
@@ -998,10 +998,10 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_accounts),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToManageAccounts, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToManageAccounts, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_manage))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -1044,10 +1044,10 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_subscriptions),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToSubscriptions, shapes = ButtonDefaults.shapes()) {
+                                                TextButton(onClick = onNavigateToSubscriptions, shapes = pennyWiseButtonShapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -1144,7 +1144,7 @@ fun HomeScreen(
             // spot always means the same thing. Sync lives in the header.
             DockNavAction(
                 NavDockAction(
-                    icon = Icons.Default.Add,
+                    icon = Icons.Outlined.Add,
                     contentDescription = stringResource(R.string.home_fab_add),
                     onClick = onNavigateToAddScreen
                 )
@@ -1168,7 +1168,7 @@ fun HomeScreen(
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Outlined.Add,
                         contentDescription = stringResource(R.string.home_fab_add)
                     )
                 }
@@ -1212,7 +1212,7 @@ fun HomeScreen(
                                 )
                             } else {
                                 Icon(
-                                    imageVector = Icons.Default.Sync,
+                                    imageVector = Icons.Outlined.Sync,
                                     contentDescription = stringResource(R.string.home_fab_sync),
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -1237,7 +1237,7 @@ fun HomeScreen(
                 onDismissRequest = { showFullResyncDialog = false },
                 icon = {
                     Icon(
-                        imageVector = Icons.Default.Sync,
+                        imageVector = Icons.Outlined.Sync,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -1270,7 +1270,7 @@ fun HomeScreen(
                 confirmButton = {
                     TextButton(
                         onClick = { showFullResyncDialog = false },
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(stringResource(R.string.home_cancel))
                     }
@@ -1340,7 +1340,7 @@ fun HomeScreen(
                 // and leading with the ask makes it read as a favour being requested.
                 MenuListItem(
                     headline = stringResource(R.string.home_menu_monthly_recap),
-                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    icon = { Icon(Icons.Outlined.Share, contentDescription = null) },
                     position = ListItemPosition.Top,
                     onClick = {
                         showMenuSheet = false
@@ -1351,7 +1351,7 @@ fun HomeScreen(
                 // Settings (Middle)
                 MenuListItem(
                     headline = stringResource(R.string.home_menu_settings),
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                    icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
                     position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
@@ -1362,7 +1362,7 @@ fun HomeScreen(
                 // Edit home screen (Middle) — reorder / hide Home sections (#770)
                 MenuListItem(
                     headline = stringResource(R.string.home_menu_edit_home),
-                    icon = { Icon(Icons.Default.Tune, contentDescription = null) },
+                    icon = { Icon(Icons.Outlined.Tune, contentDescription = null) },
                     position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
@@ -1374,7 +1374,7 @@ fun HomeScreen(
                 // hides behind a long-press on Sync.
                 MenuListItem(
                     headline = stringResource(R.string.home_resync_title),
-                    icon = { Icon(Icons.Default.Sync, contentDescription = null) },
+                    icon = { Icon(Icons.Outlined.Sync, contentDescription = null) },
                     position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
@@ -1403,7 +1403,7 @@ fun HomeScreen(
                 // Rate on Play Store (Bottom)
                 MenuListItem(
                     headline = stringResource(R.string.home_menu_rate),
-                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
+                    icon = { Icon(Icons.Outlined.Star, contentDescription = null) },
                     position = ListItemPosition.Bottom,
                     onClick = {
                         showMenuSheet = false
@@ -1497,13 +1497,14 @@ fun HomeScreen(
                             enabled = i > 0,
                             onClick = { viewModel.moveHomeSection(section, -1) },
                             shapes = IconButtonDefaults.shapes()
-                        ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.home_edit_move_up, sectionLabel)) }
+                        ) { Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = stringResource(R.string.home_edit_move_up, sectionLabel)) }
                         IconButton(
                             enabled = i < homeSectionLayout.lastIndex,
                             onClick = { viewModel.moveHomeSection(section, +1) },
                             shapes = IconButtonDefaults.shapes()
-                        ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.home_edit_move_down, sectionLabel)) }
+                        ) { Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = stringResource(R.string.home_edit_move_down, sectionLabel)) }
                         Switch(
+                            colors = pennyWiseSwitchColors(),
                             checked = isVisible,
                             onCheckedChange = { on -> viewModel.setHomeSectionVisible(section, on) }
                         )
@@ -1597,7 +1598,7 @@ private fun BreakdownDialog(
                 TextButton(
                     onClick = onDismiss,
                     modifier = Modifier.align(Alignment.End),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.home_close))
                 }
@@ -1678,7 +1679,7 @@ private fun UpcomingSubscriptionsCard(
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        contentPadding = Dimensions.Padding.content
+        flat = true
     ) {
         Row(
             modifier = Modifier
@@ -1749,7 +1750,7 @@ private fun UpcomingSubscriptionsCard(
                     }
                 } else {
                     Icon(
-                        imageVector = Icons.Default.CalendarToday,
+                        imageVector = Icons.Outlined.CalendarToday,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1813,7 +1814,8 @@ private fun ActiveLoansSummaryCard(
 ) {
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
+        onClick = onClick,
+        flat = true
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1822,7 +1824,7 @@ private fun ActiveLoansSummaryCard(
         ) {
             // Loan icon
             Icon(
-                imageVector = Icons.Default.SwapHoriz,
+                imageVector = Icons.Outlined.SwapHoriz,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimensions.Icon.medium)

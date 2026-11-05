@@ -89,7 +89,7 @@ import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Add
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
@@ -125,7 +125,7 @@ private fun tabOf(key: NavKey?): BottomNavItem? = when (key) {
 private fun DockAddAction(onClick: () -> Unit) {
     DockNavAction(
         NavDockAction(
-            icon = androidx.compose.material.icons.Icons.Default.Add,
+            icon = androidx.compose.material.icons.Icons.Outlined.Add,
             contentDescription = stringResource(R.string.home_fab_add),
             onClick = onClick
         )
@@ -267,11 +267,8 @@ fun MainScreen(
     val navBarStyle =
         if (themeState.navBarStyle == NavBarStyle.FLOATING && !pillFits) NavBarStyle.NORMAL
         else themeState.navBarStyle
-    // Follows the user's choice, not the fallback: on the full-width bar the action floats
-    // above it, rather than each screen bringing back its own FAB stack over the content.
-    val dockForTabs = navDock.takeIf {
-        themeState.isLoading || themeState.navBarStyle == NavBarStyle.FLOATING
-    }
+    // Both bar styles carry the tab's main action, so no screen floats a FAB over its figures.
+    val dockForTabs = navDock
 
     // Hiding the tab you're on (or the one under Settings) sends you Home, once,
     // on the next tab you land on. Other ways into a hidden tab's screen (e.g.

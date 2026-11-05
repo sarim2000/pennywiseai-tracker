@@ -293,7 +293,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamic</string>
     <string name="appearance_style_dynamic_subtitle">Wallpaper colors</string>
-    <string name="appearance_style_default">Rose Pine</string>
+    <string name="appearance_style_default">PennyWise</string>
     <string name="appearance_style_default_subtitle">Built-in colors</string>
 
     <!-- Toggles -->
@@ -329,6 +329,7 @@
     <!-- Theme and colours -->
     <string name="appearance_theme_section">Theme</string>
     <string name="appearance_colours_section">Colors</string>
+    <string name="appearance_accent_verdigris">Verdigris</string>
     <string name="appearance_accent_rose">Rose</string>
     <string name="appearance_accent_iris">Iris</string>
     <string name="appearance_accent_pine">Pine</string>
@@ -344,6 +345,8 @@
 
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fonts</string>
+    <string name="appearance_font_ledger">PennyWise</string>
+    <string name="appearance_font_ledger_subtitle">Serif figures</string>
     <string name="appearance_font_default">Default</string>
     <string name="appearance_font_default_subtitle">System</string>
     <string name="appearance_font_sn_pro_subtitle">Rounded sans</string>

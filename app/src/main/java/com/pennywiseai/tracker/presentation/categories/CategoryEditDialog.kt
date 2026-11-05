@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -11,8 +12,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -75,7 +76,6 @@ fun CategoryEditDialog(
                 Text(
                     text = stringResource(if (category == null) R.string.category_edit_title_add else R.string.category_edit_title_edit),
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
                 )
 
                 // Category Name Input
@@ -185,7 +185,7 @@ fun CategoryEditDialog(
                     trailingIcon = if (emoji.isNotEmpty()) {
                         {
                             IconButton(onClick = { emoji = "" }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Default.Close, contentDescription = stringResource(R.string.category_edit_clear_icon))
+                                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.category_edit_clear_icon))
                             }
                         }
                     } else null,
@@ -259,7 +259,7 @@ fun CategoryEditDialog(
                     TextButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(stringResource(R.string.categories_action_cancel))
                     }
@@ -273,7 +273,7 @@ fun CategoryEditDialog(
                         },
                         modifier = Modifier.weight(1f),
                         enabled = name.isNotBlank(),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(stringResource(if (category == null) R.string.category_edit_add else R.string.category_edit_save))
                     }
@@ -288,10 +288,10 @@ fun CategoryEditDialog(
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         ),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Icon(
-                            Icons.Default.Delete,
+                            Icons.Outlined.Delete,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -319,11 +319,11 @@ fun CategoryEditDialog(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) { Text(stringResource(R.string.categories_action_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.categories_action_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.categories_action_cancel)) }
             }
         )
     }

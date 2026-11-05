@@ -243,6 +243,7 @@
     <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_title" translatable="false">PennyWise AI</string>
     <string name="chat_downloading_model">Downloading Model...</string>
+    <string name="chat_preview_title">Once it\'s on your phone, you can say</string>
     <string name="chat_model_required_title">AI Model Required</string>
     <string name="chat_model_required_body">Download the AI model to start chatting</string>
     <string name="chat_download_progress">%1$d MB / %2$d MB</string>

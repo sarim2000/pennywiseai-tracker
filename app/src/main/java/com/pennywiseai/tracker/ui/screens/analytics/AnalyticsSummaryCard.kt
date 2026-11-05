@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.ui.components.cards.StatementLine
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.res.pluralStringResource
@@ -10,7 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,180 +57,71 @@ fun AnalyticsSummaryCard(
         label = "summary_alpha"
     )
 
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth()
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .alpha(loadAlpha)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .alpha(loadAlpha)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            // Top Row - Total and Transaction Count Badge. FlowRow: at a large font the badge
-            // takes its own line rather than squeezing the total into a sliver.
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                // Total Amount - bolder typography
-                Column {
-                    Text(
-                        text = "${stringResource(R.string.analytics_summary_total)} · $scopeLabel",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    val formattedTotal = CurrencyFormatter.formatCurrency(totalAmount, currency)
-                    Text(
-                        text = formattedTotal,
-                        style = PennyWiseText.amountLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        autoSize = PennyWiseText.fit(PennyWiseText.amountLarge)
-                    )
-                }
-
-                // Transaction Count - styled pill badge
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            shape = RoundedCornerShape(Spacing.sm)
-                        )
-                        .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Receipt,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = pluralStringResource(R.plurals.analytics_summary_txns, transactionCount, transactionCount),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(Spacing.md))
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            Text(
+                text = "${stringResource(R.string.analytics_summary_total)} · $scopeLabel",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.height(Spacing.md))
-
-            // Bottom Row - Average and Top Category
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                itemVerticalAlignment = Alignment.CenterVertically
-            ) {
-                // Average Amount with /day suffix
-                Column {
-                    Text(
-                        text = stringResource(R.string.analytics_summary_average),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    // FlowRow: a long figure pushes the label to its own line rather than
-                    // squeezing it to one letter per line.
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        itemVerticalAlignment = Alignment.Bottom
-                    ) {
-                        Text(
-                            text = if (transactionCount > 0) {
-                                CurrencyFormatter.formatCurrency(averageAmount, currency)
-                            } else {
-                                CurrencyFormatter.formatCurrency(BigDecimal.ZERO, currency)
-                            },
-                            style = PennyWiseText.amountMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            autoSize = PennyWiseText.fit(PennyWiseText.amountMedium)
-                        )
-                        Text(
-                            text = stringResource(R.string.analytics_summary_per_transaction).trim(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 2.dp)
-                        )
-                    }
-                }
-
-                // Top Category Pill
-                if (topCategory != null && topCategoryPercentage > 0) {
-                    val categoryInfo = CategoryMapping.categories[topCategory]
-                        ?: CategoryMapping.categories["Others"]!!
-
-                    Column {
-                        Text(
-                            text = stringResource(R.string.analytics_summary_percent_of_total, topCategoryPercentage.toInt()),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Row(
-                            modifier = Modifier
-                                .background(
-                                    color = categoryDisplayColor(topCategory).copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            CategoryIcon(
-                                category = topCategory,
-                                size = 16.dp,
-                                tint = categoryDisplayColor(topCategory)
-                            )
-                            Text(
-                                text = categoryLabel(topCategory),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            }
-
-            forecast?.let { ForecastSection(it) }
+            Text(
+                text = pluralStringResource(R.plurals.analytics_summary_txns, transactionCount, transactionCount),
+                style = PennyWiseText.metadata,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        Text(
+            text = PennyWiseText.heroFigure(CurrencyFormatter.formatCurrency(totalAmount, currency), MaterialTheme.colorScheme.onSurfaceVariant),
+            style = PennyWiseText.heroAmount,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.heroAmount),
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        StatementLine(
+            label = stringResource(R.string.analytics_summary_average) + " " +
+                stringResource(R.string.analytics_summary_per_transaction).trim(),
+            value = CurrencyFormatter.formatCurrency(
+                if (transactionCount > 0) averageAmount else BigDecimal.ZERO,
+                currency
+            ),
+        )
+        if (topCategory != null && topCategoryPercentage > 0) {
+            StatementLine(
+                label = stringResource(R.string.analytics_summary_percent_of_total, topCategoryPercentage.toInt()),
+                value = categoryLabel(topCategory),
+                leading = {
+                    CategoryIcon(
+                        category = topCategory,
+                        size = Dimensions.Icon.small,
+                        tint = categoryDisplayColor(topCategory)
+                    )
+                },
+            )
+        }
+        forecast?.let { ForecastSection(it) }
     }
 }
 
 /** Month-end forecast under the summary, with the "above your usual" note when it applies. */
 @Composable
 private fun ForecastSection(forecast: SpendForecast) {
-    Spacer(modifier = Modifier.height(Spacing.md))
-    HorizontalDivider(
-        thickness = Dimensions.Component.dividerThicknessEmphasis,
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-    )
-    Spacer(modifier = Modifier.height(Spacing.md))
-    Text(
-        text = stringResource(
+    StatementLine(
+        label = stringResource(
             R.string.analytics_forecast_for,
             forecast.periodEnd.format(AppDates.dayMonthFormatter())
-        ).uppercase(),
-        style = PennyWiseText.overline,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-    Text(
-        text = CurrencyFormatter.formatEstimate(forecast.projected, forecast.currency),
-        style = MaterialTheme.typography.titleLarge,
-        fontWeight = FontWeight.SemiBold,
-        color = MaterialTheme.colorScheme.onSurface,
-        maxLines = 1,
-        autoSize = PennyWiseText.fit(MaterialTheme.typography.titleLarge)
+        ),
+        value = CurrencyFormatter.formatEstimate(forecast.projected, forecast.currency),
     )
     val over = forecast.overUsual ?: return
     Spacer(modifier = Modifier.height(Spacing.sm))
@@ -237,8 +129,8 @@ private fun ForecastSection(forecast: SpendForecast) {
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                shape = RoundedCornerShape(Spacing.sm)
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shape = MaterialTheme.shapes.small
             )
             .padding(horizontal = Spacing.smd, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
@@ -249,7 +141,6 @@ private fun ForecastSection(forecast: SpendForecast) {
                 CurrencyFormatter.formatCurrency(over, forecast.currency)
             ),
             style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.expense
         )
         forecast.dailyToStayAtUsual?.let { daily ->

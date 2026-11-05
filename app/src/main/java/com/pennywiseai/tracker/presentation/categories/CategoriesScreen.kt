@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.categories
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.annotation.StringRes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -12,8 +13,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,13 +84,13 @@ fun CategoriesScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.categories_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.categories_back))
                     }
                 },
                 // In the bar: a FAB here sat on top of the rows' visibility toggles.
                 actionContent = {
                     IconButton(onClick = { viewModel.showAddDialog() }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.categories_add))
+                        Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.categories_add))
                     }
                 },
             )
@@ -243,7 +244,7 @@ private fun SwipeableCategoryItem(
                 ) {
                     if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) {
                         Icon(
-                            imageVector = Icons.Default.Delete,
+                            imageVector = Icons.Outlined.Delete,
                             contentDescription = stringResource(R.string.categories_action_delete),
                             tint = MaterialTheme.colorScheme.onError
                         )
@@ -252,12 +253,15 @@ private fun SwipeableCategoryItem(
             }
         },
         content = {
-            CategoryItem(
-                category = category,
-                position = position,
-                onClick = onEdit,
-                onToggleHidden = onToggleHidden
-            )
+            // See-through rows: the page travels with the swipe.
+            Box(Modifier.background(MaterialTheme.colorScheme.background)) {
+                CategoryItem(
+                    category = category,
+                    position = position,
+                    onClick = onEdit,
+                    onToggleHidden = onToggleHidden
+                )
+            }
         },
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = !category.isSystem
@@ -283,8 +287,8 @@ private fun CategoryItem(
         // Sub-categories sit indented under their parent (#374). The hide button's
         // 48dp target supplies the end inset.
         contentPadding = PaddingValues(
-            start = if (category.parentId != null) Spacing.md + Spacing.lg else Spacing.md,
-            end = Spacing.xs,
+            start = if (category.parentId != null) Spacing.lg else Spacing.none,
+            end = Spacing.none,
             top = Spacing.xs,
             bottom = Spacing.xs
         )
@@ -327,7 +331,7 @@ private fun CategoryItem(
         // system defaults (the whole point of #736).
         IconButton(onClick = onToggleHidden, shapes = IconButtonDefaults.shapes()) {
             Icon(
-                imageVector = if (category.isHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                imageVector = if (category.isHidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                 contentDescription = stringResource(
                     if (category.isHidden) R.string.categories_show_named else R.string.categories_hide_named,
                     name

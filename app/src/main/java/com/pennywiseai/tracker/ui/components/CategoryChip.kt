@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.icons.categoryDisplayColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -38,7 +39,7 @@ fun CategoryChip(
             }
         } else {
             CategoryDot(
-                color = category.color,
+                color = categoryDisplayColor(category.name, category.color),
                 modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)
             )
         }
@@ -60,18 +61,14 @@ fun CategoryChip(
  */
 @Composable
 fun CategoryDot(
-    color: String,
+    color: Color,
     modifier: Modifier = Modifier,
     size: Int = 8
 ) {
-    val fallback = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
             .size(size.dp)
-            .background(
-                color = parseColor(color, fallback),
-                shape = CircleShape
-            )
+            .background(color = color, shape = CircleShape)
     )
 }
 
@@ -92,7 +89,7 @@ fun CategoryChip(
     ) {
         // Colored dot indicator
         CategoryDot(
-            color = categoryColor,
+            color = categoryDisplayColor(categoryName, categoryColor),
             modifier = Modifier.padding(end = if (showText) Spacing.xs else 0.dp)
         )
 
@@ -105,18 +102,5 @@ fun CategoryChip(
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-/**
- * Helper function to parse color string to Compose Color.
- * Handles hex colors like "#FF0000" or "FF0000".
- */
-private fun parseColor(colorString: String, fallback: Color): Color {
-    return try {
-        val cleanColor = if (colorString.startsWith("#")) colorString else "#$colorString"
-        Color(android.graphics.Color.parseColor(cleanColor))
-    } catch (e: Exception) {
-        fallback
     }
 }

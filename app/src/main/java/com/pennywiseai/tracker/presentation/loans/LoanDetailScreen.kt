@@ -13,8 +13,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -76,38 +76,38 @@ fun LoanDetailScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
                     if (loan != null) {
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.loan_detail_more))
+                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.loan_detail_more))
                         }
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                             if (loan.status == LoanStatus.ACTIVE) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.loan_detail_menu_set_expected_return)) },
                                     onClick = { showMenu = false; viewModel.showEditAmountDialog() },
-                                    leadingIcon = { Icon(Icons.Default.Edit, null) }
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, null) }
                                 )
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.loan_detail_settle)) },
                                     onClick = { showMenu = false; viewModel.showSettleDialog() },
-                                    leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
+                                    leadingIcon = { Icon(Icons.Outlined.CheckCircle, null) }
                                 )
                             } else {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.loan_detail_menu_reopen)) },
                                     onClick = { showMenu = false; viewModel.reopenLoan() },
-                                    leadingIcon = { Icon(Icons.Default.Refresh, null) }
+                                    leadingIcon = { Icon(Icons.Outlined.Refresh, null) }
                                 )
                             }
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error) },
                                 onClick = { showMenu = false; viewModel.showDeleteDialog() },
-                                leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                                leadingIcon = { Icon(Icons.Outlined.Delete, null, tint = MaterialTheme.colorScheme.error) }
                             )
                         }
                     }
@@ -121,7 +121,7 @@ fun LoanDetailScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.loan_detail_record_payment))
+                    Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.loan_detail_record_payment))
                 }
             }
         }
@@ -180,7 +180,6 @@ fun LoanDetailScreen(
                                 Text(
                                     loan.personName.take(1).uppercase(),
                                     style = MaterialTheme.typography.titleLarge,
-                                    fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -279,12 +278,12 @@ fun LoanDetailScreen(
             title = { Text(stringResource(R.string.loan_detail_settle_title)) },
             text = { Text(stringResource(R.string.loan_detail_settle_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.settleLoan() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.settleLoan() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.loan_detail_settle))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideSettleDialog() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.hideSettleDialog() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -324,13 +323,13 @@ fun LoanDetailScreen(
                         editAmount.toBigDecimalOrNull()?.let { viewModel.updateLoanAmount(it) }
                     },
                     enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true,
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.accounts_action_save))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideEditAmountDialog() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.hideEditAmountDialog() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -344,12 +343,12 @@ fun LoanDetailScreen(
             title = { Text(stringResource(R.string.loan_detail_delete_title)) },
             text = { Text(stringResource(R.string.loan_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteLoan() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.deleteLoan() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }

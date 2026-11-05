@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material.icons.outlined.Person
@@ -43,7 +43,7 @@ fun ProfileFilterDropdown(
             leadingIcon = {
                 Icon(imageVector = Icons.Outlined.AccountBalance, contentDescription = null)
             },
-            selectedLeadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) }
+            selectedLeadingIcon = { Icon(imageVector = Icons.Outlined.Check, contentDescription = null) }
         )
         profiles.forEachIndexed { index, profile ->
             SelectableDropdownMenuItem(
@@ -58,7 +58,7 @@ fun ProfileFilterDropdown(
                 leadingIcon = {
                     Icon(imageVector = profileIcon(profile), contentDescription = null)
                 },
-                selectedLeadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) }
+                selectedLeadingIcon = { Icon(imageVector = Icons.Outlined.Check, contentDescription = null) }
             )
         }
     }

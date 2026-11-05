@@ -2,86 +2,54 @@ package com.pennywiseai.tracker.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Light Theme Colors - Blue Owl Theme
-val md_theme_light_primary = Color(0xFF1565C0)  // Darker blue for better contrast
-val md_theme_light_onPrimary = Color(0xFFFFFFFF)  // White on blue - good contrast
-val md_theme_light_primaryContainer = Color(0xFFD1E4FF)  // Light blue container
-val md_theme_light_onPrimaryContainer = Color(0xFF001D36)  // Very dark blue for text
-val md_theme_light_secondary = Color(0xFFF57C00)  // Darker orange for better contrast
-val md_theme_light_onSecondary = Color(0xFFFFFFFF)  // White on orange - better than black
-val md_theme_light_secondaryContainer = Color(0xFFFFE0B2)  // Light gold
-val md_theme_light_onSecondaryContainer = Color(0xFF2C1600)  // Very dark brown for text
-val md_theme_light_tertiary = Color(0xFF0277BD)  // Darker cyan blue for contrast
-val md_theme_light_onTertiary = Color(0xFFFFFFFF)  // White on tertiary
-val md_theme_light_tertiaryContainer = Color(0xFFCAE6FF)  // Light cyan container
-val md_theme_light_onTertiaryContainer = Color(0xFF001E30)  // Very dark blue for text
-val md_theme_light_error = Color(0xFFBA1A1A)
-val md_theme_light_onError = Color(0xFFFFFFFF)
-val md_theme_light_errorContainer = Color(0xFFFFDAD6)
-val md_theme_light_onErrorContainer = Color(0xFF410002)
-val md_theme_light_outline = Color(0xFF79747E)
-val md_theme_light_background = Color(0xFFFFFFFF)  // Pure white background
-val md_theme_light_onBackground = Color(0xFF1C1B1F)
-val md_theme_light_surface = Color(0xFFFAFAFA)  // Very light gray for cards
-val md_theme_light_onSurface = Color(0xFF1C1B1F)
-val md_theme_light_surfaceVariant = Color(0xFFF5F5F5)  // Light gray for secondary cards
-val md_theme_light_onSurfaceVariant = Color(0xFF49454F)
-val md_theme_light_inverseSurface = Color(0xFF313033)
-val md_theme_light_inverseOnSurface = Color(0xFFF4EFF4)
-val md_theme_light_inversePrimary = Color(0xFF90CAF9)  // Light blue
-val md_theme_light_surfaceTint = Color(0xFF1565C0)  // Updated primary blue
-val md_theme_light_outlineVariant = Color(0xFFCAC4D0)
-val md_theme_light_scrim = Color(0xFF000000)
+// ── The Private Ledger ───────────────────────────────────────────────────
+// Cool green-grey ink and paper for surfaces, so the page recedes and the figures carry the
+// screen. Verdigris is the accent: the colour a copper penny turns with age. It also means
+// money coming in; spending stays ink.
+val ink_background = Color(0xFF121A17)
+val ink_raised = Color(0xFF19221F)
+val ink_container = Color(0xFF1E2825)
+val ink_high = Color(0xFF25312D)
+val ink_highest = Color(0xFF2F3C37)
+val ink_rule = Color(0xFF2A3733)
+val ink_outline = Color(0xFF74857E)
+val ink_text = Color(0xFFE9F0EC)
+val ink_textMuted = Color(0xFFB1C0BA)
 
-// Dark Theme Colors - Blue Owl Theme
-val md_theme_dark_primary = Color(0xFF90CAF9)  // Light blue for dark mode
-val md_theme_dark_onPrimary = Color(0xFF003258)  // Dark blue on light blue
-val md_theme_dark_primaryContainer = Color(0xFF1E3A5F)  // Slightly lighter blue container for better contrast
-val md_theme_dark_onPrimaryContainer = Color(0xFFD1E4FF)  // Light blue on dark
-val md_theme_dark_secondary = Color(0xFFFFB74D)  // Light orange for dark mode
-val md_theme_dark_onSecondary = Color(0xFF4A2800)  // Dark brown on orange
-val md_theme_dark_secondaryContainer = Color(0xFF5D3200)  // Slightly lighter orange container
-val md_theme_dark_onSecondaryContainer = Color(0xFFFFDDB3)  // Light orange on dark
-val md_theme_dark_tertiary = Color(0xFF5DD4FC)  // Bright cyan for dark mode
-val md_theme_dark_onTertiary = Color(0xFF00344F)  // Dark blue on cyan
-val md_theme_dark_tertiaryContainer = Color(0xFF004C6F)  // Dark cyan container
-val md_theme_dark_onTertiaryContainer = Color(0xFFCAE6FF)  // Light cyan on dark
-val md_theme_dark_error = Color(0xFFFFB4AB)
-val md_theme_dark_onError = Color(0xFF690005)
-val md_theme_dark_errorContainer = Color(0xFF93000A)
-val md_theme_dark_onErrorContainer = Color(0xFFFFDAD6)
-val md_theme_dark_outline = Color(0xFF938F99)
-val md_theme_dark_background = Color(0xFF000000)  // AMOLED black background
-val md_theme_dark_onBackground = Color(0xFFE6E1E5)
-val md_theme_dark_surface = Color(0xFF1E1E1E)  // Card surface
-val md_theme_dark_onSurface = Color(0xFFE6E1E5)
-val md_theme_dark_surfaceVariant = Color(0xFF252525)  // Secondary card surface
-val md_theme_dark_onSurfaceVariant = Color(0xFFCAC4D0)
-val md_theme_dark_inverseSurface = Color(0xFFE6E1E5)
-val md_theme_dark_inverseOnSurface = Color(0xFF313033)
-val md_theme_dark_inversePrimary = Color(0xFF1565C0)  // Medium blue
-val md_theme_dark_surfaceTint = Color(0xFF90CAF9)  // Light blue
-val md_theme_dark_outlineVariant = Color(0xFF49454F)
-val md_theme_dark_scrim = Color(0xFF000000)
+val paper_background = Color(0xFFF3F6F4)
+val paper_raised = Color(0xFFFFFFFF)
+val paper_container = Color(0xFFE9EEEB)
+val paper_high = Color(0xFFE1E8E4)
+val paper_highest = Color(0xFFD6DFDA)
+val paper_rule = Color(0xFFD8E0DC)
+val paper_outline = Color(0xFF74837D)
+val paper_text = Color(0xFF111C18)
+val paper_textMuted = Color(0xFF4A5953)
+
+val Verdigris_dark = Color(0xFF6DBFA6)
+val Verdigris_dark_secondary = Color(0xFFA9C4BA)
+val Verdigris_dark_tertiary = Color(0xFFE3B46B)
+val Verdigris_light = Color(0xFF0A6B57)
+val Verdigris_light_secondary = Color(0xFF44615A)
+val Verdigris_light_tertiary = Color(0xFF8A6414)
 
 // Custom Semantic Colors
-val success_light = Color(0xFF2E7D32)  // Medium green for good contrast on white
-val success_dark = Color(0xFF81C784)  // Lighter green for better contrast on dark backgrounds
-val warning_light = Color(0xFFE65100)  // Darker orange for better contrast
-val warning_dark = Color(0xFFFFB74D)  // Lighter orange for dark mode
+val success_light = Color(0xFF0A6B57)
+val success_dark = Color(0xFF6DBFA6)
+val warning_light = Color(0xFF8F5F00)
+val warning_dark = Color(0xFFE3B45F)
 
 // Transaction Type Colors
-// Using distinct colors that work well on both light and dark backgrounds
-val income_light = Color(0xFF00796B)  // Teal 700 - good on white
-val income_dark = Color(0xFF80CBC4)   // Teal 200 - readable on dark backgrounds
-val expense_light = Color(0xFFC62828) // Red 800 - good on white
-val expense_dark = Color(0xFFE57373)  // Red 300 - readable on dark backgrounds
-val credit_light = Color(0xFFEF6C00)  // Orange 800 for credit card - good on white
-val credit_dark = Color(0xFFFFD54F)   // Amber 300 for credit card - readable on dark
-val transfer_light = Color(0xFF303F9F) // Indigo 700 for transfers - good on white
-val transfer_dark = Color(0xFF9FA8DA)  // Indigo 200 for transfers - readable on dark
-val investment_light = Color(0xFF37474F) // Blue Grey 800 for investments - good on white
-val investment_dark = Color(0xFF90A4AE)  // Blue Grey 300 for investments - readable on dark
+val income_light = Color(0xFF0A6B57)   // Verdigris
+val income_dark = Color(0xFF6DBFA6)
+val expense_light = Color(0xFFB23A2A)  // Oxblood: over budget and overdue, not routine spend
+val expense_dark = Color(0xFFEC8E7E)
+val credit_light = Color(0xFF8A6414)   // Brass
+val credit_dark = Color(0xFFD9B56A)
+val transfer_light = Color(0xFF3D5A78) // Slate
+val transfer_dark = Color(0xFF9DB6CC)
+val investment_light = Color(0xFF5F4B8B) // Plum
+val investment_dark = Color(0xFFBBA9D8)
 
 // Loan Colors (Amber / Warm)
 val loan_light = Color(0xFFFF8F00)           // Amber 800
@@ -100,16 +68,16 @@ val category_other = Color(0xFF78909C)  // Blue Grey
 
 // Budget Progress Colors
 // Green: under 50% spent (safe)
-val budget_safe_light = Color(0xFF2E7D32)   // Medium green - good contrast on white
-val budget_safe_dark = Color(0xFF81C784)    // Light green - readable on dark
+val budget_safe_light = income_light
+val budget_safe_dark = income_dark
 
 // Yellow/Amber: 50-80% spent (warning)
-val budget_warning_light = Color(0xFFFF8F00)  // Amber - good contrast on white
-val budget_warning_dark = Color(0xFFFFCA28)   // Light amber - readable on dark
+val budget_warning_light = warning_light
+val budget_warning_dark = warning_dark
 
 // Red: over 80% spent (danger)
-val budget_danger_light = Color(0xFFC62828)   // Red 800 - good contrast on white
-val budget_danger_dark = Color(0xFFE57373)    // Red 300 - readable on dark
+val budget_danger_light = expense_light
+val budget_danger_dark = expense_dark
 
 // Budget Card Colors (for different budget cards)
 val budget_card_colors = listOf(
@@ -257,12 +225,12 @@ val grey_dark = Color(0xFF546E7A)
 
 // AMOLED Dark Mode Colors
 val amoled_background = Color(0xFF000000)
-val amoled_surface = Color(0xFF1A1A1A)
-val amoled_surfaceVariant = Color(0xFF242424)
+val amoled_surface = Color(0xFF000000)
+val amoled_surfaceVariant = Color(0xFF1E1C19)
 val amoled_surfaceContainerLowest = Color(0xFF000000)
-val amoled_surfaceContainerLow = Color(0xFF1A1A1A)
-val amoled_surfaceContainer = Color(0xFF1C1C1C)
-val amoled_surfaceContainerHigh = Color(0xFF272727)
-val amoled_surfaceContainerHighest = Color(0xFF323232)
-val amoled_surfaceBright = Color(0xFF2A2A2A)
-val amoled_surfaceDim = Color(0xFF0A0A0A)
+val amoled_surfaceContainerLow = Color(0xFF12110F)
+val amoled_surfaceContainer = Color(0xFF1A1815)
+val amoled_surfaceContainerHigh = Color(0xFF24211D)
+val amoled_surfaceContainerHighest = Color(0xFF2E2A25)
+val amoled_surfaceBright = Color(0xFF2A2723)
+val amoled_surfaceDim = Color(0xFF000000)

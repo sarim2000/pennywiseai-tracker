@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -14,8 +15,8 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -143,7 +144,7 @@ fun MergeAccountsSheet(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ArrowDownward,
+                                    imageVector = Icons.Outlined.ArrowDownward,
                                     contentDescription = null,
                                     modifier = Modifier.padding(end = Spacing.xs),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -185,10 +186,10 @@ fun MergeAccountsSheet(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onConfirm(s, t) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.merge_accounts_confirm)) }
+                TextButton(onClick = { onConfirm(s, t) }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.merge_accounts_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { target = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
+                TextButton(onClick = { target = null }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
             }
         )
     }
@@ -274,7 +275,7 @@ private fun AccountPickerRow(
                     label = { Text(stringResource(R.string.merge_accounts_selected)) },
                     leadingIcon = {
                         Icon(
-                            Icons.Default.Check,
+                            Icons.Outlined.Check,
                             contentDescription = null,
                             modifier = Modifier.padding(end = 2.dp)
                         )

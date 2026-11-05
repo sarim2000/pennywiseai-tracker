@@ -9,6 +9,8 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 
+internal const val DEFAULT_GOAL_COLOR = "#1565C0"
+
 /** Inline validation problems; the screen maps each to a string. */
 enum class GoalFieldError { NAME_BLANK, TARGET_INVALID, DUE_NOT_AFTER_TODAY, ALREADY_SAVED_INVALID }
 
@@ -21,7 +23,7 @@ data class GoalForm(
     val target: String = "",
     val currency: String = "INR",
     val dueDate: LocalDate? = null,
-    val color: String = "#1565C0",
+    val color: String = DEFAULT_GOAL_COLOR,
     val alreadySaved: String = "",
 ) {
     val targetAmount: BigDecimal? get() = target.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }

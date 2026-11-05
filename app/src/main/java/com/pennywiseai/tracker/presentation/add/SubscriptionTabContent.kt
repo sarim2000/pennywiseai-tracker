@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -71,7 +71,7 @@ fun SubscriptionTabContent(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Icon(
-                            Icons.Default.Error,
+                            Icons.Outlined.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(Dimensions.Icon.medium)
@@ -113,7 +113,7 @@ fun SubscriptionTabContent(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Icon(
-                        Icons.Default.Info,
+                        Icons.Outlined.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -142,7 +142,7 @@ fun SubscriptionTabContent(
             GroupedList {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     AddPickerRow(
-                        leadingIcon = { Icon(Icons.Default.EventRepeat, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Outlined.EventRepeat, contentDescription = null) },
                         label = stringResource(R.string.add_sub_billing_cycle),
                         value = billingCycleLabel(uiState.billingCycle),
                         shape = ListItemPosition.Top.toShape(),
@@ -167,7 +167,7 @@ fun SubscriptionTabContent(
                 }
 
                 AddPickerRow(
-                    leadingIcon = { Icon(Icons.Default.CalendarToday, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.CalendarToday, contentDescription = null) },
                     label = stringResource(R.string.add_sub_next_payment),
                     value = uiState.nextPaymentDate.format(AppDates.pattern("dd MMMM yyyy")),
                     shape = ListItemPosition.Bottom.toShape(),
@@ -179,7 +179,7 @@ fun SubscriptionTabContent(
             // Service Name + Category + Notes (connected group)
             GroupedList {
                 AddTextRow(
-                    leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.Subscriptions, contentDescription = null) },
                     label = stringResource(R.string.add_sub_service_name),
                     value = uiState.serviceName,
                     onValueChange = viewModel::updateSubscriptionService,
@@ -216,7 +216,7 @@ fun SubscriptionTabContent(
                 }
 
                 AddTextRow(
-                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.Description, contentDescription = null) },
                     label = stringResource(R.string.add_field_notes),
                     value = uiState.notes,
                     onValueChange = viewModel::updateSubscriptionNotes,
@@ -262,8 +262,8 @@ fun SubscriptionTabContent(
                             viewModel.updateSubscriptionAccount(null)
                             showAccountMenu = false
                         },
-                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
-                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Outlined.Block, contentDescription = null) },
+                        selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                     )
                     HorizontalDivider()
                     val groupedAccounts = accounts.groupBy { it.getAccountType() }
@@ -305,7 +305,7 @@ fun SubscriptionTabContent(
                                         contentDescription = null
                                     )
                                 },
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                             )
                         }
                     }
@@ -339,11 +339,11 @@ fun SubscriptionTabContent(
                         }
                         showDatePicker = false
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

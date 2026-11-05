@@ -4,13 +4,13 @@ import androidx.compose.runtime.Composable
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 
@@ -28,11 +28,11 @@ fun TransactionTypeFilter.shortLabel(): String = stringResource(
 )
 
 fun TransactionTypeFilter.filterIcon(): ImageVector = when (this) {
-    TransactionTypeFilter.ALL -> Icons.AutoMirrored.Filled.ReceiptLong
-    TransactionTypeFilter.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-    TransactionTypeFilter.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-    TransactionTypeFilter.CREDIT -> Icons.Default.CreditCard
-    TransactionTypeFilter.SPENDING -> Icons.Default.ShoppingCart
-    TransactionTypeFilter.TRANSFER -> Icons.Default.SwapHoriz
-    TransactionTypeFilter.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
+    TransactionTypeFilter.ALL -> Icons.AutoMirrored.Outlined.ReceiptLong
+    TransactionTypeFilter.INCOME -> Icons.AutoMirrored.Outlined.TrendingUp
+    TransactionTypeFilter.EXPENSE -> Icons.AutoMirrored.Outlined.TrendingDown
+    TransactionTypeFilter.CREDIT -> Icons.Outlined.CreditCard
+    TransactionTypeFilter.SPENDING -> Icons.Outlined.ShoppingCart
+    TransactionTypeFilter.TRANSFER -> Icons.Outlined.SwapHoriz
+    TransactionTypeFilter.INVESTMENT -> Icons.AutoMirrored.Outlined.ShowChart
 }

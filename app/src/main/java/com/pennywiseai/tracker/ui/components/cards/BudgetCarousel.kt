@@ -17,7 +17,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -82,7 +82,7 @@ fun BudgetCarousel(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
+                            Icons.AutoMirrored.Outlined.ArrowForward,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.primary

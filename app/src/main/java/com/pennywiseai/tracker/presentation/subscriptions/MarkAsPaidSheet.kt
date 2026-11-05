@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.res.pluralStringResource
@@ -184,7 +185,6 @@ fun MarkAsPaidSheet(
             Text(
                 text = CurrencyFormatter.formatCurrency(subscription.amount, subscription.currency),
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
                 color = amountColor,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
@@ -321,10 +321,10 @@ fun MarkAsPaidSheet(
                             .atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -422,12 +422,12 @@ private fun relativeDate(date: LocalDate): String {
 @Composable
 private fun EyebrowChip(text: String, isAccent: Boolean) {
     val container = if (isAccent) {
-        MaterialTheme.colorScheme.secondaryContainer
+        MaterialTheme.colorScheme.inverseSurface
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
     }
     val content = if (isAccent) {
-        MaterialTheme.colorScheme.onSecondaryContainer
+        MaterialTheme.colorScheme.inverseOnSurface
     } else {
         MaterialTheme.colorScheme.primary
     }

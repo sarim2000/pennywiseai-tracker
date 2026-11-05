@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.components.cards.ledgerRule
+import androidx.compose.material3.Surface
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.domain.model.icon
@@ -20,11 +22,11 @@ import androidx.compose.foundation.lazy.items
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -73,7 +75,7 @@ fun AccountDetailScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
             )
@@ -191,17 +193,19 @@ private fun ExpandableBalanceChart(
     balanceHistory: List<BalancePoint>,
     selectedTimeframe: String
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
+    // Open by default: the trend is why you came to an account's page.
+    var isExpanded by remember { mutableStateOf(true) }
     
-    PennyWiseCardV2(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
+            .ledgerRule()
             .clickable { isExpanded = !isExpanded }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
+                .padding(vertical = Spacing.smd)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -213,28 +217,15 @@ private fun ExpandableBalanceChart(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ShowChart,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
                         Text(
                             text = stringResource(R.string.account_detail_balance_trend),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
+                            style = PennyWiseText.rowTitle,
                         )
                     }
-                    Text(
-                        text = selectedTimeframe,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 28.dp)
-                    )
                 }
                 
                 Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
+                    imageVector = Icons.Outlined.KeyboardArrowDown,
                     contentDescription = if (isExpanded) stringResource(R.string.accounts_collapse) else stringResource(R.string.accounts_expand),
                     modifier = Modifier
                         .size(Dimensions.Icon.medium)
@@ -253,7 +244,8 @@ private fun ExpandableBalanceChart(
                     BalanceChart(
                         primaryCurrency = primaryCurrency,
                         balanceHistory = balanceHistory,
-                        height = 180
+                        height = 180,
+                        seriesLabel = null
                     )
                 }
             }
@@ -275,15 +267,8 @@ private fun CurrentBalanceCard(
     // A limit left over from an account re-typed from credit card to loan is ignored (#792).
     val isCreditCard = creditLimit != null && !isLoan
     
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             if (isCreditCard) {
                 // Credit card layout
                 Text(
@@ -293,9 +278,8 @@ private fun CurrentBalanceCard(
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
-                    text = CurrencyFormatter.formatCurrency(creditLimit, primaryCurrency),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = PennyWiseText.heroFigure(CurrencyFormatter.formatCurrency(creditLimit, primaryCurrency), MaterialTheme.colorScheme.onSurfaceVariant),
+                    style = PennyWiseText.heroAmount,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 // Show outstanding balance if any
@@ -350,36 +334,16 @@ private fun CurrentBalanceCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(Spacing.xs))
+                Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
-                    text = CurrencyFormatter.formatCurrency(balance, primaryCurrency),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = PennyWiseText.heroFigure(CurrencyFormatter.formatCurrency(balance, primaryCurrency), MaterialTheme.colorScheme.onSurfaceVariant),
+                    style = PennyWiseText.heroAmount,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    autoSize = PennyWiseText.fit(PennyWiseText.heroAmount),
                 )
             }
             
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = when {
-                        isCreditCard -> Icons.Default.CreditCard
-                        isLoan -> AccountType.LOAN.icon
-                        else -> Icons.Default.AccountBalance
-                    },
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }
@@ -393,46 +357,35 @@ private fun SummaryStatistics(
     primaryCurrency: String,
     hasMultipleCurrencies: Boolean = false
 ) {
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-        ) {
-            Text(
-                text = period,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(Spacing.md))
-            
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().ledgerRule().padding(vertical = Spacing.smd)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
             ) {
                 StatisticItem(
                     label = stringResource(R.string.account_detail_income),
                     value = formatWithEstimatedDisplay(totalIncome, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = if (!isAppInDarkTheme()) income_light else income_dark
+                    color = if (!isAppInDarkTheme()) income_light else income_dark,
+                    modifier = Modifier.weight(1f)
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_expenses),
                     value = formatWithEstimatedDisplay(totalExpenses, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_net),
-                    value = formatWithEstimatedDisplay(netBalance, primaryCurrency, hasMultipleCurrencies),
-                    icon = Icons.Default.AccountBalanceWallet,
+                    value = if (hasMultipleCurrencies) {
+                        formatWithEstimatedDisplay(netBalance, primaryCurrency, true)
+                    } else CurrencyFormatter.formatSigned(netBalance, primaryCurrency),
                     color = if (netBalance >= BigDecimal.ZERO) {
                         if (!isAppInDarkTheme()) income_light else income_dark
                     } else {
                         if (!isAppInDarkTheme()) expense_light else expense_dark
-                    }
+                    },
+                    modifier = Modifier.weight(1f)
                 )
             }
         }
@@ -460,29 +413,22 @@ private fun formatWithEstimatedDisplay(
 private fun StatisticItem(
     label: String,
     value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    color: Color
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.medium),
-            tint = color
-        )
-        Spacer(modifier = Modifier.height(Spacing.xs))
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
         )
         Text(
             text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            color = color
+            style = PennyWiseText.amountRow,
+            color = color,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
         )
     }
 }
@@ -495,7 +441,7 @@ private fun DateRangeFilter(
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         contentPadding = PaddingValues(horizontal = 0.dp)
     ) {
         items(DateRange.values().toList()) { range ->
@@ -505,8 +451,8 @@ private fun DateRangeFilter(
                 onClick = { onRangeSelected(range) },
                 label = { Text(stringResource(range.labelRes)) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    selectedContainerColor = MaterialTheme.colorScheme.inverseSurface,
+                    selectedLabelColor = MaterialTheme.colorScheme.inverseOnSurface
                 )
             )
         }
@@ -533,18 +479,16 @@ private fun AccountTransactionItem(
         TransactionType.TRANSFER -> ""
     }
     
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().ledgerRule(),
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
+                .padding(vertical = Dimensions.Padding.listRowVertical),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -556,7 +500,7 @@ private fun AccountTransactionItem(
                 BrandIcon(
                     merchantName = transaction.merchantName,
                     category = transaction.category,
-                    size = 48.dp,
+                    size = Dimensions.Icon.list,
                     showBackground = true
                 )
                 
@@ -565,8 +509,7 @@ private fun AccountTransactionItem(
                 ) {
                     Text(
                         text = transaction.merchantName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
+                        style = PennyWiseText.rowTitle,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -611,19 +554,19 @@ private fun AccountTransactionItem(
                 // Transaction type indicator
                 when (transaction.transactionType) {
                     TransactionType.CREDIT -> Icon(
-                        Icons.Default.CreditCard,
+                        Icons.Outlined.CreditCard,
                         contentDescription = stringResource(R.string.account_detail_type_credit),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor
                     )
                     TransactionType.TRANSFER -> Icon(
-                        Icons.Default.SwapHoriz,
+                        Icons.Outlined.SwapHoriz,
                         contentDescription = stringResource(R.string.account_detail_type_transfer),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor
                     )
                     TransactionType.INVESTMENT -> Icon(
-                        Icons.AutoMirrored.Filled.ShowChart,
+                        Icons.AutoMirrored.Outlined.ShowChart,
                         contentDescription = stringResource(R.string.account_detail_type_investment),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = amountColor

@@ -7,8 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.CreditCard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +60,7 @@ fun UnifiedAccountsCard(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AccountBalance,
+                        imageVector = Icons.Outlined.AccountBalance,
                         contentDescription = stringResource(R.string.accounts_overview_bank_balance),
                         modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.primary
@@ -97,7 +97,7 @@ fun UnifiedAccountsCard(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CreditCard,
+                        imageVector = Icons.Outlined.CreditCard,
                         contentDescription = stringResource(R.string.accounts_overview_available_credit),
                         modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.secondary
@@ -193,7 +193,7 @@ fun UnifiedAccountsCard(
                     TextButton(
                         onClick = { showAllAccounts = !showAllAccounts },
                         modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(
                             text = if (showAllAccounts) stringResource(R.string.accounts_overview_show_less) else pluralStringResource(R.plurals.accounts_overview_view_all, totalAccounts, totalAccounts),
@@ -230,7 +230,7 @@ private fun CompactAccountItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = if (isCredit) Icons.Default.CreditCard else Icons.Default.AccountBalance,
+                imageVector = if (isCredit) Icons.Outlined.CreditCard else Icons.Outlined.AccountBalance,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant

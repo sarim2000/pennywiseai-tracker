@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.FlowRow
 import android.os.Build
 import androidx.compose.animation.animateContentSize
@@ -30,10 +31,10 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BlurOn
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.BlurOn
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,6 +72,13 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.preferences.AccentColor
+import com.pennywiseai.tracker.ui.theme.LedgerFigureFamily
+import com.pennywiseai.tracker.ui.theme.Verdigris_dark
+import com.pennywiseai.tracker.ui.theme.Verdigris_light
+import com.pennywiseai.tracker.ui.theme.Verdigris_dark_secondary
+import com.pennywiseai.tracker.ui.theme.Verdigris_light_secondary
+import com.pennywiseai.tracker.ui.theme.Verdigris_dark_tertiary
+import com.pennywiseai.tracker.ui.theme.Verdigris_light_tertiary
 import com.pennywiseai.tracker.data.preferences.AppFont
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
@@ -227,7 +235,7 @@ fun AppearanceScreen(
                                 subtitle = stringResource(R.string.appearance_amoled_subtitle),
                                 checked = themeUiState.isAmoledMode,
                                 onCheckedChange = { themeViewModel.updateAmoledMode(it) },
-                                leadingIcon = { NeutralIconTile(Icons.Default.DarkMode) },
+                                leadingIcon = { NeutralIconTile(Icons.Outlined.DarkMode) },
                                 position = ListItemPosition.from(0, toggleCount)
                             )
                         }
@@ -238,7 +246,7 @@ fun AppearanceScreen(
                                 subtitle = stringResource(R.string.appearance_blur_subtitle),
                                 checked = themeUiState.blurEffectsEnabled,
                                 onCheckedChange = { themeViewModel.updateBlurEffects(it) },
-                                leadingIcon = { NeutralIconTile(Icons.Default.BlurOn) },
+                                leadingIcon = { NeutralIconTile(Icons.Outlined.BlurOn) },
                                 position = ListItemPosition.from(toggleCount - 1, toggleCount)
                             )
                         }
@@ -330,7 +338,7 @@ fun AppearanceScreen(
                     subtitle = coverStyleName(themeUiState.coverStyle),
                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                     action = {
-                        TextButton(onClick = { showCovers = !showCovers }, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = { showCovers = !showCovers }, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(if (showCovers) R.string.appearance_cover_done else R.string.appearance_cover_change))
                         }
                     }
@@ -377,7 +385,7 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = stringResource(R.string.appearance_back)
             )
         }
@@ -408,7 +416,7 @@ private fun ThemeModeSelector(
     )
 }
 
-// --- Theme Style Selector (Dynamic / Rose Pine) ---
+// --- Theme Style Selector (Dynamic / PennyWise) ---
 
 @Composable
 private fun ThemeStyleSelector(
@@ -514,9 +522,9 @@ private fun NamedTile(
 @Composable
 private fun SelectedMark(modifier: Modifier = Modifier) {
     IconTile(
-        icon = Icons.Default.Check,
-        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        icon = Icons.Outlined.Check,
+        containerColor = MaterialTheme.colorScheme.inverseSurface,
+        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
         size = Dimensions.Icon.medium,
         glyphSize = Dimensions.Icon.small,
         contentDescription = stringResource(R.string.appearance_cover_selected),
@@ -549,15 +557,12 @@ private fun ColorSchemeBox(
                     if (isSelected) {
                         Modifier.border(
                             width = Spacing.xxs,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.primary,
                             shape = RoundedCornerShape(Spacing.md)
                         )
                     } else Modifier
                 )
-                .background(
-                    if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-                    else MaterialTheme.colorScheme.surfaceContainerLow
-                )
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(10.dp),
@@ -614,6 +619,7 @@ private fun ColorSchemeBox(
 @Composable
 private fun accentColorName(accent: AccentColor): String = stringResource(
     when (accent) {
+        AccentColor.VERDIGRIS -> R.string.appearance_accent_verdigris
         AccentColor.ROSE -> R.string.appearance_accent_rose
         AccentColor.IRIS -> R.string.appearance_accent_iris
         AccentColor.PINE -> R.string.appearance_accent_pine
@@ -698,7 +704,7 @@ private fun CoverStyleSelector(
                         .then(
                             if (isSelected) Modifier.border(
                                 width = Spacing.xxs,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = MaterialTheme.colorScheme.primary,
                                 shape = RoundedCornerShape(Dimensions.CornerRadius.card)
                             ) else Modifier
                         )
@@ -735,20 +741,24 @@ private fun FontSelector(
     onFontSelected: (AppFont) -> Unit
 ) {
     ConnectedChoiceRow(
-        options = listOf(AppFont.SYSTEM, AppFont.SN_PRO),
+        options = listOf(AppFont.LEDGER, AppFont.SYSTEM, AppFont.SN_PRO),
         selected = currentFont,
         onSelect = onFontSelected,
         modifier = Modifier.padding(horizontal = Spacing.md)
     ) { font ->
         // Each option previews itself in its own font.
-        if (font == AppFont.SYSTEM) {
-            ChoiceLabels(
+        when (font) {
+            AppFont.LEDGER -> ChoiceLabels(
+                title = stringResource(R.string.appearance_font_ledger),
+                subtitle = stringResource(R.string.appearance_font_ledger_subtitle),
+                fontFamily = LedgerFigureFamily
+            )
+            AppFont.SYSTEM -> ChoiceLabels(
                 title = stringResource(R.string.appearance_font_default),
                 subtitle = stringResource(R.string.appearance_font_default_subtitle),
                 fontFamily = FontFamily.Default
             )
-        } else {
-            ChoiceLabels(
+            AppFont.SN_PRO -> ChoiceLabels(
                 title = "SN Pro",
                 subtitle = stringResource(R.string.appearance_font_sn_pro_subtitle),
                 fontFamily = SNProFontFamily
@@ -763,6 +773,7 @@ private fun FontSelector(
 private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
     return if (isDark) {
         when (accent) {
+            AccentColor.VERDIGRIS -> Verdigris_dark
             AccentColor.ROSE -> RosePine_Rose
             AccentColor.IRIS -> RosePine_Iris
             AccentColor.PINE -> RosePine_Pine
@@ -778,6 +789,7 @@ private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Colo
         }
     } else {
         when (accent) {
+            AccentColor.VERDIGRIS -> Verdigris_light
             AccentColor.ROSE -> Dawn_Rose
             AccentColor.IRIS -> Dawn_Iris
             AccentColor.PINE -> Dawn_Pine
@@ -798,6 +810,7 @@ private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Colo
 private fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
     return if (isDark) {
         when (accent) {
+            AccentColor.VERDIGRIS -> Verdigris_dark_secondary
             AccentColor.ROSE -> RosePine_Rose_secondary
             AccentColor.IRIS -> RosePine_Iris_secondary
             AccentColor.PINE -> RosePine_Pine_secondary
@@ -813,6 +826,7 @@ private fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): C
         }
     } else {
         when (accent) {
+            AccentColor.VERDIGRIS -> Verdigris_light_secondary
             AccentColor.ROSE -> Dawn_Rose_secondary
             AccentColor.IRIS -> Dawn_Iris_secondary
             AccentColor.PINE -> Dawn_Pine_secondary
@@ -833,6 +847,7 @@ private fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): C
 private fun getTertiaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
     return if (isDark) {
         when (accent) {
+            AccentColor.VERDIGRIS -> Verdigris_dark_tertiary
             AccentColor.ROSE -> RosePine_Rose_tertiary
             AccentColor.IRIS -> RosePine_Iris_tertiary
             AccentColor.PINE -> RosePine_Pine_tertiary
@@ -848,6 +863,7 @@ private fun getTertiaryColorForDisplay(accent: AccentColor, isDark: Boolean): Co
         }
     } else {
         when (accent) {
+            AccentColor.VERDIGRIS -> Verdigris_light_tertiary
             AccentColor.ROSE -> Dawn_Rose_tertiary
             AccentColor.IRIS -> Dawn_Iris_tertiary
             AccentColor.PINE -> Dawn_Pine_tertiary

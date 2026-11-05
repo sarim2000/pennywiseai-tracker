@@ -24,8 +24,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,14 +102,14 @@ fun BudgetGroupEditScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
                     }
                 },
                 actionContent = {
                     if (isEditing) {
                         IconButton(onClick = { showDeleteDialog = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                Icons.Default.Delete,
+                                Icons.Outlined.Delete,
                                 contentDescription = stringResource(R.string.budgets_delete),
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -153,7 +153,7 @@ fun BudgetGroupEditScreen(
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                             }
                             Icon(
-                                Icons.Default.Check,
+                                Icons.Outlined.Check,
                                 contentDescription = null,
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
@@ -321,7 +321,7 @@ fun BudgetGroupEditScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.EventAvailable,
+                                imageVector = Icons.Outlined.EventAvailable,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -419,7 +419,7 @@ fun BudgetGroupEditScreen(
                                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
                             ) {
                                 Icon(
-                                    Icons.Default.Add,
+                                    Icons.Outlined.Add,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small)
                                 )
@@ -507,10 +507,10 @@ fun BudgetGroupEditScreen(
                             viewModel.updateStartDate(LocalDate.ofEpochDay(millis / 86_400_000))
                         }
                         showStartDatePicker = false
-                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.budgets_action_ok)) }
+                    }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.budgets_action_ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showStartDatePicker = false }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { showStartDatePicker = false }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.budgets_action_cancel))
                     }
                 }
@@ -532,10 +532,10 @@ fun BudgetGroupEditScreen(
                             viewModel.updateEndDate(LocalDate.ofEpochDay(millis / 86_400_000))
                         }
                         showEndDatePicker = false
-                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.budgets_action_ok)) }
+                    }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.budgets_action_ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showEndDatePicker = false }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { showEndDatePicker = false }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.budgets_action_cancel))
                     }
                 }
@@ -558,13 +558,13 @@ fun BudgetGroupEditScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
                         ),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(stringResource(R.string.budgets_action_delete))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { showDeleteDialog = false }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.budgets_action_cancel))
                     }
                 }
@@ -656,7 +656,7 @@ private fun BudgetHeaderCard(
                         )
                         // Affordance: the name looked static, so users never found it (#763)
                         Icon(
-                            Icons.Default.Edit,
+                            Icons.Outlined.Edit,
                             contentDescription = stringResource(R.string.budget_edit_edit_name),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(Dimensions.Icon.small)
@@ -810,7 +810,7 @@ private fun CategoryBudgetRow(
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
-                Icons.Default.Close,
+                Icons.Outlined.Close,
                 contentDescription = stringResource(R.string.budget_edit_remove),
                 modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.error
@@ -848,7 +848,7 @@ private fun WeekdayAnchorRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.CalendarMonth,
+            imageVector = Icons.Outlined.CalendarMonth,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary
         )
@@ -906,7 +906,7 @@ private fun MonthAnchorRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.CalendarMonth,
+            imageVector = Icons.Outlined.CalendarMonth,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary
         )
@@ -932,7 +932,7 @@ private fun MonthAnchorRow(
                 enabled = monthStartDay > 1,
                 shapes = IconButtonDefaults.shapes()
             ) {
-                Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.budget_edit_decrease_day))
+                Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = stringResource(R.string.budget_edit_decrease_day))
             }
             Spacer(modifier = Modifier.width(Spacing.xs))
             OutlinedIconButton(
@@ -940,7 +940,7 @@ private fun MonthAnchorRow(
                 enabled = monthStartDay < 31,
                 shapes = IconButtonDefaults.shapes()
             ) {
-                Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.budget_edit_increase_day))
+                Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = stringResource(R.string.budget_edit_increase_day))
             }
         }
     }
@@ -965,7 +965,7 @@ private fun OneTimeDateRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Default.CalendarMonth,
+            imageVector = Icons.Outlined.CalendarMonth,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary
         )

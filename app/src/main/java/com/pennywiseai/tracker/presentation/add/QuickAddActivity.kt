@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.os.Bundle
@@ -42,7 +43,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -226,7 +227,7 @@ class QuickAddActivity : FragmentActivity() {
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { openFullForm(amountText, where, category, account) }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { openFullForm(amountText, where, category, account) }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.quick_add_more_details))
                 }
             }
@@ -276,7 +277,7 @@ class QuickAddActivity : FragmentActivity() {
                 onClick = { save(amount!!, category!!, where, account, setup.currency) },
                 enabled = amount != null && category != null,
                 modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.add_save))
             }
@@ -295,7 +296,7 @@ class QuickAddActivity : FragmentActivity() {
             AssistChip(
                 onClick = { open = true },
                 label = { Text(stringResource(R.string.quick_add_from, selected.displayLabel)) },
-                trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) }
+                trailingIcon = { Icon(Icons.Outlined.ArrowDropDown, contentDescription = null) }
             )
             DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
                 accounts.forEach { a ->

@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -51,10 +50,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 
@@ -143,7 +144,7 @@ private fun RegularTopAppBar(
             .background(MaterialTheme.colorScheme.background.copy(alpha = collapsedFraction))
             .drawBehind {
                 drawRect(
-                    color = hairline.copy(alpha = collapsedFraction * 0.5f),
+                    color = hairline.copy(alpha = collapsedFraction),
                     topLeft = Offset(0f, size.height - 1f),
                     size = Size(size.width, 1f)
                 )
@@ -170,18 +171,15 @@ private fun RegularTopAppBar(
                 modifier = barModifier
             )
         } else {
-            // CenterAlignedTopAppBar centres against the *bar*, not against
-            // whatever is left over beside the navigation icon. This used to
-            // be a hand-rolled -26dp nudge applied only when the caller
-            // claimed to have no action button — so the nine screens that
-            // claimed an action button while rendering none ended up with the
-            // title visibly off to the right.
-            CenterAlignedTopAppBar(
+            // Start-aligned, in the serif: reads as the heading of a page, and a long
+            // title doesn't have to dodge an action on each side.
+            TopAppBar(
                 title = {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center,
+                        style = PennyWiseText.screenTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 colors = barColors,

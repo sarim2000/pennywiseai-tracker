@@ -423,5 +423,24 @@
     <string name="safe_to_spend_no_bills">لا توجد اشتراكات مستحقة</string>
     <string name="safe_to_spend_choose_accounts">اختيار الحسابات</string>
     <string name="safe_to_spend_done">تم</string>
-    <string name="safe_to_spend_footnote">تأتي الفواتير من اشتراكاتك النشطة. لا تُحتسب البطاقات الائتمانية والقروض أموالًا قابلة للإنفاق.</string>
+    <string name="safe_to_spend_footnote">تأتي الفواتير من اشتراكاتك النشطة، وتُحتسب كل فاتورة مرة واحدة عند موعدها التالي، فتُحتسب الفاتورة الأسبوعية مرة واحدة. لا تُحتسب البطاقات الائتمانية والقروض أموالًا قابلة للإنفاق.</string>
+    <string name="balance_card_change_same_point">مثل الفترة نفسها من الشهر الماضي</string>
+    <string name="safe_to_spend_other_currency_row">عملة أخرى، محسوبة على حدة</string>
+    <string name="budgets_pace_hint">العلامة على كل شريط تشير إلى اليوم</string>
+    <string name="balance_card_balance_label">الرصيد</string>
+    <string name="balance_card_plus_other">إضافة إلى %1$s</string>
+    <string name="balance_card_plus_other_currencies">%1$s، إضافة إلى %2$s</string>
+    <string name="balance_card_summary_net">الصافي</string>
+    <string name="sparkline_today">اليوم</string>
+    <string name="safe_to_spend_after_bills">بعد فواتير بقيمة %1$s</string>
+    <string name="balance_chart_not_enough">لا يوجد سجل كافٍ لعرض الاتجاه بعد</string>
+    <string name="budget_ahead_of_pace">أسرع من وتيرة الميزانية</string>
+    <plurals name="balance_card_accounts_count">
+        <item quantity="zero">%1$d حساب</item>
+        <item quantity="one">%1$d حساب</item>
+        <item quantity="two">حسابان</item>
+        <item quantity="few">%1$d حسابات</item>
+        <item quantity="many">%1$d حسابًا</item>
+        <item quantity="other">%1$d حساب</item>
+    </plurals>
 </resources>

@@ -29,22 +29,34 @@ val SNProFontFamily = FontFamily(
     Font(R.font.sn_pro_extralight_italic, FontWeight.ExtraLight, FontStyle.Italic),
 )
 
+/** Newsreader cut for large sizes: the hero figure and big totals. */
+val LedgerDisplayFamily = FontFamily(
+    Font(R.font.newsreader_display_regular, FontWeight.Normal),
+    Font(R.font.newsreader_display_medium, FontWeight.Medium),
+)
+
+/** Newsreader cut for reading sizes: screen titles, section titles and every row amount. */
+val LedgerFigureFamily = FontFamily(
+    Font(R.font.newsreader_text_regular, FontWeight.Normal),
+    Font(R.font.newsreader_text_medium, FontWeight.Medium),
+    Font(R.font.newsreader_text_semibold, FontWeight.SemiBold),
+)
+
+/** Figtree: the labels, merchants and all running UI text beside the serif figures. */
+val LedgerTextFamily = FontFamily(
+    Font(R.font.figtree_regular, FontWeight.Normal),
+    Font(R.font.figtree_medium, FontWeight.Medium),
+    Font(R.font.figtree_semibold, FontWeight.SemiBold),
+    Font(R.font.figtree_bold, FontWeight.Bold),
+)
+
 /**
  * The type scale.
  *
- * Two deliberate departures from stock Material 3, both aimed at making
- * hierarchy readable in a dense, number-heavy UI:
- *
- * 1. **Titles and headlines are SemiBold, not Normal/Medium.** Material's
- *    default weights leave a `titleMedium` heading nearly indistinguishable
- *    from the `bodyLarge` text under it — the screens read as one flat wall.
- *    A weight step (600 vs 400) separates them without needing a size step,
- *    which matters because sizes are already tight.
- *
- * 2. **Tracking is tightened at the large end and left wide at the small
- *    end.** Big figures (balances, totals) get negative tracking so digits
- *    group into one number instead of drifting apart; 11–12sp labels keep
- *    Material's generous tracking, which is what makes small text legible.
+ * Two voices: a serif (Newsreader) for figures and titles, the things you read for
+ * their value, and a plain sans (Figtree) for labels and running text. That split
+ * is the app's signature, and it does the hierarchy work a weight step did before.
+ * Tracking tightens at the large end, so digits group into one number.
  *
  * Roles, so screens pick the same style for the same job:
  * | Role | Use |
@@ -60,52 +72,58 @@ val SNProFontFamily = FontFamily(
  * | `labelLarge` | Buttons, prominent inline actions |
  * | `labelMedium`/`Small` | Chips, badges, axis ticks, overlines |
  */
-private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
+private fun baseTypography(
+    fontFamily: FontFamily,
+    // A serif has the weight of its contrast: at 600 it goes blunt. With one family
+    // (System, SN Pro) these stay SemiBold so headings still step up from the body.
+    displayFamily: FontFamily?,
+    figureFamily: FontFamily?,
+): Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = displayFamily ?: fontFamily,
+        fontWeight = if (displayFamily != null) FontWeight.Normal else FontWeight.SemiBold,
         fontSize = 57.sp,
         lineHeight = 64.sp,
         letterSpacing = (-1).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 45.sp,
-        lineHeight = 52.sp,
-        letterSpacing = (-0.5).sp
+        fontFamily = displayFamily ?: fontFamily,
+        fontWeight = if (displayFamily != null) FontWeight.Normal else FontWeight.SemiBold,
+        fontSize = 42.sp,
+        lineHeight = 50.sp,
+        letterSpacing = (-0.8).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = displayFamily ?: fontFamily,
+        fontWeight = if (displayFamily != null) FontWeight.Normal else FontWeight.SemiBold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
-        letterSpacing = (-0.25).sp
+        letterSpacing = (-0.5).sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = displayFamily ?: fontFamily,
+        fontWeight = if (displayFamily != null) FontWeight.Normal else FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
-        letterSpacing = (-0.25).sp
+        letterSpacing = (-0.4).sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = displayFamily ?: fontFamily,
+        fontWeight = if (displayFamily != null) FontWeight.Normal else FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
-        letterSpacing = (-0.2).sp
+        letterSpacing = (-0.3).sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = figureFamily ?: fontFamily,
+        fontWeight = if (figureFamily != null) FontWeight.Medium else FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.15).sp
+        letterSpacing = (-0.2).sp
     ),
     titleLarge = TextStyle(
-        fontFamily = fontFamily,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = figureFamily ?: fontFamily,
+        fontWeight = if (figureFamily != null) FontWeight.Medium else FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = (-0.1).sp
@@ -132,21 +150,21 @@ private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
         // Material's 0.5sp here is tuned for Roboto at reading sizes; on a
         // geometric sans in a list row it reads as loose and costs width that
         // long merchant names need.
-        letterSpacing = 0.15.sp
+        letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = fontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.15.sp
+        letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
         fontFamily = fontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.3.sp
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.1.sp
     ),
     labelLarge = TextStyle(
         fontFamily = fontFamily,
@@ -158,16 +176,16 @@ private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
     labelMedium = TextStyle(
         fontFamily = fontFamily,
         fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        letterSpacing = 0.2.sp
     ),
     labelSmall = TextStyle(
         fontFamily = fontFamily,
         fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.3.sp
     )
 )
 
@@ -181,8 +199,12 @@ private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
  * nowhere.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-fun getTypography(fontFamily: FontFamily = FontFamily.Default): Typography {
-    val b = baseTypography(fontFamily)
+fun getTypography(
+    fontFamily: FontFamily = FontFamily.Default,
+    displayFamily: FontFamily? = null,
+    figureFamily: FontFamily? = null,
+): Typography {
+    val b = baseTypography(fontFamily, displayFamily, figureFamily)
     // 400 → 500, 600 → 700: Material's own emphasized step.
     fun TextStyle.emphasized() =
         copy(fontWeight = FontWeight(((fontWeight ?: FontWeight.Normal).weight + 100).coerceAtMost(900)))

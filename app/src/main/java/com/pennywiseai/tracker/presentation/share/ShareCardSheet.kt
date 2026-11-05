@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.share
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -12,7 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -127,13 +128,13 @@ fun ShareCardSheet(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes(),
+                shapes = pennyWiseButtonShapes(),
             ) {
-                Icon(Icons.Default.Share, contentDescription = null)
+                Icon(Icons.Outlined.Share, contentDescription = null)
                 Text(stringResource(R.string.share_sheet_share), modifier = Modifier.padding(start = Spacing.sm))
             }
 
-            TextButton(onClick = { showCustomise = !showCustomise }, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { showCustomise = !showCustomise }, shapes = pennyWiseButtonShapes()) {
                 Text(if (showCustomise) stringResource(R.string.share_sheet_done) else stringResource(R.string.share_sheet_customise))
             }
 

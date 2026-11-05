@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.domain.model
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.CreditCard
-import androidx.compose.material.icons.filled.Money
-import androidx.compose.material.icons.filled.RequestQuote
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.CreditCard
+import androidx.compose.material.icons.outlined.Money
+import androidx.compose.material.icons.outlined.RequestQuote
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,8 +60,8 @@ fun AccountType.displayName(): String = stringResource(
 /** Icon for an account type, shared by every account picker. */
 val AccountType.icon: ImageVector
     get() = when (this) {
-        AccountType.SAVINGS, AccountType.CURRENT -> Icons.Default.AccountBalance
-        AccountType.CREDIT -> Icons.Default.CreditCard
-        AccountType.CASH -> Icons.Default.Money
-        AccountType.LOAN -> Icons.Default.RequestQuote
+        AccountType.SAVINGS, AccountType.CURRENT -> Icons.Outlined.AccountBalance
+        AccountType.CREDIT -> Icons.Outlined.CreditCard
+        AccountType.CASH -> Icons.Outlined.Money
+        AccountType.LOAN -> Icons.Outlined.RequestQuote
     }

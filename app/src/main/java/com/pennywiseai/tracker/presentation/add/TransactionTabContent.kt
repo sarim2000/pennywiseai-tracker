@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.ui.components.FilterChipRow
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,7 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -281,7 +282,7 @@ internal fun AddSaveBar(
                 .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
                 .fillMaxWidth()
                 .heightIn(min = Dimensions.Component.fab),
-            shapes = ButtonDefaults.shapes()
+            shapes = pennyWiseButtonShapes()
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -289,7 +290,7 @@ internal fun AddSaveBar(
                     strokeWidth = 2.dp
                 )
             } else {
-                Icon(Icons.Default.Done, contentDescription = null)
+                Icon(Icons.Outlined.Done, contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(stringResource(R.string.add_save), style = MaterialTheme.typography.titleMedium)
             }
@@ -481,7 +482,7 @@ internal fun AccountPickerRow(
                     shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
-                        Icons.Default.Clear,
+                        Icons.Outlined.Clear,
                         contentDescription = stringResource(R.string.add_clear),
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
@@ -552,23 +553,14 @@ fun TransactionTabContent(
                 TransactionType.values().forEach { type ->
                     FilterChip(
                         selected = uiState.transactionType == type,
-                        shapes = FilterChipDefaults.shapes(),
+                        shapes = FilterChipDefaults.shapes(shape = MaterialTheme.shapes.medium, selectedShape = MaterialTheme.shapes.medium),
                         onClick = { viewModel.updateTransactionType(type) },
                         label = {
                             Text(stringResource(transactionTypeLabel(type)))
                         },
-                        leadingIcon = if (uiState.transactionType == type) {
-                            {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                            }
-                        } else null,
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            selectedContainerColor = MaterialTheme.colorScheme.inverseSurface,
+                            selectedLabelColor = MaterialTheme.colorScheme.inverseOnSurface,
                             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                             labelColor = MaterialTheme.colorScheme.onSurface
                         ),
@@ -580,13 +572,7 @@ fun TransactionTabContent(
                     )
                 }
             }
-            // Wraps at every size, so all five types are always visible.
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                typeChips()
-            }
+            FilterChipRow { typeChips() }
 
             // ── Merchant + Account(s) + Category + Date (connected fields) ──
             // Merchant is meaningless for a TRANSFER (it moves money between own
@@ -594,7 +580,7 @@ fun TransactionTabContent(
             GroupedList {
                 if (!isTransfer) {
                     AddTextRow(
-                        leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Outlined.Store, contentDescription = null) },
                         label = "${stringResource(R.string.add_field_merchant)} *",
                         value = uiState.merchant,
                         onValueChange = viewModel::updateTransactionMerchant,
@@ -661,8 +647,8 @@ fun TransactionTabContent(
                                     viewModel.updateSelectedAccount(null)
                                     accountPickerTarget = null
                                 },
-                                leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                leadingIcon = { Icon(Icons.Outlined.Block, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                             )
                             HorizontalDivider()
                         }
@@ -713,7 +699,7 @@ fun TransactionTabContent(
                                             contentDescription = null
                                         )
                                     },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                                 )
                             }
                         }
@@ -762,10 +748,10 @@ fun TransactionTabContent(
                 val middleShape = ListItemPosition.Middle.toShape()
                 val bottomShape = ListItemPosition.Bottom.toShape()
                 val dateIcon: @Composable () -> Unit = {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null)
+                    Icon(Icons.Outlined.CalendarToday, contentDescription = null)
                 }
                 val timeIcon: @Composable () -> Unit = {
-                    Icon(Icons.Default.Schedule, contentDescription = null)
+                    Icon(Icons.Outlined.Schedule, contentDescription = null)
                 }
                 if (isLargeFont) {
                     AddPickerRow(
@@ -847,7 +833,7 @@ fun TransactionTabContent(
                 onClick = { showMoreDetails = !showMoreDetails }
             ) {
                 Icon(
-                    Icons.Default.Tune,
+                    Icons.Outlined.Tune,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -857,7 +843,7 @@ fun TransactionTabContent(
                     titleMaxLines = 2
                 )
                 Icon(
-                    if (showMoreDetails) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    if (showMoreDetails) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                     contentDescription = stringResource(
                         if (showMoreDetails) R.string.accounts_collapse else R.string.accounts_expand
                     ),
@@ -874,7 +860,7 @@ fun TransactionTabContent(
             ) {
                 GroupedList {
                     AddTextRow(
-                        leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Outlined.Description, contentDescription = null) },
                         label = stringResource(R.string.add_field_notes),
                         value = uiState.notes,
                         onValueChange = viewModel::updateTransactionNotes,
@@ -884,7 +870,7 @@ fun TransactionTabContent(
                     )
 
                     AddTextRow(
-                        leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Outlined.Tag, contentDescription = null) },
                         label = stringResource(R.string.add_field_reference),
                         value = uiState.reference,
                         onValueChange = viewModel::updateTransactionReference,
@@ -949,11 +935,11 @@ fun TransactionTabContent(
                         }
                         showDatePicker = false
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -977,11 +963,11 @@ fun TransactionTabContent(
                         viewModel.updateTransactionTime(timePickerState.hour, timePickerState.minute)
                         showTimePicker = false
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showTimePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         )
     }
@@ -1038,7 +1024,7 @@ fun ReceiptPickerSection(
                     shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
-                        Icons.Default.Close,
+                        Icons.Outlined.Close,
                         contentDescription = stringResource(R.string.add_receipt_remove),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onErrorContainer
@@ -1057,9 +1043,9 @@ fun ReceiptPickerSection(
                         )
                     },
                     modifier = Modifier.weight(1f),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
-                    Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                    Icon(Icons.Outlined.Image, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.add_receipt_gallery))
                 }
@@ -1070,9 +1056,9 @@ fun ReceiptPickerSection(
                         cameraLauncher.launch(uri)
                     },
                     modifier = Modifier.weight(1f),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                    Icon(Icons.Outlined.CameraAlt, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.add_receipt_camera))
                 }

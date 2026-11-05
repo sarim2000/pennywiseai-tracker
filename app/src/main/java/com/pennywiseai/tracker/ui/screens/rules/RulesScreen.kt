@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseSwitchColors
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -10,8 +12,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -88,16 +90,25 @@ fun RulesScreen(
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.rules_navigate_back)
                         )
                     }
                 },
                 actionContent = {
+                    IconButton(
+                        onClick = {
+                            if (canCreateMoreRules) onNavigateToCreateRule()
+                            else showUpgradeSheet = true
+                        },
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.rules_create_cd))
+                    }
                     Box {
                         IconButton(onClick = { showOverflowMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                Icons.Default.MoreVert,
+                                Icons.Outlined.MoreVert,
                                 contentDescription = stringResource(R.string.rules_more_options)
                             )
                         }
@@ -107,7 +118,7 @@ fun RulesScreen(
                         ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.rules_menu_export)) },
-                                leadingIcon = { Icon(Icons.Default.Upload, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.Upload, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
                                     if (RuleSharingCodec.exportable(rules).isEmpty()) {
@@ -121,7 +132,7 @@ fun RulesScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.rules_menu_import)) },
-                                leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.Download, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
                                     // Some file pickers don't offer JSON files under the
@@ -132,7 +143,7 @@ fun RulesScreen(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.rules_menu_reset)) },
-                                leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.Refresh, contentDescription = null) },
                                 onClick = {
                                     showOverflowMenu = false
                                     showResetDialog = true
@@ -143,18 +154,6 @@ fun RulesScreen(
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (canCreateMoreRules) onNavigateToCreateRule()
-                    else showUpgradeSheet = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.rules_create_cd))
-            }
-        }
     ) { paddingValues ->
 
         sharingMessage?.let { message ->
@@ -163,7 +162,7 @@ fun RulesScreen(
                 title = { Text(stringResource(R.string.rules_title)) },
                 text = { Text(message.map { it.asString() }.joinToString(" ")) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.clearSharingMessage() }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { viewModel.clearSharingMessage() }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.rules_ok))
                     }
                 }
@@ -181,13 +180,13 @@ fun RulesScreen(
                             viewModel.resetToDefaults()
                             showResetDialog = false
                         },
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(stringResource(R.string.rules_reset))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { showResetDialog = false }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.rules_cancel))
                     }
                 }
@@ -423,7 +422,7 @@ private fun RuleRow(
                         shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(
-                            Icons.Default.MoreVert,
+                            Icons.Outlined.MoreVert,
                             contentDescription = stringResource(R.string.rules_more_actions)
                         )
                     }
@@ -436,7 +435,7 @@ private fun RuleRow(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.rules_menu_edit)) },
                             leadingIcon = {
-                                Icon(Icons.Default.Edit, contentDescription = null)
+                                Icon(Icons.Outlined.Edit, contentDescription = null)
                             },
                             onClick = {
                                 showActionsMenu = false
@@ -448,7 +447,7 @@ private fun RuleRow(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.rules_menu_duplicate)) },
                             leadingIcon = {
-                                Icon(Icons.Default.ContentCopy, contentDescription = null)
+                                Icon(Icons.Outlined.ContentCopy, contentDescription = null)
                             },
                             onClick = {
                                 showActionsMenu = false
@@ -460,7 +459,7 @@ private fun RuleRow(
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.rules_menu_apply_past)) },
                             leadingIcon = {
-                                Icon(Icons.Default.History, contentDescription = null)
+                                Icon(Icons.Outlined.History, contentDescription = null)
                             },
                             onClick = {
                                 showActionsMenu = false
@@ -474,7 +473,7 @@ private fun RuleRow(
                                 text = { Text(stringResource(R.string.rules_delete_title)) },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Delete,
+                                        Icons.Outlined.Delete,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.error
                                     )
@@ -490,6 +489,7 @@ private fun RuleRow(
             }
 
             Switch(
+                colors = pennyWiseSwitchColors(),
                 checked = rule.isActive,
                 onCheckedChange = onToggle
             )
@@ -510,13 +510,13 @@ private fun RuleRow(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.rules_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showDeleteDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.rules_cancel))
                 }
             }
@@ -713,7 +713,7 @@ private fun BatchApplyDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    if (result.errors.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                    if (result.errors.isEmpty()) Icons.Outlined.CheckCircle else Icons.Outlined.Warning,
                                     contentDescription = null,
                                     tint = if (result.errors.isEmpty())
                                         MaterialTheme.colorScheme.primary
@@ -770,10 +770,10 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_cancel)) }
                         if (dryRunResult.totalMatched > 0) {
-                            TextButton(onClick = onApplyToUncategorized, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
-                            TextButton(onClick = onApplyToAll, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_all)) }
+                            TextButton(onClick = onApplyToUncategorized, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
+                            TextButton(onClick = onApplyToAll, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_batch_apply_all)) }
                         }
                     }
                 }
@@ -784,9 +784,9 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
-                        OutlinedButton(onClick = onPreview, shapes = ButtonDefaults.shapes()) {
-                            Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                        TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_cancel)) }
+                        OutlinedButton(onClick = onPreview, shapes = pennyWiseButtonShapes()) {
+                            Icon(Icons.Outlined.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.rules_batch_preview))
                         }
@@ -795,7 +795,7 @@ private fun BatchApplyDialog(
 
                 // Done — close button
                 result != null -> {
-                    TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_close)) }
+                    TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_close)) }
                 }
             }
         }

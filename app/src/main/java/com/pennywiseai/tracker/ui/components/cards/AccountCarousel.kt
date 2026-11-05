@@ -16,8 +16,8 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
@@ -56,34 +56,15 @@ fun AccountCarousel(
 
     if (allAccounts.isEmpty()) return
 
-    if (allAccounts.size == 1) {
-        val account = allAccounts.first()
-        AccountCarouselCard(
-            account = account,
-            isCreditCard = creditCards.contains(account),
-            onClick = { onAccountClick(account.bankName, account.accountLast4) },
-            modifier = modifier.fillMaxWidth(),
-            isUnifiedMode = isUnifiedMode,
-            selectedCurrency = selectedCurrency,
-            isAmountHidden = isAmountHidden,
-        )
-    } else {
-        val pagerState = rememberPagerState(pageCount = { allAccounts.size })
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(end = 32.dp),
-            pageSpacing = Spacing.md
-        ) { page ->
-            val account = allAccounts[page]
-            AccountCarouselCard(
+    // A list, not a carousel: every balance is on screen with its account beside it, instead
+    // of one card at a time and the rest behind a swipe.
+    GroupedList(modifier = modifier) {
+        allAccounts.forEachIndexed { index, account ->
+            AccountRow(
                 account = account,
                 isCreditCard = creditCards.contains(account),
+                position = ListItemPosition.from(index, allAccounts.size),
                 onClick = { onAccountClick(account.bankName, account.accountLast4) },
-                modifier = Modifier.fillMaxWidth(),
-                isUnifiedMode = isUnifiedMode,
-                selectedCurrency = selectedCurrency,
                 isAmountHidden = isAmountHidden,
             )
         }
@@ -91,126 +72,53 @@ fun AccountCarousel(
 }
 
 @Composable
-private fun AccountCarouselCard(
+private fun AccountRow(
     account: AccountBalanceEntity,
     isCreditCard: Boolean,
+    position: ListItemPosition,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isUnifiedMode: Boolean = false,
-    selectedCurrency: String,
-    isAmountHidden: Boolean = true,
+    isAmountHidden: Boolean,
 ) {
-    // Low-balance alert: tint the home card red when a non-credit account's balance
-    // is at or below its user-set threshold (matches Manage Accounts). #509
+    // Low-balance alert when a non-credit account is at or below its user-set threshold
+    // (matches Manage Accounts). #509
     val isLowBalance = !isCreditCard &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
-    val containerColor =
-        if (isLowBalance) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-        else MaterialTheme.colorScheme.surfaceContainerLow
-
-    val cardShape = RoundedCornerShape(16.dp)
-
-    PennyWiseCardV2(
-        modifier = modifier,
+    val accountLabel = buildList {
+        // Mobile-money wallets have no account number — show just the service name.
+        if (account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) add("••${account.accountLast4}")
+        add(
+            when {
+                isLowBalance -> stringResource(R.string.account_card_low_balance)
+                isCreditCard -> stringResource(R.string.account_card_outstanding)
+                else -> stringResource(R.string.account_card_type_savings)
+            }
+        )
+    }.joinToString(" · ")
+    GroupedRow(
+        position = position,
         onClick = onClick,
-        shape = cardShape,
-        colors = CardDefaults.cardColors(containerColor = containerColor),
-        contentPadding = Spacing.md
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        // Top row: BrandIcon + Bank name + Account last4 + Account type chip
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            BrandIcon(
-                merchantName = account.bankName,
-                size = 40.dp,
-                showBackground = true
-            )
-
-            Text(
-                text = account.bankName,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-
-            // Mobile-money wallets have no account number — show just the service name.
-            if (account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
-                Text(
-                    text = "••${account.accountLast4}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
-
-            // Account type chip
-            Surface(
-                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                color = MaterialTheme.colorScheme.secondaryContainer
-            ) {
-                Text(
-                    text = if (isCreditCard) stringResource(R.string.account_card_type_credit) else stringResource(R.string.account_card_type_savings),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(Spacing.sm))
-
-        // Bottom row: Balance label on left, amount + eye on right
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = when {
-                    isLowBalance -> stringResource(R.string.account_card_low_balance)
-                    isCreditCard -> stringResource(R.string.account_card_outstanding)
-                    else -> stringResource(R.string.account_card_balance)
-                },
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = if (isLowBalance) FontWeight.Medium else null,
-                color = if (isLowBalance) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-            )
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                Text(
-                    // The label above is "Outstanding" for credit cards; that is the
-                    // amount owed (account.balance), NOT the total creditLimit. Mirrors
-                    // CreditCardsCard / AccountDetailScreen, which already do this.
-                    // The entity is already pre-converted in unified mode (its currency
-                    // is the display currency when a rate was found), so format with the
-                    // account's own currency. This keeps an un-convertible balance honest
-                    // (shows "$400", not "MZN400") instead of forcing the display label.
-                    // Home's eye, not a per-card one: hidden by default like the rest of Home.
-                    text = if (isAmountHidden) AmountPrivacy.MASK else CurrencyFormatter.formatCurrency(account.balance, account.currency),
-                    style = PennyWiseText.amountLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    // Shrinks to fit: a balance is never ellipsized.
-                    autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-
-            }
-        }
+        BrandIcon(
+            merchantName = account.bankName,
+            size = Dimensions.Icon.list,
+            showBackground = true
+        )
+        RowLabels(
+            title = account.bankName,
+            subtitle = accountLabel,
+            subtitleColor = if (isLowBalance) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            // For a credit card this is the amount owed, not the limit. The entity is already
+            // pre-converted in unified mode, so its own currency keeps an un-convertible balance
+            // honest ("$400", not "MZN400"). Home's eye governs it, like the rest of Home.
+            text = if (isAmountHidden) AmountPrivacy.MASK else CurrencyFormatter.formatCurrency(account.balance, account.currency),
+            style = PennyWiseText.amountRow,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
+        )
     }
 }

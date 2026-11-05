@@ -18,7 +18,7 @@
     <!-- Splash Screen theme for light mode -->
     <style name="Theme.PennyWise.SplashScreen" parent="Theme.SplashScreen">
         <!-- Set the background color -->
-        <item name="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenBackground">#F3F6F4</item>
         
         <!-- Use the app icon as splash icon -->
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -223,7 +224,6 @@ private fun BrandHeader(isMember: Boolean) {
             Text(
                 text = stringResource(R.string.upgrade_title),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
@@ -401,7 +401,7 @@ private fun ProAvailableLine() {
                 copied = true
             },
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
-            shapes = ButtonDefaults.shapes(),
+            shapes = pennyWiseButtonShapes(),
         ) {
             Text(
                 text = stringResource(if (copied) R.string.upgrade_copied else R.string.upgrade_copy_address),
@@ -488,7 +488,7 @@ private fun TrustRow(
             onClick = onRestore,
             enabled = !isRestoring,
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
-            shapes = ButtonDefaults.shapes(),
+            shapes = pennyWiseButtonShapes(),
         ) {
             Text(
                 text = stringResource(if (isRestoring) R.string.upgrade_restoring else R.string.upgrade_restore),
@@ -500,7 +500,7 @@ private fun TrustRow(
         TextButton(
             onClick = onHelp,
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),
-            shapes = ButtonDefaults.shapes(),
+            shapes = pennyWiseButtonShapes(),
         ) {
             Text(
                 text = stringResource(R.string.upgrade_get_help),
@@ -581,7 +581,6 @@ private fun CelebrationContent(onContinue: () -> Unit) {
             Text(
                 text = stringResource(R.string.upgrade_celebration_title),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
@@ -666,7 +665,6 @@ private fun MemberCard(licenseProductName: String?) {
             Text(
                 text = stringResource(R.string.upgrade_active_title),
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
             )
@@ -701,7 +699,7 @@ private fun ManageRow(
         if (isLicensed) {
             // Frees the one allowed activation so the key can be used on
             // another phone. Play subscribers get the Play manage link instead.
-            TextButton(onClick = onRemoveLicense, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onRemoveLicense, shapes = pennyWiseButtonShapes()) {
                 Text(
                     text = stringResource(R.string.upgrade_remove_license_key),
                     style = MaterialTheme.typography.bodyMedium,
@@ -722,7 +720,7 @@ private fun ManageRow(
                     context.startActivity(intent)
                 }
             },
-            shapes = ButtonDefaults.shapes(),
+            shapes = pennyWiseButtonShapes(),
         ) {
             Text(
                 text = stringResource(R.string.upgrade_manage_subscription),
@@ -731,7 +729,7 @@ private fun ManageRow(
                 fontWeight = FontWeight.Medium,
             )
         }
-        TextButton(onClick = onRestore, shapes = ButtonDefaults.shapes()) {
+        TextButton(onClick = onRestore, shapes = pennyWiseButtonShapes()) {
             Text(
                 text = stringResource(R.string.upgrade_restore),
                 style = MaterialTheme.typography.bodyMedium,

@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.Card
@@ -15,13 +16,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
  * The app's standard card container.
  *
- * One card style, everywhere: `shapes.large` corners, `surfaceContainerLow` fill, no
- * elevation and no outline. The tonal step alone separates it, in every theme.
+ * A sheet laid on the page: `shapes.large` corners, `surfaceContainerLow` fill, a hairline
+ * edge and no elevation. Use it only for things that aren't a ledger row, which is most
+ * of what used to be a card.
  *
  * Pass [contentPadding] rather than padding the content yourself, so the
  * ripple on a clickable card covers the whole surface.
@@ -43,7 +47,10 @@ fun PennyWiseCardV2(
     elevation: CardElevation = CardDefaults.cardElevation(
         defaultElevation = Dimensions.Elevation.card
     ),
-    border: BorderStroke? = null,
+    border: BorderStroke? = BorderStroke(
+        Dimensions.Component.hairline,
+        MaterialTheme.colorScheme.outlineVariant
+    ),
     onClick: (() -> Unit)? = null,
     /**
      * Optional long-press handler. Routes the card through
@@ -58,9 +65,14 @@ fun PennyWiseCardV2(
      */
     onLongClick: (() -> Unit)? = null,
     contentPadding: Dp = Dimensions.Padding.card,
+    /** No sheet at all, just the content on the page with the row gutter. The ledger default
+     *  for summaries and single rows; the sheet is for what must lift off the page. */
+    flat: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val effectiveBorder = border
+    val effectiveBorder = if (flat) null else border
+    val effectiveColors = if (flat) CardDefaults.cardColors(containerColor = Color.Transparent) else colors
+    val innerPadding = if (flat) PaddingValues(vertical = Spacing.sm) else PaddingValues(contentPadding)
 
     when {
         onLongClick != null -> {
@@ -77,35 +89,35 @@ fun PennyWiseCardV2(
                     onClick = tap,
                     onLongClick = onLongClick
                 ),
-                colors = colors,
+                colors = effectiveColors,
                 shape = shape,
                 elevation = elevation,
                 border = effectiveBorder
             ) {
-                Column(modifier = Modifier.padding(contentPadding)) { content() }
+                Column(modifier = Modifier.padding(innerPadding)) { content() }
             }
         }
         onClick != null -> {
             Card(
                 modifier = modifier,
                 onClick = onClick,
-                colors = colors,
+                colors = effectiveColors,
                 shape = shape,
                 elevation = elevation,
                 border = effectiveBorder
             ) {
-                Column(modifier = Modifier.padding(contentPadding)) { content() }
+                Column(modifier = Modifier.padding(innerPadding)) { content() }
             }
         }
         else -> {
             Card(
                 modifier = modifier,
-                colors = colors,
+                colors = effectiveColors,
                 shape = shape,
                 elevation = elevation,
                 border = effectiveBorder
             ) {
-                Column(modifier = Modifier.padding(contentPadding)) { content() }
+                Column(modifier = Modifier.padding(innerPadding)) { content() }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.material3.Text
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -52,6 +53,16 @@ fun BalanceChart(
     seriesLabel: String? = stringResource(R.string.balance_chart_label)
 ) {
     if (balanceHistory.isEmpty()) return
+    // One point has no trend: the chart library would draw it as a wedge falling to zero.
+    if (balanceHistory.size < 2) {
+        Text(
+            text = stringResource(R.string.balance_chart_not_enough),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier
+        )
+        return
+    }
 
     val sortedHistory = remember(balanceHistory) {
         balanceHistory.sortedBy { it.timestamp }

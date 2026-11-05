@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseSwitchColors
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import android.content.ActivityNotFoundException
@@ -21,12 +23,12 @@ import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Help
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.material3.SelectableDates
 import androidx.compose.runtime.*
@@ -255,7 +257,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_personalization_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.Palette,
+                    icon = Icons.Outlined.Palette,
                     title = stringResource(R.string.settings_appearance_title),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
                     onClick = onNavigateToAppearance,
@@ -265,7 +267,7 @@ fun SettingsScreen(
                 // versions follow the device language.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     SettingsNavItem(
-                        icon = Icons.Default.Language,
+                        icon = Icons.Outlined.Language,
                         title = stringResource(R.string.settings_language_title),
                         subtitle = stringResource(R.string.settings_language_subtitle),
                         onClick = {
@@ -283,7 +285,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_currency_section))
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Default.CurrencyExchange,
+                    icon = Icons.Outlined.CurrencyExchange,
                     title = stringResource(R.string.settings_unified_currency_title),
                     subtitle = stringResource(R.string.settings_unified_currency_subtitle),
                     checked = unifiedCurrencyMode,
@@ -292,7 +294,7 @@ fun SettingsScreen(
                 )
                 AnimatedVisibility(visible = unifiedCurrencyMode) {
                     SettingsNavItem(
-                        icon = Icons.Default.AttachMoney,
+                        icon = Icons.Outlined.AttachMoney,
                         title = stringResource(R.string.settings_display_currency_title),
                         subtitle = stringResource(R.string.settings_display_currency_subtitle),
                         onClick = { showDisplayCurrencyDialog = true },
@@ -301,14 +303,14 @@ fun SettingsScreen(
                     )
                 }
                 SettingsNavItem(
-                    icon = Icons.Default.SwapHoriz,
+                    icon = Icons.Outlined.SwapHoriz,
                     title = stringResource(R.string.settings_exchange_rates_title),
                     subtitle = stringResource(R.string.settings_exchange_rates_subtitle),
                     onClick = onNavigateToExchangeRates,
                     position = ListItemPosition.Middle
                 )
                 SettingsSwitchRow(
-                    icon = Icons.Default.CreditCard,
+                    icon = Icons.Outlined.CreditCard,
                     title = stringResource(R.string.settings_card_spend_as_expense_title),
                     subtitle = stringResource(R.string.settings_card_spend_as_expense_subtitle),
                     checked = countCreditCardAsExpense,
@@ -316,7 +318,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsDropdownItem(
-                    icon = Icons.Default.Flag,
+                    icon = Icons.Outlined.Flag,
                     title = stringResource(R.string.settings_default_currency_title),
                     subtitle = stringResource(R.string.settings_default_currency_subtitle),
                     fieldLabel = stringResource(R.string.settings_currency_field_label),
@@ -337,7 +339,7 @@ fun SettingsScreen(
                             },
                             shapes = MenuDefaults.itemShape(index, availableCurrencies.size),
                             colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                            selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                         )
                     }
                 }
@@ -348,7 +350,7 @@ fun SettingsScreen(
                         "${it.bankName}_${it.accountLast4}" == mainAccountKey
                     }
                     SettingsDropdownItem(
-                        icon = Icons.Default.AccountBalanceWallet,
+                        icon = Icons.Outlined.AccountBalanceWallet,
                         title = stringResource(R.string.settings_main_account_title),
                         subtitle = stringResource(R.string.settings_main_account_subtitle),
                         fieldLabel = stringResource(R.string.settings_main_account_field_label),
@@ -373,14 +375,14 @@ fun SettingsScreen(
                                 },
                                 shapes = MenuDefaults.itemShape(index, accounts.size),
                                 colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                             )
                         }
                     }
                 }
 
                 SettingsNavItem(
-                    icon = Icons.Default.Numbers,
+                    icon = Icons.Outlined.Numbers,
                     title = stringResource(R.string.settings_number_format_title),
                     subtitle = stringResource(R.string.settings_number_format_subtitle),
                     onClick = { showNumberFormatDialog = true },
@@ -389,7 +391,7 @@ fun SettingsScreen(
                 )
 
                 SettingsNavItem(
-                    icon = Icons.Default.CalendarMonth,
+                    icon = Icons.Outlined.CalendarMonth,
                     title = stringResource(R.string.settings_date_format_title),
                     subtitle = stringResource(R.string.settings_date_format_subtitle),
                     onClick = { showDateFormatDialog = true },
@@ -406,7 +408,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_budget_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.DateRange,
+                    icon = Icons.Outlined.DateRange,
                     title = stringResource(R.string.settings_budget_cycle_title),
                     subtitle = stringResource(R.string.settings_budget_cycle_subtitle),
                     onClick = { showBudgetCycleDialog = true },
@@ -420,7 +422,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_contacts_section))
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Default.Contacts,
+                    icon = Icons.Outlined.Contacts,
                     title = stringResource(R.string.settings_contacts_vpa_title),
                     subtitle = stringResource(R.string.settings_contacts_vpa_subtitle),
                     checked = useContactsForVpa,
@@ -443,7 +445,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Top
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.QrCode2,
+                    icon = Icons.Outlined.QrCode2,
                     title = stringResource(R.string.settings_upi_title),
                     subtitle = upiId ?: stringResource(R.string.settings_upi_subtitle),
                     onClick = { showUpiIdDialog = true },
@@ -457,7 +459,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_security_section))
             SettingsGroup {
                 SettingsSwitchRow(
-                    icon = Icons.Default.Vibration,
+                    icon = Icons.Outlined.Vibration,
                     title = stringResource(R.string.settings_shake_to_hide_title),
                     subtitle = stringResource(R.string.settings_shake_to_hide_subtitle),
                     checked = shakeToHideEnabled,
@@ -465,7 +467,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Top
                 )
                 SettingsSwitchRow(
-                    icon = Icons.Default.Lock,
+                    icon = Icons.Outlined.Lock,
                     title = stringResource(R.string.settings_app_lock_title),
                     subtitle = if (appLockUiState.canUseBiometric) {
                         stringResource(R.string.settings_app_lock_subtitle)
@@ -480,7 +482,7 @@ fun SettingsScreen(
                 )
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(
-                        icon = Icons.Default.Timer,
+                        icon = Icons.Outlined.Timer,
                         title = stringResource(R.string.settings_lock_timeout_title),
                         subtitle = when (appLockUiState.timeoutMinutes) {
                             0 -> stringResource(R.string.settings_lock_timeout_immediately_subtitle)
@@ -500,63 +502,63 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_data_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.AccountBalance,
+                    icon = Icons.Outlined.AccountBalance,
                     title = stringResource(R.string.settings_manage_accounts_title),
                     subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
                     onClick = onNavigateToManageAccounts,
                     position = ListItemPosition.Top
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Category,
+                    icon = Icons.Outlined.Category,
                     title = stringResource(R.string.settings_categories_title),
                     subtitle = stringResource(R.string.settings_categories_subtitle),
                     onClick = onNavigateToCategories,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.AutoAwesome,
+                    icon = Icons.Outlined.AutoAwesome,
                     title = stringResource(R.string.settings_smart_rules_title),
                     subtitle = stringResource(R.string.settings_smart_rules_subtitle),
                     onClick = onNavigateToRules,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.AccountBalanceWallet,
+                    icon = Icons.Outlined.AccountBalanceWallet,
                     title = stringResource(R.string.settings_budgets_title),
                     subtitle = stringResource(R.string.settings_budgets_subtitle),
                     onClick = onNavigateToBudgets,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.SwapHoriz,
+                    icon = Icons.Outlined.SwapHoriz,
                     title = stringResource(R.string.settings_loans_title),
                     subtitle = stringResource(R.string.settings_loans_subtitle),
                     onClick = onNavigateToLoans,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.EventRepeat,
+                    icon = Icons.Outlined.EventRepeat,
                     title = stringResource(R.string.settings_recurring_title),
                     subtitle = stringResource(R.string.settings_recurring_subtitle),
                     onClick = onNavigateToRecurring,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Folder,
+                    icon = Icons.Outlined.Folder,
                     title = stringResource(R.string.settings_transaction_groups_title),
                     subtitle = stringResource(R.string.settings_transaction_groups_subtitle),
                     onClick = onNavigateToTransactionGroups,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Upload,
+                    icon = Icons.Outlined.Upload,
                     title = stringResource(R.string.settings_export_data_title),
                     subtitle = stringResource(R.string.settings_export_data_subtitle),
                     onClick = { settingsViewModel.exportBackup() },
                     position = ListItemPosition.Middle
                 )
                 SettingsSwitchRow(
-                    icon = Icons.Default.Receipt,
+                    icon = Icons.Outlined.Receipt,
                     title = stringResource(R.string.settings_export_include_receipts_title),
                     subtitle = stringResource(R.string.settings_export_include_receipts_subtitle),
                     checked = exportIncludeReceipts,
@@ -564,7 +566,7 @@ fun SettingsScreen(
                     position = ListItemPosition.Middle
                 )
                 SettingsSwitchRow(
-                    icon = Icons.Default.Backup,
+                    icon = Icons.Outlined.Backup,
                     title = stringResource(R.string.settings_folder_backup_title),
                     subtitle = if (scheduledFolderBackupEnabled) {
                         stringResource(R.string.settings_folder_backup_subtitle_enabled)
@@ -588,7 +590,7 @@ fun SettingsScreen(
                 )
                 if (scheduledFolderBackupEnabled) {
                     SettingsNavItem(
-                        icon = Icons.Default.SaveAlt,
+                        icon = Icons.Outlined.SaveAlt,
                         title = stringResource(R.string.settings_backup_now_title),
                         subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
                             val formatted = java.time.Instant.ofEpochMilli(timestamp)
@@ -600,7 +602,7 @@ fun SettingsScreen(
                         position = ListItemPosition.Middle
                     )
                     SettingsSwitchRow(
-                        icon = Icons.Default.Receipt,
+                        icon = Icons.Outlined.Receipt,
                         title = stringResource(R.string.settings_folder_backup_include_receipts_title),
                         subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
                         checked = folderBackupIncludeReceipts,
@@ -608,7 +610,7 @@ fun SettingsScreen(
                         position = ListItemPosition.Middle
                     )
                     SettingsNavItem(
-                        icon = Icons.Default.FolderOpen,
+                        icon = Icons.Outlined.FolderOpen,
                         title = stringResource(R.string.settings_change_backup_folder_title),
                         subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                         onClick = { settingsViewModel.requestChangeBackupFolder() },
@@ -616,35 +618,35 @@ fun SettingsScreen(
                     )
                 }
                 SettingsNavItem(
-                    icon = Icons.Default.Download,
+                    icon = Icons.Outlined.Download,
                     title = stringResource(R.string.settings_import_data_title),
                     subtitle = stringResource(R.string.settings_import_data_subtitle),
                     onClick = { importLauncher.launch("*/*") },
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Download,
+                    icon = Icons.Outlined.Download,
                     title = stringResource(R.string.settings_import_csv_title),
                     subtitle = stringResource(R.string.settings_import_csv_subtitle),
                     onClick = { csvImportLauncher.launch("*/*") },
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Description,
+                    icon = Icons.Outlined.Description,
                     title = stringResource(R.string.settings_import_statement_title),
                     subtitle = stringResource(R.string.settings_import_statement_subtitle),
                     onClick = onNavigateToImportStatement,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Sms,
+                    icon = Icons.Outlined.Sms,
                     title = stringResource(R.string.settings_unrecognized_sms_title),
                     subtitle = stringResource(R.string.settings_unrecognized_sms_subtitle),
                     onClick = onNavigateToUnrecognizedSms,
                     position = ListItemPosition.Middle
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.CalendarMonth,
+                    icon = Icons.Outlined.CalendarMonth,
                     title = stringResource(R.string.settings_sms_scan_title),
                     subtitle = when {
                         smsScanAllTime -> stringResource(R.string.settings_sms_scan_subtitle_all_time)
@@ -668,7 +670,7 @@ fun SettingsScreen(
                     }
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.DeleteForever,
+                    icon = Icons.Outlined.DeleteForever,
                     title = stringResource(R.string.settings_delete_all_title),
                     subtitle = stringResource(R.string.settings_delete_all_subtitle),
                     onClick = { settingsViewModel.requestDeleteAllTransactions() },
@@ -680,7 +682,7 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_notifications_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.Notifications,
+                    icon = Icons.Outlined.Notifications,
                     title = stringResource(R.string.settings_notification_access_title),
                     subtitle = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_enabled) else stringResource(R.string.settings_notification_access_disabled),
                     onClick = {
@@ -691,7 +693,7 @@ fun SettingsScreen(
                     trailingText = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_on) else stringResource(R.string.settings_notification_access_off)
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.Apps,
+                    icon = Icons.Outlined.Apps,
                     title = stringResource(R.string.settings_tracked_apps_title),
                     subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
                         else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
@@ -709,7 +711,7 @@ fun SettingsScreen(
                     )
                 }
                 SettingsSwitchRow(
-                    icon = Icons.Default.Schedule,
+                    icon = Icons.Outlined.Schedule,
                     title = stringResource(R.string.settings_daily_summary_title),
                     subtitle = stringResource(R.string.settings_daily_summary_subtitle),
                     checked = dailySummaryEnabled,
@@ -745,7 +747,7 @@ fun SettingsScreen(
             }
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.AutoAwesome,
+                    icon = Icons.Outlined.AutoAwesome,
                     title = stringResource(R.string.ai_access_settings_title),
                     subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
                     onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
@@ -757,14 +759,14 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_developer_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.Default.CloudUpload,
+                    icon = Icons.Outlined.CloudUpload,
                     title = stringResource(R.string.settings_webhooks_title),
                     subtitle = stringResource(if (isProEntitled) R.string.settings_webhooks_subtitle else R.string.settings_webhooks_subtitle_pro),
                     onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
                     position = ListItemPosition.Top
                 )
                 SettingsSwitchRow(
-                    icon = Icons.Default.Code,
+                    icon = Icons.Outlined.Code,
                     title = stringResource(R.string.settings_developer_mode_title),
                     subtitle = stringResource(R.string.settings_developer_mode_subtitle),
                     checked = isDeveloperModeEnabled,
@@ -782,7 +784,7 @@ fun SettingsScreen(
                 SectionHeaderV2(title = stringResource(R.string.support_title))
                 SettingsGroup {
                     SettingsNavItem(
-                        icon = Icons.Default.Favorite,
+                        icon = Icons.Outlined.Favorite,
                         title = stringResource(R.string.support_title),
                         subtitle = stringResource(R.string.support_subtitle),
                         onClick = { showSupportDialog = true },
@@ -796,7 +798,7 @@ fun SettingsScreen(
                 SectionHeaderV2(title = stringResource(R.string.settings_pro_section))
                 SettingsGroup {
                     SettingsNavItem(
-                        icon = Icons.Default.AutoAwesome,
+                        icon = Icons.Outlined.AutoAwesome,
                         title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
                         subtitle = if (isProEntitled) {
                             stringResource(R.string.settings_pro_subtitle_active)
@@ -813,24 +815,24 @@ fun SettingsScreen(
             SectionHeaderV2(title = stringResource(R.string.settings_support_section))
             SettingsGroup {
                 SettingsNavItem(
-                    icon = Icons.AutoMirrored.Filled.Help,
+                    icon = Icons.AutoMirrored.Outlined.Help,
                     title = stringResource(R.string.settings_help_faq_title),
                     subtitle = stringResource(R.string.settings_help_faq_subtitle),
                     onClick = onNavigateToFaq,
                     position = ListItemPosition.Top
                 )
                 SettingsNavItem(
-                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    icon = Icons.AutoMirrored.Outlined.MenuBook,
                     title = stringResource(R.string.settings_user_guide_title),
                     subtitle = stringResource(R.string.settings_user_guide_subtitle),
                     onClick = {
                         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.USER_GUIDE_URL)))
                     },
                     position = ListItemPosition.Middle,
-                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                    trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew
                 )
                 SettingsNavItem(
-                    icon = Icons.Default.BugReport,
+                    icon = Icons.Outlined.BugReport,
                     title = stringResource(R.string.settings_report_issue_title),
                     subtitle = stringResource(R.string.settings_report_issue_subtitle),
                     onClick = {
@@ -838,7 +840,7 @@ fun SettingsScreen(
                         context.startActivity(intent)
                     },
                     position = ListItemPosition.Bottom,
-                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+                    trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew
                 )
             }
 
@@ -874,12 +876,12 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_budget_convert_title)) },
             text = { Text(stringResource(R.string.settings_budget_convert_message, prompt.from, prompt.to, rate)) },
             confirmButton = {
-                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = true) }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = true) }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_budget_convert_confirm))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = false) }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = false) }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_budget_convert_keep))
                 }
             }
@@ -929,7 +931,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDisplayCurrencyDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showDisplayCurrencyDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -972,7 +974,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showDateFormatDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showDateFormatDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1024,7 +1026,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showNumberFormatDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showNumberFormatDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1093,7 +1095,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showBudgetCycleDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showBudgetCycleDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1187,7 +1189,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showSmsScanDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showSmsScanDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1231,13 +1233,13 @@ fun SettingsScreen(
                         }
                         showSmsScanDatePicker = false
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.settings_action_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { reopenScanDialog() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { reopenScanDialog() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
             }
@@ -1261,7 +1263,7 @@ fun SettingsScreen(
             },
             icon = {
                 Icon(
-                    Icons.Default.DeleteForever,
+                    Icons.Outlined.DeleteForever,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -1294,7 +1296,7 @@ fun SettingsScreen(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(if (isDeletingAllTransactions) stringResource(R.string.settings_delete_all_dialog_deleting) else stringResource(R.string.settings_delete_all_dialog_confirm))
                 }
@@ -1303,7 +1305,7 @@ fun SettingsScreen(
                 TextButton(
                     onClick = { settingsViewModel.cancelDeleteAllTransactions() },
                     enabled = !isDeletingAllTransactions,
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
@@ -1317,7 +1319,7 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_delete_all_result_title)) },
             text = { Text(sentences.map { it.asString() }.joinToString(" ")) },
             confirmButton = {
-                TextButton(onClick = { settingsViewModel.clearDeleteAllTransactionsResult() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { settingsViewModel.clearDeleteAllTransactionsResult() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_ok))
                 }
             }
@@ -1339,7 +1341,7 @@ fun SettingsScreen(
                 title = { Text(stringResource(R.string.settings_backup_status_title)) },
                 text = { Text(message.asString()) },
                 confirmButton = {
-                    TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { settingsViewModel.clearImportExportMessage() }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.settings_action_ok))
                     }
                 }
@@ -1375,9 +1377,9 @@ fun SettingsScreen(
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
                         },
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
-                        Icon(Icons.Default.SaveAlt, contentDescription = null)
+                        Icon(Icons.Outlined.SaveAlt, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.settings_save_backup_to_files))
                     }
@@ -1388,9 +1390,9 @@ fun SettingsScreen(
                             showExportOptionsDialog = false
                             settingsViewModel.clearImportExportMessage()
                         },
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null)
+                        Icon(Icons.Outlined.Share, contentDescription = null)
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.settings_save_backup_share))
                     }
@@ -1402,7 +1404,7 @@ fun SettingsScreen(
                         showExportOptionsDialog = false
                         settingsViewModel.clearImportExportMessage()
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.settings_action_cancel))
                 }
@@ -1460,7 +1462,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showTimeoutDialog = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showTimeoutDialog = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.settings_action_done))
                 }
             }
@@ -1533,7 +1535,7 @@ private fun SettingsNavItem(
     onClick: () -> Unit,
     position: ListItemPosition,
     trailingText: String? = null,
-    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight
+    trailingIcon: ImageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight
 ) {
     GroupedRow(position = position, onClick = onClick) {
         SettingsIconTile(icon)
@@ -1592,6 +1594,7 @@ private fun SettingsSwitchRow(
             subtitle = subtitle
         )
         Switch(
+            colors = pennyWiseSwitchColors(),
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled
@@ -1672,8 +1675,8 @@ private fun AiChatSettingsItem(
     val downloadAction: @Composable () -> Unit = {
         when (downloadState) {
             DownloadState.NOT_DOWNLOADED -> {
-                Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Download, contentDescription = null)
+                Button(onClick = onDownload, shapes = pennyWiseButtonShapes()) {
+                    Icon(Icons.Outlined.Download, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.settings_ai_download))
                 }
@@ -1687,8 +1690,8 @@ private fun AiChatSettingsItem(
                 )
             }
             DownloadState.PAUSED -> {
-                Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Download, contentDescription = null)
+                Button(onClick = onDownload, shapes = pennyWiseButtonShapes()) {
+                    Icon(Icons.Outlined.Download, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.settings_ai_retry))
                 }
@@ -1699,12 +1702,12 @@ private fun AiChatSettingsItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.CheckCircle,
+                        Icons.Outlined.CheckCircle,
                         contentDescription = stringResource(R.string.settings_ai_downloaded),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
-                    TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = onDelete, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.settings_ai_delete))
                     }
                 }
@@ -1715,16 +1718,16 @@ private fun AiChatSettingsItem(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Icon(Icons.Outlined.Refresh, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.settings_ai_retry))
                 }
             }
             DownloadState.ERROR_INSUFFICIENT_SPACE -> {
                 Icon(
-                    Icons.Default.Error,
+                    Icons.Outlined.Error,
                     contentDescription = stringResource(R.string.settings_ai_error),
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1742,7 +1745,7 @@ private fun AiChatSettingsItem(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SettingsIconTile(Icons.Default.AutoAwesome)
+            SettingsIconTile(Icons.Outlined.AutoAwesome)
             SettingsRowLabels(
                 title = stringResource(R.string.settings_ai_chat_title),
                 subtitle = when (downloadState) {
@@ -1785,9 +1788,9 @@ private fun AiChatSettingsItem(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
-                    Icon(Icons.Default.Cancel, contentDescription = null)
+                    Icon(Icons.Outlined.Cancel, contentDescription = null)
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.settings_ai_cancel_download))
                 }
@@ -1824,7 +1827,7 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = stringResource(R.string.settings_back)
             )
         }

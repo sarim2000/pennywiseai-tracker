@@ -28,9 +28,9 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -183,23 +183,16 @@ fun SubscriptionsScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                    }
+                },
+                actionContent = {
+                    IconButton(onClick = onAddSubscriptionClick, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.subscriptions_add))
                     }
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onAddSubscriptionClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.subscriptions_add)
-                )
-            }
-        }
     ) { paddingValues ->
         LazyColumn(
             state = lazyListState,
@@ -269,7 +262,7 @@ fun SubscriptionsScreen(
                             TextButton(
                                 onClick = { showAll = !showAll },
                                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(
                                     if (showAll) stringResource(R.string.subscriptions_suggested_show_less)
@@ -361,7 +354,7 @@ fun SubscriptionsScreen(
             ) {
                 item {
                     PennyWiseEmptyState(
-                        icon = Icons.Default.Subscriptions,
+                        icon = Icons.Outlined.Subscriptions,
                         headline = stringResource(R.string.subscriptions_empty_headline),
                         description = stringResource(R.string.subscriptions_empty_description)
                     )
@@ -433,7 +426,7 @@ private fun EndedSubscriptionsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                 contentDescription = stringResource(if (expanded) R.string.subscriptions_collapse else R.string.subscriptions_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -460,7 +453,7 @@ private fun EndedSubscriptionItem(
 ) {
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), flat = true) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -480,10 +473,10 @@ private fun EndedSubscriptionItem(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            TextButton(onClick = onReactivate, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_reactivate)) }
+            TextButton(onClick = onReactivate, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_reactivate)) }
             IconButton(onClick = { showDeleteConfirm = true }, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.subscriptions_action_delete),
                     tint = MaterialTheme.colorScheme.error
                 )
@@ -504,13 +497,13 @@ private fun EndedSubscriptionItem(
                         showDeleteConfirm = false
                         onDelete()
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         )
     }
@@ -544,22 +537,20 @@ private fun TotalSubscriptionsSummary(
         null
     }
 
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), flat = true) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Text(
                 text = stringResource(R.string.subscriptions_summary_title),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 // Unified mode: one converted figure. Native mode: per-currency so a
                 // ₹ + $ mix shows "₹399 · $30" rather than dropping non-base subs.
-                text = when {
+                text = PennyWiseText.heroFigure(when {
                     !isUnified -> CurrencyFormatter.formatByCurrency(
                         totalByCurrency,
                         fallbackCurrency = currency ?: "INR"
@@ -567,18 +558,16 @@ private fun TotalSubscriptionsSummary(
                     currency != null -> CurrencyFormatter.formatCurrency(totalAmount, currency)
                     AmountPrivacy.hidden -> AmountPrivacy.MASK
                     else -> totalAmount.toPlainString()
-                },
-                style = PennyWiseText.amountLarge,
+                }, MaterialTheme.colorScheme.onSurfaceVariant),
+                style = PennyWiseText.heroAmount,
                 maxLines = 1,
-                autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                autoSize = PennyWiseText.fit(PennyWiseText.heroAmount),
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = listOfNotNull(expenseLine, incomeLine).joinToString(" · "),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                style = PennyWiseText.metadata,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -667,7 +656,7 @@ private fun SwipeableSubscriptionItem(
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
-                    imageVector = Icons.Default.VisibilityOff,
+                    imageVector = Icons.Outlined.VisibilityOff,
                     contentDescription = stringResource(R.string.subscriptions_hide),
                     tint = MaterialTheme.colorScheme.onError
                 )
@@ -675,7 +664,8 @@ private fun SwipeableSubscriptionItem(
         },
         content = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                // See-through rows: the page travels with the swipe.
+                modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 // Tap = mark as paid (#412). Existing SMS-body expand moved to the
@@ -687,14 +677,15 @@ private fun SwipeableSubscriptionItem(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
                     // The overflow button's 48dp target supplies the end inset.
                     contentPadding = PaddingValues(
-                        start = Spacing.md,
-                        end = Spacing.xs,
+                        start = Spacing.none,
+                        end = Spacing.none,
                         top = Dimensions.Padding.listRowVertical,
                         bottom = Dimensions.Padding.listRowVertical
                     )
                 ) {
                     BrandIcon(
                         merchantName = subscription.merchantName,
+                        category = subscription.category,
                         size = Dimensions.Icon.list,
                         showBackground = true
                     )
@@ -756,7 +747,7 @@ private fun SwipeableSubscriptionItem(
                         ) {
                             if (!subscription.smsBody.isNullOrBlank()) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                                    imageVector = Icons.AutoMirrored.Outlined.Chat,
                                     contentDescription = stringResource(R.string.subscriptions_sms_available),
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -800,7 +791,7 @@ private fun SwipeableSubscriptionItem(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.CheckCircle,
+                                    imageVector = Icons.Outlined.CheckCircle,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.primary,
@@ -834,7 +825,7 @@ private fun SwipeableSubscriptionItem(
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MoreVert,
+                                imageVector = Icons.Outlined.MoreVert,
                                 contentDescription = stringResource(R.string.subscriptions_more_options),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -845,7 +836,7 @@ private fun SwipeableSubscriptionItem(
                         ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.subscriptions_menu_mark_paid)) },
-                                leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.CheckCircle, contentDescription = null) },
                                 onClick = {
                                     showMenu = false
                                     onTap()
@@ -854,7 +845,7 @@ private fun SwipeableSubscriptionItem(
                             if (!subscription.smsBody.isNullOrBlank()) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.subscriptions_menu_view_source)) },
-                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
                                         showSmsBody = !showSmsBody
@@ -863,7 +854,7 @@ private fun SwipeableSubscriptionItem(
                             }
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.subscriptions_menu_edit)) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                                 onClick = {
                                     showMenu = false
                                     showEditDialog = true
@@ -871,7 +862,7 @@ private fun SwipeableSubscriptionItem(
                             )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.subscriptions_menu_end)) },
-                                leadingIcon = { Icon(Icons.Default.Cancel, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.Cancel, contentDescription = null) },
                                 onClick = {
                                     showMenu = false
                                     onMarkAsEnded()
@@ -881,7 +872,7 @@ private fun SwipeableSubscriptionItem(
                                 text = { Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error) },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Delete,
+                                        Icons.Outlined.Delete,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.error
                                     )
@@ -913,7 +904,7 @@ private fun SwipeableSubscriptionItem(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.Chat,
+                                    Icons.AutoMirrored.Outlined.Chat,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(Dimensions.Icon.medium)
@@ -977,13 +968,13 @@ private fun SwipeableSubscriptionItem(
                         onDelete()
                         showDeleteConfirm = false
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         )
     }
@@ -1067,7 +1058,7 @@ private fun EditSubscriptionDialog(
                     enabled = false,
                     trailingIcon = {
                         IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.subscriptions_edit_pick_date))
+                            Icon(Icons.Outlined.CalendarToday, contentDescription = stringResource(R.string.subscriptions_edit_pick_date))
                         }
                     }
                 )
@@ -1093,7 +1084,7 @@ private fun EditSubscriptionDialog(
                         enabled = false,
                         trailingIcon = {
                             IconButton(onClick = { showAccountMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Default.AccountBalance, contentDescription = stringResource(R.string.subscriptions_edit_pick_account))
+                                Icon(Icons.Outlined.AccountBalance, contentDescription = stringResource(R.string.subscriptions_edit_pick_account))
                             }
                         }
                     )
@@ -1111,8 +1102,8 @@ private fun EditSubscriptionDialog(
                                 accountChanged = true
                                 showAccountMenu = false
                             },
-                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
-                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Outlined.Block, contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                         )
                         HorizontalDivider()
                         accounts.forEachIndexed { index, account ->
@@ -1141,7 +1132,7 @@ private fun EditSubscriptionDialog(
                                         contentDescription = null
                                     )
                                 },
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                             )
                         }
                     }
@@ -1156,11 +1147,11 @@ private fun EditSubscriptionDialog(
                         onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
                     }
                 },
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) { Text(stringResource(R.string.subscriptions_edit_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
         }
     )
 
@@ -1176,10 +1167,10 @@ private fun EditSubscriptionDialog(
                         nextDate = LocalDate.ofEpochDay(millis / 86_400_000)
                     }
                     showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

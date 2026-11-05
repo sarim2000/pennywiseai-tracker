@@ -1,7 +1,10 @@
 # PennyWise Design System
 
-Material 3 (Expressive), with a small set of app-specific tokens and components
-layered on top. This document describes what is **actually implemented** — if
+**Verdigris.** PennyWise looks like a statement you keep to yourself: cool green-grey ink
+and paper, one accent in verdigris (the colour a copper penny turns with age, which also
+means money coming in), serif figures for totals and headings, a pace line as the Home
+signature, and rows on the page instead of boxes. Compose and Material 3 are the implementation; this is
+the look. This document describes what is **actually implemented** — if
 the code and this file disagree, the code in `app/src/main/java/com/pennywiseai/tracker/ui/theme/`
 is the source of truth and this file is the bug.
 
@@ -44,10 +47,10 @@ Prefer these — they name the *role*, so the rhythm can be retuned in one place
 | Token | Value | Use |
 |---|---|---|
 | `screenHorizontal` | 16dp | Screen edge → content |
-| `sectionGap` | 20dp | Between two top-level sections |
+| `sectionGap` | 24dp | Between two top-level sections |
 | `headerToContent` | 8dp | Section header → the content it labels |
 | `listGap` | 8dp | Between sibling rows in a plain list |
-| `groupedListGap` | 2dp | Between rows of a connected/grouped block |
+| `groupedListGap` | 0dp | Between ledger rows: a hairline separates them |
 | `nestedContent` | 12dp | Content nested inside an already-padded card |
 | `scrollBottomPadding` | 24dp | Bottom breathing room in a scrolling list |
 
@@ -110,7 +113,7 @@ the real target still reaches 48dp.
 
 Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
-`fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
+`fabScrollClearance`, `hairline` (0.5dp, the rule between rows and around cards), `dividerThickness`.
 
 Tabs move to a `NavigationRail` from `navRailMinWindowWidth`. The Floating nav style is a pill of labelled tabs (`floatingNavHeight` 64dp,
 `floatingNavBottomGap` 12dp above the system bar) with a sliding indicator behind
@@ -126,13 +129,12 @@ a standard `FloatingActionButton` in `primary` / `onPrimary`.
 The pill is only used where its labels fit; on a narrow phone or at a large font the
 full-width bar takes over, with the docked action floating above it.
 
-`contentMaxWidth` (720dp) caps every screen's column on tablets and unfolded foldables;
+`contentMaxWidth` (640dp) caps every screen's column on tablets and unfolded foldables;
 the shared wrapper is `withRouteArgs` in `PennyWiseNavHost`.
 
 ### Elevation (`Dimensions.Elevation`)
 
-The app is **flat**. Containers separate via tonal surfaces
-(`surfaceContainerLow` / `High`), not shadows. `card` is 0dp. Only genuinely
+The app is **flat**. Things separate with hairlines and tonal steps, not shadows. `card` is 0dp. Only genuinely
 floating things get elevation: `fab` (6dp), `dialog` (8dp), `bottomBar` (3dp).
 
 ### Alpha (`Dimensions.Alpha`)
@@ -147,25 +149,33 @@ common contrast bug in this codebase. Secondary text should be
 
 ## Typography
 
-`theme/Type.kt` is the Material scale with two deliberate departures, both aimed
-at making hierarchy readable in a dense, number-heavy UI:
+Two voices. **Newsreader** (serif) for what you read for its value: totals, screen and
+section titles. **Figtree** (sans) for labels, merchants, running text and the amounts in
+rows, where a column has to compare at a glance. `AppFont.LEDGER` is the default; System
+and SN Pro use one family for both and step titles up to SemiBold instead.
 
-1. **Titles and headlines are `SemiBold`, not `Normal`/`Medium`.** Material's
-   defaults leave a `titleMedium` heading nearly indistinguishable from the
-   `bodyLarge` under it, so screens read as one flat wall. A weight step
-   separates them without needing a size step.
-2. **Tracking is tightened at the large end, left wide at the small end.** Big
-   figures get negative tracking so digits group into one number; 11–12sp labels
-   keep Material's generous tracking, which is what makes small text legible.
+Newsreader ships in two optical cuts: `LedgerDisplayFamily` for hero sizes,
+`LedgerFigureFamily` for 17–24sp. Don't set `Bold` on them: the fonts stop at Medium and
+SemiBold, so a heavier weight gets synthesized. Instances are subset to Latin, Latin
+Extended-A and currency symbols; other scripts fall back to the system font. Licences are
+in `docs/fonts/`.
+
+Big figures go through `PennyWiseText.heroFigure`: the currency is smaller, muted and a
+little apart, so the digits lead.
+
+**Which voice for money:** hero and section totals and statement lines (`heroAmount`,
+`amountLarge`, `amountMedium`) are serif. Row amounts (`amountRow`) and small figures
+(`amountSmall`) are tabular sans.
 
 ### Roles — pick the same style for the same job
 
 | Role | Use |
 |---|---|
-| `displaySmall`+ | Hero balance on the Home balance card |
+| `displayMedium` | Hero figure (`heroAmount`) |
 | `headlineMedium` / `Small` | Screen-level totals, dialog titles |
-| `titleLarge` | Screen title in a top app bar |
-| `titleMedium` | Section header, card heading |
+| `headlineSmall` | Screen title in a top bar (`screenTitle`) |
+| `titleLarge` | Serif base for section headers and statement figures |
+| `titleMedium` | Heading inside a sheet or dialog |
 | `titleSmall` | Grouped-list heading inside a card |
 | `bodyLarge` | Primary row text (merchant, setting name) |
 | `bodyMedium` | Supporting row text, descriptions, paragraph copy |
@@ -184,7 +194,7 @@ the jobs the plain roles don't cover:
   or clip a figure: wrap or shrink the label beside it, and give the figure
   `maxLines = 1` with `autoSize = PennyWiseText.fit(style)`.
 - **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
-- **Structure:** `sectionHeader`, `fieldLabel`.
+- **Structure:** `screenTitle`, `sectionHeader`, `overline` (date dividers), `fieldLabel`.
 - **Charts:** `chartLabel` — one style for every axis tick, value label and
   legend, since Canvas text takes a `TextStyle` rather than a Material role and
   each chart used to declare its own literal.
@@ -193,36 +203,23 @@ the jobs the plain roles don't cover:
 
 ## Shape
 
-`theme/Shape.kt`: `extraSmall` 4 · `small` 8 · `medium` 12 · `large` 16 ·
-`extraLarge` 28.
+`theme/Shape.kt`: `extraSmall` 4 · `small` 6 · `medium` 10 · `large` 14 · `extraLarge` 20.
 
-Reference `MaterialTheme.shapes.*` rather than re-typing
-`RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
-`extraSmall`; pill shapes use `CircleShape`.
+Reference `MaterialTheme.shapes.*` rather than re-typing `RoundedCornerShape(16.dp)`.
+Sheets and cards use `large`; chips, trays and the buttons use `medium`/`small`. Round
+is reserved for coins: merchant, category and settings glyphs are circles.
 
-Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
-merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
-`MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
-not containers or buttons.
+Buttons pass `shapes = pennyWiseButtonShapes()` (cut, not pill). Switches pass
+`colors = pennyWiseSwitchColors()` (no outline when off).
 
 ---
 
 ## Components
 
-### `PennyWiseCardV2` — the standard card
+### Rows first: `GroupedList` / `GroupedRow` / `GroupedColumn`
 
-One card style everywhere: `shapes.large`, `surfaceContainerLow` fill, no
-elevation, and — in **dark mode only** — a 0.5dp hairline so the card separates
-from an AMOLED-black background where a tonal fill barely registers.
-
-Pass `contentPadding` rather than padding the content yourself, so the ripple on
-a clickable card covers the whole surface.
-
-### Grouped lists — `GroupedList` / `GroupedRow` / `GroupedColumn`
-
-The app's one grouped-list pattern: sibling rows share a tonal surface,
-separated by a 2dp gutter, with the block's outer corners rounded and interior
-corners nearly square. **The shape does the grouping — no dividers.**
+The app's one list pattern is a ledger. Rows sit on the page, flush with the section
+heading above them, with a hairline above every row but the first.
 
 ```kotlin
 GroupedList {
@@ -230,34 +227,58 @@ GroupedList {
         GroupedRow(position = ListItemPosition.from(i, items.size), onClick = { … }) {
             IconTile(icon = …, containerColor = …, contentColor = …)
             RowLabels(title = …, subtitle = …)
-            Icon(Icons.Default.ChevronRight, null, Modifier.size(Dimensions.Icon.inline))
+            Icon(Icons.Outlined.ChevronRight, null, Modifier.size(Dimensions.Icon.inline))
         }
     }
 }
 ```
 
-`ListItemPosition.toShape()` in `ui/components/cards/ListItemCardV2.kt` is the
-**single source of truth** for grouped corners. It used to exist in four places
-(Home, Settings, `PreferenceSwitch`, `ListItemCardV2`) with three different
-corner radii and three different gutters — which is why Settings and Appearance
-never quite matched. Don't re-add a local copy.
+`ledgerRule()` draws that hairline; `ListItemPosition.hasRule` decides who gets one.
+
+Rows are transparent, so a row inside a `SwipeToDismissBox` must carry an opaque
+`background` behind it or the swipe action shows through at rest.
 
 Helpers:
-- `IconTile` — the tinted circle that leads a settings-style row (fixed circle
-  and glyph sizes, so a 24dp glyph in one row and 20dp in the next can't happen).
-- `RowLabels` — title + supporting text, weighted to fill. Supporting text is
-  `bodyMedium`/`onSurfaceVariant`, not `bodySmall`: at 12sp the second line of a
-  two-line row is genuinely hard to read, and the colour role already carries
-  the "secondary" signal.
+- `IconTile` — the coin that leads a settings-style row.
+- `RowLabels` — title + supporting text, weighted to fill.
+
+### `StatementLine` — one line of a statement
+
+Label left, serif figure right, small print under. A stack of them reads as a table:
+Home's Balance and Safe to spend, Analytics' average and top category, Loans' totals. Use
+it before reaching for a summary card. From `STACK_FONT_SCALE` the figure takes its own line.
+
+### `PennyWiseCardV2` — only when something must lift off the page
+
+`shapes.large`, `surfaceContainerLow` fill, a hairline edge, no elevation. Forms, prompts
+and rule builders use it. `flat = true` drops the sheet and keeps the click handling, for
+summaries and single rows.
 
 ### `ListItemCardV2` / `TransactionItem` — transaction rows
 
-Leading avatar (`Icon.list`), title + one metadata line, trailing amount in
-`PennyWiseText.amountRow`. The subtitle here stays `bodySmall` on purpose: it's a
-joined metadata string ("9 Jan · 3:42 PM · Food · Bal ₹1,234"), not prose.
+Leading coin (`Icon.list`), title + one metadata line, trailing amount in
+`PennyWiseText.amountRow`. Pass `ruled` to draw the hairline.
 
 `TransactionItemSkeleton` derives its geometry from the same tokens, so rows
 don't shift or change height when data arrives.
+
+### `BudgetBar`
+
+A flat 4dp rule filled to the amount used, with a mark across it at today's position in
+the window. Fill past the mark means spending ahead of the calendar, and `BudgetPaceNote`
+says so in words. Budget and goal
+colours the user didn't choose follow the accent.
+
+### The pace line
+
+`BalanceSparkline` under Home's hero: this month's running total against the same days last
+month, ending on a dot at today. It's the screen's one flourish and the answer to "am I on
+track?". It isn't drawn while amounts are hidden, because its shape gives them away. The
+same goes for budget fills, percentages and Analytics' trend chart.
+
+### `FilterChipRow`
+
+One scrolling line that runs out to the screen edge. At a large font it wraps instead.
 
 ### `SectionHeaderV2`
 
@@ -276,36 +297,26 @@ width-capped so centred text doesn't wrap into an awkward shape.
 
 ### `PennyWiseScaffold` / `CustomTitleTopAppBar`
 
-All screens use one of these for consistent system-bar and app-bar handling.
-App-bar titles use `titleLarge`.
-Every screen uses one compact centred bar, opaque so nothing reads through the title.
-Large titles pushed the money down a third of the screen and jumped position on scroll.
-Home keeps its greeting in the list and fades the small bar in by scroll position.
+One compact, start-aligned bar with the title in the serif. A screen's create action is
+a `+` in that bar, never a floating button. Tab screens dock their main action into the
+bottom bar's last slot through `DockNavAction`, so nothing floats over a figure.
 
-### Choices and progress (Material 3 Expressive)
+### Choices and progress
 
-- **One-of-N choice rows** → `ConnectedChoiceRow` (a connected `ToggleButton`
-  group). Don't use `SegmentedButton`; Expressive replaces it.
+- **One-of-N choice rows** → `ConnectedChoiceRow` (a tray of `ToggleButton`s, the
+  choice inked in). Don't use `SegmentedButton`.
 - **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
   spinners inside buttons or rows stay `CircularProgressIndicator`.
 - **Activity progress** (scan, import, export, download) →
   `LinearWavyProgressIndicator`. **Data meters** (budget used, loan repaid)
   stay flat `LinearProgressIndicator` — the wave signals *work happening*.
-- Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
-  specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
-  **Spatial** specs (offset, size, scale, rotation) are springs that
-  overshoot: `fast` for small parts, `default` for cards/panels, `slow` for
-  full-screen moves. **Effects** specs (alpha, colour) don't overshoot — also
-  use them for bounded data values (progress fractions, chart sweeps), where
-  a bounce past 100% reads as wrong. `tween` stays only inside
+- Motion comes from `MotionScheme.standard()` in `PennyWiseTheme`: calm, because nothing
+  in a ledger should bounce past the figure it's showing. Read specs from
+  `MaterialTheme.motionScheme` instead of hand-rolled `tween`s. **Effects** specs are
+  also for bounded data values (progress fractions, chart sweeps). `tween` stays only inside
   `infiniteRepeatable` loops or where a duration is load-bearing.
-- **Buttons morph on press.** Every Material button passes
-  `shapes = ButtonDefaults.shapes()` (icon buttons:
-  `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
-- **Tappable list rows morph too.** `GroupedRow` (with `onClick`) and
-  `ListItemCardV2` (with `onClick`) render as M3 `SegmentedListItem`s: same
-  resting corners, plus the native press/focus morph to `shapes.large`.
-  Static rows stay plain surfaces.
+- **Buttons** pass `shapes = pennyWiseButtonShapes()` (icon buttons:
+  `IconButtonDefaults.shapes()`). Rows get the plain ripple.
 - **Chips** use the `shapes =` overload (`FilterChipDefaults.shapes()`), which
   morphs on press and selection. Pass `colors` explicitly; the overload
   otherwise defaults to tonal colours.
@@ -316,9 +327,6 @@ Home keeps its greeting in the list and fades the small bar in by scroll positio
   differs from the item fill, and without it every row reads as a tile.
   Action menus stay `DropdownMenuItem`. Include/exclude lists whose items are
   all ticked by default keep checkbox rows (their icons identify them).
-- **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
-  for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
-  expanded app-bar title.
 - The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
   (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 
@@ -326,28 +334,28 @@ Home keeps its greeting in the list and fades the small bar in by scroll positio
 
 ## Colour
 
-Material You dynamic colour on Android 12+, a branded Rose Pine palette
-(`ThemeStyle.BRANDED`), and an AMOLED override that swaps the surface ramp for
-true black. Always use semantic roles — never hard-code a colour.
+Three things can colour the app. `ThemeStyle.BRANDED` is the default: the ink and paper
+surfaces in `theme/Color.kt` with `AccentColor.VERDIGRIS`. Other accents swap the foreground
+only and are nudged to 4.5:1 on every surface (`readableOn`, guarded by
+`BrandedThemeContrastTest`). Material You dynamic colour stays an option, and AMOLED swaps
+the surface ramp for true black. Always use semantic roles — never hard-code a colour.
 
-Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
-`income`, `expense`, `credit`, `transfer`, `investment` — each resolves
-light/dark from the theme in use. Check `isAppInDarkTheme()`, not
+Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`, `income`,
+`expense`, `credit`, `transfer`, `investment`. Check `isAppInDarkTheme()`, not
 `isSystemInDarkTheme()`: Appearance can override the system.
 
 What colour means:
 
-- **Spending is ink.** Expense rows are `onSurface` with a true minus (U+2212).
-  Income, credit, transfer and investment keep their colours. `error` and `warning`
-  are for over budget, overdue and negative, so they still mean something.
-- **Selection is one style:** `secondaryContainer` / `onSecondaryContainer`.
-- **Cards are `surfaceContainerLow`.** Don't use saturated containers as decoration.
-- A budget's colour lives on its progress bar, not on the card.
-- Branded `primary` / `secondary` / `tertiary` are nudged to 4.5:1 on every surface
-  (`readableOn`, guarded by `BrandedThemeContrastTest`). `*Container` keep the raw
-  accent, so use those for fills.
-- Category colours pass through `categoryDisplayColor` for display, which keeps dark
-  ones visible on dark surfaces without changing what's stored.
+- **Spending is ink.** Expense rows are `onSurface` with a true minus (U+2212). Income is
+  verdigris; credit, transfer and investment keep their colours. `error` and `warning` are
+  for over budget, overdue and negative, so they still mean something. A month-on-month
+  comparison is plain text: the words say which way it went.
+- **Selection is inked in:** `inverseSurface` / `inverseOnSurface`, in chips and trays.
+- **`secondaryContainer` is a soft wash** of the accent for prompts and badges, not selection.
+- Colours belong on marks, not containers: a budget's colour lives on its bar.
+- Built-in categories use the palette in `CategoryMapping`, whatever hex the database holds
+  (`customColor` tells a user's choice from a seed). Display goes through
+  `categoryDisplayColor`, which keeps dark colours visible on dark surfaces.
 
 ## Money formatting
 
@@ -359,12 +367,18 @@ Net figures use `formatSigned`.
 
 ---
 
+## App icon
+
+`drawable/ic_launcher_foreground.xml`: a verdigris ring and a Newsreader P with no fill behind
+the letter, so the one drawing is the launcher foreground, the themed monochrome icon and
+the notification silhouette. `share_card_logo.webp` is a raster copy for the share card.
+
 ## Accessibility checklist
 
 - [ ] 48dp minimum touch target on everything tappable
 - [ ] Secondary text is `onSurfaceVariant` at full opacity (no stacked alpha)
 - [ ] Light **and** dark theme checked
-- [ ] Dynamic colour + branded + AMOLED all checked
+- [ ] Dynamic colour + PennyWise + AMOLED all checked
 - [ ] Font scaling to 200% doesn't clip or overlap
 - [ ] Section headers carry `semantics { heading() }` (`SectionHeaderV2` does)
 - [ ] Decorative icons pass `contentDescription = null`; meaningful ones don't

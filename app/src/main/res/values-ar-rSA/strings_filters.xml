@@ -22,4 +22,5 @@
     <string name="account_type_credit_card">بطاقة ائتمان</string>
     <string name="account_type_cash">نقدا</string>
     <string name="account_type_loan">قرض</string>
+    <string name="filter_type_all_types">النوع</string>
 </resources>

@@ -37,7 +37,7 @@ fun AnimatedCurrencyText(
         modifier = modifier
     ) { targetText ->
         Text(
-            text = targetText,
+            text = PennyWiseText.heroFigure(targetText, MaterialTheme.colorScheme.onSurfaceVariant),
             style = style,
             color = color,
             fontWeight = fontWeight,

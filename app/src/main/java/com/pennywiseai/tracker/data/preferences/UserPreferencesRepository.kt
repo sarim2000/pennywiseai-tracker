@@ -229,15 +229,15 @@ open class UserPreferencesRepository @Inject constructor(
                 isDarkThemeEnabled = preferences[PreferencesKeys.DARK_THEME_ENABLED],
                 isDynamicColorEnabled = preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] ?: false,
                 themeStyle = preferences[PreferencesKeys.THEME_STYLE]?.let {
-                    try { ThemeStyle.valueOf(it) } catch (_: Exception) { ThemeStyle.DYNAMIC }
-                } ?: ThemeStyle.DYNAMIC,
+                    try { ThemeStyle.valueOf(it) } catch (_: Exception) { ThemeStyle.BRANDED }
+                } ?: ThemeStyle.BRANDED,
                 accentColor = preferences[PreferencesKeys.ACCENT_COLOR]?.let {
-                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.IRIS }
-                } ?: AccentColor.IRIS,
+                    try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.VERDIGRIS }
+                } ?: AccentColor.VERDIGRIS,
                 isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
                 appFont = preferences[PreferencesKeys.APP_FONT]?.let {
-                    try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.SYSTEM }
-                } ?: AppFont.SYSTEM,
+                    try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.LEDGER }
+                } ?: AppFont.LEDGER,
                 hasSkippedSmsPermission = preferences[PreferencesKeys.HAS_SKIPPED_SMS_PERMISSION] ?: false,
                 isDeveloperModeEnabled = preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false,
                 hasShownScanTutorial = preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] ?: false,
@@ -249,8 +249,8 @@ open class UserPreferencesRepository @Inject constructor(
                     ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR",
                 blurEffectsEnabled = preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] ?: true,
                 navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
-                    try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
-                } ?: NavBarStyle.FLOATING,
+                    try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.NORMAL }
+                } ?: NavBarStyle.NORMAL,
                 hiddenNavTabs = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet(),
                 coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
                     try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.NONE }
@@ -1285,10 +1285,10 @@ open class UserPreferencesRepository @Inject constructor(
 data class UserPreferences(
     val isDarkThemeEnabled: Boolean? = null, // null means follow system
     val isDynamicColorEnabled: Boolean = false, // Default to custom brand colors
-    val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
-    val accentColor: AccentColor = AccentColor.IRIS,
+    val themeStyle: ThemeStyle = ThemeStyle.BRANDED,
+    val accentColor: AccentColor = AccentColor.VERDIGRIS,
     val isAmoledMode: Boolean = false,
-    val appFont: AppFont = AppFont.SYSTEM,
+    val appFont: AppFont = AppFont.LEDGER,
     val hasSkippedSmsPermission: Boolean = false,
     val isDeveloperModeEnabled: Boolean = false,
     val hasShownScanTutorial: Boolean = false,
@@ -1298,7 +1298,7 @@ data class UserPreferences(
     val unifiedCurrencyMode: Boolean = false,
     val displayCurrency: String = "INR",
     val blurEffectsEnabled: Boolean = true,
-    val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
+    val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,
     val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.NONE,
     val userName: String = "User",

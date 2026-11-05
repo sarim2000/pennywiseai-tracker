@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -13,9 +14,9 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -232,10 +233,10 @@ fun ChatScreen(
                                         colors = ButtonDefaults.textButtonColors(
                                             contentColor = MaterialTheme.colorScheme.error
                                         ),
-                                        shapes = ButtonDefaults.shapes()
+                                        shapes = pennyWiseButtonShapes()
                                     ) {
                                         Icon(
-                                            Icons.Default.Delete,
+                                            Icons.Outlined.Delete,
                                             contentDescription = null,
                                             modifier = Modifier.size(Dimensions.Icon.small)
                                         )
@@ -343,7 +344,7 @@ fun ChatScreen(
                                     )
                                     IconButton(onClick = { viewModel.clearError() }, shapes = IconButtonDefaults.shapes()) {
                                         Icon(
-                                            Icons.Default.Close,
+                                            Icons.Outlined.Close,
                                             contentDescription = stringResource(R.string.chat_dismiss),
                                             tint = MaterialTheme.colorScheme.onErrorContainer
                                         )
@@ -396,7 +397,7 @@ fun ChatScreen(
                                         )
                                     } else {
                                         Icon(
-                                            Icons.AutoMirrored.Filled.Send,
+                                            Icons.AutoMirrored.Outlined.Send,
                                             contentDescription = stringResource(R.string.chat_send)
                                         )
                                     }
@@ -468,6 +469,24 @@ private fun ModelActivationPanel(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                // What the download is for: the setup screen shouldn't be a dead end.
+                Text(
+                    text = stringResource(R.string.chat_preview_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = Spacing.xs)
+                )
+                listOf(
+                    R.string.chat_example_prompt_coffee,
+                    R.string.chat_example_prompt_salary,
+                    R.string.chat_example_prompt_groceries,
+                ).forEach { prompt ->
+                    Text(
+                        text = stringResource(prompt),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 error?.let {
                     Text(
                         text = it,
@@ -481,9 +500,9 @@ private fun ModelActivationPanel(
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 if (isDownloading) {
-                    OutlinedButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
+                    OutlinedButton(onClick = onCancel, shapes = pennyWiseButtonShapes()) {
                         Icon(
-                            Icons.Default.Close,
+                            Icons.Outlined.Close,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -491,9 +510,9 @@ private fun ModelActivationPanel(
                         Text(stringResource(R.string.chat_cancel))
                     }
                 } else {
-                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
+                    Button(onClick = onDownload, shapes = pennyWiseButtonShapes()) {
                         Icon(
-                            Icons.Default.Download,
+                            Icons.Outlined.Download,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -501,7 +520,7 @@ private fun ModelActivationPanel(
                         Text(stringResource(R.string.chat_download))
                     }
                 }
-                TextButton(onClick = onOpenSettings, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = onOpenSettings, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.chat_settings))
                 }
             }
@@ -529,8 +548,8 @@ fun TokenLimitWarning(
     }
     
     val icon = when {
-        usagePercent >= 95 -> Icons.Default.Error
-        else -> Icons.Default.Warning
+        usagePercent >= 95 -> Icons.Outlined.Error
+        else -> Icons.Outlined.Warning
     }
     
     val message = when {
@@ -574,7 +593,7 @@ fun TokenLimitWarning(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = contentColor
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.chat_clear), fontWeight = FontWeight.Bold)
                 }
@@ -618,7 +637,7 @@ fun DeveloperInfoCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Code,
+                        Icons.Outlined.Code,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -641,7 +660,7 @@ fun DeveloperInfoCard(
                         color = usageColor
                     )
                     Icon(
-                        if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                         contentDescription = stringResource(if (isExpanded) R.string.chat_collapse else R.string.chat_expand),
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -934,13 +953,13 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.chat_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
                     colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) { Text(button) }
             }
         }

@@ -8,8 +8,8 @@ package com.pennywiseai.tracker.data.preferences
  */
 enum class HomeSection(val label: String) {
     SAFE_TO_SPEND("Safe to spend"),
-    BUDGETS("Budgets"),
     RECENT_TRANSACTIONS("Recent Transactions"),
+    BUDGETS("Budgets"),
     ACCOUNTS("Bank Accounts"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),
     LOANS("Loans"),

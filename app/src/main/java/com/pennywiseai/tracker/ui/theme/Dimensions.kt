@@ -115,10 +115,10 @@ object Dimensions {
     object CornerRadius {
         /** Interior corners of a row inside a connected/grouped list block. */
         val small = 4.dp
-        val medium = 8.dp
-        val card = 12.dp
-        val large = 16.dp
-        val extraLarge = 28.dp
+        val medium = 6.dp
+        val card = 10.dp
+        val large = 14.dp
+        val extraLarge = 20.dp
 
         /** For circular elements. */
         val full = 50.dp
@@ -129,13 +129,26 @@ object Dimensions {
         val bottomBarHeight = 80.dp
 
         /** Widest the app's content column grows on tablets and unfolded foldables. */
-        val contentMaxWidth = 720.dp
+        val contentMaxWidth = 640.dp
 
         /** From this window width the tabs move to a side rail, out of the content's way. */
         val navRailMinWindowWidth = 600.dp
 
         /** Wider than the Material default, whose edges "Transactions" nearly touches. */
         val navRailWidth = 96.dp
+
+        /** Height of the fixed bottom bar, above the system navigation bar. */
+        val ledgerNavHeight = 64.dp
+
+        /** The accent tick that marks the selected tab along the bar's top rule. */
+        val navTickWidth = 28.dp
+        val navTickHeight = 2.dp
+
+        /** How far above the bottom bar scrolling content starts to fade out. */
+        val navFade = 16.dp
+
+        /** The action docked in the bottom bar. */
+        val navActionSize = 44.dp
 
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
@@ -151,9 +164,9 @@ object Dimensions {
         val floatingNavBottomGap = 12.dp
 
         /** Corner of the squircle action docked beside the floating nav pill. */
-        val dockedActionCornerRadius = 20.dp
+        val dockedActionCornerRadius = 14.dp
         /** Corner while the docked action is held — the M3 Expressive press morph. */
-        val dockedActionPressedCornerRadius = 12.dp
+        val dockedActionPressedCornerRadius = 10.dp
 
         val buttonHeight = 48.dp
 
@@ -176,7 +189,7 @@ object Dimensions {
         /** Divider between the stat blocks of a summary card (Analytics). */
         val dividerThicknessEmphasis = 1.5.dp
 
-        /** Hairline used to outline cards in dark mode. */
+        /** The rule between ledger rows and around cards. */
         val hairline = 0.5.dp
 
         val progressIndicatorSize = 24.dp
@@ -187,25 +200,25 @@ object Dimensions {
          * download). Budget bars were 10dp, loan bars 6dp and download bars the
          * Material default — three weights for the same idea.
          */
-        val progressBarHeight = 8.dp
+        val progressBarHeight = 4.dp
 
         /** Goal progress ring on a card, and its stroke (#914). */
         val goalRing = 56.dp
-        val goalRingStroke = 6.dp
+        val goalRingStroke = 3.dp
 
         /** A goal ring in a list row (the Add to goal picker), and its stroke. */
         val goalRingSmall = 40.dp
-        val goalRingSmallStroke = 4.dp
+        val goalRingSmallStroke = 3.dp
 
         /** The big goal ring on the goal's own screen, and its stroke. */
         val goalRingLarge = 168.dp
-        val goalRingLargeStroke = 12.dp
+        val goalRingLargeStroke = 6.dp
 
         /** One column of a spreadsheet preview (statement import's column mapping, #13). */
         val tableCellWidth = 112.dp
 
         /** Widest a bar in a bar chart grows when there are few of them. */
-        val chartBarMaxWidth = 16.dp
+        val chartBarMaxWidth = 20.dp
 
         /** The colour dot beside a chart legend entry. */
         val legendDot = 10.dp

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.shape.CircleShape
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.icons.categoryDisplayColor
 import androidx.compose.foundation.Image
@@ -73,7 +74,7 @@ fun BrandIcon(
             .then(
                 if (showBackground) {
                     Modifier
-                        .clip(MaterialShapes.Cookie9Sided.toShape())
+                        .clip(CircleShape)
                         .background(backgroundColor)
                         .padding(8.dp)
                 } else {
@@ -106,7 +107,7 @@ fun BrandIcon(
 }
 
 /** How strongly a category avatar's disc takes its glyph's colour. */
-private const val CATEGORY_AVATAR_ALPHA = 0.18f
+private const val CATEGORY_AVATAR_ALPHA = 0.14f
 
 /** A category's icon in its standard tinted avatar: one treatment across the app. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -116,7 +117,7 @@ fun CategoryAvatar(category: String, modifier: Modifier = Modifier, size: Dp = D
     Box(
         modifier = modifier
             .size(size)
-            .clip(MaterialShapes.Cookie9Sided.toShape())
+            .clip(CircleShape)
             .background(tint.copy(alpha = CATEGORY_AVATAR_ALPHA)),
         contentAlignment = Alignment.Center
     ) {
@@ -142,7 +143,7 @@ fun LetterAvatar(
     Box(
         modifier = modifier
             .size(size)
-            .clip(MaterialShapes.Cookie9Sided.toShape())
+            .clip(CircleShape)
             .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {

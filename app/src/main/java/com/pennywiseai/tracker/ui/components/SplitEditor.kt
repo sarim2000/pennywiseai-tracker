@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
@@ -8,10 +9,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,7 +78,7 @@ fun SplitEditor(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.split_editor_remove_all))
                 }
@@ -126,9 +127,9 @@ fun SplitEditor(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = availableCategories.size > splits.size,
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(stringResource(R.string.split_editor_add))
             }
@@ -147,14 +148,14 @@ fun SplitEditor(
                 ) {
                     if (isBalanced) {
                         Icon(
-                            Icons.Default.Check,
+                            Icons.Outlined.Check,
                             contentDescription = stringResource(R.string.split_editor_balanced),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     } else {
                         Icon(
-                            Icons.Default.Warning,
+                            Icons.Outlined.Warning,
                             contentDescription = stringResource(R.string.split_editor_not_balanced),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(Dimensions.Icon.medium)
@@ -313,7 +314,7 @@ private fun SplitRow(
                 shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(
-                    Icons.Default.Close,
+                    Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.split_editor_remove),
                     tint = if (canRemove) {
                         MaterialTheme.colorScheme.error

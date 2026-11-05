@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.analytics
 
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -26,12 +27,12 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.List
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -356,13 +357,13 @@ fun AnalyticsScreen(
                                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 ),
                                 contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Icon(
                                     imageVector = when (chartType) {
-                                        ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                        ChartType.BAR -> Icons.Default.BarChart
-                                        ChartType.HEATMAP -> Icons.Default.GridView
+                                        ChartType.LINE -> Icons.AutoMirrored.Outlined.ShowChart
+                                        ChartType.BAR -> Icons.Outlined.BarChart
+                                        ChartType.HEATMAP -> Icons.Outlined.GridView
                                     },
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small)
@@ -398,7 +399,7 @@ fun AnalyticsScreen(
                                         .fillMaxWidth()
                                         .clip(MaterialTheme.shapes.medium)
                                         .background(
-                                            if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+                                            if (isSelected) MaterialTheme.colorScheme.inverseSurface
                                             else Color.Transparent
                                         )
                                         .clickable {
@@ -415,13 +416,13 @@ fun AnalyticsScreen(
                                     ) {
                                         Icon(
                                             imageVector = when (type) {
-                                                ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                                ChartType.BAR -> Icons.Default.BarChart
-                                                ChartType.HEATMAP -> Icons.Default.GridView
+                                                ChartType.LINE -> Icons.AutoMirrored.Outlined.ShowChart
+                                                ChartType.BAR -> Icons.Outlined.BarChart
+                                                ChartType.HEATMAP -> Icons.Outlined.GridView
                                             },
                                             contentDescription = null,
                                             tint = if (isSelected)
-                                                MaterialTheme.colorScheme.onSecondaryContainer
+                                                MaterialTheme.colorScheme.inverseOnSurface
                                             else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                         Text(
@@ -432,15 +433,15 @@ fun AnalyticsScreen(
                                             },
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = if (isSelected)
-                                                MaterialTheme.colorScheme.onSecondaryContainer
+                                                MaterialTheme.colorScheme.inverseOnSurface
                                             else MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                     if (isSelected) {
                                         Icon(
-                                            Icons.Default.Check,
+                                            Icons.Outlined.Check,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            tint = MaterialTheme.colorScheme.inverseOnSurface,
                                             modifier = Modifier.size(Dimensions.Icon.medium)
                                         )
                                     }
@@ -449,8 +450,15 @@ fun AnalyticsScreen(
                         }
                     }
 
-                    // Chart display with crossfade transition
-                    Crossfade(
+                    // Chart display with crossfade transition. Bars and lines give amounts away.
+                    if (AmountPrivacy.hidden) {
+                        Text(
+                            text = stringResource(R.string.analytics_hidden_chart),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = Spacing.md)
+                        )
+                    } else Crossfade(
                         targetState = chartType,
                         label = "chart_transition"
                     ) { type ->
@@ -491,8 +499,8 @@ fun AnalyticsScreen(
                             }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = if (categoryViewType == CategoryViewType.CHART)
-                                        Icons.AutoMirrored.Filled.List
-                                    else Icons.Default.PieChart,
+                                        Icons.AutoMirrored.Outlined.List
+                                    else Icons.Outlined.PieChart,
                                     contentDescription = stringResource(R.string.analytics_toggle_view),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -519,7 +527,6 @@ fun AnalyticsScreen(
                         when (viewType) {
                             CategoryViewType.CHART -> CategoryPieChart(
                                 categories = uiState.categoryBreakdown,
-                                total = uiState.totalSpending,
                                 currency = selectedCurrency,
                                 onCategoryClick = { category ->
                                     drillDown(TransactionsDrillDown(category = category.name))
@@ -568,8 +575,8 @@ fun AnalyticsScreen(
                             }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = if (tagViewType == CategoryViewType.CHART)
-                                        Icons.AutoMirrored.Filled.List
-                                    else Icons.Default.PieChart,
+                                        Icons.AutoMirrored.Outlined.List
+                                    else Icons.Outlined.PieChart,
                                     contentDescription = stringResource(R.string.analytics_toggle_view),
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -595,7 +602,6 @@ fun AnalyticsScreen(
                         when (viewType) {
                             CategoryViewType.CHART -> TagPieChart(
                                 tags = uiState.tagBreakdown,
-                                total = uiState.totalSpending,
                                 currency = selectedCurrency,
                                 onTagClick = { tag ->
                                     if (!tag.isUntagged) drillDown(TransactionsDrillDown(tag = tag.name))
@@ -774,18 +780,10 @@ private fun AnalyticsFilterBar(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        // Wraps rather than scrolls, so the period and every other chip stay whole on screen.
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
+        FilterChipRow {
             run {
                 Box {
                     ExpressiveFilterChip(
-                        colors = analyticsFilterChipColors(),
-                        border = analyticsFilterChipBorder(
-                            selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null
-                        ),
                         selected = selectedPeriod != TimePeriod.THIS_MONTH || customRangeLabel != null,
                         text = periodChipLabel,
                         onClick = onPeriodClick
@@ -802,7 +800,7 @@ private fun AnalyticsFilterBar(
                                 text = { Text(period.label) },
                                 shapes = MenuDefaults.itemShape(index, timePeriods.size),
                                 colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                 onClick = { onPeriodSelected(period) }
                             )
                         }
@@ -813,10 +811,6 @@ private fun AnalyticsFilterBar(
             run {
                 Box {
                     ExpressiveFilterChip(
-                        colors = analyticsFilterChipColors(),
-                        border = analyticsFilterChipBorder(
-                            selected = transactionTypeFilter != defaultTypeFilter
-                        ),
                         selected = transactionTypeFilter != defaultTypeFilter,
                         text = transactionTypeFilter.shortLabel(),
                         onClick = onTypeClick
@@ -834,7 +828,7 @@ private fun AnalyticsFilterBar(
                                 shapes = MenuDefaults.itemShape(index, TransactionTypeFilter.entries.size),
                                 colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                 leadingIcon = { Icon(typeFilter.filterIcon(), contentDescription = null) },
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                 onClick = { onTypeSelected(typeFilter) }
                             )
                         }
@@ -846,8 +840,6 @@ private fun AnalyticsFilterBar(
                 if (filtersExpanded) R.string.analytics_filters_expanded else R.string.analytics_filters_collapsed
             )
             ExpressiveFilterChip(
-                colors = analyticsFilterChipColors(),
-                border = analyticsFilterChipBorder(selected = secondaryFilterCount > 0),
                 selected = secondaryFilterCount > 0,
                 text = if (secondaryFilterCount > 0) {
                     stringResource(R.string.analytics_filters_count, secondaryFilterCount)
@@ -866,16 +858,11 @@ private fun AnalyticsFilterBar(
             exit = shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) +
                 fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
         ) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
+            FilterChipRow {
                 // Group by (#422) — a view choice rather than a filter, so Clear leaves it alone.
                 run {
                     Box {
                         ExpressiveFilterChip(
-                            colors = analyticsFilterChipColors(),
-                            border = analyticsFilterChipBorder(selected = groupBy != AnalyticsGroupBy.CATEGORY),
                             selected = groupBy != AnalyticsGroupBy.CATEGORY,
                             text = groupBy.chipLabel(),
                             onClick = onGroupByClick
@@ -893,12 +880,12 @@ private fun AnalyticsFilterBar(
                                     shapes = MenuDefaults.itemShape(index, AnalyticsGroupBy.entries.size),
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                     leadingIcon = { Icon(option.icon(), contentDescription = null) },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     // Subtle Pro hint for free users; picking it opens the upgrade sheet.
                                     trailingContent = if (option.isPro && !isProEntitled) {
                                         {
                                             Icon(
-                                                Icons.Default.Lock,
+                                                Icons.Outlined.Lock,
                                                 contentDescription = stringResource(R.string.analytics_group_by_pro),
                                                 tint = yellow_dark,
                                                 modifier = Modifier.size(Dimensions.Icon.small)
@@ -917,8 +904,6 @@ private fun AnalyticsFilterBar(
                         val selectedProfileLabel = profiles.find { it.id == selectedProfileId }?.displayName()
                         Box {
                             ExpressiveFilterChip(
-                                colors = analyticsFilterChipColors(),
-                                border = analyticsFilterChipBorder(selected = selectedProfileId != null),
                                 selected = selectedProfileId != null,
                                 text = selectedProfileLabel ?: stringResource(R.string.analytics_filter_all_profiles),
                                 onClick = onProfileClick
@@ -939,10 +924,6 @@ private fun AnalyticsFilterBar(
                     run {
                         Box {
                             ExpressiveFilterChip(
-                                colors = analyticsFilterChipColors(),
-                                border = analyticsFilterChipBorder(
-                                    selected = selectedCurrency != availableCurrencies.firstOrNull()
-                                ),
                                 selected = selectedCurrency != availableCurrencies.firstOrNull(),
                                 text = selectedCurrency.ifBlank { stringResource(R.string.analytics_filter_currency) },
                                 onClick = onCurrencyClick
@@ -959,7 +940,7 @@ private fun AnalyticsFilterBar(
                                         text = { Text(currency) },
                                         shapes = MenuDefaults.itemShape(index, availableCurrencies.size),
                                         colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                         onClick = { onCurrencySelected(currency) }
                                     )
                                 }
@@ -972,8 +953,6 @@ private fun AnalyticsFilterBar(
                     run {
                         Box {
                             ExpressiveFilterChip(
-                                colors = analyticsFilterChipColors(),
-                                border = analyticsFilterChipBorder(selected = categoryFilter != null),
                                 selected = categoryFilter != null,
                                 text = categoryFilter?.let { categoryLabel(it) } ?: stringResource(R.string.analytics_filter_category),
                                 onClick = onCategoryClick
@@ -989,8 +968,8 @@ private fun AnalyticsFilterBar(
                                     text = { Text(stringResource(R.string.analytics_filter_all_categories)) },
                                     shapes = MenuDefaults.itemShape(0, availableCategories.size + 1),
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                    leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    leadingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onCategorySelected(null) }
                                 )
 
@@ -1013,7 +992,7 @@ private fun AnalyticsFilterBar(
                                                 tint = categoryDisplayColor(category)
                                             )
                                         },
-                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                         onClick = { onCategorySelected(category) }
                                     )
                                 }
@@ -1028,8 +1007,6 @@ private fun AnalyticsFilterBar(
                             accountOptions.firstOrNull { it.key == accountFilter }?.label
                         Box {
                             ExpressiveFilterChip(
-                                colors = analyticsFilterChipColors(),
-                                border = analyticsFilterChipBorder(selected = accountFilter != null),
                                 selected = accountFilter != null,
                                 text = selectedAccountLabel ?: stringResource(R.string.analytics_filter_account),
                                 onClick = onAccountClick
@@ -1045,8 +1022,8 @@ private fun AnalyticsFilterBar(
                                     text = { Text(stringResource(R.string.analytics_filter_all_accounts)) },
                                     shapes = MenuDefaults.itemShape(0, accountOptions.size + 1),
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                    leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onAccountSelected(null) }
                                 )
                                 accountOptions.forEachIndexed { index, option ->
@@ -1061,8 +1038,8 @@ private fun AnalyticsFilterBar(
                                         },
                                         shapes = MenuDefaults.itemShape(index + 1, accountOptions.size + 1),
                                         colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                        leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
-                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                        leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                         onClick = { onAccountSelected(option.key) }
                                     )
                                 }
@@ -1078,7 +1055,7 @@ private fun AnalyticsFilterBar(
                             label = { Text(stringResource(R.string.analytics_filter_clear)) },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.Close,
+                                    Icons.Outlined.Close,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small)
                                 )
@@ -1120,31 +1097,14 @@ private fun AnalyticsGroupBy.chipLabel(): String = stringResource(
 )
 
 private fun AnalyticsGroupBy.icon() = when (this) {
-    AnalyticsGroupBy.CATEGORY -> Icons.Default.Category
-    AnalyticsGroupBy.MERCHANT -> Icons.Default.Store
-    AnalyticsGroupBy.ACCOUNT -> Icons.Default.AccountBalanceWallet
-    AnalyticsGroupBy.TAG -> Icons.Default.Sell
-    AnalyticsGroupBy.DAY_OF_WEEK -> Icons.Default.DateRange
+    AnalyticsGroupBy.CATEGORY -> Icons.Outlined.Category
+    AnalyticsGroupBy.MERCHANT -> Icons.Outlined.Store
+    AnalyticsGroupBy.ACCOUNT -> Icons.Outlined.AccountBalanceWallet
+    AnalyticsGroupBy.TAG -> Icons.Outlined.Sell
+    AnalyticsGroupBy.DAY_OF_WEEK -> Icons.Outlined.DateRange
 }
 
-@Composable
-private fun analyticsFilterChipColors() = FilterChipDefaults.filterChipColors(
-    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    labelColor = MaterialTheme.colorScheme.onSurface,
-    iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
-)
 
-@Composable
-private fun analyticsFilterChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
-    selected = selected,
-    enabled = true,
-    borderWidth = Dimensions.Elevation.none,
-    selectedBorderWidth = Dimensions.Elevation.none
-)
 
 @Composable
 private fun CategoryListItem(
@@ -1234,7 +1194,7 @@ private fun AccountBreakdownListItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.AccountBalanceWallet,
+                    imageVector = Icons.Outlined.AccountBalanceWallet,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1279,7 +1239,7 @@ private fun EmptyAnalyticsState(
         contentAlignment = Alignment.Center
     ) {
         PennyWiseEmptyState(
-            icon = Icons.AutoMirrored.Filled.ShowChart,
+            icon = Icons.AutoMirrored.Outlined.ShowChart,
             headline = stringResource(R.string.analytics_empty_headline),
             description = stringResource(R.string.analytics_empty_description),
             actionLabel = stringResource(R.string.analytics_empty_action),

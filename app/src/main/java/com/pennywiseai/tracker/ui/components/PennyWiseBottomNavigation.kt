@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -11,6 +12,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,14 +30,8 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -48,7 +44,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -61,7 +56,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
@@ -93,7 +87,6 @@ fun PennyWiseBottomNavigation(
     dock: NavDockState? = null,
 ) {
     val navigationItems = BottomNavItem.visible(hiddenTabs)
-    val containerColor = MaterialTheme.colorScheme.surface
     val measurer = rememberTextMeasurer()
     val itemLabels = navigationItems.map { stringResource(it.titleRes) }
 
@@ -104,91 +97,15 @@ fun PennyWiseBottomNavigation(
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                HorizontalDivider(
-                    thickness = Dimensions.Component.dividerThickness,
-                    color = MaterialTheme.colorScheme.outlineVariant
-                )
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(
-                        alpha = if (blurEffects) NAV_BLUR_ALPHA else 1f
-                    ),
-                    tonalElevation = Dimensions.Elevation.raisedCard,
-                    modifier = Modifier.then(
-                        // Rectangle: left unbounded, the blur bled up over the docked action
-                        // and the rows above the bar.
-                        if (blurEffects) Modifier.frostedBlur(
-                            hazeState,
-                            tint = containerColor,
-                            edgeTreatment = BlurredEdgeTreatment.Rectangle
-                        ) else Modifier
-                    )
-                ) {
-                    navigationItems.forEach { item ->
-                        val selected = item.route == selectedRoute
-                        // One size across tabs: as large as the user's font asks for, down
-                        // only as far as the longest label needs to fit its slot.
-                        val labelStyle = fitLabelStyle(itemLabels, measurer, itemLabels.size + if (dock?.action != null) 1 else 0)
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = { onTabSelected(item) },
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = stringResource(item.titleRes),
-                                    tint = if (selected) {
-                                        if (hidePill) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    // Without a pill or a label there is
-                                    // nothing else marking the selected item, so
-                                    // the glyph steps up to carry that weight.
-                                    modifier = Modifier.size(
-                                        if (hidePill && hideLabels) Dimensions.Icon.large
-                                        else Dimensions.Icon.medium
-                                    )
-                                )
-                            },
-                            label = if (hideLabels) null else {
-                                {
-                                    Text(
-                                        text = stringResource(item.titleRes),
-                                        color = if (selected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = labelStyle,
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = if (hidePill) Color.Transparent
-                                else MaterialTheme.colorScheme.primaryContainer
-                            )
-                        )
-                    }
-                    // The docked action gets its own slot here. Floated above the bar it sat
-                    // on top of amounts and links, on exactly the layouts with least room.
-                    dock?.action?.let { action ->
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .align(Alignment.CenterVertically),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            FilledIconButton(
-                                onClick = action.onClick,
-                                modifier = Modifier.size(Dimensions.Component.fab),
-                                shapes = IconButtonDefaults.shapes()
-                            ) {
-                                Icon(action.icon, contentDescription = action.contentDescription)
-                            }
-                        }
-                    }
-                }
-            }
+            LedgerNavBar(
+                items = navigationItems,
+                selectedRoute = selectedRoute,
+                onSelect = onTabSelected,
+                hideLabels = hideLabels,
+                hideTick = hidePill,
+                labelStyle = fitLabelStyle(itemLabels, measurer, itemLabels.size + if (dock?.action != null) 1 else 0),
+                action = dock?.action,
+            )
         }
 
         // FLOATING style: one pill of icon-only tabs, with the current tab's
@@ -261,6 +178,124 @@ fun PennyWiseBottomNavigation(
     }
 }
 
+/**
+ * The default bar: flat on the page under one hairline, the selected tab marked by an accent
+ * tick that travels along that line. The tab's main action sits in its own slot at the end,
+ * in line with the tabs, so nothing floats over the figures.
+ */
+@Composable
+private fun LedgerNavBar(
+    items: List<BottomNavItem>,
+    selectedRoute: String?,
+    onSelect: (BottomNavItem) -> Unit,
+    hideLabels: Boolean,
+    hideTick: Boolean,
+    labelStyle: TextStyle,
+    action: NavDockAction?,
+) {
+    val rule = MaterialTheme.colorScheme.outlineVariant
+    val tick = MaterialTheme.colorScheme.primary
+    // Rows dissolve into the bar instead of being sliced by its edge.
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .offset(y = -Dimensions.Component.navFade)
+            .height(Dimensions.Component.navFade)
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    1f to MaterialTheme.colorScheme.background
+                )
+            )
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding()
+            .height(Dimensions.Component.ledgerNavHeight)
+            .selectableGroup(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BoxWithConstraints(Modifier.weight(items.size.toFloat()).fillMaxHeight()) {
+            val slot = maxWidth / items.size
+            val selectedIndex = items.indexOfFirst { it.route == selectedRoute }
+            val tickX by animateDpAsState(
+                targetValue = slot * selectedIndex.coerceAtLeast(0) + (slot - Dimensions.Component.navTickWidth) / 2,
+                animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
+                label = "navTick"
+            )
+            Row(Modifier.fillMaxSize()) {
+                items.forEach { item ->
+                    val selected = item.route == selectedRoute
+                    val tint by animateColorAsState(
+                        targetValue = if (selected) MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                        label = "navTint"
+                    )
+                    val label = stringResource(item.titleRes)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .selectable(
+                                selected = selected,
+                                onClick = { onSelect(item) },
+                                role = Role.Tab,
+                                interactionSource = null,
+                                indication = ripple(bounded = false, radius = Dimensions.Component.ledgerNavHeight / 2)
+                            ),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs, Alignment.CenterVertically)
+                    ) {
+                        Icon(
+                            imageVector = if (selected) item.selectedIcon else item.icon,
+                            contentDescription = label,
+                            tint = tint,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
+                        if (!hideLabels) {
+                            Text(
+                                text = label,
+                                color = tint,
+                                style = labelStyle,
+                                maxLines = 1,
+                                softWrap = false,
+                                modifier = Modifier.clearAndSetSemantics {}
+                            )
+                        }
+                    }
+                }
+            }
+            if (selectedIndex >= 0 && !hideTick) {
+                Box(
+                    Modifier
+                        .offset(x = tickX)
+                        .size(Dimensions.Component.navTickWidth, Dimensions.Component.navTickHeight)
+                        .background(tick)
+                )
+            }
+        }
+        if (action != null) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                DockedActionButton(
+                    action = action,
+                    elevated = false,
+                    size = Dimensions.Component.navActionSize
+                )
+            }
+        }
+    }
+    // The rule is drawn last, over the bar's top edge, so the tick sits on it.
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(Dimensions.Component.hairline)
+            .background(rule)
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FloatingNavPill(
@@ -271,7 +306,7 @@ private fun FloatingNavPill(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
-    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
     BoxWithConstraints(
         modifier = modifier
             .height(Dimensions.Component.floatingNavHeight)
@@ -282,6 +317,7 @@ private fun FloatingNavPill(
             .clip(CircleShape)
             .then(if (blurEffects) Modifier.frostedBlur(hazeState) else Modifier)
             .background(containerColor.copy(alpha = if (blurEffects) NAV_BLUR_ALPHA else 1f))
+            .border(Dimensions.Component.hairline, MaterialTheme.colorScheme.outlineVariant, CircleShape)
             .padding(horizontal = Spacing.sm)
             .selectableGroup()
     ) {

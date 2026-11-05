@@ -42,7 +42,7 @@ fun SpendingBarChart(
     val themeColors = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
 
-    val barColor = themeColors.primary.copy(alpha = 0.8f)
+    val barColor = themeColors.primary
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
     val labelColor = themeColors.onSurfaceVariant
 
@@ -144,7 +144,7 @@ fun SpendingBarChart(
         val barThickness = (slotWidth * 0.8f).coerceAtMost(Dimensions.Component.chartBarMaxWidth.toPx())
 
         // Same rule as the line chart: evenly spaced labels, each at its own bar's position.
-        val maxLabels = (chartWidth / (sampleLabelMeasured.size.width + 2 * labelGap)).toInt()
+        val maxLabels = (chartWidth / (sampleLabelMeasured.size.width + 2.dp.toPx())).toInt()
             .coerceAtLeast(2)
         val labelledBars = chartAxisLabels(chartData.indices.map(Int::toString), maxLabels)
             .map(String::toInt)
@@ -168,7 +168,7 @@ fun SpendingBarChart(
                     color = barColor,
                     topLeft = Offset(mx(x, barThickness), barTop),
                     size = Size(barThickness, barHeight),
-                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                    cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
                 )
             }
 

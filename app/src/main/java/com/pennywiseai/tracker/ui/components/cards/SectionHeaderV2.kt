@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,7 +64,9 @@ fun SectionHeaderV2(
      *  scaffold's content padding already provides the gap. */
     topSpacing: Dp = Spacing.sm
 ) {
-    Row(
+    // At a large font a heading and its actions don't share a line: both end up wrapped.
+    val stacked = LocalDensity.current.fontScale >= STACK_FONT_SCALE
+    FlowRow(
         modifier = modifier
             .offset(y = Spacing.sm)
             .fillMaxWidth()
@@ -70,10 +74,11 @@ fun SectionHeaderV2(
             .defaultMinSize(minHeight = Dimensions.Component.iconButton)
             .semantics { heading() },
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        itemVerticalAlignment = Alignment.CenterVertically,
+        maxItemsInEachRow = if (stacked) 1 else 2
     ) {
         Row(
-            modifier = Modifier.weight(1f),
+            modifier = if (stacked) Modifier.fillMaxWidth() else Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -103,7 +108,7 @@ fun SectionHeaderV2(
         }
         if (action != null) {
             Row(
-                modifier = Modifier
+                modifier = if (stacked) Modifier else Modifier
                     .offset(x = Spacing.smd)
                     .padding(start = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically

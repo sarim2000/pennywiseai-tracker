@@ -117,6 +117,13 @@ fun BalanceSparkline(
                 color = lineColor,
                 style = Stroke(width = 2.dp.toPx())
             )
+            // Today, where the line stops: the one place on it you act from.
+            val lastY = chartHeight - ((data.last().toFloat() - min) / range * chartHeight * 0.7f + chartHeight * 0.075f)
+            drawCircle(
+                color = lineColor,
+                radius = 3.5.dp.toPx(),
+                center = androidx.compose.ui.geometry.Offset((data.size - 1) * stepX, lastY)
+            )
 
             // Gradient fill under the main line
             val fillPath = Path().apply {

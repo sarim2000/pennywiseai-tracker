@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.recurring
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseSwitchColors
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import java.time.format.TextStyle
@@ -14,11 +16,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.EventRepeat
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -69,7 +71,7 @@ fun RecurringTransactionsScreen(
         title = stringResource(R.string.recurring_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.recurring_back))
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.recurring_back))
             }
         },
         floatingActionButton = {
@@ -81,14 +83,14 @@ fun RecurringTransactionsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.recurring_add))
+                Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.recurring_add))
             }
         }
     ) { padding ->
         if (templates.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                 PennyWiseEmptyState(
-                    icon = Icons.Default.EventRepeat,
+                    icon = Icons.Outlined.EventRepeat,
                     headline = stringResource(R.string.recurring_empty_title),
                     description = stringResource(R.string.recurring_empty_hint)
                 )
@@ -209,7 +211,7 @@ private fun RecurringItem(
 
             Box {
                 IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.recurring_more_options))
+                    Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.recurring_more_options))
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
@@ -230,7 +232,7 @@ private fun RecurringItem(
                         text = { Text(stringResource(R.string.recurring_delete), color = MaterialTheme.colorScheme.error) },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Delete,
+                                Icons.Outlined.Delete,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -251,12 +253,12 @@ private fun RecurringItem(
             title = { Text(stringResource(R.string.recurring_delete_title)) },
             text = { Text(stringResource(R.string.recurring_delete_message, template.merchantName)) },
             confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; onDelete() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.recurring_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.recurring_cancel)) }
             }
         )
     }
@@ -473,6 +475,7 @@ private fun RecurringEditorDialog(
                 ) {
                     Text(stringResource(R.string.recurring_field_active), style = MaterialTheme.typography.bodyLarge)
                     Switch(
+                        colors = pennyWiseSwitchColors(),
                         checked = state.isActive,
                         onCheckedChange = { state = state.copy(isActive = it) }
                     )
@@ -480,10 +483,10 @@ private fun RecurringEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(enabled = state.isValid, onClick = { onSave(state) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_save)) }
+            TextButton(enabled = state.isValid, onClick = { onSave(state) }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.recurring_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_cancel)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.recurring_cancel)) }
         }
     )
 }

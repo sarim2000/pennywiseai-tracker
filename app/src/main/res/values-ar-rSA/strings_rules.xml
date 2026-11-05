@@ -623,4 +623,5 @@
     <string name="rules_preview_action_clear">مسح %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">تعيين %1$s إلى %2$s</string>
+    <string name="chat_preview_title">بعد تنزيله على هاتفك، يمكنك أن تقول</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
@@ -17,11 +18,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.LinkOff
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.LinkOff
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Error
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -63,8 +64,8 @@ import com.pennywiseai.tracker.domain.model.icon
 
 /** The trailing overflow button brings its own padding, so the row's end inset is small. */
 private val AccountRowPadding = PaddingValues(
-    start = Spacing.md,
-    end = Spacing.xs,
+    start = Spacing.none,
+    end = Spacing.none,
     top = Dimensions.Padding.listRowVertical,
     bottom = Dimensions.Padding.listRowVertical
 )
@@ -190,7 +191,7 @@ fun ManageAccountsScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
@@ -201,22 +202,16 @@ fun ManageAccountsScreen(
                         TextButton(onClick = {
                             if (isProEntitled) showMergeSheet = true
                             else showUpgradeSheet = true
-                        }, shapes = ButtonDefaults.shapes()) {
+                        }, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.merge_accounts_action))
                         }
+                    }
+                    IconButton(onClick = onNavigateToAddAccount, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.add_account_title))
                     }
                 },
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddAccount,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_account_title))
-            }
-        }
     ) { paddingValues ->
         if (uiState.accounts.isEmpty()) {
             // Empty State
@@ -228,7 +223,7 @@ fun ManageAccountsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 PennyWiseEmptyState(
-                    icon = Icons.Default.AccountBalance,
+                    icon = Icons.Outlined.AccountBalance,
                     headline = stringResource(R.string.manage_accounts_empty_title),
                     description = stringResource(R.string.manage_accounts_empty_description)
                 )
@@ -265,7 +260,7 @@ fun ManageAccountsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.CheckCircle,
+                                    Icons.Outlined.CheckCircle,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -305,7 +300,7 @@ fun ManageAccountsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Error,
+                                    Icons.Outlined.Error,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -494,7 +489,7 @@ fun ManageAccountsScreen(
                             onClick = { showHiddenAccounts = !showHiddenAccounts }
                         ) {
                             Icon(
-                                Icons.Default.VisibilityOff,
+                                Icons.Outlined.VisibilityOff,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -503,7 +498,7 @@ fun ManageAccountsScreen(
                                 titleMaxLines = 2
                             )
                             Icon(
-                                if (showHiddenAccounts) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                if (showHiddenAccounts) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                                 contentDescription = if (showHiddenAccounts) stringResource(R.string.accounts_collapse) else stringResource(R.string.accounts_expand),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -751,12 +746,12 @@ fun ManageAccountsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.applyPendingProfileReassign() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.applyPendingProfileReassign() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.manage_accounts_reassign_move))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.dismissPendingProfileReassign() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.manage_accounts_reassign_keep))
                 }
             }
@@ -790,7 +785,7 @@ private fun CreditCardItem(
         containerColor = if (isHidden) {
             MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
         } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
+            Color.Transparent
         },
         contentPadding = AccountRowPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -801,10 +796,10 @@ private fun CreditCardItem(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.CreditCard,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            IconTile(
+                icon = Icons.Outlined.CreditCard,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -821,7 +816,7 @@ private fun CreditCardItem(
                     )
                     if (isHidden) {
                         Icon(
-                            Icons.Default.VisibilityOff,
+                            Icons.Outlined.VisibilityOff,
                             contentDescription = stringResource(R.string.manage_accounts_hidden_badge),
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -843,7 +838,7 @@ private fun CreditCardItem(
             Box {
                 IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
-                        Icons.Default.MoreVert,
+                        Icons.Outlined.MoreVert,
                         contentDescription = stringResource(
                             R.string.manage_accounts_more_options_for,
                             AccountBalanceEntity.accountLabel(card.bankName, card.accountLast4)
@@ -862,7 +857,7 @@ private fun CreditCardItem(
                                 showMenu = false
                                 onUpdateBalance()
                             },
-                            leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) }
                         )
                     }
                     DropdownMenuItem(
@@ -871,7 +866,7 @@ private fun CreditCardItem(
                             showMenu = false
                             onEditAccount()
                         },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.manage_accounts_menu_history)) },
@@ -881,7 +876,7 @@ private fun CreditCardItem(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.History,
+                                Icons.Outlined.History,
                                 contentDescription = null
                             )
                         }
@@ -894,7 +889,7 @@ private fun CreditCardItem(
                         },
                         leadingIcon = {
                             Icon(
-                                if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                if (isHidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
                                 contentDescription = null
                             )
                         }
@@ -912,7 +907,7 @@ private fun CreditCardItem(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.CalendarMonth,
+                                Icons.Outlined.CalendarMonth,
                                 contentDescription = null
                             )
                         }
@@ -925,7 +920,7 @@ private fun CreditCardItem(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Delete,
+                                Icons.Outlined.Delete,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -1042,7 +1037,7 @@ private fun StatementDayPickerDialog(
                         onClick = { if (selectedDay > 1) selectedDay-- },
                         shapes = IconButtonDefaults.shapes()
                     ) {
-                        Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.manage_accounts_decrease))
+                        Icon(Icons.Outlined.Remove, contentDescription = stringResource(R.string.manage_accounts_decrease))
                     }
                     Text(
                         text = "$selectedDay",
@@ -1053,23 +1048,23 @@ private fun StatementDayPickerDialog(
                         onClick = { if (selectedDay < 28) selectedDay++ },
                         shapes = IconButtonDefaults.shapes()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.manage_accounts_increase))
+                        Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.manage_accounts_increase))
                     }
                 }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(selectedDay) }, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { onConfirm(selectedDay) }, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
             if (currentDay != null) {
-                TextButton(onClick = { onConfirm(null) }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { onConfirm(null) }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.manage_accounts_action_clear))
                 }
             } else {
-                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -1148,7 +1143,7 @@ private fun AccountItem(
                 alpha = if (isHidden) 0.4f else 0.7f
             )
             isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-            else -> MaterialTheme.colorScheme.surfaceContainerLow
+            else -> Color.Transparent
         },
         contentPadding = AccountRowPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
@@ -1158,12 +1153,12 @@ private fun AccountItem(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = if (account.isLoan) AccountType.LOAN.icon else Icons.Default.AccountBalance,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            IconTile(
+                icon = if (account.isLoan) AccountType.LOAN.icon else Icons.Outlined.AccountBalance,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.width(Spacing.sm))
+            Spacer(modifier = Modifier.width(Spacing.smd))
             val alias = account.alias?.takeIf { it.isNotBlank() }
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -1195,7 +1190,7 @@ private fun AccountItem(
                     }
                     if (isHidden) {
                         Icon(
-                            Icons.Default.VisibilityOff,
+                            Icons.Outlined.VisibilityOff,
                             contentDescription = stringResource(R.string.manage_accounts_hidden_badge),
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1228,7 +1223,7 @@ private fun AccountItem(
             Box {
                 IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
-                        Icons.Default.MoreVert,
+                        Icons.Outlined.MoreVert,
                         contentDescription = stringResource(
                             R.string.manage_accounts_more_options_for,
                             AccountBalanceEntity.accountLabel(alias ?: account.bankName, account.accountLast4)
@@ -1247,7 +1242,7 @@ private fun AccountItem(
                                 showMenu = false
                                 onUpdateBalance()
                             },
-                            leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) }
+                            leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) }
                         )
                     }
                     DropdownMenuItem(
@@ -1256,7 +1251,7 @@ private fun AccountItem(
                             showMenu = false
                             onEditAccount()
                         },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.manage_accounts_menu_history)) },
@@ -1266,7 +1261,7 @@ private fun AccountItem(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.History,
+                                Icons.Outlined.History,
                                 contentDescription = null
                             )
                         }
@@ -1279,7 +1274,7 @@ private fun AccountItem(
                         },
                         leadingIcon = {
                             Icon(
-                                if (isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                if (isHidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
                                 contentDescription = null
                             )
                         }
@@ -1294,7 +1289,7 @@ private fun AccountItem(
                         },
                         leadingIcon = {
                             Icon(
-                                if (account.profileId == ProfileEntity.BUSINESS_ID) Icons.Default.Person else Icons.Default.Business,
+                                if (account.profileId == ProfileEntity.BUSINESS_ID) Icons.Outlined.Person else Icons.Outlined.Business,
                                 contentDescription = null
                             )
                         }
@@ -1307,7 +1302,7 @@ private fun AccountItem(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.DriveFileRenameOutline,
+                                Icons.Outlined.DriveFileRenameOutline,
                                 contentDescription = null
                             )
                         }
@@ -1325,7 +1320,7 @@ private fun AccountItem(
                             },
                             leadingIcon = {
                                 Icon(
-                                    Icons.Default.NotificationsActive,
+                                    Icons.Outlined.NotificationsActive,
                                     contentDescription = null
                                 )
                             }
@@ -1339,7 +1334,7 @@ private fun AccountItem(
                         },
                         leadingIcon = {
                             Icon(
-                                Icons.Default.Delete,
+                                Icons.Outlined.Delete,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error
                             )
@@ -1370,7 +1365,7 @@ private fun AccountItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Info,
+                        Icons.Outlined.Info,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
@@ -1400,7 +1395,7 @@ private fun AccountItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CreditCard,
+                            imageVector = Icons.Outlined.CreditCard,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1435,7 +1430,7 @@ private fun AccountItem(
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
-                                imageVector = Icons.Default.LinkOff,
+                                imageVector = Icons.Outlined.LinkOff,
                                 contentDescription = stringResource(R.string.manage_accounts_unlink_card),
                                 modifier = Modifier.size(Dimensions.Icon.inline),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1518,15 +1513,15 @@ private fun LowBalanceThresholdDialog(
             TextButton(
                 onClick = { onConfirm(parsed) },
                 enabled = parsed != null && parsed >= BigDecimal.ZERO,
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 if (currentThreshold != null) {
-                    TextButton(onClick = { onConfirm(null) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.manage_accounts_action_clear)) }
+                    TextButton(onClick = { onConfirm(null) }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.manage_accounts_action_clear)) }
                 }
-                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
+                TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
             }
         }
     )
@@ -1568,12 +1563,12 @@ private fun AccountAliasDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -1636,13 +1631,13 @@ private fun UpdateBalanceDialog(
                     }
                 },
                 enabled = isValid,
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.manage_accounts_action_update))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -1804,13 +1799,13 @@ private fun UpdateCreditCardDialog(
                     onConfirm(outstanding, limit)
                 },
                 enabled = isValid,
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.manage_accounts_action_update))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -1846,13 +1841,13 @@ private fun OrphanedCardItem(
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.CreditCard,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            IconTile(
+                icon = Icons.Outlined.CreditCard,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1897,23 +1892,23 @@ private fun OrphanedCardItem(
                 }
             }
             // Trailing, in the same column as a bank row's overflow.
-            TextButton(onClick = { showLinkDialog = true }, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { showLinkDialog = true }, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.manage_accounts_action_link))
             }
             Box {
                 var showMenu by remember { mutableStateOf(false) }
                 IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.manage_accounts_more_options))
+                    Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.manage_accounts_more_options))
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.manage_accounts_action_edit)) },
-                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
                         onClick = { showMenu = false; showEditDialog = true }
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                         onClick = { showMenu = false; onDeleteCard(card.id) }
                     )
                 }
@@ -2018,11 +2013,11 @@ private fun EditCardDialog(
                     onConfirm(bankName, cardType, nickname.ifBlank { null })
                 },
                 enabled = bankName.isNotBlank(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
         }
     )
 }
@@ -2106,7 +2101,7 @@ private fun LinkCardDialog(
                                 }
                                 if (selectedAccount == account.accountLast4) {
                                     Icon(
-                                        Icons.Default.CheckCircle,
+                                        Icons.Outlined.CheckCircle,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -2122,13 +2117,13 @@ private fun LinkCardDialog(
             TextButton(
                 onClick = { selectedAccount?.let(onConfirm) },
                 enabled = selectedAccount != null,
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.manage_accounts_action_link))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -2146,7 +2141,7 @@ private fun DeleteAccountConfirmDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                Icons.Default.Warning,
+                Icons.Outlined.Warning,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.error
             )
@@ -2175,7 +2170,7 @@ private fun DeleteAccountConfirmDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.AccountBalance,
+                            Icons.Outlined.AccountBalance,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -2206,13 +2201,13 @@ private fun DeleteAccountConfirmDialog(
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = MaterialTheme.colorScheme.error
                 ),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.accounts_action_delete))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }
@@ -2306,7 +2301,7 @@ private fun EditAccountDialog(
                         disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
+                        Icon(Icons.Outlined.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
                     },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -2553,13 +2548,13 @@ private fun EditAccountDialog(
                     onConfirm(bankNameText, balance, creditLimit, currencyText, selectedType)
                 },
                 enabled = isValid,
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }

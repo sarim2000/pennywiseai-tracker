@@ -94,8 +94,9 @@ internal fun DockedActionButton(
     action: NavDockAction,
     modifier: Modifier = Modifier,
     elevated: Boolean = true,
+    size: androidx.compose.ui.unit.Dp = Dimensions.Component.floatingNavHeight,
 ) {
-    // M3 Expressive press morph: the squircle squares off while held.
+    // Firms up while held.
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val cornerRadius by animateDpAsState(
@@ -107,7 +108,7 @@ internal fun DockedActionButton(
     Box(
         modifier = modifier
             .then(action.onPositioned?.let { Modifier.spotlightTarget(it) } ?: Modifier)
-            .size(Dimensions.Component.floatingNavHeight)
+            .size(size)
             .shadow(
                 elevation = if (elevated) Dimensions.Elevation.bottomBar else Dimensions.Elevation.none,
                 shape = shape

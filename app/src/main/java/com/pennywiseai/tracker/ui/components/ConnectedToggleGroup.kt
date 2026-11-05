@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -98,7 +99,7 @@ fun <T> ConnectedChoiceRow(
                     checked = option == selected,
                     onCheckedChange = { onSelect(option) },
                     // The buttons may land on different lines, so they can't connect.
-                    shapes = ToggleButtonDefaults.shapesFor(Dimensions.Component.minTouchTarget),
+                    shapes = trayShapes(),
                     contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm),
                 ) { content(option) }
             }
@@ -107,21 +108,18 @@ fun <T> ConnectedChoiceRow(
         Row(
             modifier = (if (fillMaxWidth) modifier.fillMaxWidth() else modifier)
                 .height(IntrinsicSize.Min)
+                .background(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
+                .padding(Spacing.xxs)
                 .selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
         ) {
-            options.forEachIndexed { index, option ->
+            options.forEach { option ->
                 ChoiceButton(
                     checked = option == selected,
                     onCheckedChange = { onSelect(option) },
                     // Equal heights when one label wraps and its neighbour doesn't.
                     modifier = (if (fillMaxWidth) Modifier.weight(1f) else Modifier).fillMaxHeight(),
-                    shapes = when {
-                        options.size == 1 -> ToggleButtonDefaults.shapesFor(Dimensions.Component.minTouchTarget)
-                        index == 0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                        index == options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                        else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                    },
+                    shapes = trayShapes(),
                     // Shared-width buttons give the room to the label, not the padding.
                     contentPadding = PaddingValues(
                         horizontal = if (fillMaxWidth) Spacing.sm else Spacing.md,
@@ -131,6 +129,12 @@ fun <T> ConnectedChoiceRow(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun trayShapes(): ToggleButtonShapes = MaterialTheme.shapes.small.let {
+    ToggleButtonShapes(shape = it, pressedShape = it, checkedShape = it)
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -151,8 +155,10 @@ private fun ChoiceButton(
             .semantics { role = Role.RadioButton },
         shapes = shapes,
         colors = ToggleButtonDefaults.colors(
-            checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            checkedContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            checkedContainerColor = MaterialTheme.colorScheme.inverseSurface,
+            checkedContentColor = MaterialTheme.colorScheme.inverseOnSurface,
         ),
         contentPadding = contentPadding,
     ) { content() }

@@ -48,15 +48,15 @@ import com.pennywiseai.tracker.presentation.add.LARGE_FONT_SCALE
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.CallSplit
-import androidx.compose.material.icons.automirrored.filled.Input
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.CallSplit
+import androidx.compose.material.icons.automirrored.outlined.Input
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -275,7 +275,7 @@ fun TransactionDetailScreen(
                         }
                     }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
-                            if (isEditMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            if (isEditMode) Icons.Outlined.Close else Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = if (isEditMode) stringResource(R.string.txn_detail_action_cancel) else stringResource(R.string.txn_detail_back)
                         )
                     }
@@ -284,14 +284,14 @@ fun TransactionDetailScreen(
                     if (!isEditMode && transaction != null) {
                         IconButton(onClick = { viewModel.enterEditMode() }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                Icons.Default.Edit,
+                                Icons.Outlined.Edit,
                                 contentDescription = stringResource(R.string.txn_detail_action_edit)
                             )
                         }
                         Box {
                             IconButton(onClick = { showActionsMenu = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
-                                    Icons.Default.MoreVert,
+                                    Icons.Outlined.MoreVert,
                                     contentDescription = stringResource(R.string.txn_detail_more_actions)
                                 )
                             }
@@ -325,7 +325,7 @@ fun TransactionDetailScreen(
                                             Text(stringResource(if (transaction?.lentSharesTotal != null) R.string.split_menu_edit else R.string.split_menu_split))
                                         },
                                         leadingIcon = {
-                                            Icon(Icons.AutoMirrored.Filled.CallSplit, contentDescription = null)
+                                            Icon(Icons.AutoMirrored.Outlined.CallSplit, contentDescription = null)
                                         },
                                         onClick = {
                                             showActionsMenu = false
@@ -336,7 +336,7 @@ fun TransactionDetailScreen(
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
                                     leadingIcon = {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = null)
+                                        Icon(Icons.Outlined.ContentCopy, contentDescription = null)
                                     },
                                     onClick = {
                                         showActionsMenu = false
@@ -346,7 +346,7 @@ fun TransactionDetailScreen(
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.txn_detail_menu_report_issue)) },
                                     leadingIcon = {
-                                        Icon(Icons.Default.BugReport, contentDescription = null)
+                                        Icon(Icons.Outlined.BugReport, contentDescription = null)
                                     },
                                     onClick = {
                                         showActionsMenu = false
@@ -365,7 +365,7 @@ fun TransactionDetailScreen(
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            Icons.Default.Delete,
+                                            Icons.Outlined.Delete,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.error
                                         )
@@ -381,7 +381,7 @@ fun TransactionDetailScreen(
                         TextButton(
                             onClick = { viewModel.saveChanges() },
                             enabled = !isSaving,
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             if (isSaving) {
                                 CircularProgressIndicator(
@@ -455,7 +455,7 @@ fun TransactionDetailScreen(
                 TextButton(
                     onClick = { viewModel.deleteTransaction() },
                     enabled = !isDeleting,
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
@@ -472,7 +472,7 @@ fun TransactionDetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -519,10 +519,10 @@ fun TransactionDetailScreen(
                 TextButton(onClick = {
                     showUnmarkLoanConfirm = false
                     viewModel.unlinkLoan()
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showUnmarkLoanConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
+                TextButton(onClick = { showUnmarkLoanConfirm = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
             }
         )
     }
@@ -558,7 +558,7 @@ fun TransactionDetailScreen(
                     ),
                     shapes = IconButtonDefaults.shapes()
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_detail_close))
+                    Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.txn_detail_close))
                 }
             }
         }
@@ -675,16 +675,12 @@ private fun TransactionReceipt(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
     ) {
-        // ── Hero Header ── one surface: merchant, then the figure it's about.
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceContainerLow
-        ) {
+        // ── Hero Header ── on the page: merchant, then the figure it's about.
+        Box(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(Spacing.lg),
+                    .padding(vertical = Spacing.md),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val heroIconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
@@ -716,16 +712,19 @@ private fun TransactionReceipt(
                     text = currentAlias
                         ?: merchantDisplay(transaction.merchantName)
                         ?: transaction.merchantName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    style = PennyWiseText.rowTitle,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(Spacing.xs))
+                Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // Shrinks rather than breaking the figure across lines at a large font scale.
                 Text(
-                    text = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)),
+                    text = PennyWiseText.heroFigure(
+                        CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)),
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
                     style = PennyWiseText.heroAmount,
                     color = amountColor,
                     textAlign = TextAlign.Center,
@@ -757,11 +756,11 @@ private fun TransactionReceipt(
                     }
                 )
                 val typeIcon = when (transaction.transactionType) {
-                    TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-                    TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-                    TransactionType.CREDIT -> Icons.Default.CreditCard
-                    TransactionType.TRANSFER -> Icons.Default.SwapHoriz
-                    TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
+                    TransactionType.INCOME -> Icons.AutoMirrored.Outlined.TrendingUp
+                    TransactionType.EXPENSE -> Icons.AutoMirrored.Outlined.TrendingDown
+                    TransactionType.CREDIT -> Icons.Outlined.CreditCard
+                    TransactionType.TRANSFER -> Icons.Outlined.SwapHoriz
+                    TransactionType.INVESTMENT -> Icons.AutoMirrored.Outlined.ShowChart
                 }
                 val typeLabelColor = if (transaction.transactionType == TransactionType.EXPENSE) {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -796,7 +795,7 @@ private fun TransactionReceipt(
                 contentPadding = PaddingValues(start = Spacing.md, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.xs)
             ) {
                 Icon(
-                    Icons.Default.SwapHoriz,
+                    Icons.Outlined.SwapHoriz,
                     contentDescription = null,
                     tint = loanColor
                 )
@@ -810,7 +809,7 @@ private fun TransactionReceipt(
                 // loan too if no other transactions are linked.
                 IconButton(onClick = onUnmarkLoanClick, shapes = IconButtonDefaults.shapes()) {
                     Icon(
-                        Icons.Default.Close,
+                        Icons.Outlined.Close,
                         contentDescription = stringResource(R.string.txn_detail_unmark_loan),
                         modifier = Modifier.size(Dimensions.Icon.inline),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -823,7 +822,7 @@ private fun TransactionReceipt(
         Column(modifier = Modifier.fillMaxWidth()) {
             // Date & Time
             DetailInfoRow(
-                icon = Icons.Default.CalendarToday,
+                icon = Icons.Outlined.CalendarToday,
                 label = stringResource(R.string.txn_detail_label_date_time),
                 value = transaction.dateTime.format(
                     AppDates.dateTimeFormatter(weekday = true)
@@ -839,7 +838,7 @@ private fun TransactionReceipt(
                 categoryLabel(transaction.category)
             }
             DetailInfoRow(
-                icon = Icons.Default.Category,
+                icon = Icons.Outlined.Category,
                 label = stringResource(R.string.txn_detail_label_category),
                 value = categoryValue
             )
@@ -848,7 +847,7 @@ private fun TransactionReceipt(
             transaction.bankName?.let {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.AccountBalance,
+                    icon = Icons.Outlined.AccountBalance,
                     label = stringResource(R.string.txn_detail_label_bank),
                     value = it
                 )
@@ -858,7 +857,7 @@ private fun TransactionReceipt(
             transaction.description?.let {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.Description,
+                    icon = Icons.Outlined.Description,
                     label = stringResource(R.string.txn_detail_label_description),
                     value = CurrencyFormatter.maskAmountsIn(it)
                 )
@@ -869,7 +868,7 @@ private fun TransactionReceipt(
             if (detailTags.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.Sell,
+                    icon = Icons.Outlined.Sell,
                     label = pluralStringResource(R.plurals.txn_detail_label_tags, detailTags.size),
                     value = detailTags.joinToString(", ")
                 )
@@ -879,7 +878,7 @@ private fun TransactionReceipt(
             if (transaction.isRecurring) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.Repeat,
+                    icon = Icons.Outlined.Repeat,
                     label = stringResource(R.string.txn_detail_label_status),
                     value = stringResource(R.string.txn_detail_status_recurring)
                 )
@@ -890,7 +889,7 @@ private fun TransactionReceipt(
             val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             DetailInfoRow(
-                icon = if (isEffectivelyBusiness) Icons.Default.Business else Icons.Default.Person,
+                icon = if (isEffectivelyBusiness) Icons.Outlined.Business else Icons.Outlined.Person,
                 label = stringResource(R.string.txn_detail_label_classification),
                 value = if (isEffectivelyBusiness) stringResource(R.string.txn_detail_business) else stringResource(R.string.txn_detail_personal)
             )
@@ -915,7 +914,7 @@ private fun TransactionReceipt(
                         // The same mask as the account lists.
                         val masked = "\u2022\u2022${it.takeLast(4)}"
                         DetailInfoRow(
-                            icon = Icons.Default.AccountBalanceWallet,
+                            icon = Icons.Outlined.AccountBalanceWallet,
                             label = stringResource(R.string.txn_detail_label_account),
                             value = masked
                         )
@@ -924,7 +923,7 @@ private fun TransactionReceipt(
                 transaction.fromAccount?.let { from ->
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     DetailInfoRow(
-                        icon = Icons.Default.Output,
+                        icon = Icons.Outlined.Output,
                         label = stringResource(R.string.txn_detail_label_from),
                         value = maskedLeg(from, transaction.fromBankName)
                     )
@@ -933,7 +932,7 @@ private fun TransactionReceipt(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                     val masked = maskedLeg(to, transaction.toBankName)
                     DetailInfoRow(
-                        icon = Icons.AutoMirrored.Filled.Input,
+                        icon = Icons.AutoMirrored.Outlined.Input,
                         label = stringResource(R.string.txn_detail_label_to),
                         value = masked
                     )
@@ -945,7 +944,7 @@ private fun TransactionReceipt(
                 val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.AccountBalanceWallet,
+                    icon = Icons.Outlined.AccountBalanceWallet,
                     label = stringResource(R.string.txn_detail_label_balance),
                     value = CurrencyFormatter.formatCurrency(it, accountCurrency ?: transaction.currency)
                 )
@@ -957,7 +956,7 @@ private fun TransactionReceipt(
             discrepancy?.let { d ->
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.Warning,
+                    icon = Icons.Outlined.Warning,
                     label = stringResource(R.string.txn_detail_label_balance_mismatch),
                     value = stringResource(
                         R.string.txn_detail_balance_mismatch_value,
@@ -978,7 +977,7 @@ private fun TransactionReceipt(
                     onClick = { showAdjustmentSheet = true },
                     enabled = !adding,
                     modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(
                         stringResource(
@@ -995,7 +994,7 @@ private fun TransactionReceipt(
             referenceValue?.let {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
-                    icon = Icons.Default.Tag,
+                    icon = Icons.Outlined.Tag,
                     label = stringResource(R.string.txn_detail_label_reference),
                     value = it
                 )
@@ -1019,7 +1018,7 @@ private fun TransactionReceipt(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         Icon(
-                            Icons.Default.Receipt,
+                            Icons.Outlined.Receipt,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.medium),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1063,7 +1062,7 @@ private fun TransactionReceipt(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(
-                        Icons.Default.Receipt,
+                        Icons.Outlined.Receipt,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1105,7 +1104,7 @@ private fun TransactionReceipt(
                     onClick = { viewModel.showMarkAsLoanSheet() }
                 ) {
                     Icon(
-                        Icons.Default.SwapHoriz,
+                        Icons.Outlined.SwapHoriz,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1121,7 +1120,7 @@ private fun TransactionReceipt(
                 onClick = { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
             ) {
                 Icon(
-                    Icons.Default.QueryStats,
+                    Icons.Outlined.QueryStats,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1134,6 +1133,7 @@ private fun TransactionReceipt(
                 // Display-only — the row's click is the single toggle handler
                 // so a tap can't fire the VM call twice (Greptile #454).
                 Switch(
+                    colors = pennyWiseSwitchColors(),
                     checked = transaction.excludedFromAnalytics,
                     onCheckedChange = null
                 )
@@ -1190,7 +1190,7 @@ private fun TransferFlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Icon(
-            Icons.Default.SwapHoriz,
+            Icons.Outlined.SwapHoriz,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.medium),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1210,7 +1210,7 @@ private fun TransferFlowRow(
         }
 
         Icon(
-            Icons.AutoMirrored.Filled.ArrowForward,
+            Icons.AutoMirrored.Outlined.ArrowForward,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.small),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1254,7 +1254,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Chat,
+                        Icons.AutoMirrored.Outlined.Chat,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Dimensions.Icon.small)
@@ -1266,7 +1266,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                     )
                 }
                 Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1374,7 +1374,7 @@ private fun EditableTransactionHeader(
                 placeholder = { Text(stringResource(R.string.txn_detail_field_alias_placeholder)) },
                 leadingIcon = {
                     Icon(
-                        Icons.Default.Badge,
+                        Icons.Outlined.Badge,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
@@ -1391,7 +1391,7 @@ private fun EditableTransactionHeader(
                 label = { Text(stringResource(R.string.txn_detail_field_description), fontWeight = FontWeight.SemiBold) },
                 leadingIcon = {
                     Icon(
-                        Icons.Default.Description,
+                        Icons.Outlined.Description,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
@@ -1409,7 +1409,7 @@ private fun EditableTransactionHeader(
                 label = { Text(stringResource(R.string.txn_detail_field_reference), fontWeight = FontWeight.SemiBold) },
                 leadingIcon = {
                     Icon(
-                        Icons.Default.Tag,
+                        Icons.Outlined.Tag,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
@@ -1474,11 +1474,11 @@ private fun EditableTransactionHeader(
                         )
                     },
                     leadingIcon = if (transaction.transactionType == type) {
-                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
+                        { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
                     } else null,
                     colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        selectedContainerColor = MaterialTheme.colorScheme.inverseSurface,
+                        selectedLabelColor = MaterialTheme.colorScheme.inverseOnSurface,
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         labelColor = MaterialTheme.colorScheme.onSurface
                     ),
@@ -1573,10 +1573,10 @@ private fun EditableExtractedInfoCard(
             OutlinedButton(
                 onClick = { viewModel.enableSplitMode() },
                 modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Icon(
-                    Icons.AutoMirrored.Filled.CallSplit,
+                    Icons.AutoMirrored.Outlined.CallSplit,
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.small)
                 )
@@ -1697,7 +1697,7 @@ private fun EditableExtractedInfoCard(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Icon(
-                    Icons.Default.AccountBalance,
+                    Icons.Outlined.AccountBalance,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(Dimensions.Icon.small)
@@ -1912,7 +1912,7 @@ private fun DateTimeField(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    Icons.Default.CalendarToday,
+                    Icons.Outlined.CalendarToday,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -2015,12 +2015,12 @@ private fun DateTimeField(
                             .withDayOfMonth(newDate.dayOfMonth))
                     }
                     showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) {
+                }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_action_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -2046,12 +2046,12 @@ private fun DateTimeField(
                     onDateTimeChange(dateTime.withHour(timePickerState.hour)
                         .withMinute(timePickerState.minute))
                     showTimePicker = false
-                }, shapes = ButtonDefaults.shapes()) {
+                }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_action_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showTimePicker = false }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -2165,9 +2165,9 @@ private fun AccountNumberField(
             leadingIcon = {
                 Icon(
                     if (availableAccounts.any { it.displayName == selectedAccount && it.isCreditCard }) {
-                        Icons.Default.CreditCard
+                        Icons.Outlined.CreditCard
                     } else {
-                        Icons.Default.AccountBalance
+                        Icons.Outlined.AccountBalance
                     },
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.medium)
@@ -2187,7 +2187,7 @@ private fun AccountNumberField(
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
-                                Icons.Default.Clear,
+                                Icons.Outlined.Clear,
                                 contentDescription = stringResource(R.string.txn_detail_clear),
                                 modifier = Modifier.size(Dimensions.Icon.medium)
                             )
@@ -2216,8 +2216,8 @@ private fun AccountNumberField(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    if (account.isCreditCard) Icons.Default.CreditCard 
-                                    else Icons.Default.AccountBalance,
+                                    if (account.isCreditCard) Icons.Outlined.CreditCard 
+                                    else Icons.Outlined.AccountBalance,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.medium),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -2339,7 +2339,7 @@ private fun MarkAsLoanBottomSheet(
                             )
                             if (personName == name) {
                                 Icon(
-                                    Icons.Default.Check,
+                                    Icons.Outlined.Check,
                                     contentDescription = null,
                                     tint = loanColor,
                                     modifier = Modifier.size(Dimensions.Icon.small)
@@ -2350,9 +2350,9 @@ private fun MarkAsLoanBottomSheet(
                 }
 
                 // Add new person option
-                TextButton(onClick = { isAddingNew = true; personName = "" }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { isAddingNew = true; personName = "" }, shapes = pennyWiseButtonShapes()) {
                     Icon(
-                        Icons.Default.PersonAdd,
+                        Icons.Outlined.PersonAdd,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
@@ -2371,9 +2371,9 @@ private fun MarkAsLoanBottomSheet(
                     colors = editFilledColors()
                 )
                 if (recentPersonNames.isNotEmpty()) {
-                    TextButton(onClick = { isAddingNew = false; personName = "" }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { isAddingNew = false; personName = "" }, shapes = pennyWiseButtonShapes()) {
                         Icon(
-                            Icons.Default.People,
+                            Icons.Outlined.People,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -2434,7 +2434,7 @@ private fun MarkAsLoanBottomSheet(
                 )
             ) {
                 Icon(
-                    Icons.Default.Check,
+                    Icons.Outlined.Check,
                     contentDescription = null,
                     modifier = Modifier.size(Dimensions.Icon.small)
                 )
@@ -2496,7 +2496,6 @@ private fun BalanceAdjustmentSheet(
                     text = (if (isIncome) "+" else "-") +
                         CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency),
                     style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
                     color = amountColor
                 )
             }
@@ -2545,13 +2544,13 @@ private fun BalanceAdjustmentSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End)
             ) {
-                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
                 Button(onClick = {
                     viewModel.addBalanceAdjustment(merchant, pickedCategory)
                     onDismiss()
-                }, shapes = ButtonDefaults.shapes()) {
+                }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.txn_detail_adjustment_add))
                 }
             }
@@ -2602,7 +2601,7 @@ private fun GroupBottomSheet(
                     TextButton(onClick = {
                         onRemoveFromGroup()
                         onDismiss()
-                    }, shapes = ButtonDefaults.shapes()) {
+                    }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.txn_detail_group_remove), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -2658,7 +2657,7 @@ private fun GroupBottomSheet(
                             enabled = newGroupName.isNotBlank(),
                             shapes = IconButtonDefaults.shapes()
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.txn_detail_group_create))
+                            Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.txn_detail_group_create))
                         }
                     }
                 )
@@ -2666,10 +2665,10 @@ private fun GroupBottomSheet(
                 TextButton(
                     onClick = { showCreateField = true },
                     modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Icon(
-                        Icons.Default.Add,
+                        Icons.Outlined.Add,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )

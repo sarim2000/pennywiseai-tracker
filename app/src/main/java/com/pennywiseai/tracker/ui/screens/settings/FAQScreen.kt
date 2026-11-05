@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
@@ -10,10 +11,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Message
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,7 +56,7 @@ fun FAQScreen(
         listOf(
             FAQCategory(
                 title = R.string.faq_transaction_types_section,
-                icon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.SwapHoriz, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_wallet_credit_question,
@@ -73,7 +74,7 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_sms_parsing_section,
-                icon = { Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null) },
+                icon = { Icon(Icons.AutoMirrored.Outlined.Message, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_sms_not_detected_question,
@@ -91,7 +92,7 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_privacy_section,
-                icon = { Icon(Icons.Default.Security, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.Security, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_data_secure_question,
@@ -109,7 +110,7 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_ai_section,
-                icon = { Icon(Icons.Default.Psychology, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.Psychology, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_ai_download_question,
@@ -123,7 +124,7 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_accounts_section,
-                icon = { Icon(Icons.Default.AccountBalance, contentDescription = null) },
+                icon = { Icon(Icons.Outlined.AccountBalance, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_manual_accounts_question,
@@ -154,7 +155,7 @@ fun FAQScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.faq_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.faq_back))
                     }
                 },
             )
@@ -222,7 +223,7 @@ fun FAQScreen(
                                     }
                                     
                                     Icon(
-                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                                         contentDescription = if (isExpanded) stringResource(R.string.faq_collapse) else stringResource(R.string.faq_expand),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -282,7 +283,7 @@ fun FAQScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            Icons.Default.BugReport,
+                            Icons.Outlined.BugReport,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -300,7 +301,7 @@ fun FAQScreen(
                         }
                     }
                     Icon(
-                        Icons.AutoMirrored.Filled.OpenInNew,
+                        Icons.AutoMirrored.Outlined.OpenInNew,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.medium),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant

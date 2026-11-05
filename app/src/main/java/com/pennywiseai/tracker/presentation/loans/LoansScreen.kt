@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.loans
 
+import com.pennywiseai.tracker.ui.components.cards.StatementLine
+import com.pennywiseai.tracker.ui.components.cards.ledgerRule
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -11,8 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -67,7 +69,7 @@ fun LoansScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
             )
@@ -91,7 +93,7 @@ fun LoansScreen(
                 contentAlignment = Alignment.Center
             ) {
                 PennyWiseEmptyState(
-                    icon = Icons.Default.SwapHoriz,
+                    icon = Icons.Outlined.SwapHoriz,
                     headline = stringResource(R.string.loans_empty_title),
                     description = stringResource(R.string.loans_empty_description)
                 )
@@ -113,10 +115,10 @@ fun LoansScreen(
                     TextButton(onClick = {
                         viewModel.settleUp(person)
                         settleUpPerson = null
-                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.loans_settle_up)) }
+                    }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.loans_settle_up)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { settleUpPerson = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
+                    TextButton(onClick = { settleUpPerson = null }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
                 }
             )
         }
@@ -160,9 +162,9 @@ fun LoansScreen(
             if (settledPeople.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    TextButton(onClick = { viewModel.toggleShowSettled() }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { viewModel.toggleShowSettled() }, shapes = pennyWiseButtonShapes()) {
                         Icon(
-                            if (uiState.showSettledLoans) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            if (uiState.showSettledLoans) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -209,7 +211,13 @@ private fun LoanPersonRow(
     onClick: () -> Unit,
     onSettleUp: () -> Unit
 ) {
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().ledgerRule(),
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface
+    ) {
+      Column(Modifier.fillMaxWidth().padding(vertical = Spacing.smd), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -225,13 +233,12 @@ private fun LoanPersonRow(
                 Text(
                     text = person.name.take(1).uppercase(),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(person.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(Spacing.xs))
+                Text(person.name, style = PennyWiseText.rowTitle)
+                Spacer(modifier = Modifier.height(Spacing.xxs))
                 if (person.net.isEmpty()) {
                     // Empty net with open loans = lent and borrowed cancel out.
                     Text(
@@ -247,14 +254,13 @@ private fun LoanPersonRow(
                             if (money.isOwedToYou) stringResource(R.string.loans_person_owes_you, formatted)
                             else stringResource(R.string.loans_person_you_owe, formatted),
                             style = PennyWiseText.amountSmall,
-                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.loanAmount(money.isOwedToYou)
                         )
                     }
                 }
             }
             Icon(
-                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -263,11 +269,12 @@ private fun LoanPersonRow(
             FilledTonalButton(
                 onClick = onSettleUp,
                 modifier = Modifier.align(Alignment.End),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.loans_settle_up))
             }
         }
+      }
     }
 }
 
@@ -277,30 +284,17 @@ private fun LoanSummaryCard(
     totalBorrowed: BigDecimal,
     currency: String
 ) {
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-        // Two figures side by side while they fit, stacked when they don't.
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.loans_owed_to_you), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    CurrencyFormatter.formatCurrency(totalLent, currency),
-                    style = PennyWiseText.amountMedium,
-                    color = MaterialTheme.colorScheme.loanAmount(owedToYou = true)
-                )
-            }
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.loans_you_owe), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    CurrencyFormatter.formatCurrency(totalBorrowed, currency),
-                    style = PennyWiseText.amountMedium,
-                    color = MaterialTheme.colorScheme.loanAmount(owedToYou = false)
-                )
-            }
-        }
+    Column(Modifier.fillMaxWidth()) {
+        StatementLine(
+            label = stringResource(R.string.loans_owed_to_you),
+            value = CurrencyFormatter.formatCurrency(totalLent, currency),
+            valueColor = MaterialTheme.colorScheme.loanAmount(owedToYou = true),
+        )
+        StatementLine(
+            label = stringResource(R.string.loans_you_owe),
+            value = CurrencyFormatter.formatCurrency(totalBorrowed, currency),
+            valueColor = MaterialTheme.colorScheme.loanAmount(owedToYou = false),
+        )
     }
 }
 

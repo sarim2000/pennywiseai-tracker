@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.presentation.add.AddSaveBar
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.HorizontalDivider
@@ -16,7 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -327,7 +328,7 @@ fun CreateRuleScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rules_close))
+                        Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.rules_close))
                     }
                 },
             )
@@ -382,7 +383,7 @@ fun CreateRuleScreen(
                         titleMaxLines = Int.MAX_VALUE
                     )
                     Icon(
-                        if (templatesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        if (templatesExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                         contentDescription = stringResource(
                             if (templatesExpanded) R.string.rules_templates_hide else R.string.rules_templates_show
                         ),
@@ -447,9 +448,9 @@ fun CreateRuleScreen(
                                 value = ""
                             )).toMutableList()
                         },
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                        Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                         Spacer(modifier = Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.rules_add_condition))
                     }
@@ -490,7 +491,7 @@ fun CreateRuleScreen(
                                 shapes = IconButtonDefaults.shapes()
                             ) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Outlined.Delete,
                                     contentDescription = stringResource(R.string.rules_remove_condition),
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.error
@@ -527,9 +528,9 @@ fun CreateRuleScreen(
                                     value = ""
                                 )
                             },
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                            Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.rules_add_action))
                         }
@@ -562,7 +563,7 @@ fun CreateRuleScreen(
                                 shapes = IconButtonDefaults.shapes()
                             ) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Outlined.Delete,
                                     contentDescription = stringResource(R.string.rules_remove_action),
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     tint = MaterialTheme.colorScheme.error
@@ -726,10 +727,10 @@ fun CreateRuleScreen(
                 TextButton(onClick = {
                     actions = listOf(pendingBlockAction!!)
                     pendingBlockAction = null
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_block_confirm_action)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_block_confirm_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingBlockAction = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
+                TextButton(onClick = { pendingBlockAction = null }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_cancel)) }
             }
         )
     }
@@ -955,7 +956,7 @@ private fun ConditionFieldSelector(
                 placeholder = { Text(stringResource(R.string.rules_time_placeholder)) },
                 trailingIcon = {
                     IconButton(onClick = { showTimePicker = true }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.rules_pick_time))
+                        Icon(Icons.Outlined.AccessTime, contentDescription = stringResource(R.string.rules_pick_time))
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -970,10 +971,10 @@ private fun ConditionFieldSelector(
                             val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                             onConditionChange(condition.copy(value = formatted))
                             showTimePicker = false
-                        }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_ok)) }
+                        }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_ok)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = { showTimePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.rules_cancel)) }
                     },
                     text = { TimePicker(state = timePickerState) }
                 )
@@ -1213,7 +1214,7 @@ private fun ActionEditor(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Icon(
-                    Icons.Default.Block,
+                    Icons.Outlined.Block,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.error
                 )

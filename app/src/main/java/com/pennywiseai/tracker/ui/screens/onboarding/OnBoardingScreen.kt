@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.Manifest
 import android.content.Intent
 import android.app.LocaleConfig
@@ -41,8 +42,8 @@ import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.MailOutline
@@ -214,11 +215,11 @@ private fun WelcomeStep(
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+            painter = painterResource(id = R.drawable.ic_launcher_foreground),
             contentDescription = stringResource(R.string.onboarding_logo_cd),
-            modifier = Modifier
-                .size(HERO_ICON_SIZE)
-                .clip(CircleShape),
+            modifier = Modifier.size(HERO_ICON_SIZE),
+            // The drawing's accent is tuned for dark; follow the theme's on paper.
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.primary),
             contentScale = ContentScale.Crop
         )
 
@@ -228,7 +229,6 @@ private fun WelcomeStep(
             text = stringResource(R.string.onboarding_welcome_title),
             style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -369,7 +369,7 @@ private fun <T> OnboardingPicker(
                     },
                     shapes = MenuDefaults.itemShape(index, options.size),
                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                 )
             }
         }
@@ -402,7 +402,6 @@ private fun ProfileStep(
             text = stringResource(R.string.onboarding_name_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
@@ -491,7 +490,7 @@ private fun ProfileStep(
                 ) {
                     if (uiState.profileImageUri != null) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Outlined.Check,
                             contentDescription = stringResource(R.string.onboarding_photo_selected_cd),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.large)
@@ -540,7 +539,7 @@ private fun ProfileStep(
                 ) {
                     if (isSelected) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Outlined.Check,
                             contentDescription = stringResource(R.string.onboarding_selected_cd),
                             tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(Dimensions.Icon.medium)
@@ -576,7 +575,6 @@ private fun PermissionsStep(uiState: OnBoardingUiState) {
             text = stringResource(R.string.onboarding_permission_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -628,7 +626,7 @@ private fun PermissionsStep(uiState: OnBoardingUiState) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Check,
+                        imageVector = Icons.Outlined.Check,
                         contentDescription = null,
                         tint = incomeColor
                     )
@@ -667,7 +665,6 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 text = stringResource(R.string.onboarding_scan_in_progress),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -722,7 +719,6 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 text = stringResource(R.string.onboarding_scan_complete),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -759,7 +755,6 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 text = stringResource(R.string.onboarding_scan_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -801,7 +796,7 @@ private fun MissingBankCard() {
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
                 },
                 modifier = Modifier.align(Alignment.End),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.onboarding_bank_missing_action))
             }
@@ -838,7 +833,6 @@ private fun AccountSetupStep(
                 text = stringResource(R.string.onboarding_all_set),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -854,7 +848,6 @@ private fun AccountSetupStep(
                 text = stringResource(R.string.onboarding_main_account_title),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -932,7 +925,7 @@ private fun AccountSetupStep(
                         if (isSelected) {
                             Spacer(modifier = Modifier.width(Spacing.sm))
                             Icon(
-                                imageVector = Icons.Default.Check,
+                                imageVector = Icons.Outlined.Check,
                                 contentDescription = stringResource(R.string.onboarding_selected_cd),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(Dimensions.Icon.inline)
@@ -1010,7 +1003,7 @@ private fun OnBoardingBottomBar(
         if (canGoBack) {
             IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = stringResource(R.string.onboarding_back)
                 )
             }
@@ -1026,30 +1019,30 @@ private fun OnBoardingBottomBar(
         ) {
             when (uiState.currentStep) {
                 OnBoardingStep.WELCOME -> {
-                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                    Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.onboarding_get_started))
                     }
                 }
 
                 OnBoardingStep.PROFILE -> {
                     // A name and avatar are optional: never a gate on using the app.
-                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                    Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.onboarding_continue))
                     }
                 }
 
                 OnBoardingStep.PERMISSIONS -> {
                     if (!uiState.smsPermissionGranted) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     }
                     if (uiState.smsPermissionGranted) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     } else {
-                        Button(onClick = onEnablePermissions, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onEnablePermissions, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_enable_permissions))
                         }
                     }
@@ -1057,18 +1050,18 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.SMS_SCAN -> {
                     if (!uiState.isScanning && !uiState.scanCompleted) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
-                        Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onStartScan, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_start_scanning))
                         }
                     } else if (uiState.isScanning) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     } else if (uiState.scanCompleted) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     }
@@ -1076,19 +1069,19 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.ACCOUNT_SETUP -> {
                     if (uiState.accounts.isEmpty()) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_finish))
                         }
                     } else {
                         if (uiState.selectedAccountKey == null) {
-                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                            TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                                 Text(stringResource(R.string.onboarding_skip))
                             }
                         }
                         Button(
                             onClick = onNext,
                             enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             if (uiState.isCompleting) {
                                 CircularProgressIndicator(

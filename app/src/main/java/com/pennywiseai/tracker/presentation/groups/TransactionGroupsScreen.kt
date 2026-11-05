@@ -13,8 +13,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,7 +61,7 @@ fun TransactionGroupsScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
             )
@@ -72,7 +72,7 @@ fun TransactionGroupsScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.groups_create))
+                Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.groups_create))
             }
         }
     ) { paddingValues ->
@@ -94,7 +94,7 @@ fun TransactionGroupsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 PennyWiseEmptyState(
-                    icon = Icons.Default.Folder,
+                    icon = Icons.Outlined.Folder,
                     headline = stringResource(R.string.groups_empty_title),
                     description = stringResource(R.string.groups_empty_hint)
                 )
@@ -264,13 +264,13 @@ private fun CreateGroupDialog(
             TextButton(
                 onClick = { onCreate(name, note.ifBlank { null }) },
                 enabled = name.isNotBlank(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.group_cancel))
             }
         }

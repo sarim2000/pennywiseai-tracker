@@ -1,10 +1,11 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +32,7 @@ fun ErrorState(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Default.ErrorOutline,
+            imageVector = Icons.Outlined.ErrorOutline,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
             tint = MaterialTheme.colorScheme.error
@@ -44,7 +45,7 @@ fun ErrorState(
         )
         if (onRetry != null) {
             Spacer(modifier = Modifier.height(Spacing.sm))
-            TextButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onRetry, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.error_state_retry))
             }
         }

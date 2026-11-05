@@ -11,8 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Message
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.Message
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -69,7 +69,7 @@ fun BalanceHistoryScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 }
             )
@@ -91,7 +91,7 @@ fun BalanceHistoryScreen(
                 
                 if (balanceHistory.isEmpty()) {
                     PennyWiseEmptyState(
-                        icon = Icons.Default.History,
+                        icon = Icons.Outlined.History,
                         headline = stringResource(R.string.balance_history_empty_title),
                         description = stringResource(R.string.balance_history_empty_description),
                         modifier = Modifier.weight(1f)
@@ -181,13 +181,13 @@ fun BalanceHistoryScreen(
                         viewModel.deleteBalance(balanceId)
                         showDeleteConfirmation = null
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = null }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showDeleteConfirmation = null }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -246,7 +246,7 @@ private fun BalanceHistoryItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            Icons.Default.Schedule,
+                            Icons.Outlined.Schedule,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -282,12 +282,12 @@ private fun BalanceHistoryItem(
                         
                         // Source type badge
                         val sourceInfo: Triple<androidx.compose.ui.graphics.vector.ImageVector?, String, androidx.compose.ui.graphics.Color> = when (balance.sourceType) {
-                            "TRANSACTION" -> Triple(Icons.Default.SwapHoriz, stringResource(R.string.balance_history_source_transaction), MaterialTheme.colorScheme.tertiary)
-                            "SMS_BALANCE" -> Triple(Icons.AutoMirrored.Filled.Message, stringResource(R.string.balance_history_source_sms), MaterialTheme.colorScheme.secondary)
-                            "CARD_LINK" -> Triple(Icons.Default.CreditCard, stringResource(R.string.balance_history_source_card_link), MaterialTheme.colorScheme.primary)
-                            "MANUAL" -> Triple(Icons.Default.Edit, stringResource(R.string.balance_history_source_manual), MaterialTheme.colorScheme.onSurfaceVariant)
+                            "TRANSACTION" -> Triple(Icons.Outlined.SwapHoriz, stringResource(R.string.balance_history_source_transaction), MaterialTheme.colorScheme.tertiary)
+                            "SMS_BALANCE" -> Triple(Icons.AutoMirrored.Outlined.Message, stringResource(R.string.balance_history_source_sms), MaterialTheme.colorScheme.secondary)
+                            "CARD_LINK" -> Triple(Icons.Outlined.CreditCard, stringResource(R.string.balance_history_source_card_link), MaterialTheme.colorScheme.primary)
+                            "MANUAL" -> Triple(Icons.Outlined.Edit, stringResource(R.string.balance_history_source_manual), MaterialTheme.colorScheme.onSurfaceVariant)
                             else -> if (balance.transactionId != null)
-                                Triple(Icons.Default.SwapHoriz, stringResource(R.string.balance_history_source_transaction), MaterialTheme.colorScheme.tertiary)
+                                Triple(Icons.Outlined.SwapHoriz, stringResource(R.string.balance_history_source_transaction), MaterialTheme.colorScheme.tertiary)
                             else
                                 Triple(null, "", MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -327,7 +327,7 @@ private fun BalanceHistoryItem(
                     Row {
                         IconButton(onClick = onEditClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                Icons.Default.Edit,
+                                Icons.Outlined.Edit,
                                 contentDescription = stringResource(R.string.balance_history_edit_balance),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(Dimensions.Icon.medium)
@@ -335,7 +335,7 @@ private fun BalanceHistoryItem(
                         }
                         IconButton(onClick = onDeleteClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                Icons.Default.Delete,
+                                Icons.Outlined.Delete,
                                 contentDescription = stringResource(R.string.balance_history_delete_balance),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(Dimensions.Icon.medium)
@@ -391,18 +391,18 @@ private fun BalanceHistoryItem(
                             onClick = onSaveEdit,
                             enabled = editingValue.toBigDecimalOrNull() != null,
                             modifier = Modifier.weight(1f),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                            Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.accounts_action_save))
                         }
                         OutlinedButton(
                             onClick = onCancelEdit,
                             modifier = Modifier.weight(1f),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                            Icon(Icons.Outlined.Close, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.accounts_action_cancel))
                         }
@@ -423,7 +423,6 @@ private fun BalanceHistoryItem(
                     Text(
                         text = CurrencyFormatter.formatCurrency(balance.balance, accountPrimaryCurrency),
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
                         color = if (isLatest) {
                             MaterialTheme.colorScheme.primary
                         } else {
@@ -459,7 +458,7 @@ private fun BalanceHistoryItem(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.AutoMirrored.Filled.Message,
+                                        Icons.AutoMirrored.Outlined.Message,
                                         contentDescription = null,
                                         modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -501,7 +500,7 @@ private fun BalanceHistoryItem(
                                         shapes = IconButtonDefaults.shapes()
                                     ) {
                                         Icon(
-                                            Icons.Default.ContentCopy,
+                                            Icons.Outlined.ContentCopy,
                                             contentDescription = stringResource(R.string.balance_history_copy_sms),
                                             modifier = Modifier.size(Dimensions.Icon.small),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -510,7 +509,7 @@ private fun BalanceHistoryItem(
                                 }
 
                                 Icon(
-                                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    imageVector = if (isExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                                     contentDescription = if (isExpanded) stringResource(R.string.balance_history_collapse_sms) else stringResource(R.string.balance_history_expand_sms),
                                     modifier = Modifier.size(Dimensions.Icon.medium),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant

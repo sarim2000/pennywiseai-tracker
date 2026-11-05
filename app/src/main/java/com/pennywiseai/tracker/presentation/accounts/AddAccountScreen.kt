@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.domain.model.icon
 
 import com.pennywiseai.tracker.R
@@ -12,8 +13,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,7 +58,7 @@ fun AddAccountScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
             )
@@ -84,7 +85,7 @@ fun AddAccountScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Info,
+                        Icons.Outlined.Info,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -110,7 +111,7 @@ fun AddAccountScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            Icons.Default.Error,
+                            Icons.Outlined.Error,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.size(Dimensions.Icon.medium)
@@ -206,7 +207,7 @@ fun AddAccountScreen(
                     readOnly = true,
                     label = { Text(stringResource(R.string.add_account_currency_label), fontWeight = FontWeight.SemiBold) },
                     trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
-                    leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.Payments, contentDescription = null) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
@@ -239,7 +240,7 @@ fun AddAccountScreen(
                     value = formState.bankName,
                     onValueChange = viewModel::updateBankName,
                     label = { Text(stringResource(R.string.add_account_name_label), fontWeight = FontWeight.SemiBold) },
-                    leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.Business, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
@@ -256,7 +257,7 @@ fun AddAccountScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     },
-                    leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.Tag, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -274,7 +275,7 @@ fun AddAccountScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                     },
-                    leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Outlined.Payments, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -288,7 +289,7 @@ fun AddAccountScreen(
                         value = formState.creditLimit,
                         onValueChange = viewModel::updateCreditLimit,
                         label = { Text(stringResource(R.string.add_account_credit_limit_label), fontWeight = FontWeight.SemiBold) },
-                        leadingIcon = { Icon(Icons.Default.CreditScore, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Outlined.CreditScore, contentDescription = null) },
                         supportingText = { Text(stringResource(R.string.add_account_credit_limit_hint)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
@@ -311,9 +312,9 @@ fun AddAccountScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
-                Icon(Icons.Default.Done, contentDescription = null)
+                Icon(Icons.Outlined.Done, contentDescription = null)
                 Spacer(Modifier.width(Spacing.sm))
                 Text(stringResource(R.string.accounts_action_save), style = MaterialTheme.typography.titleMedium)
             }

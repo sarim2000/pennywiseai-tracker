@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseSwitchColors
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,10 +42,7 @@ fun PreferenceSwitch(
     visible: Boolean = true,
     subtitle: String = "",
     leadingIcon: (@Composable () -> Unit)? = null,
-    contentPadding: PaddingValues = PaddingValues(
-        horizontal = Spacing.md,
-        vertical = Dimensions.Padding.listRowVertical
-    )
+    contentPadding: PaddingValues = PaddingValues(vertical = Dimensions.Padding.listRowVertical)
 ) {
     BlurredAnimatedVisibility(
         visible = visible,
@@ -69,6 +67,7 @@ fun PreferenceSwitch(
                 subtitleMaxLines = Int.MAX_VALUE
             )
             Switch(
+                colors = pennyWiseSwitchColors(),
                 checked = checked,
                 onCheckedChange = onCheckedChange,
             )

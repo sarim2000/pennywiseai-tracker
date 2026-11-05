@@ -153,7 +153,7 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        shape = listItemPosition.toShape(),
+        // No rule: each row has a coin to anchor it, and a screen of hairlines reads as a form.
         contentPadding = Dimensions.Padding.cardCompact,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)

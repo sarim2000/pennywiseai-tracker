@@ -13,8 +13,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -68,14 +68,14 @@ fun TransactionGroupDetailScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
                 actionContent = {
                     if (group != null) {
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_detail_more))
+                            Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.group_detail_more))
                         }
                         DropdownMenu(
                             expanded = showMenu,
@@ -84,13 +84,13 @@ fun TransactionGroupDetailScreen(
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.group_detail_edit)) },
                                 onClick = { showMenu = false; viewModel.showEditDialog() },
-                                leadingIcon = { Icon(Icons.Default.Edit, null) }
+                                leadingIcon = { Icon(Icons.Outlined.Edit, null) }
                             )
                             if (uiState.linkedTransactions.isNotEmpty()) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.group_detail_export_csv)) },
                                     onClick = { showMenu = false; showExportDialog = true },
-                                    leadingIcon = { Icon(Icons.Default.FileDownload, null) }
+                                    leadingIcon = { Icon(Icons.Outlined.FileDownload, null) }
                                 )
                             }
                             DropdownMenuItem(
@@ -98,7 +98,7 @@ fun TransactionGroupDetailScreen(
                                 onClick = { showMenu = false; viewModel.showDeleteDialog() },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Delete,
+                                        Icons.Outlined.Delete,
                                         null,
                                         tint = MaterialTheme.colorScheme.error
                                     )
@@ -115,7 +115,7 @@ fun TransactionGroupDetailScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.group_detail_add_transaction))
+                Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.group_detail_add_transaction))
             }
         }
     ) { paddingValues ->
@@ -269,7 +269,7 @@ fun TransactionGroupDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                         ) {
                             Icon(
-                                Icons.Default.AddCircleOutline,
+                                Icons.Outlined.AddCircleOutline,
                                 contentDescription = null,
                                 modifier = Modifier.size(48.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -328,12 +328,12 @@ fun TransactionGroupDetailScreen(
             title = { Text(stringResource(R.string.group_detail_delete_title)) },
             text = { Text(stringResource(R.string.group_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteGroup() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.deleteGroup() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.group_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.group_cancel))
                 }
             }
@@ -400,7 +400,7 @@ private fun GroupTransactionItem(
             Spacer(modifier = Modifier.width(Spacing.xs))
             IconButton(onClick = onRemove, modifier = Modifier.size(32.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    Icons.Default.RemoveCircleOutline,
+                    Icons.Outlined.RemoveCircleOutline,
                     contentDescription = stringResource(R.string.group_detail_remove_from_group),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
@@ -445,7 +445,7 @@ private fun AddTransactionToGroupSheet(
                 value = searchQuery,
                 onValueChange = onSearchQueryChange,
                 placeholder = { Text(stringResource(R.string.group_detail_picker_search)) },
-                leadingIcon = { Icon(Icons.Default.Search, null) },
+                leadingIcon = { Icon(Icons.Outlined.Search, null) },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = TextFieldDefaults.colors(
@@ -528,7 +528,7 @@ private fun AddTransactionToGroupSheet(
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.xs))
                                 Icon(
-                                    Icons.Default.AddCircleOutline,
+                                    Icons.Outlined.AddCircleOutline,
                                     contentDescription = stringResource(R.string.group_detail_picker_add),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
@@ -588,13 +588,13 @@ private fun EditGroupDialog(
             TextButton(
                 onClick = { onSave(name, note.ifBlank { null }) },
                 enabled = name.isNotBlank(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.group_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.group_cancel))
             }
         }

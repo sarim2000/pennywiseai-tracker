@@ -1,5 +1,13 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.utils.AmountPrivacy
+import com.pennywiseai.tracker.ui.components.cards.BudgetPaceNote
+import com.pennywiseai.tracker.ui.components.cards.BudgetBar
+import com.pennywiseai.tracker.ui.components.cards.ledgerRule
+import androidx.compose.material3.Surface
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.foundation.layout.padding
 import com.pennywiseai.tracker.ui.components.DEFAULT_BUDGET_COLOR
 import com.pennywiseai.tracker.utils.AppDates
 
@@ -29,10 +37,10 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -105,13 +113,13 @@ fun BudgetGroupsScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
                     }
                 },
                 actionContent = {
                     if (uiState.hasGroups) {
                         IconButton(onClick = { onNavigateToGroupEdit(-1L) }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.budgets_add))
+                            Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.budgets_add))
                         }
                     }
                 },
@@ -202,7 +210,7 @@ private fun EmptyBudgetState(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
                 Icon(
-                    imageVector = Icons.Default.AccountBalance,
+                    imageVector = Icons.Outlined.AccountBalance,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.primary
@@ -211,7 +219,6 @@ private fun EmptyBudgetState(
                 Text(
                     text = stringResource(R.string.budgets_setup_title),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
                 )
 
                 Text(
@@ -224,9 +231,9 @@ private fun EmptyBudgetState(
                 Button(
                     onClick = onSmartDefaults,
                     modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
-                    Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.sm))
                     Text(stringResource(R.string.budgets_setup_smart_defaults))
                 }
@@ -234,7 +241,7 @@ private fun EmptyBudgetState(
                 OutlinedButton(
                     onClick = onCreateNew,
                     modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.budgets_setup_custom))
                 }
@@ -302,13 +309,24 @@ private fun BudgetGroupsContent(
                     animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
             ) {
-                MonthSelector(
-                    year = uiState.selectedYear,
-                    month = uiState.selectedMonth,
-                    isCurrentMonth = isCurrentMonth,
-                    onPrevious = onPreviousMonth,
-                    onNext = onNextMonth
-                )
+                Column {
+                    MonthSelector(
+                        year = uiState.selectedYear,
+                        month = uiState.selectedMonth,
+                        isCurrentMonth = isCurrentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth
+                    )
+                    if (isCurrentMonth) {
+                        Text(
+                            text = stringResource(R.string.budgets_pace_hint),
+                            style = PennyWiseText.metadata,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                    }
+                }
             }
         }
 
@@ -368,13 +386,13 @@ private fun BudgetGroupsContent(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.budgets_action_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteGroupId = null }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { deleteGroupId = null }, shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.budgets_action_cancel))
                 }
             }
@@ -398,41 +416,23 @@ private fun MonthSelector(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        FilledTonalIconButton(
-            onClick = onPrevious,
-            shapes = IconButtonDefaults.shapes()
-        ) {
+        IconButton(onClick = onPrevious, shapes = IconButtonDefaults.shapes()) {
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
                 contentDescription = stringResource(R.string.budgets_previous_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }
-
-        Spacer(modifier = Modifier.width(Spacing.md))
-
-        Surface(
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.secondaryContainer
-        ) {
-            Text(
-                text = yearMonth.format(formatter),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(Spacing.md))
-
-        FilledTonalIconButton(
-            onClick = onNext,
-            enabled = !isCurrentMonth,
-            shapes = IconButtonDefaults.shapes()
-        ) {
+        Text(
+            text = yearMonth.format(formatter),
+            style = PennyWiseText.sectionHeader,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.weight(1f)
+        )
+        IconButton(onClick = onNext, enabled = !isCurrentMonth, shapes = IconButtonDefaults.shapes()) {
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = stringResource(R.string.budgets_next_month),
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
@@ -485,15 +485,18 @@ private fun BudgetCard(
     // semantic so a red budget at 36% doesn't read as danger.
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
-    PennyWiseCardV2(
+    Surface(
         onClick = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth().ledgerRule(!isFirst),
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(vertical = Spacing.smd)
                 .animateContentSize(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec()
                 )
         ) {
             // Row 1: Budget name + percentage pill + overflow menu
@@ -504,9 +507,7 @@ private fun BudgetCard(
             ) {
                 Text(
                     text = budget.name,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    style = PennyWiseText.rowTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -517,7 +518,7 @@ private fun BudgetCard(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (groupSpending.totalBudget > BigDecimal.ZERO) {
+                    if (groupSpending.totalBudget > BigDecimal.ZERO && !AmountPrivacy.hidden) {
                         Text(
                             text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
                             style = PennyWiseText.amountSmall,
@@ -532,7 +533,7 @@ private fun BudgetCard(
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
-                                Icons.Default.MoreVert,
+                                Icons.Outlined.MoreVert,
                                 contentDescription = stringResource(R.string.budgets_more_options),
                                 modifier = Modifier.size(Dimensions.Icon.inline),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -549,7 +550,7 @@ private fun BudgetCard(
                                     onClick()
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
+                                    Icon(Icons.Outlined.Edit, contentDescription = null)
                                 }
                             )
                             DropdownMenuItem(
@@ -559,7 +560,7 @@ private fun BudgetCard(
                                     onViewHistory()
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.History, contentDescription = null)
+                                    Icon(Icons.Outlined.History, contentDescription = null)
                                 }
                             )
                             DropdownMenuItem(
@@ -569,7 +570,7 @@ private fun BudgetCard(
                                     onMoveUp()
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
+                                    Icon(Icons.Outlined.KeyboardArrowUp, contentDescription = null)
                                 },
                                 enabled = !isFirst
                             )
@@ -580,7 +581,7 @@ private fun BudgetCard(
                                     onMoveDown()
                                 },
                                 leadingIcon = {
-                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
+                                    Icon(Icons.Outlined.KeyboardArrowDown, contentDescription = null)
                                 },
                                 enabled = !isLast
                             )
@@ -598,7 +599,7 @@ private fun BudgetCard(
                                 },
                                 leadingIcon = {
                                     Icon(
-                                        Icons.Default.Delete,
+                                        Icons.Outlined.Delete,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.error
                                     )
@@ -610,28 +611,6 @@ private fun BudgetCard(
             }
 
             if (groupSpending.totalBudget > BigDecimal.ZERO) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Row 2: Custom rounded progress bar
-                val barShape = RoundedCornerShape(50)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Dimensions.Component.progressBarHeight)
-                        .clip(barShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = animatedProgressState)
-                            .fillMaxHeight()
-                            .clip(barShape)
-                            .background(barColor)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
                 // Row 3: Remaining amount (hero) + what's left to spend per
                 // day. Spending limits only — "per day" means nothing for a
                 // savings target or expected bills.
@@ -654,7 +633,7 @@ private fun BudgetCard(
                                 CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)
                             )
                         },
-                        style = PennyWiseText.amountLarge,
+                        style = PennyWiseText.amountMedium,
                         color = statusColor
                     )
                     if (showDaily) {
@@ -667,6 +646,19 @@ private fun BudgetCard(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                BudgetBar(
+                    progress = if (AmountPrivacy.hidden) 0f else animatedProgressState,
+                    pace = groupSpending.daysElapsed.toFloat() / groupSpending.windowDays.coerceAtLeast(1),
+                    color = barColor
+                )
+                if (groupSpending.group.budget.groupType == BudgetGroupType.LIMIT && !AmountPrivacy.hidden) {
+                    BudgetPaceNote(
+                        progress = pctUsed / 100f,
+                        pace = groupSpending.daysElapsed.toFloat() / groupSpending.windowDays.coerceAtLeast(1),
+                        modifier = Modifier.padding(top = Spacing.xs)
+                    )
+                }
                 Spacer(modifier = Modifier.height(Spacing.xs))
 
                 // Row 4: Per-cadence renewal countdown — always framed
@@ -724,30 +716,22 @@ private fun BudgetCard(
                     )
                 }
                 Text(
-                    text = subtitleText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.xs))
-
-                // Row 5: Spent X of Y
-                Text(
-                    text = stringResource(
-                        R.string.budgets_spent_of,
-                        CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
-                        CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = listOf(
+                        stringResource(
+                            R.string.budgets_spent_of,
+                            CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
+                            CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
+                        ),
+                        subtitleText
+                    ).joinToString(" · "),
+                    style = PennyWiseText.amountSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else if (groupSpending.isTrackingAllExpenses) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.budgets_spent, CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))

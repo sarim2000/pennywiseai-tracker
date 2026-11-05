@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,8 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ButtonDefaults
@@ -47,7 +48,7 @@ fun PaydaySuggestionCard(
             horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
         ) {
             Icon(
-                imageVector = Icons.Default.CalendarMonth,
+                imageVector = Icons.Outlined.CalendarMonth,
                 contentDescription = null,
                 tint = ink,
                 modifier = Modifier.size(Dimensions.Icon.medium),
@@ -72,12 +73,12 @@ fun PaydaySuggestionCard(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onAccept, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onAccept, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.home_payday_card_action, day))
             }
             IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.home_payday_card_dismiss),
                     tint = ink,
                     modifier = Modifier.size(Dimensions.Icon.small),

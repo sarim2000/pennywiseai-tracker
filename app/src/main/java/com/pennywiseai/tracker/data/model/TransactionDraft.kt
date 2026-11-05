@@ -27,11 +27,13 @@ data class TransactionDraft(
     companion object {
         // Whole words, so "مراتب" isn't "راتب" and Milan's "मिलान" isn't "मिला". Arabic keeps its
         // prefixes and suffixes ("الراتب", "راتبي"), and lookarounds because \\b differs on ICU.
-        // "رجع" alone also means "came back" ("رجعت البيت"), so a refund must say to whom or what:
-        // "رجعلي", "رجعت لي", "رجعوا فلوسي", "الفلوس رجعت". "رجعت ليلا" (came back at night) isn't "لي".
+        // "رجع" means "came back" and "gave back" too ("رجعت البيت", "رجعت فلوسه"), so these words
+        // decide only when the money came back to the speaker: "رجعلي", "رجعوا فلوسي". Anything
+        // else is left to the model, and the card shows the type before it's saved.
+        private const val MY_MONEY = "(?:فلوسي|مصاريي|مبلغي)"
         private const val MONEY_CAME_BACK = "رجع(?:وا|و|ت)?\\s*(?:لي|لنا)(?![\\p{L}\\p{M}])" +
-            "|رجع(?:وا|و|ت)?\\s+(?:ال)?(?:فلوس|مصاري|مبلغ)" +
-            "|(?:فلوس|مصاري|مبلغ)\\S*\\s+رجع"
+            "|رجع(?:وا|و|ت)?\\s+$MY_MONEY(?![\\p{L}\\p{M}])" +
+            "|$MY_MONEY\\s+رجع(?:وا|و|ت)?(?![\\p{L}\\p{M}])"
         private fun arabicWord(words: String) = "(?<![\\p{L}\\p{M}])[وفب]?(?:ال)?(?:$words)"
         private fun hindiWord(words: String) = "(?<![\\p{L}\\p{M}])(?:$words)(?![\\p{L}\\p{M}])"
 

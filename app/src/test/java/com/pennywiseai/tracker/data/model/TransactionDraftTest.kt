@@ -137,7 +137,12 @@ class TransactionDraftTest {
         assertEquals(TransactionType.INCOME, type("رجعت لي 50", "EXPENSE"))
         assertEquals(TransactionType.INCOME, type("رجعولنا 50", "EXPENSE"))
         assertEquals(TransactionType.INCOME, type("رجعوا فلوسي 50", "EXPENSE"))
-        assertEquals(TransactionType.INCOME, type("الفلوس رجعت 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("فلوسي رجعت 50", "EXPENSE"))
+        // Money given back, or with no one named: the words don't decide.
+        assertEquals(TransactionType.EXPENSE, type("رجعت فلوسه 100 ريال", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("رجعتله 100", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("رجعت الفلوس 100", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("فلوسي رجعتها 100", "EXPENSE"))
         assertEquals(TransactionType.EXPENSE, type("मिलान में कॉफी 500", "EXPENSE"))
     }
 

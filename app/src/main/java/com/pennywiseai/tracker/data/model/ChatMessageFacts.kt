@@ -127,7 +127,7 @@ internal object ChatMessageFacts {
             "|$COUNT\\s*$MONEY_MARK\\s*(?:mila|mili|मिला|मिली|मिले)(?![\\p{L}\\p{M}])"
     )
 
-    private val GOT_CASH = regex("\\bgot\\s+(?:(?:back|my|some|the)\\s+)*(?:money|cash)\\b")
+    private val GOT_CASH = regex("\\bgot\\s+(?:(?:back|my|some|the|an?)\\s+)*(?:money|cash|payment|transfer|deposit|tip|advance)\\b")
     private val GOT_WORD = regex("\\b(?:got|mila|mili)\\b|(?<![\\p{L}\\p{M}])(?:मिला|मिली|मिले)(?![\\p{L}\\p{M}])")
 
     /**

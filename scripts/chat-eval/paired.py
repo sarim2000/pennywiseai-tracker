@@ -8,7 +8,7 @@ def load(n):
     for pre in ("q25_","held_q25_"):
         try:
             for l in open(f"{SP}/{pre}{n}.jsonl"):
-                r=json.loads(l); out[r["id"]]=score.score_row(cases[r["id"]],r)
+                r=json.loads(l); out[r["id"],int(r["rep"])]=score.score_row(cases[r["id"]],r)
         except FileNotFoundError: pass
     return out
 def mcnemar(a,b,key):
@@ -20,6 +20,6 @@ def mcnemar(a,b,key):
 base=sys.argv[2]; a=load(base)
 for other in sys.argv[3:]:
     b=load(other)
-    for key in ("amounts","exact","rawtype","post"):
+    for key in ("amounts","exact","strict","rawtype","post"):
         n,pa,pb,x,y,p=mcnemar(a,b,key)
         print(f"{base} vs {other:18} {key:8} n={n} {pa}/{n} vs {pb}/{n}  only-first={x} only-second={y} p={p:.3f}")

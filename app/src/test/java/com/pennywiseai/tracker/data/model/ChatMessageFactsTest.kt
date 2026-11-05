@@ -157,6 +157,11 @@ class ChatMessageFactsTest {
         assertEquals(7, days("a week ago lunch 50", 0))
         assertEquals(14, days("قبل أسبوعين قهوة 15", 14))
         assertEquals(14, days("two weeks ago lunch 50", 0))
+        assertEquals(14, days("2 weeks ago lunch 50", 0))
+        assertEquals(84, days("coffee 50 at Starbucks 12 weeks ago", 84)) // Not "2 weeks ago".
+        assertEquals(84, days("coffee 50 at Starbucks 12 weeks ago", 0))
+        assertEquals(21, days("قبل 3 أسابيع قهوة 15", 0))
+        assertEquals(14, days("2 hafte pehle chai 50", 0))
         assertEquals(0, days("today lunch 50", 2))
     }
 
@@ -178,6 +183,9 @@ class ChatMessageFactsTest {
         assertEquals(4, days("1 नवंबर को कॉफी 50", 4))
         assertEquals(4, days("coffee 50 on 1/11", 4))
         assertEquals(4, days("coffee 50 1/11/2026", 4))
+        assertEquals(90, days("3 months ago lunch 50", 90))
+        assertEquals(30, days("دفعت 50 الشهر الماضي", 30))
+        assertEquals(0, days("99999999999 weeks ago lunch 50", 3)) // Absurd, and it must not overflow.
         assertEquals(0, days("paid rent on monday 500", -1))
         assertEquals(0, days("paid rent on monday 500", 9999))
     }

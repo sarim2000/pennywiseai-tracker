@@ -351,12 +351,14 @@ class LlmRepository @Inject constructor(
         }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
-            val category = matchCategory(wanted, categoryRepository.getVisibleCategories().first())
+            // Hidden categories still hold transactions, and a row can name a category that no
+            // longer exists: a read-only lookup asks the transactions before saying it's unknown.
+            val category = matchCategory(wanted, categoryRepository.getAllCategories().first())
             val currency = userPreferencesRepository.baseCurrency.first()
-            val spend = category?.let { aiContextRepository.getCategorySpending(it) }
+            val spend = aiContextRepository.getCategorySpending(category ?: wanted)
             when {
                 // "Nothing spent" would be a false figure for a category that doesn't exist.
-                category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
+                spend == null && category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
                 spend == null -> context.getString(R.string.chat_reply_nothing_spent, category)
                 else -> context.getString(
                     R.string.chat_reply_category_spend,

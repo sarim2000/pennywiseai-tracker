@@ -122,8 +122,9 @@ internal object ChatMessageFacts {
     private val TODAY = regex("${word("today|tonight|this morning|aaj")}|اليوم|${word("आज")}")
     private val TWO_DAYS_AGO = regex("قبل\\s*يومين|${word("do din (?:pehle|pahle)")}|दो दिन पहले")
     private val N_DAYS_AGO = regex("(\\d+)\\s*(?:days?\\s*ago|din\\s*(?:pehle|pahle)|दिन\\s*पहले)|قبل\\s*(\\d+)\\s*(?:يوم|ايام|أيام)")
+    private val N_WEEKS_AGO = regex("(\\d+)\\s*(?:weeks?\\s*ago|hafte\\s*(?:pehle|pahle)|हफ्ते\\s*पहले)|قبل\\s*(\\d+)\\s*(?:اسبوع|أسبوع|اسابيع|أسابيع)")
     private val WEEK_AGO = regex("${word("a week ago|one week ago|ek hafta pehle|قبل\\s*(?:اسبوع|أسبوع)")}|एक हफ्ते पहले")
-    private val TWO_WEEKS_AGO = regex("${word("two weeks ago|2 weeks ago|قبل\\s*(?:اسبوعين|أسبوعين)")}|दो हफ्ते पहले")
+    private val TWO_WEEKS_AGO = regex("${word("two weeks ago|قبل\\s*(?:اسبوعين|أسبوعين)")}|दो हफ्ते पहले")
 
     private const val MONTHS = "jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?" +
         "|يناير|فبراير|مارس|ابريل|أبريل|مايو|يونيو|يوليو|اغسطس|أغسطس|سبتمبر|اكتوبر|أكتوبر|نوفمبر|ديسمبر" +
@@ -132,7 +133,8 @@ internal object ChatMessageFacts {
     // A day the words name but this code can't turn into a number: the model's reading counts.
     private val OTHER_DAY = regex(
         word(
-            "(?:on|last)\\s+(?:mon|tues|wednes|thurs|fri|satur|sun)day|last week|\\d+\\s*days?\\s*back|\\d+\\s*weeks?\\s*ago" +
+            "(?:on|last)\\s+(?:mon|tues|wednes|thurs|fri|satur|sun)day|last week|last month|\\d+\\s*days?\\s*back|(?:a|one|\\d+)\\s*months?\\s*ago" +
+                "|الاسبوع الماضي|الأسبوع الماضي|الشهر الماضي|قبل\\s*شهر|पिछले हफ्ते|पिछले महीने|pichhle (?:hafte|mahine)" +
                 // A bare "24/7" is a shop's hours, not a date.
                 "|(?:on|في|بتاريخ)\\s*\\d{1,2}[/-]\\d{1,2}|\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4}" +
                 "|\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:$MONTHS)|(?:$MONTHS)\\s+\\d{1,2}(?:st|nd|rd|th)?"
@@ -148,14 +150,19 @@ internal object ChatMessageFacts {
         fun take(pattern: Regex, day: Int) {
             if (pattern.containsMatchIn(rest)) { days += day; rest = pattern.replace(rest, " ") }
         }
+        fun takeCounted(pattern: Regex, daysEach: Long) {
+            pattern.findAll(rest).forEach { m ->
+                val count = m.groupValues[1].ifEmpty { m.groupValues[2] }.toLongOrNull() ?: return@forEach
+                (count * daysEach).takeIf { it in 0..MAX_DAYS_AGO }?.let { days += it.toInt() }
+            }
+            rest = pattern.replace(rest, " ")
+        }
         take(DAY_BEFORE_YESTERDAY, 2)
         take(TWO_DAYS_AGO, 2)
         take(TWO_WEEKS_AGO, 14)
         take(WEEK_AGO, 7)
-        N_DAYS_AGO.findAll(rest).forEach { m ->
-            (m.groupValues[1].ifEmpty { m.groupValues[2] }).toIntOrNull()?.takeIf { it <= MAX_DAYS_AGO }?.let { days += it }
-        }
-        rest = N_DAYS_AGO.replace(rest, " ")
+        takeCounted(N_WEEKS_AGO, 7)
+        takeCounted(N_DAYS_AGO, 1)
         take(YESTERDAY, 1)
         take(TODAY, 0)
         return days

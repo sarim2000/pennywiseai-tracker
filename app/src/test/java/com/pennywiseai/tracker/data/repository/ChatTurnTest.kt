@@ -66,6 +66,9 @@ class ChatTurnTest {
     }
     private val categories = mockk<CategoryRepository>(relaxed = true) {
         every { getVisibleCategories() } returns flowOf(listOf(CategoryEntity(id = 1, name = "طعام", color = "#000")))
+        every { getAllCategories() } returns flowOf(
+            listOf(CategoryEntity(id = 1, name = "طعام", color = "#000"), CategoryEntity(id = 2, name = "Hobbies", color = "#000", isHidden = true))
+        )
     }
     private val context = mockk<Context>(relaxed = true) {
         every { getString(R.string.chat_reply_one_card_at_a_time) } returns "ONE_CARD"
@@ -73,6 +76,7 @@ class ChatTurnTest {
         every { getString(R.string.chat_reply_nothing_changed) } returns "NOTHING_CHANGED"
         every { getString(R.string.chat_reply_unknown_category, any()) } returns "UNKNOWN_CATEGORY"
         every { getString(R.string.chat_reply_category_spend, any(), any(), any()) } returns "SPEND"
+        every { getString(R.string.chat_reply_nothing_spent, any()) } returns "NOTHING_SPENT"
     }
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val repository = LlmRepository(
@@ -175,11 +179,28 @@ class ChatTurnTest {
 
     @Test
     fun `a category lookup matches non-Latin names and refuses unknown ones`() = runTest {
+        coEvery { aiContext.getCategorySpending(any()) } returns null
         coEvery { aiContext.getCategorySpending("طعام") } returns mockk(relaxed = true)
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
-        assertEquals("SPEND", send("كم صرفت على الطعام؟"))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "سفر")))
-        assertEquals("UNKNOWN_CATEGORY", send("كم صرفت على السفر؟"))
+        suspend fun lookup(category: String): String {
+            events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to category)))
+            return send("how much on $category?")
+        }
+        assertEquals("SPEND", lookup("طعام"))
+        assertEquals("UNKNOWN_CATEGORY", lookup("سفر"))
+    }
+
+    @Test
+    fun `a category lookup reads hidden categories and names only found on transactions`() = runTest {
+        coEvery { aiContext.getCategorySpending(any()) } returns null
+        suspend fun lookup(category: String): String {
+            events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to category)))
+            return send("how much on $category?")
+        }
+        assertEquals("NOTHING_SPENT", lookup("Hobbies")) // Hidden, but it exists.
+        coEvery { aiContext.getCategorySpending("Hobbies") } returns mockk(relaxed = true)
+        assertEquals("SPEND", lookup("Hobbies"))
+        coEvery { aiContext.getCategorySpending("Old Name") } returns mockk(relaxed = true)
+        assertEquals("SPEND", lookup("Old Name")) // No such category now, but rows still carry it.
     }
 
     @Test

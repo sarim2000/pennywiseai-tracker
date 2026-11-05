@@ -357,8 +357,9 @@ class SettingsViewModel @Inject constructor(
      * account's balance and why.
      */
     private suspend fun onDeleteAllSucceeded(deleted: Int) {
-        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        // Clear first: clearing after the refresh could wipe what its worker just wrote.
         com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
 
         // SMS ingestion runs independently and can commit a row straight after
         // the delete's transaction commits. That isn't the delete failing — the
@@ -416,7 +417,6 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setDisplayCurrency(currency)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
-            com.pennywiseai.tracker.widget.RecentTransactionsWidgetDataStore.clear(context)
         }
     }
 
@@ -772,6 +772,8 @@ class SettingsViewModel @Inject constructor(
     fun updateBaseCurrency(currency: String) {
         viewModelScope.launch {
             userPreferencesRepository.updateBaseCurrency(currency)
+            // The widgets' snapshots still carry the old currency.
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 
@@ -812,6 +814,7 @@ class SettingsViewModel @Inject constructor(
                 bankName = account.bankName
             )
             userPreferencesRepository.applyMainAccountCurrency(currency)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
 }

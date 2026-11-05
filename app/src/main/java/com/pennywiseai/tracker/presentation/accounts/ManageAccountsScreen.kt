@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.utils.AppDates
 
@@ -1153,11 +1154,15 @@ private fun AccountItem(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconTile(
-                icon = if (account.isLoan) AccountType.LOAN.icon else Icons.Outlined.AccountBalance,
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (account.isLoan) {
+                IconTile(
+                    icon = AccountType.LOAN.icon,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                BrandIcon(merchantName = account.bankName, size = Dimensions.Icon.list, showBackground = true)
+            }
             Spacer(modifier = Modifier.width(Spacing.smd))
             val alias = account.alias?.takeIf { it.isNotBlank() }
             Column(modifier = Modifier.weight(1f)) {

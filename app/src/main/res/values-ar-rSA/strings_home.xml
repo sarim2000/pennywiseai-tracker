@@ -428,8 +428,8 @@
     <string name="safe_to_spend_other_currency_row">عملة أخرى، محسوبة على حدة</string>
     <string name="budgets_pace_hint">العلامة على كل شريط تشير إلى اليوم</string>
     <string name="balance_card_balance_label">الرصيد</string>
-    <string name="balance_card_plus_other">إضافة إلى %1$s</string>
-    <string name="balance_card_plus_other_currencies">%1$s، إضافة إلى %2$s</string>
+    <string name="balance_card_plus_other">بالإضافة إلى %1$s</string>
+    <string name="balance_card_plus_other_currencies">%1$s، بالإضافة إلى %2$s</string>
     <string name="balance_card_summary_net">الصافي</string>
     <string name="sparkline_today">اليوم</string>
     <string name="safe_to_spend_after_bills">بعد فواتير بقيمة %1$s</string>

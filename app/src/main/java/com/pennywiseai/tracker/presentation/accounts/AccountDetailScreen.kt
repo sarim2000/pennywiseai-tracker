@@ -439,15 +439,11 @@ private fun DateRangeFilter(
     selectedRange: DateRange,
     onRangeSelected: (DateRange) -> Unit
 ) {
-    LazyRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        contentPadding = PaddingValues(horizontal = 0.dp)
-    ) {
-        items(DateRange.values().toList()) { range ->
+    FilterChipRow {
+        DateRange.values().forEach { range ->
             FilterChip(
                 selected = selectedRange == range,
-                shapes = FilterChipDefaults.shapes(),
+                shapes = FilterChipDefaults.shapes(shape = MaterialTheme.shapes.medium, selectedShape = MaterialTheme.shapes.medium),
                 onClick = { onRangeSelected(range) },
                 label = { Text(stringResource(range.labelRes)) },
                 colors = FilterChipDefaults.filterChipColors(

@@ -358,7 +358,8 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         onSurface = ink_text,
         surfaceVariant = ink_container,
         onSurfaceVariant = ink_textMuted,
-        inverseSurface = ink_text,
+        // Selection fill. A touch under the text colour, or a chip glares at night.
+        inverseSurface = lerp(ink_text, ink_highest, 0.12f),
         inverseOnSurface = ink_background,
         error = expense_dark,
         onError = ink_background,

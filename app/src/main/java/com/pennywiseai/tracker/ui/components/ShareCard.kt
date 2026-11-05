@@ -192,6 +192,7 @@ fun ShareCard(
             style = TextStyle(
                 // The only element that brings anyone back, so it gets a size and contrast
                 // that survive the same reduction as the hero instead of muted grey.
+                fontFamily = LedgerTextFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,

@@ -100,6 +100,10 @@ jobs:
         disable-animations: true
         script: ./gradlew :app:connectedStandardDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pennywiseai.tracker.data.database.FullUpgradeTest --build-cache
 
+    # A failed APK install still exits 0 and writes a results file with no tests.
+    - name: Confirm the test ran
+      run: grep -Eq 'testsuite name="com\.pennywiseai\.tracker\.data\.database\.FullUpgradeTest" tests="[1-9]' app/build/outputs/androidTest-results/connected/debug/flavors/standard/TEST-*.xml
+
     - name: Upload test reports
       uses: actions/upload-artifact@v7
       if: failure()

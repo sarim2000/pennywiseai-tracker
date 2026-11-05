@@ -154,7 +154,7 @@ class TransactionDraftTest {
             "got 500 from mom", "got 500 for 2 hours of tutoring", "got ₹500", "got rs.500", "got USD 500", "got back 500",
             "got my money back 500", "500 mila", "mila 500", "मुझे 500 रुपये मिले", "मिले ५०० रुपये", "got a refund for 500",
             "got JD 500 from mom", "got SR 500", "got DHS 500", "got five hundred from mom", "got some cash from mom 500", "got paid 500",
-            "got a payment of 500 from a client", "got payment from a client 500", "got a tip of 500", "got an advance of 500", "got a transfer of 500 from dad"
+            "got a payment of 500 from a client", "got payment from a client 500", "got a tip of 500", "got an advance of 500", "got a transfer of 500 from dad", "got money for my birthday 500", "got a payment for 500 from a client"
         ).forEach { assertEquals(it, TransactionType.INCOME, type(it)) }
         assertEquals(TransactionType.INCOME, type("got 5k", 5000))
         assertEquals(TransactionType.INCOME, type("got $.50", 0.5))

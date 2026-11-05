@@ -23,6 +23,7 @@ data class RecentTransactionsWidgetData(
     val totalSpent: BigDecimal = BigDecimal.ZERO,
     /** Today's share of [totalSpent]; the summary widget shows both. */
     val todaySpent: BigDecimal = BigDecimal.ZERO,
-    val currency: String = "INR",
+    /** Blank until the worker first writes a snapshot; [totalText] shows a dash for it. */
+    val currency: String = "",
     val transactions: List<RecentTransactionItem> = emptyList()
 )

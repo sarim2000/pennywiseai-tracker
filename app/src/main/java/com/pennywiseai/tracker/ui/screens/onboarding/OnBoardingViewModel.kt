@@ -321,6 +321,8 @@ class OnBoardingViewModel @Inject constructor(
                 // Won't override a currency the user explicitly picked in Settings.
                 userPreferencesRepository.applyMainAccountCurrency(currency)
             }
+            // A widget added before onboarding finished holds the ₹ default.
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }
             onComplete()

@@ -122,6 +122,7 @@ fun SettingsScreen(
     permissionViewModel: com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel = hiltViewModel()
 ) {
     val themeUiState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
+    val budgetConversionPrompt by settingsViewModel.budgetConversionPrompt.collectAsStateWithLifecycle()
     val appLockUiState by appLockViewModel.uiState.collectAsStateWithLifecycle()
     val shakeToHideEnabled by shakeToHideViewModel.enabled.collectAsStateWithLifecycle()
     val downloadState by settingsViewModel.downloadState.collectAsStateWithLifecycle()
@@ -997,6 +998,35 @@ fun SettingsScreen(
     }
 
     // ── Dialogs ──
+
+    // Budget conversion question: only asked while the user is still here. Back
+    // from Budgets it would convert limits they've since entered in the new
+    // currency. A rotation isn't leaving, the ViewModel carries it across.
+    val activity = androidx.activity.compose.LocalActivity.current
+    DisposableEffect(settingsViewModel) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) settingsViewModel.dropBudgetConversion()
+        }
+    }
+    budgetConversionPrompt?.let { prompt ->
+        // Isolated: a Latin "1 INR = 84 JOD" reads in order inside Arabic text.
+        val rate = "\u20661 ${prompt.from} = ${prompt.rate.round(java.math.MathContext(4)).toPlainString()} ${prompt.to}\u2069"
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.resolveBudgetConversion(convert = false) },
+            title = { Text(stringResource(R.string.settings_budget_convert_title)) },
+            text = { Text(stringResource(R.string.settings_budget_convert_message, prompt.from, prompt.to, rate)) },
+            confirmButton = {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = true) }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_budget_convert_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { settingsViewModel.resolveBudgetConversion(convert = false) }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.settings_budget_convert_keep))
+                }
+            }
+        )
+    }
 
     // Display Currency Dialog
     if (showDisplayCurrencyDialog) {

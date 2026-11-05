@@ -15,8 +15,8 @@ data class CategoryPieSlice(
 
 /**
  * Snapshot for the category pie widget (#665). Single-currency by
- * construction: the worker picks the cycle's dominant spend currency and
- * filters to it — a pie mixing ₹ and $ slices would be meaningless.
+ * construction: the worker picks one currency ([pieCurrency]) and filters
+ * to it — a pie mixing ₹ and $ slices would be meaningless.
  * The widget formats [total] and the month itself, so the eye can hide the
  * total and the month follows the app's language.
  */

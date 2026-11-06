@@ -221,7 +221,7 @@ private fun ExpandableBalanceChart(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ShowChart,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(

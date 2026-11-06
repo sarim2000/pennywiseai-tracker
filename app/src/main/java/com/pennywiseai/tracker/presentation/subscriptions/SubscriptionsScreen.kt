@@ -649,7 +649,7 @@ private fun SwipeableSubscriptionItem(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
                                         contentDescription = stringResource(R.string.subscriptions_sms_available),
                                         modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
@@ -858,7 +858,7 @@ private fun SwipeableSubscriptionItem(
                                 Icon(
                                     Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(Dimensions.Icon.medium)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
@@ -1069,7 +1069,7 @@ private fun EditSubscriptionDialog(
                                         Text(
                                             CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 },

@@ -1628,7 +1628,7 @@ private fun SettingsNavItem(
             Text(
                 text = trailingText,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         // The chevron is a hint, not a control — at 20dp it stops competing

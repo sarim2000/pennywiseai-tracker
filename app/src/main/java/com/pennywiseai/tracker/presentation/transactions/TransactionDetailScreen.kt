@@ -1947,7 +1947,7 @@ private fun DateTimeField(
                     Text(
                         text = dateTime.format(DateTimeFormatter.ofPattern("yyyy")),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = dateTime.format(AppDates.pattern("dd MMMM")),

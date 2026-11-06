@@ -1241,7 +1241,7 @@ fun HomeScreen(
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 title = {
@@ -1621,7 +1621,7 @@ private fun BreakdownPeriod(
         Text(
             text = period,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
         BreakdownRow(label = stringResource(R.string.home_breakdown_income), amount = income, isIncome = true, currency = currency)
         BreakdownRow(label = stringResource(R.string.home_breakdown_expenses), amount = expenses, isIncome = false, currency = currency)

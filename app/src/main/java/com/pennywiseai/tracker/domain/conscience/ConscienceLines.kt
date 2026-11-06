@@ -107,8 +107,8 @@ object ConscienceLines {
 
     // Shared by ترفيه and تسوق: ال{category} / لل{category} must read right with both.
     private val JO_COMEBACK = listOf(
-        ConscienceLine("jo_comeback_01", "{days} صمود… وانتهى الفيلم 🍿"),
         ConscienceLine("jo_comeback_02", "قال بطّلت ال{category} قال! {days} بس 😂"),
+        ConscienceLine("jo_comeback_01", "{days} صمود… وانتهى الفيلم 🍿"),
         ConscienceLine(
             "jo_comeback_03",
             "ال{category} بسلم عليك وبقولك: {days} بس؟ 😏",

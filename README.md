@@ -143,8 +143,8 @@ Supporting **173 banks & services** across **26 countries** with **multi-currenc
 ### 🇳🇬 Nigeria — NGN ₦ (9)
 **Access Bank**, **GTBank**, **Jaiz Bank**, **Keystone Bank**, **Moniepoint**, **Opay**, **Standard Chartered Bank Nigeria**, **VFD Microfinance Bank**, **Zenith Bank**
 
-### 🇸🇦 Saudi Arabia — SAR ﷼ (7)
-**Al Rajhi Bank**, **Alinma Bank**, **Banque Saudi Fransi**, **D360 Bank**, **SABB**, **STC Bank**, **Saudi National Bank**
+### 🇸🇦 Saudi Arabia — SAR ﷼ (8)
+**Al Rajhi Bank**, **Alinma Bank**, **Banque Saudi Fransi**, **D360 Bank**, **Mobily Pay**, **SABB**, **STC Bank**, **Saudi National Bank**
 
 ### 🇹🇿 Tanzania — TZS TSh (7)
 **CRDB Bank**, **Diamond Trust Bank**, **M-Pesa Tanzania**, **Mixx by Yas**, **NMB Bank Tanzania**, **Selcom Pesa**, **Tigo Pesa**

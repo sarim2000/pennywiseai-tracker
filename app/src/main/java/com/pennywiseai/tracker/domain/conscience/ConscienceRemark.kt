@@ -24,11 +24,13 @@ object ConscienceRemarks {
     const val MAX = 20
     private const val MAX_AGE_MILLIS = 30 * 24 * 60 * 60 * 1000L
 
+    /** Only remarks younger than 30 days exist: older ones are neither shown nor rated. */
+    fun fresh(remarks: List<ConscienceRemark>, nowMillis: Long): List<ConscienceRemark> =
+        remarks.filter { nowMillis - it.atMillis < MAX_AGE_MILLIS }
+
     /** Newest first, at most [MAX], none older than 30 days. */
     fun add(remarks: List<ConscienceRemark>, remark: ConscienceRemark, nowMillis: Long): List<ConscienceRemark> =
-        (listOf(remark) + remarks.filter { it.id != remark.id })
-            .filter { nowMillis - it.atMillis < MAX_AGE_MILLIS }
-            .take(MAX)
+        fresh(listOf(remark) + remarks.filter { it.id != remark.id }, nowMillis).take(MAX)
 
     /**
      * The first reaction to a remark wins; null when there's no such remark or

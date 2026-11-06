@@ -26,6 +26,17 @@ class ConscienceRemarksTest {
     }
 
     @Test
+    fun `remarks expire at 30 days without a new remark being added`() {
+        val stored = listOf(remark(2, at = now - 29 * day), remark(1, at = now - 30 * day))
+        assertEquals(listOf(2L, 1L), ConscienceRemarks.fresh(stored, now - day).map { it.id })
+        // Reopened later with nothing new: the old one is gone and can't be rated.
+        val later = ConscienceRemarks.fresh(stored, now)
+        assertEquals(listOf(2L), later.map { it.id })
+        assertNull(ConscienceRemarks.react(later, ConscienceFeedback(), 1, ConscienceReaction.LIKED))
+        assertTrue(ConscienceRemarks.fresh(stored, now + day).isEmpty())
+    }
+
+    @Test
     fun `adding the same remark twice keeps one`() {
         val once = ConscienceRemarks.add(emptyList(), remark(1), now)
         assertEquals(1, ConscienceRemarks.add(once, remark(1), now).size)

@@ -448,15 +448,16 @@ open class UserPreferencesRepository @Inject constructor(
     private fun Preferences.conscienceFeedback(): ConscienceFeedback =
         ConscienceCadence.decodeFeedback(this[PreferencesKeys.CONSCIENCE_FEEDBACK] ?: emptySet())
 
-    /** Newest first. */
+    /** Newest first. Each read applies the 30-day cutoff, so reopening the screen drops expired remarks. */
     val conscienceRemarks: Flow<List<ConscienceRemark>> = context.dataStore.data.map { it.conscienceRemarks() }
 
-    private fun Preferences.conscienceRemarks(): List<ConscienceRemark> =
+    // Every reader goes through here, and every write stores what it read, so expired remarks also leave storage.
+    private fun Preferences.conscienceRemarks(nowMillis: Long = System.currentTimeMillis()): List<ConscienceRemark> =
         this[PreferencesKeys.CONSCIENCE_REMARKS]?.let { raw ->
             runCatching { conscienceJson.decodeFromString<List<ConscienceRemark>>(raw) }.getOrNull()
-        }.orEmpty()
+        }.orEmpty().let { ConscienceRemarks.fresh(it, nowMillis) }
 
-    /** False when the remark is gone or already has a reaction: the first one wins. */
+    /** False when the remark is gone (expired too) or already has a reaction: the first one wins. */
     suspend fun reactToConscienceRemark(remarkId: Long, reaction: ConscienceReaction): Boolean {
         var applied = false
         context.dataStore.edit { prefs ->
@@ -510,7 +511,7 @@ open class UserPreferencesRepository @Inject constructor(
             prefs[PreferencesKeys.CONSCIENCE_LOG] =
                 ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
             prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
-                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(), remark, nowMillis))
+                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(nowMillis), remark, nowMillis))
             claimed = remark
         }
         return claimed

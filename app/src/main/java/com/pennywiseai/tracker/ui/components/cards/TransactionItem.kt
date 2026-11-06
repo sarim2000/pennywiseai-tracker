@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import android.view.HapticFeedbackConstants
@@ -52,7 +54,10 @@ fun TransactionItem(
     val colorScheme = MaterialTheme.colorScheme
     val amountColor = when (transaction.transactionType) {
         TransactionType.INCOME -> colorScheme.income
-        TransactionType.EXPENSE -> colorScheme.onSurface
+        TransactionType.EXPENSE -> containerColor
+            ?.let { colorScheme.contentColorFor(it) }
+            ?.takeIf { it.isSpecified }
+            ?: colorScheme.onSurface
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment

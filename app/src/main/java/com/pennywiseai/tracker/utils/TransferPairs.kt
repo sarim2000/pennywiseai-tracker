@@ -40,42 +40,60 @@ fun <T> Iterable<T>.countingTransferPairsOnce(row: (T) -> TransactionEntity): Li
 
 /**
  * Finds the pairs among TRANSFER rows marked before [TransactionEntity.transferPairId]
- * existed, as (source id, destination id). Rows updated together, as marking does,
- * come first: that finds pairs with a fee or a long gap (#614), and keeps a fee pair
- * from taking another pair's equal amount. Then the same amount close in time, for a
- * row edited since.
+ * existed, as (source id, destination id). Rows that [lookMarkedTogether] come first:
+ * that finds pairs with a fee or a long gap (#614), and keeps a fee pair from taking
+ * another pair's equal amount. Then the same amount close in time, for a row edited
+ * since. Each pass links the closest dates on a route first, so an older standalone
+ * transfer can't take a nearer source's destination.
+ *
+ * A deleted leg isn't linked: the row left behind still stands for the whole transfer.
  */
 fun findUnlinkedTransferPairs(rows: List<TransactionEntity>): List<Pair<Long, Long>> {
     val pairs = mutableListOf<Pair<Long, Long>>()
-    rows.filter { it.transactionType == TransactionType.TRANSFER && it.transferPairId == null }
-        .groupBy { it.fromAccount to it.toAccount }
+    rows.filter { it.transactionType == TransactionType.TRANSFER && it.transferPairId == null && !it.isDeleted }
+        .groupBy { listOf(it.fromAccount, it.fromBankName, it.toAccount, it.toBankName) }
         .values
         .forEach { route ->
-            val sources = route.filter { it.ownLegType() == TransactionType.EXPENSE }.sortedBy { it.dateTime }
-            val destinations = route.filter { it.ownLegType() == TransactionType.INCOME }.toMutableList()
-            fun link(source: TransactionEntity, matches: (TransactionEntity) -> Boolean): Boolean {
-                val match = destinations.filter(matches)
-                    .minByOrNull { Duration.between(source.dateTime, it.dateTime).abs() } ?: return false
-                destinations.remove(match)
-                pairs += source.id to match.id
-                return true
-            }
-            sources
-                .filterNot { source ->
-                    link(source) { Duration.between(source.updatedAt, it.updatedAt).abs() <= MARK_WINDOW }
-                }
-                .forEach { source ->
-                    link(source) {
-                        it.currency == source.currency && it.amount.compareTo(source.amount) == 0 &&
-                            Duration.between(source.dateTime, it.dateTime).abs() <= MATCH_WINDOW
+            val sources = route.filter { it.ownLegType() == TransactionType.EXPENSE }.toMutableSet()
+            val destinations = route.filter { it.ownLegType() == TransactionType.INCOME }.toMutableSet()
+            fun link(matches: (TransactionEntity, TransactionEntity) -> Boolean) {
+                sources.flatMap { source -> destinations.filter { matches(source, it) }.map { source to it } }
+                    .sortedBy { (source, destination) -> dateGap(source, destination) }
+                    .forEach { (source, destination) ->
+                        if (source in sources && destination in destinations) {
+                            sources -= source
+                            destinations -= destination
+                            pairs += source.id to destination.id
+                        }
                     }
-                }
+            }
+            link(::lookMarkedTogether)
+            link { source, destination ->
+                destination.currency == source.currency && destination.amount.compareTo(source.amount) == 0 &&
+                    dateGap(source, destination) <= MATCH_WINDOW
+            }
         }
     return pairs
 }
+
+/**
+ * Marking stamps both rows at once, but so does a bulk edit (a category by merchant),
+ * so the stamp alone proves nothing: the rows must also read as one transfer.
+ * ponytail: a real pair outside these bounds stays unlinked and counts as it did before.
+ */
+private fun lookMarkedTogether(source: TransactionEntity, destination: TransactionEntity): Boolean =
+    Duration.between(source.updatedAt, destination.updatedAt).abs() <= MARK_WINDOW &&
+        dateGap(source, destination) <= MARKED_MAX_GAP &&
+        (destination.currency != source.currency || destination.amount <= source.amount)
+
+private fun dateGap(source: TransactionEntity, destination: TransactionEntity): Duration =
+    Duration.between(source.dateTime, destination.dateTime).abs()
 
 /** Matches the window that suggests a pair ([computeSelfTransferPairs]). */
 private val MATCH_WINDOW: Duration = Duration.ofMinutes(60)
 
 /** Marking saves the two rows one after the other, so their updatedAt differs by milliseconds. */
 private val MARK_WINDOW: Duration = Duration.ofSeconds(1)
+
+/** The longest a bank transfer plausibly takes to arrive. */
+private val MARKED_MAX_GAP: Duration = Duration.ofDays(7)

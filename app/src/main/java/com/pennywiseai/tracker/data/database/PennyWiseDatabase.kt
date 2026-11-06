@@ -741,7 +741,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 val converters = Converters()
                 val rows = db.prepare("""
                     SELECT id, amount, currency, date_time, updated_at, bank_name, account_number,
-                           from_account, to_account, from_bank_name, to_bank_name
+                           from_account, to_account, from_bank_name, to_bank_name, is_deleted
                     FROM transactions
                     WHERE transaction_type = 'TRANSFER' AND (from_account IS NOT NULL OR to_account IS NOT NULL)
                 """.trimIndent()).use { stmt ->
@@ -764,7 +764,8 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                                     fromAccount = text(7),
                                     toAccount = text(8),
                                     fromBankName = text(9),
-                                    toBankName = text(10)
+                                    toBankName = text(10),
+                                    isDeleted = stmt.getLong(11) != 0L
                                 )
                             }
                             row.getOrNull()?.let(::add)

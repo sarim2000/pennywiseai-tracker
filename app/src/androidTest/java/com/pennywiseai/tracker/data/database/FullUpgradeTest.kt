@@ -58,8 +58,11 @@ class FullUpgradeTest {
 
     @Test fun upgradeFrom67LinksMarkedTransferPairs() = runBlocking {
         helper.createDatabase(67).apply {
-            // Rows 1 and 2 are a marked pair; 3 is a standalone transfer on the same route.
-            for ((id, account, hour) in listOf(Triple(1, "1111", 10), Triple(2, "2222", 10), Triple(3, "1111", 15))) {
+            // Rows 1 and 2 are a marked pair; 3 is a standalone transfer on the same route;
+            // 4 lost its other leg, 5, to a delete.
+            for ((id, account, hour) in listOf(
+                Triple(1, "1111", 10), Triple(2, "2222", 10), Triple(3, "1111", 15), Triple(4, "1111", 18), Triple(5, "2222", 18)
+            )) {
                 execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
                     transaction_hash, is_recurring, created_at, updated_at, bank_name, account_number,
                     from_account, to_account, from_bank_name, to_bank_name) VALUES
@@ -67,6 +70,7 @@ class FullUpgradeTest {
                     '2026-01-01T$hour:00:00', '2026-01-01T$hour:00:00', 'Bank $account', '$account',
                     '1111', '2222', 'Bank 1111', 'Bank 2222')""")
             }
+            execSQL("UPDATE transactions SET is_deleted = 1 WHERE id = 5")
             close()
         }
 
@@ -80,6 +84,7 @@ class FullUpgradeTest {
             assertNotNull(source.transferPairId)
             assertEquals(source.transferPairId, dao.getTransactionById(2)!!.transferPairId)
             assertNull(dao.getTransactionById(3)!!.transferPairId)
+            assertNull(dao.getTransactionById(4)!!.transferPairId)
             // Linking isn't an edit: webhook sync goes by updated_at.
             assertEquals(LocalDateTime.of(2026, 1, 1, 10, 0), source.updatedAt)
         } finally { db.close() }

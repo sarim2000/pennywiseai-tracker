@@ -318,17 +318,16 @@
     <string name="notif_txn_action_more">المزيد…</string>
     <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • الرصيد يحتاج مراجعة</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">صرفت %1$s في %2$s</string>
-    <string name="notif_txn_title_received">استلمت %1$s من %2$s</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">صرفت %1$s</string>
+    <string name="notif_txn_title_received">استلمت %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
     <string name="notif_suggestion_title_spent">هل أنفقت %1$s في %2$s؟</string>
     <string name="notif_suggestion_title_received">هل استلمت %1$s من %2$s؟</string>
     <string name="notif_suggestion_text">من %1$s. اضغط لإضافتها.</string>
-    <string name="notif_txn_title_other">%1$s · %2$s</string>
     <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
     <string name="notif_txn_ask_category">على ماذا صرفتها؟ · %1$s</string>
-    <string name="notif_txn_action_change">تغيير</string>
+    <string name="notif_txn_action_change">تغيير التصنيف</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">ليس مصروفاً</string>
     <string name="notif_txn_action_not_income">ليس دخلاً</string>

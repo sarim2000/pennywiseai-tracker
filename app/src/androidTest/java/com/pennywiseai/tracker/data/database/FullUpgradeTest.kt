@@ -71,6 +71,17 @@ class FullUpgradeTest {
                     '1111', '2222', 'Bank 1111', 'Bank 2222')""")
             }
             execSQL("UPDATE transactions SET is_deleted = 1 WHERE id = 5")
+            // 6 and 7 are a pair marked before from/to banks: MIGRATION_63_64 knew only each row's own.
+            for ((id, account, banks) in listOf(
+                Triple(6, "3333", "'Bank 3333', NULL"), Triple(7, "4444", "NULL, 'Bank 4444'")
+            )) {
+                execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
+                    transaction_hash, is_recurring, created_at, updated_at, bank_name, account_number,
+                    from_account, to_account, from_bank_name, to_bank_name) VALUES
+                    ($id, '100', 'Synthetic', 'Others', 'TRANSFER', '2026-01-01T20:00:00', 'synthetic-$id', 0,
+                    '2026-01-01T20:00:00', '2026-01-02T09:00:00', 'Bank $account', '$account',
+                    '3333', '4444', $banks)""")
+            }
             close()
         }
 
@@ -85,6 +96,9 @@ class FullUpgradeTest {
             assertEquals(source.transferPairId, dao.getTransactionById(2)!!.transferPairId)
             assertNull(dao.getTransactionById(3)!!.transferPairId)
             assertNull(dao.getTransactionById(4)!!.transferPairId)
+            val legacySource = dao.getTransactionById(6)!!
+            assertNotNull(legacySource.transferPairId)
+            assertEquals(legacySource.transferPairId, dao.getTransactionById(7)!!.transferPairId)
             // Linking isn't an edit: webhook sync goes by updated_at.
             assertEquals(LocalDateTime.of(2026, 1, 1, 10, 0), source.updatedAt)
         } finally { db.close() }

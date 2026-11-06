@@ -147,6 +147,26 @@ class TransferPairsTest {
     }
 
     @Test
+    fun `a pair whose other bank the 63-64 backfill left unknown still links`() {
+        val edited = base.plusDays(1)
+        val rows = listOf(
+            leg(1, "1111", pairId = null, updatedAt = edited).copy(toBankName = null),
+            leg(2, "2222", minutes = 1, pairId = null, updatedAt = edited).copy(fromBankName = null)
+        )
+        assertEquals(listOf(1L to 2L), findUnlinkedTransferPairs(rows))
+    }
+
+    @Test
+    fun `an unknown bank doesn't excuse a known one that differs`() {
+        val edited = base.plusDays(1)
+        val rows = listOf(
+            leg(1, "1111", pairId = null, updatedAt = edited).copy(toBankName = null),
+            leg(2, "2222", minutes = 1, pairId = null, updatedAt = edited).copy(fromBankName = "Other bank")
+        )
+        assertEquals(emptyList<Pair<Long, Long>>(), findUnlinkedTransferPairs(rows))
+    }
+
+    @Test
     fun `a deleted leg is not linked, so the row left still moves both accounts`() {
         val rows = listOf(
             leg(1, "1111", pairId = null),

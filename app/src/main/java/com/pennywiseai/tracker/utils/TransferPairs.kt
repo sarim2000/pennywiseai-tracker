@@ -51,14 +51,15 @@ fun <T> Iterable<T>.countingTransferPairsOnce(row: (T) -> TransactionEntity): Li
 fun findUnlinkedTransferPairs(rows: List<TransactionEntity>): List<Pair<Long, Long>> {
     val pairs = mutableListOf<Pair<Long, Long>>()
     rows.filter { it.transactionType == TransactionType.TRANSFER && it.transferPairId == null && !it.isDeleted }
-        .groupBy { listOf(it.fromAccount, it.fromBankName, it.toAccount, it.toBankName) }
+        .groupBy { it.fromAccount to it.toAccount }
         .values
         .forEach { route ->
             val sources = route.filter { it.ownLegType() == TransactionType.EXPENSE }.toMutableSet()
             val destinations = route.filter { it.ownLegType() == TransactionType.INCOME }.toMutableSet()
             fun link(matches: (TransactionEntity, TransactionEntity) -> Boolean) {
-                sources.flatMap { source -> destinations.filter { matches(source, it) }.map { source to it } }
-                    .sortedBy { (source, destination) -> dateGap(source, destination) }
+                sources.flatMap { source ->
+                    destinations.filter { sameBanks(source, it) && matches(source, it) }.map { source to it }
+                }.sortedBy { (source, destination) -> dateGap(source, destination) }
                     .forEach { (source, destination) ->
                         if (source in sources && destination in destinations) {
                             sources -= source
@@ -85,6 +86,17 @@ private fun lookMarkedTogether(source: TransactionEntity, destination: Transacti
     Duration.between(source.updatedAt, destination.updatedAt).abs() <= MARK_WINDOW &&
         dateGap(source, destination) <= MARKED_MAX_GAP &&
         (destination.currency != source.currency || destination.amount <= source.amount)
+
+/**
+ * Known banks must agree, but an unknown one matches any. A pair marked before
+ * from/to banks existed got them from MIGRATION_63_64, which knows each row's own
+ * bank but can leave the other side null: the source reads [A, null] and its
+ * destination [null, B].
+ */
+private fun sameBanks(source: TransactionEntity, destination: TransactionEntity): Boolean =
+    bankAgrees(source.fromBankName, destination.fromBankName) && bankAgrees(source.toBankName, destination.toBankName)
+
+private fun bankAgrees(a: String?, b: String?): Boolean = a == null || b == null || a == b
 
 private fun dateGap(source: TransactionEntity, destination: TransactionEntity): Duration =
     Duration.between(source.dateTime, destination.dateTime).abs()

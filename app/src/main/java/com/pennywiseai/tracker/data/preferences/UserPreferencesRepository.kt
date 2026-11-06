@@ -456,13 +456,6 @@ open class UserPreferencesRepository @Inject constructor(
             runCatching { conscienceJson.decodeFromString<List<ConscienceRemark>>(raw) }.getOrNull()
         }.orEmpty()
 
-    suspend fun addConscienceRemark(remark: ConscienceRemark, nowMillis: Long) {
-        context.dataStore.edit { prefs ->
-            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
-                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(), remark, nowMillis))
-        }
-    }
-
     /** False when the remark is gone or already has a reaction: the first one wins. */
     suspend fun reactToConscienceRemark(remarkId: Long, reaction: ConscienceReaction): Boolean {
         var applied = false
@@ -488,8 +481,11 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /**
-     * Spends a slot and picks the comment in one edit: the SMS receiver and the
-     * notification listener can race, and only one of them may get the slot.
+     * Spends a slot, picks the comment and saves its remark in one edit: the SMS
+     * receiver and the notification listener can race, and only one may get the
+     * slot. The remark is stored before anything is posted, so a reaction can
+     * never arrive for a remark that doesn't exist. Muted kinds and the switch
+     * are re-read here, since either can change while the history is read.
      * Null when the cadence says no or no candidate has a line left.
      */
     suspend fun tryClaimConscience(
@@ -497,21 +493,25 @@ open class UserPreferencesRepository @Inject constructor(
         contentLocale: String,
         nowMillis: Long,
         todayEpochDay: Long,
-        random: Random
-    ): ConscienceChoice? {
-        var claimed: ConscienceChoice? = null
+        random: Random,
+        remarkFor: (ConscienceChoice) -> ConscienceRemark?
+    ): ConscienceRemark? {
+        var claimed: ConscienceRemark? = null
         context.dataStore.edit { prefs ->
             claimed = null
-            // Checked here too: the switch can go off while the history is being read.
             if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
+            val muted = prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS].orEmpty()
             val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
             val choice = ConscienceCadence.choose(
-                candidates, log, prefs.conscienceFeedback(), prefs.conscienceFrequency(),
-                contentLocale, nowMillis, todayEpochDay, random
+                candidates.filter { it.fact.kind.name !in muted }, log, prefs.conscienceFeedback(),
+                prefs.conscienceFrequency(), contentLocale, nowMillis, todayEpochDay, random
             ) ?: return@edit
+            val remark = remarkFor(choice) ?: return@edit
             prefs[PreferencesKeys.CONSCIENCE_LOG] =
                 ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
-            claimed = choice
+            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
+                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(), remark, nowMillis))
+            claimed = remark
         }
         return claimed
     }

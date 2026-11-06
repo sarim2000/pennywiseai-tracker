@@ -8,6 +8,7 @@ import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import kotlin.math.abs
@@ -65,6 +66,7 @@ object ConscienceDetectors {
         history: List<ConsciencePurchase>,
         ledgerStart: LocalDate?,
         activeDates: Set<LocalDate> = emptySet(),
+        zone: ZoneId = ZoneId.systemDefault(),
     ): List<ConscienceFact> {
         val today = current.at.toLocalDate()
         val prior = history.filter { it.isBefore(current) }
@@ -73,7 +75,7 @@ object ConscienceDetectors {
         val facts = listOfNotNull(
             positive(current, inCategory, today, ledgerStart, activeDates),
             comeback(current, inCategory, today),
-            repeat(current, inCategory),
+            repeat(current, inCategory, zone),
             weekly(current, inCategory, today),
             lateNight(current, prior),
             recordDay(current, sameMoney, today, ledgerStart),
@@ -128,24 +130,29 @@ object ConscienceDetectors {
      * A burst of separate purchases. Recurring charges aren't a burst, and the
      * spread keeps a bank's duplicate alerts for one purchase from counting.
      */
-    private fun repeat(current: ConsciencePurchase, inCategory: List<ConsciencePurchase>): ConscienceFact? {
+    private fun repeat(current: ConsciencePurchase, inCategory: List<ConsciencePurchase>, zone: ZoneId): ConscienceFact? {
         if (current.recurring) return null
+        // Elapsed hours, not wall-clock ones: a DST change must not stretch "6 hours".
+        fun LocalDateTime.instant() = atZone(zone).toInstant()
+        val now = current.at.instant()
         val buys = inCategory.filter { !it.recurring }.byTransaction()
         for ((hours, minCount) in listOf(6 to 3, 24 to 4)) {
-            val from = current.at.minusHours(hours.toLong())
-            val window = buys.filter { !it.at.isBefore(from) }
-            val earliest = window.minOfOrNull { it.at } ?: continue
+            val from = now.minus(Duration.ofHours(hours.toLong()))
+            val window = buys.filter { !it.at.instant().isBefore(from) }
+            val earliest = window.minOfOrNull { it.at.instant() } ?: continue
             val count = window.size + 1
-            if (count >= minCount && Duration.between(earliest, current.at) >= MIN_SPREAD) {
+            if (count >= minCount && Duration.between(earliest, now) >= MIN_SPREAD) {
                 return ConscienceFact.Repeat(current.category, count, hours)
             }
         }
         return null
     }
 
+    /** Whether [time] is in the late-night window, 23:00 up to 05:00. */
+    fun isLateNight(time: LocalTime): Boolean = !time.isBefore(LATE_FROM) || time.isBefore(LATE_UNTIL)
+
     private fun lateNight(current: ConsciencePurchase, prior: List<ConsciencePurchase>): ConscienceFact? {
-        val time = current.at.toLocalTime()
-        if (time.isBefore(LATE_FROM) && !time.isBefore(LATE_UNTIL)) return null
+        if (!isLateNight(current.at.toLocalTime())) return null
         return if (isScheduledRenewal(current, prior)) null else ConscienceFact.LateNight(current.category)
     }
 
@@ -240,9 +247,9 @@ object ConscienceDetectors {
         if (ledgerStart == null || ledgerStart.isAfter(starts.last())) return null
 
         val weeks = starts.map { start -> inCategory.filter { it.isOn(start, start.plusDays(6)) } }
-        // A switch of currency moves spending out of the compared total; it isn't saving.
-        val baselineCurrencies = weeks.drop(1).flatten().map { it.currency }.toSet()
-        if (weeks[0].map { it.currency }.toSet() != baselineCurrencies) return null
+        // "Less on food" is only true when one currency carried the whole category:
+        // a cheaper week in one can hide a dearer one in another.
+        if (weeks.flatten().any { it.currency != current.currency }) return null
 
         val money = weeks.map { week -> week.filter { it.currency == current.currency } }
         val totals = money.map { it.total() }

@@ -25,6 +25,7 @@ object ConscienceNotifier {
     // The sample gets a tag of its own, so trying it out never replaces a real remark.
     private const val SAMPLE_TAG = "sample"
     private const val CONFIRMATION_TIMEOUT_MS = 6_000L
+    private const val EXTRA_REMARK_ID = "conscience_remark_id"
 
     /** Whether a line would be seen: the app's notifications and this channel are on. */
     fun canPost(context: Context): Boolean {
@@ -47,11 +48,24 @@ object ConscienceNotifier {
         show(context, SAMPLE_TAG, text, line, NotificationActionReceiver.SAMPLE_REMARK_ID, openApp)
     }
 
-    /** Replaces the line after one of its actions landed. */
-    fun showConfirmation(context: Context, sample: Boolean, message: String) {
+    /**
+     * Replaces the remark's notification once one of its actions landed, or
+     * just clears it when [message] is null (the reaction changed nothing).
+     * Only while that remark is still the one shown: a late tap must not
+     * overwrite a newer remark.
+     */
+    fun showConfirmation(context: Context, remarkId: Long, message: String?) {
         val text = ConscienceText(context)
-        ensureChannel(context, text).notify(
-            if (sample) SAMPLE_TAG else null,
+        val manager = ensureChannel(context, text)
+        val shown = manager.activeNotifications.firstOrNull {
+            it.id == NOTIFICATION_ID && it.notification.extras.getLong(EXTRA_REMARK_ID, Long.MIN_VALUE) == remarkId
+        } ?: return
+        if (message == null) {
+            manager.cancel(shown.tag, NOTIFICATION_ID)
+            return
+        }
+        manager.notify(
+            shown.tag,
             NOTIFICATION_ID,
             baseBuilder(context, text, message).setTimeoutAfter(CONFIRMATION_TIMEOUT_MS).build()
         )
@@ -66,6 +80,7 @@ object ConscienceNotifier {
         contentIntent: PendingIntent
     ) {
         val builder = baseBuilder(context, text, line)
+            .addExtras(android.os.Bundle().apply { putLong(EXTRA_REMARK_ID, remarkId) })
             .setContentIntent(contentIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(

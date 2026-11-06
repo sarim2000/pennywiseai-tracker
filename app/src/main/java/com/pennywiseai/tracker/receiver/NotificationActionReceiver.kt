@@ -244,15 +244,14 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
     private suspend fun reactToConscience(context: Context, preferences: UserPreferencesRepository, remarkId: Long, liked: Boolean) {
         val text = ConscienceText(context)
-        val sample = remarkId == SAMPLE_REMARK_ID
-        // A second tap, or a tap on a remark already pruned, changes nothing; the line still goes away.
-        if (!sample) preferences.reactToConscienceRemark(remarkId, if (liked) ConscienceReaction.LIKED else ConscienceReaction.RETIRED)
         val message = when {
-            sample -> R.string.conscience_confirm_sample
+            remarkId == SAMPLE_REMARK_ID -> R.string.conscience_confirm_sample
+            // A remark already rated (say, on the screen) or pruned keeps what it has; the line just goes away.
+            !preferences.reactToConscienceRemark(remarkId, if (liked) ConscienceReaction.LIKED else ConscienceReaction.RETIRED) -> null
             liked -> R.string.conscience_confirm_like
             else -> R.string.conscience_confirm_dislike
         }
-        ConscienceNotifier.showConfirmation(context, sample, text.string(message))
+        ConscienceNotifier.showConfirmation(context, remarkId, message?.let(text::string))
     }
 
     private suspend fun deleteTransaction(

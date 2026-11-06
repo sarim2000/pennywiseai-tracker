@@ -68,8 +68,10 @@ class ConscienceManager @Inject constructor(
             transactionRepository.hasSplits(transactionId)
         ) ?: return
         val today = saved.dateTime.toLocalDate()
+        // Late at night, reach back far enough to see two cycles of a quarterly or yearly renewal.
+        val days = if (ConscienceDetectors.isLateNight(saved.dateTime.toLocalTime())) RENEWAL_HISTORY_DAYS else HISTORY_DAYS
         // This overload stops at 23:59:59, so run past today; the detectors drop anything after the purchase.
-        val rows = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(HISTORY_DAYS), today.plusDays(1)).first()
+        val rows = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(days), today.plusDays(1)).first()
             .filter { it.transaction.id != transactionId }
         val history = rows.flatMap { ConscienceEligibility.historyOf(it, builtinKeys) }
         // Days with any spending at all: a quiet week only counts as a win when the ledger was still being fed.
@@ -88,25 +90,26 @@ class ConscienceManager @Inject constructor(
         // Late at night with the screen off the user is likely asleep: keep the remark, skip the notification.
         val quiet = isQuietHour(LocalTime.now()) && !isScreenOn()
 
-        // Rendered before the claim: nothing may suspend between spending a slot and posting.
-        val choice = preferences.tryClaimConscience(
+        // The candidates were rendered up front, so rendering inside the claim can't fail on a bad line.
+        val remark = preferences.tryClaimConscience(
             candidates,
             text.contentLocale,
             nowMillis,
             LocalDate.now().toEpochDay(),
             Random.Default
-        ) ?: return
-        val line = text.render(choice.fact, choice.line, address) ?: return
-        val remark = ConscienceRemark(
-            id = nowMillis,
-            atMillis = nowMillis,
-            text = line,
-            kind = choice.fact.kind,
-            lineKey = choice.lineKey,
-            notified = !quiet
-        )
-        if (!quiet) ConscienceNotifier.post(context, text, line, remark.id, transactionId)
-        preferences.addConscienceRemark(remark, nowMillis)
+        ) { choice ->
+            text.render(choice.fact, choice.line, address)?.let { line ->
+                ConscienceRemark(
+                    id = nowMillis,
+                    atMillis = nowMillis,
+                    text = line,
+                    kind = choice.fact.kind,
+                    lineKey = choice.lineKey,
+                    notified = !quiet
+                )
+            }
+        } ?: return
+        if (remark.notified) ConscienceNotifier.post(context, text, remark.text, remark.id, transactionId)
     }
 
     private fun isScreenOn(): Boolean =
@@ -115,6 +118,7 @@ class ConscienceManager @Inject constructor(
     companion object {
         private const val TAG = "ConscienceManager"
         private const val HISTORY_DAYS = 95L
+        private const val RENEWAL_HISTORY_DAYS = 2 * 380L + 1
         private const val FRESH_WINDOW_MILLIS = 10 * 60 * 1000L
         private val QUIET_FROM: LocalTime = LocalTime.of(23, 0)
         private val QUIET_UNTIL: LocalTime = LocalTime.of(7, 0)

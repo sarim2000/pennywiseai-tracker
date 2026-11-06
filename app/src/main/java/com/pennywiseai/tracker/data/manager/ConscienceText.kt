@@ -28,7 +28,8 @@ class ConscienceText(context: Context) {
     val contentLocale: String = localized.getString(R.string.conscience_content_locale)
 
     private val words = object : ConscienceWords {
-        override val locale: Locale = localized.resources.configuration.locales[0]
+        // The lines' own language, not the configured one: a fallback to English must not get another language's weekdays.
+        override val locale: Locale = Locale.forLanguageTag(contentLocale)
         override fun days(days: Int) =
             localized.resources.getQuantityString(R.plurals.conscience_days, days, days.toString())
         override fun hours(hours: Int) =

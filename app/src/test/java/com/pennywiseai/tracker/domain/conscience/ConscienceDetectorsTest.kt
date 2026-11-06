@@ -137,6 +137,18 @@ class ConscienceDetectorsTest {
     }
 
     @Test
+    fun `the repeat window counts elapsed hours across a DST change`() {
+        val newYork = java.time.ZoneId.of("America/New_York")
+        // Clocks fell back at 02:00 on 1 Nov 2026: 00:30 to 06:30 is seven hours.
+        val fallBack = LocalDate.of(2026, 11, 1)
+        val history = listOf(on(fallBack, hour = 0, minute = 30), on(fallBack, hour = 4, minute = 30))
+        val current = now(hour = 6, minute = 30, date = fallBack)
+        assertNull(ConscienceDetectors.detect(current, history, longLedger, zone = newYork).find<Repeat>())
+        val inside = listOf(on(fallBack, hour = 1, minute = 30), on(fallBack, hour = 4, minute = 30))
+        assertEquals(Repeat(FOOD, 3, 6), ConscienceDetectors.detect(current, inside, longLedger, zone = newYork).find<Repeat>())
+    }
+
+    @Test
     fun `split parts of one transaction count once`() {
         val at = today.atTime(18, 0)
         assertNull(detect(listOf(buy(at, id = 500), buy(at, id = 500)), now(hour = 20)).find<Repeat>())
@@ -371,13 +383,15 @@ class ConscienceDetectorsTest {
     }
 
     @Test
-    fun `a change in the currencies used is no win`() {
+    fun `any second currency in the five weeks is no win`() {
         val history = usualWeeks + pWeek(0, "80")
+        assertEquals(Positive(FOOD, 20, lastWeekEpochDay), positive(history))
         assertNull(positive(history + on(positiveWeekStart(0).plusDays(5), "5", currency = "USD")))
-        // The same currency mix both sides is fine, and the other currency's amounts stay out.
-        val mixed = history + on(positiveWeekStart(0).plusDays(5), "500", currency = "USD") +
+        // The same mix on both sides still can't be called "less on food": the
+        // cheaper JOD week could hide a far dearer USD one.
+        val mixed = history + on(positiveWeekStart(0).plusDays(5), "5000", currency = "USD") +
             on(positiveWeekStart(2).plusDays(5), "5", currency = "USD")
-        assertEquals(Positive(FOOD, 20, lastWeekEpochDay), positive(mixed))
+        assertNull(positive(mixed))
         assertNull(positive(history, current = now(date = wednesday, currency = "USD")))
     }
 

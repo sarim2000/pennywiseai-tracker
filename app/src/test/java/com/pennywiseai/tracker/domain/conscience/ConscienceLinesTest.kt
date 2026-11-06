@@ -104,6 +104,7 @@ class ConscienceLinesTest {
         val marked = listOf(
             jordanianLine(foodComeback, "jo_food_comeback_01"),
             jordanianLine(genericComebacks.first(), "jo_comeback_04"),
+            jordanianLine(genericComebacks.first(), "jo_comeback_06"),
             jordanianLine(record, "jo_record_day_01"),
             jordanianLine(record, "jo_record_day_09"),
         )

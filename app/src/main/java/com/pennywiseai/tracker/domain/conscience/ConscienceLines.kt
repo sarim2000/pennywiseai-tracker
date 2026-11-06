@@ -116,7 +116,11 @@ object ConscienceLines {
         ),
         ConscienceLine("jo_comeback_04", "ال{category} اتصل؟ {days} وجيت ركض 🏃", "ال{category} اتصل؟ {days} وجيتي ركض 🏃"),
         ConscienceLine("jo_comeback_05", "{days} عقل، وبعدين قررت تعيش 😂", "{days} عقل، وبعدين قررتي تعيشي 😂"),
-        ConscienceLine("jo_comeback_06", "{days} غياب عن ال{category}… وما هان عليك تطوّل 😏"),
+        ConscienceLine(
+            "jo_comeback_06",
+            "{days} غياب عن ال{category}… وما هان عليك تطوّل 😏",
+            "{days} غياب عن ال{category}… وما هان عليكي تطوّلي 😏",
+        ),
         ConscienceLine("jo_comeback_07", "{days} حلم حلو… وصحينا على ال{category} 😴"),
         ConscienceLine("jo_comeback_08", "تقاعدك من ال{category} طوّل {days}"),
         ConscienceLine("jo_comeback_09", "ما صدقت تخلص {days} ورجعت لل{category}"),
@@ -172,7 +176,7 @@ object ConscienceLines {
         ConscienceLine("en_comeback_09", "Nobody's counting. Fine, I was. {days}."),
         ConscienceLine("en_comeback_10", "{days} without {category}. Movie rights are still available 🍿"),
         ConscienceLine("en_comeback_11", "Back to {category} after {days}. We'll say nothing. Loudly."),
-        ConscienceLine("en_comeback_12", "Your card's holiday lasted {days}. It sends regards 💳"),
+        ConscienceLine("en_comeback_12", "Your {category} sabbatical lasted {days}. Hope it was restful."),
     )
 
     private val EN_RECORD_DAY = listOf(

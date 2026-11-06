@@ -19,10 +19,10 @@ object ConscienceDetectors {
     ): ConscienceFact? {
         val today = current.at.toLocalDate()
         if (ledgerStart == null || ledgerStart.isAfter(today.minusDays(MIN_LEDGER_DAYS))) return null
-        val prior = history.filter {
-            it.category == current.category && it.currency == current.currency && !it.at.isAfter(current.at)
-        }
-        return comeback(current, prior, today) ?: recordDay(current, prior, today)
+        val prior = history.filter { it.category == current.category && !it.at.isAfter(current.at) }
+        // A break in a category is a break in any currency; totals never mix them.
+        return comeback(current, prior, today)
+            ?: recordDay(current, prior.filter { it.currency == current.currency }, today)
     }
 
     private fun comeback(

@@ -444,6 +444,8 @@ open class UserPreferencesRepository @Inject constructor(
         var claimed: ConscienceLine? = null
         context.dataStore.edit { prefs ->
             claimed = null
+            // Checked here too: Pause can land while the history is being read.
+            if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
             val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
             if (!ConscienceCadence.allows(log, prefs.conscienceFrequency(), nowMillis)) return@edit
             val line = ConscienceCadence.pickLine(pool, log, todayEpochDay, random) ?: return@edit

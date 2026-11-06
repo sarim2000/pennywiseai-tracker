@@ -71,7 +71,10 @@ class ConscienceManager @Inject constructor(
         val ledgerStart = transactionRepository.getOldestTransactionDateTime()?.toLocalDate()
         val fact = ConscienceDetectors.detect(current, history, ledgerStart) ?: return
 
+        // Read before the claim: nothing may suspend between spending a slot and posting.
         val voice = preferences.conscienceVoice.first()
+        val address = preferences.conscienceAddress.first()
+        val frequency = preferences.conscienceFrequency.first()
         val line = preferences.tryClaimConscienceLine(
             ConscienceLines.pool(voice, fact),
             nowMillis,
@@ -82,8 +85,8 @@ class ConscienceManager @Inject constructor(
             context,
             transactionId,
             voice,
-            ConscienceLines.render(line, voice, preferences.conscienceAddress.first(), fact),
-            preferences.conscienceFrequency.first()
+            ConscienceLines.render(line, voice, address, fact),
+            frequency
         )
     }
 

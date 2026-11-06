@@ -110,12 +110,12 @@ class ConscienceDetectorsTest {
     }
 
     @Test
-    fun `other currency history does not count`() {
+    fun `a break in a category is measured across currencies`() {
         val usd = everyNDays(daysAgo(3), 1, 30).map { it.copy(currency = "USD") }
-        assertNull(detect(usd))
-        // Nor does a recent purchase in another currency end the quiet spell.
+        assertEquals(Comeback(ConscienceCategory.FOOD, 3), detect(usd))
+        // A recent purchase in another currency means there was no break at all.
         val jod = everyNDays(daysAgo(3), 1, 30)
-        assertEquals(Comeback(ConscienceCategory.FOOD, 3), detect(jod + purchase(daysAgo(1), currency = "USD")))
+        assertNull(detect(jod + purchase(daysAgo(1), currency = "USD")))
     }
 
     @Test

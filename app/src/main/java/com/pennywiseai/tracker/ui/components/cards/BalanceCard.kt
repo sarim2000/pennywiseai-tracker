@@ -10,7 +10,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,10 +61,8 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.income_dark
-import com.pennywiseai.tracker.ui.theme.income_light
-import com.pennywiseai.tracker.ui.theme.expense_dark
-import com.pennywiseai.tracker.ui.theme.expense_light
+import com.pennywiseai.tracker.ui.theme.expense
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -116,15 +113,14 @@ fun BalanceCard(
         label = "chevronRotation"
     )
 
-    val isDark = isSystemInDarkTheme()
     val isPositive = monthlyChange >= BigDecimal.ZERO
     // Inverted for spending context: more spending (positive) = red, less spending (negative) = green
     val changeColor = if (monthlyChangePercent == 0) {
         MaterialTheme.colorScheme.onSurfaceVariant
     } else if (isPositive) {
-        if (isDark) expense_dark else expense_light
+        MaterialTheme.colorScheme.expense
     } else {
-        if (isDark) income_dark else income_light
+        MaterialTheme.colorScheme.income
     }
 
     val containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -250,7 +246,7 @@ fun BalanceCard(
                         // Spending sparkline
                         if (spendingHistory.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.md))
-                            val expenseColor = if (isDark) expense_dark else expense_light
+                            val expenseColor = MaterialTheme.colorScheme.expense
                             BalanceSparkline(
                                 data = spendingHistory,
                                 lineColor = expenseColor,
@@ -326,12 +322,12 @@ fun BalanceCard(
                             horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            val incomeColor = if (isDark) income_dark else income_light
-                            val expenseColor = if (isDark) expense_dark else expense_light
+                            val incomeColor = MaterialTheme.colorScheme.income
+                            val expenseColor = MaterialTheme.colorScheme.expense
                             val netColor = if (currentMonthTotal >= BigDecimal.ZERO) {
-                                if (isDark) income_dark else income_light
+                                MaterialTheme.colorScheme.income
                             } else {
-                                if (isDark) expense_dark else expense_light
+                                MaterialTheme.colorScheme.expense
                             }
 
                             SummaryItem(
@@ -608,7 +604,6 @@ private fun SpendingMetaRow(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
-    val isDark = isSystemInDarkTheme()
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -635,7 +630,7 @@ private fun ForecastRow(forecast: SpendForecast, isBalanceHidden: Boolean) {
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
-                    color = if (isDark) expense_dark else expense_light,
+                    color = MaterialTheme.colorScheme.expense,
                     modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs)
                 )
             }

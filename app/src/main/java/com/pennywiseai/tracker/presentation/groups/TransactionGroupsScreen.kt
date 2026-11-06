@@ -4,7 +4,6 @@ import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -142,8 +141,7 @@ private fun GroupListItem(
     summary: GroupSummary,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val accentColor = if (isDark) income_dark else income_light
+    val accentColor = MaterialTheme.colorScheme.income
 
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
@@ -193,7 +191,7 @@ private fun GroupListItem(
 
             Column(horizontalAlignment = Alignment.End) {
                 if (summary.hasExpense) {
-                    val expenseColor = if (isDark) expense_dark else expense_light
+                    val expenseColor = MaterialTheme.colorScheme.expense
                     Text(
                         CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
                         style = MaterialTheme.typography.bodyMedium,

@@ -317,8 +317,11 @@ Material You dynamic colour on Android 12+, a branded Rose Pine palette
 true black. Always use semantic roles — never hard-code a colour.
 
 Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
-`income`, `expense`, `credit`, `transfer`, `investment` — each resolves
-light/dark automatically.
+`income`, `expense`, `credit`, `transfer`, `investment`, `loan` — each resolves
+light/dark from the app's scheme. Always use these tokens, never pick a
+`*_dark` / `*_light` constant yourself. When something else must change with
+the theme, check `isAppInDarkTheme()`, not `isSystemInDarkTheme()`: Appearance
+can force Light or Dark regardless of the system.
 
 ---
 

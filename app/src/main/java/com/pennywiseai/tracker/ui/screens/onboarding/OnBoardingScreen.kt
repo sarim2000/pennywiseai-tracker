@@ -93,7 +93,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -614,7 +614,7 @@ private fun PermissionsStep(
             val incomeColor = MaterialTheme.colorScheme.income
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = incomeColor.copy(alpha = if (isSystemInDarkTheme()) 0.15f else 0.12f)
+                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
                 ),
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()

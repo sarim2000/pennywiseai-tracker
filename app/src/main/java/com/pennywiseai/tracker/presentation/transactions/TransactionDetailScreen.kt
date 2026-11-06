@@ -26,7 +26,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
@@ -651,13 +650,12 @@ private fun TransactionReceipt(
     towardGoals: @Composable () -> Unit = {},
     splitWith: @Composable () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
-        TransactionType.EXPENSE -> if (isDark) expense_dark else expense_light
-        TransactionType.CREDIT -> if (isDark) credit_dark else credit_light
-        TransactionType.TRANSFER -> if (isDark) transfer_dark else transfer_light
-        TransactionType.INVESTMENT -> if (isDark) investment_dark else investment_light
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.expense
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
     }
     val sign = when (transaction.transactionType) {
         TransactionType.INCOME -> "+"
@@ -766,8 +764,7 @@ private fun TransactionReceipt(
                 )
 
                 // Loan chip
-                val isDarkTheme = isSystemInDarkTheme()
-                val loanColor = if (isDarkTheme) loan_dark else loan_light
+                val loanColor = MaterialTheme.colorScheme.loan
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 if (loan != null) {
                     Row(
@@ -2287,8 +2284,7 @@ private fun MarkAsLoanBottomSheet(
         parsedLoanAmount > BigDecimal.ZERO &&
         parsedLoanAmount <= transactionAmount
 
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
+    val loanColor = MaterialTheme.colorScheme.loan
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(
@@ -2487,10 +2483,9 @@ private fun BalanceAdjustmentSheet(
     var pickedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     val shownCategory = pickedCategory ?: categories.balanceAdjustmentDefaultCategory(type)
     var expanded by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
     val amountColor = when {
-        isIncome -> if (isDark) income_dark else income_light
-        else -> if (isDark) expense_dark else expense_light
+        isIncome -> MaterialTheme.colorScheme.income
+        else -> MaterialTheme.colorScheme.expense
     }
 
     ModalBottomSheet(

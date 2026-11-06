@@ -29,7 +29,7 @@ internal object FinancialMessageFields {
         }
     }
 
-    private fun labelledValue(message: String, labels: Collection<String>): String? {
+    fun labelledValue(message: String, labels: Collection<String>): String? {
         val alternatives = labels.joinToString("|") { Regex.escape(it).replace("\\ ", "\\s+") }
         val pattern = Regex("""^(?:$alternatives)\s*:?\s*(.+?)\s*$""", RegexOption.IGNORE_CASE)
         return message.replace("\r\n", "\n").replace('\r', '\n')

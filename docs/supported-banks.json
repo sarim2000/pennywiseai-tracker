@@ -1,5 +1,5 @@
 {
-  "totalBanks": 172,
+  "totalBanks": 173,
   "totalCountries": 26,
   "countries": [
     {
@@ -55,8 +55,8 @@
       "flag": "🇸🇦",
       "currency": "SAR",
       "symbol": "﷼",
-      "bankCount": 7,
-      "banks": ["Al Rajhi Bank", "Alinma Bank", "Banque Saudi Fransi", "D360 Bank", "SABB", "STC Bank", "Saudi National Bank"]
+      "bankCount": 8,
+      "banks": ["Al Rajhi Bank", "Alinma Bank", "Banque Saudi Fransi", "D360 Bank", "Mobily Pay", "SABB", "STC Bank", "Saudi National Bank"]
     },
     {
       "country": "Tanzania",

@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.data.manager
 import android.content.Context
 import android.util.Log
 import com.pennywiseai.tracker.PennyWiseApplication
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -59,15 +58,17 @@ class ConscienceManager @Inject constructor(
         val builtinKeys = categoryRepository.getAllCategories().first()
             .mapNotNull { category -> category.builtinKey?.let { category.name to it } }
             .toMap()
-        val countCredit = preferences.countCreditCardAsExpense.first()
-        val historyStart = saved.dateTime.minusDays(HISTORY_DAYS)
-        val splitIds = transactionRepository.getSplitTransactionIdsBetween(historyStart, saved.dateTime).toSet()
-        fun purchase(tx: TransactionEntity) = ConscienceEligibility.toPurchase(tx, builtinKeys, countCredit, splitIds)
-
-        val current = purchase(saved) ?: return
-        val history = transactionRepository.getTransactionsBetweenDatesList(historyStart, saved.dateTime)
-            .filter { it.id != transactionId }
-            .mapNotNull(::purchase)
+        val current = ConscienceEligibility.toPurchase(
+            saved,
+            builtinKeys,
+            preferences.countCreditCardAsExpense.first(),
+            transactionRepository.hasSplits(transactionId)
+        ) ?: return
+        val today = saved.dateTime.toLocalDate()
+        // This overload stops at 23:59:59, so run past today; the detectors drop anything after the purchase.
+        val history = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(HISTORY_DAYS), today.plusDays(1)).first()
+            .filter { it.transaction.id != transactionId }
+            .flatMap { ConscienceEligibility.historyOf(it, builtinKeys) }
         val ledgerStart = transactionRepository.getOldestTransactionDateTime()?.toLocalDate()
         val fact = ConscienceDetectors.detect(current, history, ledgerStart) ?: return
 

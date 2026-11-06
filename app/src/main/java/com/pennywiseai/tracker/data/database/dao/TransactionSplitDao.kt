@@ -30,13 +30,6 @@ interface TransactionSplitDao {
     """)
     fun observeSplitsForActiveTransactions(): Flow<List<TransactionSplitEntity>>
 
-    @Query("""
-        SELECT DISTINCT s.transaction_id FROM transaction_splits s
-        INNER JOIN transactions t ON t.id = s.transaction_id
-        WHERE t.is_deleted = 0 AND t.date_time BETWEEN :startDate AND :endDate
-    """)
-    suspend fun getSplitTransactionIdsBetween(startDate: java.time.LocalDateTime, endDate: java.time.LocalDateTime): List<Long>
-
     @Transaction
     @Query("SELECT * FROM transactions WHERE id = :transactionId AND is_deleted = 0")
     fun getTransactionWithSplits(transactionId: Long): Flow<TransactionWithSplits?>

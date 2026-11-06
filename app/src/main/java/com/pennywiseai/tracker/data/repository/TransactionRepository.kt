@@ -286,9 +286,6 @@ open class TransactionRepository @Inject constructor(
 
     suspend fun getOldestTransactionDateTime(): LocalDateTime? = transactionDao.getOldestTransactionDateTime()
 
-    suspend fun getSplitTransactionIdsBetween(startDate: LocalDateTime, endDate: LocalDateTime): List<Long> =
-        transactionSplitDao.getSplitTransactionIdsBetween(startDate, endDate)
-
     suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
         val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
         return transactionDao.getTransactionsByReference(reference)

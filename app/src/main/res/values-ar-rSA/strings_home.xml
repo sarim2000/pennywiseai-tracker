@@ -325,8 +325,8 @@
     <string name="notif_suggestion_title_spent">هل أنفقت %1$s في %2$s؟</string>
     <string name="notif_suggestion_title_received">هل استلمت %1$s من %2$s؟</string>
     <string name="notif_suggestion_text">من %1$s. اضغط لإضافتها.</string>
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">على ماذا صرفتها؟ · %1$s</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">على ماذا صرفتها؟</string>
     <string name="notif_txn_action_change">تغيير التصنيف</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">ليس مصروفاً</string>

@@ -296,8 +296,8 @@
     <string name="notif_txn_title_spent">Потрачено %1$s</string>
     <string name="notif_txn_title_received">Получено %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">На что это было? · %1$s</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">На что это было?</string>
     <string name="notif_txn_action_change">Изменить категорию</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">Не расход</string>

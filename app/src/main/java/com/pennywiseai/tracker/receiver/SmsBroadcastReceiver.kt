@@ -781,7 +781,6 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
             val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)
             val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
-            val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
             // The amount gets the title to itself and the merchant the line below,
             // so a long name never cuts the amount off (or the amount the name).
             val title = when (transaction.transactionType) {
@@ -793,9 +792,10 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val categories = categoryRepository.getAllCategories().first()
             // Unsorted: ask, with one-tap answers. Sorted: the category sits in the header.
             val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
-            val detailLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category, bankName) else bankName
-            // The bank (or the question) and a price change wait for the expanded view, beside the buttons they explain.
-            val expanded = listOfNotNull(merchant, detailLine, priceLine).joinToString("\n")
+            // No bank: the user knows which account they paid from. The question
+            // and a price change wait for the expanded view, beside the buttons they explain.
+            val askLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category) else null
+            val expanded = listOfNotNull(merchant, askLine, priceLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)

@@ -304,8 +304,8 @@
     <string name="notif_suggestion_title_spent">Spent %1$s at %2$s?</string>
     <string name="notif_suggestion_title_received">Received %1$s from %2$s?</string>
     <string name="notif_suggestion_text">From %1$s. Tap to add it.</string>
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">What was this for? · %1$s</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">What was this for?</string>
     <string name="notif_txn_action_change">Change category</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">Not an expense</string>

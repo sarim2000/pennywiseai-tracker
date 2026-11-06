@@ -7,7 +7,11 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.manager.ConscienceNotifier
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
+import com.pennywiseai.tracker.domain.conscience.ConscienceLines
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
@@ -19,6 +23,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -35,6 +40,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun deleteTransactionUseCase(): DeleteTransactionUseCase
         fun transactionRepository(): TransactionRepository
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
+        fun userPreferencesRepository(): UserPreferencesRepository
     }
 
     companion object {
@@ -51,6 +57,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
         const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
+        const val ACTION_CONSCIENCE_LESS_OFTEN = "com.pennywiseai.tracker.ACTION_CONSCIENCE_LESS_OFTEN"
+        const val ACTION_CONSCIENCE_PAUSE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_PAUSE"
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -117,6 +125,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+        /** The conscience's two actions. They act on the feature, so they carry no transaction. */
+        fun conscienceIntent(context: Context, conscienceAction: String): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                0,
+                Intent(context, NotificationActionReceiver::class.java).apply { action = conscienceAction },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
         private fun Intent.toLearned(transactionId: Long): LearnCategoryUseCase.Learned? {
             val category = getStringExtra(EXTRA_NEW_CATEGORY) ?: return null
             val previous = getStringExtra(EXTRA_PREVIOUS_CATEGORY) ?: return null
@@ -138,7 +155,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val transactionId = intent.getLongExtra(EXTRA_TRANSACTION_ID, -1)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
 
-        if (transactionId == -1L) {
+        val isConscienceAction = intent.action == ACTION_CONSCIENCE_LESS_OFTEN || intent.action == ACTION_CONSCIENCE_PAUSE
+        if (transactionId == -1L && !isConscienceAction) {
             Log.e(TAG, "No transaction ID provided")
             return
         }
@@ -195,6 +213,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             else dismissNotification(context, notificationId)
                         }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
                     }
+                    ACTION_CONSCIENCE_LESS_OFTEN, ACTION_CONSCIENCE_PAUSE -> {
+                        runCatching { applyConscienceAction(context, entryPoint.userPreferencesRepository(), intent.action) }
+                            .onFailure { Log.e(TAG, "Error applying a conscience action", it) }
+                    }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")
                     }
@@ -203,6 +225,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 pendingResult.finish()
             }
         }
+    }
+
+    private suspend fun applyConscienceAction(context: Context, preferences: UserPreferencesRepository, action: String?) {
+        val voice = preferences.conscienceVoice.first()
+        val confirmation = if (action == ACTION_CONSCIENCE_PAUSE) {
+            preferences.setConscienceEnabled(false)
+            ConscienceLines.pausedConfirmation(voice)
+        } else {
+            preferences.setConscienceFrequency(ConscienceFrequency.LESS)
+            ConscienceLines.lessOftenConfirmation(voice)
+        }
+        ConscienceNotifier.showConfirmation(context, voice, confirmation)
     }
 
     private suspend fun deleteTransaction(

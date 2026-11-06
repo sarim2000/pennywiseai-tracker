@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="conscience_title">الضمير</string>
+    <string name="conscience_settings_subtitle_on">مفعّل · تعليق على مصاريفك بين حين وآخر</string>
+    <string name="conscience_settings_subtitle_off">متوقف · تعليق على مصاريفك بين حين وآخر</string>
+    <string name="conscience_intro">بين حين وآخر، بعد عملية شراء مباشرة، يصلك إشعار صامت يمازحك بشأن مصاريفك.</string>
+    <string name="conscience_switch_title">إشعارات الضمير</string>
+    <string name="conscience_needs_permission">اسمح بإشعارات PennyWise لاستخدام الضمير.</string>
+
+    <string name="conscience_voice_title">أسلوب الكلام</string>
+
+    <string name="conscience_address_title">خاطبني بصيغة</string>
+    <string name="conscience_address_masculine">مذكر</string>
+    <string name="conscience_address_feminine">مؤنث</string>
+
+    <string name="conscience_frequency_title">عدد المرات</string>
+    <string name="conscience_frequency_normal">عادي</string>
+    <string name="conscience_frequency_less">أقل</string>
+    <string name="conscience_frequency_normal_note">مرة واحدة في اليوم كحد أقصى، و3 مرات في الأسبوع.</string>
+    <string name="conscience_frequency_less_note">مرة واحدة في الأسبوع كحد أقصى.</string>
+
+    <string name="conscience_preview_title">مثال على كلامه</string>
+    <string name="conscience_try_it">جرّبه</string>
+    <string name="conscience_try_sent">تم الإرسال. الإشعار بلا صوت، فتحقق من إشعاراتك.</string>
+    <string name="conscience_privacy">يعمل على هذا الهاتف فقط، ولا يخرج منه شيء. ويقتصر تعليقه على الطعام والترفيه والتسوق.</string>
+
+    <string name="conscience_channel_name">الضمير</string>
+    <string name="conscience_channel_description">تعليقات من حين لآخر على الطعام والترفيه والتسوق. بلا صوت.</string>
+</resources>

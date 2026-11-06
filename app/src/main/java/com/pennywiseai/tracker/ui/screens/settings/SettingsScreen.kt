@@ -116,6 +116,7 @@ fun SettingsScreen(
     onNavigateToImportStatement: () -> Unit = {},
     onNavigateToWebhooks: () -> Unit = {},
     onNavigateToAiAccess: () -> Unit = {},
+    onNavigateToConscience: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     appLockViewModel: com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel = hiltViewModel(),
     shakeToHideViewModel: com.pennywiseai.tracker.ui.ShakeToHideViewModel = hiltViewModel(),
@@ -146,6 +147,7 @@ fun SettingsScreen(
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val countCreditCardAsExpense by settingsViewModel.countCreditCardAsExpense.collectAsStateWithLifecycle(initialValue = false)
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT)
+    val conscienceEnabled by settingsViewModel.conscienceEnabled.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
     val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
@@ -866,6 +868,15 @@ fun SettingsScreen(
                             settingsViewModel.setDailySummaryEnabled(enabled)
                         }
                     },
+                    position = ListItemPosition.Middle
+                )
+                SettingsNavItem(
+                    icon = Icons.Default.Psychology,
+                    iconBgColor = pink_light,
+                    iconTint = pink_dark,
+                    title = stringResource(R.string.conscience_title),
+                    subtitle = stringResource(if (conscienceEnabled) R.string.conscience_settings_subtitle_on else R.string.conscience_settings_subtitle_off),
+                    onClick = onNavigateToConscience,
                     position = ListItemPosition.Bottom
                 )
             }

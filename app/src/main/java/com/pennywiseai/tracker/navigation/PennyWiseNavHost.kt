@@ -207,12 +207,21 @@ fun PennyWiseNavHost(
                 },
                 onNavigateToAiAccess = {
                     backStack.navigate(AiAccess)
+                },
+                onNavigateToConscience = {
+                    backStack.navigate(Conscience)
                 }
             )
         }
 
         entry<AiAccess> { key ->
             com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
+                onNavigateBack = { backStack.pop(key) }
+            )
+        }
+
+        entry<Conscience> { key ->
+            com.pennywiseai.tracker.ui.screens.settings.ConscienceScreen(
                 onNavigateBack = { backStack.pop(key) }
             )
         }

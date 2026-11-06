@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase -->
+    <string name="conscience_title">Conscience</string>
+    <string name="conscience_settings_subtitle_on">On · a comment on your spending now and then</string>
+    <string name="conscience_settings_subtitle_off">Off · a comment on your spending now and then</string>
+    <string name="conscience_intro">Now and then, right after a purchase, a silent notification teases you about your spending.</string>
+    <string name="conscience_switch_title">Conscience notifications</string>
+    <string name="conscience_needs_permission">Allow notifications for PennyWise to use Conscience.</string>
+
+    <!-- The voice's name, shown in its own language whatever the UI language -->
+    <string name="conscience_voice_title">Voice</string>
+    <string name="conscience_voice_jordanian" translatable="false">أردني</string>
+    <string name="conscience_voice_english" translatable="false">English</string>
+
+    <!-- Grammatical gender the Jordanian voice uses for the user -->
+    <string name="conscience_address_title">Address me as</string>
+    <string name="conscience_address_masculine">Masculine</string>
+    <string name="conscience_address_feminine">Feminine</string>
+
+    <string name="conscience_frequency_title">How often</string>
+    <string name="conscience_frequency_normal">Normal</string>
+    <string name="conscience_frequency_less">Less often</string>
+    <string name="conscience_frequency_normal_note">At most once a day and 3 times a week.</string>
+    <string name="conscience_frequency_less_note">At most once a week.</string>
+
+    <string name="conscience_preview_title">What it sounds like</string>
+    <string name="conscience_try_it">Try it</string>
+    <string name="conscience_try_sent">Sent. It makes no sound, so check your notifications.</string>
+    <string name="conscience_privacy">Runs on this phone only, and nothing leaves it. It only comments on food, entertainment and shopping.</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">Conscience</string>
+    <string name="conscience_channel_description">Occasional comments on food, entertainment and shopping. Silent.</string>
+</resources>

@@ -15,6 +15,11 @@ import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.domain.conscience.ConscienceAddress
+import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
+import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
+import com.pennywiseai.tracker.domain.conscience.ConscienceLine
+import com.pennywiseai.tracker.domain.conscience.ConscienceVoice
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +28,8 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.util.Locale
+import kotlin.random.Random
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_preferences",
@@ -74,6 +81,11 @@ open class UserPreferencesRepository @Inject constructor(
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        val CONSCIENCE_ENABLED = booleanPreferencesKey("conscience_enabled")
+        val CONSCIENCE_VOICE = stringPreferencesKey("conscience_voice")
+        val CONSCIENCE_ADDRESS = stringPreferencesKey("conscience_address")
+        val CONSCIENCE_FREQUENCY = stringPreferencesKey("conscience_frequency")
+        val CONSCIENCE_LOG = stringSetPreferencesKey("conscience_log")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -381,6 +393,65 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] = enabled
         }
+    }
+
+    val conscienceEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
+
+    suspend fun setConscienceEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
+    }
+
+    val conscienceVoice: Flow<ConscienceVoice> = context.dataStore.data.map { preferences ->
+        ConscienceVoice.entries.firstOrNull { it.name == preferences[PreferencesKeys.CONSCIENCE_VOICE] }
+            ?: if (Locale.getDefault().language == "ar") ConscienceVoice.JORDANIAN else ConscienceVoice.ENGLISH
+    }
+
+    suspend fun setConscienceVoice(voice: ConscienceVoice) {
+        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_VOICE] = voice.name }
+    }
+
+    val conscienceAddress: Flow<ConscienceAddress> = context.dataStore.data.map { preferences ->
+        ConscienceAddress.entries.firstOrNull { it.name == preferences[PreferencesKeys.CONSCIENCE_ADDRESS] }
+            ?: ConscienceAddress.MASCULINE
+    }
+
+    suspend fun setConscienceAddress(address: ConscienceAddress) {
+        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_ADDRESS] = address.name }
+    }
+
+    val conscienceFrequency: Flow<ConscienceFrequency> = context.dataStore.data.map { it.conscienceFrequency() }
+
+    suspend fun setConscienceFrequency(frequency: ConscienceFrequency) {
+        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_FREQUENCY] = frequency.name }
+    }
+
+    private fun Preferences.conscienceFrequency(): ConscienceFrequency =
+        ConscienceFrequency.entries.firstOrNull { it.name == this[PreferencesKeys.CONSCIENCE_FREQUENCY] }
+            ?: ConscienceFrequency.NORMAL
+
+    /**
+     * Spends a slot and picks the line in one edit: the SMS receiver and the
+     * notification listener can race, and only one of them may get the slot.
+     * Null when the cadence says no or [pool] has nothing off cooldown.
+     */
+    suspend fun tryClaimConscienceLine(
+        pool: List<ConscienceLine>,
+        nowMillis: Long,
+        todayEpochDay: Long,
+        random: Random
+    ): ConscienceLine? {
+        var claimed: ConscienceLine? = null
+        context.dataStore.edit { prefs ->
+            claimed = null
+            val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
+            if (!ConscienceCadence.allows(log, prefs.conscienceFrequency(), nowMillis)) return@edit
+            val line = ConscienceCadence.pickLine(pool, log, todayEpochDay, random) ?: return@edit
+            prefs[PreferencesKeys.CONSCIENCE_LOG] =
+                ConscienceCadence.encode(ConscienceCadence.record(log, line.id, nowMillis, todayEpochDay))
+            claimed = line
+        }
+        return claimed
     }
     
     suspend fun updateSystemPrompt(prompt: String) {

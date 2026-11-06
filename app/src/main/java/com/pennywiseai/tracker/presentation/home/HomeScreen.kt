@@ -1630,6 +1630,7 @@ private fun BreakdownPeriod(
             amount = net,
             isIncome = net >= BigDecimal.ZERO,
             isBold = true,
+            isNet = true,
             currency = currency
         )
     }
@@ -1641,6 +1642,7 @@ private fun BreakdownRow(
     amount: BigDecimal,
     isIncome: Boolean,
     isBold: Boolean = false,
+    isNet: Boolean = false,
     currency: String
 ) {
     Row(
@@ -1657,10 +1659,11 @@ private fun BreakdownRow(
             style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
                 fontWeight = FontWeight.Normal
             ),
-            color = if (isIncome) {
-                MaterialTheme.colorScheme.income
-            } else {
-                MaterialTheme.colorScheme.expense
+            // Spending is ink; red is kept for a negative net.
+            color = when {
+                isIncome -> MaterialTheme.colorScheme.income
+                isNet -> MaterialTheme.colorScheme.expense
+                else -> MaterialTheme.colorScheme.onSurface
             }
         )
     }

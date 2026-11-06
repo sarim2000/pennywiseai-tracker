@@ -52,7 +52,7 @@ fun TransactionItem(
     val colorScheme = MaterialTheme.colorScheme
     val amountColor = when (transaction.transactionType) {
         TransactionType.INCOME -> colorScheme.income
-        TransactionType.EXPENSE -> colorScheme.expense
+        TransactionType.EXPENSE -> colorScheme.onSurface
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment

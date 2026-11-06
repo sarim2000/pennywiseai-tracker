@@ -191,7 +191,7 @@ private fun GroupListItem(
 
             Column(horizontalAlignment = Alignment.End) {
                 if (summary.hasExpense) {
-                    val expenseColor = MaterialTheme.colorScheme.expense
+                    val expenseColor = MaterialTheme.colorScheme.onSurface
                     Text(
                         CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
                         style = MaterialTheme.typography.bodyMedium,

@@ -129,7 +129,7 @@ fun TransactionGroupDetailScreen(
         }
 
         val accentColor = MaterialTheme.colorScheme.income
-        val expenseColor = MaterialTheme.colorScheme.expense
+        val expenseColor = MaterialTheme.colorScheme.onSurface
         val lazyListState = rememberLazyListState()
 
         LazyColumn(
@@ -347,7 +347,7 @@ private fun GroupTransactionItem(
     onClick: () -> Unit
 ) {
     val color = when (transaction.transactionType) {
-        TransactionType.EXPENSE, TransactionType.CREDIT -> MaterialTheme.colorScheme.expense
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
         else -> MaterialTheme.colorScheme.onSurface
     }
@@ -473,8 +473,7 @@ private fun AddTransactionToGroupSheet(
                 ) {
                     items(ungroupedTransactions, key = { it.id }) { txn ->
                         val color = when (txn.transactionType) {
-                            TransactionType.EXPENSE, TransactionType.CREDIT ->
-                                MaterialTheme.colorScheme.expense
+                            TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
                             TransactionType.INCOME -> MaterialTheme.colorScheme.income
                             else -> MaterialTheme.colorScheme.onSurface
                         }

@@ -381,13 +381,14 @@ private fun LoanTransactionItem(
     loanDirection: LoanDirection,
     onClick: () -> Unit
 ) {
-    // Color reflects the actual money flow: red = money out, green = money in.
+    // Sign and colour follow the actual money flow: "+" in the income colour for
+    // money in, "-" in ink for money out (red is kept for problems).
     // Every type but INCOME is money out, as in the loan's own math (#876).
     val moneyIn = transaction.transactionType == TransactionType.INCOME
     val color = if (moneyIn) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.expense
+        MaterialTheme.colorScheme.onSurface
     }
     val sign = if (moneyIn) "+" else "-"
 

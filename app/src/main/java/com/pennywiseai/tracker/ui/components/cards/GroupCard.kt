@@ -25,7 +25,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -64,7 +63,7 @@ fun GroupCard(
     val amountColor = if (isPositive) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.expense
+        MaterialTheme.colorScheme.onSurface
     }
 
     val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }

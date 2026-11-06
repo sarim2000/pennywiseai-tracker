@@ -338,7 +338,9 @@ fun BalanceCard(
                             SummaryItem(
                                 label = stringResource(R.string.balance_card_summary_expenses),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                                accentColor = expenseColor
+                                // The bar matches the sparkline's expense series; the figure itself is ink.
+                                accentColor = expenseColor,
+                                valueColor = MaterialTheme.colorScheme.onSurface
                             )
                             if (currentMonthLent > BigDecimal.ZERO) {
                                 SummaryItem(
@@ -687,7 +689,8 @@ private fun CurrencyChip(
 private fun SummaryItem(
     label: String,
     value: String,
-    accentColor: Color
+    accentColor: Color,
+    valueColor: Color = accentColor
 ) {
     Row {
         // Colored left-border accent bar
@@ -705,7 +708,7 @@ private fun SummaryItem(
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleSmall,
-                color = accentColor,
+                color = valueColor,
                 fontWeight = FontWeight.Bold,
                 // Keep the amount on one line — never break a "MZN52,245.26" into
                 // one-character-per-line text when the column gets narrow.

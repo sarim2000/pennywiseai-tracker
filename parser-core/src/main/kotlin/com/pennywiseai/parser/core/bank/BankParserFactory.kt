@@ -161,6 +161,7 @@ object BankParserFactory {
         STCBankParser(),  // STC Bank (Saudi Arabia)
         SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)
         MobilyPayParser(),  // Mobily Pay (Saudi Arabia)
+        BarqParser(),  // Barq (Saudi Arabia)
         D360BankParser(),  // D360 Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
         SparkasseRheinMaasParser(),  // Sparkasse Rhein-Maas (Germany)

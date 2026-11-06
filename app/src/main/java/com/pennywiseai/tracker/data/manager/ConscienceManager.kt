@@ -1,20 +1,23 @@
 package com.pennywiseai.tracker.data.manager
 
 import android.content.Context
+import android.os.PowerManager
 import android.util.Log
 import com.pennywiseai.tracker.PennyWiseApplication
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.conscience.ConscienceDetectors
 import com.pennywiseai.tracker.domain.conscience.ConscienceEligibility
-import com.pennywiseai.tracker.domain.conscience.ConscienceLines
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -66,35 +69,57 @@ class ConscienceManager @Inject constructor(
         ) ?: return
         val today = saved.dateTime.toLocalDate()
         // This overload stops at 23:59:59, so run past today; the detectors drop anything after the purchase.
-        val history = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(HISTORY_DAYS), today.plusDays(1)).first()
+        val rows = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(HISTORY_DAYS), today.plusDays(1)).first()
             .filter { it.transaction.id != transactionId }
-            .flatMap { ConscienceEligibility.historyOf(it, builtinKeys) }
+        val history = rows.flatMap { ConscienceEligibility.historyOf(it, builtinKeys) }
+        // Days with any spending at all: a quiet week only counts as a win when the ledger was still being fed.
+        val activeDates = rows
+            .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
+            .map { it.transaction.dateTime.toLocalDate() }
+            .toSet() + today
         val ledgerStart = transactionRepository.getOldestTransactionDateTime()?.toLocalDate()
-        val fact = ConscienceDetectors.detect(current, history, ledgerStart) ?: return
+        val facts = ConscienceDetectors.detect(current, history, ledgerStart, activeDates)
+        if (facts.isEmpty()) return
 
-        // Read before the claim: nothing may suspend between spending a slot and posting.
-        val voice = preferences.conscienceVoice.first()
+        val muted = preferences.conscienceMutedKinds.first()
         val address = preferences.conscienceAddress.first()
-        val frequency = preferences.conscienceFrequency.first()
-        val line = preferences.tryClaimConscienceLine(
-            ConscienceLines.pool(voice, fact),
+        val text = ConscienceText(context)
+        val candidates = facts.filter { it.kind !in muted }.map { text.candidate(it, address) }
+        // Late at night with the screen off the user is likely asleep: keep the remark, skip the notification.
+        val quiet = isQuietHour(LocalTime.now()) && !isScreenOn()
+
+        // Rendered before the claim: nothing may suspend between spending a slot and posting.
+        val choice = preferences.tryClaimConscience(
+            candidates,
+            text.contentLocale,
             nowMillis,
             LocalDate.now().toEpochDay(),
             Random.Default
         ) ?: return
-        ConscienceNotifier.post(
-            context,
-            transactionId,
-            voice,
-            ConscienceLines.render(line, voice, address, fact),
-            frequency
+        val line = text.render(choice.fact, choice.line, address) ?: return
+        val remark = ConscienceRemark(
+            id = nowMillis,
+            atMillis = nowMillis,
+            text = line,
+            kind = choice.fact.kind,
+            lineKey = choice.lineKey,
+            notified = !quiet
         )
+        if (!quiet) ConscienceNotifier.post(context, text, line, remark.id, transactionId)
+        preferences.addConscienceRemark(remark, nowMillis)
     }
+
+    private fun isScreenOn(): Boolean =
+        (context.getSystemService(Context.POWER_SERVICE) as? PowerManager)?.isInteractive ?: true
 
     companion object {
         private const val TAG = "ConscienceManager"
         private const val HISTORY_DAYS = 95L
         private const val FRESH_WINDOW_MILLIS = 10 * 60 * 1000L
+        private val QUIET_FROM: LocalTime = LocalTime.of(23, 0)
+        private val QUIET_UNTIL: LocalTime = LocalTime.of(7, 0)
+
+        internal fun isQuietHour(time: LocalTime): Boolean = !time.isBefore(QUIET_FROM) || time.isBefore(QUIET_UNTIL)
 
         /**
          * A new notification can describe an old purchase, so the event and the

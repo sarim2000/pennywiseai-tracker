@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hindi conscience lines, written natively (not translated). Address: तुम. See values/conscience_lines.xml for each pool's fact. -->
+<resources>
+    <string name="conscience_content_locale">hi</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">{days} का संयम, वाह! अच्छा, तो आज मेन्यू में क्या है? 😋</string>
+    <string name="conscience_line_comeback_food_02">{days} की बहादुरी! इस पर गाना बनेगा। छोटा-सा 🎵</string>
+    <string name="conscience_line_comeback_food_03">{days} की कट्टी के बाद आज खाने से फिर बट्टी हो गई 🤝</string>
+    <string name="conscience_line_comeback_food_04">{days} {टिके|टिकीं}, पर समोसे को तुम पर कभी शक नहीं हुआ 😌</string>
+    <string name="conscience_line_comeback_food_05">{days} का कंट्रोल, फिर किसी ने कहा \"अरे, बस थोड़ा-सा\" 🤏</string>
+    <string name="conscience_line_comeback_food_06">वैज्ञानिकों के मुताबिक़ तुम्हारे इरादे की उम्र ठीक {days} निकली 🔬</string>
+    <string name="conscience_line_comeback_food_07">{days} तक अजेय। फिर सामने मेन्यू आ गया 📜</string>
+    <string name="conscience_line_comeback_food_08">तुम्हारी और मेन्यू की {days} की जुदाई ख़त्म। एकदम फ़िल्मी मिलन 🎬</string>
+    <string name="conscience_line_comeback_food_09">वापसी मुबारक! मेन्यू ने {days} तक तुम्हारी सीट गरम रखी 🪑</string>
+    <string name="conscience_line_comeback_food_10">{days} बाद भी खाने ने बिना कोई सवाल पूछे तुम्हें अपना लिया 🫶</string>
+    <string name="conscience_line_comeback_food_11">{days} बाद भी मेन्यू तुम्हें नाम से पहचानता है 😏</string>
+    <string name="conscience_line_comeback_food_12">वो {days} एक सुनहरा दौर थे। दौर ख़त्म, थाली शुरू 🍛</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">{days} तक {category} से दूरी। प्रेरणादायक था, थोड़ी देर के लिए ✨</string>
+    <string name="conscience_line_comeback_02">{category} से तुम्हारा संन्यास {days} चला। भाषण बढ़िया था 🎤</string>
+    <string name="conscience_line_comeback_03">{days} बढ़िया रहे। ख़ैर, छोड़ो… {category}! 🎉</string>
+    <string name="conscience_line_comeback_04">{category} से {days} का ब्रेक लिया था। अब पैच-अप 💞</string>
+    <string name="conscience_line_comeback_05">{days} तक तुम और {category} आँखों में आँखें डाले रहे। पलक तुमने झपकाई 👀</string>
+    <string name="conscience_line_comeback_06">{category} पर {days} का बैन लगा था। हटाने का फ़ैसला सर्वसम्मति से हुआ 🔨</string>
+    <string name="conscience_line_comeback_07">{days} तक समझदारी दिखाई। वैसे तुम पर जँचती नहीं थी 😏</string>
+    <string name="conscience_line_comeback_08">{days} चला प्रयोग। नतीजा: {category} 🧪</string>
+    <string name="conscience_line_comeback_09">गिनती किसने की? अच्छा, मैंने की। पूरे {days} 🤓</string>
+    <string name="conscience_line_comeback_10">{category} के बिना {days}। इस पर फ़िल्म के राइट्स अभी बिकाऊ हैं 🍿</string>
+    <string name="conscience_line_comeback_11">{days} बाद फिर {category}। हम कुछ नहीं कहेंगे, बस ढोल बजाएँगे 🥁</string>
+    <string name="conscience_line_comeback_12">{category} से {days} की छुट्टी ली थी। उम्मीद है, आराम मिला 🏖️</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">अरे, रुको मत, जारी रखो 👏</string>
+    <string name="conscience_line_record_day_02">दो महीने में {category} का सबसे बड़ा दिन। भाषण हो जाए! 🎉</string>
+    <string name="conscience_line_record_day_03">आज {category} का ऐतिहासिक दिन है। इतिहास, यानी पिछले दो महीने 📜</string>
+    <string name="conscience_line_record_day_04">दो महीने में {category} का सबसे \"बेहतरीन\" दिन। \"बेहतरीन\" शायद सही शब्द नहीं 😅</string>
+    <string name="conscience_line_record_day_05">मैंने कुछ नहीं देखा। सिवाय दो महीने में {category} के सबसे बड़े दिन के 🙈</string>
+    <string name="conscience_line_record_day_06">ये दिन तो फ़्रेम करवाकर टाँगने लायक़ है। दो महीने में {category} का सबसे बड़ा दिन 🖼️</string>
+    <string name="conscience_line_record_day_07">{category} में गोल्ड मेडल 🥇 मुक़ाबला था पिछले दो महीनों से।</string>
+    <string name="conscience_line_record_day_08">पिछले दो महीनों ने हार मान ली है 🏳️</string>
+    <string name="conscience_line_record_day_09">दो महीने में {category} का कोई दिन आज के आसपास भी नहीं। अजीब है, पर गर्व है 🥲</string>
+    <string name="conscience_line_record_day_10">दो महीने नेट प्रैक्टिस, आज असली मैच 🏏</string>
+    <string name="conscience_line_record_day_11">{category} में दो महीने की सबसे ऊँची चोटी फ़तह! ऊपर से नज़ारा कैसा है? 🏔️</string>
+    <string name="conscience_line_record_day_12">{category} की दो महीने वाली रैंकिंग में आज सीधे नंबर वन 🏆</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">{hours} में {count} बार खाना। ये नाश्ता नहीं, पूरा फ़ूड टूर है 🗺️</string>
+    <string name="conscience_line_repeat_food_02">फिर खाना! {hours} में {count} बार। गिनती कौन करे? (मैं, और कौन 🙋)</string>
+    <string name="conscience_line_repeat_food_03">{hours} में {count} बार खाना। अब ये वेब सीरीज़ बन गई है क्या? 🍿</string>
+    <string name="conscience_line_repeat_food_04">कोई इन्हें लॉयल्टी कार्ड दे दो! {hours} में {count} बार खाना 💳</string>
+    <string name="conscience_line_repeat_food_05">ब्रेकिंग न्यूज़: {hours} में {count} बार खाना! बने रहिए हमारे साथ 📺</string>
+    <string name="conscience_line_repeat_food_06">{hours} में खाने के {count} चक्कर। तकनीकी तौर पर ये कार्डियो है 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{hours} में {count} राउंड {category}। वार्म-अप चल रहा है या प्रो बनने का इरादा है? 😏</string>
+    <string name="conscience_line_repeat_02">{hours} में {count} बार {category}। कोई गिन रहा है क्या? हाँ, मैं 🙋</string>
+    <string name="conscience_line_repeat_03">{hours} में {count}? लगता है आजकल {category} का सीज़न चल रहा है 💅</string>
+    <string name="conscience_line_repeat_04">वन्स मोर! वन्स मोर! {hours} में {count} बार {category} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, {hours} में {count} बार। स्पीडरन रिकॉर्ड की तैयारी है? 🏁</string>
+    <string name="conscience_line_repeat_06">{hours} में {count} बार {category}। पॉइंट्स की तो बारिश हो रही होगी 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">इस वक़्त खाना? फ़्रिज की बत्ती तक जल-भुन गई 🌙</string>
+    <string name="conscience_line_late_night_food_02">देर रात का खाना पकड़ा गया। सुबह वाले तुमसे ये राज़ ही रहेगा 🤫</string>
+    <string name="conscience_line_late_night_food_03">आधी रात वाला मेन्यू: अनलॉक 🔓</string>
+    <string name="conscience_line_late_night_food_04">चंदा मामा ने कहा है, थोड़ा उनके लिए भी रखना 🌝</string>
+    <string name="conscience_line_late_night_food_05">अँधेरे के बाद खाना। वो सीक्वल जो किसी ने माँगा नहीं, पर सबको पसंद है 🎬</string>
+    <string name="conscience_line_late_night_food_06">रात गहरी है, खाना असली है, और मैं सोने का नाटक कर रहा हूँ 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">इस वक़्त {category}? लगता है नींद आज छुट्टी पर है 🦉</string>
+    <string name="conscience_line_late_night_02">{category} की नाइट शिफ़्ट ने हाज़िरी लगा दी है 🌙</string>
+    <string name="conscience_line_late_night_03">देर रात {category}। सुबह वाले तुम्हारे पास कुछ सवाल होंगे ☕</string>
+    <string name="conscience_line_late_night_04">सब सो रहे हैं, सिवाय तुम्हारे और {category} के 👀</string>
+    <string name="conscience_line_late_night_05">तारों की छाँव में {category}। कितना रोमांटिक… बटुए के लिए नहीं ✨</string>
+    <string name="conscience_line_late_night_06">श्श्श, रात बहुत हो गई। {category} ज़रा धीरे से 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">पिछले सात दिनों में {category} पर ख़र्च तुम्हारे आम हफ़्ते से काफ़ी आगे है 📈 बस यूँ ही बता दिया।</string>
+    <string name="conscience_line_spike_02">इस हफ़्ते {category} में तुम्हारा ख़र्च आम हफ़्तों को आँख दिखा रहा है 💪</string>
+    <string name="conscience_line_spike_03">{category} वाला ग्राफ़ इस हफ़्ते छप्पर फाड़ के ऊपर गया। तुम्हारा ही ग्राफ़ 📊</string>
+    <string name="conscience_line_spike_04">{category} के लिए बड़ा हफ़्ता। आम से बड़ा, काफ़ी बड़ा 🚀</string>
+    <string name="conscience_line_spike_05">आम हफ़्ते में {category}: एकदम शांत। इस हफ़्ते: पूरा मेला 🎪</string>
+    <string name="conscience_line_spike_06">ट्विस्ट: इन सात दिनों में {category} ने तुम्हारे आम हफ़्ते को मीलों पीछे छोड़ दिया 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">पिछले हफ़्ते {category} पर ख़र्च आम से {percent} कम रहा। क्या बात है! 🌟</string>
+    <string name="conscience_line_positive_02">आम हफ़्ते से {percent} कम {category}। तालियाँ हो जाएँ! 👏</string>
+    <string name="conscience_line_positive_03">ट्विस्ट: पिछले हफ़्ते तुमने {category} पर आम से {percent} कम ख़र्च किया 😮</string>
+    <string name="conscience_line_positive_04">पिछले हफ़्ते {category} में {percent} की गिरावट। मुझे लगभग गर्व है। लगभग 🥲</string>
+    <string name="conscience_line_positive_05">पिछला हफ़्ता: {category} {percent} नीचे। बटुए ने सलाम भेजा है 💌</string>
+    <string name="conscience_line_positive_06">पिछले हफ़्ते {category} औसत से {percent} नीचे। तुम कौन हो और हमारे दोस्त को कहाँ छुपाया? 😎</string>
+    <string name="conscience_line_positive_07">सलाम! पिछले हफ़्ते {category} का बोझ {percent} हल्का रहा 🏅</string>
+    <string name="conscience_line_positive_08">शाबाशी का सितारा ⭐ पिछले हफ़्ते {category} आम से {percent} कम रहा।</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} और {category}: हर हफ़्ते नया एपिसोड, वही लव स्टोरी 💞</string>
+    <string name="conscience_line_weekly_02">{weekday} है, तो ज़ाहिर है: {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">फिर {weekday}, फिर {category}। परंपरा है, निभानी तो पड़ेगी 🎉</string>
+    <string name="conscience_line_weekly_04">तुम्हारे {weekday} की एक थीम है, और वो है {category} 😄</string>
+    <string name="conscience_line_weekly_05">लोगों के {weekday} के प्लान होते हैं। तुम्हारे {weekday} का मतलब {category} 😏</string>
+    <string name="conscience_line_weekly_06">घड़ी की सुई जैसा पक्का: {weekday} यानी {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">खाना दिखा, और मैं हाज़िर 👀</string>
+    <string name="conscience_line_hello_food_02">खाने की एंट्री! मज़े करो, मेरी नज़र बस यहीं है 🍽️</string>
+    <string name="conscience_line_hello_food_03">खाते में खाना चढ़ गया। मैं कुछ नहीं कहूँगा… कम से कम ज़ोर से नहीं 🤐</string>
+    <string name="conscience_line_hello_food_04">टिंग! खाना दर्ज। मेरी एक भौंह ज़रा-सी ऊपर उठ गई 🤨</string>
+    <string name="conscience_line_hello_food_05">खाने की नई एंट्री। लाजवाब 🤌</string>
+    <string name="conscience_line_hello_food_06">खाना, कहा तुमने? सब बताओ। अच्छा रहने दो, मत बताओ 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">{category} चैट में आ गई है 💬</string>
+    <string name="conscience_line_hello_02">अचानक झाड़ियों से {category} निकल आई! 🎮</string>
+    <string name="conscience_line_hello_03">{category} दिख गई। मैंने कुछ नहीं देखा 🙈</string>
+    <string name="conscience_line_hello_04">नोट किया: {category}। तुम चलते रहो, मैं तो बस सूत्रधार हूँ 🎙️</string>
+    <string name="conscience_line_hello_05">{category} आ रही है। मेरे पॉपकॉर्न तैयार हैं 🍿</string>
+    <string name="conscience_line_hello_06">अच्छा, {category}? और बताओ 👂</string>
+</resources>

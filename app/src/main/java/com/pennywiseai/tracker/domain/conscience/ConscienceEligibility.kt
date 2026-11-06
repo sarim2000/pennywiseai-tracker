@@ -20,7 +20,7 @@ object ConscienceEligibility {
         if (tx.loanId != null || tx.lentSharesTotal != null || hasSplits) return null
         if (tx.profileId == ProfileEntity.BUSINESS_ID || tx.amount.signum() <= 0) return null
         val category = ConscienceCategory.fromBuiltinKey(builtinKeyByCategoryName[tx.category]) ?: return null
-        return ConsciencePurchase(tx.dateTime, tx.amount, tx.currency, category)
+        return ConsciencePurchase(tx.dateTime, tx.amount, tx.currency, category, tx.id, tx.merchantName, tx.isRecurring)
     }
 
     /**
@@ -40,7 +40,7 @@ object ConscienceEligibility {
         return counted.getAmountByCategory().mapNotNull { (name, amount) ->
             val category = ConscienceCategory.fromBuiltinKey(builtinKeyByCategoryName[name])
             if (category == null || amount.signum() <= 0) null
-            else ConsciencePurchase(tx.dateTime, amount, tx.currency, category)
+            else ConsciencePurchase(tx.dateTime, amount, tx.currency, category, tx.id, tx.merchantName, tx.isRecurring)
         }
     }
 }

@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -54,7 +55,7 @@ class ConscienceEligibilityTest {
     @Test
     fun `an ordinary expense becomes a purchase`() {
         assertEquals(
-            ConsciencePurchase(at, BigDecimal("12.50"), "JOD", ConscienceCategory.FOOD),
+            ConsciencePurchase(at, BigDecimal("12.50"), "JOD", ConscienceCategory.FOOD, 7, "Test Merchant", false),
             purchase(eligible),
         )
     }
@@ -156,28 +157,39 @@ class ConscienceEligibilityTest {
     }
 
     @Test
+    fun `history keeps the row's id, merchant and recurring flag, split parts share the id`() {
+        val recurring = history(eligible.copy(id = 9, isRecurring = true)).single()
+        assertEquals(9L, recurring.transactionId)
+        assertEquals("Test Merchant", recurring.merchant)
+        assertTrue(recurring.recurring)
+
+        val row = eligible.copy(id = 11, amount = BigDecimal("100"), category = "Bills")
+        val parts = history(row, "Food & Dining" to "30", "Eats" to "20", "Bills" to "50")
+        assertEquals(listOf(11L), parts.map { it.transactionId }.distinct())
+        assertTrue(parts.none { it.recurring })
+    }
+
+    @Test
     fun `a recent recurring charge stops a false record and a false comeback`() {
         val today = at.toLocalDate()
-        val ordinary = (2L..11L).map { today.minusDays(it) }.flatMap { day ->
-            history(eligible.copy(dateTime = day.atTime(12, 0), amount = BigDecimal("10")))
-        }
-        val yesterday = history(
-            eligible.copy(dateTime = today.minusDays(1).atTime(12, 0), amount = BigDecimal("100"), isRecurring = true)
+        var id = 100L
+        fun row(dateTime: LocalDateTime, amount: String, recurring: Boolean = false) = history(
+            eligible.copy(id = id++, dateTime = dateTime, amount = BigDecimal(amount), isRecurring = recurring)
         )
-        val current = purchase(eligible.copy(amount = BigDecimal("20")))!!
+        val ordinary = (2L..11L).flatMap { row(today.minusDays(it).atTime(12, 0), "10") }
+        val earlierToday = row(today.atTime(9, 0), "12")
+        val yesterday = row(today.minusDays(1).atTime(12, 0), "100", recurring = true)
+        val current = purchase(eligible.copy(amount = BigDecimal("13")))!!
         val ledgerStart = today.minusDays(365)
+        fun detect(history: List<ConsciencePurchase>) = ConscienceDetectors.detect(current, history, ledgerStart)
 
-        assertEquals(
-            ConscienceFact.RecordDay(ConscienceCategory.FOOD),
-            ConscienceDetectors.detect(current, ordinary, ledgerStart),
-        )
-        assertNull(ConscienceDetectors.detect(current, ordinary + yesterday, ledgerStart))
+        val record = ConscienceFact.RecordDay(ConscienceCategory.FOOD)
+        assertTrue(record in detect(ordinary + earlierToday))
+        assertFalse(record in detect(ordinary + earlierToday + yesterday))
 
         val quiet = ordinary.map { it.copy(at = it.at.minusDays(10)) }
-        assertEquals(
-            ConscienceFact.Comeback(ConscienceCategory.FOOD, 12),
-            ConscienceDetectors.detect(current, quiet, ledgerStart),
-        )
-        assertNull(ConscienceDetectors.detect(current, quiet + yesterday, ledgerStart))
+        val comeback = ConscienceFact.Comeback(ConscienceCategory.FOOD, 12)
+        assertTrue(comeback in detect(quiet))
+        assertTrue(detect(quiet + yesterday).none { it is ConscienceFact.Comeback })
     }
 }

@@ -2,67 +2,152 @@ package com.pennywiseai.tracker.domain.conscience
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.time.DayOfWeek
+import java.util.Locale
+import javax.xml.parsers.DocumentBuilderFactory
 
 class ConscienceLinesTest {
 
-    private val voices = ConscienceVoice.entries
-    private val addresses = ConscienceAddress.entries
-
-    private val foodComeback = ConscienceFact.Comeback(ConscienceCategory.FOOD, 5)
-    private val genericComebacks = listOf(
-        ConscienceFact.Comeback(ConscienceCategory.ENTERTAINMENT, 5),
-        ConscienceFact.Comeback(ConscienceCategory.SHOPPING, 5),
-    )
-    private val recordDays = ConscienceCategory.entries.map { ConscienceFact.RecordDay(it) }
-
-    private fun distinctPools(): List<List<ConscienceLine>> = voices.flatMap { voice ->
-        listOf(foodComeback, genericComebacks.first(), recordDays.first()).map { ConscienceLines.pool(voice, it) }
+    private object Words : ConscienceWords {
+        override val locale: Locale = Locale.ENGLISH
+        override fun days(days: Int) = "$days days"
+        override fun hours(hours: Int) = "$hours hours"
+        override fun category(category: ConscienceCategory) = category.name.lowercase()
+        override fun weekday(day: DayOfWeek) = day.name.lowercase()
+        override fun percent(percent: Int) = "$percent%"
     }
 
-    private fun allLines() = distinctPools().flatten()
-
-    private fun everyFact(days: Int): List<ConscienceFact> =
-        ConscienceCategory.entries.map { ConscienceFact.Comeback(it, days) } + recordDays
-
-    private fun jordanianLine(fact: ConscienceFact, id: String) =
-        ConscienceLines.pool(ConscienceVoice.JORDANIAN, fact).single { it.id == id }
+    private val food = ConscienceCategory.FOOD
 
     @Test
-    fun `ids are unique across pools and safe for the log`() {
-        val ids = allLines().map { it.id }
+    fun `ids are unique and safe for the logs`() {
+        val ids = ConscienceLines.all.map { it.id }
         assertEquals(ids.size, ids.toSet().size)
-        assertTrue(ids.none { '|' in it })
+        assertTrue(ids.none { '|' in it || ':' in it })
+        assertEquals(ConscienceLines.all.size, ConscienceLines.all.map { it.res }.toSet().size)
     }
 
     @Test
-    fun `each pool has at least twelve lines`() {
-        assertEquals(6, distinctPools().size)
-        distinctPools().forEach { assertTrue("pool of ${it.size}", it.size >= 12) }
+    fun `food gets its own pools where it has them`() {
+        val shopping = ConscienceCategory.SHOPPING
+        val fun_ = ConscienceCategory.ENTERTAINMENT
+        listOf<(ConscienceCategory) -> ConscienceFact>(
+            { ConscienceFact.Comeback(it, 5) },
+            { ConscienceFact.Repeat(it, 3, 6) },
+            { ConscienceFact.LateNight(it) },
+            { ConscienceFact.Hello(it) },
+        ).forEach { make ->
+            assertEquals(ConscienceLines.pool(make(shopping)), ConscienceLines.pool(make(fun_)))
+            assertTrue(ConscienceLines.pool(make(food)).intersect(ConscienceLines.pool(make(shopping)).toSet()).isEmpty())
+        }
+        assertEquals(ConscienceLines.pool(ConscienceFact.Spike(food)), ConscienceLines.pool(ConscienceFact.Spike(shopping)))
     }
 
     @Test
-    fun `each fact gets the right pool`() {
-        voices.forEach { voice ->
-            val food = ConscienceLines.pool(voice, foodComeback)
-            val generic = ConscienceLines.pool(voice, genericComebacks[0])
-            val record = ConscienceLines.pool(voice, recordDays[0])
-            assertEquals(generic, ConscienceLines.pool(voice, genericComebacks[1]))
-            recordDays.forEach { assertEquals(record, ConscienceLines.pool(voice, it)) }
-            assertEquals(3, setOf(food, generic, record).size)
+    fun `every kind has a pool of at least six`() {
+        ConscienceLines.sampleFacts.forEach { assertTrue("${it.kind}", ConscienceLines.pool(it).size >= 6) }
+        assertEquals(ConscienceKind.entries.toSet(), ConscienceLines.sampleFacts.map { it.kind }.toSet())
+    }
+
+    @Test
+    fun `samples walk every kind before repeating one, then move along the pool`() {
+        val kinds = (0 until ConscienceKind.entries.size).map { ConscienceLines.sample(it).first.kind }
+        assertEquals(ConscienceKind.entries.toSet(), kinds.toSet())
+        val first = ConscienceLines.sample(0)
+        val nextRound = ConscienceLines.sample(ConscienceLines.sampleFacts.size)
+        assertEquals(first.first, nextRound.first)
+        assertFalse(first.second == nextRound.second)
+        assertNotNull(ConscienceLines.sample(-1))
+    }
+
+    @Test
+    fun `render picks the address form and fills placeholders`() {
+        val fact = ConscienceFact.Comeback(food, 5)
+        val template = "back after {days}, {tired|exhausted}"
+        assertEquals("Back after 5 days, tired", ConscienceLines.render(template, fact, false, Words))
+        assertEquals("Back after 5 days, exhausted", ConscienceLines.render(template, fact, true, Words))
+        assertEquals("Food: 25% less", ConscienceLines.render("{category}: {percent} less", ConscienceFact.Positive(food, 25, 0), false, Words))
+        assertEquals("3 in 6 hours", ConscienceLines.render("{count} in {hours}", ConscienceFact.Repeat(food, 3, 6), false, Words))
+        assertEquals("Friday again", ConscienceLines.render("{weekday} again", ConscienceFact.Weekly(food, DayOfWeek.FRIDAY), false, Words))
+        assertNull(ConscienceLines.render("{count} on {weekday}", ConscienceFact.Repeat(food, 3, 6), false, Words))
+        val hello = ConscienceFact.Hello(food)
+        assertEquals("Hm. Food again? Food it is", ConscienceLines.render("hm. {category} again? {category} it is", hello, false, Words))
+        assertEquals("Wait… food, and more food", ConscienceLines.render("wait… {category}, and more {category}", hello, false, Words))
+    }
+
+    @Test
+    fun `a placeholder the fact can't fill, or a stray brace, drops the line`() {
+        val hello = ConscienceFact.Hello(food)
+        assertNull(ConscienceLines.render("after {days}", hello, false, Words))
+        assertNull(ConscienceLines.render("{amount} spent", hello, false, Words))
+        assertNull(ConscienceLines.render("oops {", hello, false, Words))
+        assertNull(ConscienceLines.render("", hello, false, Words))
+        assertEquals("Hi food", ConscienceLines.render("hi {category}", hello, false, Words))
+    }
+
+    @Test
+    fun `marksAddress spots an alternation and nothing else`() {
+        assertTrue(ConscienceLines.marksAddress(listOf("plain", "{back|back}")))
+        assertFalse(ConscienceLines.marksAddress(listOf("{days} of {category}")))
+    }
+
+    // --- The resources themselves, every language ---
+
+    private val res = File("src/main/res")
+
+    private fun strings(file: File): Map<String, String> {
+        val doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file)
+        val nodes = doc.getElementsByTagName("string")
+        return (0 until nodes.length).associate { i ->
+            val node = nodes.item(i)
+            node.attributes.getNamedItem("name").nodeValue to
+                node.textContent.replace("\\'", "'").replace("\\\"", "\"").replace("\\n", "\n")
         }
     }
 
+    private val localeDirs: List<File> by lazy {
+        res.listFiles().orEmpty().filter { File(it, "strings_conscience.xml").exists() }.sortedBy { it.name }
+    }
+
+    /** Every fact a line's pool can be asked to render, so each line is tried in each of its contexts. */
+    private fun factsFor(line: ConscienceLine): List<ConscienceFact> {
+        val all = ConscienceCategory.entries.flatMap { category ->
+            listOf(
+                ConscienceFact.Comeback(category, 5),
+                ConscienceFact.Comeback(category, 21),
+                ConscienceFact.RecordDay(category),
+                ConscienceFact.Repeat(category, 3, 6),
+                ConscienceFact.Repeat(category, 4, 24),
+                ConscienceFact.LateNight(category),
+                ConscienceFact.Spike(category),
+                ConscienceFact.Positive(category, 25, 0),
+                ConscienceFact.Weekly(category, DayOfWeek.THURSDAY),
+                ConscienceFact.Hello(category),
+            )
+        }
+        return all.filter { line in ConscienceLines.pool(it) }
+    }
+
     @Test
-    fun `every line renders with no leftover placeholder`() {
-        voices.forEach { voice ->
-            addresses.forEach { address ->
-                everyFact(days = 5).forEach { fact ->
-                    ConscienceLines.pool(voice, fact).forEach { line ->
-                        val text = ConscienceLines.render(line, voice, address, fact)
-                        assertFalse(text, '{' in text || '}' in text)
+    fun `every language has every line, and every line renders in every context and address`() {
+        assertTrue("found ${localeDirs.size} languages", localeDirs.size >= 14)
+        localeDirs.forEach { dir ->
+            val file = File(dir, "conscience_lines.xml")
+            assertTrue("${dir.name} has no conscience_lines.xml", file.exists())
+            val lines = strings(file)
+            assertTrue("${dir.name} names its language", lines["conscience_content_locale"].orEmpty().isNotBlank())
+            ConscienceLines.all.forEach { line ->
+                val template = lines["conscience_line_${line.id}"]
+                assertNotNull("${dir.name} is missing ${line.id}", template)
+                factsFor(line).forEach { fact ->
+                    listOf(false, true).forEach { feminine ->
+                        val rendered = ConscienceLines.render(template!!, fact, feminine, Words)
+                        assertNotNull("${dir.name}/${line.id} doesn't render for $fact", rendered)
                     }
                 }
             }
@@ -70,102 +155,14 @@ class ConscienceLinesTest {
     }
 
     @Test
-    fun `comeback lines render days with the right plural`() {
-        val expected = mapOf(
-            ConscienceVoice.JORDANIAN to mapOf(3 to "3 أيام", 10 to "10 أيام", 11 to "11 يوم", 30 to "30 يوم"),
-            ConscienceVoice.ENGLISH to mapOf(3 to "3 days", 10 to "10 days", 11 to "11 days", 30 to "30 days"),
-        )
-        expected.forEach { (voice, phrases) ->
-            phrases.forEach { (days, phrase) ->
-                ConscienceCategory.entries.forEach { category ->
-                    val fact = ConscienceFact.Comeback(category, days)
-                    addresses.forEach { address ->
-                        ConscienceLines.pool(voice, fact).forEach { line ->
-                            val text = ConscienceLines.render(line, voice, address, fact)
-                            assertTrue("$phrase missing from: $text", phrase in text)
-                        }
-                    }
-                }
+    fun `no line carries money, and no language falls back to another's line`() {
+        val currency = Regex("""[₹$€£¥]|\b(JOD|INR|USD|AED|SAR)\b""")
+        val contentLocales = localeDirs.map { strings(File(it, "conscience_lines.xml"))["conscience_content_locale"] }
+        assertEquals(contentLocales.size, contentLocales.toSet().size)
+        localeDirs.forEach { dir ->
+            strings(File(dir, "conscience_lines.xml")).filterKeys { it.startsWith("conscience_line_") }.forEach { (name, text) ->
+                assertFalse("${dir.name}/$name mentions money", currency.containsMatchIn(text))
             }
-        }
-    }
-
-    @Test
-    fun `category nouns render in the voice`() {
-        val line = ConscienceLine("test", "{category}")
-        val fact = ConscienceFact.RecordDay(ConscienceCategory.SHOPPING)
-        assertEquals("تسوق", ConscienceLines.render(line, ConscienceVoice.JORDANIAN, ConscienceAddress.MASCULINE, fact))
-        assertEquals("shopping", ConscienceLines.render(line, ConscienceVoice.ENGLISH, ConscienceAddress.MASCULINE, fact))
-    }
-
-    @Test
-    fun `marked Jordanian lines differ by address`() {
-        val record = recordDays.first()
-        val marked = listOf(
-            jordanianLine(foodComeback, "jo_food_comeback_01"),
-            jordanianLine(genericComebacks.first(), "jo_comeback_04"),
-            jordanianLine(genericComebacks.first(), "jo_comeback_06"),
-            jordanianLine(record, "jo_record_day_01"),
-            jordanianLine(record, "jo_record_day_09"),
-        )
-        marked.forEach { assertNotEquals(it.masculine, it.feminine) }
-
-        val keepGoing = jordanianLine(record, "jo_record_day_01")
-        val render = { address: ConscienceAddress ->
-            ConscienceLines.render(keepGoing, ConscienceVoice.JORDANIAN, address, record)
-        }
-        assertEquals("كمل كمل 😂", render(ConscienceAddress.MASCULINE))
-        assertEquals("كملي كملي 😂", render(ConscienceAddress.FEMININE))
-    }
-
-    @Test
-    fun `English lines have no gendered form`() {
-        listOf(foodComeback, genericComebacks.first(), recordDays.first()).forEach { fact ->
-            ConscienceLines.pool(ConscienceVoice.ENGLISH, fact).forEach { assertEquals(it.masculine, it.feminine) }
-        }
-    }
-
-    @Test
-    fun `no line uses a banned word or a digit`() {
-        val banned = listOf("سجل", "أرشيف", "ملف", "record", "delivery", "دليفري")
-        allLines().flatMap { listOf(it.masculine, it.feminine) }.forEach { text ->
-            banned.forEach { word -> assertFalse("$word in: $text", text.contains(word, ignoreCase = true)) }
-            assertFalse("digit in: $text", text.any { it.isDigit() })
-        }
-    }
-
-    @Test
-    fun `lines stay short with the longest facts`() {
-        voices.forEach { voice ->
-            addresses.forEach { address ->
-                everyFact(days = 365).forEach { fact ->
-                    ConscienceLines.pool(voice, fact).forEach { line ->
-                        val text = ConscienceLines.render(line, voice, address, fact)
-                        assertTrue("${text.length}: $text", text.length < 90)
-                    }
-                }
-            }
-        }
-    }
-
-    @Test
-    fun `samples are three finished lines`() {
-        voices.forEach { voice ->
-            addresses.forEach { address ->
-                val samples = ConscienceLines.samples(voice, address)
-                assertEquals(3, samples.size)
-                assertEquals(3, samples.toSet().size)
-                samples.forEach { assertFalse(it, '{' in it || it.isBlank()) }
-            }
-        }
-    }
-
-    @Test
-    fun `the lock screen text says nothing about spending`() {
-        voices.forEach { voice ->
-            val text = ConscienceLines.lockScreenText(voice)
-            val allNouns = listOf("أكل", "ترفيه", "تسوق", "food", "fun", "shopping", "شهرين", "months")
-            allNouns.forEach { assertFalse(it, it in text) }
         }
     }
 }

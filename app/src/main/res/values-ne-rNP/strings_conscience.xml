@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">अन्तरात्मा</string>
+    <string name="conscience_settings_subtitle_on">चालु · तिम्रो खर्चमा चुट्किला टिप्पणी</string>
+    <string name="conscience_settings_subtitle_off">बन्द · तिम्रो खर्चमा चुट्किला टिप्पणी</string>
+    <string name="conscience_needs_permission">तिम्रो अन्तरात्मा बोल्न सकोस् भनेर PennyWise लाई सूचना पठाउने अनुमति देऊ।</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">तिम्रो खर्चको आफ्नै कमेन्टेटर</string>
+    <string name="conscience_hero_body">खानपिन, रमाइलो र किनमेलपछि चुट्किला एक लाइने। अनि राम्रो गर्दा तालीसमेत।</string>
+    <string name="conscience_switch_title">बोल्न देऊ</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">निदाइरहेको छ। ब्युँझाउन स्विच थिच 😴</string>
+    <string name="conscience_status_blocked">सूचना बन्द छ, त्यसैले यो भित्तासँग कुरा गरिरहेको छ 🧱</string>
+    <string name="conscience_status_listening">तिम्रो अर्को खानपिन, रमाइलो वा किनमेलको खरिदमा कान थापेर बसेको छ 👂</string>
+    <string name="conscience_status_learning">अझै तिम्रो बानी सिक्दैछ। इतिहास बढ्दै जाँदा अझ पिरा टिप्पणी खुल्दै जान्छन् 🧠</string>
+    <string name="conscience_open_notification_settings">सूचना चालु गर</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">सुनिएका केही नमुना</string>
+    <string name="conscience_example_badge">नमुना</string>
+    <string name="conscience_another_example">अर्को एउटा</string>
+    <string name="conscience_try_it">मलाई एउटा पठाऊ</string>
+    <string name="conscience_try_sent">पठाइयो! यसले आवाज निकाल्दैन, सूचनामा चियाएर हेर।</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">कुन कुरामा बोल्छ</string>
+    <string name="conscience_kind_comeback">पुनरागमन</string>
+    <string name="conscience_kind_comeback_desc">सामान्यभन्दा लामो ब्रेकपछि कुनै श्रेणी फर्किँदा</string>
+    <string name="conscience_kind_record_day">रेकर्ड दिन</string>
+    <string name="conscience_kind_record_day_desc">दुई महिनामा कुनै श्रेणीमा तिम्रो सबैभन्दा ठूलो दिन</string>
+    <string name="conscience_kind_repeat">घरिघरि</string>
+    <string name="conscience_kind_repeat_desc">केही घण्टाभित्रै एउटै श्रेणी घरिघरि</string>
+    <string name="conscience_kind_late_night">राति अबेर</string>
+    <string name="conscience_kind_late_night_desc">राति 11 बजेपछिका खरिद। कहिल्यै ब्युँझाउँदैन</string>
+    <string name="conscience_kind_spike">उछाल</string>
+    <string name="conscience_kind_spike_desc">कुनै श्रेणीमा सामान्यभन्दा निकै बढी खर्च भएको हप्ता</string>
+    <string name="conscience_kind_positive">जित</string>
+    <string name="conscience_kind_positive_desc">सामान्यभन्दा निकै कम खर्च भएको हप्ता, त्यसैले यसपटक ताली</string>
+    <string name="conscience_kind_weekly">साप्ताहिक रीत</string>
+    <string name="conscience_kind_weekly_desc">हप्तैपिच्छे, एउटै बारमा, एउटै श्रेणी</string>
+    <string name="conscience_kind_hello">छोटो नमस्ते</string>
+    <string name="conscience_kind_hello_desc">बेलाबेला एक हात हल्लाइदिन्छ, यो अझै ब्युँझिएकै छ भनेर थाहा होस्</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">कसरी बोल्छ</string>
+    <string name="conscience_language_title">भाषा</string>
+    <string name="conscience_language_follows">एपको भाषा पछ्याउँछ · %1$s</string>
+    <string name="conscience_address_title">मलाई यसरी सम्बोधन गर</string>
+    <string name="conscience_address_auto">स्वचालित</string>
+    <string name="conscience_address_masculine">पुलिङ्ग</string>
+    <string name="conscience_address_feminine">स्त्रीलिङ्ग</string>
+    <string name="conscience_frequency_title">कति पटक</string>
+    <string name="conscience_frequency_normal">सामान्य</string>
+    <string name="conscience_frequency_less">अलि कम</string>
+    <string name="conscience_frequency_normal_note">दिनमा बढीमा एक पटक र हप्तामा 3 पटक।</string>
+    <string name="conscience_frequency_less_note">हप्तामा बढीमा एक पटक।</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">हालका टिप्पणी</string>
+    <string name="conscience_recent_empty">अहिलेसम्म कुनै टिप्पणी छैन। तिम्रो अर्को खानपिन, रमाइलो वा किनमेलको खरिद पर्खिरहेको छ।</string>
+    <string name="conscience_recent_saved_quietly">चुपचाप सेभ भयो</string>
+    <string name="conscience_recent_show_all">सबै देखाऊ</string>
+    <string name="conscience_recent_show_less">कम देखाऊ</string>
+    <string name="conscience_feedback_summary">😂 %1$s मन परे · 🙅 %2$s अवकाशमा</string>
+    <string name="conscience_reset_feedback">प्रतिक्रिया रिसेट गर</string>
+    <string name="conscience_reaction_liked">तिमीलाई यो मन पर्‍यो 😂</string>
+    <string name="conscience_reaction_retired">सधैँका लागि अवकाश 🙅</string>
+
+    <string name="conscience_privacy">हातैले लेखिएका ठट्टा, यही फोनमा तिम्रो बानीसँग मिलाइएका। रकम वा पसलको नाम कहिल्यै हुँदैन। खानपिन, मनोरञ्जन र किनमेल मात्र।</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">तिम्रो अन्तरात्मा</string>
+    <string name="conscience_lock_screen_text">स्स्स। एउटा सानो कुरा 👀</string>
+    <string name="conscience_action_like">😂 मन पर्‍यो</string>
+    <string name="conscience_action_dislike">🙅 यो चाहिँ होइन</string>
+    <string name="conscience_confirm_like">नोट गरेँ 😂 यस्तै अरू आउँछन्, सीमा उही रहन्छ।</string>
+    <string name="conscience_confirm_dislike">बुझेँ। त्यो सधैँका लागि अवकाशमा 🫡</string>
+    <string name="conscience_confirm_sample">यो त नमुना मात्र थियो, केही बदलिएन 😉</string>
+    <string name="conscience_confirm_less_often">ठिकै छ, अलि कम बोल्छु। तर नजर अझै छ 👀</string>
+    <string name="conscience_confirm_paused">ठिकै छ। एक शब्द पनि बोल्दिनँ 🤐 सेटिङबाट फेरि बोलाउनू।</string>
+
+    <!-- Words the lines' placeholders take. Lowercase unless the language capitalizes nouns. -->
+    <string name="conscience_category_food">खानपिन</string>
+    <string name="conscience_category_entertainment">रमाइलो</string>
+    <string name="conscience_category_shopping">किनमेल</string>
+    <plurals name="conscience_days">
+        <item quantity="one">%1$s दिन</item>
+        <item quantity="other">%1$s दिन</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s घण्टा</item>
+        <item quantity="other">%1$s घण्टा</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">अन्तरात्मा</string>
+    <string name="conscience_channel_description">खानपिन, मनोरञ्जन र किनमेलबारे बेलाबेला चुट्किला टिप्पणी। आवाजबिना।</string>
+</resources>

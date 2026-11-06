@@ -18,8 +18,13 @@ import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.conscience.ConscienceAddress
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
-import com.pennywiseai.tracker.domain.conscience.ConscienceLine
-import com.pennywiseai.tracker.domain.conscience.ConscienceVoice
+import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
+import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
+import com.pennywiseai.tracker.domain.conscience.ConscienceFeedback
+import com.pennywiseai.tracker.domain.conscience.ConscienceKind
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
+import com.pennywiseai.tracker.domain.conscience.ConscienceRemarks
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -28,8 +33,10 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
-import java.util.Locale
 import kotlin.random.Random
+import kotlinx.serialization.json.Json
+
+private val conscienceJson = Json { ignoreUnknownKeys = true }
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_preferences",
@@ -82,10 +89,12 @@ open class UserPreferencesRepository @Inject constructor(
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         val CONSCIENCE_ENABLED = booleanPreferencesKey("conscience_enabled")
-        val CONSCIENCE_VOICE = stringPreferencesKey("conscience_voice")
         val CONSCIENCE_ADDRESS = stringPreferencesKey("conscience_address")
         val CONSCIENCE_FREQUENCY = stringPreferencesKey("conscience_frequency")
         val CONSCIENCE_LOG = stringSetPreferencesKey("conscience_log")
+        val CONSCIENCE_MUTED_KINDS = stringSetPreferencesKey("conscience_muted_kinds")
+        val CONSCIENCE_FEEDBACK = stringSetPreferencesKey("conscience_feedback")
+        val CONSCIENCE_REMARKS = stringPreferencesKey("conscience_remarks")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -402,18 +411,9 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
     }
 
-    val conscienceVoice: Flow<ConscienceVoice> = context.dataStore.data.map { preferences ->
-        ConscienceVoice.entries.firstOrNull { it.name == preferences[PreferencesKeys.CONSCIENCE_VOICE] }
-            ?: if (Locale.getDefault().language == "ar") ConscienceVoice.JORDANIAN else ConscienceVoice.ENGLISH
-    }
-
-    suspend fun setConscienceVoice(voice: ConscienceVoice) {
-        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_VOICE] = voice.name }
-    }
-
     val conscienceAddress: Flow<ConscienceAddress> = context.dataStore.data.map { preferences ->
         ConscienceAddress.entries.firstOrNull { it.name == preferences[PreferencesKeys.CONSCIENCE_ADDRESS] }
-            ?: ConscienceAddress.MASCULINE
+            ?: ConscienceAddress.AUTO
     }
 
     suspend fun setConscienceAddress(address: ConscienceAddress) {
@@ -430,32 +430,92 @@ open class UserPreferencesRepository @Inject constructor(
         ConscienceFrequency.entries.firstOrNull { it.name == this[PreferencesKeys.CONSCIENCE_FREQUENCY] }
             ?: ConscienceFrequency.NORMAL
 
+    /** Kinds of comment the user switched off on the Conscience screen. */
+    val conscienceMutedKinds: Flow<Set<ConscienceKind>> = context.dataStore.data.map { preferences ->
+        val names = preferences[PreferencesKeys.CONSCIENCE_MUTED_KINDS].orEmpty()
+        ConscienceKind.entries.filter { it.name in names }.toSet()
+    }
+
+    suspend fun setConscienceKindEnabled(kind: ConscienceKind, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            val muted = prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS].orEmpty()
+            prefs[PreferencesKeys.CONSCIENCE_MUTED_KINDS] = if (enabled) muted - kind.name else muted + kind.name
+        }
+    }
+
+    val conscienceFeedback: Flow<ConscienceFeedback> = context.dataStore.data.map { it.conscienceFeedback() }
+
+    private fun Preferences.conscienceFeedback(): ConscienceFeedback =
+        ConscienceCadence.decodeFeedback(this[PreferencesKeys.CONSCIENCE_FEEDBACK] ?: emptySet())
+
+    /** Newest first. */
+    val conscienceRemarks: Flow<List<ConscienceRemark>> = context.dataStore.data.map { it.conscienceRemarks() }
+
+    private fun Preferences.conscienceRemarks(): List<ConscienceRemark> =
+        this[PreferencesKeys.CONSCIENCE_REMARKS]?.let { raw ->
+            runCatching { conscienceJson.decodeFromString<List<ConscienceRemark>>(raw) }.getOrNull()
+        }.orEmpty()
+
+    suspend fun addConscienceRemark(remark: ConscienceRemark, nowMillis: Long) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
+                conscienceJson.encodeToString(ConscienceRemarks.add(prefs.conscienceRemarks(), remark, nowMillis))
+        }
+    }
+
+    /** False when the remark is gone or already has a reaction: the first one wins. */
+    suspend fun reactToConscienceRemark(remarkId: Long, reaction: ConscienceReaction): Boolean {
+        var applied = false
+        context.dataStore.edit { prefs ->
+            applied = false
+            val (remarks, feedback) = ConscienceRemarks.react(
+                prefs.conscienceRemarks(), prefs.conscienceFeedback(), remarkId, reaction
+            ) ?: return@edit
+            prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
+            prefs[PreferencesKeys.CONSCIENCE_FEEDBACK] = ConscienceCadence.encodeFeedback(feedback)
+            applied = true
+        }
+        return applied
+    }
+
+    /** Forgets likes and retired lines, and clears the remarks' reactions. */
+    suspend fun resetConscienceFeedback() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(PreferencesKeys.CONSCIENCE_FEEDBACK)
+            prefs[PreferencesKeys.CONSCIENCE_REMARKS] =
+                conscienceJson.encodeToString(prefs.conscienceRemarks().map { it.copy(reaction = null) })
+        }
+    }
+
     /**
-     * Spends a slot and picks the line in one edit: the SMS receiver and the
+     * Spends a slot and picks the comment in one edit: the SMS receiver and the
      * notification listener can race, and only one of them may get the slot.
-     * Null when the cadence says no or [pool] has nothing off cooldown.
+     * Null when the cadence says no or no candidate has a line left.
      */
-    suspend fun tryClaimConscienceLine(
-        pool: List<ConscienceLine>,
+    suspend fun tryClaimConscience(
+        candidates: List<ConscienceCandidate>,
+        contentLocale: String,
         nowMillis: Long,
         todayEpochDay: Long,
         random: Random
-    ): ConscienceLine? {
-        var claimed: ConscienceLine? = null
+    ): ConscienceChoice? {
+        var claimed: ConscienceChoice? = null
         context.dataStore.edit { prefs ->
             claimed = null
-            // Checked here too: Pause can land while the history is being read.
+            // Checked here too: the switch can go off while the history is being read.
             if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
             val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
-            if (!ConscienceCadence.allows(log, prefs.conscienceFrequency(), nowMillis)) return@edit
-            val line = ConscienceCadence.pickLine(pool, log, todayEpochDay, random) ?: return@edit
+            val choice = ConscienceCadence.choose(
+                candidates, log, prefs.conscienceFeedback(), prefs.conscienceFrequency(),
+                contentLocale, nowMillis, todayEpochDay, random
+            ) ?: return@edit
             prefs[PreferencesKeys.CONSCIENCE_LOG] =
-                ConscienceCadence.encode(ConscienceCadence.record(log, line.id, nowMillis, todayEpochDay))
-            claimed = line
+                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
+            claimed = choice
         }
         return claimed
     }
-    
+
     suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT] = prompt

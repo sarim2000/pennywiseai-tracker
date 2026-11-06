@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Conscience lines in Brazilian Portuguese ("você"). Written natively, not translated.
+    {category}: comida / diversão / compras, used after "de", "sem", "com", "em" or before ":" so it never needs an article.
+    {weekday}: "quinta-feira", "sábado"… never after a possessive or article (gender differs between days).
+-->
+<resources>
+    <string name="conscience_content_locale">pt-BR</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">{days} firme e forte. Enfim, o que tem pra comer hoje?</string>
+    <string name="conscience_line_comeback_food_02">{days} de bravura. Vão compor uma música pra você. Curtinha 🎶</string>
+    <string name="conscience_line_comeback_food_03">Eu botei fé em você. Você aguentou {days}. Já é alguma coisa.</string>
+    <string name="conscience_line_comeback_food_04">Você aguentou {days}. A batata frita nunca duvidou de você 🍟</string>
+    <string name="conscience_line_comeback_food_05">{days} de força de vontade, até alguém dizer \"só uma mordidinha\".</string>
+    <string name="conscience_line_comeback_food_06">Cientistas calculam a meia-vida da sua força de vontade em {days}.</string>
+    <string name="conscience_line_comeback_food_07">{Invicto|Invicta} por {days}. Aí apareceu um cardápio.</string>
+    <string name="conscience_line_comeback_food_08">Você e o cardápio: {days} separados. Foi lindo enquanto durou.</string>
+    <string name="conscience_line_comeback_food_09">Olha quem voltou! Sua mesa te esperou por {days} 🍽️</string>
+    <string name="conscience_line_comeback_food_10">A comida te aceitou de volta depois de {days}. Sem perguntas.</string>
+    <string name="conscience_line_comeback_food_11">{days} depois, e o cardápio ainda lembra seu nome.</string>
+    <string name="conscience_line_comeback_food_12">Foram {days} históricos. Já era 🍔</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">Você ficou {days} sem {category}. Inspirador. Por pouco tempo.</string>
+    <string name="conscience_line_comeback_02">Você anunciou a aposentadoria. Durou {days}. Belo discurso, aliás.</string>
+    <string name="conscience_line_comeback_03">Que {days} lindos. Enfim: {category}.</string>
+    <string name="conscience_line_comeback_04">Relacionamento com {category}: deram um tempo de {days}. Status atual: reatados 💞</string>
+    <string name="conscience_line_comeback_05">Duelo de olhares com {category} por {days}. Você piscou primeiro.</string>
+    <string name="conscience_line_comeback_06">A proibição de {category} durou {days}. Revogada por unanimidade.</string>
+    <string name="conscience_line_comeback_07">{days} de juízo. Nunca combinou muito com você.</string>
+    <string name="conscience_line_comeback_08">O experimento durou {days}. Resultado: {category}.</string>
+    <string name="conscience_line_comeback_09">Ninguém tá contando. Tá, eu tava. {days}.</string>
+    <string name="conscience_line_comeback_10">{days} sem {category}. Os direitos do filme ainda estão disponíveis 🍿</string>
+    <string name="conscience_line_comeback_11">{category} de novo, depois de {days}. Não vamos dizer nada. Bem alto 🤐</string>
+    <string name="conscience_line_comeback_12">Seu ano sabático de {category} durou {days}. Espero que tenha descansado.</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">Não, não, pode continuar.</string>
+    <string name="conscience_line_record_day_02">Seu maior dia de {category} em dois meses. Discurso! Discurso! 🎉</string>
+    <string name="conscience_line_record_day_03">Hoje é um dia histórico de {category}. A história em questão: os últimos dois meses.</string>
+    <string name="conscience_line_record_day_04">Melhor dia de {category} em dois meses. Não sei se \"melhor\" é a palavra.</string>
+    <string name="conscience_line_record_day_05">Eu não vi nada. Só o maior dia de {category} em dois meses 🙈</string>
+    <string name="conscience_line_record_day_06">Vou mandar no grupo da família: maior dia de {category} em dois meses 📲</string>
+    <string name="conscience_line_record_day_07">Medalha de ouro em {category}. Adversários: os últimos dois meses 🥇</string>
+    <string name="conscience_line_record_day_08">Os últimos dois meses mandaram avisar: eles se rendem.</string>
+    <string name="conscience_line_record_day_09">Nenhum dia de {category} em dois meses chega perto de hoje. Que orgulho, de um jeito estranho.</string>
+    <string name="conscience_line_record_day_10">Dois meses de aquecimento, e hoje é o show principal.</string>
+    <string name="conscience_line_record_day_11">Você chegou ao topo de {category} dos últimos dois meses. Que tal a vista? 🏔️</string>
+    <string name="conscience_line_record_day_12">Atualização do ranking de {category} dos últimos dois meses: hoje assume a liderança.</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">{count} paradas pra comer em {hours}. Isso não é lanchinho, é turnê 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Comida de novo. São {count} em {hours}. Não tô contando. (Tô sim.)</string>
+    <string name="conscience_line_repeat_food_03">{count} registros de comida em {hours}. Já virou série? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Alguém dá um cartão fidelidade pra essa pessoa. {count} paradas pra comer em {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Urgente: comida avistada {count} vezes em {hours}. Mais informações a qualquer momento 📺</string>
+    <string name="conscience_line_repeat_food_06">{count} expedições gastronômicas em {hours}. Tecnicamente, é cardio 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{count} rodadas de {category} em {hours}. Aquecendo ou virando profissional? 😏</string>
+    <string name="conscience_line_repeat_02">Já são {count} de {category} em {hours}. Quem tá contando? Eu. Eu tô contando.</string>
+    <string name="conscience_line_repeat_03">{count} em {hours}? Pelo visto é alta temporada de {category} 💅</string>
+    <string name="conscience_line_repeat_04">Bis! Bis! {count} registros de {category} em {hours} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, {count} vezes em {hours}. Isso já é maratona 🏁</string>
+    <string name="conscience_line_repeat_06">{count} paradas de {category} em {hours}. Deve estar chovendo ponto de fidelidade 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">Comida a essa hora? A luz da geladeira tá com ciúmes 🌙</string>
+    <string name="conscience_line_late_night_food_02">Comida na madrugada detectada. Não vou contar pro seu eu de amanhã 🤫</string>
+    <string name="conscience_line_late_night_food_03">Cardápio da meia-noite: desbloqueado 🔓</string>
+    <string name="conscience_line_late_night_food_04">A lua ligou. Ela também quer uma mordida 🌝</string>
+    <string name="conscience_line_late_night_food_05">Comida na calada da noite. A continuação que ninguém pediu e todo mundo adora 🎬</string>
+    <string name="conscience_line_late_night_food_06">Tá tarde, a comida é real e eu tô fingindo que estou dormindo 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} a essa hora? Modo coruja: ativado 🦉</string>
+    <string name="conscience_line_late_night_02">O turno da noite de {category} acabou de bater o ponto 🌙</string>
+    <string name="conscience_line_late_night_03">{category} fora de hora. Seu eu de amanhã vai ter perguntas ☕</string>
+    <string name="conscience_line_late_night_04">Todo mundo dormindo, menos você e {category} 👀</string>
+    <string name="conscience_line_late_night_05">{category} sob as estrelas. Que romântico… pra sua carteira ✨</string>
+    <string name="conscience_line_late_night_06">Psiu, tá tarde. {category}, mas só cochichando 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">Os últimos sete dias de {category} estão bem acima da sua semana normal 📈 Só comentando.</string>
+    <string name="conscience_line_spike_02">Essa semana de {category} tá se exibindo pras suas semanas normais 💪</string>
+    <string name="conscience_line_spike_03">Sua semana de {category} saiu do gráfico. Do seu gráfico, no caso 📊</string>
+    <string name="conscience_line_spike_04">Semanão de {category}. Bem maior que o normal. Bem mesmo 🚀</string>
+    <string name="conscience_line_spike_05">Semana normal de {category}: tranquila. Essa: modo festival 🎪</string>
+    <string name="conscience_line_spike_06">Plot twist: esses sete dias de {category} deixaram sua semana típica no chinelo 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">Semana passada, seu gasto com {category} ficou {percent} abaixo do normal. Olha só você! 🌟</string>
+    <string name="conscience_line_positive_02">{percent} a menos de {category} que numa semana normal. Palmas, por favor 👏</string>
+    <string name="conscience_line_positive_03">Reviravolta: semana passada você gastou {percent} a menos com {category} 😮</string>
+    <string name="conscience_line_positive_04">{category}: {percent} a menos semana passada. Quase me emocionei. Quase 🥲</string>
+    <string name="conscience_line_positive_05">Semana passada: {percent} a menos em {category}. Seu bolso mandou um beijo 💌</string>
+    <string name="conscience_line_positive_06">{percent} abaixo da sua média de {category} semana passada. Quem é você? 😎</string>
+    <string name="conscience_line_positive_07">Respeito. Sua semana de {category} veio {percent} mais leve 🏅</string>
+    <string name="conscience_line_positive_08">Estrelinha no caderno ⭐ Semana passada, o gasto com {category} ficou {percent} abaixo do normal.</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} + {category}. Uma história de amor em capítulos semanais 💞</string>
+    <string name="conscience_line_weekly_02">É {weekday}, então claro: {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">{weekday} de novo, {category} de novo. Tradição é tradição 🎉</string>
+    <string name="conscience_line_weekly_04">Tema oficial de {weekday}: {category} 😄</string>
+    <string name="conscience_line_weekly_05">Tem gente que tem planos pra {weekday}. Você tem {category} 😏</string>
+    <string name="conscience_line_weekly_06">Como um relógio: {weekday} é dia de {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">Comida à vista. Alguém me invocou 👀</string>
+    <string name="conscience_line_hello_food_02">Registro de comida! Bom apetite, eu fico aqui só olhando 🍽️</string>
+    <string name="conscience_line_hello_food_03">Comida no extrato. Não estou julgando. Em voz alta 🤐</string>
+    <string name="conscience_line_hello_food_04">Plim! Comida registrada. Minha sobrancelha subiu exatamente dois milímetros 🤨</string>
+    <string name="conscience_line_hello_food_05">Nova comida registrada. Beijo do chef 🤌</string>
+    <string name="conscience_line_hello_food_06">Comida, é? Me conta tudo. Pensando bem, não conta 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">{category} entrou no chat 💬</string>
+    <string name="conscience_line_hello_02">Um gasto de {category} selvagem apareceu! 🎮</string>
+    <string name="conscience_line_hello_03">Vi {category}. Vou fingir que não vi 🙈</string>
+    <string name="conscience_line_hello_04">Anotado: {category}. Pode seguir, eu só narro 🎙️</string>
+    <string name="conscience_line_hello_05">Lá vem {category}. Minha pipoca já tá pronta 🍿</string>
+    <string name="conscience_line_hello_06">Ah, {category}? Continua, tô ouvindo 👂</string>
+</resources>

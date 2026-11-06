@@ -4,6 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneOffset
 
 class ConscienceFreshnessTest {
@@ -43,5 +44,14 @@ class ConscienceFreshnessTest {
     fun `either time too far in the future is not fresh`() {
         assertFalse(fresh(eventMillis = nowMillis + 10 * minute + 1))
         assertFalse(fresh(row = now.plusMinutes(11)))
+    }
+
+    @Test
+    fun `quiet hours run from 23 00 to 06 59`() {
+        assertFalse(ConscienceManager.isQuietHour(LocalTime.of(22, 59)))
+        assertTrue(ConscienceManager.isQuietHour(LocalTime.of(23, 0)))
+        assertTrue(ConscienceManager.isQuietHour(LocalTime.MIDNIGHT))
+        assertTrue(ConscienceManager.isQuietHour(LocalTime.of(6, 59)))
+        assertFalse(ConscienceManager.isQuietHour(LocalTime.of(7, 0)))
     }
 }

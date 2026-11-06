@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">Conciencia</string>
+    <string name="conscience_settings_subtitle_on">Activada · comentarios pícaros sobre tus gastos</string>
+    <string name="conscience_settings_subtitle_off">Desactivada · comentarios pícaros sobre tus gastos</string>
+    <string name="conscience_needs_permission">Permite las notificaciones de PennyWise para que tu conciencia pueda opinar.</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">Tus gastos tienen comentarista</string>
+    <string name="conscience_hero_body">Frases pícaras después de comida, diversión y compras. Y aplausos cuando te los ganes.</string>
+    <string name="conscience_switch_title">Déjala hablar</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">Está echando una siesta. Activa el interruptor para despertarla 😴</string>
+    <string name="conscience_status_blocked">Las notificaciones están desactivadas, así que le habla a la pared 🧱</string>
+    <string name="conscience_status_listening">Atenta a tu próximo gasto en comida, diversión o compras 👂</string>
+    <string name="conscience_status_learning">Aún está aprendiendo tus hábitos. Los comentarios más afilados llegan cuando crezca tu historial 🧠</string>
+    <string name="conscience_open_notification_settings">Activar notificaciones</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">Ejemplos escuchados por ahí</string>
+    <string name="conscience_example_badge">Ejemplo</string>
+    <string name="conscience_another_example">Otro</string>
+    <string name="conscience_try_it">Envíame uno</string>
+    <string name="conscience_try_sent">¡Enviado! No hace ruido, así que échale un vistazo a tus notificaciones.</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">De qué opina</string>
+    <string name="conscience_kind_comeback">Regresos</string>
+    <string name="conscience_kind_comeback_desc">Una categoría vuelve tras una pausa inusualmente larga</string>
+    <string name="conscience_kind_record_day">Días récord</string>
+    <string name="conscience_kind_record_day_desc">Tu mayor día en una categoría en dos meses</string>
+    <string name="conscience_kind_repeat">Rachas</string>
+    <string name="conscience_kind_repeat_desc">La misma categoría una y otra vez en pocas horas</string>
+    <string name="conscience_kind_late_night">Altas horas</string>
+    <string name="conscience_kind_late_night_desc">Gastos después de las 23:00. Nunca te despierta</string>
+    <string name="conscience_kind_spike">Picos</string>
+    <string name="conscience_kind_spike_desc">Una semana muy por encima de lo habitual en una categoría</string>
+    <string name="conscience_kind_positive">Logros</string>
+    <string name="conscience_kind_positive_desc">Una semana muy por debajo de lo habitual, así que aplaude en lugar de bromear</string>
+    <string name="conscience_kind_weekly">Rituales semanales</string>
+    <string name="conscience_kind_weekly_desc">La misma categoría el mismo día de la semana, semana tras semana</string>
+    <string name="conscience_kind_hello">Saluditos</string>
+    <string name="conscience_kind_hello_desc">Un saludo de vez en cuando, para que sepas que sigue despierta</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">Cómo habla</string>
+    <string name="conscience_language_title">Idioma</string>
+    <string name="conscience_language_follows">Sigue el idioma de la app · %1$s</string>
+    <string name="conscience_address_title">Háblame en</string>
+    <string name="conscience_address_auto">Automático</string>
+    <string name="conscience_address_masculine">Masculino</string>
+    <string name="conscience_address_feminine">Femenino</string>
+    <string name="conscience_frequency_title">Con qué frecuencia</string>
+    <string name="conscience_frequency_normal">Normal</string>
+    <string name="conscience_frequency_less">Menos a menudo</string>
+    <string name="conscience_frequency_normal_note">Como mucho una vez al día y 3 veces por semana.</string>
+    <string name="conscience_frequency_less_note">Como mucho una vez por semana.</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">Comentarios recientes</string>
+    <string name="conscience_recent_empty">Aún no hay comentarios. Está esperando tu próximo gasto en comida, diversión o compras.</string>
+    <string name="conscience_recent_saved_quietly">Guardado en silencio</string>
+    <string name="conscience_recent_show_all">Ver todo</string>
+    <string name="conscience_recent_show_less">Ver menos</string>
+    <string name="conscience_feedback_summary">😂 %1$s me gusta · 🙅 %2$s retirados</string>
+    <string name="conscience_reset_feedback">Restablecer reacciones</string>
+    <string name="conscience_reaction_liked">Te gustó 😂</string>
+    <string name="conscience_reaction_retired">Retirado para siempre 🙅</string>
+
+    <string name="conscience_privacy">Chistes escritos a mano, adaptados a tus hábitos en este teléfono. Nunca importes ni nombres de tiendas. Solo comida, entretenimiento y compras.</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">Tu conciencia</string>
+    <string name="conscience_lock_screen_text">Psst. Una cosita 👀</string>
+    <string name="conscience_action_like">😂 Me gustó</string>
+    <string name="conscience_action_dislike">🙅 Este no</string>
+    <string name="conscience_confirm_like">Anotado 😂 Más como este, con los mismos límites.</string>
+    <string name="conscience_confirm_dislike">Entendido. Ese queda retirado para siempre 🫡</string>
+    <string name="conscience_confirm_sample">Era solo un ejemplo, así que no cambió nada 😉</string>
+    <string name="conscience_confirm_less_often">Bueno, aflojo un poco. Pero sigo mirando 👀</string>
+    <string name="conscience_confirm_paused">Está bien. Ni una palabra 🤐 Desde Ajustes me puedes recuperar.</string>
+
+    <!-- Words the lines' placeholders take. Lowercase unless the language capitalizes nouns. -->
+    <string name="conscience_category_food">comida</string>
+    <string name="conscience_category_entertainment">diversión</string>
+    <string name="conscience_category_shopping">compras</string>
+    <plurals name="conscience_days">
+        <item quantity="one">%1$s día</item>
+        <item quantity="many">%1$s días</item>
+        <item quantity="other">%1$s días</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s hora</item>
+        <item quantity="many">%1$s horas</item>
+        <item quantity="other">%1$s horas</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">Conciencia</string>
+    <string name="conscience_channel_description">Comentarios pícaros de vez en cuando sobre comida, entretenimiento y compras. Sin sonido.</string>
+</resources>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Czech conscience lines. Written natively, not translated. Informal "ty".
+    {category} is nominative singular: "jídlo", "zábava", "nakupování", so it only
+    takes present-tense singular verbs or stands alone ("{category}: …",
+    "v kategorii „{category}“"). {weekday} is nominative lowercase ("čtvrtek").
+    {days} and {hours} only in nominative/accusative slots. {count}× reads "3×".
+-->
+<resources>
+    <string name="conscience_content_locale">cs</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">{days} pevné vůle. Tak co si dáme?</string>
+    <string name="conscience_line_comeback_food_02">{Vydržel|Vydržela} jsi {days}. Budou se o tom zpívat písně. Krátké.</string>
+    <string name="conscience_line_comeback_food_03">Sázelo se, jak dlouho vydržíš. Správná odpověď: {days}.</string>
+    <string name="conscience_line_comeback_food_04">{days} odolávání. Knedlíky v tebe ani na vteřinu nepřestaly věřit 🥟</string>
+    <string name="conscience_line_comeback_food_05">{days} železné vůle a pak zaznělo „jenom ochutnám“.</string>
+    <string name="conscience_line_comeback_food_06">Vědci zjistili, že poločas rozpadu tvé pevné vůle je {days}.</string>
+    <string name="conscience_line_comeback_food_07">{days} bez porážky. Pak přišel jídelní lístek.</string>
+    <string name="conscience_line_comeback_food_08">{days} odloučení od jídelního lístku. Shledání bylo dojemné 🥹</string>
+    <string name="conscience_line_comeback_food_09">Vítej zpátky! Jídelní lístek ti {days} držel místo.</string>
+    <string name="conscience_line_comeback_food_10">Jídlo čekalo {days} a vzalo tě zpátky. Bez řečí.</string>
+    <string name="conscience_line_comeback_food_11">Ani za {days} na tebe jídelní lístek nezapomněl.</string>
+    <string name="conscience_line_comeback_food_12">{days} – celá éra. A teď je u konce 🍔</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">{Držel|Držela} ses {days}. Inspirativní. Krátce.</string>
+    <string name="conscience_line_comeback_02">Hrdě jsi {odešel|odešla} do důchodu. Důchod trval {days}.</string>
+    <string name="conscience_line_comeback_03">{days} ticha. A teď: {category}.</string>
+    <string name="conscience_line_comeback_04">Ty a {category}: „dáváme si pauzu“. Na {days}.</string>
+    <string name="conscience_line_comeback_05">Souboj pohledů: ty versus {category}. Trval {days}. {Mrkl|Mrkla} jsi první.</string>
+    <string name="conscience_line_comeback_06">Zákaz: {category}. Platil {days}. Zrušen jednomyslně.</string>
+    <string name="conscience_line_comeback_07">{days} rozumného chování. Upřímně, moc ti to neslušelo.</string>
+    <string name="conscience_line_comeback_08">Experiment trval {days}. Výsledek: {category}.</string>
+    <string name="conscience_line_comeback_09">Nikdo to nepočítá. No dobře, já jo. {days}.</string>
+    <string name="conscience_line_comeback_10">{days} odříkání. Filmová práva jsou pořád volná 🍿</string>
+    <string name="conscience_line_comeback_11">Pauza: {days}. Teď zase {category}. Mlčím. Nahlas.</string>
+    <string name="conscience_line_comeback_12">Tvoje volno trvalo {days}. Doufám, že sis {odpočinul|odpočinula}.</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">Ne, ne, jen pokračuj.</string>
+    <string name="conscience_line_record_day_02">{category}: rekordní den za dva měsíce. Proslov! 🎉</string>
+    <string name="conscience_line_record_day_03">Historický den v kategorii „{category}“. Historie je tu dlouhá dva měsíce.</string>
+    <string name="conscience_line_record_day_04">Nejlepší den za dva měsíce v kategorii „{category}“. Teda „nejlepší“…</string>
+    <string name="conscience_line_record_day_05">Nic nevidím. Kromě rekordu za dva měsíce: {category} 🙈</string>
+    <string name="conscience_line_record_day_06">Tohle si dám na lednici. Rekord za dva měsíce: {category}.</string>
+    <string name="conscience_line_record_day_07">Zlato v disciplíně „{category}“. Soupeři: poslední dva měsíce 🥇</string>
+    <string name="conscience_line_record_day_08">Volaly poslední dva měsíce. Vzdávají to.</string>
+    <string name="conscience_line_record_day_09">{category}: žádný den za dva měsíce se tomu dnešnímu ani nepřiblížil. Divné, ale mám radost.</string>
+    <string name="conscience_line_record_day_10">Dva měsíce rozcvičky a dnes hlavní číslo programu.</string>
+    <string name="conscience_line_record_day_11">Vrchol za dva měsíce v kategorii „{category}“. Jaký je odtud výhled? 🏔️</string>
+    <string name="conscience_line_record_day_12">Tabulka za dva měsíce ({category}): dnešek jde do čela.</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">Jídlo už {count}× za {hours}. Tohle není svačina, to je zájezd 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Zase jídlo. Už {count}× za {hours}. Nepočítám. (Počítám.)</string>
+    <string name="conscience_line_repeat_food_03">Jídlo, díl {count}, a to za {hours}. To už je seriál? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Tady by se hodila věrnostní kartička. Jídlo {count}× za {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Mimořádná zpráva: jídlo spatřeno {count}× za {hours}. Více ve večerních zprávách 📺</string>
+    <string name="conscience_line_repeat_food_06">Za {hours} už {count}× pro jídlo. Technicky vzato je to kardio 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{category}, kolo {count}, a to za {hours}. Rozcvička, nebo už profiliga? 😏</string>
+    <string name="conscience_line_repeat_02">{category} už {count}× za {hours}. Kdo to počítá? Já. Já to počítám.</string>
+    <string name="conscience_line_repeat_03">{count}× za {hours}? Zdá se, že {category} má svou chvíli slávy 💅</string>
+    <string name="conscience_line_repeat_04">Přídavek! Přídavek! Už {count}× za {hours}: {category} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, {count}× za {hours}. Speedrun, kategorie any% 🏁</string>
+    <string name="conscience_line_repeat_06">{category}: {count}× za {hours}. Věrnostní body asi padají jako déšť 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">Jídlo v tuhle hodinu? Světlo v lednici žárlí 🌙</string>
+    <string name="conscience_line_late_night_food_02">Noční jídlo zaznamenáno. Ranní ty se to ode mě nedozví 🤫</string>
+    <string name="conscience_line_late_night_food_03">Noční menu: odemčeno 🔓</string>
+    <string name="conscience_line_late_night_food_04">Volal Měsíc. Taky by si kousl 🌝</string>
+    <string name="conscience_line_late_night_food_05">Jídlo po setmění. Pokračování, o které nikdo nežádal, ale všichni ho milují 🎬</string>
+    <string name="conscience_line_late_night_food_06">Je pozdě, jídlo je skutečné a já dělám, že spím 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} v tuhle hodinu? Režim sova: zapnuto 🦉</string>
+    <string name="conscience_line_late_night_02">{category} nastupuje na noční směnu 🌙</string>
+    <string name="conscience_line_late_night_03">{category} takhle v noci. Ranní ty bude mít otázky ☕</string>
+    <string name="conscience_line_late_night_04">Všichni spí. Jen ty a {category} ne 👀</string>
+    <string name="conscience_line_late_night_05">{category} pod hvězdami. Romantika s příchutí výpisu z účtu ✨</string>
+    <string name="conscience_line_late_night_06">Psst, je pozdě. Teď už jen šeptem: {category} 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">Posledních sedm dní v kategorii „{category}“ výrazně předbíhá tvůj běžný týden 📈 Jen tak mimochodem.</string>
+    <string name="conscience_line_spike_02">Tenhle týden se v kategorii „{category}“ předvádí vedle tvých běžných týdnů 💪</string>
+    <string name="conscience_line_spike_03">Týden v kategorii „{category}“ je mimo graf. Konkrétně mimo ten tvůj 📊</string>
+    <string name="conscience_line_spike_04">{category}: velký týden. Větší než obvykle, a to o hodně 🚀</string>
+    <string name="conscience_line_spike_05">Běžný týden v kategorii „{category}“: klídek. Tenhle: festival 🎪</string>
+    <string name="conscience_line_spike_06">Zvrat: v kategorii „{category}“ tenhle týden předběhl ten běžný o parník 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">Minulý týden, kategorie „{category}“: o {percent} níž než obvykle. No teda 🌟</string>
+    <string name="conscience_line_positive_02">V kategorii „{category}“ o {percent} méně než v běžném týdnu. Potlesk, prosím 👏</string>
+    <string name="conscience_line_positive_03">Zvrat: minulý týden byla kategorie „{category}“ o {percent} níž než obvykle 😮</string>
+    <string name="conscience_line_positive_04">{category}: minus {percent} za minulý týden. Skoro mám radost. Skoro 🥲</string>
+    <string name="conscience_line_positive_05">{category}: minulý týden o {percent} pod normálem. Peněženka posílá pozdrav 💌</string>
+    <string name="conscience_line_positive_06">Minulý týden v kategorii „{category}“ o {percent} pod průměrem. Jsi to vůbec ty? 😎</string>
+    <string name="conscience_line_positive_07">Respekt. Minulý týden v kategorii „{category}“ vyšel o {percent} skromněji než obvykle 🏅</string>
+    <string name="conscience_line_positive_08">Jednička s hvězdičkou ⭐ Minulý týden byla kategorie „{category}“ o {percent} pod normálem.</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} + {category}. Romance na pokračování 💞</string>
+    <string name="conscience_line_weekly_02">Je {weekday}, takže jasně: {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">Zase {weekday}, zase {category}. Tradice je tradice 🎉</string>
+    <string name="conscience_line_weekly_04">{weekday} má u tebe jasné téma: {category} 😄</string>
+    <string name="conscience_line_weekly_05">Někdo má plány na víkend. U tebe platí: {weekday} = {category} 😏</string>
+    <string name="conscience_line_weekly_06">Jako hodinky: {weekday} rovná se {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">Jídlo zaznamenáno. Volal mě někdo? 👀</string>
+    <string name="conscience_line_hello_food_02">Jídlo! Dobrou chuť, já budu tady a budu koukat 🍽️</string>
+    <string name="conscience_line_hello_food_03">Jídlo v záznamech. Nesoudím. Nahlas 🤐</string>
+    <string name="conscience_line_hello_food_04">Cink! Jídlo zapsáno. Obočí mi vyletělo přesně o dva milimetry 🤨</string>
+    <string name="conscience_line_hello_food_05">Nový záznam s jídlem. To se budeš olizovat až za ušima 🤌</string>
+    <string name="conscience_line_hello_food_06">Jídlo, říkáš? Povídej všechno. Vlastně radši ne 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">{category} se připojuje do chatu 💬</string>
+    <string name="conscience_line_hello_02">Objevila se divoká útrata: {category}! 🎮</string>
+    <string name="conscience_line_hello_03">{category} na obzoru. Dělám, že nic nevidím 🙈</string>
+    <string name="conscience_line_hello_04">Zaznamenáno: {category}. Pokračuj, já to tu jen komentuju 🎙️</string>
+    <string name="conscience_line_hello_05">{category} na cestě. Popcorn je připravený 🍿</string>
+    <string name="conscience_line_hello_06">Ale, {category}? Jen pokračuj 👂</string>
+</resources>

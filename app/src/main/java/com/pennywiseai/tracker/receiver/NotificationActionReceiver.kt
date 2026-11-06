@@ -7,11 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.manager.ConscienceNotifier
+import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.conscience.ConscienceFrequency
-import com.pennywiseai.tracker.domain.conscience.ConscienceLines
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
@@ -23,7 +24,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -57,8 +57,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
         const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
-        const val ACTION_CONSCIENCE_LESS_OFTEN = "com.pennywiseai.tracker.ACTION_CONSCIENCE_LESS_OFTEN"
-        const val ACTION_CONSCIENCE_PAUSE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_PAUSE"
+        const val ACTION_CONSCIENCE_LIKE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE"
+        const val ACTION_CONSCIENCE_RETIRE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE"
+        private const val EXTRA_CONSCIENCE_REMARK_ID = "conscience_remark_id"
+
+        /** The remark id the screen's sample carries: its reactions are acknowledged and change nothing. */
+        const val SAMPLE_REMARK_ID = -1L
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -125,14 +129,23 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-        /** The conscience's two actions. They act on the feature, so they carry no transaction. */
-        fun conscienceIntent(context: Context, conscienceAction: String): PendingIntent =
-            PendingIntent.getBroadcast(
+        /**
+         * A reaction to one remark. The remark id is in the data URI too, so each
+         * remark's pair of intents stays distinct and none overwrites another.
+         */
+        fun conscienceReactionIntent(context: Context, remarkId: Long, liked: Boolean): PendingIntent {
+            val action = if (liked) ACTION_CONSCIENCE_LIKE else ACTION_CONSCIENCE_RETIRE
+            return PendingIntent.getBroadcast(
                 context,
                 0,
-                Intent(context, NotificationActionReceiver::class.java).apply { action = conscienceAction },
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    this.action = action
+                    data = android.net.Uri.parse("pennywise://conscience/$remarkId/${if (liked) "like" else "retire"}")
+                    putExtra(EXTRA_CONSCIENCE_REMARK_ID, remarkId)
+                },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+        }
 
         private fun Intent.toLearned(transactionId: Long): LearnCategoryUseCase.Learned? {
             val category = getStringExtra(EXTRA_NEW_CATEGORY) ?: return null
@@ -155,7 +168,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val transactionId = intent.getLongExtra(EXTRA_TRANSACTION_ID, -1)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
 
-        val isConscienceAction = intent.action == ACTION_CONSCIENCE_LESS_OFTEN || intent.action == ACTION_CONSCIENCE_PAUSE
+        val isConscienceAction = intent.action == ACTION_CONSCIENCE_LIKE || intent.action == ACTION_CONSCIENCE_RETIRE
         if (transactionId == -1L && !isConscienceAction) {
             Log.e(TAG, "No transaction ID provided")
             return
@@ -213,8 +226,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             else dismissNotification(context, notificationId)
                         }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
                     }
-                    ACTION_CONSCIENCE_LESS_OFTEN, ACTION_CONSCIENCE_PAUSE -> {
-                        runCatching { applyConscienceAction(context, entryPoint.userPreferencesRepository(), intent.action) }
+                    ACTION_CONSCIENCE_LIKE, ACTION_CONSCIENCE_RETIRE -> {
+                        val remarkId = intent.getLongExtra(EXTRA_CONSCIENCE_REMARK_ID, SAMPLE_REMARK_ID)
+                        val liked = intent.action == ACTION_CONSCIENCE_LIKE
+                        runCatching { reactToConscience(context, entryPoint.userPreferencesRepository(), remarkId, liked) }
                             .onFailure { Log.e(TAG, "Error applying a conscience action", it) }
                     }
                     else -> {
@@ -227,16 +242,17 @@ class NotificationActionReceiver : BroadcastReceiver() {
         }
     }
 
-    private suspend fun applyConscienceAction(context: Context, preferences: UserPreferencesRepository, action: String?) {
-        val voice = preferences.conscienceVoice.first()
-        val confirmation = if (action == ACTION_CONSCIENCE_PAUSE) {
-            preferences.setConscienceEnabled(false)
-            ConscienceLines.pausedConfirmation(voice)
-        } else {
-            preferences.setConscienceFrequency(ConscienceFrequency.LESS)
-            ConscienceLines.lessOftenConfirmation(voice)
+    private suspend fun reactToConscience(context: Context, preferences: UserPreferencesRepository, remarkId: Long, liked: Boolean) {
+        val text = ConscienceText(context)
+        val sample = remarkId == SAMPLE_REMARK_ID
+        // A second tap, or a tap on a remark already pruned, changes nothing; the line still goes away.
+        if (!sample) preferences.reactToConscienceRemark(remarkId, if (liked) ConscienceReaction.LIKED else ConscienceReaction.RETIRED)
+        val message = when {
+            sample -> R.string.conscience_confirm_sample
+            liked -> R.string.conscience_confirm_like
+            else -> R.string.conscience_confirm_dislike
         }
-        ConscienceNotifier.showConfirmation(context, voice, confirmation)
+        ConscienceNotifier.showConfirmation(context, sample, text.string(message))
     }
 
     private suspend fun deleteTransaction(

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">Svědomí</string>
+    <string name="conscience_settings_subtitle_on">Zapnuto · drzé poznámky k tvým útratám</string>
+    <string name="conscience_settings_subtitle_off">Vypnuto · drzé poznámky k tvým útratám</string>
+    <string name="conscience_needs_permission">Povol oznámení pro PennyWise, ať se tvoje svědomí může ozvat.</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">Tvoje útraty mají komentátora</string>
+    <string name="conscience_hero_body">Drzé hlášky po jídle, zábavě a nákupech. A potlesk, když si ho zasloužíš.</string>
+    <string name="conscience_switch_title">Ať mluví</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">Spí. Přepni vypínač a vzbuď ho 😴</string>
+    <string name="conscience_status_blocked">Oznámení jsou vypnutá, takže mluví do zdi 🧱</string>
+    <string name="conscience_status_listening">Čeká na tvou další útratu za jídlo, zábavu nebo nákupy 👂</string>
+    <string name="conscience_status_learning">Ještě se učí tvé zvyky. Ostřejší poznámky se odemknou, až přibude historie 🧠</string>
+    <string name="conscience_open_notification_settings">Zapnout oznámení</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">Zaslechnuté ukázky</string>
+    <string name="conscience_example_badge">Ukázka</string>
+    <string name="conscience_another_example">Další</string>
+    <string name="conscience_try_it">Pošli mi jednu</string>
+    <string name="conscience_try_sent">Odesláno! Nevydává žádný zvuk, tak mrkni do oznámení.</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">Co komentuje</string>
+    <string name="conscience_kind_comeback">Návraty</string>
+    <string name="conscience_kind_comeback_desc">Kategorie se vrací po nezvykle dlouhé pauze</string>
+    <string name="conscience_kind_record_day">Rekordní dny</string>
+    <string name="conscience_kind_record_day_desc">Tvůj největší den v kategorii za dva měsíce</string>
+    <string name="conscience_kind_repeat">Série</string>
+    <string name="conscience_kind_repeat_desc">Stejná kategorie znovu a znovu během pár hodin</string>
+    <string name="conscience_kind_late_night">Noční útraty</string>
+    <string name="conscience_kind_late_night_desc">Nákupy po 23:00. Nikdy tě nevzbudí</string>
+    <string name="conscience_kind_spike">Výkyvy</string>
+    <string name="conscience_kind_spike_desc">Týden v kategorii výrazně nad tvým průměrem</string>
+    <string name="conscience_kind_positive">Výhry</string>
+    <string name="conscience_kind_positive_desc">Týden výrazně pod tvým průměrem, takže místo rýpnutí tleská</string>
+    <string name="conscience_kind_weekly">Týdenní rituály</string>
+    <string name="conscience_kind_weekly_desc">Stejná kategorie ve stejný den v týdnu, týden co týden</string>
+    <string name="conscience_kind_hello">Rychlé pozdravy</string>
+    <string name="conscience_kind_hello_desc">Občas jen zamává, ať víš, že ještě nespí</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">Jak mluví</string>
+    <string name="conscience_language_title">Jazyk</string>
+    <string name="conscience_language_follows">Podle jazyka aplikace · %1$s</string>
+    <string name="conscience_address_title">Oslovuj mě</string>
+    <string name="conscience_address_auto">Automaticky</string>
+    <string name="conscience_address_masculine">V mužském rodě</string>
+    <string name="conscience_address_feminine">V ženském rodě</string>
+    <string name="conscience_frequency_title">Jak často</string>
+    <string name="conscience_frequency_normal">Normálně</string>
+    <string name="conscience_frequency_less">Méně často</string>
+    <string name="conscience_frequency_normal_note">Nejvýš jednou denně a 3× týdně.</string>
+    <string name="conscience_frequency_less_note">Nejvýš jednou týdně.</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">Nedávné poznámky</string>
+    <string name="conscience_recent_empty">Zatím žádné poznámky. Čeká na tvou další útratu za jídlo, zábavu nebo nákupy.</string>
+    <string name="conscience_recent_saved_quietly">Uloženo potichu</string>
+    <string name="conscience_recent_show_all">Zobrazit vše</string>
+    <string name="conscience_recent_show_less">Zobrazit méně</string>
+    <string name="conscience_feedback_summary">😂 líbí se: %1$s · 🙅 v důchodu: %2$s</string>
+    <string name="conscience_reset_feedback">Resetovat reakce</string>
+    <string name="conscience_reaction_liked">Tohle se ti líbilo 😂</string>
+    <string name="conscience_reaction_retired">Navždy v důchodu 🙅</string>
+
+    <string name="conscience_privacy">Ručně psané vtipy, přiřazené k tvým zvykům přímo v telefonu. Nikdy žádné částky ani názvy obchodů. Jen jídlo, zábava a nákupy.</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">Tvoje svědomí</string>
+    <string name="conscience_lock_screen_text">Psst. Na slovíčko 👀</string>
+    <string name="conscience_action_like">😂 Pobavilo</string>
+    <string name="conscience_action_dislike">🙅 Tohle ne</string>
+    <string name="conscience_confirm_like">Zapsáno 😂 Víc takových, limity stejné.</string>
+    <string name="conscience_confirm_dislike">Jasně. Tahle jde navždy do důchodu 🫡</string>
+    <string name="conscience_confirm_sample">Jen ukázka, nic se nezměnilo 😉</string>
+    <string name="conscience_confirm_less_often">Dobře, trochu ubrzdím. Ale pořád koukám 👀</string>
+    <string name="conscience_confirm_paused">Dobře. Ani slovo 🤐 Vrátíš mě v nastavení.</string>
+
+    <!-- Words the lines' placeholders take. Nominative singular, lowercase. -->
+    <string name="conscience_category_food">jídlo</string>
+    <string name="conscience_category_entertainment">zábava</string>
+    <string name="conscience_category_shopping">nakupování</string>
+    <plurals name="conscience_days">
+        <item quantity="one">%1$s den</item>
+        <item quantity="few">%1$s dny</item>
+        <item quantity="many">%1$s dne</item>
+        <item quantity="other">%1$s dní</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s hodina</item>
+        <item quantity="few">%1$s hodiny</item>
+        <item quantity="many">%1$s hodiny</item>
+        <item quantity="other">%1$s hodin</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s\u00A0%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">Svědomí</string>
+    <string name="conscience_channel_description">Občasné drzé poznámky k jídlu, zábavě a nákupům. Bez zvuku.</string>
+</resources>

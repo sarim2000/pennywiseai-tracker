@@ -1,35 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Opt-in feature: a silent notification that teases the user about a purchase -->
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
     <string name="conscience_title">Conscience</string>
-    <string name="conscience_settings_subtitle_on">On · a comment on your spending now and then</string>
-    <string name="conscience_settings_subtitle_off">Off · a comment on your spending now and then</string>
-    <string name="conscience_intro">Now and then, right after a purchase, a silent notification teases you about your spending.</string>
-    <string name="conscience_switch_title">Conscience notifications</string>
-    <string name="conscience_needs_permission">Allow notifications for PennyWise to use Conscience.</string>
+    <string name="conscience_settings_subtitle_on">On · cheeky comments on your spending</string>
+    <string name="conscience_settings_subtitle_off">Off · cheeky comments on your spending</string>
+    <string name="conscience_needs_permission">Allow notifications for PennyWise so your conscience can speak up.</string>
 
-    <!-- The voice's name, shown in its own language whatever the UI language -->
-    <string name="conscience_voice_title">Voice</string>
-    <string name="conscience_voice_jordanian" translatable="false">أردني</string>
-    <string name="conscience_voice_english" translatable="false">English</string>
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">Your spending has a commentator</string>
+    <string name="conscience_hero_body">Cheeky one-liners after food, fun and shopping. And applause when you earn it.</string>
+    <string name="conscience_switch_title">Let it talk</string>
 
-    <!-- Grammatical gender the Jordanian voice uses for the user -->
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">Napping. Flip the switch to wake it up 😴</string>
+    <string name="conscience_status_blocked">Notifications are off, so it\'s talking to a wall 🧱</string>
+    <string name="conscience_status_listening">Listening for your next food, fun or shopping purchase 👂</string>
+    <string name="conscience_status_learning">Still learning your habits. The sharper remarks unlock as your history grows 🧠</string>
+    <string name="conscience_open_notification_settings">Turn on notifications</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">Overheard examples</string>
+    <string name="conscience_example_badge">Example</string>
+    <string name="conscience_another_example">Another one</string>
+    <string name="conscience_try_it">Send me one</string>
+    <string name="conscience_try_sent">Sent! It makes no sound, so peek at your notifications.</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">What it comments on</string>
+    <string name="conscience_kind_comeback">Comebacks</string>
+    <string name="conscience_kind_comeback_desc">A category returns after an unusually long break</string>
+    <string name="conscience_kind_record_day">Record days</string>
+    <string name="conscience_kind_record_day_desc">Your biggest day in a category for two months</string>
+    <string name="conscience_kind_repeat">Repeat runs</string>
+    <string name="conscience_kind_repeat_desc">The same category again and again within hours</string>
+    <string name="conscience_kind_late_night">Late nights</string>
+    <string name="conscience_kind_late_night_desc">Purchases after 11 PM. It never wakes you up</string>
+    <string name="conscience_kind_spike">Spikes</string>
+    <string name="conscience_kind_spike_desc">A week well above your usual in a category</string>
+    <string name="conscience_kind_positive">Wins</string>
+    <string name="conscience_kind_positive_desc">A week well below your usual, so it cheers instead</string>
+    <string name="conscience_kind_weekly">Weekly rituals</string>
+    <string name="conscience_kind_weekly_desc">The same category on the same weekday, week after week</string>
+    <string name="conscience_kind_hello">Quick hellos</string>
+    <string name="conscience_kind_hello_desc">A wave now and then, so you know it\'s still awake</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">How it talks</string>
+    <string name="conscience_language_title">Language</string>
+    <string name="conscience_language_follows">Follows the app language · %1$s</string>
     <string name="conscience_address_title">Address me as</string>
+    <string name="conscience_address_auto">Automatic</string>
     <string name="conscience_address_masculine">Masculine</string>
     <string name="conscience_address_feminine">Feminine</string>
-
     <string name="conscience_frequency_title">How often</string>
     <string name="conscience_frequency_normal">Normal</string>
     <string name="conscience_frequency_less">Less often</string>
     <string name="conscience_frequency_normal_note">At most once a day and 3 times a week.</string>
     <string name="conscience_frequency_less_note">At most once a week.</string>
 
-    <string name="conscience_preview_title">What it sounds like</string>
-    <string name="conscience_try_it">Try it</string>
-    <string name="conscience_try_sent">Sent. It makes no sound, so check your notifications.</string>
-    <string name="conscience_privacy">Runs on this phone only, and nothing leaves it. It only comments on food, entertainment and shopping.</string>
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">Recent remarks</string>
+    <string name="conscience_recent_empty">No remarks yet. It\'s waiting for your next food, fun or shopping purchase.</string>
+    <string name="conscience_recent_saved_quietly">Saved quietly</string>
+    <string name="conscience_recent_show_all">Show all</string>
+    <string name="conscience_recent_show_less">Show less</string>
+    <string name="conscience_feedback_summary">😂 %1$s liked · 🙅 %2$s retired</string>
+    <string name="conscience_reset_feedback">Reset reactions</string>
+    <string name="conscience_reaction_liked">You liked this 😂</string>
+    <string name="conscience_reaction_retired">Retired for good 🙅</string>
+
+    <string name="conscience_privacy">Hand-written jokes, matched to your patterns on this phone. No amounts or shop names, ever. Only food, entertainment and shopping.</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">Your conscience</string>
+    <string name="conscience_lock_screen_text">Psst. A quick word 👀</string>
+    <string name="conscience_action_like">😂 Liked it</string>
+    <string name="conscience_action_dislike">🙅 Not this one</string>
+    <string name="conscience_confirm_like">Noted 😂 More like that, same limits.</string>
+    <string name="conscience_confirm_dislike">Got it. That one\'s retired for good 🫡</string>
+    <string name="conscience_confirm_sample">Just a sample, so nothing changed 😉</string>
+    <string name="conscience_confirm_less_often">Fine, I\'ll ease up. Still watching, though 👀</string>
+    <string name="conscience_confirm_paused">Fine. Not a word 🤐 Settings brings me back.</string>
+
+    <!-- Words the lines' placeholders take. Lowercase unless the language capitalizes nouns. -->
+    <string name="conscience_category_food">food</string>
+    <string name="conscience_category_entertainment">fun</string>
+    <string name="conscience_category_shopping">shopping</string>
+    <plurals name="conscience_days">
+        <item quantity="one">%1$s day</item>
+        <item quantity="other">%1$s days</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s hour</item>
+        <item quantity="other">%1$s hours</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
 
     <!-- Android's notification channel, listed in system settings -->
     <string name="conscience_channel_name">Conscience</string>
-    <string name="conscience_channel_description">Occasional comments on food, entertainment and shopping. Silent.</string>
+    <string name="conscience_channel_description">Occasional cheeky comments on food, entertainment and shopping. Silent.</string>
 </resources>

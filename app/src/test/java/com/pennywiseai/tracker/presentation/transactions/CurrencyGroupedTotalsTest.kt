@@ -39,6 +39,13 @@ class CurrencyGroupedTotalsTest {
     }
 
     @Test
+    fun aMarkedTransferPairCountsOnce() {
+        val leg = tx("877.844", TransactionType.TRANSFER).copy(transferPairId = "pair")
+        val totals = calculateCurrencyGroupedTotals(listOf(leg.copy(id = 1), leg.copy(id = 2), tx("10", TransactionType.TRANSFER)))
+        assertSame("887.844", totals.totalsByCurrency.getValue("USD").transfer)
+    }
+
+    @Test
     fun neverAddsAcrossCurrencies() {
         val totals = calculateCurrencyGroupedTotals(listOf(tx("500", currency = "INR"), tx("10")))
         assertSame("500", totals.totalsByCurrency.getValue("INR").expenses)

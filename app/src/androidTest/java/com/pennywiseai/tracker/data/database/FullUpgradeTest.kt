@@ -9,10 +9,13 @@ import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
+import java.time.LocalDateTime
 
 /**
  * An old install's rows survive every hop to [SCHEMA_VERSION] on the device's
@@ -50,6 +53,35 @@ class FullUpgradeTest {
             assertEquals(0, BigDecimal("1000.50").compareTo(balance.balance))
             val version = db.useReaderConnection { c -> c.usePrepared("PRAGMA user_version") { it.step(); it.getLong(0) } }
             assertEquals(SCHEMA_VERSION.toLong(), version)
+        } finally { db.close() }
+    }
+
+    @Test fun upgradeFrom67LinksMarkedTransferPairs() = runBlocking {
+        helper.createDatabase(67).apply {
+            // Rows 1 and 2 are a marked pair; 3 is a standalone transfer on the same route.
+            for ((id, account, hour) in listOf(Triple(1, "1111", 10), Triple(2, "2222", 10), Triple(3, "1111", 15))) {
+                execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
+                    transaction_hash, is_recurring, created_at, updated_at, bank_name, account_number,
+                    from_account, to_account, from_bank_name, to_bank_name) VALUES
+                    ($id, '100', 'Synthetic', 'Others', 'TRANSFER', '2026-01-01T$hour:00:00', 'synthetic-$id', 0,
+                    '2026-01-01T$hour:00:00', '2026-01-01T$hour:00:00', 'Bank $account', '$account',
+                    '1111', '2222', 'Bank 1111', 'Bank 2222')""")
+            }
+            close()
+        }
+
+        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
+            .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
+            .setDriver(AndroidSQLiteDriver())
+            .build()
+        try {
+            val dao = db.transactionDao()
+            val source = dao.getTransactionById(1)!!
+            assertNotNull(source.transferPairId)
+            assertEquals(source.transferPairId, dao.getTransactionById(2)!!.transferPairId)
+            assertNull(dao.getTransactionById(3)!!.transferPairId)
+            // Linking isn't an edit: webhook sync goes by updated_at.
+            assertEquals(LocalDateTime.of(2026, 1, 1, 10, 0), source.updatedAt)
         } finally { db.close() }
     }
 

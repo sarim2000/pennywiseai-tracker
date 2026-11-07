@@ -31,6 +31,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Zahrnout útraty kreditní kartou v \"Utraceno tento měsíc\"</string>
     <string name="settings_default_currency_title">Výchozí měna</string>
     <string name="settings_default_currency_subtitle">Měna použitá pro konverze</string>
+    <string name="settings_budget_convert_title">Převést rozpočty?</string>
+    <string name="settings_budget_convert_message">Limity vašich rozpočtů byly v %1$s a nyní se zobrazují v %2$s. Převeďte je podle posledního dostupného kurzu (%3$s), nebo ponechte stejná čísla.</string>
+    <string name="settings_budget_convert_confirm">Převést</string>
+    <string name="settings_budget_convert_keep">Ponechat čísla</string>
     <string name="settings_main_account_title">Hlavní účet</string>
     <string name="settings_main_account_subtitle">Nastaví výchozí měnu</string>
     <string name="settings_main_account_not_set">Nenastaveno</string>

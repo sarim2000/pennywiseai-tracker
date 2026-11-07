@@ -28,6 +28,10 @@
     <string name="settings_card_spend_as_expense_subtitle">Уключаць траты па крэдытнай картцы ў «Выдаткавана ў гэтым месяцы»</string>
     <string name="settings_default_currency_title">Асноўная валюта</string>
     <string name="settings_default_currency_subtitle">Валюта для канвертацыі</string>
+    <string name="settings_budget_convert_title">Канвертаваць бюджэты?</string>
+    <string name="settings_budget_convert_message">Ліміты вашых бюджэтаў былі ў %1$s і цяпер паказваюцца ў %2$s. Канвертуйце іх па апошнім даступным курсе (%3$s) або пакіньце тыя ж лікі.</string>
+    <string name="settings_budget_convert_confirm">Канвертаваць</string>
+    <string name="settings_budget_convert_keep">Пакінуць лікі</string>
     <string name="settings_main_account_title">Асноўны рахунак</string>
     <string name="settings_main_account_subtitle">Вызначае вашу асноўную валюту</string>
     <string name="settings_main_account_not_set">Не зададзены</string>

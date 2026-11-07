@@ -18,7 +18,9 @@ class PennyWiseTools : ToolSet {
         @ToolParam(description = "The shop, service or person the money went to or came from. Never a bank or card.") merchant: String,
         @ToolParam(description = "One of the known category names") category: String,
         @ToolParam(description = "EXPENSE for money spent or paid (the usual case), INCOME only for money received such as salary, refund or cashback") type: String,
-        @ToolParam(description = "The bank, card or cash the user mentioned, or empty if not mentioned") account: String
+        @ToolParam(description = "The bank, card or cash the user mentioned, or empty if not mentioned") account: String,
+        @ToolParam(description = "ISO currency code if the user named a currency, e.g. USD, or empty if not mentioned") currency: String,
+        @ToolParam(description = "How many days ago: 0 for today or if not mentioned, 1 for yesterday") daysAgo: Int
     ): String = ""
 
     @Tool(description = "Delete a transaction the user recorded earlier, e.g. 'delete the starbucks coffee from yesterday'.")

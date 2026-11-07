@@ -59,7 +59,6 @@ fun ChatScreen(
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
     val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
-    val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -402,7 +401,6 @@ fun ChatScreen(
                                 item {
                                     PendingActionCard(
                                         action = action,
-                                        currency = baseCurrency,
                                         enabled = !isConfirming,
                                         onConfirm = { viewModel.confirmPendingAction() },
                                         onDismiss = { viewModel.dismissPendingAction() }
@@ -503,7 +501,7 @@ fun ChatScreen(
                                         // Keep keyboard open by requesting focus
                                         focusRequester.requestFocus()
                                     },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
+                                    enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming,
                                     modifier = Modifier.size(48.dp),
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
@@ -930,13 +928,10 @@ private fun ChatEmptyState(
 @Composable
 private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
-    currency: String,
     enabled: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // A new draft is in the base currency; an existing row is shown in its own.
-    val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
     val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
     val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
     val (title, headline, detail, button) = when (action) {
@@ -944,8 +939,17 @@ private fun PendingActionCard(
             val d = action.draft
             listOf(
                 stringResource(if (d.type == income) R.string.chat_action_add_income else R.string.chat_action_add_expense),
-                "${fmt(d.amount)} · ${d.merchant}",
-                stringResource(R.string.chat_action_add_detail, categoryLabel(d.category), d.accountLabel),
+                "${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(d.amount, d.currency)} · ${d.merchant}",
+                if (d.date == java.time.LocalDate.now()) {
+                    stringResource(R.string.chat_action_add_detail, categoryLabel(d.category), d.accountLabel)
+                } else {
+                    stringResource(
+                        R.string.chat_action_add_detail_dated,
+                        categoryLabel(d.category),
+                        d.accountLabel,
+                        d.date.format(java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy"))
+                    )
+                },
                 stringResource(R.string.chat_action_add)
             )
         }
@@ -984,6 +988,22 @@ private fun PendingActionCard(
             Text(text = title, style = MaterialTheme.typography.labelMedium, color = fg)
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
+            if ((action as? com.pennywiseai.tracker.data.model.PendingChatAction.Add)?.draft?.amountInMessage == false) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                        tint = fg
+                    )
+                    Text(
+                        text = stringResource(R.string.chat_action_check_amount),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = fg
+                    )
+                }
+            }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
                 Button(

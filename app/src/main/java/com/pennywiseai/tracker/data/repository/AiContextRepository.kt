@@ -178,7 +178,8 @@ class AiContextRepository @Inject constructor(
         var totalExpense = BigDecimal.ZERO
         
         transactions
-            .filter { it.transactionType == TransactionType.EXPENSE }
+            // Credit counts as expense, as in getMonthSummary: a category can't total less than its spends.
+            .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
             .forEach { transaction ->
                 val category = transaction.category ?: "Others"
                 val convertedAmount = currencyConversionService.convertAmountOrNull(

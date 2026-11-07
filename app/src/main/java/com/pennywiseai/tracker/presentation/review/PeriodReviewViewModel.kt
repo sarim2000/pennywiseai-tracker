@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import javax.inject.Inject
 
-data class ReviewSelection(val kind: ReviewKind, val offset: Int)
+/** [offset] counts back from [today], the day it was chosen: a period can't turn into another while the screen waits. */
+data class ReviewSelection(val kind: ReviewKind, val offset: Int, val today: LocalDate)
 
 @HiltViewModel
 class PeriodReviewViewModel @Inject constructor(
@@ -26,7 +27,11 @@ class PeriodReviewViewModel @Inject constructor(
     // The route says which tab to open on; once chosen, the choice survives process death.
     private val _selection = MutableStateFlow(
         savedStateHandle.get<Int>(KEY_OFFSET)?.let { offset ->
-            ReviewSelection(ReviewKind.fromName(savedStateHandle.get<String>(KEY_KIND)), offset)
+            ReviewSelection(
+                ReviewKind.fromName(savedStateHandle.get<String>(KEY_KIND)),
+                offset,
+                savedStateHandle.get<Long>(KEY_TODAY)?.let(LocalDate::ofEpochDay) ?: LocalDate.now()
+            )
         } ?: routeSelection()
     )
     val selection: StateFlow<ReviewSelection> = _selection.asStateFlow()
@@ -34,8 +39,8 @@ class PeriodReviewViewModel @Inject constructor(
     /** Null while loading, so a period's label never sits over the previous period's numbers. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val review: StateFlow<PeriodReview?> = _selection
-        .flatMapLatest { (kind, offset) ->
-            loader.observe(kind, offset).onStart<PeriodReview?> { emit(null) }
+        .flatMapLatest { (kind, offset, today) ->
+            loader.observe(kind, offset, today).onStart<PeriodReview?> { emit(null) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -51,24 +56,29 @@ class PeriodReviewViewModel @Inject constructor(
         _selection.value = selection
         savedStateHandle[KEY_KIND] = selection.kind.name
         savedStateHandle[KEY_OFFSET] = selection.offset
+        savedStateHandle[KEY_TODAY] = selection.today.toEpochDay()
     }
 
     private fun routeSelection(): ReviewSelection {
         val kind = ReviewKind.fromName(savedStateHandle.get<String>("kind"))
         // MainActivity is exported, so this date isn't necessarily one the recap wrote.
         val week = savedStateHandle.get<String>("weekStart")?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+        val today = LocalDate.now()
         return if (kind == ReviewKind.WEEK && week != null) {
-            ReviewSelection(kind, weekOffsetOf(week, LocalDate.now(), localFirstDayOfWeek()))
+            ReviewSelection(kind, weekOffsetOf(week, today, localFirstDayOfWeek()), today)
         } else {
             selectionFor(kind)
         }
     }
 
-    private fun selectionFor(kind: ReviewKind) =
-        ReviewSelection(kind, defaultReviewOffset(kind, LocalDate.now()))
+    private fun selectionFor(kind: ReviewKind): ReviewSelection {
+        val today = LocalDate.now()
+        return ReviewSelection(kind, defaultReviewOffset(kind, today), today)
+    }
 
     private companion object {
         const val KEY_KIND = "selectedKind"
         const val KEY_OFFSET = "selectedOffset"
+        const val KEY_TODAY = "selectedToday"
     }
 }

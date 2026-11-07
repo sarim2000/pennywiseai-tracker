@@ -136,8 +136,9 @@ class WeeklySummaryWorker @AssistedInject constructor(
     companion object {
         private const val WORK_NAME = "weekly_summary"
         private const val CHANNEL_ID = "weekly_summary"
-        // Daily recap is -2; transaction alerts use ids that are never negative.
-        private const val NOTIFICATION_ID = -3
+        // Taken: the daily recap's -2, the transaction stack's header -3, and the transaction
+        // alerts, whose ids are never negative. -4 is the conscience's in #1125.
+        private const val NOTIFICATION_ID = -5
         /** Input flag: skip the morning gate and the delivered-week check (debug probe only). */
         const val KEY_FORCE = "force"
         private const val CHECK_HOUR = 10

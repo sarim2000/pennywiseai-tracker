@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - учёт расходов</string>
     <string name="widget_name_budget">Обзор бюджета</string>
     <string name="widget_description_budget">Показывает прогресс месячного бюджета, сбережения и дневной лимит с одного взгляда.</string>
     <string name="widget_loading">Загрузка виджета…</string>

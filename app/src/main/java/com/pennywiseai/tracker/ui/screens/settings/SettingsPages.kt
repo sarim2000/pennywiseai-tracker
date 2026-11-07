@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.domain.loan.UpiRequest
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.navigation.AiAccess
 import com.pennywiseai.tracker.navigation.BackgroundAccess
+import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.ExchangeRates
@@ -414,6 +415,15 @@ private fun AccountsPage(
             title = stringResource(R.string.settings_smart_rules_title),
             subtitle = stringResource(R.string.settings_smart_rules_subtitle),
             onClick = { onNavigate(Rules) },
+            position = ListItemPosition.Middle
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Lightbulb,
+            iconBgColor = orange_light,
+            iconTint = orange_dark,
+            title = stringResource(R.string.learned_categories_title),
+            subtitle = stringResource(R.string.learned_categories_subtitle),
+            onClick = { onNavigate(LearnedCategories) },
             position = ListItemPosition.Middle
         )
         SettingsSwitchRow(

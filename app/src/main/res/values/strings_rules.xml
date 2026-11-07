@@ -297,6 +297,32 @@
     <string name="chat_action_update">Update</string>
     <string name="chat_action_change_merchant">merchant → %1$s</string>
     <string name="chat_action_change_category">category → %1$s</string>
+    <string name="chat_action_add_detail_dated">%1$s · %2$s · %3$s</string>
+    <string name="chat_account_none">Cash / manual</string>
+    <string name="chat_account_ambiguous">No account (say which — last 4 digits)</string>
+    <string name="chat_action_check_amount">Check the amount: I didn\'t see this number in your message.</string>
+
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
+    <string name="chat_line_expense">%1$s at %2$s</string>
+    <string name="chat_line_income">%1$s from %2$s</string>
+    <string name="chat_reply_add">Here\'s what I\'ll add — confirm below:\n%1$s</string>
+    <string name="chat_reply_delete">Delete this one? Confirm below:\n%1$s</string>
+    <string name="chat_reply_update">Update this one? Confirm below:\n%1$s → %2$s</string>
+    <string name="chat_reply_update_what">What should I change it to? Say a category from your list or a new merchant name.</string>
+    <string name="chat_reply_closest_match">I couldn\'t find an exact match — this is the closest one.</string>
+    <string name="chat_reply_not_found">I couldn\'t find a matching transaction in the last 30 days. Try the merchant name and amount.</string>
+    <string name="chat_reply_amount_unclear">I couldn\'t work out the amount. Try something like \"coffee 120 at Starbucks\".</string>
+    <string name="chat_reply_month_summary">This month: %1$s spent, %2$s received, %3$d transactions.</string>
+    <string name="chat_reply_category_spend">%1$s on %2$s this month across %3$d transactions.</string>
+    <string name="chat_reply_nothing_spent">Nothing spent on %1$s this month.</string>
+    <string name="chat_reply_unknown_category">I don\'t have a category called %1$s.</string>
+    <string name="chat_reply_nothing_changed">(Nothing was changed — I can only add, update or delete through a confirmation card. Try: \"change the tea to Groceries\" or \"delete the tea from today\".)</string>
+    <string name="chat_reply_one_card_at_a_time">I can only confirm one at a time for now. Answer this card, then send the others again.</string>
+    <string name="chat_reply_unreadable">I couldn\'t read that one. Nothing was changed. Please try again in different words.</string>
+    <string name="chat_done_added">Added %1$s (%2$s).</string>
+    <string name="chat_done_deleted">Deleted %1$s.</string>
+    <string name="chat_done_updated">Updated %1$s.</string>
+    <string name="chat_welcome">Hi! I\'m PennyWise AI.\n\nTell me what you spent and I\'ll add it after you confirm — e.g. \"coffee 120 at Starbucks\" or \"got 50000 salary\". Ask \"how much on groceries this month?\" for a total.\n\nThis month so far: %1$d transactions, %2$s spent.\nNothing is saved without your tap.</string>
 
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Couldn\'t apply that: %1$s</string>

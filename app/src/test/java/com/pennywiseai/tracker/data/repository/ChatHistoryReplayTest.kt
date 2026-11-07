@@ -39,12 +39,13 @@ class ChatHistoryReplayTest {
             every { modelState } returns flowOf(ModelState.READY)
         }
         val repository = LlmRepository(
+            context = mockk(relaxed = true),
             llmService = llmService,
             chatDao = chatDao,
             modelRepository = modelRepository,
             aiContextRepository = mockk(relaxed = true),
-            userPreferencesRepository = mockk(relaxed = true),
-            categoryRepository = mockk(relaxed = true),
+            userPreferencesRepository = mockk(relaxed = true) { every { baseCurrency } returns flowOf("INR") },
+            categoryRepository = mockk(relaxed = true) { every { getVisibleCategories() } returns flowOf(emptyList()) },
             accountBalanceRepository = mockk(relaxed = true),
             transactionRepository = mockk(relaxed = true),
             ignoredAccountsStore = mockk(relaxed = true)

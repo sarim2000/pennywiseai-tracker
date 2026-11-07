@@ -160,6 +160,9 @@ data object AiAccess : NavKey
 data object BackgroundAccess : NavKey
 
 @Serializable
+data object LearnedCategories : NavKey
+
+@Serializable
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,

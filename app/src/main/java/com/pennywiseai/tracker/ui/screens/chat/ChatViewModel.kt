@@ -20,7 +20,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -174,9 +173,6 @@ class ChatViewModel @Inject constructor(
     // is written until the user taps Add.
     val pendingAction: StateFlow<com.pennywiseai.tracker.data.model.PendingChatAction?> = llmRepository.pendingAction
 
-    val baseCurrency: StateFlow<String> = userPreferencesRepository.baseCurrency
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "INR")
-
     private val _isConfirming = MutableStateFlow(false)
     val isConfirming: StateFlow<Boolean> = _isConfirming.asStateFlow()
 
@@ -195,15 +191,13 @@ class ChatViewModel @Inject constructor(
         if (!_isConfirming.compareAndSet(expect = false, update = true)) return
         viewModelScope.launch {
             try {
-                val currency = userPreferencesRepository.baseCurrency.first()
-                val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency, maskIfHidden = false) }
                 when (action) {
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
-                        deleteTransactionUseCase(action.transaction)
-                        llmRepository.clearPendingAction()
                         val t = action.transaction
-                        llmRepository.appendAssistantMessage("Deleted ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency, maskIfHidden = false)} at ${t.merchantName}.")
-                        return@launch
+                        deleteTransactionUseCase(t)
+                        llmRepository.completePendingAction(
+                            context.getString(R.string.chat_done_deleted, llmRepository.amountLine(t.amount, t.currency, t.transactionType, t.merchantName))
+                        )
                     }
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Update -> {
                         action.newCategory?.let { transactionRepository.updateCategory(action.transaction.id, it) }
@@ -211,34 +205,35 @@ class ChatViewModel @Inject constructor(
                             val current = transactionRepository.getTransactionById(action.transaction.id) ?: action.transaction
                             transactionRepository.updateTransaction(current.copy(merchantName = m, updatedAt = java.time.LocalDateTime.now()))
                         }
-                        llmRepository.clearPendingAction()
                         val t = action.transaction
-                        llmRepository.appendAssistantMessage(
-                            "Updated ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency, maskIfHidden = false)} at ${action.newMerchant ?: t.merchantName}" +
-                                (action.newCategory?.let { " → $it" } ?: "") + "."
+                        val line = llmRepository.amountLine(t.amount, t.currency, t.transactionType, action.newMerchant ?: t.merchantName)
+                        llmRepository.completePendingAction(
+                            context.getString(R.string.chat_done_updated, line + (action.newCategory?.let { " → $it" } ?: ""))
                         )
-                        return@launch
                     }
-                    is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> Unit
+                    is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
+                        val draft = action.draft
+                        addTransactionUseCase.execute(
+                            amount = draft.amount,
+                            merchant = draft.merchant,
+                            category = draft.category,
+                            type = draft.type,
+                            date = draft.date.atTime(java.time.LocalTime.now()),
+                            notes = "Added from chat: \"${draft.sourceText}\"",
+                            bankName = draft.bankName,
+                            accountLast4 = draft.accountLast4,
+                            currency = draft.currency
+                        )
+                        com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
+                        llmRepository.completePendingAction(
+                            context.getString(
+                                R.string.chat_done_added,
+                                llmRepository.amountLine(draft.amount, draft.currency, draft.type, draft.merchant),
+                                draft.category
+                            )
+                        )
+                    }
                 }
-                val draft = action.draft
-                addTransactionUseCase.execute(
-                    amount = draft.amount,
-                    merchant = draft.merchant,
-                    category = draft.category,
-                    type = draft.type,
-                    date = java.time.LocalDateTime.now(),
-                    notes = "Added from chat: \"${draft.sourceText}\"",
-                    bankName = draft.bankName,
-                    accountLast4 = draft.accountLast4,
-                    currency = currency
-                )
-                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
-                llmRepository.clearPendingAction()
-                llmRepository.appendAssistantMessage(
-                    "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency, maskIfHidden = false)} " +
-                        "${if (draft.type == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) "from" else "at"} ${draft.merchant} (${draft.category})."
-                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_apply_failed, listOf(e.message.orEmpty())))
             } finally {
@@ -248,7 +243,8 @@ class ChatViewModel @Inject constructor(
     }
 
     fun sendMessage(message: String) {
-        if (message.isBlank() || _uiState.value.isLoading) return
+        // A write in flight must finish first: its outcome is what the model hears next.
+        if (message.isBlank() || _uiState.value.isLoading || _isConfirming.value) return
         // A new message supersedes any card still waiting from the last one.
         llmRepository.clearPendingAction()
 
@@ -287,6 +283,7 @@ class ChatViewModel @Inject constructor(
     }
     
     fun clearChat() {
+        if (_isConfirming.value) return
         llmRepository.clearPendingAction()
         viewModelScope.launch {
             llmRepository.deleteAllMessages()

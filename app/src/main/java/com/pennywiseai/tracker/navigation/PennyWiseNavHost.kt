@@ -179,6 +179,12 @@ fun PennyWiseNavHost(
             )
         }
 
+        entry<LearnedCategories> { key ->
+            com.pennywiseai.tracker.ui.screens.settings.LearnedCategoriesScreen(
+                onNavigateBack = { backStack.pop(key) }
+            )
+        }
+
         entry<AiAccess> { key ->
             com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
                 onNavigateBack = { backStack.pop(key) }

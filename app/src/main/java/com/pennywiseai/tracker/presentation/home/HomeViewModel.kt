@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.countingTransferPairsOnce
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -1490,7 +1491,7 @@ class HomeViewModel @Inject constructor(
                 var transferTotal = BigDecimal.ZERO
                 var investmentTotal = BigDecimal.ZERO
 
-                for (tx in nonLoanTransactions) {
+                for (tx in nonLoanTransactions.countingTransferPairsOnce { it }) {
                     val converted = currencyConversionService
                         .convertAmountOrNull(tx.amount, tx.currency, selectedCurrency) ?: continue
                     when (tx.transactionType) {
@@ -1510,6 +1511,7 @@ class HomeViewModel @Inject constructor(
         } else {
             // Filter transactions by selected currency
             val currencyTransactions = nonLoanTransactions.filter { it.currency == selectedCurrency }
+                .countingTransferPairsOnce { it }
 
             val creditCardTotal = currencyTransactions
                 .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }

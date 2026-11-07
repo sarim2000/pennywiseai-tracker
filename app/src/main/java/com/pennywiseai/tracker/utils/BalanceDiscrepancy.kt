@@ -25,10 +25,10 @@ data class BalanceDiscrepancy(
 
         /**
          * Signed effect of [tx] on the debit account [accountLast4]: transfers move
-         * money by leg (in on the TO side, out on the FROM side), everything else by
-         * type. Mirrors what the ledger itself applies.
+         * money by leg (in on the TO side, out on the FROM side), everything else,
+         * paired legs included, by type. Mirrors what the ledger itself applies.
          */
-        fun effectOn(tx: TransactionEntity, accountLast4: String): BigDecimal = when (tx.transactionType) {
+        fun effectOn(tx: TransactionEntity, accountLast4: String): BigDecimal = when (val type = tx.ledgerType()) {
             TransactionType.TRANSFER -> when {
                 tx.toAccount == accountLast4 && tx.fromAccount != accountLast4 ->
                     BalanceCalculator.transferLegEffect(isCreditCard = false, incoming = true, amount = tx.amount)
@@ -36,7 +36,7 @@ data class BalanceDiscrepancy(
                     BalanceCalculator.transferLegEffect(isCreditCard = false, incoming = false, amount = tx.amount)
                 else -> BigDecimal.ZERO
             }
-            else -> BalanceCalculator.signedBalanceEffect(isCreditCard = false, transactionType = tx.transactionType, amount = tx.amount)
+            else -> BalanceCalculator.signedBalanceEffect(isCreditCard = false, transactionType = type, amount = tx.amount)
         }
 
         /**

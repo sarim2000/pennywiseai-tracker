@@ -493,10 +493,11 @@ interface TransactionDao {
     ): List<TransactionEntity>
 
     /**
-     * TRANSFER transactions touching an account on either side. Transfers are stored
-     * once with `from_account` / `to_account` (last-4 only, matching how the transfer
-     * balance shift resolves accounts), so a manual account's recompute must pull them
-     * by those columns — they don't carry the account in `account_number`.
+     * TRANSFER transactions touching an account on either side. A standalone transfer
+     * is stored once with `from_account` / `to_account` (last-4 only, matching how the
+     * transfer balance shift resolves accounts), so a manual account's recompute must
+     * pull them by those columns — it doesn't carry the account in `account_number`.
+     * A marked pair is two rows with the same from/to; see `utils/TransferPairs.kt`.
      */
     @Query("""
         SELECT * FROM transactions
@@ -505,6 +506,16 @@ interface TransactionDao {
         AND (from_account = :accountLast4 OR to_account = :accountLast4)
     """)
     suspend fun getTransfersForAccount(accountLast4: String): List<TransactionEntity>
+
+    @Query("""
+        SELECT * FROM transactions
+        WHERE transaction_type = 'TRANSFER' AND transfer_pair_id IS NULL
+        AND (from_account IS NOT NULL OR to_account IS NOT NULL)
+    """)
+    suspend fun getUnlinkedTransfers(): List<TransactionEntity>
+
+    @Query("UPDATE transactions SET transfer_pair_id = :pairId WHERE id IN (:ids)")
+    suspend fun linkTransferPair(pairId: String, ids: List<Long>)
     
     @Query("""
         SELECT * FROM transactions

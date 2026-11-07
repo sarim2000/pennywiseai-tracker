@@ -6,12 +6,16 @@ import android.util.Log
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.builtinKey
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.conscience.ConscienceDetectors
 import com.pennywiseai.tracker.domain.conscience.ConscienceEligibility
 import com.pennywiseai.tracker.domain.conscience.ConscienceRemark
+import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -34,7 +38,10 @@ class ConscienceManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferences: UserPreferencesRepository,
     private val transactionRepository: TransactionRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val cardRepository: CardRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     /** Never throws (bar cancellation): a joke must not cost a saved transaction its alert. */
     suspend fun onLiveTransaction(transactionId: Long, eventTimeMillis: Long) {
@@ -58,6 +65,13 @@ class ConscienceManager @Inject constructor(
         val nowMillis = System.currentTimeMillis()
         if (!isFresh(eventTimeMillis, saved.dateTime, nowMillis, ZoneId.systemDefault())) return
 
+        val balances = accountBalanceRepository.getAllLatestBalances().first()
+        val inScope = ConscienceEligibility.inScope(
+            IgnoredAccountsStore.withLinkedCards(ignoredAccountsStore.keys(), cardRepository.getAllCards().first(), balances),
+            buildProfileAccountKeys(balances)
+        )
+        if (!inScope(saved)) return
+
         val builtinKeys = categoryRepository.getAllCategories().first()
             .mapNotNull { category -> category.builtinKey?.let { category.name to it } }
             .toMap()
@@ -72,7 +86,7 @@ class ConscienceManager @Inject constructor(
         val days = if (ConscienceDetectors.isLateNight(saved.dateTime.toLocalTime())) RENEWAL_HISTORY_DAYS else HISTORY_DAYS
         // This overload stops at 23:59:59, so run past today; the detectors drop anything after the purchase.
         val rows = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(days), today.plusDays(1)).first()
-            .filter { it.transaction.id != transactionId }
+            .filter { it.transaction.id != transactionId && inScope(it.transaction) }
         val history = rows.flatMap { ConscienceEligibility.historyOf(it, builtinKeys) }
         // Days with any spending at all: a quiet week only counts as a win when the ledger was still being fed.
         val activeDates = rows

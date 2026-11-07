@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.conscience
 
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -47,9 +48,22 @@ class ConscienceEligibilityTest {
     )
 
     @Test
-    fun `business spending is silent`() {
-        assertNull(purchase(eligible.copy(profileId = 2L)))
-        assertNotNull(purchase(eligible.copy(profileId = 1L)))
+    fun `business spending is out, whether the row or its account says so`() {
+        val bank = eligible.copy(bankName = "Test Bank", accountNumber = "1234")
+        val inScope = ConscienceEligibility.inScope(emptySet(), mapOf(ProfileEntity.BUSINESS_ID to setOf("Test Bank_1234")))
+        assertFalse(inScope(bank))
+        assertFalse(inScope(eligible.copy(profileId = ProfileEntity.BUSINESS_ID)))
+        assertTrue(inScope(bank.copy(profileId = ProfileEntity.PERSONAL_ID)))
+        assertTrue(inScope(bank.copy(accountNumber = "9999")))
+    }
+
+    @Test
+    fun `an ignored account's rows are out`() {
+        val bank = eligible.copy(bankName = "Test Bank", accountNumber = "1234")
+        val inScope = ConscienceEligibility.inScope(setOf("Test Bank_1234"), emptyMap())
+        assertFalse(inScope(bank))
+        assertTrue(inScope(bank.copy(accountNumber = "9999")))
+        assertTrue(inScope(eligible.copy(bankName = null, accountNumber = null)))
     }
 
     @Test
@@ -151,7 +165,6 @@ class ConscienceEligibilityTest {
     fun `what isn't the user's spending stays out of the history`() {
         assertTrue(history(eligible.copy(excludedFromAnalytics = true)).isEmpty())
         assertTrue(history(eligible.copy(loanId = 1)).isEmpty())
-        assertTrue(history(eligible.copy(profileId = 2L)).isEmpty())
         assertTrue(history(eligible.copy(transactionType = TransactionType.INCOME)).isEmpty())
         assertTrue(history(eligible.copy(category = "Bills")).isEmpty())
     }

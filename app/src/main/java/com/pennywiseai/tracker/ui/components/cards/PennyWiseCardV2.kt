@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
@@ -62,7 +62,7 @@ fun PennyWiseCardV2(
     contentPadding: Dp = Dimensions.Padding.card,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val effectiveBorder = border ?: if (isSystemInDarkTheme()) {
+    val effectiveBorder = border ?: if (isAppInDarkTheme()) {
         BorderStroke(
             width = Dimensions.Component.hairline,
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f)

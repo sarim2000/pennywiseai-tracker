@@ -56,10 +56,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense_dark
-import com.pennywiseai.tracker.ui.theme.expense_light
-import com.pennywiseai.tracker.ui.theme.income_dark
-import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.expense
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -102,9 +100,9 @@ fun MarkAsPaidSheet(
 
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) income_dark else income_light
+        MaterialTheme.colorScheme.income
     } else {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+        MaterialTheme.colorScheme.expense
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -342,7 +340,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    val amountColor = MaterialTheme.colorScheme.expense
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),

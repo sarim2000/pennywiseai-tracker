@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -99,22 +98,21 @@ fun TransactionTotalsCard(
                         modifier = Modifier.padding(start = Spacing.xs, bottom = Spacing.xs)
                     )
                 }
-                val dark = isSystemInDarkTheme()
                 val netColor = when {
-                    netBalance > BigDecimal.ZERO -> if (!dark) income_light else income_dark
-                    netBalance < BigDecimal.ZERO -> if (!dark) expense_light else expense_dark
+                    netBalance > BigDecimal.ZERO -> MaterialTheme.colorScheme.income
+                    netBalance < BigDecimal.ZERO -> MaterialTheme.colorScheme.expense
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 val tiles = buildList {
                     add(TotalTileData(Icons.AutoMirrored.Filled.TrendingUp, stringResource(R.string.txn_totals_income),
-                        CurrencyFormatter.formatCurrency(income, currency), if (!dark) income_light else income_dark, incomeAlpha))
+                        CurrencyFormatter.formatCurrency(income, currency), MaterialTheme.colorScheme.income, incomeAlpha))
                     add(TotalTileData(Icons.AutoMirrored.Filled.TrendingDown, stringResource(R.string.txn_totals_expenses),
-                        CurrencyFormatter.formatCurrency(expenses, currency), if (!dark) expense_light else expense_dark, expenseAlpha))
+                        CurrencyFormatter.formatCurrency(expenses, currency), MaterialTheme.colorScheme.expense, expenseAlpha))
                     if (extra != null) {
                         val (extraIcon, extraLabel, extraColor) = when (extra.kind) {
-                            ExtraTotalKind.CREDIT -> Triple(Icons.Filled.CreditCard, stringResource(R.string.txn_totals_credit), if (dark) credit_dark else credit_light)
-                            ExtraTotalKind.TRANSFER -> Triple(Icons.Filled.SwapHoriz, stringResource(R.string.txn_totals_transfer), if (dark) transfer_dark else transfer_light)
-                            ExtraTotalKind.INVESTMENT -> Triple(Icons.AutoMirrored.Filled.ShowChart, stringResource(R.string.txn_totals_invest), if (dark) investment_dark else investment_light)
+                            ExtraTotalKind.CREDIT -> Triple(Icons.Filled.CreditCard, stringResource(R.string.txn_totals_credit), MaterialTheme.colorScheme.credit)
+                            ExtraTotalKind.TRANSFER -> Triple(Icons.Filled.SwapHoriz, stringResource(R.string.txn_totals_transfer), MaterialTheme.colorScheme.transfer)
+                            ExtraTotalKind.INVESTMENT -> Triple(Icons.AutoMirrored.Filled.ShowChart, stringResource(R.string.txn_totals_invest), MaterialTheme.colorScheme.investment)
                         }
                         add(TotalTileData(extraIcon, extraLabel, CurrencyFormatter.formatCurrency(extra.amount, currency), extraColor, expenseAlpha))
                     }

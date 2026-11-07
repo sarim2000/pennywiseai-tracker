@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +21,7 @@ import dev.chrisbanes.haze.hazeSource
 fun CoverGradientBanner(
     coverStyle: CoverStyle,
     modifier: Modifier = Modifier,
-    isDark: Boolean = isSystemInDarkTheme(),
+    isDark: Boolean = isAppInDarkTheme(),
     hazeStateBanner: HazeState? = null
 ) {
     if (coverStyle == CoverStyle.NONE) return

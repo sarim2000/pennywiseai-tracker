@@ -20,7 +20,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -1659,9 +1658,9 @@ private fun BreakdownRow(
                 fontWeight = FontWeight.Normal
             ),
             color = if (isIncome) {
-                if (!isSystemInDarkTheme()) income_light else income_dark
+                MaterialTheme.colorScheme.income
             } else {
-                if (!isSystemInDarkTheme()) expense_light else expense_dark
+                MaterialTheme.colorScheme.expense
             }
         )
     }
@@ -1835,8 +1834,7 @@ private fun ActiveLoansSummaryCard(
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
+    val loanColor = MaterialTheme.colorScheme.loan
 
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),

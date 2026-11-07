@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import android.content.res.Resources
 import androidx.compose.ui.platform.LocalContext
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -50,15 +49,13 @@ fun TransactionItem(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
-    val amountColor = remember(transaction.transactionType, isDark) {
-        when (transaction.transactionType) {
-            TransactionType.INCOME -> if (!isDark) income_light else income_dark
-            TransactionType.EXPENSE -> if (!isDark) expense_light else expense_dark
-            TransactionType.CREDIT -> if (!isDark) credit_light else credit_dark
-            TransactionType.TRANSFER -> if (!isDark) transfer_light else transfer_dark
-            TransactionType.INVESTMENT -> if (!isDark) investment_light else investment_dark
-        }
+    val colorScheme = MaterialTheme.colorScheme
+    val amountColor = when (transaction.transactionType) {
+        TransactionType.INCOME -> colorScheme.income
+        TransactionType.EXPENSE -> colorScheme.expense
+        TransactionType.CREDIT -> colorScheme.credit
+        TransactionType.TRANSFER -> colorScheme.transfer
+        TransactionType.INVESTMENT -> colorScheme.investment
     }
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")

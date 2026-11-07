@@ -13,7 +13,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -503,7 +502,7 @@ private fun TotalSubscriptionsSummary(
     paidThisCycleCount: Int = 0,
     currency: String? = null
 ) {
-    val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
+    val amountColor = MaterialTheme.colorScheme.expense
 
 
     // Subtitle shape:
@@ -752,7 +751,7 @@ private fun SwipeableSubscriptionItem(
                                     text = CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                    color = MaterialTheme.colorScheme.expense
                                 )
                                 Text(
                                     text = "(${subscription.formatAmount()})",
@@ -765,7 +764,7 @@ private fun SwipeableSubscriptionItem(
                                 text = subscription.formatAmount(),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                color = MaterialTheme.colorScheme.expense
                             )
                         }
 

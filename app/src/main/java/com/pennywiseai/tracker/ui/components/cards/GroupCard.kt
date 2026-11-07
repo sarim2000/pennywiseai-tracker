@@ -6,7 +6,6 @@ import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -26,10 +25,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.expense_dark
-import com.pennywiseai.tracker.ui.theme.expense_light
-import com.pennywiseai.tracker.ui.theme.income_dark
-import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.expense
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -44,7 +41,6 @@ fun GroupCard(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
 
     val total = remember(transactions, convertedAmounts, displayCurrency) {
         transactions.fold(BigDecimal.ZERO) { acc, tx ->
@@ -66,9 +62,9 @@ fun GroupCard(
     }
     val isPositive = total >= BigDecimal.ZERO
     val amountColor = if (isPositive) {
-        if (isDark) income_dark else income_light
+        MaterialTheme.colorScheme.income
     } else {
-        if (isDark) expense_dark else expense_light
+        MaterialTheme.colorScheme.expense
     }
 
     val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }

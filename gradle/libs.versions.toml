@@ -40,8 +40,10 @@ material3 = "1.5.0-beta02"
 haze = "2.1.0"
 composeCharts = "1.0.0"
 billingKtx = "9.1.0"
+leakcanary = "3.0-alpha-9"
 
 [libraries]
+leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }

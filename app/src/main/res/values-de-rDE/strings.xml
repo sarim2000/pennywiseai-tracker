@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - Ausgaben-Tracker</string>
     <string name="widget_name_budget">Budgetübersicht</string>
     <string name="widget_description_budget">Zeigt Ihren monatlichen Budgetfortschritt, Ersparnisse und Ihr Tagesbudget auf einen Blick.</string>
     <string name="widget_loading">Widget wird geladen…</string>

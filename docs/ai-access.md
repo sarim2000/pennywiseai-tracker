@@ -4,7 +4,7 @@ PennyWise Pro can let AI apps — and a big-screen dashboard on a computer — r
 
 ## Connect Claude or ChatGPT (once)
 
-1. On your phone: **Settings → Connect Claude / ChatGPT**.
+1. On your phone: **Settings → AI Features → Connect Claude / ChatGPT**.
 2. In Claude (claude.ai → Settings → Connectors → Add custom connector) or ChatGPT (Settings → Connectors), add the URL shown in the app: `https://ai.pennywise.zynth.dev/mcp`.
 3. When it asks you to sign in, tap **Get pairing code** in PennyWise and enter the 6-digit code. Codes last 5 minutes and work once.
 

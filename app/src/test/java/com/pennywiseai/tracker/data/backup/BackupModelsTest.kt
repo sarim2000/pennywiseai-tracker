@@ -27,6 +27,28 @@ class BackupModelsTest {
         assertEquals(transaction, restored)
     }
 
+    @Test
+    fun oldBackupTransferWithoutPairId_restoresUnlinked() {
+        val oldShape = """
+            {"amount":"1","merchantName":"Example transfer","category":"Transfer",
+             "transactionType":"TRANSFER","dateTime":"2026-01-01T00:00:00",
+             "transactionHash":"synthetic-old-transfer","fromAccount":"000","toAccount":"1000"}
+        """.trimIndent()
+        val restored = backupJson.decodeFromString<TransactionEntity>(oldShape)
+        assertNull(restored.transferPairId)
+        assertEquals("000", restored.fromAccount)
+    }
+
+    @Test
+    fun transferPairIdSurvivesBackupRoundtrip() {
+        val leg = TransactionEntity(amount = BigDecimal.ONE, merchantName = "Example transfer",
+            category = "Transfer", transactionType = TransactionType.TRANSFER,
+            dateTime = LocalDateTime.of(2026, 1, 1, 0, 0), transactionHash = "synthetic-paired-leg",
+            transferPairId = "synthetic-pair")
+        val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(leg))
+        assertEquals("synthetic-pair", restored.transferPairId)
+    }
+
 
     @Test
     fun backupSerializationRoundtripWithAllFields() {

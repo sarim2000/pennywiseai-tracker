@@ -934,7 +934,7 @@ class TransactionsViewModel @Inject constructor(
                             val finalCurrency =
                                 if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(
                                         currentCurrency
-                                    )
+                                    ) && !isPinned(currentCurrency)
                                 ) {
                                     // Auto-select: prefer baseCurrency from preferences, then first available
                                     val baseCurrency =
@@ -980,7 +980,7 @@ class TransactionsViewModel @Inject constructor(
                 // Auto-select primary currency if not already selected or if current currency no longer exists
                 if (!_isUnifiedMode.value) {
                     val currentCurrency = selectedCurrency.value
-                    if (!computed.totals.availableCurrencies.contains(currentCurrency) && computed.totals.hasAnyCurrency()) {
+                    if (!computed.totals.availableCurrencies.contains(currentCurrency) && computed.totals.hasAnyCurrency() && !isPinned(currentCurrency)) {
                         val baseCurrency = userPreferencesRepository.baseCurrency.first()
                         _selectedCurrency.value = computed.totals.getPrimaryCurrency(baseCurrency)
                     }
@@ -1068,6 +1068,12 @@ class TransactionsViewModel @Inject constructor(
         _isUnifiedMode.value = false
         _selectedCurrency.value = currency
     }
+
+    /**
+     * A pinned list stays on its currency even with no rows there, so it never shows another
+     * currency under the card it opened from. A currency the user picked later can still fall back.
+     */
+    private fun isPinned(currency: String) = currency == pinnedCurrency.value
 
     /**
      * Sets a custom date range filter and switches the period to CUSTOM.

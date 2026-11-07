@@ -159,6 +159,7 @@ object BankParserFactory {
         SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
         STCBankParser(),  // STC Bank (Saudi Arabia)
         SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)
+        BarqParser(),  // Barq (Saudi Arabia)
         D360BankParser(),  // D360 Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
         SparkasseRheinMaasParser(),  // Sparkasse Rhein-Maas (Germany)

@@ -10,6 +10,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
@@ -29,7 +30,8 @@ class MoneyAlertChecker @Inject constructor(
     @ApplicationContext private val context: Context,
     private val budgetSummaryProvider: BudgetSummaryProvider,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     /**
      * Each LIMIT budget, as the Budgets screen sees it. With [notify] off this
@@ -60,8 +62,11 @@ class MoneyAlertChecker @Inject constructor(
      */
     // ponytail: an account already under its threshold gets one true alert on its next transaction; seed it if that annoys.
     suspend fun checkManualBalances() {
+        val ignored = ignoredAccountsStore.keys()
         for (account in accountBalanceRepository.getAllLatestBalancesOnce()) {
             val threshold = account.lowBalanceThreshold ?: continue
+            // Hiding an account keeps its threshold, and un-hiding it should still alert.
+            if (IgnoredAccountsStore.isIgnored(ignored, account.bankName, account.accountLast4)) continue
             if (!accountBalanceRepository.isManualAccount(account.bankName, account.accountLast4)) continue
             val isLow = account.balance <= threshold
             if (userPreferencesRepository.claimLowBalanceAlert(account.bankName, account.accountLast4, isLow)) {

@@ -21,6 +21,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,7 +80,7 @@ fun BlurredAnimatedVisibility(
             }
         }
     } else {
-        // For Android 10-11, use a custom RenderScript blur implementation
+        // Below Android 12, use a custom RenderScript blur implementation
         AnimatedVisibility(
             visible = visible,
             enter = enter,
@@ -104,6 +105,14 @@ fun CustomBlurEffect(
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     val renderScript = remember { RenderScript.create(context) }
     val scriptBlur = remember { ScriptIntrinsicBlur.create(renderScript, Element.U8_4(renderScript)) }
+    // Both hold native resources the GC doesn't free for us. The bitmap is left to the
+    // GC: a display list recorded earlier may still reference it.
+    DisposableEffect(renderScript, scriptBlur) {
+        onDispose {
+            scriptBlur.destroy()
+            renderScript.destroy()
+        }
+    }
 
     Box(
         modifier = Modifier

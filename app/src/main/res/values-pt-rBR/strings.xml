@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - Controle de Gastos</string>
     <string name="widget_name_budget">Visão do orçamento</string>
     <string name="widget_description_budget">Mostra o progresso do seu orçamento mensal, a economia e quanto dá para gastar por dia, num relance.</string>
     <string name="widget_loading">Carregando widget…</string>

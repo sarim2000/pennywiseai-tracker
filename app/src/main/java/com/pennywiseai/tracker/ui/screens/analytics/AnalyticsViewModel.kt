@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.utils.countingTransferPairsOnce
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
@@ -64,6 +65,7 @@ internal fun analyticsRowsFor(
             !(filter == TransactionTypeFilter.INCOME &&
                 it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT)
         }
+        .countingTransferPairsOnce { it.transaction }
 }
 
 /** [gross] less [refund], floored at zero: a spend bucket never shows negative spend. */

@@ -320,8 +320,37 @@ Material You dynamic colour on Android 12+, a branded Rose Pine palette
 true black. Always use semantic roles — never hard-code a colour.
 
 Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
-`income`, `expense`, `credit`, `transfer`, `investment` — each resolves
-light/dark automatically.
+`income`, `expense`, `credit`, `transfer`, `investment`, `loan` — each resolves
+light/dark from the app's scheme. Always use these tokens, never pick a
+`*_dark` / `*_light` constant yourself. When something else must change with
+the theme, check `isAppInDarkTheme()`, not `isSystemInDarkTheme()`: Appearance
+can force Light or Dark regardless of the system.
+
+### What colour means
+
+Most transactions are spending, so the common case stays quiet and red keeps
+its meaning:
+
+- **Spending is ink** (`onSurface`, or the `on*` role of the container it sits
+  on). The sign ("-"), a label or an icon tells it apart, never colour alone.
+- **Income** uses `income`, with a "+".
+- **Credit, transfer, investment, loan** keep their own tokens.
+- **Red (`expense` / `error`) or `warning` only for a problem**: over budget,
+  overdue, a negative net or balance, low balance, limit exceeded, errors.
+- **Charts keep series colours** (the expense line, legend dots): series need
+  to be told apart.
+- **Identity colours** (categories, merchants) stay.
+
+**The accent (`primary`) marks what you can act on or what is in a state:**
+buttons and text actions, the FAB / docked nav action, the selected nav tab,
+chip, toggle or segment, switches and other M3 controls, focus and cursor,
+activity progress, and the one hero CTA on a screen. Structure stays neutral:
+static headings and labels use `onSurface`, decorative icons (info rows, card
+and dialog headers, empty states, banners) and secondary figures use
+`onSurfaceVariant`, at full opacity. Semantic roles (income, expense, error…),
+chart series and category/merchant identity colours keep their colour. If a
+tinted thing can't be tapped and isn't selected or in progress, it shouldn't be
+`primary`.
 
 ---
 

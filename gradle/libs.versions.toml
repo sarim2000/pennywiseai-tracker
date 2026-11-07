@@ -33,10 +33,13 @@ roomVersion = "3.0.3"
 # read: chat passes QwenChatTemplate instead (LlmServiceImpl).
 litertlm = "0.19.0"
 coroutines = "1.11.0"
+benchmark = "1.5.0"
+uiautomator = "2.4.1"
+profileinstaller = "1.4.1"
 workVersion = "2.12.0"
 coil = "3.6.3"
 zxing = "3.5.4"
-material3 = "1.5.0-beta02"
+material3 = "1.5.0-rc01"
 haze = "2.1.0"
 composeCharts = "1.0.0"
 billingKtx = "9.1.0"
@@ -46,6 +49,9 @@ leakcanary = "3.0-alpha-9"
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
+androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "benchmark" }
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -109,6 +115,8 @@ billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = 
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmark" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

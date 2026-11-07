@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -119,7 +118,7 @@ fun LoanDetailScreen(
             if (loan?.status == LoanStatus.ACTIVE) {
                 FloatingActionButton(
                     onClick = { viewModel.showRecordPayment() },
-                    containerColor = if (isSystemInDarkTheme()) loan_dark else loan_light
+                    containerColor = MaterialTheme.colorScheme.loan
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.loan_detail_record_payment))
                 }
@@ -136,13 +135,12 @@ fun LoanDetailScreen(
             return@Scaffold
         }
 
-        val isDark = isSystemInDarkTheme()
         val directionColor = if (loan.direction == LoanDirection.LENT) {
-            if (isDark) loan_dark else loan_light
+            MaterialTheme.colorScheme.loan
         } else {
-            if (isDark) income_dark else income_light
+            MaterialTheme.colorScheme.income
         }
-        val progressColor = if (isDark) income_dark else income_light
+        val progressColor = MaterialTheme.colorScheme.income
         val progress = if (loan.originalAmount > BigDecimal.ZERO) {
             (BigDecimal.ONE - loan.remainingAmount.divide(loan.originalAmount, 2, java.math.RoundingMode.HALF_UP))
                 .toFloat().coerceIn(0f, 1f)
@@ -383,14 +381,14 @@ private fun LoanTransactionItem(
     loanDirection: LoanDirection,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    // Color reflects the actual money flow: red = money out, green = money in.
+    // Sign and colour follow the actual money flow: "+" in the income colour for
+    // money in, "-" in ink for money out (red is kept for problems).
     // Every type but INCOME is money out, as in the loan's own math (#876).
     val moneyIn = transaction.transactionType == TransactionType.INCOME
     val color = if (moneyIn) {
-        if (isDark) income_dark else income_light
+        MaterialTheme.colorScheme.income
     } else {
-        if (isDark) expense_dark else expense_light
+        MaterialTheme.colorScheme.onSurface
     }
     val sign = if (moneyIn) "+" else "-"
 
@@ -465,8 +463,7 @@ private fun RecordPaymentBottomSheet(
     onManualPayment: (BigDecimal) -> Unit
 ) {
     var manualAmount by remember { mutableStateOf("") }
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
+    val loanColor = MaterialTheme.colorScheme.loan
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(

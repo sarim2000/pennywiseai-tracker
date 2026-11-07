@@ -157,6 +157,9 @@ data object Webhooks : NavKey
 data object AiAccess : NavKey
 
 @Serializable
+data object BackgroundAccess : NavKey
+
+@Serializable
 data object Conscience : NavKey
 
 @Serializable

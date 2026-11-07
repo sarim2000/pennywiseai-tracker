@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.domain.loan.UpiRequest
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.navigation.AiAccess
+import com.pennywiseai.tracker.navigation.BackgroundAccess
 import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.Conscience
@@ -91,9 +92,11 @@ import com.pennywiseai.tracker.ui.theme.red_dark
 import com.pennywiseai.tracker.ui.theme.red_light
 import com.pennywiseai.tracker.ui.theme.teal_dark
 import com.pennywiseai.tracker.ui.theme.teal_light
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
+import com.pennywiseai.tracker.ui.viewmodel.BackgroundAccessViewModel
 import com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -152,6 +155,7 @@ private fun TrackingPage(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     permissionViewModel: PermissionViewModel = hiltViewModel(),
     trackedAppsViewModel: TrackedAppsViewModel = hiltViewModel(),
+    backgroundAccessViewModel: BackgroundAccessViewModel = hiltViewModel(),
 ) {
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
@@ -168,6 +172,29 @@ private fun TrackingPage(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         permissionViewModel.refreshNotificationAccess()
+    }
+    val backgroundAccess by backgroundAccessViewModel.state.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        backgroundAccessViewModel.refresh()
+        onPauseOrDispose {}
+    }
+    // Without SMS access there's no tracking to protect, so nothing to nag about.
+    val backgroundStepsLeft = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }
+    val backgroundStepsColor = MaterialTheme.colorScheme.warning
+
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.BatteryChargingFull,
+            iconBgColor = if (backgroundStepsLeft != null) backgroundStepsColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.secondaryContainer,
+            iconTint = if (backgroundStepsLeft != null) backgroundStepsColor else MaterialTheme.colorScheme.onSecondaryContainer,
+            title = stringResource(R.string.background_access_title),
+            subtitle = stringResource(R.string.background_access_settings_subtitle),
+            onClick = { onNavigate(BackgroundAccess) },
+            position = ListItemPosition.Single,
+            trailingText = backgroundStepsLeft?.let {
+                pluralStringResource(R.plurals.background_access_settings_left, it, it)
+            }
+        )
     }
 
     SectionHeaderV2(title = stringResource(R.string.settings_group_sms))

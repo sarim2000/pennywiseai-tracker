@@ -403,7 +403,7 @@ internal fun SettingsNavItem(
             Text(
                 text = trailingText,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.MiddleEllipsis,
                 modifier = Modifier.widthIn(max = Dimensions.Component.rowValueMaxWidth)

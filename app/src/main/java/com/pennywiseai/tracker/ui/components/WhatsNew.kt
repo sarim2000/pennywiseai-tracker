@@ -81,7 +81,7 @@ fun WhatsNewDialog(
             Icon(
                 Icons.Rounded.AutoAwesome,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
         title = {
@@ -124,7 +124,7 @@ private fun WhatsNewItemRow(item: WhatsNewItem) {
         Icon(
             Icons.Rounded.CheckCircle,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = Spacing.xxs).size(Dimensions.Icon.small)
         )
         Text(

@@ -1,5 +1,17 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.foundation.Canvas
+import com.pennywiseai.tracker.utils.AmountPrivacy
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.Surface
+import com.pennywiseai.tracker.ui.components.DEFAULT_BUDGET_COLOR
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.res.pluralStringResource
@@ -38,7 +50,9 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
@@ -66,121 +80,91 @@ fun BudgetCard(
         animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
     }
 
-    val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
+    // Stored colours can be too dark for a dark card (a default blue measured 2.2:1).
+    val budgetColor = CategoryMapping.visibleOn(
+        groupSpending.group.budget.color.takeUnless { it == DEFAULT_BUDGET_COLOR }.orEmpty().toColorOr(MaterialTheme.colorScheme.primary),
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    )
     val statusColor: Color = when {
         pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
+        pctUsed >= 70f -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.onSurface
     }
-    // The bar wears the budget's own color while it's healthy; the pill and
-    // hero text stay semantic so a red budget at 36% doesn't read as danger.
+    // The bar wears the budget's own color while it's healthy (that's the identity
+    // from #763, now without tinting the whole card); the figures stay semantic so a
+    // red budget at 36% doesn't read as danger.
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
-    PennyWiseCardV2(
-        modifier = modifier,
+    // A ledger entry, not a card: name and what's left on one line, the bar, then the small print.
+    Surface(
         onClick = onClick,
-        containerColor = budgetColor.tintedSurface()
+        modifier = modifier,
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = MaterialTheme.shapes.small
     ) {
-        // Row 1: Cadence pill + budget name + percentage pill
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                modifier = Modifier.weight(1f)
-            ) {
-                CadencePill(periodType = groupSpending.periodType)
-                Text(
-                    text = groupSpending.group.budget.name,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            if (groupSpending.totalBudget > BigDecimal.ZERO) {
-                Text(
-                    text = stringResource(R.string.budget_card_percent, pctUsed.toInt()),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .background(
-                            color = statusColor,
-                            shape = RoundedCornerShape(50)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(Spacing.sm))
-
-        // Row 2: Custom rounded progress bar
-        if (groupSpending.totalBudget > BigDecimal.ZERO) {
-            val barShape = RoundedCornerShape(50)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(Dimensions.Component.progressBarHeight)
-                    .clip(barShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = animatedProgressState)
-                        .fillMaxHeight()
-                        .clip(barShape)
-                        .background(barColor)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(Spacing.md))
-
-        // Row 3: Remaining amount (hero) + what's left to spend per day.
-        // Only for spending limits — "per day" means nothing for a savings
-        // target or an expected-income group.
+      Column(Modifier.fillMaxWidth().padding(vertical = Spacing.smd)) {
         val remainingAbs = groupSpending.remaining.abs()
-        val showDaily = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
-            groupSpending.dailyAllowance > BigDecimal.ZERO
-        // FlowRow: when there isn't room (narrow card, large font) the
-        // per-day label wraps below instead of squeezing the hero amount.
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            itemVerticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
+        val nameAndCadence: @Composable () -> Unit = {
+            Text(
+                text = groupSpending.group.budget.name,
+                style = PennyWiseText.rowTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            CadencePill(periodType = groupSpending.periodType)
+        }
+        val remainingText: @Composable () -> Unit = {
             Text(
                 text = if (isOverBudget) {
                     stringResource(R.string.budget_card_over_budget, CurrencyFormatter.formatCurrency(remainingAbs, currency))
                 } else {
                     stringResource(R.string.budget_card_remaining, CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency))
                 },
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                style = PennyWiseText.amountMedium,
                 color = statusColor,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                autoSize = PennyWiseText.fit(PennyWiseText.amountMedium),
             )
-            if (showDaily) {
-                Text(
-                    text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+        }
+        if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= STACK_FONT_SCALE) {
+            nameAndCadence()
+            remainingText()
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Column(Modifier.weight(1f)) { nameAndCadence() }
+                remainingText()
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        if (groupSpending.totalBudget > BigDecimal.ZERO) {
+            BudgetBar(
+                progress = if (AmountPrivacy.hidden) 0f else animatedProgressState,
+                pace = groupSpending.daysElapsed.toFloat() / groupSpending.windowDays.coerceAtLeast(1),
+                color = barColor
+            )
+            if (groupSpending.group.budget.groupType == BudgetGroupType.LIMIT && !AmountPrivacy.hidden) {
+                BudgetPaceNote(
+                    progress = pctUsed / 100f,
+                    pace = groupSpending.daysElapsed.toFloat() / groupSpending.windowDays.coerceAtLeast(1),
+                    modifier = Modifier.padding(top = Spacing.xs)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(Spacing.xs))
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        // Per-day is only for spending limits: it means nothing for a savings target or an
+        // expected-income group.
+        val showDaily = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
+            groupSpending.dailyAllowance > BigDecimal.ZERO
 
         // Row 4: Per-cadence subtitle — always framed as a renewal
         // countdown ("Resets in X days" / "X days remaining") so the
@@ -214,6 +198,9 @@ fun BudgetCard(
                     ?: groupSpending.windowStart.dayOfMonth
                 val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
                 when {
+                    // The usual 1st goes without saying; only a custom start day needs naming.
+                    startDay == 1 && renewalIn == 0 -> stringResource(R.string.budgets_resets_today)
+                    startDay == 1 -> pluralStringResource(R.plurals.budgets_resets_in, renewalIn, renewalIn)
                     renewalIn == 0 -> stringResource(R.string.budget_card_resets_today_day, startDay)
                     else -> pluralStringResource(R.plurals.budget_card_resets_in_day, renewalIn, renewalIn, startDay)
                 }
@@ -230,57 +217,82 @@ fun BudgetCard(
             else -> pluralStringResource(R.plurals.budget_card_days_remaining, groupSpending.daysRemaining, groupSpending.daysRemaining)
         }
         Text(
-            text = subtitleText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
+            text = listOfNotNull(
+                stringResource(
+                    R.string.budget_card_spent_of,
+                    CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
+                    CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
+                ),
+                stringResource(R.string.budget_card_percent, pctUsed.toInt()).takeIf { groupSpending.totalBudget > BigDecimal.ZERO && !AmountPrivacy.hidden },
+            ).joinToString(" · "),
+            style = PennyWiseText.amountSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-
-        Spacer(modifier = Modifier.height(Spacing.xs))
-
-        // Row 5: Spent X of Y
         Text(
-            text = stringResource(
-                R.string.budget_card_spent_of,
-                CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
-                CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            text = listOfNotNull(
+                subtitleText,
+                if (showDaily) stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatEstimate(groupSpending.dailyAllowance, currency)) else null,
+            ).joinToString(" · "),
+            style = PennyWiseText.metadata,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+      }
     }
 }
 
+/** "Ahead of pace", when spending has run past today's mark by more than a rounding slip. */
+@Composable
+fun BudgetPaceNote(progress: Float, pace: Float, modifier: Modifier = Modifier) {
+    if (progress <= pace + PACE_MARGIN || pace <= 0f || pace >= 1f) return
+    Text(
+        text = stringResource(R.string.budget_ahead_of_pace),
+        style = PennyWiseText.metadata,
+        color = MaterialTheme.colorScheme.warning,
+        modifier = modifier
+    )
+}
+
+private const val PACE_MARGIN = 0.05f
+
 /**
- * Small pill that names the budget's cadence at a glance: 🔁 Weekly /
- * 🗓 Monthly / 📌 One-time. Colour-coded so a user can spot which type
- * of budget they're looking at without reading the subtitle.
+ * A flat rule filled to [progress]. The mark across it is [pace], how far through the window
+ * today is: fill past the mark means spending ahead of the calendar.
  */
 @Composable
+fun BudgetBar(progress: Float, pace: Float, color: Color, modifier: Modifier = Modifier) {
+    val paceColor = MaterialTheme.colorScheme.onSurface
+    val track = MaterialTheme.colorScheme.outlineVariant
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(Dimensions.Component.progressBarHeight + Spacing.xs)
+    ) {
+        val barHeight = Dimensions.Component.progressBarHeight.toPx()
+        val top = (size.height - barHeight) / 2
+        // RTL: fills from the right, like everything else on the page.
+        scale(scaleX = if (layoutDirection == LayoutDirection.Rtl) -1f else 1f, scaleY = 1f) {
+            drawRect(track, topLeft = Offset(0f, top), size = Size(size.width, barHeight))
+            drawRect(color, topLeft = Offset(0f, top), size = Size(size.width * progress, barHeight))
+            if (pace in 0.01f..0.99f) {
+                val markWidth = Dimensions.Component.hairline.toPx().coerceAtLeast(1f) * 2
+                drawRect(paceColor, topLeft = Offset(size.width * pace - markWidth / 2, 0f), size = Size(markWidth, size.height))
+            }
+        }
+    }
+}
+
+/** Small print naming the budget's cadence: Weekly / Monthly / One-time. */
+@Composable
 fun CadencePill(periodType: BudgetPeriodType) {
-    val (label, bg, fg) = when (periodType) {
-        BudgetPeriodType.WEEKLY -> Triple(
-            stringResource(R.string.budget_cadence_weekly),
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer
-        )
-        BudgetPeriodType.MONTHLY -> Triple(
-            stringResource(R.string.budget_cadence_monthly),
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer
-        )
-        BudgetPeriodType.CUSTOM -> Triple(
-            stringResource(R.string.budget_cadence_one_time),
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
+    val label = when (periodType) {
+        BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_cadence_weekly)
+        BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_cadence_monthly)
+        BudgetPeriodType.CUSTOM -> stringResource(R.string.budget_cadence_one_time)
     }
     Text(
         text = label,
-        style = MaterialTheme.typography.labelSmall,
-        color = fg,
-        modifier = Modifier
-            .background(color = bg, shape = RoundedCornerShape(50))
-            .padding(horizontal = 8.dp, vertical = 2.dp)
+        style = PennyWiseText.metadata,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 

@@ -7,12 +7,21 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -26,6 +35,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
@@ -77,11 +89,16 @@ import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import androidx.compose.material.icons.outlined.Add
+import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.screens.settings.AppearanceScreen
 import com.pennywiseai.tracker.ui.screens.settings.FAQScreen
 import com.pennywiseai.tracker.ui.screens.settings.SettingsScreen
@@ -98,6 +115,21 @@ private fun tabOf(key: NavKey?): BottomNavItem? = when (key) {
     Analytics -> BottomNavItem.Analytics
     Chat -> BottomNavItem.Chat
     else -> null
+}
+
+/**
+ * Add, docked on the tabs with no action of their own. Without it the pill widens on
+ * those tabs and every tab jumps sideways as you switch.
+ */
+@Composable
+private fun DockAddAction(onClick: () -> Unit) {
+    DockNavAction(
+        NavDockAction(
+            icon = androidx.compose.material.icons.Icons.Outlined.Add,
+            contentDescription = stringResource(R.string.home_fab_add),
+            onClick = onClick
+        )
+    )
 }
 
 /** A tab's plain first screen. */
@@ -217,9 +249,26 @@ fun MainScreen(
     // while prefs load too, so Home doesn't flash its own FABs before the bar
     // style is known.
     val navDock = remember { NavDockState() }
-    val dockForTabs = navDock.takeIf {
-        themeState.isLoading || themeState.navBarStyle == NavBarStyle.FLOATING
+    // The pill only where its labels fit (not on a 360dp phone or at a large font). There
+    // the full-width bar takes over: its slots are wide enough to keep every tab labelled,
+    // where shrinking or dropping labels made navigation the one thing the user's font
+    // size didn't reach.
+    val density = LocalDensity.current
+    val windowWidth = with(density) { LocalWindowInfo.current.containerSize.width.toDp() }
+    val tabLabels = BottomNavItem.visible(themeState.hiddenNavTabs).map { stringResource(it.titleRes) }
+    val labelMeasurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val pillFits = remember(tabLabels, windowWidth, labelStyle) {
+        val longest = tabLabels.maxOfOrNull { labelMeasurer.measure(it, labelStyle, maxLines = 1).size.width } ?: 0
+        val pillWidth = windowWidth - Dimensions.Padding.content * 2 -
+            Dimensions.Component.floatingNavHeight - Spacing.sm * 3
+        with(density) { longest.toDp() } <= pillWidth / tabLabels.size.coerceAtLeast(1) - Spacing.xs
     }
+    val navBarStyle =
+        if (themeState.navBarStyle == NavBarStyle.FLOATING && !pillFits) NavBarStyle.NORMAL
+        else themeState.navBarStyle
+    // Both bar styles carry the tab's main action, so no screen floats a FAB over its figures.
+    val dockForTabs = navDock
 
     // Hiding the tab you're on (or the one under Settings) sends you Home, once,
     // on the next tab you land on. Other ways into a hidden tab's screen (e.g.
@@ -255,13 +304,14 @@ fun MainScreen(
                     scanSms = homeViewModel::scanSmsMessages
                     onDispose { scanSms = null }
                 }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                Box(Modifier.fillMaxHeight().widthIn(max = Dimensions.Component.contentMaxWidth)) {
                 HomeScreen(
                     viewModel = homeViewModel,
                     onAccountClick = { bankName, accountLast4 ->
                         openRoot(AccountDetail(bankName = bankName, accountLast4 = accountLast4))
                     },
                     coverStyle = themeState.coverStyle,
-                    blurEffects = themeState.blurEffectsEnabled,
                     onNavigateToSettings = {
                         open(tab, Settings)
                     },
@@ -308,6 +358,8 @@ fun MainScreen(
                         spotlightViewModel.updateFabPosition(position)
                     }
                 )
+                }
+                }
         }
 
         entry<Transactions> { key ->
@@ -355,6 +407,7 @@ fun MainScreen(
         }
 
         entry<Analytics> { key ->
+                DockAddAction { openRoot(AddTransaction()) }
                 com.pennywiseai.tracker.ui.screens.analytics.AnalyticsScreen(
                     onNavigateToChat = {
                         if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
@@ -387,6 +440,7 @@ fun MainScreen(
                 // Hidden AI tab: don't start the chat (and its model) for
                 // the frame before the fallback to Home lands.
                 if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
+                    DockAddAction { openRoot(AddTransaction()) }
                     com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
                         modifier = Modifier.imePadding(),
                         onNavigateToSettings = {
@@ -539,11 +593,13 @@ fun MainScreen(
         LocalMerchantDisplay provides merchantDisplay,
         LocalNavDock provides dockForTabs,
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            val isTabScreen = baseRoute in listOf("home", "transactions", "analytics", "chat")
+            val useRail = maxWidth >= Dimensions.Component.navRailMinWindowWidth
             // What's New Dialog
             whatsNewVersion?.let { version ->
                 WhatsNewDialog(
@@ -552,26 +608,55 @@ fun MainScreen(
                 )
             }
 
-            // NavDisplay — NO padding, fills the full screen. Tab switches and
-            // pops within the tabs don't animate.
-            NavDisplay(
-                entries = shownEntries,
-                onBack = { back(currentTab) },
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(hazeState),
-                transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                popTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                predictivePopTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
-            )
+            Row(modifier = Modifier.fillMaxSize()) {
+                if (useRail && isTabScreen && !themeState.isLoading) {
+                    NavigationRail(
+                        modifier = Modifier.widthIn(min = Dimensions.Component.navRailWidth),
+                        containerColor = MaterialTheme.colorScheme.background,
+                        header = {
+                            dockForTabs?.action?.let { action ->
+                                FloatingActionButton(
+                                    onClick = action.onClick,
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
+                                ) {
+                                    Icon(action.icon, contentDescription = action.contentDescription)
+                                }
+                            }
+                        }
+                    ) {
+                        BottomNavItem.visible(hiddenTabs).forEach { item ->
+                            NavigationRailItem(
+                                selected = item.route == baseRoute,
+                                onClick = { onTabClick(item) },
+                                icon = { Icon(item.icon, contentDescription = null) },
+                                label = { Text(stringResource(item.titleRes)) }
+                            )
+                        }
+                    }
+                }
+                // NavDisplay — NO padding, fills the full screen. Tab switches and
+                // pops within the tabs don't animate.
+                NavDisplay(
+                    entries = shownEntries,
+                    onBack = { back(currentTab) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .hazeSource(hazeState),
+                    transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
+                    popTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
+                    predictivePopTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
+                )
+            }
 
             // Bottom navigation OVERLAID on content
             // Wait for prefs so a hidden tab never flashes in on launch.
-            if (!themeState.isLoading && baseRoute in listOf("home", "transactions", "analytics", "chat")) {
+            if (!themeState.isLoading && isTabScreen && !useRail) {
                 PennyWiseBottomNavigation(
                     selectedRoute = baseRoute,
                     onTabSelected = ::onTabClick,
-                    navBarStyle = themeState.navBarStyle,
+                    navBarStyle = navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.
                     visible = !WindowInsets.isImeVisible,

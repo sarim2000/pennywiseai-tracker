@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.clickable
@@ -116,7 +117,7 @@ fun TrackedAppsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!hasNotificationAccess) {
-                    TextButton(onClick = onEnableAccess, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = onEnableAccess, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.settings_tracked_apps_enable_access))
                     }
                 }
@@ -154,7 +155,7 @@ fun TrackedAppsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_tracked_apps_done)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.settings_tracked_apps_done)) }
         }
     )
 }

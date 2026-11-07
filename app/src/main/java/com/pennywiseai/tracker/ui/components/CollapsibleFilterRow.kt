@@ -10,9 +10,9 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,7 +48,7 @@ fun CollapsibleFilterRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.FilterList,
+                imageVector = Icons.Outlined.FilterList,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -71,7 +71,7 @@ fun CollapsibleFilterRow(
             )
             
             Icon(
-                imageVector = Icons.Default.ExpandMore,
+                imageVector = Icons.Outlined.ExpandMore,
                 contentDescription = if (isExpanded) stringResource(R.string.filter_row_collapse) else stringResource(R.string.filter_row_expand),
                 modifier = Modifier
                     .size(Dimensions.Icon.medium)

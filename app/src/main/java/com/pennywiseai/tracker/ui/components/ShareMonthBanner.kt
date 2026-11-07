@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -11,8 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -54,8 +55,8 @@ fun ShareMonthBanner(
     Card(
         modifier = modifier.fillMaxWidth().clickable(onClick = onOpen),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
         Row(
@@ -68,7 +69,7 @@ fun ShareMonthBanner(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = Icons.Default.Share,
+                imageVector = Icons.Outlined.Share,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.medium),
             )
@@ -88,7 +89,7 @@ fun ShareMonthBanner(
             }
             IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.share_banner_dismiss),
                     modifier = Modifier.size(Dimensions.Icon.small),
                 )

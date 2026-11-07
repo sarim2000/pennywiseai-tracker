@@ -14,8 +14,8 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,8 +29,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -47,7 +45,6 @@ fun ExchangeRatesScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -60,7 +57,7 @@ fun ExchangeRatesScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
@@ -69,10 +66,9 @@ fun ExchangeRatesScreen(
                         enabled = !uiState.isRefreshing,
                         shapes = IconButtonDefaults.shapes()
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
+                        Icon(Icons.Outlined.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -117,7 +113,6 @@ fun ExchangeRatesScreen(
                     state = lazyListState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .hazeSource(hazeState)
                         .background(MaterialTheme.colorScheme.background)
                         .overScrollVertical(),
                     contentPadding = PaddingValues(
@@ -175,7 +170,7 @@ fun ExchangeRatesScreen(
                             OutlinedButton(
                                 onClick = { viewModel.clearAllCustomRates() },
                                 modifier = Modifier.fillMaxWidth(),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(stringResource(R.string.exchange_rates_reset_all))
                             }
@@ -315,7 +310,7 @@ private fun EditRateDialog(
                     TextButton(
                         onClick = onResetToAuto,
                         modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Text(stringResource(R.string.exchange_rates_reset))
                     }
@@ -331,13 +326,13 @@ private fun EditRateDialog(
                     }
                 },
                 enabled = !isError && rateText.isNotBlank(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.exchange_rates_set_custom))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }

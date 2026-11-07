@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -11,9 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ButtonDefaults
@@ -62,7 +63,7 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = yellow_dark) },
+        icon = { Icon(Icons.Outlined.Favorite, contentDescription = null, tint = yellow_dark) },
         title = { Text(stringResource(R.string.support_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -90,7 +91,7 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                         Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                     }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
-                            Icons.Default.ContentCopy,
+                            Icons.Outlined.ContentCopy,
                             contentDescription = stringResource(R.string.support_copy_upi_id)
                         )
                     }
@@ -102,12 +103,12 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                 // Only dismiss if a UPI app actually opened; otherwise keep the
                 // dialog up so the copy-the-VPA fallback stays on screen.
                 if (launchUpiPayment(context, vpa, payeeName, noUpiAppMsg)) onDismiss()
-            }, shapes = ButtonDefaults.shapes()) {
+            }, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.support_pay_via_upi))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.support_close)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.support_close)) }
         }
     )
 }
@@ -134,7 +135,7 @@ fun SupportNudgeCard(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Icon(
-                Icons.Default.Favorite,
+                Icons.Outlined.Favorite,
                 contentDescription = null,
                 tint = yellow_dark,
                 modifier = Modifier.size(Dimensions.Icon.small)
@@ -147,7 +148,7 @@ fun SupportNudgeCard(
                 modifier = Modifier.weight(1f)
             )
             Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
                 tint = yellow_dark,
                 modifier = Modifier.size(Dimensions.Icon.small)

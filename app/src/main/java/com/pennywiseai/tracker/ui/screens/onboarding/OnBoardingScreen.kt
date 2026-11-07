@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.Manifest
 import android.content.Intent
 import android.app.LocaleConfig
@@ -41,10 +42,11 @@ import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -93,7 +95,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -113,10 +115,26 @@ fun OnBoardingScreen(
     val stepOrder = remember {
         OnBoardingStep.entries.toList()
     }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val readSmsGranted = permissions[Manifest.permission.READ_SMS] == true
+        viewModel.onSmsPermissionResult(readSmsGranted)
+    }
     Scaffold(
         bottomBar = {
             OnBoardingBottomBar(
                 uiState = uiState,
+                onEnablePermissions = {
+                    val permissions = mutableListOf(
+                        Manifest.permission.READ_SMS,
+                        Manifest.permission.RECEIVE_SMS
+                    )
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    permissionLauncher.launch(permissions.toTypedArray())
+                },
                 onBack = { viewModel.goToPreviousStep() },
                 onNext = {
                     when (uiState.currentStep) {
@@ -171,10 +189,7 @@ fun OnBoardingScreen(
                     uiState = uiState,
                     viewModel = viewModel
                 )
-                OnBoardingStep.PERMISSIONS -> PermissionsStep(
-                    uiState = uiState,
-                    onPermissionResult = { viewModel.onSmsPermissionResult(it) }
-                )
+                OnBoardingStep.PERMISSIONS -> PermissionsStep(uiState = uiState)
                 OnBoardingStep.SMS_SCAN -> SmsScanStep(uiState = uiState)
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
@@ -200,11 +215,11 @@ private fun WelcomeStep(
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+            painter = painterResource(id = R.drawable.ic_launcher_foreground),
             contentDescription = stringResource(R.string.onboarding_logo_cd),
-            modifier = Modifier
-                .size(HERO_ICON_SIZE)
-                .clip(CircleShape),
+            modifier = Modifier.size(HERO_ICON_SIZE),
+            // The drawing's accent is tuned for dark; follow the theme's on paper.
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(MaterialTheme.colorScheme.primary),
             contentScale = ContentScale.Crop
         )
 
@@ -214,7 +229,6 @@ private fun WelcomeStep(
             text = stringResource(R.string.onboarding_welcome_title),
             style = MaterialTheme.typography.headlineLarge,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -230,7 +244,7 @@ private fun WelcomeStep(
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             ),
             shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
@@ -239,13 +253,13 @@ private fun WelcomeStep(
                 Text(
                     text = stringResource(R.string.onboarding_setup_heading),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.onboarding_setup_steps),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -355,7 +369,7 @@ private fun <T> OnboardingPicker(
                     },
                     shapes = MenuDefaults.itemShape(index, options.size),
                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) }
                 )
             }
         }
@@ -388,7 +402,6 @@ private fun ProfileStep(
             text = stringResource(R.string.onboarding_name_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(Spacing.lg))
@@ -477,7 +490,7 @@ private fun ProfileStep(
                 ) {
                     if (uiState.profileImageUri != null) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Outlined.Check,
                             contentDescription = stringResource(R.string.onboarding_photo_selected_cd),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(Dimensions.Icon.large)
@@ -526,7 +539,7 @@ private fun ProfileStep(
                 ) {
                     if (isSelected) {
                         Icon(
-                            imageVector = Icons.Default.Check,
+                            imageVector = Icons.Outlined.Check,
                             contentDescription = stringResource(R.string.onboarding_selected_cd),
                             tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier.size(Dimensions.Icon.medium)
@@ -539,17 +552,7 @@ private fun ProfileStep(
 }
 
 @Composable
-private fun PermissionsStep(
-    uiState: OnBoardingUiState,
-    onPermissionResult: (Boolean) -> Unit
-) {
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val readSmsGranted = permissions[Manifest.permission.READ_SMS] == true
-        onPermissionResult(readSmsGranted)
-    }
-
+private fun PermissionsStep(uiState: OnBoardingUiState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -560,9 +563,9 @@ private fun PermissionsStep(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Filled.MailOutline,
+            imageVector = Icons.Outlined.MailOutline,
             contentDescription = null,
-            modifier = Modifier.size(HERO_ICON_SIZE_SMALL),
+            modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
             tint = MaterialTheme.colorScheme.primary
         )
 
@@ -572,7 +575,6 @@ private fun PermissionsStep(
             text = stringResource(R.string.onboarding_permission_title),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))
@@ -588,7 +590,7 @@ private fun PermissionsStep(
 
         Card(
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             ),
             shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth()
@@ -597,24 +599,24 @@ private fun PermissionsStep(
                 Text(
                     text = stringResource(R.string.permission_privacy_title),
                     style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.permission_privacy_points),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(Spacing.xl))
-
         if (uiState.smsPermissionGranted) {
+            Spacer(modifier = Modifier.height(Spacing.xl))
+
             val incomeColor = MaterialTheme.colorScheme.income
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = incomeColor.copy(alpha = if (isSystemInDarkTheme()) 0.15f else 0.12f)
+                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
                 ),
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()
@@ -624,7 +626,7 @@ private fun PermissionsStep(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Check,
+                        imageVector = Icons.Outlined.Check,
                         contentDescription = null,
                         tint = incomeColor
                     )
@@ -635,23 +637,6 @@ private fun PermissionsStep(
                         color = incomeColor
                     )
                 }
-            }
-        } else {
-            Button(
-                onClick = {
-                    val permissions = mutableListOf(
-                        Manifest.permission.READ_SMS,
-                        Manifest.permission.RECEIVE_SMS
-                    )
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    permissionLauncher.launch(permissions.toTypedArray())
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes()
-            ) {
-                Text(stringResource(R.string.onboarding_enable_permissions))
             }
         }
     }
@@ -680,7 +665,6 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 text = stringResource(R.string.onboarding_scan_in_progress),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -723,7 +707,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
             }
         } else if (uiState.scanCompleted) {
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = Icons.Outlined.CheckCircle,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                 tint = MaterialTheme.colorScheme.primary
@@ -735,7 +719,6 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 text = stringResource(R.string.onboarding_scan_complete),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -760,7 +743,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
         } else {
             // Not started yet
             Icon(
-                imageVector = Icons.Filled.MailOutline,
+                imageVector = Icons.Outlined.MailOutline,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                 tint = MaterialTheme.colorScheme.primary
@@ -772,7 +755,6 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 text = stringResource(R.string.onboarding_scan_title),
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -814,7 +796,7 @@ private fun MissingBankCard() {
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
                 },
                 modifier = Modifier.align(Alignment.End),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.onboarding_bank_missing_action))
             }
@@ -839,7 +821,7 @@ private fun AccountSetupStep(
 
         if (uiState.accounts.isEmpty()) {
             Icon(
-                imageVector = Icons.Filled.AccountBalance,
+                imageVector = Icons.Outlined.AccountBalance,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
                 tint = MaterialTheme.colorScheme.primary
@@ -851,7 +833,6 @@ private fun AccountSetupStep(
                 text = stringResource(R.string.onboarding_all_set),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -867,7 +848,6 @@ private fun AccountSetupStep(
                 text = stringResource(R.string.onboarding_main_account_title),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Bold
             )
 
             Spacer(modifier = Modifier.height(Spacing.md))
@@ -945,7 +925,7 @@ private fun AccountSetupStep(
                         if (isSelected) {
                             Spacer(modifier = Modifier.width(Spacing.sm))
                             Icon(
-                                imageVector = Icons.Default.Check,
+                                imageVector = Icons.Outlined.Check,
                                 contentDescription = stringResource(R.string.onboarding_selected_cd),
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.size(Dimensions.Icon.inline)
@@ -992,6 +972,7 @@ private fun StepIndicator(
 @Composable
 private fun OnBoardingBottomBar(
     uiState: OnBoardingUiState,
+    onEnablePermissions: () -> Unit,
     onBack: () -> Unit,
     onNext: () -> Unit,
     onSkip: () -> Unit,
@@ -1022,7 +1003,7 @@ private fun OnBoardingBottomBar(
         if (canGoBack) {
             IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = stringResource(R.string.onboarding_back)
                 )
             }
@@ -1030,55 +1011,57 @@ private fun OnBoardingBottomBar(
             Spacer(modifier = Modifier.width(48.dp))
         }
 
-        // Skip / CTA button area
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
+        // Skip / CTA button area. Wraps at a large font rather than pushing the action off screen.
+        FlowRow(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
+            itemVerticalAlignment = Alignment.CenterVertically
         ) {
             when (uiState.currentStep) {
                 OnBoardingStep.WELCOME -> {
-                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                    Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.onboarding_get_started))
                     }
                 }
 
                 OnBoardingStep.PROFILE -> {
-                    Button(
-                        onClick = onNext,
-                        enabled = uiState.userName.isNotBlank(),
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Text(stringResource(R.string.onboarding_save_continue))
+                    // A name and avatar are optional: never a gate on using the app.
+                    Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
+                        Text(stringResource(R.string.onboarding_continue))
                     }
                 }
 
                 OnBoardingStep.PERMISSIONS -> {
                     if (!uiState.smsPermissionGranted) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     }
                     if (uiState.smsPermissionGranted) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_continue))
+                        }
+                    } else {
+                        Button(onClick = onEnablePermissions, shapes = pennyWiseButtonShapes()) {
+                            Text(stringResource(R.string.onboarding_enable_permissions))
                         }
                     }
                 }
 
                 OnBoardingStep.SMS_SCAN -> {
                     if (!uiState.isScanning && !uiState.scanCompleted) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
-                        Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onStartScan, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_start_scanning))
                         }
                     } else if (uiState.isScanning) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     } else if (uiState.scanCompleted) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     }
@@ -1086,19 +1069,19 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.ACCOUNT_SETUP -> {
                     if (uiState.accounts.isEmpty()) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = onNext, shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.onboarding_finish))
                         }
                     } else {
                         if (uiState.selectedAccountKey == null) {
-                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                            TextButton(onClick = onSkip, shapes = pennyWiseButtonShapes()) {
                                 Text(stringResource(R.string.onboarding_skip))
                             }
                         }
                         Button(
                             onClick = onNext,
                             enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             if (uiState.isCompleting) {
                                 CircularProgressIndicator(
@@ -1131,7 +1114,6 @@ private val HERO_ICON_SIZE = 100.dp
 private const val BANK_REQUEST_URL =
     "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md"
 private val PSEUDO_REGIONS = setOf("XA", "XB")
-private val HERO_ICON_SIZE_SMALL = 80.dp
 private val OPTION_TILE_SIZE = 72.dp
 private val SELECTION_RING_WIDTH = 3.dp
 private val STEP_DOT_ACTIVE = Spacing.sm

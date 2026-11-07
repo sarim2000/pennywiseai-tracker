@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -29,15 +31,15 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
 import androidx.activity.compose.BackHandler
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ShowChart
+import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.PlaylistAdd
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.FolderOpen
@@ -83,8 +85,6 @@ import androidx.compose.foundation.shape.CircleShape
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -307,7 +307,6 @@ fun TransactionsScreen(
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     // When the app bottom nav is overlaid on this screen (#635), it sits over an
     // 80.dp strip the Scaffold inset here doesn't know about, so the list + FAB
@@ -320,7 +319,7 @@ fun TransactionsScreen(
     if (navDock != null) {
         DockNavAction(
             NavDockAction(
-                icon = Icons.Default.Add,
+                icon = Icons.Outlined.Add,
                 contentDescription = stringResource(R.string.txn_list_add_transaction),
                 onClick = onAddTransactionClick
             )
@@ -349,7 +348,7 @@ fun TransactionsScreen(
                     hasBackButton = true,
                     navigationContent = {
                         IconButton(onClick = { viewModel.clearSelection() }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_list_exit_selection))
+                            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.txn_list_exit_selection))
                         }
                     },
                     actionContent = {
@@ -362,30 +361,29 @@ fun TransactionsScreen(
                             if (selectedIds.size == 2) {
                                 IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(
-                                        Icons.Default.SwapHoriz,
+                                        Icons.Outlined.SwapHoriz,
                                         contentDescription = stringResource(R.string.txn_list_mark_as_transfer)
                                     )
                                 }
                             }
                             IconButton(onClick = { showBulkCategorySheet = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Default.Category, contentDescription = stringResource(R.string.txn_list_change_category))
+                                Icon(Icons.Outlined.Category, contentDescription = stringResource(R.string.txn_list_change_category))
                             }
                             IconButton(onClick = { showBulkGroupSheet = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
-                                    Icons.AutoMirrored.Filled.PlaylistAdd,
+                                    Icons.AutoMirrored.Outlined.PlaylistAdd,
                                     contentDescription = stringResource(R.string.txn_list_add_to_group)
                                 )
                             }
                             IconButton(onClick = { viewModel.bulkDelete() }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
-                                    Icons.Default.Delete,
+                                    Icons.Outlined.Delete,
                                     contentDescription = stringResource(R.string.txn_list_delete_selected),
                                     tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
                     },
-                    hazeState = hazeState
                 )
             } else {
                 CustomTitleTopAppBar(
@@ -396,7 +394,7 @@ fun TransactionsScreen(
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = stringResource(R.string.txn_list_back)
                             )
                         }
@@ -405,13 +403,12 @@ fun TransactionsScreen(
                         if (navDock != null && uiState.transactions.isNotEmpty()) {
                             IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
-                                    imageVector = Icons.Default.FileDownload,
+                                    imageVector = Icons.Outlined.FileDownload,
                                     contentDescription = stringResource(R.string.txn_list_export_csv)
                                 )
                             }
                         }
                     },
-                    hazeState = hazeState
                 )
             }
         },
@@ -428,7 +425,7 @@ fun TransactionsScreen(
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                     ) {
                         Icon(
-                            imageVector = Icons.Default.FileDownload,
+                            imageVector = Icons.Outlined.FileDownload,
                             contentDescription = stringResource(R.string.txn_list_export_csv),
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
@@ -442,7 +439,7 @@ fun TransactionsScreen(
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector = Icons.Outlined.Add,
                         contentDescription = stringResource(R.string.txn_list_add_transaction)
                     )
                 }
@@ -452,7 +449,6 @@ fun TransactionsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
         TransactionFilterHeader(
@@ -649,7 +645,7 @@ fun TransactionsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Info,
+                                        imageVector = Icons.Outlined.Info,
                                         contentDescription = null,
                                         modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onSecondaryContainer
@@ -741,7 +737,7 @@ fun TransactionsScreen(
                                                 label = { Text(stringResource(R.string.txn_list_mark_as_transfer)) },
                                                 leadingIcon = {
                                                     Icon(
-                                                        imageVector = Icons.Default.SwapHoriz,
+                                                        imageVector = Icons.Outlined.SwapHoriz,
                                                         contentDescription = null,
                                                         modifier = Modifier.size(Dimensions.Icon.small)
                                                     )
@@ -945,7 +941,7 @@ private fun BulkGroupPickerSheet(
                             enabled = newGroupName.isNotBlank(),
                             shapes = IconButtonDefaults.shapes()
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = stringResource(R.string.txn_list_group_create))
+                            Icon(Icons.Outlined.Check, contentDescription = stringResource(R.string.txn_list_group_create))
                         }
                     }
                 )
@@ -953,10 +949,10 @@ private fun BulkGroupPickerSheet(
                 TextButton(
                     onClick = { showCreateField = true },
                     modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Icon(
-                        Icons.Default.Add,
+                        Icons.Outlined.Add,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
@@ -1015,7 +1011,7 @@ private fun SwipeToEditCategory(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Category,
+                        imageVector = Icons.Outlined.Category,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSecondaryContainer
                     )
@@ -1028,7 +1024,9 @@ private fun SwipeToEditCategory(
                 }
             }
         },
-        content = { content() }
+        // Rows are see-through ledger lines: the page has to travel with the swipe, or the
+        // action behind it shows through the row at rest.
+        content = { Box(Modifier.background(MaterialTheme.colorScheme.background)) { content() } }
     )
 }
 
@@ -1037,44 +1035,21 @@ private fun TransactionDateHeader(
     title: String,
     modifier: Modifier = Modifier
 ) {
-    // Fade the sticky date header into a transparent base so scrolling content
-    // looks like it's passing under the label. Use `background` (the Scaffold
-    // surface) instead of `surface`, otherwise an AMOLED-style theme — where
-    // `background` is true-black but `surface` is tinted — paints a visible
-    // dark slab behind every date header.
-    val pageBg = MaterialTheme.colorScheme.background
+    // Opaque: rows pass fully behind a sticky date, never half-showing through it. Uses
+    // `background` (the Scaffold surface), not `surface`, so AMOLED stays true black.
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        pageBg,
-                        pageBg,
-                        pageBg.copy(alpha = 0.92f),
-                        pageBg.copy(alpha = 0f)
-                    )
-                )
-            )
-            .padding(top = Spacing.md, bottom = Spacing.sm)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(top = Spacing.md, bottom = Spacing.xs)
     ) {
-        Spacer(
-            modifier = Modifier
-                .width(DATE_MARKER_WIDTH)
-                .height(DATE_MARKER_HEIGHT)
-                .background(
-                    color = MaterialTheme.colorScheme.tertiary,
-                    shape = CircleShape
-                )
-        )
-        SectionHeaderV2(
-            title = title,
-            modifier = Modifier.weight(1f),
-            // The Row already supplies the gap above; a second inset here
-            // would push the marker out of line with the title.
-            topSpacing = Spacing.none
+        // Small print over the rows: a day is a divider in a ledger, not a new section.
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f).semantics { heading() }
         )
     }
 }
@@ -1171,11 +1146,11 @@ private fun TransactionFilterHeader(
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                     leadingIcon = {
                                         Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                                            imageVector = Icons.AutoMirrored.Outlined.Sort,
                                             contentDescription = null
                                         )
                                     },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onSortSelected(option) }
                                 )
                             }
@@ -1185,7 +1160,7 @@ private fun TransactionFilterHeader(
                                     text = { Text(stringResource(R.string.txn_list_clear_filters)) },
                                     leadingIcon = {
                                         Icon(
-                                            imageVector = Icons.Default.Close,
+                                            imageVector = Icons.Outlined.Close,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.error
                                         )
@@ -1208,16 +1183,12 @@ private fun TransactionFilterHeader(
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
         ) {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-            ) {
-                item {
+            FilterChipRow {
+                run {
                     Box {
                         ExpressiveFilterChip(
-                            selected = true,
+                            selected = selectedPeriod != TimePeriod.THIS_MONTH,
                             text = periodChipLabel,
-                            icon = Icons.Default.CalendarMonth,
                             onClick = onPeriodClick
                         )
 
@@ -1231,7 +1202,7 @@ private fun TransactionFilterHeader(
                                     text = { Text(period.label) },
                                     shapes = MenuDefaults.itemShape(index, timePeriods.size),
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onPeriodSelected(period) }
                                 )
                             }
@@ -1239,12 +1210,15 @@ private fun TransactionFilterHeader(
                     }
                 }
 
-                item {
+                run {
                     Box {
                         ExpressiveFilterChip(
                             selected = transactionTypeFilter != TransactionTypeFilter.ALL,
-                            text = transactionTypeFilter.shortLabel(),
-                            icon = transactionTypeFilter.filterIcon(),
+                            text = if (transactionTypeFilter == TransactionTypeFilter.ALL) {
+                                stringResource(R.string.filter_type_all_types)
+                            } else {
+                                transactionTypeFilter.shortLabel()
+                            },
                             onClick = onTypeClick
                         )
 
@@ -1266,7 +1240,7 @@ private fun TransactionFilterHeader(
                                             contentDescription = null
                                         )
                                     },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onTransactionTypeSelected(typeFilter) }
                                 )
                             }
@@ -1274,7 +1248,7 @@ private fun TransactionFilterHeader(
                     }
                 }
 
-                item {
+                run {
                     Box {
                         ExpressiveFilterChip(
                             selected = hasCategoryFilter || hasProfileFilter,
@@ -1284,7 +1258,6 @@ private fun TransactionFilterHeader(
                                 hasCategoryFilter = hasCategoryFilter,
                                 hasProfileFilter = hasProfileFilter
                             ),
-                            icon = Icons.Default.Tune,
                             onClick = onMoreFiltersClick,
                             enabled = availableCategories.isNotEmpty() || profiles.isNotEmpty() ||
                                     hasCategoryFilter || hasProfileFilter
@@ -1299,8 +1272,8 @@ private fun TransactionFilterHeader(
                                 text = { Text(stringResource(R.string.txn_list_all_categories)) },
                                 shapes = MenuDefaults.itemShape(0, 1),
                                 colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                leadingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                 onClick = { onCategorySelected(null) }
                             )
                             // Tick/untick to include or exclude (#786); the menu stays
@@ -1332,7 +1305,7 @@ private fun TransactionFilterHeader(
                                 shapes = MenuDefaults.itemShape(0, profiles.size + 1),
                                 colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                 leadingIcon = { Icon(Icons.Outlined.AccountBalance, contentDescription = null) },
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                 onClick = { onProfileSelected(null) }
                             )
                             profiles.forEachIndexed { index, profile ->
@@ -1347,7 +1320,7 @@ private fun TransactionFilterHeader(
                                             contentDescription = null
                                         )
                                     },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onProfileSelected(profile.id) }
                                 )
                             }
@@ -1356,12 +1329,11 @@ private fun TransactionFilterHeader(
                 }
 
                 if (availableTags.isNotEmpty() || tagFilter != null) {
-                    item {
+                    run {
                         Box {
                             ExpressiveFilterChip(
                                 selected = tagFilter != null,
                                 text = tagFilter ?: stringResource(R.string.txn_list_filter_tag),
-                                icon = Icons.Default.Sell,
                                 onClick = onTagClick
                             )
 
@@ -1374,8 +1346,8 @@ private fun TransactionFilterHeader(
                                     text = { Text(stringResource(R.string.txn_list_all_tags)) },
                                     shapes = MenuDefaults.itemShape(0, availableTags.size + 1),
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                    leadingIcon = { Icon(Icons.Default.Sell, contentDescription = null) },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    leadingIcon = { Icon(Icons.Outlined.Sell, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onTagSelected(null) }
                                 )
                                 availableTags.forEachIndexed { index, tag ->
@@ -1384,8 +1356,8 @@ private fun TransactionFilterHeader(
                                         text = { Text(tag, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                         shapes = MenuDefaults.itemShape(index + 1, availableTags.size + 1),
                                         colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                        leadingIcon = { Icon(Icons.Default.Sell, contentDescription = null) },
-                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                        leadingIcon = { Icon(Icons.Outlined.Sell, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                         onClick = { onTagSelected(tag) }
                                     )
                                 }
@@ -1395,14 +1367,13 @@ private fun TransactionFilterHeader(
                 }
 
                 if (accountOptions.isNotEmpty()) {
-                    item {
+                    run {
                         Box {
                             val selectedAccountLabel =
                                 accountOptions.firstOrNull { it.key == accountFilter }?.label
                             ExpressiveFilterChip(
                                 selected = accountFilter != null,
                                 text = selectedAccountLabel ?: stringResource(R.string.txn_list_filter_account),
-                                icon = Icons.Outlined.AccountBalanceWallet,
                                 onClick = onAccountClick
                             )
 
@@ -1416,7 +1387,7 @@ private fun TransactionFilterHeader(
                                     shapes = MenuDefaults.itemShape(0, accountOptions.size + 1),
                                     colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                     leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) },
-                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                     onClick = { onAccountSelected(null) }
                                 )
                                 accountOptions.forEachIndexed { index, option ->
@@ -1426,7 +1397,7 @@ private fun TransactionFilterHeader(
                                         shapes = MenuDefaults.itemShape(index + 1, accountOptions.size + 1),
                                         colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                         leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) },
-                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Outlined.Check, contentDescription = null) },
                                         onClick = { onAccountSelected(option.key) }
                                     )
                                 }
@@ -1468,7 +1439,7 @@ private fun TransactionSearchBar(
     Surface(
         modifier = modifier.height(Dimensions.Component.minTouchTarget),
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
     ) {
         Row(
             modifier = Modifier
@@ -1478,7 +1449,7 @@ private fun TransactionSearchBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.Search,
+                imageVector = Icons.Outlined.Search,
                 contentDescription = stringResource(R.string.txn_list_search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(Dimensions.Icon.medium)
@@ -1511,7 +1482,7 @@ private fun TransactionSearchBar(
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
-                        imageVector = Icons.Default.Clear,
+                        imageVector = Icons.Outlined.Clear,
                         contentDescription = stringResource(R.string.txn_list_clear_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1549,7 +1520,7 @@ private fun EmptyTransactionsState(
         contentAlignment = Alignment.Center
     ) {
         PennyWiseEmptyState(
-            icon = Icons.AutoMirrored.Filled.ReceiptLong,
+            icon = Icons.AutoMirrored.Outlined.ReceiptLong,
             headline = headline,
             description = description,
             actionLabel = actionLabel,
@@ -1559,11 +1530,9 @@ private fun EmptyTransactionsState(
 }
 
 /** Width of the tertiary-coloured marker beside a sticky date header. */
-private val DATE_MARKER_WIDTH = Spacing.xs
 
 /** Height of that marker — set to the cap height of the header text so the two
  *  read as one unit rather than a bar next to a label. */
-private val DATE_MARKER_HEIGHT = Spacing.md + Spacing.xxs
 
 /** "All categories", one name, "All except X, Y", or "N categories" (#786). */
 @Composable

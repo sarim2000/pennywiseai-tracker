@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.unrecognized
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.ui.platform.LocalContext
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.utils.AppDates
@@ -13,9 +14,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,8 +45,6 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 
@@ -66,7 +65,6 @@ fun UnrecognizedSmsScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
 
     // Staggered entrance animation state — only animates on first composition
@@ -92,10 +90,9 @@ fun UnrecognizedSmsScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.unrecognized_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.unrecognized_back))
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -104,7 +101,6 @@ fun UnrecognizedSmsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .overScrollVertical()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
@@ -139,7 +135,7 @@ fun UnrecognizedSmsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
                                 Icon(
-                                    Icons.Default.Info,
+                                    Icons.Outlined.Info,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary
                                 )
@@ -169,7 +165,7 @@ fun UnrecognizedSmsScreen(
                                     onClick = { viewModel.toggleShowReported() },
                                     label = { Text(stringResource(R.string.unrecognized_show_reported)) },
                                     leadingIcon = if (showReported) {
-                                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
+                                        { Icon(Icons.Outlined.Check, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small)) }
                                     } else null
                                 )
 
@@ -274,7 +270,7 @@ fun UnrecognizedSmsScreen(
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.unrecognized_delete))
                 }
@@ -285,7 +281,7 @@ fun UnrecognizedSmsScreen(
                         showDeleteConfirmation = false
                         selectedMessage = null
                     },
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.unrecognized_cancel))
                 }
@@ -367,10 +363,10 @@ private fun UnrecognizedSmsItem(
                 if (!message.reported) {
                     TextButton(
                         onClick = onDelete,
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Icon(
-                            Icons.Default.Delete,
+                            Icons.Outlined.Delete,
                             contentDescription = stringResource(R.string.unrecognized_delete),
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -382,10 +378,10 @@ private fun UnrecognizedSmsItem(
 
                     FilledTonalButton(
                         onClick = onReport,
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Icon(
-                            Icons.Default.BugReport,
+                            Icons.Outlined.BugReport,
                             contentDescription = stringResource(R.string.unrecognized_report),
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -398,10 +394,10 @@ private fun UnrecognizedSmsItem(
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         ),
-                        shapes = ButtonDefaults.shapes()
+                        shapes = pennyWiseButtonShapes()
                     ) {
                         Icon(
-                            Icons.Default.Delete,
+                            Icons.Outlined.Delete,
                             contentDescription = stringResource(R.string.unrecognized_delete),
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
@@ -436,7 +432,7 @@ private fun SuggestionLine(tx: ParsedTransaction, onAdd: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        TextButton(onClick = onAdd, shapes = ButtonDefaults.shapes()) {
+        TextButton(onClick = onAdd, shapes = pennyWiseButtonShapes()) {
             Text(stringResource(R.string.unrecognized_suggestion_add))
         }
     }

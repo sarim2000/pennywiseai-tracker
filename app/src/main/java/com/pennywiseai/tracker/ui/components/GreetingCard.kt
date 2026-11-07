@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.res.pluralStringResource
@@ -20,8 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButton
@@ -61,9 +62,8 @@ fun GreetingCard(
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
-    // Shows an Add button when set (the floating nav bar docks Sync instead
-    // of Home keeping an Add FAB).
-    onAddClick: (() -> Unit)? = null,
+    // The floating nav bar docks Add, so Sync takes this header slot.
+    syncAction: (@Composable () -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -112,7 +112,7 @@ fun GreetingCard(
         // no pill, no label. Solid gold = Pro member; dashed gold = free user
         // (reads as "not yet filled / tap to unlock"). For free users tapping
         // opens the upgrade sheet; Pro members tap through to settings.
-        val ringColor = yellow_dark
+        val ringColor = MaterialTheme.colorScheme.primary
         Box(
             modifier = Modifier
                 .size(Dimensions.Icon.avatarLarge)
@@ -120,9 +120,9 @@ fun GreetingCard(
                 // within the ring instead of rendering as a square.
                 .clip(CircleShape)
                 .drawBehind {
-                    val stroke = 2.dp.toPx()
+                    val stroke = 1.dp.toPx()
                     val dash = if (!isProEntitled) {
-                        PathEffect.dashPathEffect(floatArrayOf(stroke * 2.5f, stroke * 2f), 0f)
+                        PathEffect.dashPathEffect(floatArrayOf(stroke * 3f, stroke * 3f), 0f)
                     } else null
                     drawCircle(
                         color = ringColor,
@@ -223,19 +223,7 @@ fun GreetingCard(
             }
         }
 
-        if (onAddClick != null) {
-            IconButton(
-                onClick = onAddClick,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                shapes = IconButtonDefaults.shapes()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.home_fab_add),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        syncAction?.invoke()
 
         // Menu button — plain IconButton, no circular background
         IconButton(
@@ -244,7 +232,7 @@ fun GreetingCard(
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
-                imageVector = Icons.Default.MoreHoriz,
+                imageVector = Icons.Outlined.MoreHoriz,
                 contentDescription = stringResource(R.string.greeting_more_options),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

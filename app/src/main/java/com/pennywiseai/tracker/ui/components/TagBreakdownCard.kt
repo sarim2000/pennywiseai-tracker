@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
@@ -152,7 +153,7 @@ private fun TagBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = stringResource(R.string.analytics_percent, tag.percentage.toInt()),
+                    text = if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.analytics_percent, tag.percentage.toInt()),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -173,7 +174,7 @@ private fun TagBar(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(animatedFraction)
+                    .fillMaxWidth(if (AmountPrivacy.hidden) 0f else animatedFraction)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(4.dp))
                     .background(barColor)

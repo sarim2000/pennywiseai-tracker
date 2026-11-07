@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.LedgerDisplayFamily
+import com.pennywiseai.tracker.ui.theme.LedgerFigureFamily
+import com.pennywiseai.tracker.ui.theme.LedgerTextFamily
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
@@ -50,11 +53,11 @@ import com.pennywiseai.tracker.presentation.share.ShareCardData
  *    CurrencyFormatter.
  */
 object ShareCardColors {
-    val Ink = Color(0xFF0B0E13)
-    val Redaction = Color(0xFF1A222C)
-    val Text = Color(0xFFEAF0F6)
-    val Muted = Color(0xFF8894A4)
-    val Amber = Color(0xFFFFB74D)
+    val Ink = Color(0xFF121A17)
+    val Redaction = Color(0xFF25312D)
+    val Text = Color(0xFFE9F0EC)
+    val Muted = Color(0xFFB1C0BA)
+    val Amber = Color(0xFF6DBFA6)
 }
 
 /** 4:5 — the aspect WhatsApp and Instagram both render without cropping. */
@@ -116,6 +119,7 @@ fun ShareCard(
                 Text(
                     text = "PENNYWISE",
                     style = TextStyle(
+                        fontFamily = LedgerTextFamily,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 2.sp,
@@ -126,6 +130,7 @@ fun ShareCard(
             Text(
                 text = data.periodLabel ?: stringResource(R.string.share_card_period_all_time),
                 style = TextStyle(
+                    fontFamily = LedgerTextFamily,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 1.sp,
@@ -143,8 +148,9 @@ fun ShareCard(
                 // guaranteed to read, so it carries the whole card.
                 fontSize = 140.sp,
                 lineHeight = 132.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-8).sp,
+                fontFamily = LedgerDisplayFamily,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = (-4).sp,
                 color = ShareCardColors.Amber,
             ),
         )
@@ -153,8 +159,9 @@ fun ShareCard(
             text = caption,
             style = TextStyle(
                 fontSize = 25.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.4).sp,
+                fontFamily = LedgerFigureFamily,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = (-0.2).sp,
                 color = ShareCardColors.Text,
             ),
         )
@@ -173,6 +180,7 @@ fun ShareCard(
         Text(
             text = stringResource(R.string.share_card_tagline),
             style = TextStyle(
+                fontFamily = LedgerTextFamily,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = ShareCardColors.Muted,
@@ -184,6 +192,7 @@ fun ShareCard(
             style = TextStyle(
                 // The only element that brings anyone back, so it gets a size and contrast
                 // that survive the same reduction as the hero instead of muted grey.
+                fontFamily = LedgerTextFamily,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,

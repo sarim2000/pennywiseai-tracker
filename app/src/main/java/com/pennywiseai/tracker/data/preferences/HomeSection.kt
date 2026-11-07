@@ -8,8 +8,8 @@ package com.pennywiseai.tracker.data.preferences
  */
 enum class HomeSection(val label: String) {
     SAFE_TO_SPEND("Safe to spend"),
-    BUDGETS("Budgets"),
     RECENT_TRANSACTIONS("Recent Transactions"),
+    BUDGETS("Budgets"),
     ACCOUNTS("Bank Accounts"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),
     LOANS("Loans"),
@@ -25,7 +25,8 @@ enum class HomeSection(val label: String) {
  * Pure so it is unit-testable without DataStore.
  */
 object HomeSectionLayout {
-    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to true }
+    /** Everything but Activity, an opt-in from Edit home screen: it's mostly empty cells. */
+    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to (it != HomeSection.ACTIVITY) }
 
     fun encode(layout: List<Pair<HomeSection, Boolean>>): String =
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }

@@ -27,7 +27,8 @@ class HomeSectionLayoutTest {
     @Test
     fun `unknown names are dropped`() {
         val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,WEATHER,!ACTIVITY")
-        assertEquals(HomeSection.BUDGETS to true, decoded[1])
+        // Recent Transactions, absent from the string, takes its default second place.
+        assertEquals(HomeSection.BUDGETS to true, decoded[2])
         assertEquals(HomeSection.ACTIVITY to false, decoded.single { it.first == HomeSection.ACTIVITY })
         assertEquals(HomeSection.entries.size, decoded.size)
     }
@@ -37,7 +38,7 @@ class HomeSectionLayoutTest {
         val decoded = HomeSectionLayout.decode("!ACTIVITY,ACCOUNTS")
         assertEquals(
             listOf(
-                HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.RECENT_TRANSACTIONS,
+                HomeSection.SAFE_TO_SPEND, HomeSection.RECENT_TRANSACTIONS, HomeSection.BUDGETS,
                 HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS, HomeSection.GROUPS,
                 HomeSection.MONEY_IN_MOTION,
             ).map { it to true }.let { it.take(3) + listOf(HomeSection.ACTIVITY to false) + it.drop(3) } +
@@ -72,6 +73,6 @@ class HomeSectionLayoutTest {
     fun `blank or absent pref yields the default layout`() {
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode(null))
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode("  "))
-        assertEquals(HomeSection.entries.map { it to true }, HomeSectionLayout.DEFAULT)
+        assertEquals(HomeSection.entries.map { it to (it != HomeSection.ACTIVITY) }, HomeSectionLayout.DEFAULT)
     }
 }

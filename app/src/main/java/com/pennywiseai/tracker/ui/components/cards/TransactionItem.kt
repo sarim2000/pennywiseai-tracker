@@ -4,8 +4,9 @@ import com.pennywiseai.tracker.utils.AppDates
 
 import android.content.res.Resources
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,8 @@ fun TransactionItem(
     displayCurrency: String? = null,
     showDate: Boolean = true,
     showTypeLabel: Boolean = true,
+    /** The running balance, for a ledger; a short summary list doesn't need it. */
+    showBalanceAfter: Boolean = true,
     listItemPosition: ListItemPosition = ListItemPosition.Single,
     profileAccountKeys: Map<Long, Set<String>> = emptyMap(),
     onClick: () -> Unit = {},
@@ -50,15 +53,15 @@ fun TransactionItem(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
-    val amountColor = remember(transaction.transactionType, isDark) {
-        when (transaction.transactionType) {
-            TransactionType.INCOME -> if (!isDark) income_light else income_dark
-            TransactionType.EXPENSE -> if (!isDark) expense_light else expense_dark
-            TransactionType.CREDIT -> if (!isDark) credit_light else credit_dark
-            TransactionType.TRANSFER -> if (!isDark) transfer_light else transfer_dark
-            TransactionType.INVESTMENT -> if (!isDark) investment_light else investment_dark
-        }
+    val colors = MaterialTheme.colorScheme
+    // Spending is most of a ledger, so it stays in the ink colour and the minus sign
+    // carries it. When every routine coffee is red, red can't mean "over budget".
+    val amountColor = when (transaction.transactionType) {
+        TransactionType.INCOME -> colors.income
+        TransactionType.EXPENSE -> colors.onSurface
+        TransactionType.CREDIT -> colors.credit
+        TransactionType.TRANSFER -> colors.transfer
+        TransactionType.INVESTMENT -> colors.investment
     }
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
@@ -113,16 +116,13 @@ fun TransactionItem(
             // Mark rows the user excluded from analytics so it's visible in the
             // list which ones are skipped by spending stats (#451).
             if (transaction.excludedFromAnalytics) add(resources.getString(R.string.txn_item_tag_excluded))
-            transaction.balanceAfter?.let { balance ->
-                add(resources.getString(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency)))
-            }
         }.joinToString(" \u00B7 ")
     }
 
     val amountPrefix = remember(transaction.transactionType) {
         when (transaction.transactionType) {
             TransactionType.INCOME -> "+"
-            TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "-"
+            TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "\u2212"
             TransactionType.TRANSFER -> ""
         }
     }
@@ -130,7 +130,12 @@ fun TransactionItem(
     val formattedAmount = if (convertedAmount != null && displayCurrency != null) {
         CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)
     } else {
-        transaction.formatAmount()
+        CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)
+    }
+    // The running balance sits under the amount, like a statement. In the subtitle it
+    // was the part that got cut off ("Bal JD1…"), and half a number is worse than none.
+    val balanceAfterText = transaction.balanceAfter?.takeIf { showBalanceAfter }?.let { balance ->
+        stringResource(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency))
     }
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
@@ -148,7 +153,7 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        shape = listItemPosition.toShape(),
+        // No rule: each row has a coin to anchor it, and a screen of hairlines reads as a form.
         contentPadding = Dimensions.Padding.cardCompact,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
@@ -177,34 +182,35 @@ fun TransactionItem(
             )
         },
         trailingContent = {
-            if (convertedAmount != null && displayCurrency != null) {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
-                ) {
-                    Text(
-                        text = CurrencyFormatter.signed(amountPrefix, CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)),
-                        style = PennyWiseText.amountRow,
-                        color = amountColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "(${transaction.formatAmount()})",
-                        style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            } else {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+            ) {
                 Text(
                     text = CurrencyFormatter.signed(amountPrefix, formattedAmount),
                     style = PennyWiseText.amountRow,
                     color = amountColor,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
                 )
+                if (convertedAmount != null && displayCurrency != null) {
+                    Text(
+                        text = "(${transaction.formatAmount()})",
+                        style = PennyWiseText.amountSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        autoSize = PennyWiseText.fit(PennyWiseText.amountSmall)
+                    )
+                }
+                balanceAfterText?.let {
+                    Text(
+                        text = it,
+                        style = PennyWiseText.amountSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        autoSize = PennyWiseText.fit(PennyWiseText.amountSmall)
+                    )
+                }
             }
         }
     )

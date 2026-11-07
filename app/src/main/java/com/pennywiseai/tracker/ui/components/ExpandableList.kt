@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -41,7 +42,7 @@ fun <T> ExpandableList(
             TextButton(
                 onClick = { isExpanded = !isExpanded },
                 modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(
                     text = if (isExpanded) {

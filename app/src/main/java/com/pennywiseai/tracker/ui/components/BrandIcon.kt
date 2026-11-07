@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.shape.CircleShape
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.icons.categoryDisplayColor
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -44,7 +47,14 @@ fun BrandIcon(
 ) {
     val iconResource = IconProvider.getTransactionIcon(merchantName, category)
 
-    val backgroundColor = if (category.isValidCategoryOverride()
+    // Category glyphs get a soft tint of their colour, the same as Analytics and the
+    // category list. Solid discs were the loudest thing in a row, ahead of the merchant
+    // and the amount. Real brand logos keep their brand colour.
+    val glyphTint = (iconResource as? IconResource.VectorIcon)?.tint
+        ?.let { CategoryMapping.visibleOn(it, MaterialTheme.colorScheme.surfaceContainerLow) }
+    val backgroundColor = if (glyphTint != null) {
+        glyphTint.copy(alpha = CATEGORY_AVATAR_ALPHA)
+    } else if (category.isValidCategoryOverride()
         && iconResource !is IconResource.DrawableResource
     ) {
         when (iconResource) {
@@ -64,7 +74,7 @@ fun BrandIcon(
             .then(
                 if (showBackground) {
                     Modifier
-                        .clip(MaterialShapes.Cookie9Sided.toShape())
+                        .clip(CircleShape)
                         .background(backgroundColor)
                         .padding(8.dp)
                 } else {
@@ -87,12 +97,31 @@ fun BrandIcon(
                 Icon(
                     imageVector = iconResource.icon,
                     contentDescription = merchantName,
-                    tint = if (showBackground) Color.White else iconResource.tint,
+                    tint = glyphTint ?: iconResource.tint,
                     modifier = Modifier.fillMaxSize()
                 )
             }
             is IconResource.Emoji -> EmojiGlyph(iconResource.emoji, size * 0.5f)
         }
+    }
+}
+
+/** How strongly a category avatar's disc takes its glyph's colour. */
+private const val CATEGORY_AVATAR_ALPHA = 0.14f
+
+/** A category's icon in its standard tinted avatar: one treatment across the app. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun CategoryAvatar(category: String, modifier: Modifier = Modifier, size: Dp = Dimensions.Icon.list) {
+    val tint = categoryDisplayColor(category)
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(tint.copy(alpha = CATEGORY_AVATAR_ALPHA)),
+        contentAlignment = Alignment.Center
+    ) {
+        CategoryIcon(category = category, size = size * 0.55f, tint = tint)
     }
 }
 
@@ -114,7 +143,7 @@ fun LetterAvatar(
     Box(
         modifier = modifier
             .size(size)
-            .clip(MaterialShapes.Cookie9Sided.toShape())
+            .clip(CircleShape)
             .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
@@ -149,7 +178,7 @@ fun CategoryIcon(
     Icon(
         imageVector = categoryInfo.icon,
         contentDescription = categoryLabel(category),
-        tint = tint ?: CategoryMapping.colorFor(category),
+        tint = tint ?: categoryDisplayColor(category),
         modifier = modifier.size(size)
     )
 }

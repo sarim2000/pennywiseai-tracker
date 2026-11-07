@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -8,9 +9,9 @@ import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -85,10 +86,10 @@ fun ExportTransactionsDialog(
             ) {
                 // Icon
                 val icon = when (exportState) {
-                    is ExportState.Ready -> Icons.Default.FileDownload
-                    is ExportState.Exporting -> Icons.Default.HourglassTop
-                    is ExportState.Success -> Icons.Default.CheckCircle
-                    is ExportState.Error -> Icons.Default.Error
+                    is ExportState.Ready -> Icons.Outlined.FileDownload
+                    is ExportState.Exporting -> Icons.Outlined.HourglassTop
+                    is ExportState.Success -> Icons.Outlined.CheckCircle
+                    is ExportState.Error -> Icons.Outlined.Error
                 }
                 
                 Icon(
@@ -198,7 +199,7 @@ fun ExportTransactionsDialog(
                                 TextButton(
                                     onClick = { showUpgradeSheet = true },
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                    shapes = ButtonDefaults.shapes(),
+                                    shapes = pennyWiseButtonShapes(),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.txn_export_unlock_all),
@@ -252,7 +253,7 @@ fun ExportTransactionsDialog(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                                        imageVector = Icons.AutoMirrored.Outlined.InsertDriveFile,
                                         contentDescription = null,
                                         modifier = Modifier.size(Dimensions.Icon.small),
                                         tint = MaterialTheme.colorScheme.onPrimaryContainer
@@ -300,7 +301,7 @@ fun ExportTransactionsDialog(
                             TextButton(
                                 onClick = onDismiss,
                                 modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_cancel))
                             }
@@ -339,7 +340,7 @@ fun ExportTransactionsDialog(
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(
                                     if (willTruncate) stringResource(R.string.txn_export_action_export_first, csvLimit) else stringResource(R.string.txn_export_action_export)
@@ -355,7 +356,7 @@ fun ExportTransactionsDialog(
                             TextButton(
                                 onClick = onDismiss,
                                 modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_done))
                             }
@@ -372,10 +373,10 @@ fun ExportTransactionsDialog(
                                     context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.txn_export_share_chooser_title)))
                                 },
                                 modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Share,
+                                    imageVector = Icons.Outlined.Share,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small)
                                 )
@@ -388,7 +389,7 @@ fun ExportTransactionsDialog(
                             TextButton(
                                 onClick = onDismiss,
                                 modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_close))
                             }
@@ -398,7 +399,7 @@ fun ExportTransactionsDialog(
                                     exportState = ExportState.Ready
                                 },
                                 modifier = Modifier.weight(1f),
-                                shapes = ButtonDefaults.shapes()
+                                shapes = pennyWiseButtonShapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_retry))
                             }

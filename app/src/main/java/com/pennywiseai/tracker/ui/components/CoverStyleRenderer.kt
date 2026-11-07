@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,15 +14,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.effects.bottomFade
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
+
+/** A wash behind the greeting, gone before the first card's figures. */
+private val COVER_HEIGHT = 180.dp
+private const val COVER_ALPHA_DARK = 0.32f
+private const val COVER_ALPHA_LIGHT = 0.28f
 
 @Composable
 fun CoverGradientBanner(
     coverStyle: CoverStyle,
     modifier: Modifier = Modifier,
-    isDark: Boolean = isSystemInDarkTheme(),
-    hazeStateBanner: HazeState? = null
+    isDark: Boolean = isAppInDarkTheme(),
 ) {
     if (coverStyle == CoverStyle.NONE) return
 
@@ -30,14 +32,13 @@ fun CoverGradientBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .alpha(0.45f)
+            .height(COVER_HEIGHT)
+            .alpha(if (isDark) COVER_ALPHA_DARK else COVER_ALPHA_LIGHT)
             .bottomFade(0.5f)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(if (hazeStateBanner != null) Modifier.hazeSource(hazeStateBanner) else Modifier)
                 .background(
                     Brush.horizontalGradient(colors = colors)
                 )

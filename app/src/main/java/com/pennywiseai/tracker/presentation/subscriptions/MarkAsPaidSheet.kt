@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.res.pluralStringResource
@@ -55,6 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense_dark
 import com.pennywiseai.tracker.ui.theme.expense_light
@@ -102,9 +104,9 @@ fun MarkAsPaidSheet(
 
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) income_dark else income_light
+        if (isAppInDarkTheme()) income_dark else income_light
     } else {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+        if (isAppInDarkTheme()) expense_dark else expense_light
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -183,7 +185,6 @@ fun MarkAsPaidSheet(
             Text(
                 text = CurrencyFormatter.formatCurrency(subscription.amount, subscription.currency),
                 style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
                 color = amountColor,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
@@ -320,10 +321,10 @@ fun MarkAsPaidSheet(
                             .atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -342,7 +343,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    val amountColor = if (isAppInDarkTheme()) expense_dark else expense_light
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),
@@ -421,12 +422,12 @@ private fun relativeDate(date: LocalDate): String {
 @Composable
 private fun EyebrowChip(text: String, isAccent: Boolean) {
     val container = if (isAccent) {
-        MaterialTheme.colorScheme.secondaryContainer
+        MaterialTheme.colorScheme.inverseSurface
     } else {
         MaterialTheme.colorScheme.surfaceContainerLow
     }
     val content = if (isAccent) {
-        MaterialTheme.colorScheme.onSecondaryContainer
+        MaterialTheme.colorScheme.inverseOnSurface
     } else {
         MaterialTheme.colorScheme.primary
     }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import android.content.Context
@@ -108,7 +109,7 @@ fun WhatsNewDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            Button(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.whats_new_got_it))
             }
         }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,9 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -85,7 +86,7 @@ fun GoalEditScreen(
         title = stringResource(if (state.isEditing) R.string.goal_edit_title_edit else R.string.goal_edit_title_new),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.goal_back))
             }
         },
         bottomBar = {
@@ -101,7 +102,7 @@ fun GoalEditScreen(
                         onClick = viewModel::save,
                         enabled = !state.isLoading && !state.isSaving,
                         modifier = Modifier.fillMaxWidth(),
-                        shapes = ButtonDefaults.shapes(),
+                        shapes = pennyWiseButtonShapes(),
                     ) {
                         Text(stringResource(if (state.isEditing) R.string.goal_edit_save else R.string.goal_edit_create))
                     }
@@ -166,7 +167,7 @@ fun GoalEditScreen(
                 label = { Text(stringResource(R.string.goal_edit_due)) },
                 trailingIcon = {
                     IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.goal_edit_due))
+                        Icon(Icons.Outlined.CalendarMonth, contentDescription = stringResource(R.string.goal_edit_due))
                     }
                 },
                 isError = GoalFieldError.DUE_NOT_AFTER_TODAY in errors,
@@ -202,7 +203,7 @@ fun GoalEditScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
                     ) {
-                        Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                        Icon(Icons.Outlined.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onSecondaryContainer)
                         Text(
                             stringResource(R.string.goal_edit_helper, CurrencyFormatter.formatCurrency(perMonth, form.currency)),
                             style = MaterialTheme.typography.bodyMedium,
@@ -242,10 +243,10 @@ fun GoalEditScreen(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { ms -> viewModel.update { it.copy(dueDate = ms.toUtcDate()) } }
                     showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_ok)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goal_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goal_action_cancel)) }
             },
         ) { DatePicker(state = pickerState) }
     }

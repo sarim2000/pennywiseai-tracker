@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
@@ -27,10 +28,10 @@ internal fun DuplicateAccountDialog(
             ))
         },
         confirmButton = {
-            TextButton(onClick = onMerge, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.duplicate_accounts_merge)) }
+            TextButton(onClick = onMerge, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.duplicate_accounts_merge)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.duplicate_accounts_keep)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.duplicate_accounts_keep)) }
         }
     )
 }

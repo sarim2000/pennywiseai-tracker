@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,11 +28,11 @@ fun PennyWiseScaffold(
         modifier = modifier,
         topBar = customTopBar ?: {
             TopAppBar(
-                title = { if (title.isNotEmpty()) Text(title) },
+                title = { if (title.isNotEmpty()) Text(title, style = PennyWiseText.screenTitle) },
                 navigationIcon = navigationIcon ?: {},
                 actions = actions,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (transparentTopBar) Color.Transparent else MaterialTheme.colorScheme.surface
+                    containerColor = if (transparentTopBar) Color.Transparent else MaterialTheme.colorScheme.background
                 )
             )
         },

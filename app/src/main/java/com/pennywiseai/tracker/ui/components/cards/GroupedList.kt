@@ -14,18 +14,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -33,14 +34,29 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
- * The app's one grouped-list pattern: sibling rows share a tonal surface and
- * are separated by a 2dp gutter, with the outer corners of the block rounded
- * and the interior corners nearly square. The shape does the grouping, so no
- * dividers are needed.
+ * The rule printed above a ledger row. Rows sit straight on the page and this hairline
+ * separates them; no boxes, so the figures are the loudest thing on screen.
+ */
+@Composable
+fun Modifier.ledgerRule(show: Boolean = true): Modifier {
+    if (!show) return this
+    val color = MaterialTheme.colorScheme.outlineVariant
+    return drawBehind {
+        drawLine(
+            color = color,
+            start = Offset.Zero,
+            end = Offset(size.width, 0f),
+            strokeWidth = Dimensions.Component.hairline.toPx().coerceAtLeast(1f)
+        )
+    }
+}
+
+/**
+ * The app's one list pattern: a ledger. Rows sit on the page, separated by a hairline
+ * rule, with their text on the same gutter as the section heading above them.
  *
- * [GroupedList] handles the gutter; each child passes its
- * [ListItemPosition] (use `ListItemPosition.from(index, size)`) so the corners
- * come out right without any per-screen shape maths.
+ * Each child passes its [ListItemPosition] (use `ListItemPosition.from(index, size)`),
+ * which decides whether it draws a rule, so no screen does that by hand.
  *
  * ```
  * GroupedList {
@@ -75,11 +91,8 @@ fun GroupedRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     enabled: Boolean = true,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
-    contentPadding: PaddingValues = PaddingValues(
-        horizontal = Spacing.md,
-        vertical = Dimensions.Padding.listRowVertical
-    ),
+    containerColor: Color = Color.Transparent,
+    contentPadding: PaddingValues = PaddingValues(vertical = Dimensions.Padding.listRowVertical),
     minHeight: Dp = Dimensions.Component.minTouchTarget,
     verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(Spacing.md),
@@ -96,37 +109,109 @@ fun GroupedRow(
             content = content
         )
     }
+    val ruled = modifier.fillMaxWidth().ledgerRule(position.hasRule)
     if (onClick == null) {
+        Surface(modifier = ruled, color = containerColor, content = row)
+    } else {
         Surface(
-            modifier = modifier.fillMaxWidth(),
+            onClick = onClick,
+            modifier = ruled,
+            enabled = enabled,
             color = containerColor,
-            shape = position.toShape(),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            shape = MaterialTheme.shapes.small,
             content = row
         )
-        return
     }
-    // M3 Expressive segmented list item: same resting corners as the static
-    // row, plus the native press/focus shape morph (to shapes.large) and
-    // list-item semantics. Its tokens match ours (extraSmall interior,
-    // large outer, 2dp gap), so the block looks identical at rest.
-    SegmentedListItem(
-        onClick = onClick,
-        shapes = ListItemDefaults.shapes(shape = position.toShape()),
-        // Our own min height (not the list item's 56dp default) and padding
-        // inside the row, so row heights don't change.
-        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = minHeight),
-        enabled = enabled,
-        // Same colours enabled or not: `enabled` only gates the click, as before
-        // (disabled rows explain themselves, e.g. an error-coloured subtitle).
-        colors = ListItemDefaults.segmentedColors(
-            containerColor = containerColor,
-            contentColor = contentColorFor(containerColor),
-            disabledContainerColor = containerColor,
-            disabledContentColor = contentColorFor(containerColor)
-        ),
-        contentPadding = PaddingValues(),
-        content = row
-    )
+}
+
+/** From this font scale a figure takes its own line rather than squeezing its label. */
+internal const val STACK_FONT_SCALE = 1.5f
+
+/**
+ * One line of a printed statement: what it is on the left, the figure on the right, and the
+ * small print under the label. The rule above is what makes a stack of these read as a table.
+ */
+@Composable
+fun StatementLine(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    /** Style of the figure; pass `amountLarge` for the line a screen is really about. */
+    valueStyle: TextStyle = PennyWiseText.amountMedium,
+    onClick: (() -> Unit)? = null,
+    /** A small glyph beside the value. */
+    leading: @Composable (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null,
+) {
+    val content: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+                .padding(vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+        ) {
+            val valueText: @Composable (Modifier) -> Unit = { valueModifier ->
+                Text(
+                    text = value,
+                    style = valueStyle,
+                    color = valueColor,
+                    maxLines = 1,
+                    autoSize = PennyWiseText.fit(valueStyle),
+                    modifier = valueModifier,
+                )
+            }
+            // At a large font the figure takes the width and the label goes to a letter a line.
+            val stacked = LocalDensity.current.fontScale >= STACK_FONT_SCALE
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                ) {
+                    Text(
+                        text = label,
+                        style = PennyWiseText.rowTitle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f).alignByBaseline(),
+                    )
+                    if (!stacked) {
+                        if (leading != null) {
+                            Box(Modifier.align(Alignment.CenterVertically)) { leading() }
+                        }
+                        valueText(Modifier.alignByBaseline())
+                    }
+                }
+                trailing?.invoke()
+            }
+            if (stacked) valueText(Modifier)
+            if (!detail.isNullOrBlank()) {
+                Text(
+                    text = detail,
+                    style = PennyWiseText.metadata,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+    val ruled = modifier.fillMaxWidth().ledgerRule()
+    if (onClick != null) {
+        Surface(
+            onClick = onClick,
+            modifier = ruled,
+            color = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            content = content
+        )
+    } else {
+        Box(ruled) { content() }
+    }
 }
 
 /**
@@ -137,18 +222,14 @@ fun GroupedRow(
 fun GroupedColumn(
     position: ListItemPosition,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
-    contentPadding: PaddingValues = PaddingValues(
-        horizontal = Spacing.md,
-        vertical = Dimensions.Padding.listRowVertical
-    ),
+    containerColor: Color = Color.Transparent,
+    contentPadding: PaddingValues = PaddingValues(vertical = Dimensions.Padding.listRowVertical),
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(Spacing.smd),
     content: @Composable ColumnScope.() -> Unit
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = containerColor,
-        shape = position.toShape()
+        modifier = modifier.fillMaxWidth().ledgerRule(position.hasRule),
+        color = containerColor
     ) {
         Column(
             modifier = Modifier
@@ -161,7 +242,7 @@ fun GroupedColumn(
 }
 
 /**
- * The tinted circle that leads a settings-style row. Kept here so every screen
+ * The coin that leads a settings-style row. Kept here so every screen
  * uses the same circle size and the same glyph size inside it — a glyph that
  * is 24dp in one row and 20dp in the next is one of the tells that makes a
  * list look hand-assembled.
@@ -172,8 +253,8 @@ fun IconTile(
     containerColor: Color,
     contentColor: Color,
     modifier: Modifier = Modifier,
-    size: Dp = Dimensions.Icon.avatarLarge,
-    glyphSize: Dp = Dimensions.Icon.medium,
+    size: Dp = Dimensions.Icon.avatar,
+    glyphSize: Dp = Dimensions.Icon.inline,
     contentDescription: String? = null
 ) {
     Box(

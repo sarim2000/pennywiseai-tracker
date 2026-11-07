@@ -22,6 +22,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -105,41 +106,62 @@ fun SpotlightTutorial(
             )
         }
         
-        // Tutorial message positioned to the left of FAB
-        Box(
+        // Below the target (the header's scan button), ending at its right edge, with a tail
+        // pointing at it. Beside it, the message covered the user's name.
+        val radiusDp = with(density) { (targetPosition.width / 2 + padding).toDp() }
+        val centerX = with(density) { targetPosition.center.x.toDp() }
+        val centerY = with(density) { targetPosition.center.y.toDp() }
+        val bubbleX = (centerX + radiusDp - SpotlightBubbleWidth).coerceAtLeast(Spacing.md)
+        val tailColor = MaterialTheme.colorScheme.inverseSurface
+        Column(
             modifier = Modifier
-                .offset(
-                    x = with(density) { (targetPosition.left - 220.dp.toPx()).toDp() },
-                    y = with(density) { targetPosition.center.y.toDp() - 30.dp }
-                )
+                .offset(x = bubbleX, y = centerY + radiusDp)
+                .width(SpotlightBubbleWidth)
         ) {
+            Canvas(
+                modifier = Modifier
+                    .padding(start = centerX - bubbleX - Spacing.sm)
+                    .size(width = Spacing.md, height = Spacing.sm)
+            ) {
+                drawPath(
+                    Path().apply {
+                        moveTo(size.width / 2, 0f)
+                        lineTo(size.width, size.height)
+                        lineTo(0f, size.height)
+                        close()
+                    },
+                    color = tailColor
+                )
+            }
             Surface(
                 shape = RoundedCornerShape(8.dp),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.inverseSurface,
                 shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
-                        .width(200.dp)
-                        .padding(16.dp)
+                        .fillMaxWidth()
+                        .padding(Spacing.md)
                 ) {
                     Text(
                         text = message,
                         style = MaterialTheme.typography.bodyLarge,
-                        color = Color.Black,
+                        color = MaterialTheme.colorScheme.inverseOnSurface,
                         fontWeight = FontWeight.Medium
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = stringResource(R.string.spotlight_tap_to_dismiss),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.Black.copy(alpha = 0.6f)
+                        color = MaterialTheme.colorScheme.inverseOnSurface
                     )
                 }
             }
         }
     }
 }
+
+private val SpotlightBubbleWidth = 240.dp
 
 /**
  * Modifier to capture the position of a composable for spotlight targeting

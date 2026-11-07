@@ -3,8 +3,8 @@ package com.pennywiseai.tracker.ui.components
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -56,7 +56,7 @@ fun CategoryMenuItems(
     if (onAddCategory != null) {
         DropdownMenuItem(
             text = { Text(stringResource(R.string.txn_detail_add_category)) },
-            leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.medium)) },
+            leadingIcon = { Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.medium)) },
             onClick = onAddCategory,
             contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
         )
@@ -80,8 +80,8 @@ fun CategoryMenuItems(
 @Composable
 fun SelectedCategoryIcon(category: CategoryEntity?) {
     if (category != null) {
-        CategoryChip(category = category, showText = false, modifier = Modifier.padding(start = Spacing.smd))
+        CategoryIcon(category = category.name, size = Dimensions.Icon.medium)
     } else {
-        Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.medium))
+        Icon(Icons.Outlined.Category, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.medium))
     }
 }

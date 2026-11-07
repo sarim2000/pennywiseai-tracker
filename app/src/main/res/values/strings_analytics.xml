@@ -27,14 +27,26 @@
     <string name="analytics_group_by_day_of_week">By day of week</string>
     <!-- Content description of the lock beside a Pro-only grouping -->
     <string name="analytics_group_by_pro">Pro</string>
+    <!-- The group by chip itself; the menu keeps the "By ..." wording above -->
+    <string name="analytics_group_chip_category">Group: Category</string>
+    <string name="analytics_group_chip_merchant">Group: Merchant</string>
+    <string name="analytics_group_chip_account">Group: Account</string>
+    <string name="analytics_group_chip_tag">Group: Tag</string>
+    <string name="analytics_group_chip_day_of_week">Group: Day of week</string>
 
     <!-- Filters -->
+    <string name="analytics_filters">Filters</string>
+    <!-- %1$d = how many of the filters behind this chip are set -->
+    <string name="analytics_filters_count">Filters · %1$d</string>
+    <!-- TalkBack state of the Filters chip, which shows or hides a row of filters -->
+    <string name="analytics_filters_expanded">Expanded</string>
+    <string name="analytics_filters_collapsed">Collapsed</string>
     <string name="analytics_filter_clear">Clear</string>
-    <string name="analytics_filter_all_profiles">All Accounts</string>
+    <string name="analytics_filter_all_profiles">Profile: All</string>
     <string name="analytics_filter_currency">Currency</string>
-    <string name="analytics_filter_category">Category</string>
+    <string name="analytics_filter_category">Category: All</string>
     <string name="analytics_filter_all_categories">All categories</string>
-    <string name="analytics_filter_account">Account</string>
+    <string name="analytics_filter_account">Account: All</string>
     <string name="analytics_filter_all_accounts">All accounts</string>
 
     <!-- List rows -->
@@ -51,18 +63,19 @@
 
     <!-- Empty state -->
     <string name="analytics_empty_headline">Not enough data yet</string>
-    <string name="analytics_empty_description">Your spending insights will appear here after your first week of tracking</string>
+    <string name="analytics_empty_description">Your spending insights will appear once you have a few transactions.</string>
     <string name="analytics_empty_action">Scan SMS</string>
 
     <!-- Summary card -->
-    <string name="analytics_summary_total">TOTAL</string>
+    <string name="analytics_summary_total">Total</string>
     <plurals name="analytics_summary_txns">
-        <item quantity="one">%1$d TXN</item>
-        <item quantity="other">%1$d TXNS</item>
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
     </plurals>
-    <string name="analytics_summary_average">AVERAGE</string>
+    <string name="analytics_summary_average">Average</string>
     <string name="analytics_summary_per_day">" /day"</string>
-    <string name="analytics_summary_percent_of_total">%1$d%% of total</string>
+    <string name="analytics_summary_per_transaction">" per transaction"</string>
+    <string name="analytics_summary_percent_of_total">Top category · %1$d%%</string>
 
     <!-- Pie charts -->
     <string name="analytics_pie_unknown">Unknown</string>
@@ -101,18 +114,25 @@
     <string name="budgets_over_by">Over by %1$s</string>
     <string name="budgets_finished">Finished</string>
     <!-- %1$s = weekday name -->
-    <string name="budgets_resets_today_weekly">Resets today · %1$s renew</string>
+    <string name="budgets_resets_today_weekly">Resets today · renews %1$s</string>
     <!-- %1$d = days, %2$s = weekday name -->
     <plurals name="budgets_resets_in_weekly">
-        <item quantity="one">Resets in %1$d day · %2$s renew</item>
-        <item quantity="other">Resets in %1$d days · %2$s renew</item>
+        <item quantity="one">Resets in %1$d day · renews %2$s</item>
+        <item quantity="other">Resets in %1$d days · renews %2$s</item>
     </plurals>
-    <!-- %1$d = day of month the budget starts on -->
-    <string name="budgets_resets_today_monthly">Resets today · day %1$d</string>
-    <!-- %1$d = days, %2$d = day of month -->
+    <!-- A monthly budget on a custom start day. %1$d = day of month the budget starts on -->
+    <string name="budgets_resets_today_monthly">Resets today · on day %1$d</string>
+    <!-- A monthly budget on a custom start day. %1$d = days, %2$d = day of month -->
     <plurals name="budgets_resets_in_monthly">
-        <item quantity="one">Resets in %1$d day · day %2$d</item>
-        <item quantity="other">Resets in %1$d days · day %2$d</item>
+        <item quantity="one">Resets in %1$d day · on day %2$d</item>
+        <item quantity="other">Resets in %1$d days · on day %2$d</item>
+    </plurals>
+    <!-- A monthly budget that starts on the 1st: the day number adds nothing. -->
+    <string name="budgets_resets_today">Resets today</string>
+    <!-- %1$d = days -->
+    <plurals name="budgets_resets_in">
+        <item quantity="one">Resets in %1$d day</item>
+        <item quantity="other">Resets in %1$d days</item>
     </plurals>
     <!-- Date range, %1$s = start date, %2$s = end date -->
     <string name="budgets_date_range">%1$s – %2$s</string>
@@ -198,6 +218,14 @@
     <string name="categories_show_category">Show category</string>
     <string name="categories_hide_category">Hide category</string>
     <string name="categories_system_badge">System</string>
+    <string name="categories_custom_badge">Custom</string>
+    <!-- Sub-heading of a category section: every row is built-in. -->
+    <string name="categories_all_builtin">Built-in</string>
+    <!-- Sub-heading of a category section that also holds the user's own categories. -->
+    <string name="categories_builtin_unless_marked">Built-in unless marked Custom</string>
+    <!-- TalkBack label of a row's hide/show button. %1$s = category name -->
+    <string name="categories_hide_named">Hide %1$s</string>
+    <string name="categories_show_named">Show %1$s</string>
     <string name="categories_msg_system_not_editable">System categories cannot be edited</string>
     <string name="categories_msg_updated">Category updated successfully</string>
     <!-- %1$s = category name -->
@@ -254,7 +282,7 @@
     <string name="subscriptions_delete_title">Delete subscription?</string>
     <string name="subscriptions_delete_permanently_message">Permanently delete \'%1$s\'? This cannot be undone.</string>
     <string name="subscriptions_delete_message">\"%1$s\" will be permanently removed. This cannot be undone.</string>
-    <string name="subscriptions_summary_title">Monthly Subscriptions</string>
+    <string name="subscriptions_summary_title">Monthly subscription cost</string>
     <string name="subscriptions_summary_none_active">No active subscriptions</string>
     <plurals name="subscriptions_summary_active">
         <item quantity="one">%1$d active subscription</item>
@@ -266,6 +294,17 @@
     </plurals>
     <!-- %1$d = paid count, %2$d = active count -->
     <string name="subscriptions_summary_some_paid">%1$d of %2$d paid this cycle</string>
+    <!-- Added to the summary line when recurring income sits in the list: it isn't in the monthly total. %1$d = count -->
+    <plurals name="subscriptions_summary_recurring_income">
+        <item quantity="one">%1$d recurring income</item>
+        <item quantity="other">%1$d recurring incomes</item>
+    </plurals>
+    <!-- An amount and how often it is billed. %1$s = formatted amount -->
+    <string name="subscriptions_amount_weekly">%1$s/wk</string>
+    <string name="subscriptions_amount_monthly">%1$s/mo</string>
+    <string name="subscriptions_amount_quarterly">%1$s/qtr</string>
+    <string name="subscriptions_amount_semi_annual">%1$s/6 mo</string>
+    <string name="subscriptions_amount_annual">%1$s/yr</string>
     <string name="subscriptions_hide">Hide</string>
     <string name="subscriptions_sms_available">SMS available</string>
     <string name="subscriptions_no_date">No date set</string>
@@ -340,4 +379,9 @@
     <string name="analytics_forecast_above_usual">About %1$s above your usual</string>
     <string name="analytics_forecast_stay_under">Spend under %1$s a day to stay at %2$s.</string>
 
+    <!-- ══ AI chat, no model yet ══ -->
+    <string name="chat_activation_body">The assistant runs entirely on this device. Download its model once and your questions never leave your phone.</string>
+
+    <string name="analytics_hidden_chart">The chart is hidden while amounts are hidden.</string>
+    <string name="analytics_summary_top_category">Top category</string>
 </resources>

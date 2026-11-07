@@ -1,14 +1,15 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,7 +57,6 @@ fun SmsParsingProgressDialog(
                     Text(
                         text = stringResource(R.string.sms_scan_title),
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     )
 
@@ -79,10 +79,10 @@ fun SmsParsingProgressDialog(
                         OutlinedButton(
                             onClick = onCancel,
                             modifier = Modifier.fillMaxWidth(),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             Icon(
-                                Icons.Default.Cancel,
+                                Icons.Outlined.Cancel,
                                 contentDescription = null,
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
@@ -93,7 +93,7 @@ fun SmsParsingProgressDialog(
                         TextButton(
                             onClick = onDismiss,
                             modifier = Modifier.fillMaxWidth(),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             Text(stringResource(R.string.sms_scan_done))
                         }
@@ -104,7 +104,7 @@ fun SmsParsingProgressDialog(
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
                             ),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             Text(stringResource(R.string.sms_scan_close))
                         }
@@ -231,7 +231,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.CheckCircle,
+                        Icons.Outlined.CheckCircle,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -249,7 +249,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Error,
+                        Icons.Outlined.Error,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(Dimensions.Icon.medium)
@@ -267,7 +267,7 @@ private fun ProgressDetails(workInfo: WorkInfo) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        Icons.Default.Cancel,
+                        Icons.Outlined.Cancel,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Dimensions.Icon.medium)

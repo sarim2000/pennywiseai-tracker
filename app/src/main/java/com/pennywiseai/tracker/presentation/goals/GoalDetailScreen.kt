@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,16 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -115,7 +117,7 @@ fun GoalDetailScreen(
         title = progress?.goal?.name.orEmpty(),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
+                Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.goal_back))
             }
         },
         actions = {
@@ -174,10 +176,10 @@ fun GoalDetailScreen(
                 Button(
                     onClick = { showDelete = false; viewModel.delete() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                    shapes = ButtonDefaults.shapes(),
+                    shapes = pennyWiseButtonShapes(),
                 ) { Text(stringResource(R.string.goal_menu_delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDelete = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDelete = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         )
     }
 
@@ -197,29 +199,29 @@ private fun GoalOverflowMenu(
     // Repeat fits a goal that has run its course: Reached, or Missed.
     val canRepeat = progress.status == GoalStatus.REACHED || progress.status == GoalStatus.MISSED
     IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
-        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.goal_more))
+        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.goal_more))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
         DropdownMenuItem(
             text = { Text(stringResource(R.string.goal_menu_edit)) },
-            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
             onClick = { open = false; onEdit() },
         )
         if (canRepeat) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.goal_menu_repeat)) },
-                leadingIcon = { Icon(Icons.Default.Repeat, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Outlined.Repeat, contentDescription = null) },
                 onClick = { open = false; onRepeat() },
             )
         }
         DropdownMenuItem(
             text = { Text(stringResource(if (archived) R.string.goal_menu_unarchive else R.string.goal_menu_archive)) },
-            leadingIcon = { Icon(if (archived) Icons.Default.Unarchive else Icons.Default.Archive, contentDescription = null) },
+            leadingIcon = { Icon(if (archived) Icons.Outlined.Unarchive else Icons.Outlined.Archive, contentDescription = null) },
             onClick = { open = false; onArchive() },
         )
         DropdownMenuItem(
             text = { Text(stringResource(R.string.goal_menu_delete), color = MaterialTheme.colorScheme.error) },
-            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
             onClick = { open = false; onDelete() },
         )
     }
@@ -248,16 +250,11 @@ private fun GoalDetailContent(
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         item {
-            PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+            PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), flat = true) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     GoalRing(progress, Dimensions.Component.goalRingLarge, Dimensions.Component.goalRingLargeStroke) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(stringResource(R.string.budgets_percent, progress.percent()), style = MaterialTheme.typography.headlineMedium)
-                            Text(
-                                CurrencyFormatter.formatCurrency(progress.saved, currency),
-                                style = PennyWiseText.amountSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
                         }
                     }
                     Text(
@@ -266,7 +263,7 @@ private fun GoalDetailContent(
                             CurrencyFormatter.formatCurrency(progress.saved, currency),
                             CurrencyFormatter.formatCurrency(goal.targetAmount, currency),
                         ),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PennyWiseText.amountMedium,
                     )
                     GoalStatusPill(progress)
                     if (progress.over.signum() > 0) {
@@ -280,15 +277,14 @@ private fun GoalDetailContent(
             }
         }
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                StatTile(stringResource(R.string.goal_detail_left), CurrencyFormatter.formatCurrency(progress.left, currency), Modifier.weight(1f))
-                StatTile(stringResource(R.string.goal_detail_per_month), CurrencyFormatter.formatCurrency(progress.monthlyDisplay(), currency), Modifier.weight(1f))
-            }
-        }
-        item {
             GroupedList {
-                GroupedRow(position = ListItemPosition.Single) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                GroupedRow(position = ListItemPosition.Top) {
+                    Icon(Icons.Outlined.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    RowLabels(title = stringResource(R.string.goal_detail_left))
+                    Text(CurrencyFormatter.formatCurrency(progress.left, currency), style = PennyWiseText.amountMedium, fontWeight = FontWeight.SemiBold)
+                }
+                GroupedRow(position = ListItemPosition.Bottom) {
+                    Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     RowLabels(title = stringResource(R.string.goal_edit_due), subtitle = goal.dueDate.format(goalDateFormat))
                     Text(
                         text = when (progress.status) {
@@ -308,12 +304,12 @@ private fun GoalDetailContent(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = onAdd, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
+                Button(onClick = onAdd, modifier = Modifier.weight(1f), shapes = pennyWiseButtonShapes()) {
+                    Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
                     Text(stringResource(R.string.goal_add_money))
                 }
-                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
+                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f), shapes = pennyWiseButtonShapes()) {
+                    Icon(Icons.Outlined.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
                     Text(stringResource(R.string.goal_take_out))
                 }
             }
@@ -345,20 +341,15 @@ private fun GoalDetailContent(
                             Text(
                                 CurrencyFormatter.signed("+", CurrencyFormatter.formatCurrency(goal.alreadySaved, currency)),
                                 style = PennyWiseText.amountRow,
+                                color = MaterialTheme.colorScheme.success,
+                                maxLines = 1,
+                                autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
                             )
                         }
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
-    PennyWiseCardV2(modifier = modifier, contentPadding = Dimensions.Padding.cardCompact) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = PennyWiseText.amountMedium, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -378,9 +369,11 @@ private fun ContributionRow(c: GoalContributionEntity, currency: String, merchan
             subtitle = subtitle,
         )
         Text(
-            CurrencyFormatter.signed(if (withdrawal) "-" else "+", CurrencyFormatter.formatCurrency(c.amount.abs(), currency)),
+            CurrencyFormatter.signed(if (withdrawal) "−" else "+", CurrencyFormatter.formatCurrency(c.amount.abs(), currency)),
             style = PennyWiseText.amountRow,
-            color = if (withdrawal) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.success,
+            color = if (withdrawal) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.success,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(PennyWiseText.amountRow),
         )
     }
 }
@@ -479,7 +472,7 @@ private fun MoneySheet(
                 label = { Text(stringResource(R.string.goal_money_date)) },
                 trailingIcon = {
                     IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.goal_money_date))
+                        Icon(Icons.Outlined.CalendarMonth, contentDescription = stringResource(R.string.goal_money_date))
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -496,7 +489,7 @@ private fun MoneySheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = onDelete, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.goal_contribution_delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -504,7 +497,7 @@ private fun MoneySheet(
                 Button(
                     onClick = { onSave(amount.toBigDecimalOrNull(), currency, date, note, manual.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }) },
                     enabled = !state.saving,
-                    shapes = ButtonDefaults.shapes(),
+                    shapes = pennyWiseButtonShapes(),
                 ) { Text(stringResource(R.string.goal_money_save)) }
             }
         }
@@ -518,9 +511,9 @@ private fun MoneySheet(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { date = it.toUtcDate() }
                     showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_ok)) }
+                }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goal_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         ) { DatePicker(state = pickerState) }
     }
 }

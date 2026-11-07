@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,8 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ButtonDefaults
@@ -52,7 +53,7 @@ fun RecurringSuggestionsCard(
             horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
         ) {
             Icon(
-                imageVector = Icons.Default.EventRepeat,
+                imageVector = Icons.Outlined.EventRepeat,
                 contentDescription = null,
                 tint = ink,
                 modifier = Modifier.size(Dimensions.Icon.medium),
@@ -81,12 +82,12 @@ fun RecurringSuggestionsCard(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onReview, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onReview, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.home_recurring_card_action))
             }
             IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.home_recurring_card_dismiss),
                     tint = ink,
                     modifier = Modifier.size(Dimensions.Icon.small),

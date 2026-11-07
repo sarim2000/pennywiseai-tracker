@@ -2,9 +2,11 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -44,7 +47,11 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  * and "gap between header and its content" the same value — so a heading
  * floated midway between the section it labels and the one above it. The inset
  * makes the outer gap larger than the inner one, which is what makes a heading
- * read as belonging to what follows it.
+ * read as belonging to what follows it. The row's minimum height still leaves a
+ * wide gap below the text, so it is drawn [Spacing.sm] lower than it is laid out.
+ *
+ * Text and icon buttons pad their content by [Spacing.smd], so the [action] moves out
+ * by that much for its glyph, not its padding, to end on the content's edge.
  */
 @Composable
 fun SectionHeaderV2(
@@ -57,17 +64,21 @@ fun SectionHeaderV2(
      *  scaffold's content padding already provides the gap. */
     topSpacing: Dp = Spacing.sm
 ) {
-    Row(
+    // At a large font a heading and its actions don't share a line: both end up wrapped.
+    val stacked = LocalDensity.current.fontScale >= STACK_FONT_SCALE
+    FlowRow(
         modifier = modifier
+            .offset(y = Spacing.sm)
             .fillMaxWidth()
             .padding(top = topSpacing)
             .defaultMinSize(minHeight = Dimensions.Component.iconButton)
             .semantics { heading() },
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        itemVerticalAlignment = Alignment.CenterVertically,
+        maxItemsInEachRow = if (stacked) 1 else 2
     ) {
         Row(
-            modifier = Modifier.weight(1f),
+            modifier = if (stacked) Modifier.fillMaxWidth() else Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -81,7 +92,7 @@ fun SectionHeaderV2(
                     text = title,
                     style = PennyWiseText.sectionHeader,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!subtitle.isNullOrBlank()) {
@@ -97,7 +108,9 @@ fun SectionHeaderV2(
         }
         if (action != null) {
             Row(
-                modifier = Modifier.padding(start = Spacing.sm),
+                modifier = if (stacked) Modifier else Modifier
+                    .offset(x = Spacing.smd)
+                    .padding(start = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) { action() }
         }

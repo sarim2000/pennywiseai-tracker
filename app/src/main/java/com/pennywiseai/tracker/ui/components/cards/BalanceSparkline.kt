@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -24,29 +26,38 @@ fun BalanceSparkline(
     data: List<BigDecimal>,
     lineColor: Color,
     modifier: Modifier = Modifier,
-    currency: String,
-    isBalanceHidden: Boolean = false,
+    /** First point's date; the axis runs from it to today. */
+    startDate: java.time.LocalDate? = null,
+    /** The chart's top value, so the line has a scale to read against. */
+    scaleLabel: String? = null,
     comparisonData: List<BigDecimal>? = null,
-    comparisonLineColor: Color = Color.Gray
+    comparisonLineColor: Color = Color.Gray,
+    /** Names the dashed line, between the two date labels. */
+    comparisonLabel: String? = null,
 ) {
     if (data.size < 2) return
 
     // Compute min/max from both datasets for shared Y scale
     val hasComparison = comparisonData != null && comparisonData.size >= 2
     val allValues = if (hasComparison) data + comparisonData!! else data
+    // From zero: starting at the data's minimum made a JD10 rise fill the whole height.
     val max = allValues.maxOf { it }.toFloat()
-    val min = allValues.minOf { it }.toFloat()
+    val min = 0f
     val range = (max - min).takeIf { it > 0f } ?: 1f
 
     val textMeasurer = rememberTextMeasurer()
-    val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelStyle = PennyWiseText.chartLabel.copy(color = labelColor)
 
-    val startLabel = if (isBalanceHidden) "••••" else formatCompactBalance(data.first(), currency)
-    val endLabel = if (isBalanceHidden) "••••" else formatCompactBalance(data.last(), currency)
+    // Dates: the amount is already the hero above this chart.
+    val dateFormat = com.pennywiseai.tracker.utils.AppDates.dayMonthFormatter()
+    val startLabel = startDate?.format(dateFormat) ?: ""
+    val endLabel = stringResource(R.string.sparkline_today)
 
     val startResult = textMeasurer.measure(startLabel, labelStyle)
     val endResult = textMeasurer.measure(endLabel, labelStyle)
+    val comparisonResult = comparisonLabel?.takeIf { hasComparison }?.let { textMeasurer.measure("- - $it", labelStyle) }
+    val scaleResult = scaleLabel?.let { textMeasurer.measure(it, labelStyle) }
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val width = size.width
@@ -66,16 +77,15 @@ fun BalanceSparkline(
 
                 compData.forEachIndexed { index, value ->
                     val x = index * compStepX
-                    val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+                    val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.7f + chartHeight * 0.075f)
 
                     if (index == 0) {
                         compPath.moveTo(x, y)
                     } else {
-                        val prevX = (index - 1) * compStepX
                         val prevValue = compData[index - 1]
-                        val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
-                        val midX = (prevX + x) / 2f
-                        compPath.cubicTo(midX, prevY, midX, y, x, y)
+                        val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.7f + chartHeight * 0.075f)
+                        compPath.lineTo(x, prevY)
+                        compPath.lineTo(x, y)
                     }
                 }
 
@@ -92,16 +102,16 @@ fun BalanceSparkline(
 
             data.forEachIndexed { index, value ->
                 val x = index * stepX
-                val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+                val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.7f + chartHeight * 0.075f)
 
                 if (index == 0) {
                     linePath.moveTo(x, y)
                 } else {
-                    val prevX = (index - 1) * stepX
                     val prevValue = data[index - 1]
-                    val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
-                    val midX = (prevX + x) / 2f
-                    linePath.cubicTo(midX, prevY, midX, y, x, y)
+                    val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.7f + chartHeight * 0.075f)
+                    // Spending is cumulative and jumps per purchase: a step, not a ramp.
+                    linePath.lineTo(x, prevY)
+                    linePath.lineTo(x, y)
                 }
             }
 
@@ -109,6 +119,13 @@ fun BalanceSparkline(
                 path = linePath,
                 color = lineColor,
                 style = Stroke(width = 2.dp.toPx())
+            )
+            // Today, where the line stops: the one place on it you act from.
+            val lastY = chartHeight - ((data.last().toFloat() - min) / range * chartHeight * 0.7f + chartHeight * 0.075f)
+            drawCircle(
+                color = lineColor,
+                radius = 3.5.dp.toPx(),
+                center = androidx.compose.ui.geometry.Offset((data.size - 1) * stepX, lastY)
             )
 
             // Gradient fill under the main line
@@ -123,11 +140,18 @@ fun BalanceSparkline(
                 path = fillPath,
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        lineColor.copy(alpha = 0.25f),
-                        lineColor.copy(alpha = 0.05f),
+                        lineColor.copy(alpha = 0.12f),
+                        lineColor.copy(alpha = 0.03f),
                         Color.Transparent
                     )
                 )
+            )
+        }
+
+        scaleResult?.let {
+            drawText(
+                textLayoutResult = it,
+                topLeft = androidx.compose.ui.geometry.Offset(if (rtl) width - it.size.width else 0f, 0f)
             )
         }
 
@@ -147,14 +171,15 @@ fun BalanceSparkline(
                 labelY - endResult.size.height
             )
         )
+        // Only where it fits between the dates: a large font drops it before the dates.
+        comparisonResult?.let {
+            if (startResult.size.width + endResult.size.width + it.size.width + 16.dp.toPx() < width) {
+                drawText(
+                    textLayoutResult = it,
+                    topLeft = androidx.compose.ui.geometry.Offset((width - it.size.width) / 2, labelY - it.size.height)
+                )
+            }
+        }
     }
 }
 
-private fun formatCompactBalance(value: BigDecimal, currency: String): String {
-    // Symbol and K/M vs L/Cr follow the currency and the number-format setting.
-    val prefix = if (value < BigDecimal.ZERO) "-" else ""
-    return com.pennywiseai.tracker.utils.CurrencyFormatter.signed(
-        prefix,
-        com.pennywiseai.tracker.utils.CurrencyFormatter.formatAbbreviated(value.toDouble(), currency)
-    )
-}

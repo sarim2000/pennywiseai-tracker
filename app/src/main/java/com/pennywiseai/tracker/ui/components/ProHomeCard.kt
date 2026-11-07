@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.yellow_on_dark
 import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
 import androidx.compose.ui.graphics.luminance
@@ -11,8 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
@@ -45,7 +47,7 @@ fun ProHomeCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Follows the app's theme (which can override the system), not isSystemInDarkTheme().
+    // Follows the app's theme (which can override the system), not isAppInDarkTheme().
     val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
     val container = if (dark) yellow_surface_dark else yellow_light
     val ink = if (dark) yellow_on_dark else yellow_on_light
@@ -60,7 +62,7 @@ fun ProHomeCard(
             horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
         ) {
             Icon(
-                imageVector = Icons.Default.AutoAwesome,
+                imageVector = Icons.Outlined.AutoAwesome,
                 contentDescription = null,
                 tint = accent,
                 modifier = Modifier.size(Dimensions.Icon.medium),
@@ -89,13 +91,13 @@ fun ProHomeCard(
                 onClick = onSeePro,
                 // yellow_dark on yellow_light is ~2.5:1 — too faint for a text label (AA 4.5:1).
                 colors = ButtonDefaults.textButtonColors(contentColor = if (dark) accent else ink),
-                shapes = ButtonDefaults.shapes(),
+                shapes = pennyWiseButtonShapes(),
             ) {
                 Text(stringResource(R.string.pro_home_card_action))
             }
             IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
-                    imageVector = Icons.Default.Close,
+                    imageVector = Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.pro_home_card_dismiss),
                     tint = ink,
                     modifier = Modifier.size(Dimensions.Icon.small),

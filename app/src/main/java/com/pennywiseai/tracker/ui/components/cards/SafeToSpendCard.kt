@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -67,67 +68,36 @@ fun SafeToSpendCard(
     modifier: Modifier = Modifier
 ) {
     val primary = state.primary
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = Spacing.md,
-        onClick = if (isBalanceHidden) onReveal else onOpenBreakdown
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.safe_to_spend_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            if (isBalanceHidden) {
-                Text(
-                    text = stringResource(R.string.safe_to_spend_tap_to_show),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Dimensions.Icon.inline)
-                )
-            }
+    val until = state.periodEnd.format(SHORT_DATE)
+    val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
+    // The second line of the statement, under Accounts. A rate and a caveat each, in the
+    // small print: the screen's one big number is the one above.
+    val detail = if (isBalanceHidden) stringResource(R.string.safe_to_spend_tap_to_show) else buildList {
+        add(perDayText(primary, until, dueBefore))
+        if (primary.bills.signum() > 0) {
+            add(stringResource(R.string.safe_to_spend_after_bills, CurrencyFormatter.formatCurrency(primary.bills, primary.currency)))
         }
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            text = if (isBalanceHidden) MASK else primary.formatAmount(),
-            style = PennyWiseText.amountLarge,
-            fontWeight = FontWeight.Bold,
-            color = if (!isBalanceHidden && primary.amount.signum() < 0) MaterialTheme.colorScheme.error
-            else MaterialTheme.colorScheme.onSurface
-        )
-        if (isBalanceHidden) return@PennyWiseCardV2
-
-        val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
-        Spacer(Modifier.height(Spacing.xs))
-        PerDayLine(primary, state.periodEnd.format(SHORT_DATE), dueBefore)
-        Spacer(Modifier.height(Spacing.xxs))
-        Text(
-            text = stringResource(
-                R.string.safe_to_spend_breakdown,
-                CurrencyFormatter.formatCurrency(primary.balance, primary.currency),
-                CurrencyFormatter.formatCurrency(primary.bills, primary.currency),
-                dueBefore
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        CappedLine(primary)
-        if (state.others.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.safe_to_spend_other_currencies, state.others.formatAmounts()),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        if (primary.isCapped) add(stringResource(R.string.safe_to_spend_capped, primary.formatAmount()))
+    }.filterNotNull().joinToString(" · ")
+    StatementLine(
+        label = stringResource(R.string.safe_to_spend_title),
+        value = if (isBalanceHidden) MASK else primary.formatAmount(),
+        valueColor = if (!isBalanceHidden && primary.amount.signum() < 0) MaterialTheme.colorScheme.error
+        else MaterialTheme.colorScheme.onSurface,
+        // The daily answer, so it outranks the balance above it.
+        valueStyle = PennyWiseText.amountLarge,
+        detail = detail,
+        onClick = if (isBalanceHidden) onReveal else onOpenBreakdown,
+        modifier = modifier,
+        trailing = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(Dimensions.Icon.inline)
             )
         }
-    }
+    )
 }
 
 /** "Capped by your budget: ₹5,000 left", only when the budget sets the figure. */
@@ -141,22 +111,27 @@ private fun CappedLine(s: SafeToSpend) {
     )
 }
 
+/** Null when the budget is used up: the capped line says so, "nothing left after bills" would be wrong. */
+@Composable
+private fun perDayText(s: SafeToSpend, until: String, dueBefore: String): String? {
+    val perDay = s.perDay
+    if (perDay == null && s.isCapped) return null
+    return when {
+        // A date, not a day count: Home's "7 days left" excludes today, this includes it.
+        perDay != null -> stringResource(
+            R.string.safe_to_spend_per_day,
+            CurrencyFormatter.formatEstimate(perDay, s.currency), until
+        )
+        s.amount.signum() < 0 -> stringResource(R.string.safe_to_spend_short, dueBefore)
+        else -> stringResource(R.string.safe_to_spend_none_left, dueBefore)
+    }
+}
+
 @Composable
 private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
-    val perDay = s.perDay
-    // Budget used up: CappedLine says so, "nothing left after bills" would be wrong.
-    if (perDay == null && s.isCapped) return
     val short = s.amount.signum() < 0
     Text(
-        text = when {
-            // A date, not a day count: Home's "7 days left" excludes today, this includes it.
-            perDay != null -> stringResource(
-                R.string.safe_to_spend_per_day,
-                CurrencyFormatter.formatCurrency(perDay, s.currency), until
-            )
-            short -> stringResource(R.string.safe_to_spend_short, dueBefore)
-            else -> stringResource(R.string.safe_to_spend_none_left, dueBefore)
-        },
+        text = perDayText(s, until, dueBefore) ?: return,
         style = MaterialTheme.typography.bodyMedium,
         color = if (short) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     )
@@ -195,10 +170,12 @@ fun SafeToSpendSheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(Modifier.height(Spacing.xs))
             Text(
                 text = primary.formatAmount(),
                 style = PennyWiseText.amountLarge,
-                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                autoSize = PennyWiseText.fit(PennyWiseText.amountLarge),
                 color = if (primary.amount.signum() < 0) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurface
             )
@@ -208,7 +185,7 @@ fun SafeToSpendSheet(
             SectionHeaderV2(
                 title = stringResource(R.string.safe_to_spend_accounts),
                 action = {
-                    TextButton(onClick = { choosing = !choosing }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { choosing = !choosing }, shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(if (choosing) R.string.safe_to_spend_done else R.string.safe_to_spend_choose_accounts))
                     }
                 }
@@ -225,6 +202,8 @@ fun SafeToSpendSheet(
                             title = account.displayLabel,
                             subtitle = when {
                                 negative -> stringResource(R.string.safe_to_spend_excluded_negative)
+                                // Its own currency: can't be added into the total below.
+                                account.currency != primary.currency -> stringResource(R.string.safe_to_spend_other_currency_row)
                                 included -> null
                                 else -> stringResource(R.string.safe_to_spend_excluded)
                             },
@@ -238,7 +217,7 @@ fun SafeToSpendSheet(
                             )
                         } else {
                             Text(
-                                text = account.formatBalance(),
+                                text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                 style = PennyWiseText.amountRow,
                                 color = if (included) MaterialTheme.colorScheme.onSurface
                                 else MaterialTheme.colorScheme.onSurfaceVariant
@@ -265,9 +244,9 @@ fun SafeToSpendSheet(
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
-                                text = "-" + CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency),
+                                text = CurrencyFormatter.signed("\u2212", CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency)),
                                 style = PennyWiseText.amountRow,
-                                color = MaterialTheme.colorScheme.expense
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -275,23 +254,31 @@ fun SafeToSpendSheet(
             }
 
             Spacer(Modifier.height(Spacing.md))
-            // Inset like the grouped rows above, so the total lines up with their amounts.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = Spacing.md)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.ledgerRule().padding(top = Spacing.smd)) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_title),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = PennyWiseText.rowTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = (listOf(primary) + state.others).formatAmounts(),
+                    text = primary.formatAmount(),
                     style = PennyWiseText.amountMedium,
-                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountMedium),
                     color = if (primary.amount.signum() < 0) MaterialTheme.colorScheme.error
                     else MaterialTheme.colorScheme.onSurface
+                )
+            }
+            // Other currencies under the total, never beside it: "JD1,573.930 · $800" read as
+            // one safe-to-spend figure that included the dollars.
+            if (state.others.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.safe_to_spend_other_currencies, state.others.formatAmounts()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
                 )
             }
             Spacer(Modifier.height(Spacing.sm))

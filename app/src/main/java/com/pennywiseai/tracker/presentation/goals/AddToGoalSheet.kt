@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,7 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -111,7 +112,7 @@ fun AddToGoalSheet(
 
             if (goals.isEmpty()) {
                 Text(stringResource(R.string.goal_add_to_goal_no_goals), style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goals_empty_action)) }
+                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goals_empty_action)) }
                 return@Column
             }
 
@@ -180,7 +181,7 @@ fun AddToGoalSheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Box(Modifier.weight(1f))
-                OutlinedButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
+                OutlinedButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.goal_action_cancel)) }
                 Button(
                     onClick = {
                         selected?.let {
@@ -188,7 +189,7 @@ fun AddToGoalSheet(
                         }
                     },
                     enabled = !state.saving && left != null && left.signum() > 0 && selected != null,
-                    shapes = ButtonDefaults.shapes(),
+                    shapes = pennyWiseButtonShapes(),
                 ) { Text(stringResource(R.string.goal_add_to_goal)) }
             }
         }
@@ -254,7 +255,7 @@ fun TowardGoalsSection(linked: List<LinkedGoal>, onOpenGoal: (Long) -> Unit, onR
                     )
                     IconButton(onClick = { onRemove(c.id) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
-                            Icons.Default.Close,
+                            Icons.Outlined.Close,
                             contentDescription = stringResource(R.string.goal_toward_remove, goal.name),
                             modifier = Modifier.size(Dimensions.Icon.small),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,

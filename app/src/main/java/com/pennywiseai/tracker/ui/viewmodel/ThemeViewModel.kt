@@ -119,10 +119,10 @@ data class ThemeUiState(
     val isLoading: Boolean = true,
     val isDarkTheme: Boolean? = null, // null = follow system
     val isDynamicColorEnabled: Boolean = false,
-    val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
-    val accentColor: AccentColor = AccentColor.SURFACE,
+    val themeStyle: ThemeStyle = ThemeStyle.BRANDED,
+    val accentColor: AccentColor = AccentColor.VERDIGRIS,
     val isAmoledMode: Boolean = false,
-    val appFont: AppFont = AppFont.SYSTEM,
+    val appFont: AppFont = AppFont.LEDGER,
     val hasSkippedSmsPermission: Boolean = false,
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,

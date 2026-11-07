@@ -1,6 +1,9 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.foundation.background
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import androidx.compose.foundation.shape.CircleShape
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +15,8 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.toShape
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,6 +52,8 @@ fun PennyWiseEmptyState(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    secondaryActionLabel: String? = null,
+    onSecondaryAction: (() -> Unit)? = null,
     ghostContent: @Composable (() -> Unit)? = null
 ) {
     Column(
@@ -59,9 +65,10 @@ fun PennyWiseEmptyState(
         Box(
             modifier = Modifier
                 .size(Dimensions.Icon.emptyStateContainer)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = MaterialShapes.Cookie9Sided.toShape()
+                .border(
+                    width = Dimensions.Component.hairline,
+                    color = MaterialTheme.colorScheme.outline,
+                    shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
@@ -69,13 +76,13 @@ fun PennyWiseEmptyState(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(Dimensions.Icon.emptyStateGlyph),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                tint = MaterialTheme.colorScheme.primary
             )
         }
 
         Text(
             text = headline,
-            style = MaterialTheme.typography.titleMedium,
+            style = PennyWiseText.sectionHeader,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = Spacing.md)
@@ -94,12 +101,18 @@ fun PennyWiseEmptyState(
         )
 
         if (actionLabel != null && onAction != null) {
-            FilledTonalButton(
+            // The one thing to do on an empty screen: filled, or it reads as disabled.
+            Button(
                 onClick = onAction,
                 modifier = Modifier.padding(top = Spacing.md),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(actionLabel)
+            }
+        }
+        if (secondaryActionLabel != null && onSecondaryAction != null) {
+            TextButton(onClick = onSecondaryAction, shapes = pennyWiseButtonShapes()) {
+                Text(secondaryActionLabel)
             }
         }
 

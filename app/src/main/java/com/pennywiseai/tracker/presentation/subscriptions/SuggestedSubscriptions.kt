@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -158,11 +159,11 @@ internal fun SuggestedSubscriptionItem(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.subscription_suggestion_not_recurring))
             }
             Spacer(Modifier.width(Spacing.xs))
-            FilledTonalButton(onClick = onReview, shapes = ButtonDefaults.shapes()) {
+            FilledTonalButton(onClick = onReview, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.subscription_suggestion_review))
             }
         }
@@ -265,7 +266,7 @@ internal fun RecurringSuggestionSheet(
                 }
             }
             if (newestFirst.size > PAYMENTS_PREVIEW) {
-                TextButton(onClick = { showAllPayments = !showAllPayments }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { showAllPayments = !showAllPayments }, shapes = pennyWiseButtonShapes()) {
                     Text(
                         if (showAllPayments) stringResource(R.string.subscriptions_suggested_show_less)
                         else stringResource(R.string.subscriptions_suggested_show_all, newestFirst.size)
@@ -314,7 +315,7 @@ internal fun RecurringSuggestionSheet(
             TextButton(
                 onClick = { closeThen(onNotRecurring) },
                 modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes(),
+                shapes = pennyWiseButtonShapes(),
             ) {
                 Text(stringResource(R.string.subscription_suggestion_not_recurring))
             }

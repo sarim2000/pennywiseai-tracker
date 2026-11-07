@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.AppDates
 
 import android.content.Context
@@ -12,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,10 +23,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,7 +71,6 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.cards.tintedSurface
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -83,7 +85,11 @@ import java.util.Locale
 internal val goalDateFormat: DateTimeFormatter get() = AppDates.dateFormatter()
 
 @Composable
-internal fun GoalProgress.color(): Color = goal.color.toColorOr(MaterialTheme.colorScheme.primary)
+internal fun GoalProgress.color(): Color = CategoryMapping.visibleOn(
+    // The form's default isn't a choice the user made: like a budget's, it follows the accent.
+    goal.color.takeUnless { it.equals(DEFAULT_GOAL_COLOR, ignoreCase = true) }.orEmpty().toColorOr(MaterialTheme.colorScheme.primary),
+    MaterialTheme.colorScheme.surfaceContainerHighest
+)
 
 /** Circular progress in the goal's colour over a neutral track; [content] sits in the middle. */
 @Composable
@@ -217,17 +223,19 @@ fun GoalsHomeCard(goals: List<GoalProgress>, onOpenGoal: (Long) -> Unit, modifie
         shown.forEachIndexed { i, progress ->
             GroupedRow(position = ListItemPosition.from(i, shown.size), onClick = { onOpenGoal(progress.goal.id) }) {
                 GoalRing(progress, Dimensions.Component.goalRingSmall, Dimensions.Component.goalRingSmallStroke) {}
+                // The status line holds a figure, so it wraps rather than ellipsizes.
                 RowLabels(
                     title = progress.goal.name,
                     subtitle = progress.statusLine(context),
                     subtitleColor = progress.tone().color(),
-                    subtitleMaxLines = 1,
+                    titleMaxLines = 2,
                 )
                 Text(
                     text = stringResource(R.string.budgets_percent, progress.percent()),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    softWrap = false,
                 )
             }
         }
@@ -237,10 +245,11 @@ fun GoalsHomeCard(goals: List<GoalProgress>, onOpenGoal: (Long) -> Unit, modifie
 @Composable
 fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val goal = progress.goal
+    // Neutral like the budget cards: the goal's colour lives on its ring.
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
-        containerColor = progress.color().tintedSurface(),
         onClick = onClick,
+        flat = true,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             GoalRing(progress, Dimensions.Component.goalRing, Dimensions.Component.goalRingStroke) {
@@ -254,10 +263,9 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     text = goal.name,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    style = com.pennywiseai.tracker.ui.theme.PennyWiseText.rowTitle,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
@@ -269,14 +277,16 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
                     style = PennyWiseText.amountSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                FlowRow(
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+                ) {
                     GoalStatusPill(progress)
                     Text(
                         text = goalTimeLabel(progress),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -285,7 +295,7 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
 }
 
 /**
- * The Goals section at the top of the Budgets screen. Owns the Pro gate for
+ * The Goals section of the Budgets screen, below the budgets. Owns the Pro gate for
  * "New goal" (#914): free users get [com.pennywiseai.tracker.billing.FreeTierLimits.MAX_ACTIVE_GOALS].
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -312,15 +322,6 @@ fun GoalsSection(
         SectionHeaderV2(
             title = stringResource(R.string.goals_section_title),
             topSpacing = Spacing.none,
-            action = if (active.isNotEmpty()) {
-                {
-                    TextButton(onClick = create, shapes = ButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
-                        Spacer(Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.goals_new))
-                    }
-                }
-            } else null,
         )
         if (active.isEmpty()) {
             GoalsEmptyCard(onCreate = create)
@@ -328,14 +329,21 @@ fun GoalsSection(
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 active.forEach { GoalCard(it, onClick = { onOpenGoal(it.goal.id) }) }
             }
+            // Below the goals: in the header it sat right under the screen's add button.
+            GroupedList {
+                GroupedRow(position = ListItemPosition.Single, onClick = create) {
+                    Icon(Icons.Outlined.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    RowLabels(title = stringResource(R.string.goals_new))
+                }
+            }
         }
         if (archived.isNotEmpty()) {
             GroupedList {
                 GroupedRow(position = ListItemPosition.Single, onClick = { showArchived = true }) {
-                    Icon(Icons.Default.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.Outlined.Archive, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     RowLabels(title = stringResource(R.string.goals_archived_row, archived.size))
                     Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                         contentDescription = null,
                         modifier = Modifier.size(Dimensions.Icon.inline),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -374,7 +382,7 @@ fun GoalsSection(
                                     CurrencyFormatter.formatCurrency(goal.goal.targetAmount, goal.goal.currency),
                                 ),
                             )
-                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }, shapes = ButtonDefaults.shapes()) {
+                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }, shapes = pennyWiseButtonShapes()) {
                                 Text(stringResource(R.string.goals_unarchive))
                             }
                         }
@@ -394,10 +402,10 @@ private fun GoalsEmptyCard(onCreate: () -> Unit) {
             Box(
                 Modifier
                     .size(Dimensions.Icon.avatarLarge)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(Icons.Outlined.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Text(stringResource(R.string.goals_empty_title), style = MaterialTheme.typography.titleMedium)
@@ -409,7 +417,7 @@ private fun GoalsEmptyCard(onCreate: () -> Unit) {
             }
         }
         Spacer(Modifier.size(Spacing.md))
-        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
+        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) {
             Text(stringResource(R.string.goals_empty_action))
         }
     }

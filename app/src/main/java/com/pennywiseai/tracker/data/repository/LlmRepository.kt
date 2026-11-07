@@ -369,7 +369,7 @@ class LlmRepository @Inject constructor(
 
         Tell me what you spent and I'll add it after you confirm — e.g. "coffee 120 at Starbucks" or "got 50000 salary". Ask "how much on groceries this month?" for a total.
 
-        This month so far: ${monthSummary.transactionCount} transactions, ${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)} spent.
+        This month so far: ${monthSummary.transactionCount} transactions of any type. ${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)} spent, counting card spend and other currencies converted to $currency.
         Nothing is saved without your tap.
         """.trimIndent()
     }

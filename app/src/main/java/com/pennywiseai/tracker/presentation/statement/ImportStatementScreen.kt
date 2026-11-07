@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.statement
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -16,8 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,8 +56,6 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
 
 private val ROW_DATE: DateTimeFormatter get() = AppDates.dateFormatter()
@@ -108,7 +107,6 @@ fun ImportStatementScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -139,14 +137,13 @@ fun ImportStatementScreen(
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = stringResource(R.string.import_statement_back),
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         }
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -169,13 +166,11 @@ fun ImportStatementScreen(
                 ),
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
             )
         } else Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())
@@ -247,7 +242,7 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
     Spacer(modifier = Modifier.height(Spacing.xl))
 
     Icon(
-        imageVector = Icons.Default.Description,
+        imageVector = Icons.Outlined.Description,
         contentDescription = null,
         modifier = Modifier.size(80.dp),
         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
@@ -258,7 +253,6 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
     Text(
         text = stringResource(R.string.import_statement_title),
         style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
     )
 
@@ -280,7 +274,7 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
         shape = RoundedCornerShape(Dimensions.CornerRadius.large)
     ) {
         Icon(
-            imageVector = Icons.Default.PictureAsPdf,
+            imageVector = Icons.Outlined.PictureAsPdf,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
@@ -296,7 +290,7 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
         shape = RoundedCornerShape(Dimensions.CornerRadius.large)
     ) {
         Icon(
-            imageVector = Icons.Default.TableChart,
+            imageVector = Icons.Outlined.TableChart,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
@@ -374,14 +368,14 @@ private fun MappingContent(
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = { onHeaderRow(mapping.headerRow - 1) }, enabled = mapping.headerRow > 0, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.import_statement_header_row_up))
+                    Icon(Icons.Outlined.KeyboardArrowUp, stringResource(R.string.import_statement_header_row_up))
                 }
                 IconButton(
                     onClick = { onHeaderRow(mapping.headerRow + 1) },
                     enabled = mapping.headerRow < state.rows.lastIndex,
                     shapes = IconButtonDefaults.shapes()
                 ) {
-                    Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.import_statement_header_row_down))
+                    Icon(Icons.Outlined.KeyboardArrowDown, stringResource(R.string.import_statement_header_row_down))
                 }
             }
             Spacer(Modifier.height(Spacing.sm))
@@ -663,7 +657,7 @@ private fun PreviewContent(
                     )
                 }
                 if (state.fromSpreadsheet) {
-                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) {
                         Text(stringResource(R.string.import_statement_edit_mapping))
                     }
                 }
@@ -738,7 +732,7 @@ private fun SuccessContent(
     Spacer(modifier = Modifier.height(Spacing.lg))
 
     Icon(
-        imageVector = Icons.Default.CheckCircle,
+        imageVector = Icons.Outlined.CheckCircle,
         contentDescription = null,
         modifier = Modifier.size(64.dp),
         tint = MaterialTheme.colorScheme.primary
@@ -749,7 +743,6 @@ private fun SuccessContent(
     Text(
         text = stringResource(R.string.import_statement_complete),
         style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
     )
 
@@ -836,7 +829,7 @@ private fun SuccessContent(
         shape = RoundedCornerShape(Dimensions.CornerRadius.large)
     ) {
         Icon(
-            imageVector = Icons.Default.Add,
+            imageVector = Icons.Outlined.Add,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
@@ -906,7 +899,7 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             else -> {
-                FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
+                FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) {
                     Text(stringResource(R.string.import_statement_balance_set, money(corrected)))
                 }
                 if (corrected.compareTo(check.statementBalance) != 0) {
@@ -958,7 +951,7 @@ private fun ErrorContent(
     Spacer(modifier = Modifier.height(Spacing.xxxl))
 
     Icon(
-        imageVector = Icons.Default.Error,
+        imageVector = Icons.Outlined.Error,
         contentDescription = null,
         modifier = Modifier.size(64.dp),
         tint = MaterialTheme.colorScheme.error
@@ -969,7 +962,6 @@ private fun ErrorContent(
     Text(
         text = stringResource(R.string.import_statement_failed),
         style = MaterialTheme.typography.headlineSmall,
-        fontWeight = FontWeight.Bold,
         color = MaterialTheme.colorScheme.onBackground
     )
 
@@ -991,7 +983,7 @@ private fun ErrorContent(
         shape = RoundedCornerShape(Dimensions.CornerRadius.large)
     ) {
         Icon(
-            imageVector = Icons.Default.Refresh,
+            imageVector = Icons.Outlined.Refresh,
             contentDescription = null,
             modifier = Modifier.size(Dimensions.Icon.medium)
         )
@@ -1032,12 +1024,12 @@ private fun PdfPasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty(), shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.import_statement_password_open))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.import_statement_password_cancel)) }
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.import_statement_password_cancel)) }
         }
     )
 }

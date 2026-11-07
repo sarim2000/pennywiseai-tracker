@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.Manifest
 import android.content.Intent
 import android.os.Build
@@ -17,7 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.outlined.MailOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -95,7 +96,7 @@ fun PermissionScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.MailOutline,
+                imageVector = Icons.Outlined.MailOutline,
                 contentDescription = null,
                 modifier = Modifier.size(120.dp),
                 tint = MaterialTheme.colorScheme.primary
@@ -176,7 +177,7 @@ fun PermissionScreen(
                                 notificationAccessLauncher.launch(intent)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            shapes = ButtonDefaults.shapes()
+                            shapes = pennyWiseButtonShapes()
                         ) {
                             Text(stringResource(R.string.permission_notification_open_settings))
                         }
@@ -217,7 +218,7 @@ fun PermissionScreen(
                     multiplePermissionLauncher.launch(permissions.toTypedArray())
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.permission_enable_button))
             }

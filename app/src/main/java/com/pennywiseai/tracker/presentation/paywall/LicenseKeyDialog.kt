@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -100,13 +101,13 @@ internal fun LicenseKeyDialog(
                     strokeWidth = Spacing.xxs,
                 )
             } else if (canMove) {
-                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.upgrade_license_move_here)) }
+                TextButton(onClick = { onMoveHere(key, email) }, enabled = canMoveNow, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.upgrade_license_move_here)) }
             } else {
-                TextButton(onClick = { onActivate(key) }, enabled = canSubmit, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.upgrade_license_activate)) }
+                TextButton(onClick = { onActivate(key) }, enabled = canSubmit, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.upgrade_license_activate)) }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isActivating, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.upgrade_cancel)) }
+            TextButton(onClick = onDismiss, enabled = !isActivating, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.upgrade_cancel)) }
         },
     )
 }

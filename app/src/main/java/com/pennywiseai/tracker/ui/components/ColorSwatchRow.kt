@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -34,6 +34,9 @@ val PRESET_COLORS = listOf(
 )
 
 /** `"#RRGGBB"` → [Color], or [fallback] when the string is malformed. */
+/** What a budget has until the user picks a colour; shown as the theme's accent. */
+const val DEFAULT_BUDGET_COLOR = "#1565C0"
+
 fun String.toColorOr(fallback: Color): Color =
     runCatching { Color(android.graphics.Color.parseColor(this)) }.getOrDefault(fallback)
 
@@ -82,7 +85,7 @@ fun ColorSwatchRow(
                 ) {
                     if (isSelected) {
                         Icon(
-                            Icons.Default.Check,
+                            Icons.Outlined.Check,
                             contentDescription = stringResource(R.string.color_swatch_selected),
                             tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
                             modifier = Modifier.size(Dimensions.Icon.small)

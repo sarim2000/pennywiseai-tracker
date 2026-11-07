@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.screens.settings.webhooks
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,8 +8,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,7 +48,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
         else -> stringResource(R.string.webhooks_title)
     }
     PennyWiseScaffold(title = title, navigationIcon = {
-        IconButton(onClick = back, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.webhooks_back)) }
+        IconButton(onClick = back, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.webhooks_back)) }
     }) { padding ->
         LazyColumn(
             state = listState,
@@ -61,13 +62,13 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
             when {
                 !isPro -> {
                     item { Text(stringResource(R.string.webhooks_pro_body)) }
-                    item { Button(onClick = { showUpgrade = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_unlock_pro)) } }
+                    item { Button(onClick = { showUpgrade = true }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_unlock_pro)) } }
                 }
                 state.editor != null -> {
                     item { WebhookEditor(state.editor!!, state.intervalHours, viewModel::updateEditor) }
                     state.message?.let { message -> item { Text(message.asString(), color = MaterialTheme.colorScheme.error) } }
                     item {
-                        Button(onClick = viewModel::save, enabled = !state.busy, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = viewModel::save, enabled = !state.busy, modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) {
                             Text(stringResource(R.string.webhooks_editor_save))
                         }
                     }
@@ -96,19 +97,19 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                     item {
                         Text(stringResource(R.string.webhooks_intro))
                     }
-                    item { Button(onClick = viewModel::newProfile, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_add)) } }
+                    item { Button(onClick = viewModel::newProfile, modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_add)) } }
                     item {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                             OutlinedTextField(state.interval, viewModel::setInterval, Modifier.weight(1f),
                                 label = { Text(stringResource(R.string.webhooks_interval_label)) }, singleLine = true,
                                 supportingText = { Text(stringResource(R.string.webhooks_interval_hint)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                            TextButton(onClick = viewModel::saveInterval, enabled = !state.busy, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_interval_apply)) }
+                            TextButton(onClick = viewModel::saveInterval, enabled = !state.busy, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_interval_apply)) }
                         }
                     }
                     item {
                         OutlinedButton(onClick = { viewModel.syncNow() }, enabled = !state.busy && state.profiles.any { it.enabled },
-                            modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_sync_all_now)) }
+                            modifier = Modifier.fillMaxWidth(), shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_sync_all_now)) }
                     }
                     if (state.profiles.isEmpty()) item { Text(stringResource(R.string.webhooks_empty)) }
                     items(state.profiles, key = { it.id }) { profile ->
@@ -128,8 +129,8 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
     deleteProfile?.let { profile ->
         AlertDialog(onDismissRequest = { deleteProfile = null }, title = { Text(stringResource(R.string.webhooks_delete_title)) },
             text = { Text(stringResource(R.string.webhooks_delete_body, profile.name)) },
-            confirmButton = { TextButton(onClick = { viewModel.delete(profile.id); deleteProfile = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_delete_confirm)) } },
-            dismissButton = { TextButton(onClick = { deleteProfile = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_delete_cancel)) } })
+            confirmButton = { TextButton(onClick = { viewModel.delete(profile.id); deleteProfile = null }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_delete_confirm)) } },
+            dismissButton = { TextButton(onClick = { deleteProfile = null }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_delete_cancel)) } })
     }
 }
 
@@ -154,11 +155,11 @@ private fun WebhookProfileCard(
             profile.lastError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             profile.lastSyncedAt?.let { Text(stringResource(R.string.webhooks_last_sync, "${it.toLocalDate()} ${it.toLocalTime().withNano(0)}"), style = MaterialTheme.typography.bodySmall) }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                TextButton(onClick = onEdit, enabled = enabled, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_action_edit)) }
-                TextButton(onClick = onTest, enabled = enabled, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_action_test)) }
-                TextButton(onClick = onSync, enabled = enabled && profile.enabled, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_action_sync)) }
-                TextButton(onClick = onHistory, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_action_history)) }
-                IconButton(onClick = onDelete, enabled = enabled, shapes = IconButtonDefaults.shapes()) { Icon(Icons.Default.Delete, stringResource(R.string.webhooks_action_delete_cd, profile.name)) }
+                TextButton(onClick = onEdit, enabled = enabled, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_action_edit)) }
+                TextButton(onClick = onTest, enabled = enabled, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_action_test)) }
+                TextButton(onClick = onSync, enabled = enabled && profile.enabled, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_action_sync)) }
+                TextButton(onClick = onHistory, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_action_history)) }
+                IconButton(onClick = onDelete, enabled = enabled, shapes = IconButtonDefaults.shapes()) { Icon(Icons.Outlined.Delete, stringResource(R.string.webhooks_action_delete_cd, profile.name)) }
             }
         }
     }
@@ -195,7 +196,7 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
             }
         }
         Box {
-            OutlinedButton(onClick = { rangeMenu = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_editor_range, editor.range.label())) }
+            OutlinedButton(onClick = { rangeMenu = true }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_editor_range, editor.range.label())) }
             DropdownMenu(rangeMenu, onDismissRequest = { rangeMenu = false }) {
                 WebhookRangePreset.entries.forEach { range ->
                     DropdownMenuItem(text = { Text(range.label()) }, onClick = {
@@ -227,12 +228,12 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
                     IconButton(onClick = { update { it.copy(headers = it.headers.filterIndexed { i, _ -> i != index }) } }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Delete, stringResource(R.string.webhooks_editor_remove_header))
+                        Icon(Icons.Outlined.Delete, stringResource(R.string.webhooks_editor_remove_header))
                     }
                 }
             }
         }
-        OutlinedButton(onClick = { update { it.copy(headers = it.headers + WebhookHeader("", "")) } }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_editor_add_header)) }
+        OutlinedButton(onClick = { update { it.copy(headers = it.headers + WebhookHeader("", "")) } }, shapes = pennyWiseButtonShapes()) { Text(stringResource(R.string.webhooks_editor_add_header)) }
     }
 }
 

@@ -1,10 +1,11 @@
 package com.pennywiseai.tracker.ui.screens
 
+import com.pennywiseai.tracker.ui.theme.pennyWiseButtonShapes
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -73,7 +74,7 @@ fun AppLockScreen(
             ) {
                 // Lock icon
                 Icon(
-                    imageVector = Icons.Filled.Lock,
+                    imageVector = Icons.Outlined.Lock,
                     contentDescription = stringResource(R.string.applock_icon_cd),
                     modifier = Modifier.size(120.dp),
                     tint = MaterialTheme.colorScheme.primary
@@ -129,7 +130,7 @@ fun AppLockScreen(
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
+                    shapes = pennyWiseButtonShapes()
                 ) {
                     Text(stringResource(R.string.applock_unlock))
                 }

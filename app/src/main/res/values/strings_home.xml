@@ -108,7 +108,7 @@
 
     <!-- Spotlight tutorial -->
     <string name="spotlight_scan_sms">Tap here to scan your SMS messages for transactions</string>
-    <string name="spotlight_tap_to_dismiss">Tap anywhere to dismiss</string>
+    <string name="spotlight_tap_to_dismiss">Tap elsewhere to dismiss</string>
 
     <!-- Transaction type filter (short labels) -->
     <string name="type_filter_all">All</string>
@@ -164,15 +164,26 @@
     <!-- Balance / spending card -->
     <string name="balance_card_change_more_same_point">%1$d%% more than this time last month</string>
     <string name="balance_card_change_less_same_point">%1$d%% less than this time last month</string>
+    <string name="balance_card_change_same_point">Same as this time last month</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Balance: %1$s</string>
+    <string name="safe_to_spend_other_currency_row">Other currency, kept separate</string>
+    <string name="budgets_pace_hint">The mark on each bar is today</string>
+    <string name="balance_chart_not_enough">Not enough history for a trend yet</string>
+    <string name="budget_ahead_of_pace">Spending faster than planned</string>
+    <string name="balance_card_balance_label">Balance</string>
+    <string name="balance_card_plus_other">Plus %1$s</string>
+    <plurals name="balance_card_accounts_count">
+        <item quantity="one">%1$d account</item>
+        <item quantity="other">%1$d accounts</item>
+    </plurals>
     <plurals name="balance_card_account_count">
         <item quantity="one">" · %1$d account"</item>
         <item quantity="other">" · %1$d accounts"</item>
     </plurals>
-    <string name="balance_card_last_month_amount">Last month: %1$s</string>
+    <string name="balance_card_last_month_amount">Full last month: %1$s</string>
     <string name="balance_card_this_month">This month</string>
-    <string name="balance_card_last_month">Last month</string>
+    <string name="balance_card_last_month">Same days last month</string>
     <string name="balance_card_accounts">Accounts</string>
     <string name="balance_card_credit_cards">Credit Cards</string>
     <string name="balance_card_total">Total</string>
@@ -183,6 +194,8 @@
     <string name="balance_card_summary_expenses">Expenses</string>
     <string name="balance_card_summary_lent">Lent</string>
     <string name="balance_card_summary_saved">Saved</string>
+    <string name="balance_card_plus_other_currencies">%1$s, plus %2$s</string>
+    <string name="balance_card_summary_net">Net</string>
 
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
@@ -354,6 +367,11 @@
 
     <!-- Balance chart legend -->
     <string name="balance_chart_label">Balance Trend</string>
+    <string name="sparkline_today">Today</string>
+    <string name="home_empty_add_manually">Add one manually</string>
+    <string name="home_activity_subtitle">Transactions per day</string>
+    <string name="heatmap_legend_less">Fewer</string>
+    <string name="heatmap_legend_more">More</string>
 
     <!-- One-time Home card for engaged free users (#945). No price, link or website. -->
     <string name="pro_home_card_title">Enjoying PennyWise?</string>
@@ -378,6 +396,7 @@
     <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
     <string name="safe_to_spend_capped">Capped by your budget: %1$s left</string>
+    <string name="safe_to_spend_after_bills">After %1$s in bills</string>
     <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>
     <string name="safe_to_spend_accounts">Bank balance</string>
@@ -387,6 +406,6 @@
     <string name="safe_to_spend_no_bills">No subscriptions due</string>
     <string name="safe_to_spend_choose_accounts">Choose accounts</string>
     <string name="safe_to_spend_done">Done</string>
-    <string name="safe_to_spend_footnote">Bills come from your active subscriptions. Credit cards and loans don\'t count as spendable money.</string>
+    <string name="safe_to_spend_footnote">Bills come from your active subscriptions, each counted once at its next due date, so a weekly bill counts once. Credit cards and loans don\'t count as spendable money.</string>
 
 </resources>

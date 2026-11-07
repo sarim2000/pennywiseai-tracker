@@ -4,7 +4,7 @@ import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,8 +13,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,8 +36,6 @@ import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.data.repository.GroupSummary
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
@@ -51,7 +49,6 @@ fun TransactionGroupsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -64,17 +61,18 @@ fun TransactionGroupsScreen(
                 hasBackButton = true,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
-                hazeState = hazeState
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.showCreateDialog() }
+                onClick = { viewModel.showCreateDialog() },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.groups_create))
+                Icon(Icons.Outlined.Add, contentDescription = stringResource(R.string.groups_create))
             }
         }
     ) { paddingValues ->
@@ -96,7 +94,7 @@ fun TransactionGroupsScreen(
                 contentAlignment = Alignment.Center
             ) {
                 PennyWiseEmptyState(
-                    icon = Icons.Default.Folder,
+                    icon = Icons.Outlined.Folder,
                     headline = stringResource(R.string.groups_empty_title),
                     description = stringResource(R.string.groups_empty_hint)
                 )
@@ -108,7 +106,6 @@ fun TransactionGroupsScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
@@ -142,7 +139,7 @@ private fun GroupListItem(
     summary: GroupSummary,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
     val accentColor = if (isDark) income_dark else income_light
 
     PennyWiseCardV2(
@@ -267,13 +264,13 @@ private fun CreateGroupDialog(
             TextButton(
                 onClick = { onCreate(name, note.ifBlank { null }) },
                 enabled = name.isNotBlank(),
-                shapes = ButtonDefaults.shapes()
+                shapes = pennyWiseButtonShapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onDismiss, shapes = pennyWiseButtonShapes()) {
                 Text(stringResource(R.string.group_cancel))
             }
         }

@@ -371,4 +371,17 @@
     <string name="analytics_forecast_for">التوقع حتى %1$s</string>
     <string name="analytics_forecast_above_usual">أعلى من المعتاد بحوالي %1$s</string>
     <string name="analytics_forecast_stay_under">أنفق أقل من %1$s يوميًا لتبقى عند %2$s.</string>
+    <string name="analytics_filters">الفلاتر</string>
+    <string name="analytics_summary_per_transaction">" لكل معاملة"</string>
+    <string name="budgets_resets_today">يتجدد اليوم</string>
+    <string name="analytics_hidden_chart">الرسم مخفي أثناء إخفاء المبالغ.</string>
+    <plurals name="budgets_resets_in">
+        <item quantity="zero">يتجدد اليوم</item>
+        <item quantity="one">يتجدد خلال %1$d يوم</item>
+        <item quantity="two">يتجدد خلال يومين</item>
+        <item quantity="few">يتجدد خلال %1$d أيام</item>
+        <item quantity="many">يتجدد خلال %1$d يومًا</item>
+        <item quantity="other">يتجدد خلال %1$d يوم</item>
+    </plurals>
+    <string name="analytics_summary_top_category">الفئة الأعلى</string>
 </resources>

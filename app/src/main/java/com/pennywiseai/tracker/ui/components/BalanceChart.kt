@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.material3.Text
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -47,9 +48,21 @@ fun BalanceChart(
     primaryCurrency: String,
     balanceHistory: List<BalancePoint>,
     modifier: Modifier = Modifier,
-    height: Int = 200
+    height: Int = 200,
+    /** Names the plotted series; null hides the legend when the screen already says it. */
+    seriesLabel: String? = stringResource(R.string.balance_chart_label)
 ) {
     if (balanceHistory.isEmpty()) return
+    // One point has no trend: the chart library would draw it as a wedge falling to zero.
+    if (balanceHistory.size < 2) {
+        Text(
+            text = stringResource(R.string.balance_chart_not_enough),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = modifier
+        )
+        return
+    }
 
     val sortedHistory = remember(balanceHistory) {
         balanceHistory.sortedBy { it.timestamp }
@@ -75,7 +88,7 @@ fun BalanceChart(
             smoothedHistory.first().timestamp.year != smoothedHistory.last().timestamp.year
         } else false
 
-        smoothedHistory.map {
+        val all = smoothedHistory.map {
             val date = it.timestamp
             when {
                 isYearly -> date.format(DateTimeFormatter.ofPattern("yyyy"))
@@ -84,7 +97,10 @@ fun BalanceChart(
                 else -> date.format(AppDates.pattern("dd MMM"))
             }
         }
+        chartAxisLabels(all, MAX_AXIS_LABELS)
     }
+    // Dots are for sparse series: on 30 daily points they become a beaded baseline.
+    val denseSeries = smoothedHistory.size > MAX_POINTS_WITH_DOTS
 
     LineChart(
         modifier = modifier
@@ -93,7 +109,7 @@ fun BalanceChart(
             .padding(horizontal = Spacing.sm, vertical = Spacing.md),
         data = listOf(
             Line(
-                label = stringResource(R.string.balance_chart_label),
+                label = seriesLabel ?: "",
                 values = chartValues,
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
@@ -101,9 +117,11 @@ fun BalanceChart(
                 strokeAnimationSpec = tween(1500, easing = EaseInOutCubic),
                 gradientAnimationDelay = 750,
                 drawStyle = DrawStyle.Stroke(width = 2.dp),
-                curvedEdges = true,
+                // Straight segments: a curve overshoots below zero around each spike and
+                // draws values between days that never happened.
+                curvedEdges = false,
                 dotProperties = DotProperties(
-                    enabled = true,
+                    enabled = !denseSeries,
                     color = SolidColor(themeColors.primary),
                     strokeWidth = 3.dp,
                     radius = 4.dp,
@@ -133,7 +151,7 @@ fun BalanceChart(
             }
         ),
         labelHelperProperties = LabelHelperProperties(
-            enabled = true,
+            enabled = seriesLabel != null,
             textStyle = chartLabel.copy(
                 color = themeColors.onSurface,
                 textAlign = TextAlign.End
@@ -146,11 +164,7 @@ fun BalanceChart(
                 textAlign = TextAlign.End
             ),
             labels = labels,
-            padding = 16.dp,
-            rotation = LabelProperties.Rotation(
-                mode = LabelProperties.Rotation.Mode.Force,
-                degree = -45f
-            )
+            padding = Spacing.sm
         ),
         zeroLineProperties = ZeroLineProperties(
             enabled = true,
@@ -172,6 +186,22 @@ fun BalanceChart(
         ),
         animationMode = AnimationMode.Together(delayBuilder = { it * 200L }),
     )
+}
+
+/** Evenly spaced axis labels that fit a phone at any font size, unrotated. */
+private const val MAX_AXIS_LABELS = 4
+private const val MAX_POINTS_WITH_DOTS = 14
+
+/**
+ * The labels the chart library should spread across the axis.
+ *
+ * It spaces whatever it's given evenly from the first point to the last, so each
+ * label has to be the one for its position. Passing every date made it draw the first
+ * ten across the whole axis, which put a spike on the 21st above "06 Oct".
+ */
+internal fun chartAxisLabels(all: List<String>, max: Int): List<String> {
+    if (all.size <= max) return all
+    return List(max) { i -> all[i * all.lastIndex / (max - 1)] }
 }
 
 /**

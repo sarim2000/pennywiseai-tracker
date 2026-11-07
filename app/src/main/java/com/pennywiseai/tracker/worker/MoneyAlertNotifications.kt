@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.bidiIsolate
 import com.pennywiseai.tracker.widget.inAppLanguage
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -30,7 +31,7 @@ object MoneyAlertNotifications {
 
     fun showBudgetAlert(context: Context, spending: BudgetGroupSpending, tier: BudgetAlertTier, currency: String) {
         val res = context.inAppLanguage()
-        val name = spending.group.budget.name
+        val name = res.bidiIsolate(spending.group.budget.name)
         fun money(amount: BigDecimal) = CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false)
         val (title, text) = when (tier) {
             BudgetAlertTier.WARNING -> res.getString(
@@ -69,8 +70,10 @@ object MoneyAlertNotifications {
         )
         val text = res.getString(
             R.string.low_balance_alert_text,
-            account.alias?.takeIf { it.isNotBlank() }
-                ?: AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4),
+            res.bidiIsolate(
+                account.alias?.takeIf { it.isNotBlank() }
+                    ?: AccountBalanceEntity.accountLabel(account.bankName, account.accountLast4)
+            ),
             CurrencyFormatter.formatCurrency(threshold, currency, maskIfHidden = false)
         )
         val intent = Intent(context, MainActivity::class.java).apply {

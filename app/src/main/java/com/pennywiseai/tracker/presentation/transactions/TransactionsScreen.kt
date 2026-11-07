@@ -116,8 +116,7 @@ fun TransactionsScreen(
     // the list + FAB reserve matching clearance regardless of the back arrow. (#635)
     reserveBottomBarSpace: Boolean = false,
     onTransactionClick: (Long) -> Unit = {},
-    onAddTransactionClick: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onAddTransactionClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()

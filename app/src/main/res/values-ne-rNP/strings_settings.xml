@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">रद्द गर्नुहोस्</string>
     <string name="settings_action_ok">ठीक छ</string>
-    <string name="settings_action_done">समाप्त</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
     <string name="settings_pro_subtitle_active">सक्रिय · सबै सुविधाहरू खुला</string>
@@ -36,7 +35,6 @@
     <string name="settings_main_account_title">मुख्य खाता</string>
     <string name="settings_main_account_subtitle">तपाईंको पूर्वनिर्धारित मुद्रा सेट गर्छ</string>
     <string name="settings_main_account_not_set">सेट गरिएको छैन</string>
-    <string name="settings_currency_field_label">मुद्रा</string>
     <string name="settings_number_format_title">संख्या ढाँचा</string>
     <string name="settings_number_format_subtitle">ठूला रकमहरू कसरी समूह गरिन्छन्</string>
     <string name="settings_number_format_auto">स्वचालित</string>
@@ -48,9 +46,7 @@
     <string name="settings_date_format_title">मिति ढाँचा</string>
     <string name="settings_date_format_subtitle">मितिहरू कसरी देखाइन्छन्</string>
     <!-- Budget -->
-    <string name="settings_budget_section">बजेट</string>
     <string name="settings_budget_cycle_title">बजेट चक्र सुरु हुने दिन</string>
-    <string name="settings_budget_cycle_subtitle">हरेक मासिक बजेट अवधिको सुरुवात सार्छ; जस्तै 25 भनेको तपाईंको चक्र 25 गतेदेखि 24 गतेसम्म चल्छ</string>
     <string name="settings_budget_cycle_dialog_body">हरेक मासिक बजेट चक्र सुरु हुने दिन छान्नुहोस्। जस्तै 25 भनेको चक्र 25 गतेदेखि अर्को महिनाको 24 गतेसम्म चल्छ।</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">सम्पर्कहरू</string>

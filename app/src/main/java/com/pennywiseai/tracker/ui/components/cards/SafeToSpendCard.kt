@@ -41,7 +41,6 @@ import com.pennywiseai.tracker.presentation.home.safeToSpendKey
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.formatBalance
@@ -267,7 +266,7 @@ fun SafeToSpendSheet(
                             Text(
                                 text = "-" + CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency),
                                 style = PennyWiseText.amountRow,
-                                color = MaterialTheme.colorScheme.expense
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

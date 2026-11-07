@@ -20,7 +20,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -1241,7 +1240,7 @@ fun HomeScreen(
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 title = {
@@ -1621,7 +1620,7 @@ private fun BreakdownPeriod(
         Text(
             text = period,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
         BreakdownRow(label = stringResource(R.string.home_breakdown_income), amount = income, isIncome = true, currency = currency)
         BreakdownRow(label = stringResource(R.string.home_breakdown_expenses), amount = expenses, isIncome = false, currency = currency)
@@ -1631,6 +1630,7 @@ private fun BreakdownPeriod(
             amount = net,
             isIncome = net >= BigDecimal.ZERO,
             isBold = true,
+            isNet = true,
             currency = currency
         )
     }
@@ -1642,6 +1642,7 @@ private fun BreakdownRow(
     amount: BigDecimal,
     isIncome: Boolean,
     isBold: Boolean = false,
+    isNet: Boolean = false,
     currency: String
 ) {
     Row(
@@ -1658,10 +1659,11 @@ private fun BreakdownRow(
             style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
                 fontWeight = FontWeight.Normal
             ),
-            color = if (isIncome) {
-                if (!isSystemInDarkTheme()) income_light else income_dark
-            } else {
-                if (!isSystemInDarkTheme()) expense_light else expense_dark
+            // Spending is ink; red is kept for a negative net.
+            color = when {
+                isIncome -> MaterialTheme.colorScheme.income
+                isNet -> MaterialTheme.colorScheme.expense
+                else -> MaterialTheme.colorScheme.onSurface
             }
         )
     }
@@ -1835,8 +1837,7 @@ private fun ActiveLoansSummaryCard(
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
+    val loanColor = MaterialTheme.colorScheme.loan
 
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),

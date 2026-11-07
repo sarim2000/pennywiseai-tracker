@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -129,9 +128,8 @@ fun TransactionGroupDetailScreen(
             return@Scaffold
         }
 
-        val isDark = isSystemInDarkTheme()
-        val accentColor = if (isDark) income_dark else income_light
-        val expenseColor = if (isDark) expense_dark else expense_light
+        val accentColor = MaterialTheme.colorScheme.income
+        val expenseColor = MaterialTheme.colorScheme.onSurface
         val lazyListState = rememberLazyListState()
 
         LazyColumn(
@@ -348,10 +346,9 @@ private fun GroupTransactionItem(
     onRemove: () -> Unit,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
     val color = when (transaction.transactionType) {
-        TransactionType.EXPENSE, TransactionType.CREDIT -> if (isDark) expense_dark else expense_light
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
         else -> MaterialTheme.colorScheme.onSurface
     }
     val sign = when (transaction.transactionType) {
@@ -475,11 +472,9 @@ private fun AddTransactionToGroupSheet(
                     contentPadding = PaddingValues(bottom = Spacing.md)
                 ) {
                     items(ungroupedTransactions, key = { it.id }) { txn ->
-                        val isDark = isSystemInDarkTheme()
                         val color = when (txn.transactionType) {
-                            TransactionType.EXPENSE, TransactionType.CREDIT ->
-                                if (isDark) expense_dark else expense_light
-                            TransactionType.INCOME -> if (isDark) income_dark else income_light
+                            TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+                            TransactionType.INCOME -> MaterialTheme.colorScheme.income
                             else -> MaterialTheme.colorScheme.onSurface
                         }
                         val sign = when (txn.transactionType) {

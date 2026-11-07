@@ -779,7 +779,7 @@ private fun CreditCardItem(
                     Icon(
                         imageVector = Icons.Default.CreditCard,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Column {
                         Row(
@@ -855,7 +855,7 @@ private fun CreditCardItem(
                         text = CurrencyFormatter.formatCurrency(available, card.currency),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 
@@ -1137,7 +1137,7 @@ private fun AccountItem(
                     Icon(
                         imageVector = if (account.isLoan) AccountType.LOAN.icon else Icons.Default.AccountBalance,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     val alias = account.alias?.takeIf { it.isNotBlank() }
                     Column {
@@ -1211,7 +1211,7 @@ private fun AccountItem(
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1889,7 +1889,7 @@ private fun OrphanedCardItem(
                 Icon(
                     imageVector = Icons.Default.CreditCard,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -1907,7 +1907,7 @@ private fun OrphanedCardItem(
                         Text(
                             text = stringResource(R.string.manage_accounts_last_balance, CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     // Show source SMS that triggered card detection
@@ -2237,7 +2237,7 @@ private fun DeleteAccountConfirmDialog(
                         Icon(
                             Icons.Default.AccountBalance,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Column {
                             Text(

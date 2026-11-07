@@ -341,6 +341,17 @@ its meaning:
   to be told apart.
 - **Identity colours** (categories, merchants) stay.
 
+**The accent (`primary`) marks what you can act on or what is in a state:**
+buttons and text actions, the FAB / docked nav action, the selected nav tab,
+chip, toggle or segment, switches and other M3 controls, focus and cursor,
+activity progress, and the one hero CTA on a screen. Structure stays neutral:
+static headings and labels use `onSurface`, decorative icons (info rows, card
+and dialog headers, empty states, banners) and secondary figures use
+`onSurfaceVariant`, at full opacity. Semantic roles (income, expense, error…),
+chart series and category/merchant identity colours keep their colour. If a
+tinted thing can't be tapped and isn't selected or in progress, it shouldn't be
+`primary`.
+
 ---
 
 ## Accessibility checklist

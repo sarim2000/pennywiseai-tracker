@@ -425,7 +425,7 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
     val content = if (isAccent) {
         MaterialTheme.colorScheme.onSecondaryContainer
     } else {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
     androidx.compose.material3.Surface(
         color = container,

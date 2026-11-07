@@ -855,7 +855,7 @@ private fun WeekdayAnchorRow(
         Icon(
             imageVector = Icons.Default.CalendarMonth,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
@@ -913,7 +913,7 @@ private fun MonthAnchorRow(
         Icon(
             imageVector = Icons.Default.CalendarMonth,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
@@ -972,7 +972,7 @@ private fun OneTimeDateRow(
         Icon(
             imageVector = Icons.Default.CalendarMonth,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {

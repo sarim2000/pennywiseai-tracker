@@ -134,6 +134,16 @@ class MessageTemplateTest {
     // ─── What PR #302's generated regexes got wrong ─────────────────────────
 
     @Test
+    fun `a fraction with no whole part is never read as the whole amount`() {
+        val body = "Paid USD .50 at Cafe"
+        assertNull(teach(body, "50", "Cafe", currency = "USD"))
+        assertNull(MessageTemplates.guess(sender, body).amount)
+
+        val glued = teach("Paid Rs.50 at Cafe", "50", "Cafe", currency = "INR")!!
+        assertEquals(BigDecimal("75"), read(glued, "Paid Rs.75 at Cafe")!!.amount)
+    }
+
+    @Test
     fun `a merchant with nothing after it keeps its whole name`() {
         val template = teach("Paid SAR 5.00 at Juice Bar", "5.00", "Juice Bar")!!
         assertEquals("City Pharmacy Main", read(template, "Paid SAR 9.00 at City Pharmacy Main")!!.merchant)

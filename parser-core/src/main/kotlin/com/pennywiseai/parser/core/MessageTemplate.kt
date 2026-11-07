@@ -96,7 +96,7 @@ object MessageTemplates {
         if (body.length > MAX_BODY || !isCurrencyCode(currency)) return null
         val text = normalize(body)
         val amount = text.fromOriginal(selection.amount) ?: return null
-        if (isGroupFragment(text.text, amount)) return null
+        if (isGroupFragment(text.text, amount) || isBareFraction(text.text, amount)) return null
         val merchant = selection.merchant?.let { text.fromOriginal(it) ?: return null }
         val account = selection.account?.let { text.fromOriginal(it) ?: return null }
 
@@ -271,7 +271,7 @@ object MessageTemplates {
         val generic = GenericTransactionExtractor.extract(sender, s)?.transaction
 
         val numbers = numberRanges(s)
-        val priced = numbers.filter { currencyAt(s, it) != null && !isFigure(s, it) && !isGroupFragment(s, it) }
+        val priced = numbers.filter { currencyAt(s, it) != null && !isFigure(s, it) && !isGroupFragment(s, it) && !isBareFraction(s, it) }
         // Two different prices in one message: only the user knows which one moved.
         val amount = priced.singleOrNull()
         val merchant = (generic?.merchant ?: merchantWords(s))?.let { name ->
@@ -601,6 +601,16 @@ object MessageTemplates {
         val digitsBefore = if (range.first >= 2 && groupMark(before)) s.substring(0, range.first - 1).takeLastWhile(::isDigit) else ""
         val digitsAfter = if (groupMark(after)) s.substring((range.last + 2).coerceAtMost(s.length)).takeWhile(::isDigit) else ""
         return (whole.length == 3 && digitsBefore.length in 1..3) || (whole == s.substring(range.first, range.last + 1) && whole.length in 1..3 && digitsAfter.length == 3)
+    }
+
+    /**
+     * The 50 of ".50": read alone it's 100 times the real amount, so it's neither guessed nor
+     * learned. The separator can't join the number, as after a word it's the currency's: "Rs.50" is 50.
+     */
+    // ponytail: such a message stays untaught, read a leading separator if a real bank writes one
+    private fun isBareFraction(s: String, range: IntRange): Boolean {
+        if (s.getOrNull(range.first - 1)?.let { it in AMOUNT_SEPARATORS } != true) return false
+        return s.getOrNull(range.first - 2)?.isLetterOrDigit() != true
     }
 
     private fun arabicDirection(s: String): TransactionType? {

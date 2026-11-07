@@ -270,6 +270,19 @@ class TransactionDraftTest {
     }
 
     @Test
+    fun `a refund several rows share beats a noun in the row's own clause`() {
+        fun types(text: String, vararg items: Map<String, Any?>) = turn(text, *items).map { it.type }
+        val income = TransactionType.INCOME
+        val expense = TransactionType.EXPENSE
+        assertEquals(
+            listOf(income, income, expense),
+            types("Rent 12000 and train tickets 500 were both refunded today. Then I spent 80 on breakfast.", item(12000, "INCOME"), item(500, "INCOME"), item(80, "EXPENSE"))
+        )
+        // The refund is that row's alone, so the rent keeps its own word even when the model says otherwise.
+        assertEquals(listOf(expense, income), types("Rent 12000, then got a refund of 500", item(12000, "INCOME"), item(500, "INCOME")))
+    }
+
+    @Test
     fun `equal amounts keep the types the model gave them`() {
         val types = turn("received 450 refund from shoe shop, then paid 450 for haircut", item(450, "EXPENSE"), item(450, "INCOME")).map { it.type }
         assertEquals(listOf(TransactionType.EXPENSE, TransactionType.INCOME), types)

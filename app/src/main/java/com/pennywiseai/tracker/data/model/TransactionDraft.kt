@@ -61,14 +61,19 @@ data class TransactionDraft(
         )
 
         /** The type a row's clause says, or null when it doesn't. What was done beats what it was for: "received 500 for rent". */
-        private fun statedType(text: String, amount: BigDecimal): TransactionType? = when {
+        private fun statedType(text: String, amount: BigDecimal, nounsCount: Boolean = true): TransactionType? = when {
             SPEND_VERBS.containsMatchIn(text) -> TransactionType.EXPENSE
             RECEIVE_VERBS.containsMatchIn(text) -> TransactionType.INCOME
             ChatMessageFacts.gotMoney(text, amount) -> TransactionType.INCOME
+            !nounsCount -> null
             SPEND_NOUNS.containsMatchIn(text) -> TransactionType.EXPENSE
             INCOME_NOUNS.containsMatchIn(text) -> TransactionType.INCOME
             else -> null
         }
+
+        // "Rent 12000 and train 500 were both refunded": the clause stops at "Rent 12000", so "rent" can't speak for that row.
+        // ponytail: English only, like NOT_YET_PAID; Arabic and Hindi rows keep their noun, and the card shows the type.
+        private val SHARED_REFUND = Regex("\\b(?:were|both|all)\\s+(?:both\\s+|all\\s+)?(?:refunded|reimbursed)\\b", RegexOption.IGNORE_CASE)
 
         /** Words for money coming in anywhere: then a row with no word of its own may be income too. */
         private fun mentionsIncome(text: String) =
@@ -222,7 +227,7 @@ data class TransactionDraft(
             // A message with several rows can mix directions, so a row's own words go first. Without
             // any, the model only gets a say when the message mentions money coming in at all.
             val type = when {
-                manyRows -> clause?.let { statedType(it, amount) }
+                manyRows -> clause?.let { statedType(it, amount, nounsCount = !SHARED_REFUND.containsMatchIn(sourceText)) }
                     ?: modelType?.takeIf { mentionsIncome(sourceText) }
                     ?: if (modelSaysIncome && incomeOnlyCategory) TransactionType.INCOME else TransactionType.EXPENSE
                 SPEND_VERBS.containsMatchIn(sourceText) || SPEND_NOUNS.containsMatchIn(sourceText) -> TransactionType.EXPENSE

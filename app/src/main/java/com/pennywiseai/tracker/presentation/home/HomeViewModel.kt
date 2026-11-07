@@ -58,6 +58,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.SharingStarted
@@ -78,6 +79,10 @@ import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
+import com.pennywiseai.tracker.presentation.review.PeriodReviewLoader
+import com.pennywiseai.tracker.presentation.review.ReviewKind
+import com.pennywiseai.tracker.presentation.review.ReviewPrompt
+import com.pennywiseai.tracker.presentation.review.reviewPromptFor
 import javax.inject.Inject
 
 /**
@@ -96,6 +101,7 @@ class HomeViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
     private val loanRepository: LoanRepository,
+    private val periodReviewLoader: PeriodReviewLoader,
     goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
     private val llmRepository: LlmRepository,
     private val currencyConversionService: CurrencyConversionService,
@@ -221,19 +227,19 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
-     * order, and init calls refreshSharePrompt(). Leaving this further down the class
+     * order, and init calls observeReviewPrompt(). Leaving this further down the class
      * means the flow does not exist yet when that runs.
      */
-    private val _showSharePrompt = MutableStateFlow(false)
-    val showSharePrompt: StateFlow<Boolean> = _showSharePrompt.asStateFlow()
+    private val _reviewPrompt = MutableStateFlow<ReviewPrompt?>(null)
+    val reviewPrompt: StateFlow<ReviewPrompt?> = _reviewPrompt.asStateFlow()
 
     /** The one-time Home card pointing engaged free users to Pro (#945). */
     val showProHomeCard: StateFlow<Boolean> = combine(
         entitlementGate.resolvedProEntitlement,
         userPreferencesRepository.proHomeCardHandled,
         transactionRepository.observeActiveTransactionCount(),
-        _showSharePrompt,
-    ) { isPro, handled, count, sharePromptShowing ->
+        _reviewPrompt,
+    ) { isPro, handled, count, reviewPrompt ->
         shouldShowProHomeCard(
             isPro = isPro,
             handled = handled,
@@ -241,7 +247,7 @@ class HomeViewModel @Inject constructor(
                 .getPackageInfo(context.packageName, 0).firstInstallTime,
             nowMillis = System.currentTimeMillis(),
             transactionCount = count,
-            sharePromptShowing = sharePromptShowing,
+            reviewPromptShowing = reviewPrompt != null,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
@@ -362,7 +368,7 @@ class HomeViewModel @Inject constructor(
     init {
         loadUnifiedModePreferences()
         loadUserName()
-        refreshSharePrompt()
+        observeReviewPrompt()
         // Mirror the "count card spend as expense" pref into UI state so the
         // "Money in motion" card can hide its Credit chip when it's on (#705).
         viewModelScope.launch {
@@ -1393,38 +1399,46 @@ class HomeViewModel @Inject constructor(
      * Should be called with the current activity context.
      */
     /**
-     * Whether to offer the monthly "your month, summed up" prompt on Home.
+     * Which review to offer on Home, if any.
      *
      * Checked on composition rather than scheduled through WorkManager: the OEM battery
      * managers that dominate this app's install base (Xiaomi, Oppo, Vivo, Realme) kill
      * background work aggressively, so a scheduled job would fire late, or never. Users
      * open their expense tracker anyway, which makes the scheduler unnecessary.
+     *
+     * Follows the date, the cycle and the rows in scope. The handled keys are read, not
+     * watched: ✕ on January's year banner shouldn't swap in the cycle's banner on the
+     * spot, so that one waits until something else changes or the next launch.
      */
-    private val lastMonthKey: String
-        get() = YearMonth.from(LocalDate.now()).minusMonths(1).toString()
-
-    private fun refreshSharePrompt() {
+    private fun observeReviewPrompt() {
         viewModelScope.launch {
-            if (userPreferencesRepository.sharePromptHandledMonth.first() == lastMonthKey) {
-                _showSharePrompt.value = false
-                return@launch
-            }
-            // A card summarising three transactions is worse than no card, and nobody
-            // shares one. Below this bar the prompt simply doesn't appear.
-            val month = YearMonth.from(LocalDate.now()).minusMonths(1)
-            val count = transactionRepository.getTransactionsBetweenDates(
-                month.atDay(1).atStartOfDay(),
-                month.atEndOfMonth().atTime(23, 59, 59),
-            ).first().size
-            _showSharePrompt.value = count >= MIN_TRANSACTIONS_FOR_SHARE_PROMPT
+            combine(
+                today,
+                userPreferencesRepository.budgetCycleStartDay.distinctUntilChanged(),
+                periodReviewLoader.rowCountChanges(),
+            ) { day, cycleStartDay, _ -> day to cycleStartDay }
+                .collectLatest { (day, cycleStartDay) ->
+                    _reviewPrompt.value = reviewPromptFor(
+                        today = day,
+                        cycleStartDay = cycleStartDay,
+                        handledYear = userPreferencesRepository.reviewPromptHandledYear.first(),
+                        handledMonth = userPreferencesRepository.sharePromptHandledMonth.first(),
+                        rowCount = periodReviewLoader::rowCount,
+                    )
+                }
         }
     }
 
     /** Called when the user opens or dismisses the prompt — either way it's handled. */
-    fun markSharePromptHandled() {
-        _showSharePrompt.value = false
+    fun markReviewPromptHandled() {
+        val prompt = _reviewPrompt.value ?: return
+        _reviewPrompt.value = null
         viewModelScope.launch {
-            userPreferencesRepository.markSharePromptHandled(lastMonthKey)
+            if (prompt.kind == ReviewKind.YEAR) {
+                userPreferencesRepository.markReviewPromptHandledYear(prompt.key)
+            } else {
+                userPreferencesRepository.markSharePromptHandled(prompt.key)
+            }
         }
     }
 
@@ -1900,9 +1914,6 @@ class HomeViewModel @Inject constructor(
         )
     }
     private companion object {
-        /** Below this the summary is too thin to be worth sending. */
-        const val MIN_TRANSACTIONS_FOR_SHARE_PROMPT = 20
-
         const val RECURRING_CARD_QUIET_MILLIS = 30L * 24 * 60 * 60 * 1000
     }
 
@@ -1922,10 +1933,10 @@ internal fun shouldShowProHomeCard(
     installedAtMillis: Long,
     nowMillis: Long,
     transactionCount: Int,
-    sharePromptShowing: Boolean,
+    reviewPromptShowing: Boolean,
 ): Boolean = isPro == false &&
     !handled &&
-    !sharePromptShowing &&
+    !reviewPromptShowing &&
     transactionCount >= PRO_CARD_MIN_TRANSACTIONS &&
     nowMillis - installedAtMillis >= java.util.concurrent.TimeUnit.DAYS.toMillis(PRO_CARD_MIN_INSTALL_DAYS)
 

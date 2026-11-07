@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -72,12 +73,12 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
-import com.pennywiseai.tracker.ui.components.ShareMonthBanner
+import com.pennywiseai.tracker.ui.components.ReviewPromptBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
@@ -143,6 +144,7 @@ fun HomeScreen(
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -164,7 +166,7 @@ fun HomeScreen(
     val groupSummaries by viewModel.groupSummaries.collectAsState()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
-    val showSharePrompt by viewModel.showSharePrompt.collectAsState()
+    val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
@@ -182,9 +184,6 @@ fun HomeScreen(
     var showMenuSheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var showEditWidgetsSheet by remember { mutableStateOf(false) }
-    // Period the sheet should open on. The monthly banner points it at the finished
-    // month; opening from the overflow menu uses whatever the user saved.
-    var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
     // Profile filter dropdown state
@@ -541,18 +540,19 @@ fun HomeScreen(
             val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
                 val payday = paydaySuggestion
                 val recurring = recurringSuggestions
-                // Monthly share prompt. Offers the user something ("your month, summed
-                // up") rather than asking a favour, and only appears when the finished month
-                // actually has enough in it to be worth sending.
-                if (showSharePrompt) {
+                // Review prompt. Offers the user something ("your month, summed up")
+                // rather than asking a favour, and only appears when the finished period
+                // actually has enough in it to be worth reading.
+                val prompt = reviewPrompt
+                if (prompt != null) {
                     item {
-                        ShareMonthBanner(
+                        ReviewPromptBanner(
+                            prompt = prompt,
                             onOpen = {
-                                viewModel.markSharePromptHandled()
-                                sharePromptPeriod = SharePeriod.LAST_MONTH
-                                showShareSheet = true
+                                viewModel.markReviewPromptHandled()
+                                onNavigateToReview(prompt.kind)
                             },
-                            onDismiss = { viewModel.markSharePromptHandled() },
+                            onDismiss = { viewModel.markReviewPromptHandled() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         )
                     }
@@ -1304,10 +1304,7 @@ fun HomeScreen(
 
     // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
     if (showShareSheet) {
-        ShareCardSheet(
-            initialPeriod = sharePromptPeriod,
-            onDismiss = { showShareSheet = false; sharePromptPeriod = null },
-        )
+        ShareCardSheet(onDismiss = { showShareSheet = false })
     }
 
     // Avatar menu bottom sheet
@@ -1335,14 +1332,23 @@ fun HomeScreen(
                         .fillMaxWidth()
                 )
 
-                // Monthly recap (Top) — the growth loop lives here rather than buried
-                // in the Subscriptions screen, where nobody would find it. Named for what
-                // it is rather than "Share ...": the menu sits beside Settings and Rate,
-                // and leading with the ask makes it read as a favour being requested.
+                // Reviews (Top) — week, cycle and year, whatever the Home banner is offering.
                 MenuListItem(
-                    headline = stringResource(R.string.home_menu_monthly_recap),
-                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    headline = stringResource(R.string.review_title),
+                    icon = { Icon(Icons.Default.Insights, contentDescription = null) },
                     position = ListItemPosition.Top,
+                    onClick = {
+                        showMenuSheet = false
+                        onNavigateToReview(ReviewKind.MONTH)
+                    }
+                )
+
+                // Share card (Middle) — the growth loop lives here rather than buried
+                // in the Subscriptions screen, where nobody would find it.
+                MenuListItem(
+                    headline = stringResource(R.string.home_menu_share_card),
+                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
                         showShareSheet = true

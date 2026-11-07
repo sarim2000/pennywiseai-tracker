@@ -281,6 +281,9 @@ fun MainScreen(
                     onNavigateToTransactionsWithSearch = {
                         open(tab, Transactions(focusSearch = true))
                     },
+                    onNavigateToReview = { kind ->
+                        openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
+                    },
                     onNavigateToSubscriptions = {
                         open(tab, Subscriptions)
                     },

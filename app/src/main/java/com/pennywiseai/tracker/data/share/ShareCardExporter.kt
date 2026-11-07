@@ -5,7 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.core.content.FileProvider
-import com.pennywiseai.tracker.data.share.ShareHero
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.SHARE_CARD_URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,34 +69,24 @@ object ShareCardExporter {
      *
      * Deliberately written in the sharer's voice, not the app's — this lands in a
      * WhatsApp thread between friends, and marketing copy in that context gets ignored.
-     * The lead sentence follows whichever section the user put first, so the words match
-     * the card rather than always talking about subscriptions. The URL closes the loop
-     * back to the landing pages.
+     * The lead sentence follows the figure the card leads with, so the words match
+     * the card. The URL closes the loop back to the landing pages.
      */
-    fun shareText(config: ShareCardConfig, transactions: Int, subscriptions: Int): String {
-        // Follows whichever figure the card leads with, so the words and the image agree.
-        val heroIsSubscriptions =
-            config.hero == ShareHero.SUBSCRIPTIONS && subscriptions > 0
-        val lead = if (heroIsSubscriptions) {
-            val subs = if (subscriptions == 1) "1 subscription" else "$subscriptions subscriptions"
-            "PennyWise found $subs I'd forgotten I was paying for."
-        } else {
-            "PennyWise tracked $transactions transactions for me without me typing in a single one."
+    fun shareText(context: Context, hero: ShareHero, count: Int): String {
+        val lead = when (hero) {
+            ShareHero.TRANSACTIONS -> R.plurals.share_text_transactions
+            ShareHero.SUBSCRIPTIONS -> R.plurals.share_text_subscriptions
+            ShareHero.MERCHANTS -> R.plurals.share_text_merchants
         }
-        return "$lead It reads bank SMS on your phone — nothing gets uploaded. " +
-            "https://$SHARE_CARD_URL"
+        return context.resources.getQuantityString(lead, count, count) + " " +
+            context.getString(R.string.share_text_suffix, SHARE_CARD_URL)
     }
 
-    fun shareIntent(
-        uri: Uri,
-        config: ShareCardConfig,
-        transactions: Int,
-        subscriptions: Int,
-    ): Intent {
+    fun shareIntent(uri: Uri, text: String): Intent {
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "image/png"
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_TEXT, shareText(config, transactions, subscriptions))
+            putExtra(Intent.EXTRA_TEXT, text)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         return Intent.createChooser(send, null)

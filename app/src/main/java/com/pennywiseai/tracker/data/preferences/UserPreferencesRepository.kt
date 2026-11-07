@@ -74,6 +74,9 @@ open class UserPreferencesRepository @Inject constructor(
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        val WEEKLY_SUMMARY_ENABLED = booleanPreferencesKey("weekly_summary_enabled")
+        val WEEKLY_SUMMARY_LAST_WEEK = stringPreferencesKey("weekly_summary_last_week")
+        val REVIEW_PROMPT_HANDLED_YEAR = stringPreferencesKey("review_prompt_handled_year")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -528,6 +531,31 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] = month
         }
+    }
+
+    /** The year ("2026") whose January review banner was opened or dismissed. */
+    val reviewPromptHandledYear: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] }
+
+    /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
+    suspend fun markReviewPromptHandledYear(year: String) {
+        context.dataStore.edit { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] = year }
+    }
+
+    /** The opt-in weekly recap (WeeklySummaryWorker). */
+    val weeklySummaryEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] ?: false }
+
+    suspend fun setWeeklySummaryEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] = enabled }
+    }
+
+    /** The first day of the last week the weekly recap has dealt with. */
+    val weeklySummaryLastWeek: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] }
+
+    suspend fun setWeeklySummaryLastWeek(weekStart: String) {
+        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] = weekStart }
     }
 
     /** Whether the one-time Home Pro card (#945) has been tapped or dismissed. */

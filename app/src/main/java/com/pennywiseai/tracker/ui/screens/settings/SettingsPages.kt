@@ -814,6 +814,7 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
 private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = DAILY_SUMMARY_DEFAULT)
+    val weeklySummaryEnabled by settingsViewModel.weeklySummaryEnabled.collectAsStateWithLifecycle(initialValue = false)
     // The recap is a notification: on Android 13+ turning it on asks for the
     // permission first, and a refusal leaves it off with a word on why.
     val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
@@ -823,6 +824,15 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             settingsViewModel.setDailySummaryEnabled(true)
         } else {
             Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    val weeklySummaryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setWeeklySummaryEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_weekly_summary_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -848,6 +858,28 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
                 }
             },
             position = ListItemPosition.Top
+        )
+        SettingsSwitchRow(
+            icon = Icons.Default.Insights,
+            iconBgColor = indigo_light,
+            iconTint = indigo_dark,
+            title = stringResource(R.string.settings_weekly_summary_title),
+            subtitle = stringResource(R.string.settings_weekly_summary_subtitle),
+            checked = weeklySummaryEnabled,
+            onCheckedChange = { enabled ->
+                val needsPermission = enabled &&
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    androidx.core.content.ContextCompat.checkSelfPermission(
+                        context,
+                        android.Manifest.permission.POST_NOTIFICATIONS
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (needsPermission) {
+                    weeklySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    settingsViewModel.setWeeklySummaryEnabled(enabled)
+                }
+            },
+            position = ListItemPosition.Middle
         )
         SettingsNavItem(
             icon = Icons.Default.Tune,

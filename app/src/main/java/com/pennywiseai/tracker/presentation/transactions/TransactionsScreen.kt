@@ -98,6 +98,7 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    currencyOnly: Boolean = false,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -230,6 +231,7 @@ fun TransactionsScreen(
             initialTag,
             initialTransactionType
         )
+        if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
     }
 
     // Track if we've already processed these specific nav params

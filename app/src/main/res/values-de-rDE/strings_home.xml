@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Liest SMS-Transaktionen neu ein, um Verbesserungen der Erkennung zu übernehmen. Änderungen an SMS-Transaktionen werden zurückgesetzt. Manuelle, importierte, Darlehens- und gruppierte Transaktionen bleiben erhalten.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Weitere Optionen</string>
-    <string name="home_menu_monthly_recap">Monatliche Rücknahme</string>
     <string name="home_menu_settings">Einstellungen</string>
     <string name="home_menu_edit_home">Homescreen bearbeiten</string>
     <string name="home_menu_discord">Trete Discord bei für Feedback</string>

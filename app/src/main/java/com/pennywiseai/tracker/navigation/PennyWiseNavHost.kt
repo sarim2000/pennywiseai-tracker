@@ -407,11 +407,32 @@ fun PennyWiseNavHost(
             )
         }
 
+        entry<Review> { key ->
+            com.pennywiseai.tracker.presentation.review.PeriodReviewScreen(
+                onNavigateBack = { backStack.pop(key) },
+                onOpenCategory = { category, currency, start, end ->
+                    backStack.navigate(
+                        TransactionsWithFilter(
+                            category = category,
+                            period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
+                            currency = currency,
+                            startDate = start.toEpochDay(),
+                            endDate = end.toEpochDay(),
+                            currencyOnly = true,
+                        )
+                    )
+                }
+            )
+        }
+
         entry<TransactionsWithFilter> { args ->
             com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                 initialCategory = args.category,
                 initialPeriod = args.period,
                 initialCurrency = args.currency,
+                initialCustomStartEpochDay = args.startDate,
+                initialCustomEndEpochDay = args.endDate,
+                currencyOnly = args.currencyOnly,
                 onNavigateBack = { backStack.pop(args) },
                 onTransactionClick = { transactionId ->
                     backStack.navigate(TransactionDetail(transactionId))

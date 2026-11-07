@@ -405,7 +405,7 @@
     <string name="share_sheet_all_time">All time</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, summed up</string>
-    <string name="share_banner_subtitle">See what PennyWise tracked for you</string>
+    <string name="share_banner_subtitle">See what changed and where it went</string>
     <string name="share_banner_dismiss">Dismiss</string>
 
     <!-- Shared transaction components -->

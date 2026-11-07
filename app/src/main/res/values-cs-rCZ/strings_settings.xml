@@ -6,9 +6,7 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Zrušit</string>
     <string name="settings_action_ok">OK</string>
-    <string name="settings_action_done">Hotovo</string>
     <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
     <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">Upgradovat na PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Aktivní · odemknuté funkce</string>
@@ -31,10 +29,13 @@
     <string name="settings_card_spend_as_expense_subtitle">Zahrnout útraty kreditní kartou v \"Utraceno tento měsíc\"</string>
     <string name="settings_default_currency_title">Výchozí měna</string>
     <string name="settings_default_currency_subtitle">Měna použitá pro konverze</string>
+    <string name="settings_budget_convert_title">Převést rozpočty?</string>
+    <string name="settings_budget_convert_message">Limity vašich rozpočtů byly v %1$s a nyní se zobrazují v %2$s. Převeďte je podle posledního dostupného kurzu (%3$s), nebo ponechte stejná čísla.</string>
+    <string name="settings_budget_convert_confirm">Převést</string>
+    <string name="settings_budget_convert_keep">Ponechat čísla</string>
     <string name="settings_main_account_title">Hlavní účet</string>
     <string name="settings_main_account_subtitle">Nastaví výchozí měnu</string>
     <string name="settings_main_account_not_set">Nenastaveno</string>
-    <string name="settings_currency_field_label">Měna</string>
     <string name="settings_number_format_title">Formát čísla</string>
     <string name="settings_number_format_subtitle">Jak se seskupují číslice velkých částek</string>
     <string name="settings_number_format_auto">Automaticky</string>
@@ -46,9 +47,7 @@
     <string name="settings_date_format_title">Formát data</string>
     <string name="settings_date_format_subtitle">Jak se zobrazují data</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Rozpočet</string>
     <string name="settings_budget_cycle_title">Den začátku rozpočtového cyklu</string>
-    <string name="settings_budget_cycle_subtitle">Shrne začátek každého měsíčního rozpočtového období; např. 25 znamená, že váš cyklus běží 25. → 24.</string>
     <string name="settings_budget_cycle_dialog_body">Vyberte den zahájení každého měsíčního rozpočtového cyklu, např. 25 znamená, že cyklus probíhá od 25. do 24. dne následujícího měsíce.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Kontakty</string>

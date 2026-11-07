@@ -41,6 +41,30 @@ class BudgetGroupRepository @Inject constructor(
 ) {
     // Sub-categories (#374): spend rolls up into the parent, and a budget on a
     // parent covers its children.
+    suspend fun hasActiveBudgets(): Boolean = budgetDao.getActiveBudgets().first().isNotEmpty()
+
+    /**
+     * Keeps "budget limits are stored in the base currency" true when it changes:
+     * multiplies every limit by [rate], or keeps the numbers when [rate] is null.
+     * Spending and widgets read a limit as base currency whatever its `currency`
+     * column says, so that's what it means here too, and the column follows along.
+     */
+    suspend fun moveBudgetsToCurrency(currency: String, rate: BigDecimal?) {
+        fun converted(amount: BigDecimal) = when {
+            rate == null -> amount
+            // Two decimals would zero a small limit moving to a far stronger currency.
+            (amount * rate).abs() < BigDecimal.ONE -> (amount * rate).round(java.math.MathContext(2))
+            else -> (amount * rate).setScale(2, RoundingMode.HALF_UP)
+        }
+        val now = LocalDateTime.now()
+        budgetDao.updateBudgetsAndCategories(
+            budgetDao.getAllBudgets().first()
+                .map { it.copy(limitAmount = converted(it.limitAmount), currency = currency, updatedAt = now) },
+            budgetDao.getAllBudgetCategories().first()
+                .map { it.copy(budgetAmount = converted(it.budgetAmount)) }
+        )
+    }
+
     private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
     private suspend fun expandWithChildren(names: Set<String>): Set<String> =
         categoryDao.getAllCategoriesList().expandWithChildren(names)

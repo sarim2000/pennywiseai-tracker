@@ -251,9 +251,12 @@ const val HIDDEN_AMOUNT = "••••"
  * [HIDDEN_AMOUNT] while the eye is closed.
  */
 @Composable
-fun totalText(amount: BigDecimal, currency: String): String =
-    if (amountsHidden()) HIDDEN_AMOUNT
-    else widgetMoney(LocalContext.current, wholeUnits(amount), currency)
+fun totalText(amount: BigDecimal, currency: String): String = when {
+    // No snapshot yet: a dash, not a made-up "₹0".
+    currency.isEmpty() -> "—"
+    amountsHidden() -> HIDDEN_AMOUNT
+    else -> widgetMoney(LocalContext.current, wholeUnits(amount), currency)
+}
 
 /** [amount] as [totalText] shows it; decide "over" or "left" on this, not the exact figure. */
 fun wholeUnits(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.HALF_UP)

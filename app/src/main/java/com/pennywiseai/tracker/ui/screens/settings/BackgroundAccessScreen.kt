@@ -18,8 +18,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,7 +54,7 @@ fun BackgroundAccessScreen(onNavigateBack: () -> Unit) {
     PennyWiseScaffold(
         title = stringResource(R.string.background_access_title),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
             }
         }
@@ -230,9 +232,9 @@ private fun ChecklistRow(step: ChecklistStep, position: ListItemPosition) {
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     itemVerticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(onClick = step.onAction) { Text(step.actionLabel) }
+                    Button(onClick = step.onAction, shapes = ButtonDefaults.shapes()) { Text(step.actionLabel) }
                     step.selfConfirm?.let { confirm ->
-                        TextButton(onClick = { confirm(true) }) {
+                        TextButton(onClick = { confirm(true) }, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.background_access_mark_done))
                         }
                     }
@@ -246,7 +248,7 @@ private fun ChecklistRow(step: ChecklistStep, position: ListItemPosition) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
                     )
-                    TextButton(onClick = { step.selfConfirm.invoke(false) }) {
+                    TextButton(onClick = { step.selfConfirm.invoke(false) }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.background_access_undo))
                     }
                 }

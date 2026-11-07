@@ -1088,7 +1088,7 @@ private fun OnBoardingBottomBar(
                 }
 
                 OnBoardingStep.BACKGROUND_ACCESS -> {
-                    Button(onClick = onNext) {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.onboarding_continue))
                     }
                 }

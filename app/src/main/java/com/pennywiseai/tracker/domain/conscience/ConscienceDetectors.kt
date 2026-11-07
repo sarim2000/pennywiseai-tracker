@@ -5,6 +5,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -127,8 +128,8 @@ object ConscienceDetectors {
     private fun mondayOf(date: LocalDate): LocalDate = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 
     /**
-     * A burst of separate purchases. Recurring charges aren't a burst, and the
-     * spread keeps a bank's duplicate alerts for one purchase from counting.
+     * A burst of separate purchases. Recurring charges aren't a burst, and only
+     * purchases [MIN_SPREAD] apart count, so a bank's duplicate alerts make one.
      */
     private fun repeat(current: ConsciencePurchase, inCategory: List<ConsciencePurchase>, zone: ZoneId): ConscienceFact? {
         if (current.recurring) return null
@@ -138,12 +139,16 @@ object ConscienceDetectors {
         val buys = inCategory.filter { !it.recurring }.byTransaction()
         for ((hours, minCount) in listOf(6 to 3, 24 to 4)) {
             val from = now.minus(Duration.ofHours(hours.toLong()))
-            val window = buys.filter { !it.at.instant().isBefore(from) }
-            val earliest = window.minOfOrNull { it.at.instant() } ?: continue
-            val count = window.size + 1
-            if (count >= minCount && Duration.between(earliest, now) >= MIN_SPREAD) {
-                return ConscienceFact.Repeat(current.category, count, hours)
+            val times = buys.map { it.at.instant() }.filter { !it.isBefore(from) } + now
+            var count = 0
+            var last: Instant? = null
+            for (time in times.sorted()) {
+                if (last == null || Duration.between(last, time) >= MIN_SPREAD) {
+                    count++
+                    last = time
+                }
             }
+            if (count >= minCount) return ConscienceFact.Repeat(current.category, count, hours)
         }
         return null
     }

@@ -90,11 +90,12 @@ class ConscienceDetectorsTest {
 
     @Test
     fun `a same-time purchase is earlier only with a lower id, a later one never counts`() {
-        val at = today.atTime(20, 0)
-        val earlier = on(today, hour = 18)
-        assertEquals(Repeat(FOOD, 3, 6), detect(listOf(earlier, buy(at, id = CURRENT_ID - 1)), now(hour = 20)).find<Repeat>())
-        assertNull(detect(listOf(earlier, buy(at, id = CURRENT_ID + 1)), now(hour = 20)).find<Repeat>())
-        assertNull(detect(listOf(earlier, on(today, hour = 21)), now(hour = 20)).find<Repeat>())
+        val at = today.atTime(12, 0)
+        val quiet = everyNDays(daysAgo(3), 1, 30)
+        assertEquals(Comeback(FOOD, 3), comeback(quiet))
+        assertNull(comeback(quiet + buy(at, id = CURRENT_ID - 1)))
+        assertEquals(Comeback(FOOD, 3), comeback(quiet + buy(at, id = CURRENT_ID + 1)))
+        assertEquals(Comeback(FOOD, 3), comeback(quiet + on(today, hour = 13)))
     }
 
     // --- Repeat ---
@@ -132,8 +133,15 @@ class ConscienceDetectorsTest {
     fun `purchases within half an hour are one purchase alerted twice`() {
         val quick = listOf(on(today, hour = 19, minute = 31), on(today, hour = 19, minute = 45))
         assertNull(detect(quick, now(hour = 20)).find<Repeat>())
-        val spread = listOf(on(today, hour = 19, minute = 30), on(today, hour = 19, minute = 45))
+        val spread = listOf(on(today, hour = 19), on(today, hour = 19, minute = 30))
         assertEquals(Repeat(FOOD, 3, 6), detect(spread, now(hour = 20)).find<Repeat>())
+    }
+
+    @Test
+    fun `alerts minutes apart count as one purchase in a run`() {
+        val duplicates = listOf(on(today, hour = 18), on(today, hour = 18, minute = 1))
+        assertNull(detect(duplicates, now(hour = 19)).find<Repeat>())
+        assertEquals(Repeat(FOOD, 3, 6), detect(duplicates + on(today, hour = 17), now(hour = 19)).find<Repeat>())
     }
 
     @Test

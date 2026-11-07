@@ -47,7 +47,8 @@ object ConscienceRemarks {
         val updated = remarks.map { if (it.id == remarkId) it.copy(reaction = reaction) else it }
         val key = remark.lineKey
         val newFeedback = when (reaction) {
-            ConscienceReaction.LIKED -> feedback.copy(liked = feedback.liked + key, retired = feedback.retired - key)
+            // Retired means never again: an older remark's like can't undo it, only a reset can.
+            ConscienceReaction.LIKED -> if (key in feedback.retired) feedback else feedback.copy(liked = feedback.liked + key)
             ConscienceReaction.RETIRED -> feedback.copy(liked = feedback.liked - key, retired = feedback.retired + key)
         }
         return updated to newFeedback

@@ -60,6 +60,15 @@ class ConscienceRemarksTest {
     }
 
     @Test
+    fun `liking an older remark doesn't bring a retired line back`() {
+        val feedback = ConscienceFeedback(retired = setOf("en:spike_02"))
+        val (remarks, after) = ConscienceRemarks.react(listOf(remark(1, key = "en:spike_02")), feedback, 1, ConscienceReaction.LIKED)!!
+        assertEquals(ConscienceReaction.LIKED, remarks.single().reaction)
+        assertEquals(setOf("en:spike_02"), after.retired)
+        assertTrue(after.liked.isEmpty())
+    }
+
+    @Test
     fun `an unknown remark changes nothing`() {
         assertNull(ConscienceRemarks.react(listOf(remark(1)), ConscienceFeedback(), 99, ConscienceReaction.LIKED))
     }

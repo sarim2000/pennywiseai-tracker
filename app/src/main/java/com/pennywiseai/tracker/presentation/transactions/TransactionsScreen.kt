@@ -360,6 +360,11 @@ fun TransactionsScreen(
                             // Link exactly two selected rows as a transfer — the
                             // manual counterpart to the auto-detected chip (#614),
                             // covering pairs the detector misses (fees, wide gaps).
+                            if (selectedIds.size < uiState.transactions.size) {
+                                IconButton(onClick = { viewModel.selectAllVisible() }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.txn_list_select_all))
+                                }
+                            }
                             if (selectedIds.size == 2) {
                                 IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(

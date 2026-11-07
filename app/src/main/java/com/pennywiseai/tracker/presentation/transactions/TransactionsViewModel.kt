@@ -350,6 +350,9 @@ class TransactionsViewModel @Inject constructor(
 
     fun clearSelection() { _selectedIds.value = emptySet() }
 
+    /** Select every row the current search/filters show, e.g. to bulk-delete all search hits. */
+    fun selectAllVisible() { _selectedIds.value = _uiState.value.transactions.mapTo(HashSet()) { it.id } }
+
     init {
         // Prune selected ids that fall out of the visible list (filter change,
         // search, delete from elsewhere). Otherwise a bulk op would silently

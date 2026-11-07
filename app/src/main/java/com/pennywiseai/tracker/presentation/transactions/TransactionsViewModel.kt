@@ -37,6 +37,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.utils.countingTransferPairsOnce
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
@@ -419,8 +420,9 @@ class TransactionsViewModel @Inject constructor(
      * their `fromAccount` / `toAccount` so the detail screen can render the
      * "From → To" account flow (it falls back to `accountNumber` otherwise).
      * Undo restores the original `transactionType` + `fromAccount` /
-     * `toAccount` for each row. No structural link is created between the
-     * rows — TRANSFER already excludes them from Net cash flow.
+     * `toAccount` for each row. A shared `transferPairId` makes each row one leg
+     * of the transfer (see utils/TransferPairs.kt). Balances stay untouched: the
+     * money moved when the two SMS arrived.
      */
     /**
      * Link the two currently-selected transactions as a transfer (#614) — the
@@ -469,12 +471,13 @@ class TransactionsViewModel @Inject constructor(
 
             // Snapshot for Undo: type + the two account fields per row.
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
-                val fromBankName: String?, val toBankName: String?)
+                val fromBankName: String?, val toBankName: String?, val transferPairId: String?)
             val originals = listOf(a, b).associate {
-                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName)
+                it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId)
             }
 
             val now = java.time.LocalDateTime.now()
+            val pairId = java.util.UUID.randomUUID().toString()
             transactionRepository.updateTransaction(
                 a.copy(
                     transactionType = TransactionType.TRANSFER,
@@ -482,6 +485,7 @@ class TransactionsViewModel @Inject constructor(
                     toAccount = toAcct,
                     fromBankName = expense.bankName,
                     toBankName = income.bankName,
+                    transferPairId = pairId,
                     updatedAt = now
                 )
             )
@@ -492,6 +496,7 @@ class TransactionsViewModel @Inject constructor(
                     toAccount = toAcct,
                     fromBankName = expense.bankName,
                     toBankName = income.bankName,
+                    transferPairId = pairId,
                     updatedAt = now
                 )
             )
@@ -511,6 +516,7 @@ class TransactionsViewModel @Inject constructor(
                                         toAccount = snapshot.toAccount,
                                         fromBankName = snapshot.fromBankName,
                                         toBankName = snapshot.toBankName,
+                                        transferPairId = snapshot.transferPairId,
                                         updatedAt = nowUndo
                                     )
                                 )
@@ -1593,6 +1599,9 @@ internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity
 
         val transfer = currencyTransactions
             .filter { it.transactionType == TransactionType.TRANSFER }
+            // ponytail: a pair across currencies counts in each currency, so it
+            // shows twice in a unified total; dedupe before grouping if that matters.
+            .countingTransferPairsOnce { it }
             .sumOf { it.amount }
 
         val investment = currencyTransactions

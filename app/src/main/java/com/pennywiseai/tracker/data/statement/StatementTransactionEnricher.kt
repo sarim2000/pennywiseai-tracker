@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.utils.ledgerType
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -78,11 +79,12 @@ object StatementTransactionEnricher {
         reference?.trim()?.trimStart('0')?.takeIf { it.isNotEmpty() }
 
     /**
-     * Money in vs money out. Only INCOME is money in; a TRANSFER-stored debit
-     * still matches a statement debit, so this isn't an exact type comparison.
+     * Money in vs money out. Only INCOME is money in, or a marked pair's incoming
+     * leg; a TRANSFER-stored debit still matches a statement debit, so this isn't
+     * an exact type comparison.
      */
     private fun sameDirection(existing: TransactionEntity, statement: TransactionEntity): Boolean =
-        (existing.transactionType == TransactionType.INCOME) == (statement.transactionType == TransactionType.INCOME)
+        (existing.ledgerType() == TransactionType.INCOME) == (statement.transactionType == TransactionType.INCOME)
 
     private fun hasUsableStatementDetails(
         existing: TransactionEntity,

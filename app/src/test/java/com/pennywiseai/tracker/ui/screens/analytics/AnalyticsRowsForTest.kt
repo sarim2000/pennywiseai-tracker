@@ -49,6 +49,15 @@ class AnalyticsRowsForTest {
         analyticsRowsFor(rows, filter).associate { it.transaction.id to it.transaction.amount }
 
     @Test
+    fun `the Transfer view counts a marked pair once`() {
+        val source = tx(1, TransactionType.TRANSFER)
+        val rows = listOf(source, tx(2, TransactionType.TRANSFER)).map {
+            it.copy(transaction = it.transaction.copy(transferPairId = "pair"))
+        }
+        assertEquals(listOf(1L), analyticsRowsFor(rows, TransactionTypeFilter.TRANSFER).map { it.transaction.id })
+    }
+
+    @Test
     fun `spending keeps expense and card spend, minus excluded and loan parts`() {
         assertEquals(
             mapOf(1L to BigDecimal("500"), 2L to BigDecimal("200"), 7L to BigDecimal("600")),

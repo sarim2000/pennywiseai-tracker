@@ -265,6 +265,20 @@ class StatementImportProcessorTest {
         assertTrue(store.updated.isEmpty())
     }
 
+    @Test
+    fun `a statement credit without a reference matches a marked pair's incoming leg`() = runBlocking {
+        val incomingLeg = transaction(transactionType = TransactionType.TRANSFER, reference = null)
+            .copy(fromAccount = "1111", toAccount = "2468", transferPairId = "pair")
+        val credit = parsedTransaction(type = ParsedTransactionType.INCOME, reference = null)
+        val debit = parsedTransaction(type = ParsedTransactionType.EXPENSE, reference = null)
+
+        val processor = StatementImportProcessor(FakeTransactionStore(incomingLeg))
+
+        assertEquals(1, processor.plan(listOf(credit)).matchedCount)
+        // The same amount going out is a different payment.
+        assertEquals(0, processor.plan(listOf(debit)).matchedCount)
+    }
+
     private class FakeTransactionStore(
         vararg stored: TransactionEntity
     ) : StatementImportProcessor.TransactionStore {

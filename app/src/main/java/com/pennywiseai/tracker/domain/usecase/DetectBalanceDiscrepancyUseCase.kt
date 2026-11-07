@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.BalanceDiscrepancy
+import com.pennywiseai.tracker.utils.isPairedTransferLeg
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
@@ -42,6 +43,8 @@ class DetectBalanceDiscrepancyUseCase @Inject constructor(
         // the snapshot and up to the reporting transaction.
         val window = transactionRepository.getTransactionsBetweenDates(previous.timestamp, at).first()
             .filter { it.currency == tx.currency && it.dateTime > previous.timestamp && it.dateTime <= at }
+            // A marked pair's other row names this account too, but only moves its own.
+            .filter { !it.isPairedTransferLeg || (it.bankName == bank && it.accountNumber == last4) }
         val transfersIn = window.filter { it.transactionType == TransactionType.TRANSFER && it.toAccount == last4 && it.fromAccount != last4 }
         if (sameLast4Elsewhere && transfersIn.isNotEmpty()) return null
         val effects = window

@@ -160,6 +160,9 @@ data object AiAccess : NavKey
 data object BackgroundAccess : NavKey
 
 @Serializable
+data object LearnedCategories : NavKey
+
+@Serializable
 data object Conscience : NavKey
 
 @Serializable

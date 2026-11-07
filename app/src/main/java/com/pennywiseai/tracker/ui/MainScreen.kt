@@ -42,6 +42,7 @@ import com.pennywiseai.tracker.navigation.AddTransaction
 import com.pennywiseai.tracker.navigation.AiAccess
 import com.pennywiseai.tracker.navigation.BackgroundAccess
 import com.pennywiseai.tracker.navigation.Conscience
+import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.Analytics
 import com.pennywiseai.tracker.navigation.Appearance
 import com.pennywiseai.tracker.navigation.BalanceHistory
@@ -189,8 +190,8 @@ fun MainScreen(
 
     // What a Settings row opens lives either in this tab's graph or above the tabs.
     fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
-        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess,
-        Conscience,
+        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess,
+        BackgroundAccess, LearnedCategories, Conscience,
         is BudgetGroups -> openRoot(key)
         else -> open(tab, key)
     }

@@ -1,0 +1,14 @@
+{"cases": [
+{"id": "t_en_budget", "lang": "en", "text": "How can I stop overspending on food?"},
+{"id": "t_en_hello", "lang": "en", "text": "hi, what can you do?"},
+{"id": "t_en_tip", "lang": "en", "text": "Give me three short tips to save money this month."},
+{"id": "t_en_explain", "lang": "en", "text": "What is the difference between a debit card and a credit card?"},
+{"id": "t_ar_budget", "lang": "ar", "base": "SAR", "text": "كيف أقلل مصاريف الأكل؟"},
+{"id": "t_ar_hello", "lang": "ar", "base": "SAR", "text": "مرحبا، ماذا تستطيع أن تفعل؟"},
+{"id": "t_ar_tip", "lang": "ar", "base": "SAR", "text": "أعطني ثلاث نصائح قصيرة لتوفير المال"},
+{"id": "t_hi_budget", "lang": "hi", "text": "खाने पर खर्च कैसे कम करूं?"},
+{"id": "t_hi_tip", "lang": "hi", "text": "paise bachane ke 3 chhote tips batao"},
+{"id": "conv_en", "lang": "en", "text": "", "turns": ["hi, what can you do?", "coffee 120 at Starbucks", "How can I spend less on coffee?", "how much did I spend this month?", "thanks, one more tip please", "lunch 300", "what is a good monthly savings rate?", "delete the coffee", "ok thanks", "bye"]},
+{"id": "conv_ar", "lang": "ar", "base": "SAR", "text": "", "turns": ["مرحبا", "قهوة 15 ريال من ستاربكس", "كيف أقلل مصاريف القهوة؟", "كم صرفت هذا الشهر؟", "أعطني نصيحة أخرى", "غدا 40", "ما هي نسبة الادخار الجيدة؟", "احذف القهوة", "شكرا"]},
+{"id": "conv_hi", "lang": "hi", "text": "", "turns": ["namaste", "chai pe 50 rupaye diye", "chai ka kharcha kaise kam karu?", "is mahine kitna kharch hua?", "ek aur tip do", "dhanyavaad"]}
+]}

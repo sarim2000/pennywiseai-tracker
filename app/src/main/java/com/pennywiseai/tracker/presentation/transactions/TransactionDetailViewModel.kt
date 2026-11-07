@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -488,14 +489,8 @@ class TransactionDetailViewModel @Inject constructor(
 
         // Load count of other transactions from same merchant + any saved alias
         _transaction.value?.let { txn ->
+            refreshExistingTransactionCount(txn.transactionType)
             viewModelScope.launch {
-                val count = transactionRepository.countRecategorizableForMerchant(
-                    txn.merchantName,
-                    LearnCategoryUseCase.sameKind(txn.transactionType),
-                    txn.id
-                )
-                _existingTransactionCount.value = count
-
                 val alias = merchantAliasRepository.getAliasForMerchant(txn.merchantName) ?: ""
                 _originalMerchantAlias = alias
                 _merchantAlias.value = alias
@@ -593,7 +588,24 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
     
+    private var existingCountJob: Job? = null
+
+    /**
+     * "Update N existing" counts the rows Save would move, which follow the
+     * edited type, so it is recounted whenever the type changes.
+     */
+    private fun refreshExistingTransactionCount(type: TransactionType) {
+        val txn = _transaction.value ?: return
+        existingCountJob?.cancel()
+        existingCountJob = viewModelScope.launch {
+            _existingTransactionCount.value = transactionRepository.countRecategorizableForMerchant(
+                txn.merchantName, LearnCategoryUseCase.sameKind(type), txn.id
+            )
+        }
+    }
+
     fun updateTransactionType(type: TransactionType) {
+        refreshExistingTransactionCount(type)
         if (type != TransactionType.INCOME) {
             _budgetImpactType.value = null
             _budgetCategory.value = null

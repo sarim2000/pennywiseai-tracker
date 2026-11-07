@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">อ่านธุรกรรมจาก SMS ใหม่เพื่อใช้การแก้ไขตัวแยกข้อมูลล่าสุด สิ่งที่คุณแก้ไขในธุรกรรมจาก SMS จะถูกรีเซ็ต ส่วนธุรกรรมที่เพิ่มเอง นำเข้า เงินกู้ และที่จัดกลุ่มไว้จะยังอยู่</string>
     <!-- More options sheet -->
     <string name="home_menu_title">ตัวเลือกเพิ่มเติม</string>
-    <string name="home_menu_monthly_recap">สรุปรายเดือน</string>
     <string name="home_menu_settings">การตั้งค่า</string>
     <string name="home_menu_edit_home">แก้ไขหน้าแรก</string>
     <string name="home_menu_discord">เข้าร่วม Discord เพื่อส่งความคิดเห็น</string>

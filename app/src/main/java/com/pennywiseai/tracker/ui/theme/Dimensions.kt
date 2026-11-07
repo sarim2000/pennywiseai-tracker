@@ -128,6 +128,9 @@ object Dimensions {
     object Component {
         val bottomBarHeight = 80.dp
 
+        /** The year review's month bars. */
+        val reviewBarHeight = 72.dp
+
         /** Widest a current value may get at the end of a settings row. */
         val rowValueMaxWidth = 96.dp
 

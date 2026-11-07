@@ -64,30 +64,11 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    - name: Cache AVD
-      id: avd-cache
-      uses: actions/cache@v5
-      with:
-        path: |
-          ~/.android/avd/*
-          ~/.android/adb*
-        key: avd-api26-google_apis-x86_64-pixel_2
-
-    - name: Create AVD snapshot
-      if: steps.avd-cache.outputs.cache-hit != 'true'
-      uses: reactivecircus/android-emulator-runner@v2
-      with:
-        api-level: 26
-        target: google_apis
-        arch: x86_64
-        profile: pixel_2
-        force-avd-creation: false
-        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-        disable-animations: false
-        script: echo "AVD snapshot created."
-
     # Standard flavor: fdroid's abiFilters are ARM-only, so it can't install on
     # this x86_64 emulator.
+    # Cold boot every run: restored from a cached snapshot, this emulator died
+    # right after booting in most runs (adb exit 137, or the device vanished).
+    # A cold boot costs about 40s more.
     - name: Run upgrade test
       uses: reactivecircus/android-emulator-runner@v2
       with:
@@ -95,8 +76,7 @@ jobs:
         target: google_apis
         arch: x86_64
         profile: pixel_2
-        force-avd-creation: false
-        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
         disable-animations: true
         script: ./gradlew :app:connectedStandardDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pennywiseai.tracker.data.database.FullUpgradeTest --build-cache
 

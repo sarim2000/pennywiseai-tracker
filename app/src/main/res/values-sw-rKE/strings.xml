@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - Kifuatiliaji cha Matumizi</string>
     <string name="widget_name_budget">Muhtasari wa Bajeti</string>
     <string name="widget_description_budget">Inaonyesha maendeleo ya bajeti yako ya mwezi, akiba, na kiasi cha kutumia kwa siku kwa haraka.</string>
     <string name="widget_loading">Inapakia wijeti…</string>

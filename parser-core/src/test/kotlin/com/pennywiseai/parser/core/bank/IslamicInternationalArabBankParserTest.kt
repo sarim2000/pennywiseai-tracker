@@ -43,6 +43,18 @@ class IslamicInternationalArabBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Card purchase, a name ending in another city keeps it",
+                message = "حركة شراء SAMPLE CAFE IRBID AMMAN JO\nالمبلغ: 3.000 JOD\nحساب: 4321*1234\n" +
+                    "تاريخ: 05/11/2026 16:04:00\nالرصيد: 100.000 JOD",
+                sender = "ARABIISLAMI",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3.000"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SAMPLE CAFE IRBID"
+                )
+            ),
+            ParserTestCase(
                 name = "Card purchase, a name ending in AL glued to the city keeps its AL",
                 message = "حركة شراء SAMPLE CENTRALAMMAN JO\nالمبلغ: 3.000 JOD\nحساب: 4321*1234\n" +
                     "تاريخ: 05/11/2026 16:04:00\nالرصيد: 100.000 JOD",

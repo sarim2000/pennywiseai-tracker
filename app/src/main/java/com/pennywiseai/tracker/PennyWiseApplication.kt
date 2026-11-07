@@ -120,6 +120,10 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 this@PennyWiseApplication,
                 userPreferencesRepository.dailySummaryEnabled.first()
             )
+            com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(
+                this@PennyWiseApplication,
+                userPreferencesRepository.weeklySummaryEnabled.first()
+            )
         }
         applicationScope.launch { webhookSyncScheduler.observeSchedule() }
 

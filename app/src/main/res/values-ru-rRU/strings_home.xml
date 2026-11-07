@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Заново читает транзакции из SMS, чтобы применить исправления распознавания. Правки SMS-транзакций будут сброшены. Ручные, импортированные, долговые и сгруппированные транзакции сохранятся.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Больше опций</string>
-    <string name="home_menu_monthly_recap">Ежемесячный расчет</string>
     <string name="home_menu_settings">Настройки</string>
     <string name="home_menu_edit_home">Редактировать главный экран</string>
     <string name="home_menu_discord">Присоединиться к Discord для отзыва</string>

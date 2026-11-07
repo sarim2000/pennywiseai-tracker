@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Relit les transactions SMS pour profiter des corrections d\'analyse. Les modifications des transactions SMS sont réinitialisées. Les transactions manuelles, importées, de prêt et groupées sont conservées.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Plus d\'options</string>
-    <string name="home_menu_monthly_recap">Récapitulatif mensuel</string>
     <string name="home_menu_settings">Réglages</string>
     <string name="home_menu_edit_home">Modifier l\'écran d\'accueil</string>
     <string name="home_menu_discord">Rejoignez Discord pour avoir des commentaires</string>

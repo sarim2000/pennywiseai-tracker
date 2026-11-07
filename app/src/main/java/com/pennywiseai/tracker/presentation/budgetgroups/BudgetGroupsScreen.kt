@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.ui.components.DEFAULT_BUDGET_COLOR
 import com.pennywiseai.tracker.utils.AppDates
 
 import java.time.format.TextStyle
@@ -52,13 +53,10 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.tintedSurface
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.graphics.SolidColor
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -95,7 +93,6 @@ fun BudgetGroupsScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -111,22 +108,20 @@ fun BudgetGroupsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
                     }
                 },
-                hazeState = hazeState
+                actionContent = {
+                    if (uiState.hasGroups) {
+                        IconButton(onClick = { onNavigateToGroupEdit(-1L) }, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.budgets_add))
+                        }
+                    }
+                },
             )
-        },
-        floatingActionButton = {
-            if (uiState.hasGroups) {
-                FloatingActionButton(onClick = { onNavigateToGroupEdit(-1L) }) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.budgets_add))
-                }
-            }
         }
     ) { paddingValues ->
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
@@ -140,12 +135,11 @@ fun BudgetGroupsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
+                    .padding(vertical = Dimensions.Padding.content)
             ) {
-                Box(Modifier.padding(Dimensions.Padding.content)) { goalsSection() }
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -159,11 +153,13 @@ fun BudgetGroupsScreen(
                     onSmartDefaults = { viewModel.runSmartDefaults() },
                     onCreateNew = { onNavigateToGroupEdit(-1L) }
                 )
+                Box(Modifier.padding(horizontal = Dimensions.Padding.content)) { goalsSection() }
             }
         } else {
             BudgetGroupsContent(
-                modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
+                modifier = Modifier.background(MaterialTheme.colorScheme.background),
                 topPadding = paddingValues.calculateTopPadding(),
+                bottomPadding = paddingValues.calculateBottomPadding(),
                 uiState = uiState,
                 goalsSection = goalsSection,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
@@ -251,6 +247,7 @@ private fun EmptyBudgetState(
 private fun BudgetGroupsContent(
     modifier: Modifier = Modifier,
     topPadding: Dp = 0.dp,
+    bottomPadding: Dp = 0.dp,
     uiState: BudgetGroupsUiState,
     goalsSection: @Composable () -> Unit = {},
     onPreviousMonth: () -> Unit,
@@ -287,14 +284,11 @@ private fun BudgetGroupsContent(
             start = Dimensions.Padding.content,
             end = Dimensions.Padding.content,
             top = Dimensions.Padding.content + topPadding,
-            bottom = Dimensions.Component.bottomBarHeight + Spacing.md
+            bottom = bottomPadding + Dimensions.Component.fabScrollClearance
         ),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
-        // Goals (#914) sit above the spending budgets; they aren't month-based.
-        item(key = "goals") { goalsSection() }
-
         // Month Selector
         item {
             val visible = remember { mutableStateOf(hasAnimated) }
@@ -352,6 +346,11 @@ private fun BudgetGroupsContent(
                 )
             }
         }
+
+        // Goals (#914) follow the budgets the screen is named for; they aren't month-based.
+        item(key = "goals") {
+            Box(Modifier.padding(top = Spacing.sm)) { goalsSection() }
+        }
     }
 
     // Delete confirmation dialog
@@ -401,7 +400,6 @@ private fun MonthSelector(
     ) {
         FilledTonalIconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(36.dp),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
@@ -431,7 +429,6 @@ private fun MonthSelector(
         FilledTonalIconButton(
             onClick = onNext,
             enabled = !isCurrentMonth,
-            modifier = Modifier.size(36.dp),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
@@ -474,20 +471,23 @@ private fun BudgetCard(
         animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
     }
 
-    val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
+    // Stored colours can be too dark for a dark card (a default blue measured 2.2:1).
+    val budgetColor = CategoryMapping.visibleOn(
+        budget.color.takeUnless { it == DEFAULT_BUDGET_COLOR }.orEmpty().toColorOr(MaterialTheme.colorScheme.primary),
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    )
     val statusColor: Color = when {
         pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
+        pctUsed >= 70f -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.onSurface
     }
-    // The bar wears the budget's own color while it's healthy; the pill and
-    // hero text stay semantic so a red budget at 36% doesn't read as danger.
+    // The bar wears the budget's own color while it's healthy; the figures stay
+    // semantic so a red budget at 36% doesn't read as danger.
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
     PennyWiseCardV2(
         onClick = { expanded = !expanded },
-        modifier = modifier.fillMaxWidth(),
-        containerColor = budgetColor.tintedSurface()
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
@@ -496,7 +496,7 @@ private fun BudgetCard(
                     animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
         ) {
-            // Row 1: Budget name + percentage pill + action buttons
+            // Row 1: Budget name + percentage pill + overflow menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -508,7 +508,7 @@ private fun BudgetCard(
                         fontWeight = FontWeight.SemiBold
                     ),
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
@@ -520,51 +520,21 @@ private fun BudgetCard(
                     if (groupSpending.totalBudget > BigDecimal.ZERO) {
                         Text(
                             text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier
-                                .background(
-                                    color = statusColor,
-                                    shape = RoundedCornerShape(50)
-                                )
-                                .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = onClick,
-                        modifier = Modifier.size(32.dp),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = stringResource(R.string.budgets_edit),
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(32.dp),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.budgets_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                            style = PennyWiseText.amountSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = statusColor
                         )
                     }
                     Box {
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(
                             onClick = { showMenu = true },
-                            modifier = Modifier.size(32.dp),
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = stringResource(R.string.budgets_more_options),
-                                modifier = Modifier.size(Dimensions.Icon.small),
+                                modifier = Modifier.size(Dimensions.Icon.inline),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -572,6 +542,16 @@ private fun BudgetCard(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.budgets_edit)) },
+                                onClick = {
+                                    showMenu = false
+                                    onClick()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Edit, contentDescription = null)
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.budgets_view_history)) },
                                 onClick = {
@@ -604,6 +584,26 @@ private fun BudgetCard(
                                 },
                                 enabled = !isLast
                             )
+                            // Opens the confirmation dialog; nothing is deleted from here.
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        stringResource(R.string.budgets_delete),
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onDelete()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            )
                         }
                     }
                 }
@@ -619,7 +619,7 @@ private fun BudgetCard(
                         .fillMaxWidth()
                         .height(Dimensions.Component.progressBarHeight)
                         .clip(barShape)
-                        .background(barColor.copy(alpha = 0.15f))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest)
                 ) {
                     Box(
                         modifier = Modifier
@@ -654,17 +654,13 @@ private fun BudgetCard(
                                 CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)
                             )
                         },
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = statusColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        style = PennyWiseText.amountLarge,
+                        color = statusColor
                     )
                     if (showDaily) {
                         Text(
-                            text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
-                            style = MaterialTheme.typography.labelMedium,
+                            text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatEstimate(groupSpending.dailyAllowance, currency)),
+                            style = PennyWiseText.amountSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
@@ -698,10 +694,13 @@ private fun BudgetCard(
                         val startDay = groupSpending.group.budget.monthStartDay
                             ?: groupSpending.windowStart.dayOfMonth
                         val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        if (renewalIn == 0) {
-                            stringResource(R.string.budgets_resets_today_monthly, startDay)
-                        } else {
-                            pluralStringResource(R.plurals.budgets_resets_in_monthly, renewalIn, renewalIn, startDay)
+                        // "day 1" says nothing about a calendar-month budget; a custom
+                        // start day (salary on the 25th) is worth naming.
+                        when {
+                            renewalIn == 0 && startDay == 1 -> stringResource(R.string.budgets_resets_today)
+                            renewalIn == 0 -> stringResource(R.string.budgets_resets_today_monthly, startDay)
+                            startDay == 1 -> pluralStringResource(R.plurals.budgets_resets_in, renewalIn, renewalIn)
+                            else -> pluralStringResource(R.plurals.budgets_resets_in_monthly, renewalIn, renewalIn, startDay)
                         }
                     }
                     groupSpending.periodType == BudgetPeriodType.CUSTOM -> {

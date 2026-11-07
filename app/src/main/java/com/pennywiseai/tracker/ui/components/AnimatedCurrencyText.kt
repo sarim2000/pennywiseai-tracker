@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 
 @Composable
 fun AnimatedCurrencyText(
@@ -40,6 +41,8 @@ fun AnimatedCurrencyText(
             style = style,
             color = color,
             fontWeight = fontWeight,
+            maxLines = 1,
+            autoSize = PennyWiseText.fit(style),
         )
     }
 }

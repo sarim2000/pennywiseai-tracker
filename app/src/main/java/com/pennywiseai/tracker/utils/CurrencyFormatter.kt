@@ -167,7 +167,29 @@ object CurrencyFormatter {
      */
     fun formatCurrency(amount: BigDecimal, currencyCode: String, maskIfHidden: Boolean = true): String =
         if (maskIfHidden && AmountPrivacy.hidden) AmountPrivacy.MASK
-        else ltr(formatCurrencyRaw(amount, currencyCode))
+        // On screen, every figure shows all its minor units ("JD7.000", "₹500.00") so a
+        // currency never reads at two precisions and columns line up. Text that leaves the
+        // screen stays compact, as it always was.
+        else ltr(formatCurrencyRaw(amount, currencyCode, showAllDecimals = maskIfHidden))
+
+    /**
+     * An estimate or a rate ("About JD60 a day"): whole units once it's big enough for
+     * the decimals not to matter. "JD60.000" claims a precision the figure doesn't have.
+     */
+    fun formatEstimate(amount: BigDecimal, currencyCode: String): String {
+        if (AmountPrivacy.hidden) return AmountPrivacy.MASK
+        val shown = if (amount.abs() >= BigDecimal.TEN) amount.setScale(0, java.math.RoundingMode.DOWN) else amount
+        return ltr(formatCurrencyRaw(shown, currencyCode))
+    }
+
+    /**
+     * [formatCurrency] with its sign shown ("+JD5.000", "−JD5.000"), using a true minus,
+     * for figures whose sign is the point: a net total.
+     */
+    fun formatSigned(amount: BigDecimal, currencyCode: String): String =
+        // Masked whole: a visible sign would still say whether you're up or down.
+        if (AmountPrivacy.hidden) AmountPrivacy.MASK
+        else signed(if (amount.signum() < 0) "\u2212" else if (amount.signum() > 0) "+" else "", formatCurrency(amount.abs(), currencyCode))
 
     /**
      * [formatted] with a leading [signPrefix] ("-" / "+") that stays on the left in
@@ -189,9 +211,13 @@ object CurrencyFormatter {
     private fun ltr(s: String): String =
         if (Locale.getDefault().language in RTL_LANGUAGES) "\u2066$s\u2069" else s
 
-    private fun formatCurrencyRaw(amount: BigDecimal, currencyCode: String): String {
+    private fun formatCurrencyRaw(
+        amount: BigDecimal,
+        currencyCode: String,
+        showAllDecimals: Boolean = false
+    ): String {
         if (currencyCode in EXPLICIT_SYMBOL_CURRENCIES) {
-            return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode)}"
+            return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode, showAllDecimals)}"
         }
         return try {
             val locale = groupingLocale(currencyCode)
@@ -203,7 +229,7 @@ object CurrencyFormatter {
             } catch (e: Exception) {
                 // If currency not supported, use symbol mapping
                 val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-                return "$symbol${formatAmount(amount, currencyCode)}"
+                return "$symbol${formatAmount(amount, currencyCode, showAllDecimals)}"
             }
 
             // Prefer our own symbol over the platform's so a formatted amount
@@ -219,13 +245,14 @@ object CurrencyFormatter {
             }
 
             // Show decimals only if they exist
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+            val decimals = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+            formatter.minimumFractionDigits = minFractionDigits(amount, decimals, showAllDecimals)
+            formatter.maximumFractionDigits = decimals
             formatter.format(amount)
         } catch (e: Exception) {
             // Fallback to symbol + amount
             val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-            "$symbol${formatAmount(amount, currencyCode)}"
+            "$symbol${formatAmount(amount, currencyCode, showAllDecimals)}"
         }
     }
 
@@ -319,10 +346,24 @@ object CurrencyFormatter {
     /**
      * Formats just the numeric amount without currency symbol
      */
-    private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
+    /**
+     * Whole amounts drop their decimals ("JD40"); anything else shows all of them
+     * ("JD12.780", "$12.50"), so one currency never reads at two precisions.
+     */
+    private fun minFractionDigits(amount: BigDecimal, decimals: Int, showAll: Boolean): Int {
+        val whole = amount.setScale(decimals, java.math.RoundingMode.HALF_EVEN).stripTrailingZeros().scale() <= 0
+        return if (showAll || !whole) decimals else 0
+    }
+
+    private fun formatAmount(
+        amount: BigDecimal,
+        currencyCode: String? = null,
+        showAllDecimals: Boolean = false
+    ): String {
         val formatter = NumberFormat.getNumberInstance(groupingLocale(currencyCode))
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        val decimals = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        formatter.minimumFractionDigits = minFractionDigits(amount, decimals, showAllDecimals)
+        formatter.maximumFractionDigits = decimals
         return formatter.format(amount)
     }
 
@@ -353,7 +394,7 @@ object CurrencyFormatter {
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_00_00_000)}Cr"
             useIndianNotation && absValue >= 1_00_000 ->
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_00_000)}L"
-            absValue >= 10_000_000 ->
+            absValue >= 1_000_000 ->
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000_000)}M"
             absValue >= 1_000 ->
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000)}K"

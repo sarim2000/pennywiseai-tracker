@@ -44,8 +44,6 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 
@@ -66,7 +64,6 @@ fun UnrecognizedSmsScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
 
     // Staggered entrance animation state — only animates on first composition
@@ -95,7 +92,6 @@ fun UnrecognizedSmsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.unrecognized_back))
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -104,7 +100,6 @@ fun UnrecognizedSmsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .overScrollVertical()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,

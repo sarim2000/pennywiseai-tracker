@@ -10,7 +10,7 @@
 
     <!-- ══ Starter rule (stored in the app's language when seeded) ══ -->
     <string name="rule_template_small_payments_name">Small Payments to Food</string>
-    <string name="rule_template_small_payments_description">Categorize small expense payments (under 200) as Food &amp; Dining</string>
+    <string name="rule_template_small_payments_description">Categorize small expense payments (under 200, in any currency) as Food &amp; Dining</string>
 
     <!-- ══ Budget group defaults (stored in the app's language when created) ══ -->
     <string name="budget_group_default_spending">Spending</string>

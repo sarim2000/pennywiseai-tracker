@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
@@ -64,32 +65,6 @@ import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.amber_light
-import com.pennywiseai.tracker.ui.theme.amber_dark
-import com.pennywiseai.tracker.ui.theme.orange_light
-import com.pennywiseai.tracker.ui.theme.orange_dark
-import com.pennywiseai.tracker.ui.theme.green_light
-import com.pennywiseai.tracker.ui.theme.green_dark
-import com.pennywiseai.tracker.ui.theme.teal_light
-import com.pennywiseai.tracker.ui.theme.teal_dark
-import com.pennywiseai.tracker.ui.theme.blue_light
-import com.pennywiseai.tracker.ui.theme.blue_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.red_light
-import com.pennywiseai.tracker.ui.theme.red_dark
-import com.pennywiseai.tracker.ui.theme.pink_light
-import com.pennywiseai.tracker.ui.theme.pink_dark
-import com.pennywiseai.tracker.ui.theme.purple_light
-import com.pennywiseai.tracker.ui.theme.purple_dark
-import com.pennywiseai.tracker.ui.theme.cyan_light
-import com.pennywiseai.tracker.ui.theme.cyan_dark
-import com.pennywiseai.tracker.ui.theme.yellow_light
-import com.pennywiseai.tracker.ui.theme.yellow_dark
-import com.pennywiseai.tracker.ui.theme.grey_light
-import com.pennywiseai.tracker.ui.theme.grey_dark
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.data.preferences.DateFormatStyle
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
@@ -252,7 +227,6 @@ fun SettingsScreen(
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = scrollBehaviorSmall
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = modifier,
@@ -264,14 +238,12 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_title),
                 hasBackButton = true,
                 navigationContent = { SettingsNavigationContent(onNavigateBack) },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())
@@ -279,53 +251,11 @@ fun SettingsScreen(
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            // ── PennyWise Pro / Support development ──
-            // Top of Settings on purpose: highest-discoverability slot.
-            // F-Droid builds have no Play billing (everything is already
-            // unlocked), so instead of an un-buyable Pro upsell they get a
-            // "Support development" tip jar. Play builds keep the Pro upgrade.
-            if (isFdroidBuild) {
-                SectionHeaderV2(title = stringResource(R.string.support_title))
-                SettingsGroup {
-                    SettingsNavItem(
-                        icon = Icons.Default.Favorite,
-                        iconBgColor = yellow_light,
-                        iconTint = yellow_dark,
-                        title = stringResource(R.string.support_title),
-                        subtitle = stringResource(R.string.support_subtitle),
-                        onClick = { showSupportDialog = true },
-                        position = ListItemPosition.Single,
-                    )
-                }
-            } else {
-                // Row content adapts to entitlement state — paid users see
-                // "Active" so the row reads as status, free users see "Upgrade"
-                // so it reads as a call-to-action.
-                SectionHeaderV2(title = stringResource(R.string.settings_pro_section))
-                SettingsGroup {
-                    SettingsNavItem(
-                        icon = Icons.Default.AutoAwesome,
-                        iconBgColor = yellow_light,
-                        iconTint = yellow_dark,
-                        title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
-                        subtitle = if (isProEntitled) {
-                            stringResource(R.string.settings_pro_subtitle_active)
-                        } else {
-                            stringResource(R.string.settings_pro_subtitle_upgrade)
-                        },
-                        onClick = { showUpgradeSheet = true },
-                        position = ListItemPosition.Single,
-                    )
-                }
-            }
-
             // ── Personalization ──
             SectionHeaderV2(title = stringResource(R.string.settings_personalization_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.Palette,
-                    iconBgColor = orange_light,
-                    iconTint = orange_dark,
                     title = stringResource(R.string.settings_appearance_title),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
                     onClick = onNavigateToAppearance,
@@ -336,8 +266,6 @@ fun SettingsScreen(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     SettingsNavItem(
                         icon = Icons.Default.Language,
-                        iconBgColor = orange_light,
-                        iconTint = orange_dark,
                         title = stringResource(R.string.settings_language_title),
                         subtitle = stringResource(R.string.settings_language_subtitle),
                         onClick = {
@@ -356,8 +284,6 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.CurrencyExchange,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
                     title = stringResource(R.string.settings_unified_currency_title),
                     subtitle = stringResource(R.string.settings_unified_currency_subtitle),
                     checked = unifiedCurrencyMode,
@@ -367,8 +293,6 @@ fun SettingsScreen(
                 AnimatedVisibility(visible = unifiedCurrencyMode) {
                     SettingsNavItem(
                         icon = Icons.Default.AttachMoney,
-                        iconBgColor = teal_light,
-                        iconTint = teal_dark,
                         title = stringResource(R.string.settings_display_currency_title),
                         subtitle = stringResource(R.string.settings_display_currency_subtitle),
                         onClick = { showDisplayCurrencyDialog = true },
@@ -378,8 +302,6 @@ fun SettingsScreen(
                 }
                 SettingsNavItem(
                     icon = Icons.Default.SwapHoriz,
-                    iconBgColor = blue_light,
-                    iconTint = blue_dark,
                     title = stringResource(R.string.settings_exchange_rates_title),
                     subtitle = stringResource(R.string.settings_exchange_rates_subtitle),
                     onClick = onNavigateToExchangeRates,
@@ -387,8 +309,6 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     icon = Icons.Default.CreditCard,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.settings_card_spend_as_expense_title),
                     subtitle = stringResource(R.string.settings_card_spend_as_expense_subtitle),
                     checked = countCreditCardAsExpense,
@@ -397,11 +317,10 @@ fun SettingsScreen(
                 )
                 SettingsDropdownItem(
                     icon = Icons.Default.Flag,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.settings_default_currency_title),
                     subtitle = stringResource(R.string.settings_default_currency_subtitle),
-                    currentValue = "${CurrencyFormatter.getCurrencySymbol(baseCurrency)} $baseCurrency",
+                    fieldLabel = stringResource(R.string.settings_currency_field_label),
+                    currentValue = runCatching { "$baseCurrency · ${java.util.Currency.getInstance(baseCurrency).displayName}" }.getOrDefault(baseCurrency),
                     expanded = showCurrencyDropdown,
                     onExpandedChange = { showCurrencyDropdown = it },
                     position = ListItemPosition.Middle
@@ -430,10 +349,9 @@ fun SettingsScreen(
                     }
                     SettingsDropdownItem(
                         icon = Icons.Default.AccountBalanceWallet,
-                        iconBgColor = purple_light,
-                        iconTint = purple_dark,
                         title = stringResource(R.string.settings_main_account_title),
                         subtitle = stringResource(R.string.settings_main_account_subtitle),
+                        fieldLabel = stringResource(R.string.settings_main_account_field_label),
                         currentValue = mainAccount?.let { acc ->
                             val name = acc.alias?.takeIf { it.isNotBlank() } ?: acc.bankName
                             AccountBalanceEntity.accountLabel(name, acc.accountLast4)
@@ -463,8 +381,6 @@ fun SettingsScreen(
 
                 SettingsNavItem(
                     icon = Icons.Default.Numbers,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
                     title = stringResource(R.string.settings_number_format_title),
                     subtitle = stringResource(R.string.settings_number_format_subtitle),
                     onClick = { showNumberFormatDialog = true },
@@ -474,8 +390,6 @@ fun SettingsScreen(
 
                 SettingsNavItem(
                     icon = Icons.Default.CalendarMonth,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
                     title = stringResource(R.string.settings_date_format_title),
                     subtitle = stringResource(R.string.settings_date_format_subtitle),
                     onClick = { showDateFormatDialog = true },
@@ -493,8 +407,6 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.DateRange,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_budget_cycle_title),
                     subtitle = stringResource(R.string.settings_budget_cycle_subtitle),
                     onClick = { showBudgetCycleDialog = true },
@@ -503,13 +415,12 @@ fun SettingsScreen(
                 )
             }
 
-            // ── Contacts ──
+            // ── Contacts ── UPI is India's: shown to INR users, and to anyone already using it.
+            if (baseCurrency == "INR" || upiId != null || useContactsForVpa) {
             SectionHeaderV2(title = stringResource(R.string.settings_contacts_section))
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Contacts,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_contacts_vpa_title),
                     subtitle = stringResource(R.string.settings_contacts_vpa_subtitle),
                     checked = useContactsForVpa,
@@ -533,8 +444,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.QrCode2,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_upi_title),
                     subtitle = upiId ?: stringResource(R.string.settings_upi_subtitle),
                     onClick = { showUpiIdDialog = true },
@@ -542,14 +451,13 @@ fun SettingsScreen(
                     trailingText = if (upiId == null) stringResource(R.string.settings_upi_not_set) else null
                 )
             }
+            }
 
             // ── Security ──
             SectionHeaderV2(title = stringResource(R.string.settings_security_section))
             SettingsGroup {
                 SettingsSwitchRow(
                     icon = Icons.Default.Vibration,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_shake_to_hide_title),
                     subtitle = stringResource(R.string.settings_shake_to_hide_subtitle),
                     checked = shakeToHideEnabled,
@@ -558,8 +466,6 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     icon = Icons.Default.Lock,
-                    iconBgColor = red_light,
-                    iconTint = red_dark,
                     title = stringResource(R.string.settings_app_lock_title),
                     subtitle = if (appLockUiState.canUseBiometric) {
                         stringResource(R.string.settings_app_lock_subtitle)
@@ -575,8 +481,6 @@ fun SettingsScreen(
                 AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
                     SettingsNavItem(
                         icon = Icons.Default.Timer,
-                        iconBgColor = pink_light,
-                        iconTint = pink_dark,
                         title = stringResource(R.string.settings_lock_timeout_title),
                         subtitle = when (appLockUiState.timeoutMinutes) {
                             0 -> stringResource(R.string.settings_lock_timeout_immediately_subtitle)
@@ -597,8 +501,6 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.AccountBalance,
-                    iconBgColor = red_light,
-                    iconTint = red_dark,
                     title = stringResource(R.string.settings_manage_accounts_title),
                     subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
                     onClick = onNavigateToManageAccounts,
@@ -606,8 +508,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Category,
-                    iconBgColor = purple_light,
-                    iconTint = purple_dark,
                     title = stringResource(R.string.settings_categories_title),
                     subtitle = stringResource(R.string.settings_categories_subtitle),
                     onClick = onNavigateToCategories,
@@ -615,8 +515,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.AutoAwesome,
-                    iconBgColor = orange_light,
-                    iconTint = orange_dark,
                     title = stringResource(R.string.settings_smart_rules_title),
                     subtitle = stringResource(R.string.settings_smart_rules_subtitle),
                     onClick = onNavigateToRules,
@@ -624,8 +522,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.AccountBalanceWallet,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
                     title = stringResource(R.string.settings_budgets_title),
                     subtitle = stringResource(R.string.settings_budgets_subtitle),
                     onClick = onNavigateToBudgets,
@@ -633,8 +529,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.SwapHoriz,
-                    iconBgColor = amber_light,
-                    iconTint = amber_dark,
                     title = stringResource(R.string.settings_loans_title),
                     subtitle = stringResource(R.string.settings_loans_subtitle),
                     onClick = onNavigateToLoans,
@@ -642,8 +536,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.EventRepeat,
-                    iconBgColor = green_light,
-                    iconTint = green_dark,
                     title = stringResource(R.string.settings_recurring_title),
                     subtitle = stringResource(R.string.settings_recurring_subtitle),
                     onClick = onNavigateToRecurring,
@@ -651,8 +543,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Folder,
-                    iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
-                    iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                     title = stringResource(R.string.settings_transaction_groups_title),
                     subtitle = stringResource(R.string.settings_transaction_groups_subtitle),
                     onClick = onNavigateToTransactionGroups,
@@ -660,8 +550,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Upload,
-                    iconBgColor = blue_light,
-                    iconTint = blue_dark,
                     title = stringResource(R.string.settings_export_data_title),
                     subtitle = stringResource(R.string.settings_export_data_subtitle),
                     onClick = { settingsViewModel.exportBackup() },
@@ -669,8 +557,6 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     icon = Icons.Default.Receipt,
-                    iconBgColor = blue_light,
-                    iconTint = blue_dark,
                     title = stringResource(R.string.settings_export_include_receipts_title),
                     subtitle = stringResource(R.string.settings_export_include_receipts_subtitle),
                     checked = exportIncludeReceipts,
@@ -679,8 +565,6 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     icon = Icons.Default.Backup,
-                    iconBgColor = purple_light,
-                    iconTint = purple_dark,
                     title = stringResource(R.string.settings_folder_backup_title),
                     subtitle = if (scheduledFolderBackupEnabled) {
                         stringResource(R.string.settings_folder_backup_subtitle_enabled)
@@ -705,8 +589,6 @@ fun SettingsScreen(
                 if (scheduledFolderBackupEnabled) {
                     SettingsNavItem(
                         icon = Icons.Default.SaveAlt,
-                        iconBgColor = green_light,
-                        iconTint = green_dark,
                         title = stringResource(R.string.settings_backup_now_title),
                         subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
                             val formatted = java.time.Instant.ofEpochMilli(timestamp)
@@ -719,8 +601,6 @@ fun SettingsScreen(
                     )
                     SettingsSwitchRow(
                         icon = Icons.Default.Receipt,
-                        iconBgColor = purple_light,
-                        iconTint = purple_dark,
                         title = stringResource(R.string.settings_folder_backup_include_receipts_title),
                         subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
                         checked = folderBackupIncludeReceipts,
@@ -729,8 +609,6 @@ fun SettingsScreen(
                     )
                     SettingsNavItem(
                         icon = Icons.Default.FolderOpen,
-                        iconBgColor = amber_light,
-                        iconTint = amber_dark,
                         title = stringResource(R.string.settings_change_backup_folder_title),
                         subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                         onClick = { settingsViewModel.requestChangeBackupFolder() },
@@ -739,8 +617,6 @@ fun SettingsScreen(
                 }
                 SettingsNavItem(
                     icon = Icons.Default.Download,
-                    iconBgColor = cyan_light,
-                    iconTint = cyan_dark,
                     title = stringResource(R.string.settings_import_data_title),
                     subtitle = stringResource(R.string.settings_import_data_subtitle),
                     onClick = { importLauncher.launch("*/*") },
@@ -748,8 +624,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Download,
-                    iconBgColor = cyan_light,
-                    iconTint = cyan_dark,
                     title = stringResource(R.string.settings_import_csv_title),
                     subtitle = stringResource(R.string.settings_import_csv_subtitle),
                     onClick = { csvImportLauncher.launch("*/*") },
@@ -757,8 +631,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Description,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.settings_import_statement_title),
                     subtitle = stringResource(R.string.settings_import_statement_subtitle),
                     onClick = onNavigateToImportStatement,
@@ -766,8 +638,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Sms,
-                    iconBgColor = orange_light,
-                    iconTint = orange_dark,
                     title = stringResource(R.string.settings_unrecognized_sms_title),
                     subtitle = stringResource(R.string.settings_unrecognized_sms_subtitle),
                     onClick = onNavigateToUnrecognizedSms,
@@ -775,8 +645,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.CalendarMonth,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_sms_scan_title),
                     subtitle = when {
                         smsScanAllTime -> stringResource(R.string.settings_sms_scan_subtitle_all_time)
@@ -801,8 +669,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.DeleteForever,
-                    iconBgColor = red_light,
-                    iconTint = red_dark,
                     title = stringResource(R.string.settings_delete_all_title),
                     subtitle = stringResource(R.string.settings_delete_all_subtitle),
                     onClick = { settingsViewModel.requestDeleteAllTransactions() },
@@ -815,8 +681,6 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.Notifications,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.settings_notification_access_title),
                     subtitle = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_enabled) else stringResource(R.string.settings_notification_access_disabled),
                     onClick = {
@@ -828,8 +692,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.Apps,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.settings_tracked_apps_title),
                     subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
                         else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
@@ -848,8 +710,6 @@ fun SettingsScreen(
                 }
                 SettingsSwitchRow(
                     icon = Icons.Default.Schedule,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.settings_daily_summary_title),
                     subtitle = stringResource(R.string.settings_daily_summary_subtitle),
                     checked = dailySummaryEnabled,
@@ -886,8 +746,6 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.AutoAwesome,
-                    iconBgColor = indigo_light,
-                    iconTint = indigo_dark,
                     title = stringResource(R.string.ai_access_settings_title),
                     subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
                     onClick = { if (isProEntitled) onNavigateToAiAccess() else showUpgradeSheet = true },
@@ -900,8 +758,6 @@ fun SettingsScreen(
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.Default.CloudUpload,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_webhooks_title),
                     subtitle = stringResource(if (isProEntitled) R.string.settings_webhooks_subtitle else R.string.settings_webhooks_subtitle_pro),
                     onClick = { if (isProEntitled) onNavigateToWebhooks() else showUpgradeSheet = true },
@@ -909,8 +765,6 @@ fun SettingsScreen(
                 )
                 SettingsSwitchRow(
                     icon = Icons.Default.Code,
-                    iconBgColor = grey_light,
-                    iconTint = grey_dark,
                     title = stringResource(R.string.settings_developer_mode_title),
                     subtitle = stringResource(R.string.settings_developer_mode_subtitle),
                     checked = isDeveloperModeEnabled,
@@ -919,13 +773,47 @@ fun SettingsScreen(
                 )
             }
 
+            // ── PennyWise Pro / Support development ──
+            // After the settings people came here for, as an ordinary row.
+            // F-Droid builds have no Play billing (everything is already
+            // unlocked), so instead of an un-buyable Pro upsell they get a
+            // "Support development" tip jar. Play builds keep the Pro upgrade.
+            if (isFdroidBuild) {
+                SectionHeaderV2(title = stringResource(R.string.support_title))
+                SettingsGroup {
+                    SettingsNavItem(
+                        icon = Icons.Default.Favorite,
+                        title = stringResource(R.string.support_title),
+                        subtitle = stringResource(R.string.support_subtitle),
+                        onClick = { showSupportDialog = true },
+                        position = ListItemPosition.Single,
+                    )
+                }
+            } else {
+                // Row content adapts to entitlement state — paid users see
+                // "Active" so the row reads as status, free users see "Upgrade"
+                // so it reads as a call-to-action.
+                SectionHeaderV2(title = stringResource(R.string.settings_pro_section))
+                SettingsGroup {
+                    SettingsNavItem(
+                        icon = Icons.Default.AutoAwesome,
+                        title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
+                        subtitle = if (isProEntitled) {
+                            stringResource(R.string.settings_pro_subtitle_active)
+                        } else {
+                            stringResource(R.string.settings_pro_subtitle_upgrade)
+                        },
+                        onClick = { showUpgradeSheet = true },
+                        position = ListItemPosition.Single,
+                    )
+                }
+            }
+
             // ── Support & Community ──
             SectionHeaderV2(title = stringResource(R.string.settings_support_section))
             SettingsGroup {
                 SettingsNavItem(
                     icon = Icons.AutoMirrored.Filled.Help,
-                    iconBgColor = pink_light,
-                    iconTint = pink_dark,
                     title = stringResource(R.string.settings_help_faq_title),
                     subtitle = stringResource(R.string.settings_help_faq_subtitle),
                     onClick = onNavigateToFaq,
@@ -933,8 +821,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.AutoMirrored.Filled.MenuBook,
-                    iconBgColor = teal_light,
-                    iconTint = teal_dark,
                     title = stringResource(R.string.settings_user_guide_title),
                     subtitle = stringResource(R.string.settings_user_guide_subtitle),
                     onClick = {
@@ -945,8 +831,6 @@ fun SettingsScreen(
                 )
                 SettingsNavItem(
                     icon = Icons.Default.BugReport,
-                    iconBgColor = blue_light,
-                    iconTint = blue_dark,
                     title = stringResource(R.string.settings_report_issue_title),
                     subtitle = stringResource(R.string.settings_report_issue_subtitle),
                     onClick = {
@@ -1602,6 +1486,38 @@ fun SettingsScreen(
 // settings row and a grouped row on any other screen are literally the same
 // object. These wrappers only add the settings-specific trailing affordance.
 
+/** Font scale above which a row's trailing control moves below its labels. */
+private const val STACKED_ROW_FONT_SCALE = 1.3f
+
+@Composable
+private fun usesStackedRowLayout(): Boolean =
+    LocalDensity.current.fontScale > STACKED_ROW_FONT_SCALE
+
+@Composable
+private fun SettingsIconTile(icon: ImageVector) {
+    IconTile(
+        icon = icon,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+/** Settings text carries real explanations, so it always reads in full. */
+@Composable
+private fun RowScope.SettingsRowLabels(
+    title: String,
+    subtitle: String,
+    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
+    RowLabels(
+        title = title,
+        subtitle = subtitle,
+        subtitleColor = subtitleColor,
+        titleMaxLines = Int.MAX_VALUE,
+        subtitleMaxLines = Int.MAX_VALUE
+    )
+}
+
 @Composable
 private fun SettingsGroup(
     content: @Composable ColumnScope.() -> Unit
@@ -1612,8 +1528,6 @@ private fun SettingsGroup(
 @Composable
 private fun SettingsNavItem(
     icon: ImageVector,
-    iconBgColor: Color,
-    iconTint: Color,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
@@ -1622,14 +1536,29 @@ private fun SettingsNavItem(
     trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight
 ) {
     GroupedRow(position = position, onClick = onClick) {
-        IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
-        RowLabels(title = title, subtitle = subtitle)
-        if (trailingText != null) {
-            Text(
-                text = trailingText,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+        SettingsIconTile(icon)
+        val trailing: @Composable () -> Unit = {
+            if (trailingText != null) {
+                Text(
+                    text = trailingText,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        // At large font sizes a trailing value would squeeze the labels into a
+        // sliver, so it moves underneath them.
+        if (usesStackedRowLayout()) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
+                Row { SettingsRowLabels(title = title, subtitle = subtitle) }
+                trailing()
+            }
+        } else {
+            SettingsRowLabels(title = title, subtitle = subtitle)
+            trailing()
         }
         // The chevron is a hint, not a control — at 20dp it stops competing
         // with the leading icon for attention the way a 24dp one did.
@@ -1645,8 +1574,6 @@ private fun SettingsNavItem(
 @Composable
 private fun SettingsSwitchRow(
     icon: ImageVector,
-    iconBgColor: Color,
-    iconTint: Color,
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -1659,12 +1586,10 @@ private fun SettingsSwitchRow(
         enabled = enabled,
         onClick = { onCheckedChange(!checked) }
     ) {
-        IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
-        RowLabels(
+        SettingsIconTile(icon)
+        SettingsRowLabels(
             title = title,
-            subtitle = subtitle,
-            subtitleColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.error
+            subtitle = subtitle
         )
         Switch(
             checked = checked,
@@ -1678,10 +1603,9 @@ private fun SettingsSwitchRow(
 @Composable
 private fun SettingsDropdownItem(
     icon: ImageVector,
-    iconBgColor: Color,
-    iconTint: Color,
     title: String,
     subtitle: String,
+    fieldLabel: String,
     currentValue: String,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
@@ -1694,8 +1618,8 @@ private fun SettingsDropdownItem(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
-            RowLabels(title = title, subtitle = subtitle)
+            SettingsIconTile(icon)
+            SettingsRowLabels(title = title, subtitle = subtitle)
         }
         ExposedDropdownMenuBox(
             expanded = expanded,
@@ -1705,7 +1629,7 @@ private fun SettingsDropdownItem(
                 value = currentValue,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text(stringResource(R.string.settings_currency_field_label)) },
+                label = { Text(fieldLabel) },
                 trailingIcon = {
                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                 },
@@ -1742,6 +1666,73 @@ private fun AiChatSettingsItem(
     onCancel: () -> Unit,
     onDelete: () -> Unit
 ) {
+    // A full-size button beside the labels leaves them no room at large font
+    // sizes, so it moves underneath.
+    val stacked = usesStackedRowLayout()
+    val downloadAction: @Composable () -> Unit = {
+        when (downloadState) {
+            DownloadState.NOT_DOWNLOADED -> {
+                Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
+                    Icon(Icons.Default.Download, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.settings_ai_download))
+                }
+            }
+            DownloadState.DOWNLOADING -> {
+                Text(
+                    text = "$downloadProgress%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            DownloadState.PAUSED -> {
+                Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
+                    Icon(Icons.Default.Download, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.settings_ai_retry))
+                }
+            }
+            DownloadState.COMPLETED -> {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = stringResource(R.string.settings_ai_downloaded),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(Dimensions.Icon.medium)
+                    )
+                    TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.settings_ai_delete))
+                    }
+                }
+            }
+            DownloadState.FAILED -> {
+                Button(
+                    onClick = onDownload,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.settings_ai_retry))
+                }
+            }
+            DownloadState.ERROR_INSUFFICIENT_SPACE -> {
+                Icon(
+                    Icons.Default.Error,
+                    contentDescription = stringResource(R.string.settings_ai_error),
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
+        }
+    }
+
     GroupedColumn(
         position = ListItemPosition.Single,
         verticalArrangement = Arrangement.spacedBy(Spacing.md)
@@ -1751,12 +1742,8 @@ private fun AiChatSettingsItem(
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconTile(
-                icon = Icons.Default.AutoAwesome,
-                containerColor = yellow_light,
-                contentColor = yellow_dark
-            )
-            RowLabels(
+            SettingsIconTile(Icons.Default.AutoAwesome)
+            SettingsRowLabels(
                 title = stringResource(R.string.settings_ai_chat_title),
                 subtitle = when (downloadState) {
                     DownloadState.NOT_DOWNLOADED -> stringResource(R.string.settings_ai_status_not_downloaded, Constants.ModelDownload.MODEL_SIZE_MB)
@@ -1768,68 +1755,10 @@ private fun AiChatSettingsItem(
                 }
             )
 
-            when (downloadState) {
-                DownloadState.NOT_DOWNLOADED -> {
-                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.settings_ai_download))
-                    }
-                }
-                DownloadState.DOWNLOADING -> {
-                    Text(
-                        text = "$downloadProgress%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                DownloadState.PAUSED -> {
-                    Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Download, contentDescription = null)
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.settings_ai_retry))
-                    }
-                }
-                DownloadState.COMPLETED -> {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = stringResource(R.string.settings_ai_downloaded),
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                        TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.settings_ai_delete))
-                        }
-                    }
-                }
-                DownloadState.FAILED -> {
-                    Button(
-                        onClick = onDownload,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        ),
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.settings_ai_retry))
-                    }
-                }
-                DownloadState.ERROR_INSUFFICIENT_SPACE -> {
-                    Icon(
-                        Icons.Default.Error,
-                        contentDescription = stringResource(R.string.settings_ai_error),
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                }
-            }
+            if (!stacked) downloadAction()
         }
+
+        if (stacked) downloadAction()
 
         // Progress details during download
         AnimatedVisibility(
@@ -1884,7 +1813,6 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
     Box(
         modifier = Modifier
             .animateContentSize()
-            .padding(start = Spacing.md)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1893,16 +1821,11 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
     ) {
         IconButton(
             onClick = onNavigateBack,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                contentColor = MaterialTheme.colorScheme.onBackground
-            ),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.settings_back),
-                modifier = Modifier.size(Dimensions.Icon.inline)
+                contentDescription = stringResource(R.string.settings_back)
             )
         }
     }

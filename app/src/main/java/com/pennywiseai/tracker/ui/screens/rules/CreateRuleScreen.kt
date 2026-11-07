@@ -1,5 +1,13 @@
 package com.pennywiseai.tracker.ui.screens.rules
 
+import com.pennywiseai.tracker.presentation.add.AddSaveBar
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -18,17 +27,21 @@ import androidx.annotation.StringRes
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.util.UUID
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -83,7 +96,7 @@ private fun TransactionField.defaultConditionOperator(): ConditionOperator = whe
  *
  * The set and its order come from [supportedOperators] so the picker and the
  * rule importer can't drift apart; only the wording lives here, since the same
- * operator reads differently per field ("<" for an amount, "before" for a time).
+ * operator reads differently per field ("less than" for an amount, "before" for a time).
  */
 private fun conditionOperatorsForField(
     field: TransactionField
@@ -93,9 +106,9 @@ private fun conditionOperatorsForField(
 @StringRes
 private fun ConditionOperator.labelFor(field: TransactionField): Int = when (field) {
     TransactionField.AMOUNT -> when (this) {
-        ConditionOperator.LESS_THAN -> R.string.rules_op_less_than_symbol
-        ConditionOperator.GREATER_THAN -> R.string.rules_op_greater_than_symbol
-        else -> R.string.rules_op_equals_symbol
+        ConditionOperator.LESS_THAN -> R.string.rules_op_less_than
+        ConditionOperator.GREATER_THAN -> R.string.rules_op_greater_than
+        else -> R.string.rules_op_equals
     }
     TransactionField.TRANSACTION_TIME -> when (this) {
         ConditionOperator.LESS_THAN -> R.string.rules_op_before
@@ -126,7 +139,17 @@ private fun ConditionOperator.labelFor(field: TransactionField): Int = when (fie
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val COMMON_RULE_CATEGORIES = listOf(
+    "Food & Dining", "Transportation", "Shopping",
+    "Bills & Utilities", "Entertainment", "Healthcare",
+    "Investments", "Others"
+)
+
+/** A value that isn't a shortcut always shows its text field: Save would use it, so it can't be hidden. */
+internal fun isCustomRuleCategory(value: String, otherChosen: Boolean): Boolean =
+    otherChosen || (value.isNotBlank() && value !in COMMON_RULE_CATEGORIES)
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun CreateRuleScreen(
     onNavigateBack: () -> Unit,
@@ -166,6 +189,15 @@ fun CreateRuleScreen(
                 )
         )
     }
+
+    // Rule name + all conditions have values + all actions are valid
+    val isRuleValid = ruleName.isNotBlank() &&
+        conditions.isNotEmpty() &&
+        conditions.all { it.validate() } &&
+        actions.isNotEmpty() &&
+        actions.all { it.validate() }
+
+    var templatesExpanded by rememberSaveable { mutableStateOf(false) }
 
     // Holds a pending switch-to-BLOCK while we confirm discarding the other actions.
     var pendingBlockAction by remember { mutableStateOf<RuleAction?>(null) }
@@ -283,7 +315,6 @@ fun CreateRuleScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -299,89 +330,93 @@ fun CreateRuleScreen(
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rules_close))
                     }
                 },
-                actionContent = {
-                    TextButton(
-                        onClick = {
-                            // Validate: rule name + all conditions have values + all actions are valid
-                            val areConditionsValid = conditions.isNotEmpty() &&
-                                conditions.all { it.validate() }
-                            val isActionValid = actions.isNotEmpty() && actions.all { it.validate() }
-                            val isValid = ruleName.isNotBlank() && areConditionsValid && isActionValid
-
-                            if (isValid) {
-                                val rule = TransactionRule(
-                                    id = existingRule?.id ?: UUID.randomUUID().toString(),
-                                    name = ruleName,
-                                    description = description.takeIf { it.isNotBlank() },
-                                    priority = existingRule?.priority ?: 100,
-                                    conditions = conditions.toList(),
-                                    actions = actions,
-                                    isActive = existingRule?.isActive ?: true,
-                                    isSystemTemplate = existingRule?.isSystemTemplate ?: false,
-                                    createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
-                                    updatedAt = System.currentTimeMillis()
-                                )
-                                onSaveRule(rule)
-                            }
-                        },
-                        enabled = ruleName.isNotBlank() &&
-                                 conditions.isNotEmpty() &&
-                                 conditions.all { it.validate() } &&
-                                 actions.isNotEmpty() &&
-                                 actions.all { it.validate() },
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Text(stringResource(R.string.rules_save))
-                    }
-                },
-                hazeState = hazeState
             )
+        },
+        // The same footer as Add transaction: pinned, and saying what Save is waiting for.
+        bottomBar = {
+            Column(Modifier.background(MaterialTheme.colorScheme.background).navigationBarsPadding().imePadding()) {
+                AddSaveBar(
+                    hint = if (isRuleValid) null else stringResource(R.string.rules_save_hint),
+                    enabled = isRuleValid,
+                    isLoading = false,
+                    onClick = {
+                        if (isRuleValid) {
+                            val rule = TransactionRule(
+                                id = existingRule?.id ?: UUID.randomUUID().toString(),
+                                name = ruleName,
+                                description = description.takeIf { it.isNotBlank() },
+                                priority = existingRule?.priority ?: 100,
+                                conditions = conditions.toList(),
+                                actions = actions,
+                                isActive = existingRule?.isActive ?: true,
+                                isSystemTemplate = existingRule?.isSystemTemplate ?: false,
+                                createdAt = existingRule?.createdAt ?: System.currentTimeMillis(),
+                                updatedAt = System.currentTimeMillis()
+                            )
+                            onSaveRule(rule)
+                        }
+                    }
+                )
+            }
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
-                .padding(Dimensions.Padding.content)
                 .imePadding()
                 .overScrollVertical()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg)
+                .verticalScroll(rememberScrollState())
+                .padding(Dimensions.Padding.content),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // Quick presets
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(Dimensions.Padding.content),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            // Templates stay out of the way until asked for
+            GroupedList {
+                GroupedRow(
+                    position = if (templatesExpanded) ListItemPosition.Top else ListItemPosition.Single,
+                    onClick = { templatesExpanded = !templatesExpanded }
                 ) {
-                    Text(
-                        text = stringResource(R.string.rules_quick_templates),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
+                    RowLabels(
+                        title = stringResource(R.string.rules_quick_templates),
+                        titleMaxLines = Int.MAX_VALUE
                     )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        commonPresets.forEach { (label, action) ->
-                            ElevatedAssistChip(
-                                onClick = action,
-                                label = { Text(stringResource(label), style = MaterialTheme.typography.bodySmall) }
-                            )
+                    Icon(
+                        if (templatesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        contentDescription = stringResource(
+                            if (templatesExpanded) R.string.rules_templates_hide else R.string.rules_templates_show
+                        ),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                AnimatedVisibility(
+                    visible = templatesExpanded,
+                    enter = expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) +
+                        fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
+                    exit = shrinkVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) +
+                        fadeOut(MaterialTheme.motionScheme.defaultEffectsSpec())
+                ) {
+                    GroupedColumn(position = ListItemPosition.Bottom) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            commonPresets.forEach { (label, applyPreset) ->
+                                AssistChip(
+                                    onClick = {
+                                        applyPreset()
+                                        templatesExpanded = false
+                                    },
+                                    label = { Text(stringResource(label)) }
+                                )
+                            }
                         }
                     }
                 }
             }
 
             // Rule name and description
-            TextField(
+            RuleTextField(
                 value = ruleName,
                 onValueChange = { ruleName = it },
                 label = { Text(stringResource(R.string.rules_name_label)) },
@@ -390,7 +425,7 @@ fun CreateRuleScreen(
                 singleLine = true
             )
 
-            TextField(
+            RuleTextField(
                 value = description,
                 onValueChange = { description = it },
                 label = { Text(stringResource(R.string.rules_description_label)) },
@@ -401,243 +436,167 @@ fun CreateRuleScreen(
             )
 
             // Conditions section (supports multiple)
-            Card {
-                Column(
-                    modifier = Modifier.padding(Dimensions.Padding.content),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+            RuleSection(
+                title = stringResource(R.string.rules_when),
+                action = {
+                    TextButton(
+                        onClick = {
+                            conditions = (conditions + RuleCondition(
+                                field = TransactionField.AMOUNT,
+                                operator = ConditionOperator.LESS_THAN,
+                                value = ""
+                            )).toMutableList()
+                        },
+                        shapes = ButtonDefaults.shapes()
                     ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text(stringResource(R.string.rules_add_condition))
+                    }
+                }
+            ) {
+                // Display all conditions
+                conditions.forEachIndexed { index, condition ->
+                    if (index > 0) HorizontalDivider()
+
+                    // Only multiple conditions need a heading, a connector or a remove button
+                    if (conditions.size > 1) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                Icons.Default.FilterList,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = stringResource(R.string.rules_when),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
+                            if (index == 0) {
+                                Text(
+                                    text = stringResource(R.string.rules_condition),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                LogicalOperatorToggle(
+                                    selected = condition.logicalOperator,
+                                    onSelect = { newOp ->
+                                        conditions = conditions.toMutableList().apply {
+                                            set(index, condition.copy(logicalOperator = newOp))
+                                        }
+                                    }
+                                )
+                            }
+                            IconButton(
+                                onClick = {
+                                    conditions = conditions.toMutableList().apply { removeAt(index) }
+                                },
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                shapes = IconButtonDefaults.shapes()
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.rules_remove_condition),
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
+                    }
+
+                    // Field selector
+                    ConditionFieldSelector(
+                        condition = condition,
+                        onConditionChange = { newCondition ->
+                            conditions = conditions.toMutableList().apply {
+                                set(index, newCondition)
+                            }
+                        },
+                        allAccounts = allAccounts
+                    )
+                }
+            }
+
+            // Action section (supports multiple)
+            RuleSection(
+                title = stringResource(R.string.rules_then),
+                // BLOCK drops the transaction, so it's terminal — no further
+                // actions can run alongside it. Hide "Add Action" while one exists.
+                action = if (actions.none { it.actionType == ActionType.BLOCK }) {
+                    {
                         TextButton(
                             onClick = {
-                                conditions = (conditions + RuleCondition(
-                                    field = TransactionField.AMOUNT,
-                                    operator = ConditionOperator.LESS_THAN,
+                                actions = actions + RuleAction(
+                                    field = TransactionField.CATEGORY,
+                                    actionType = ActionType.SET,
                                     value = ""
-                                )).toMutableList()
+                                )
                             },
                             shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
-                            Text(stringResource(R.string.rules_add_condition))
+                            Text(stringResource(R.string.rules_add_action))
                         }
                     }
-
-                    // Display all conditions
-                    conditions.forEachIndexed { index, condition ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.md),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                // Header with logical-operator toggle and delete button
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (index == 0) {
-                                        Text(
-                                            text = stringResource(R.string.rules_condition),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    } else {
-                                        LogicalOperatorToggle(
-                                            selected = condition.logicalOperator,
-                                            onSelect = { newOp ->
-                                                conditions = conditions.toMutableList().apply {
-                                                    set(index, condition.copy(logicalOperator = newOp))
-                                                }
-                                            }
-                                        )
-                                    }
-                                    if (conditions.size > 1) {
-                                        IconButton(
-                                            onClick = {
-                                                conditions = conditions.toMutableList().apply { removeAt(index) }
-                                            },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                                            shapes = IconButtonDefaults.shapes()
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = stringResource(R.string.rules_remove_condition),
-                                                modifier = Modifier.size(Dimensions.Icon.small),
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Field selector
-                                ConditionFieldSelector(
-                                    condition = condition,
-                                    onConditionChange = { newCondition ->
-                                        conditions = conditions.toMutableList().apply {
-                                            set(index, newCondition)
-                                        }
-                                    },
-                                    allAccounts = allAccounts
-                                )
-                            }
-                        }
-                    }
+                } else {
+                    null
                 }
-            }
+            ) {
+                // Display all actions
+                actions.forEachIndexed { index, action ->
+                    if (index > 0) HorizontalDivider()
 
-            // Action section (supports multiple)
-            Card {
-                Column(
-                    modifier = Modifier.padding(Dimensions.Padding.content),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+                    // Only multiple actions need a heading or a remove button
+                    if (actions.size > 1) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = stringResource(R.string.rules_then),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                        // BLOCK drops the transaction, so it's terminal — no further
-                        // actions can run alongside it. Hide "Add Action" while one exists.
-                        if (actions.none { it.actionType == ActionType.BLOCK }) {
-                            TextButton(
-                                onClick = {
-                                    actions = actions + RuleAction(
-                                        field = TransactionField.CATEGORY,
-                                        actionType = ActionType.SET,
-                                        value = ""
-                                    )
-                                },
-                                shapes = ButtonDefaults.shapes()
-                            ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(stringResource(R.string.rules_add_action))
-                            }
-                        }
-                    }
-
-                    // Display all actions
-                    actions.forEachIndexed { index, action ->
-                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            )
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(
-                                modifier = Modifier.padding(Spacing.md),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            Text(
+                                text = stringResource(R.string.rules_action_numbered, index + 1),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            IconButton(
+                                onClick = {
+                                    actions = actions.toMutableList().apply { removeAt(index) }
+                                },
+                                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                shapes = IconButtonDefaults.shapes()
                             ) {
-                                // Header with delete button
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = if (actions.size > 1) stringResource(R.string.rules_action_numbered, index + 1) else stringResource(R.string.rules_action),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    if (actions.size > 1) {
-                                        IconButton(
-                                            onClick = {
-                                                actions = actions.toMutableList().apply { removeAt(index) }
-                                            },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                                            shapes = IconButtonDefaults.shapes()
-                                        ) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = stringResource(R.string.rules_remove_action),
-                                                modifier = Modifier.size(Dimensions.Icon.small),
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
-                                }
-
-                                // Per-action editor
-                                ActionEditor(
-                                    action = action,
-                                    onActionChange = { updated ->
-                                        // BLOCK is terminal — it drops the transaction, so the other
-                                        // actions can't run. If the user switches to BLOCK while other
-                                        // actions exist, confirm before discarding them (no silent
-                                        // data loss); otherwise apply the change directly.
-                                        if (updated.actionType == ActionType.BLOCK && actions.size > 1) {
-                                            pendingBlockAction = updated
-                                        } else {
-                                            actions = actions.toMutableList().apply { set(index, updated) }
-                                        }
-                                    }
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = stringResource(R.string.rules_remove_action),
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = MaterialTheme.colorScheme.error
                                 )
                             }
                         }
                     }
+
+                    // Per-action editor
+                    ActionEditor(
+                        action = action,
+                        onActionChange = { updated ->
+                            // BLOCK is terminal — it drops the transaction, so the other
+                            // actions can't run. If the user switches to BLOCK while other
+                            // actions exist, confirm before discarding them (no silent
+                            // data loss); otherwise apply the change directly.
+                            if (updated.actionType == ActionType.BLOCK && actions.size > 1) {
+                                pendingBlockAction = updated
+                            } else {
+                                actions = actions.toMutableList().apply { set(index, updated) }
+                            }
+                        }
+                    )
                 }
             }
 
             // Preview
-            val showPreview = ruleName.isNotBlank() &&
-                             conditions.isNotEmpty() &&
-                             conditions.all { it.validate() } &&
-                             actions.isNotEmpty() &&
-                             actions.all { it.validate() }
-            if (showPreview) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(Dimensions.Padding.content),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
+            if (isRuleValid) {
+                PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(
                             text = stringResource(R.string.rules_preview_title),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium
+                            style = PennyWiseText.sectionHeader,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = run {
@@ -746,8 +705,8 @@ fun CreateRuleScreen(
                                     actionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_actions_and, acc, text) }
                                 )
                             },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -774,6 +733,62 @@ fun CreateRuleScreen(
             }
         )
     }
+}
+
+/** One surface per When/Then section: a heading, then its fields directly inside. */
+@Composable
+private fun RuleSection(
+    title: String,
+    action: (@Composable () -> Unit)?,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            SectionHeaderV2(title = title, action = action, topSpacing = Spacing.none)
+            content()
+        }
+    }
+}
+
+/**
+ * The one field style on this screen, matching the filled, borderless fields
+ * Settings uses: a step up in tone from the section behind it, no underline.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RuleTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false,
+    label: @Composable () -> Unit,
+    placeholder: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE
+) {
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        readOnly = readOnly,
+        label = label,
+        placeholder = placeholder,
+        trailingIcon = trailingIcon,
+        keyboardOptions = keyboardOptions,
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        shape = MaterialTheme.shapes.large,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        )
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -804,11 +819,11 @@ private fun ConditionFieldSelector(
             TransactionField.TRANSACTION_DATE to R.string.rules_field_date,
             TransactionField.ACCOUNT to R.string.rules_field_account
         )
-        TextField(
+        RuleTextField(
             value = stringResource(fieldOptions.firstOrNull { it.first == condition.field }?.second ?: R.string.rules_field_amount),
             onValueChange = { },
             readOnly = true,
-            label = { Text(stringResource(R.string.rules_field_label)) },
+            label = { Text(stringResource(R.string.rules_condition_field_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fieldDropdownExpanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
@@ -837,34 +852,25 @@ private fun ConditionFieldSelector(
         }
     }
 
-    Spacer(modifier = Modifier.height(Spacing.sm))
-
     // Operator selector
     val operators = conditionOperatorsForField(condition.field)
 
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        operators.forEach { (op, label) ->
-            FilterChip(
-                selected = condition.operator == op,
-                shapes = FilterChipDefaults.shapes(),
-                colors = FilterChipDefaults.filterChipColors(),
-                onClick = { onConditionChange(condition.copy(operator = op)) },
-                label = { Text(stringResource(label)) }
-            )
-        }
-    }
-
-    Spacer(modifier = Modifier.height(Spacing.sm))
+    ConnectedChoiceRow(
+        options = operators.map { it.first },
+        selected = condition.operator,
+        onSelect = { op -> onConditionChange(condition.copy(operator = op)) },
+        label = { op -> stringResource(operators.first { it.first == op }.second) },
+        // Up to five multi-word labels: they flow rather than squeezing into one line.
+        wrap = true
+    )
 
     // Value input
     when (condition.field) {
         TransactionField.TYPE -> {
             Text(
                 text = stringResource(R.string.rules_select_transaction_type),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -877,9 +883,7 @@ private fun ConditionFieldSelector(
                         shapes = FilterChipDefaults.shapes(),
                         colors = FilterChipDefaults.filterChipColors(),
                         onClick = { onConditionChange(condition.copy(value = type)) },
-                        label = {
-                            Text(stringResource(displayLabel), style = MaterialTheme.typography.bodySmall)
-                        }
+                        label = { Text(stringResource(displayLabel)) }
                     )
                 }
             }
@@ -905,7 +909,7 @@ private fun ConditionFieldSelector(
                                 val newSet = if (value in selectedDays) selectedDays - value else selectedDays + value
                                 onConditionChange(condition.copy(value = newSet.sorted().joinToString(",")))
                             },
-                            label = { Text(stringResource(label), style = MaterialTheme.typography.bodySmall) }
+                            label = { Text(stringResource(label)) }
                         )
                     }
                 } else {
@@ -915,7 +919,7 @@ private fun ConditionFieldSelector(
                             shapes = FilterChipDefaults.shapes(),
                             colors = FilterChipDefaults.filterChipColors(),
                             onClick = { onConditionChange(condition.copy(value = value)) },
-                            label = { Text(stringResource(label), style = MaterialTheme.typography.bodySmall) }
+                            label = { Text(stringResource(label)) }
                         )
                     }
                 }
@@ -923,7 +927,7 @@ private fun ConditionFieldSelector(
         }
 
         TransactionField.TRANSACTION_DAY_OF_MONTH -> {
-            TextField(
+            RuleTextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_day_of_month_label)) },
@@ -943,7 +947,7 @@ private fun ConditionFieldSelector(
                 initialMinute = initialMinute
             )
 
-            TextField(
+            RuleTextField(
                 value = condition.value,
                 onValueChange = { },
                 readOnly = true,
@@ -977,7 +981,7 @@ private fun ConditionFieldSelector(
         }
 
         TransactionField.TRANSACTION_HOUR -> {
-            TextField(
+            RuleTextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_hour_label)) },
@@ -989,7 +993,7 @@ private fun ConditionFieldSelector(
         }
 
         TransactionField.TRANSACTION_DATE -> {
-            TextField(
+            RuleTextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_date_label)) },
@@ -1021,7 +1025,7 @@ private fun ConditionFieldSelector(
                     expanded = accountDropdownExpanded,
                     onExpandedChange = { accountDropdownExpanded = !accountDropdownExpanded }
                 ) {
-                    TextField(
+                    RuleTextField(
                         value = displayText,
                         onValueChange = {},
                         readOnly = true,
@@ -1051,10 +1055,10 @@ private fun ConditionFieldSelector(
                                             accountLast4 = account.accountLast4
                                         )
                                         if (accountTypeLabel.isNotBlank()) {
-                                            AssistChip(
-                                                onClick = {},
-                                                label = { Text(accountTypeLabel, style = MaterialTheme.typography.labelSmall) },
-                                                modifier = Modifier.height(24.dp)
+                                            Text(
+                                                text = accountTypeLabel,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -1080,10 +1084,21 @@ private fun ConditionFieldSelector(
         }
 
         else -> {
-            TextField(
+            RuleTextField(
                 value = condition.value,
                 onValueChange = { onConditionChange(condition.copy(value = it)) },
-                label = { Text(stringResource(R.string.rules_value_label)) },
+                // The engine compares the raw number, whatever the transaction's currency.
+                label = {
+                    Text(
+                        stringResource(
+                            if (condition.field == TransactionField.AMOUNT) {
+                                R.string.rules_value_label_amount
+                            } else {
+                                R.string.rules_value_label
+                            }
+                        )
+                    )
+                },
                 placeholder = {
                     Text(
                         stringResource(
@@ -1124,8 +1139,7 @@ private fun LogicalOperatorToggle(
                 if (op == LogicalOperator.AND) R.string.rules_logical_and else R.string.rules_logical_or
             )
         },
-        fillMaxWidth = false,
-        textStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+        fillMaxWidth = false
     )
 }
 
@@ -1157,7 +1171,7 @@ private fun ActionEditor(
             expanded = actionTypeDropdownExpanded,
             onExpandedChange = { actionTypeDropdownExpanded = !actionTypeDropdownExpanded }
         ) {
-            TextField(
+            RuleTextField(
                 value = stringResource(actionTypeLabel(action.actionType)),
                 onValueChange = { },
                 readOnly = true,
@@ -1193,32 +1207,22 @@ private fun ActionEditor(
 
         // Show message for BLOCK action or field selector for others
         if (action.actionType == ActionType.BLOCK) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = Spacing.xs),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Icon(
-                        Icons.Default.Block,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Text(
-                        text = stringResource(R.string.rules_block_explainer),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
+                Icon(
+                    Icons.Default.Block,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    text = stringResource(R.string.rules_block_explainer),
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             // Action field selector for non-BLOCK actions
@@ -1226,7 +1230,7 @@ private fun ActionEditor(
                 expanded = actionFieldDropdownExpanded,
                 onExpandedChange = { actionFieldDropdownExpanded = !actionFieldDropdownExpanded }
             ) {
-                TextField(
+                RuleTextField(
                     value = stringResource(
                         when (action.field) {
                             TransactionField.CATEGORY -> R.string.rules_field_category
@@ -1240,7 +1244,17 @@ private fun ActionEditor(
                     ),
                     onValueChange = { },
                     readOnly = true,
-                    label = { Text(stringResource(R.string.rules_action)) },
+                    label = {
+                        Text(
+                            stringResource(
+                                if (action.actionType == ActionType.SET) {
+                                    R.string.rules_action_field_label_set
+                                } else {
+                                    R.string.rules_action_field_label_change
+                                }
+                            )
+                        )
+                    },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
@@ -1274,44 +1288,65 @@ private fun ActionEditor(
             // Dynamic value input based on selected action field
             when (action.field) {
                 TransactionField.CATEGORY -> {
-                    // Category chips and input
-                    val commonCategories = listOf(
-                        "Food & Dining", "Transportation", "Shopping",
-                        "Bills & Utilities", "Entertainment", "Healthcare",
-                        "Investments", "Others"
-                    )
+                    // The text field is for a category that isn't one of the shortcuts. Always
+                    // on screen, it read as a second, competing way to pick the same thing.
+                    // Derived from the value because this editor outlives its action: a saved rule
+                    // arrives after the first frame, and removing an action shifts the next into it.
+                    var otherChosen by remember { mutableStateOf(false) }
+                    val customCategory = isCustomRuleCategory(action.value, otherChosen)
 
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        commonCategories.forEach { category ->
+                        COMMON_RULE_CATEGORIES.forEach { category ->
                             FilterChip(
-                                selected = action.value == category,
+                                selected = !customCategory && action.value == category,
                                 shapes = FilterChipDefaults.shapes(),
                                 colors = FilterChipDefaults.filterChipColors(),
-                                onClick = { onActionChange(action.copy(value = category)) },
-                                label = { Text(categoryLabel(category), style = MaterialTheme.typography.bodySmall) }
+                                onClick = {
+                                    otherChosen = false
+                                    onActionChange(action.copy(value = category))
+                                },
+                                label = { Text(categoryLabel(category)) }
                             )
                         }
+                        FilterChip(
+                            selected = customCategory,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
+                            onClick = {
+                                // A shortcut's name isn't a starting point for a new category.
+                                if (!customCategory) onActionChange(action.copy(value = ""))
+                                otherChosen = true
+                            },
+                            label = { Text(stringResource(R.string.rules_category_other)) }
+                        )
                     }
 
-                    TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
-                        label = { Text(stringResource(R.string.rules_category_name_label)) },
-                        placeholder = { Text(stringResource(R.string.rules_category_name_placeholder)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    if (customCategory) {
+                        RuleTextField(
+                            value = action.value,
+                            onValueChange = {
+                                // Keeps the field up while typing through "" or "Shopping".
+                                otherChosen = true
+                                onActionChange(action.copy(value = it))
+                            },
+                            label = { Text(stringResource(R.string.rules_category_name_label)) },
+                            placeholder = { Text(stringResource(R.string.rules_category_name_placeholder)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                    }
                 }
 
                 TransactionField.TYPE -> {
                     // Transaction type chips with user-friendly labels
                     Text(
                         text = stringResource(R.string.rules_select_transaction_type),
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     FlowRow(
@@ -1325,12 +1360,7 @@ private fun ActionEditor(
                                 shapes = FilterChipDefaults.shapes(),
                                 colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = type)) },
-                                label = {
-                                    Text(
-                                        stringResource(displayLabel),
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
+                                label = { Text(stringResource(displayLabel)) }
                             )
                         }
                     }
@@ -1349,14 +1379,14 @@ private fun ActionEditor(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         commonMerchants.forEach { merchant ->
-                            ElevatedAssistChip(
+                            AssistChip(
                                 onClick = { onActionChange(action.copy(value = merchant)) },
-                                label = { Text(merchant, style = MaterialTheme.typography.bodySmall) }
+                                label = { Text(merchant) }
                             )
                         }
                     }
 
-                    TextField(
+                    RuleTextField(
                         value = action.value,
                         onValueChange = { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_field_merchant_name)) },
@@ -1368,7 +1398,7 @@ private fun ActionEditor(
 
                 TransactionField.NARRATION -> {
                     // Description/Narration input
-                    TextField(
+                    RuleTextField(
                         value = action.value,
                         onValueChange = { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_field_description)) },
@@ -1381,7 +1411,7 @@ private fun ActionEditor(
 
                 TransactionField.BANK_NAME -> {
                     // Account / bank the transaction belongs to.
-                    TextField(
+                    RuleTextField(
                         value = action.value,
                         onValueChange = { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_account_bank_label)) },
@@ -1392,7 +1422,7 @@ private fun ActionEditor(
                 }
 
                 TransactionField.TAGS -> {
-                    TextField(
+                    RuleTextField(
                         value = action.value,
                         onValueChange = { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_tag_name_label)) },
@@ -1404,7 +1434,7 @@ private fun ActionEditor(
 
                 else -> {
                     // Generic text input for other fields
-                    TextField(
+                    RuleTextField(
                         value = action.value,
                         onValueChange = { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_value_label)) },

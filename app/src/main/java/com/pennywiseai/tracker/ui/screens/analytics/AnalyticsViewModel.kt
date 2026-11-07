@@ -259,7 +259,7 @@ class AnalyticsViewModel @Inject constructor(
         viewModelScope.launch { userPreferencesRepository.saveAnalyticsGroupBy(groupBy.name) }
     }
 
-    private val _selectedChartType = MutableStateFlow(ChartType.LINE)
+    private val _selectedChartType = MutableStateFlow(ChartType.BAR)
     val selectedChartType: StateFlow<ChartType> = _selectedChartType.asStateFlow()
 
     init {

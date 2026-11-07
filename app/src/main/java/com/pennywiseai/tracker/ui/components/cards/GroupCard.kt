@@ -6,7 +6,7 @@ import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -44,7 +44,7 @@ fun GroupCard(
     modifier: Modifier = Modifier
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppInDarkTheme()
 
     val total = remember(transactions, convertedAmounts, displayCurrency) {
         transactions.fold(BigDecimal.ZERO) { acc, tx ->

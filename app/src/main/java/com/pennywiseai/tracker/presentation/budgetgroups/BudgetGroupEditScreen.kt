@@ -51,8 +51,6 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import java.math.BigDecimal
@@ -92,7 +90,6 @@ fun BudgetGroupEditScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -119,7 +116,6 @@ fun BudgetGroupEditScreen(
                         }
                     }
                 },
-                hazeState = hazeState
             )
         },
         bottomBar = {
@@ -186,7 +182,6 @@ fun BudgetGroupEditScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .imePadding()
                 .overScrollVertical(),

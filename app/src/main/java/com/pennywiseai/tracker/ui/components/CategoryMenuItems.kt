@@ -80,7 +80,7 @@ fun CategoryMenuItems(
 @Composable
 fun SelectedCategoryIcon(category: CategoryEntity?) {
     if (category != null) {
-        CategoryChip(category = category, showText = false, modifier = Modifier.padding(start = Spacing.smd))
+        CategoryIcon(category = category.name, size = Dimensions.Icon.medium)
     } else {
         Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.medium))
     }

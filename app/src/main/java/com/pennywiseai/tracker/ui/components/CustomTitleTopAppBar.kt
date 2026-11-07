@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import android.os.Build
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -29,23 +28,23 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -58,10 +57,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
-import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
-import dev.chrisbanes.haze.HazeProgressive
-import com.pennywiseai.tracker.ui.effects.frostedBlur
-import dev.chrisbanes.haze.HazeState
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -74,31 +69,21 @@ fun CustomTitleTopAppBar(
     hasBackButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
     navigationContent: @Composable () -> Unit = {},
-    extraInfoCard: @Composable () -> Unit = {},
     userName: String = "",
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
-    hazeState: HazeState = HazeState(),
-    blurEffects: Boolean = LocalBlurEffects.current
+    /**
+     * Drives the small bar directly and drops the large one. Home keeps its greeting
+     * in the list, so the small bar follows the list's scroll instead.
+     */
+    collapsedFractionOverride: Float? = null,
 ) {
-    val collapsedFraction = scrollBehaviorLarge.state.collapsedFraction
-
-    // LargeTopAppBar — only when we have a separate large behavior
-    if (scrollBehaviorLarge != scrollBehaviorSmall) {
-        LargerTopAppBar(
-            scrollBehaviorLarge = scrollBehaviorLarge,
-            title = title,
-            isHomeScreen = isHomeScreen,
-            hasBackButton = hasBackButton,
-            collapsedFraction = collapsedFraction,
-            actionContent = actionContent,
-            navigationContent = navigationContent,
-            extraInfoCard = extraInfoCard,
-            hazeState = hazeState,
-            blurEffects = blurEffects,
-            themeColors = MaterialTheme.colorScheme
-        )
-    }
+    // One compact bar everywhere. A large title pushed the money down a third of the screen
+    // and jumped from left to centre on scroll. Callers still attach the large behaviour's
+    // nested-scroll connection: its limit starts at -Float.MAX_VALUE and only a large bar
+    // would lower it, so left alone it swallows every upward scroll.
+    SideEffect { scrollBehaviorLarge.state.heightOffsetLimit = 0f }
+    val collapsedFraction = collapsedFractionOverride ?: 1f
 
     // Regular TopAppBar — fades in as LargeTopAppBar collapses
     RegularTopAppBar(
@@ -111,119 +96,9 @@ fun CustomTitleTopAppBar(
         userName = userName,
         profileImageUri = profileImageUri,
         profileBackgroundColor = profileBackgroundColor,
-        collapsedFraction = if (scrollBehaviorLarge != scrollBehaviorSmall) collapsedFraction else 1f,
+        collapsedFraction = collapsedFraction,
         modifier = modifier,
-        hazeState = hazeState,
-        blurEffects = blurEffects
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun LargerTopAppBar(
-    modifier: Modifier = Modifier,
-    scrollBehaviorLarge: TopAppBarScrollBehavior,
-    title: String,
-    isHomeScreen: Boolean,
-    hasBackButton: Boolean = false,
-    collapsedFraction: Float,
-    extraInfoCard: @Composable () -> Unit = {},
-    actionContent: @Composable () -> Unit = {},
-    navigationContent: @Composable () -> Unit = {},
-    hazeState: HazeState,
-    blurEffects: Boolean = true,
-    themeColors: ColorScheme,
-) {
-    LargeTopAppBar(
-        title = {
-            TitleForLargeTopAppBar(
-                title = title,
-                isHomeScreen = isHomeScreen,
-                modifier = modifier,
-                extraInfoCard = extraInfoCard,
-            )
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            scrolledContainerColor = Color.Transparent
-        ),
-        navigationIcon = {
-            BlurredAnimatedVisibility(
-                visible = hasBackButton && !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                navigationContent()
-            }
-        },
-        actions = {
-            BlurredAnimatedVisibility(
-                visible = !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
-            ) {
-                // Lay multiple actions (e.g. Edit + overflow) out horizontally. The
-                // visibility wrapper renders into a Box, not a RowScope, so without
-                // this Row the icons stack on top of each other in the expanded bar.
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    actionContent()
-                }
-            }
-        },
-        collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,
-        expandedHeight = if (isHomeScreen) 150.dp else 110.dp,
-        windowInsets = WindowInsets(0.dp),
-        scrollBehavior = scrollBehaviorLarge,
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects) Modifier.frostedBlur(
-                    hazeState,
-                    blurRadius = 10.dp,
-                    edgeTreatment = BlurredEdgeTreatment.Rectangle,
-                    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f),
-                ) else Modifier
-            )
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        themeColors.background,
-                        Color.Transparent
-                    )
-                )
-            )
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .alpha(1f - collapsedFraction)
-    )
-}
-
-@Composable
-private fun TitleForLargeTopAppBar(
-    modifier: Modifier = Modifier,
-    title: String,
-    isHomeScreen: Boolean,
-    extraInfoCard: @Composable () -> Unit = {},
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        BlurredAnimatedVisibility(
-            visible = !isHomeScreen,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut()
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.headlineMediumEmphasized,
-                textAlign = TextAlign.Start,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .padding(start = Spacing.smd)
-            )
-        }
-        extraInfoCard()
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -240,8 +115,6 @@ private fun RegularTopAppBar(
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     collapsedFraction: Float,
-    hazeState: HazeState,
-    blurEffects: Boolean = true
 ) {
     BlurredAnimatedVisibility(
         visible = collapsedFraction > 0.01f,
@@ -261,31 +134,20 @@ private fun RegularTopAppBar(
                 navigationContent()
             }
         }
+        // Opaque, always: a translucent bar put scrolling text behind the title, and
+        // with money on screen that reads as a wrong number. The hairline only shows
+        // once content is actually underneath.
+        val hairline = MaterialTheme.colorScheme.outlineVariant
         val barModifier = modifier
             .fillMaxWidth()
-            .then(
-                if (blurEffects) Modifier.frostedBlur(
-                    hazeState,
-                    blurRadius = 10.dp,
-                    edgeTreatment = BlurredEdgeTreatment.Rectangle,
-                    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f),
-                ) else Modifier
-            )
-            .background(
-                // The fade relies on the blur to hide what scrolls under it. Without
-                // blur (Android 11 and older, or turned off) content showed sharp
-                // behind the back button and title, so the bar is opaque there.
-                if (blurEffects && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            Color.Transparent
-                        )
-                    )
-                } else {
-                    SolidColor(MaterialTheme.colorScheme.background)
-                }
-            )
+            .background(MaterialTheme.colorScheme.background.copy(alpha = collapsedFraction))
+            .drawBehind {
+                drawRect(
+                    color = hairline.copy(alpha = collapsedFraction * 0.5f),
+                    topLeft = Offset(0f, size.height - 1f),
+                    size = Size(size.width, 1f)
+                )
+            }
             .windowInsetsPadding(WindowInsets.statusBars)
             .alpha(collapsedFraction)
 
@@ -390,7 +252,7 @@ private fun HomeBarTitle(
         Spacer(modifier = Modifier.width(Spacing.smd))
         Text(
             text = userName.ifBlank { "PennyWise" },
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Start,
         )
     }

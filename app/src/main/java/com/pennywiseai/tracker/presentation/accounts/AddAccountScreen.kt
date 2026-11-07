@@ -32,8 +32,6 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +45,6 @@ fun AddAccountScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -63,14 +60,12 @@ fun AddAccountScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
                 .padding(Dimensions.Padding.content)
@@ -82,25 +77,22 @@ fun AddAccountScreen(
             // Info Card
             PennyWiseCardV2(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                contentPadding = 12.dp
+                contentPadding = Dimensions.Padding.cardCompact
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                     Text(
                         text = stringResource(R.string.add_account_intro),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

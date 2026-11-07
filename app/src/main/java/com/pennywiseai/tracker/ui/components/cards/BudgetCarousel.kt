@@ -45,7 +45,7 @@ fun BudgetCarousel(
 
     if (groups.isEmpty()) {
         PennyWiseCardV2(
-            modifier = modifier.fillMaxWidth(),
+            modifier = modifier.fillMaxWidth().padding(horizontal = Dimensions.Padding.content),
             onClick = onCreateBudget
         ) {
             Row(
@@ -99,7 +99,7 @@ fun BudgetCarousel(
             groupSpending = groups.first(),
             currency = summary.currency,
             onClick = onClick,
-            modifier = modifier.fillMaxWidth()
+            modifier = modifier.fillMaxWidth().padding(horizontal = Dimensions.Padding.content)
         )
     } else {
         val pagerState = rememberPagerState(pageCount = { groups.size })
@@ -108,7 +108,9 @@ fun BudgetCarousel(
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = Spacing.lg),
+                // No peek: a sliver of the next card only ever showed orphan letters, and the
+                // dots below already say there's more.
+                contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
                 pageSpacing = Spacing.md
             ) { page ->
                 val pageOffset = (
@@ -122,10 +124,7 @@ fun BudgetCarousel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
-                            val scale = lerp(0.95f, 1f, 1f - pageOffset.coerceIn(0f, 1f))
-                            scaleX = scale
-                            scaleY = scale
-                            alpha = lerp(0.6f, 1f, 1f - pageOffset.coerceIn(0f, 1f))
+                            alpha = lerp(0.7f, 1f, 1f - pageOffset.coerceIn(0f, 1f))
                         }
                 )
             }
@@ -134,7 +133,8 @@ fun BudgetCarousel(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 repeat(groups.size) { index ->
                     val isActive = pagerState.currentPage == index
@@ -145,7 +145,7 @@ fun BudgetCarousel(
                             .clip(CircleShape)
                             .background(
                                 if (isActive) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             )
                     )
                 }

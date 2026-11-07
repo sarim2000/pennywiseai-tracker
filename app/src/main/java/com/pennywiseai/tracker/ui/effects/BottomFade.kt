@@ -23,3 +23,18 @@ fun Modifier.bottomFade(
             blendMode = BlendMode.DstIn
         )
     }
+
+/** Fades the trailing edge while a horizontal row has more to scroll to, instead of a hard cut. */
+fun Modifier.endFade(enabled: Boolean): Modifier = if (!enabled) this else this
+    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+    .drawWithContent {
+        drawContent()
+        drawRect(
+            brush = Brush.horizontalGradient(
+                0f to Color.Black,
+                0.9f to Color.Black,
+                1f to Color.Transparent
+            ),
+            blendMode = BlendMode.DstIn
+        )
+    }

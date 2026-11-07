@@ -155,6 +155,8 @@
     <!-- %1$d = utilization percentage -->
     <string name="manage_accounts_utilization_used">(%1$d%% used)</string>
     <string name="manage_accounts_more_options">More options</string>
+    <!-- %1$s the account or card, e.g. its bank name and masked number -->
+    <string name="manage_accounts_more_options_for">More options for %1$s</string>
     <string name="manage_accounts_action_edit">Edit</string>
     <string name="manage_accounts_action_update">Update</string>
     <string name="manage_accounts_action_clear">Clear</string>
@@ -203,8 +205,8 @@
     <string name="manage_accounts_credit_limit_hint">Total credit limit of the card</string>
     <string name="manage_accounts_available_credit_label">Available Credit:</string>
     <string name="manage_accounts_utilization_label">Utilization:</string>
-    <string name="manage_accounts_unlinked_credit_card">Credit Card (Unlinked)</string>
-    <string name="manage_accounts_unlinked_debit_card">Debit Card (Unlinked)</string>
+    <string name="manage_accounts_unlinked_credit_card">Credit card</string>
+    <string name="manage_accounts_unlinked_debit_card">Debit card</string>
     <!-- %1$s = formatted balance -->
     <string name="manage_accounts_last_balance">Last Balance: %1$s</string>
     <!-- %1$s = SMS text -->
@@ -263,7 +265,7 @@
     <string name="loan_detail_menu_reopen">Reopen</string>
     <string name="loan_detail_record_payment">Record Payment</string>
     <!-- %1$s = formatted original loan amount -->
-    <string name="loan_detail_remaining_of">remaining of %1$s</string>
+    <string name="loan_detail_remaining_of">left of %1$s</string>
     <!-- %1$d = percentage repaid -->
     <string name="loan_detail_percent_repaid">%1$d%% repaid</string>
     <string name="loan_detail_history">History</string>
@@ -320,4 +322,5 @@
         <item quantity="one">View All %1$d Account</item>
         <item quantity="other">View All %1$d Accounts</item>
     </plurals>
+    <string name="merge_accounts_action">Merge</string>
 </resources>

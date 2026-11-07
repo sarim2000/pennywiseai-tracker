@@ -61,9 +61,8 @@ fun GreetingCard(
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
-    // Shows an Add button when set (the floating nav bar docks Sync instead
-    // of Home keeping an Add FAB).
-    onAddClick: (() -> Unit)? = null,
+    // The floating nav bar docks Add, so Sync takes this header slot.
+    syncAction: (@Composable () -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -223,19 +222,7 @@ fun GreetingCard(
             }
         }
 
-        if (onAddClick != null) {
-            IconButton(
-                onClick = onAddClick,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                shapes = IconButtonDefaults.shapes()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.home_fab_add),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        syncAction?.invoke()
 
         // Menu button — plain IconButton, no circular background
         IconButton(

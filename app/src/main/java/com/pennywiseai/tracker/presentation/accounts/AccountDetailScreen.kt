@@ -11,7 +11,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -46,8 +46,6 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
@@ -63,7 +61,6 @@ fun AccountDetailScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    val hazeState = remember { HazeState() }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -79,7 +76,6 @@ fun AccountDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
-                hazeState = hazeState
             )
         }
     ) { paddingValues ->
@@ -88,14 +84,13 @@ fun AccountDetailScreen(
             state = lazyListState,
             modifier = Modifier
                 .fillMaxSize()
-                .hazeSource(hazeState)
                 .background(MaterialTheme.colorScheme.background)
                 .overScrollVertical(),
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = 0.dp
+                bottom = Spacing.Layout.scrollBottomPadding + paddingValues.calculateBottomPadding()
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -309,7 +304,7 @@ private fun CurrentBalanceCard(
                     Text(
                         text = stringResource(R.string.account_detail_outstanding, CurrencyFormatter.formatCurrency(balance, primaryCurrency)),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     // Show billed/unbilled split when statement day is configured
                     if (billedOutstanding != null && unbilledOutstanding != null) {
@@ -321,9 +316,9 @@ private fun CurrentBalanceCard(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = CurrencyFormatter.formatCurrency(billedOutstanding, primaryCurrency),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = PennyWiseText.amountSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.error
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = stringResource(R.string.account_detail_billed),
@@ -334,9 +329,9 @@ private fun CurrentBalanceCard(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = CurrencyFormatter.formatCurrency(unbilledOutstanding, primaryCurrency),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = PennyWiseText.amountSmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.tertiary
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = stringResource(R.string.account_detail_unbilled),
@@ -421,22 +416,22 @@ private fun SummaryStatistics(
                     label = stringResource(R.string.account_detail_income),
                     value = formatWithEstimatedDisplay(totalIncome, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = if (!isSystemInDarkTheme()) income_light else income_dark
+                    color = if (!isAppInDarkTheme()) income_light else income_dark
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_expenses),
                     value = formatWithEstimatedDisplay(totalExpenses, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_net),
                     value = formatWithEstimatedDisplay(netBalance, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.Default.AccountBalanceWallet,
                     color = if (netBalance >= BigDecimal.ZERO) {
-                        if (!isSystemInDarkTheme()) income_light else income_dark
+                        if (!isAppInDarkTheme()) income_light else income_dark
                     } else {
-                        if (!isSystemInDarkTheme()) expense_light else expense_dark
+                        if (!isAppInDarkTheme()) expense_light else expense_dark
                     }
                 )
             }
@@ -510,8 +505,8 @@ private fun DateRangeFilter(
                 onClick = { onRangeSelected(range) },
                 label = { Text(stringResource(range.labelRes)) },
                 colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             )
         }
@@ -524,12 +519,18 @@ private fun AccountTransactionItem(
     primaryCurrency: String,
     onClick: () -> Unit
 ) {
+    // Same rule as the Transactions list: spending is ink plus a true minus.
     val amountColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (!isSystemInDarkTheme()) income_light else income_dark
-        TransactionType.EXPENSE -> if (!isSystemInDarkTheme()) expense_light else expense_dark
-        TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
-        TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-        TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
+    }
+    val amountPrefix = when (transaction.transactionType) {
+        TransactionType.INCOME -> "+"
+        TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "\u2212"
+        TransactionType.TRANSFER -> ""
     }
     
     Card(
@@ -597,10 +598,14 @@ private fun AccountTransactionItem(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = amountColor
+                    text = CurrencyFormatter.signed(
+                        amountPrefix,
+                        CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)
+                    ),
+                    style = PennyWiseText.amountRow,
+                    color = amountColor,
+                    maxLines = 1,
+                    autoSize = PennyWiseText.fit(PennyWiseText.amountRow)
                 )
                 
                 // Transaction type indicator

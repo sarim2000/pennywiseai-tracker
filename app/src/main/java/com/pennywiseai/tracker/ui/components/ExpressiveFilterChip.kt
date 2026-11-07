@@ -12,7 +12,6 @@ import androidx.compose.material3.SelectableChipColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.ui.theme.Dimensions
 
@@ -20,7 +19,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 fun ExpressiveFilterChip(
     selected: Boolean,
     text: String,
-    icon: ImageVector,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
@@ -45,13 +43,6 @@ fun ExpressiveFilterChip(
                 text = text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.small)
             )
         },
         trailingIcon = {

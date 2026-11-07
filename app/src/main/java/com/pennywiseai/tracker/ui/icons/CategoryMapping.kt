@@ -41,10 +41,14 @@ import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.material.icons.filled.SportsMartialArts
 import androidx.compose.material.icons.filled.Store
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.R
@@ -133,6 +137,38 @@ object CategoryMapping {
         if (userColor != null && userStyles[name]?.customColor == true) return userColor
         return categories[name]?.color ?: userColor ?: Color.Gray
     }
+
+    /**
+     * [color] as a slice or icon on a dark [surface], where a category's own colour may not
+     * show: Transportation's black is invisible on a dark card. Display only, so stored
+     * colours stay as they are. Black becomes slate on every surface, since it reads as a
+     * hole in a chart on light ones too; light surfaces keep every other colour unchanged.
+     */
+    fun visibleOn(rawColor: Color, surface: Color): Color {
+        val color = if (rawColor.luminance() < NEAR_BLACK_LUMINANCE) SLATE else rawColor
+        val surfaceLuminance = surface.luminance()
+        fun contrast(c: Color): Float {
+            val luminance = c.luminance()
+            return (maxOf(luminance, surfaceLuminance) + 0.05f) / (minOf(luminance, surfaceLuminance) + 0.05f)
+        }
+        if (surfaceLuminance >= 0.5f || contrast(color) >= MIN_MARK_CONTRAST) return color
+
+        // A neutral has no hue to keep, so it ends near white, like a black logo on a dark
+        // background. Stopping at the minimum would land it on the grey of "Others".
+        val chroma = maxOf(color.red, color.green, color.blue) - minOf(color.red, color.green, color.blue)
+        val target = if (chroma < NEUTRAL_MAX_CHROMA) NEUTRAL_MARK_CONTRAST else MIN_MARK_CONTRAST
+        return generateSequence(0.05f) { it + 0.05f }
+            .takeWhile { it <= 1f }
+            .map { lerp(color, Color.White, it) }
+            .firstOrNull { contrast(it) >= target }
+            ?: Color.White
+    }
+
+    private val SLATE = Color(0xFF37474F)
+    private const val NEAR_BLACK_LUMINANCE = 0.01f
+    private const val MIN_MARK_CONTRAST = 3f
+    private const val NEUTRAL_MARK_CONTRAST = 8f
+    private const val NEUTRAL_MAX_CHROMA = 0.1f
 
     /**
      * Built-in icon/colour by name. A renamed built-in (#823) is found through its
@@ -290,6 +326,15 @@ object CategoryMapping {
 @Composable
 fun categoryLabel(name: String): String =
     CategoryMapping.labelRes(name)?.let { stringResource(it) } ?: name
+
+/** [CategoryMapping.colorFor], kept visible on the current theme's card surface. */
+@Composable
+@ReadOnlyComposable
+fun categoryDisplayColor(name: String, overrideHex: String? = null): Color =
+    CategoryMapping.visibleOn(
+        CategoryMapping.colorFor(name, overrideHex),
+        MaterialTheme.colorScheme.surfaceContainerLow
+    )
 
 /**
  * Icon provider with fallback mechanism

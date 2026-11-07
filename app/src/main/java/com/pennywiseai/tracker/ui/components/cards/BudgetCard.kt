@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.ui.components.DEFAULT_BUDGET_COLOR
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.res.pluralStringResource
@@ -38,7 +40,9 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
@@ -66,20 +70,24 @@ fun BudgetCard(
         animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
     }
 
-    val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
+    // Stored colours can be too dark for a dark card (a default blue measured 2.2:1).
+    val budgetColor = CategoryMapping.visibleOn(
+        groupSpending.group.budget.color.takeUnless { it == DEFAULT_BUDGET_COLOR }.orEmpty().toColorOr(MaterialTheme.colorScheme.primary),
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    )
     val statusColor: Color = when {
         pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
+        pctUsed >= 70f -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.onSurface
     }
-    // The bar wears the budget's own color while it's healthy; the pill and
-    // hero text stay semantic so a red budget at 36% doesn't read as danger.
+    // The bar wears the budget's own color while it's healthy (that's the identity
+    // from #763, now without tinting the whole card); the figures stay semantic so a
+    // red budget at 36% doesn't read as danger.
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
 
     PennyWiseCardV2(
         modifier = modifier,
-        onClick = onClick,
-        containerColor = budgetColor.tintedSurface()
+        onClick = onClick
     ) {
         // Row 1: Cadence pill + budget name + percentage pill
         Row(
@@ -95,9 +103,7 @@ fun BudgetCard(
                 CadencePill(periodType = groupSpending.periodType)
                 Text(
                     text = groupSpending.group.budget.name,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -108,14 +114,9 @@ fun BudgetCard(
             if (groupSpending.totalBudget > BigDecimal.ZERO) {
                 Text(
                     text = stringResource(R.string.budget_card_percent, pctUsed.toInt()),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .background(
-                            color = statusColor,
-                            shape = RoundedCornerShape(50)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                    style = PennyWiseText.amountSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = statusColor
                 )
             }
         }
@@ -130,7 +131,7 @@ fun BudgetCard(
                     .fillMaxWidth()
                     .height(Dimensions.Component.progressBarHeight)
                     .clip(barShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             ) {
                 Box(
                     modifier = Modifier
@@ -163,16 +164,12 @@ fun BudgetCard(
                 } else {
                     stringResource(R.string.budget_card_remaining, CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency))
                 },
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = statusColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                style = PennyWiseText.amountMedium,
+                color = statusColor
             )
             if (showDaily) {
                 Text(
-                    text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
+                    text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatEstimate(groupSpending.dailyAllowance, currency)),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
@@ -214,6 +211,9 @@ fun BudgetCard(
                     ?: groupSpending.windowStart.dayOfMonth
                 val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
                 when {
+                    // The usual 1st goes without saying; only a custom start day needs naming.
+                    startDay == 1 && renewalIn == 0 -> stringResource(R.string.budgets_resets_today)
+                    startDay == 1 -> pluralStringResource(R.plurals.budgets_resets_in, renewalIn, renewalIn)
                     renewalIn == 0 -> stringResource(R.string.budget_card_resets_today_day, startDay)
                     else -> pluralStringResource(R.plurals.budget_card_resets_in_day, renewalIn, renewalIn, startDay)
                 }
@@ -231,11 +231,11 @@ fun BudgetCard(
         }
         Text(
             text = subtitleText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(Spacing.xs))
+        Spacer(modifier = Modifier.height(Spacing.xxs))
 
         // Row 5: Spent X of Y
         Text(
@@ -244,36 +244,22 @@ fun BudgetCard(
                 CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
                 CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
             ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
-/**
- * Small pill that names the budget's cadence at a glance: 🔁 Weekly /
- * 🗓 Monthly / 📌 One-time. Colour-coded so a user can spot which type
- * of budget they're looking at without reading the subtitle.
- */
+/** Small neutral pill that names the budget's cadence: Weekly / Monthly / One-time. */
 @Composable
 fun CadencePill(periodType: BudgetPeriodType) {
-    val (label, bg, fg) = when (periodType) {
-        BudgetPeriodType.WEEKLY -> Triple(
-            stringResource(R.string.budget_cadence_weekly),
-            MaterialTheme.colorScheme.tertiaryContainer,
-            MaterialTheme.colorScheme.onTertiaryContainer
-        )
-        BudgetPeriodType.MONTHLY -> Triple(
-            stringResource(R.string.budget_cadence_monthly),
-            MaterialTheme.colorScheme.primaryContainer,
-            MaterialTheme.colorScheme.onPrimaryContainer
-        )
-        BudgetPeriodType.CUSTOM -> Triple(
-            stringResource(R.string.budget_cadence_one_time),
-            MaterialTheme.colorScheme.secondaryContainer,
-            MaterialTheme.colorScheme.onSecondaryContainer
-        )
+    val label = when (periodType) {
+        BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_cadence_weekly)
+        BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_cadence_monthly)
+        BudgetPeriodType.CUSTOM -> stringResource(R.string.budget_cadence_one_time)
     }
+    val bg = MaterialTheme.colorScheme.surfaceContainerHigh
+    val fg = MaterialTheme.colorScheme.onSurfaceVariant
     Text(
         text = label,
         style = MaterialTheme.typography.labelSmall,

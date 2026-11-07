@@ -192,9 +192,9 @@
     <string name="onboarding_welcome_title">Welcome to PennyWise</string>
     <string name="onboarding_welcome_body">Your AI-powered expense tracker that automatically detects transactions from SMS messages.</string>
     <string name="onboarding_setup_heading">What you\'ll set up:</string>
-    <string name="onboarding_setup_steps">1. Your profile\n2. SMS permissions for auto-detection\n3. Initial transaction scan\n4. Your main bank account</string>
+    <string name="onboarding_setup_steps">1. Your profile\n2. SMS permissions for auto-detection\n3. Initial transaction scan\n4. Your main bank account, if we find one</string>
     <string name="onboarding_name_title">What should we call you?</string>
-    <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_name_label">Your name (optional)</string>
     <string name="onboarding_currency_title">Your currency</string>
     <string name="onboarding_language_device">Device language</string>
     <string name="onboarding_currency_hint">Used for totals and budgets. You can change it in Settings.</string>
@@ -226,8 +226,8 @@
     <string name="onboarding_scan_none_found">No transactions found. You can add them manually later.</string>
     <string name="onboarding_scan_title">Scan Your Messages</string>
     <string name="onboarding_scan_body">We\'ll scan your SMS messages to find bank transactions and set up your accounts automatically.</string>
-    <string name="onboarding_all_set">You\'re all set!</string>
-    <string name="onboarding_no_accounts">No accounts were detected yet. You can set up your main account later in Settings.</string>
+    <string name="onboarding_all_set">You\'re ready to start</string>
+    <string name="onboarding_no_accounts">You can add your first account any time from Settings.</string>
     <string name="onboarding_main_account_title">Select Your Main Account</string>
     <string name="onboarding_main_account_body">Choose the account you use most often. This will be shown on your home screen.</string>
     <string name="onboarding_back">Back</string>
@@ -336,8 +336,8 @@
     <string name="rules_group_healthcare">Healthcare</string>
     <string name="rules_group_other">Other</string>
     <string name="rules_footer_info">Rules are applied automatically to new transactions. Higher priority rules run first.</string>
-    <string name="rules_summary_small_payments">Amount &lt; 200</string>
-    <string name="rules_summary_upi_cashback">Amount &lt; 10 from NPCI</string>
+    <string name="rules_summary_small_payments">Under 200, in any currency</string>
+    <string name="rules_summary_upi_cashback">Under 10, in any currency, from NPCI</string>
     <string name="rules_summary_salary">Credits with salary keywords</string>
     <string name="rules_summary_rent">Payments with rent keywords</string>
     <string name="rules_summary_emi">EMI/loan keywords</string>
@@ -420,7 +420,9 @@
     <string name="rules_create_title">Create Rule</string>
     <string name="rules_edit_title">Edit Rule</string>
     <string name="rules_save">Save</string>
-    <string name="rules_quick_templates">Quick Templates</string>
+    <string name="rules_quick_templates">Start from a template</string>
+    <string name="rules_templates_show">Show templates</string>
+    <string name="rules_templates_hide">Hide templates</string>
     <string name="rules_preset_block_otps">Block OTPs</string>
     <string name="rules_preset_block_small">Block Small Amounts</string>
     <string name="rules_preset_small_food">Small amounts → Food</string>
@@ -449,6 +451,11 @@
 
     <!-- Rule fields (pickers) -->
     <string name="rules_field_label">Field</string>
+    <!-- Reads as a sentence: "When: If Amount less than 200" -->
+    <string name="rules_condition_field_label">If</string>
+    <string name="rules_action_field_label_set">What to set</string>
+    <!-- Same picker for Append, Prepend, Clear and the tag actions -->
+    <string name="rules_action_field_label_change">What to change</string>
     <string name="rules_field_amount">Amount</string>
     <string name="rules_field_transaction_type">Transaction Type</string>
     <string name="rules_field_category">Category</string>
@@ -466,9 +473,8 @@
     <string name="rules_field_tags">Tags</string>
 
     <!-- Rule operators (condition chips) -->
-    <string name="rules_op_less_than_symbol" translatable="false">&lt;</string>
-    <string name="rules_op_greater_than_symbol" translatable="false">&gt;</string>
-    <string name="rules_op_equals_symbol" translatable="false">=</string>
+    <string name="rules_op_less_than">less than</string>
+    <string name="rules_op_greater_than">more than</string>
     <string name="rules_op_before">before</string>
     <string name="rules_op_after">after</string>
     <string name="rules_op_at_or_after">at or after</string>
@@ -514,6 +520,8 @@
     <string name="rules_account_type_credit">Credit</string>
     <string name="rules_no_accounts">No accounts found. Add an account first.</string>
     <string name="rules_value_label">Value</string>
+    <!-- Amount rules compare the raw number, whatever the transaction's currency -->
+    <string name="rules_value_label_amount">Amount (any currency)</string>
     <string name="rules_value_placeholder_amount">e.g., 200</string>
     <string name="rules_value_placeholder_merchant">e.g., Swiggy</string>
     <string name="rules_value_placeholder_sms_text">e.g., salary</string>
@@ -522,15 +530,15 @@
     <string name="rules_value_placeholder_generic">Enter value</string>
 
     <!-- Action editor -->
-    <string name="rules_action_type_label">Action Type</string>
+    <string name="rules_action_type_label">Action</string>
     <string name="rules_action_type_block">Block Transaction</string>
-    <string name="rules_action_type_set">Set Field</string>
+    <string name="rules_action_type_set">Set</string>
     <string name="rules_action_type_append">Append to Field</string>
     <string name="rules_action_type_prepend">Prepend to Field</string>
     <string name="rules_action_type_clear">Clear Field</string>
     <string name="rules_action_type_add_tag">Add Tag</string>
     <string name="rules_action_type_remove_tag">Remove Tag</string>
-    <string name="rules_category_name_label">Category Name</string>
+    <string name="rules_category_name_label">Category</string>
     <string name="rules_category_name_placeholder">e.g., Rent</string>
     <string name="rules_merchant_placeholder">e.g., Amazon</string>
     <string name="rules_description_value_placeholder">e.g., Monthly subscription payment</string>
@@ -581,4 +589,6 @@
     <string name="rules_preview_action_clear">clear %1$s</string>
     <!-- field, value -->
     <string name="rules_preview_action_set">set %1$s to %2$s</string>
+    <string name="rules_category_other">Another category…</string>
+    <string name="rules_save_hint">Add a name, a condition and an action to save</string>
 </resources>

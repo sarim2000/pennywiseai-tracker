@@ -547,6 +547,7 @@ class AddViewModel @Inject constructor(
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(appContext)
                 bookedFromSuggestion(selectedAccount)
 
                 onSuccess()
@@ -606,6 +607,7 @@ class AddViewModel @Inject constructor(
                 bookedFromSuggestion(if (draftType == TransactionType.INCOME) to else from)
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(appContext)
 
                 onSuccess()
             } catch (e: Exception) {

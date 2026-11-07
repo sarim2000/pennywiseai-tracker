@@ -4,6 +4,9 @@ import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import android.content.Context
 import android.util.Log
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
+import com.pennywiseai.tracker.worker.MoneyAlertWorker
+import com.pennywiseai.tracker.worker.MoneyAlertNotifications
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
@@ -286,6 +289,8 @@ class SmsTransactionProcessor @Inject constructor(
 
                 // Trigger widget refresh for the transaction-derived widgets
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
+                MoneyAlertWorker.enqueue(appContext)
 
                 return ProcessingResult(
                     true,
@@ -384,9 +389,11 @@ class SmsTransactionProcessor @Inject constructor(
                 ?: parsedTransaction.currency
             // Moves from the balance just before this SMS in time, not the newest
             // row, the same rule as the inbox scan (#982).
-            accountBalanceRepository.insertSmsTransactionBalance(
+            var balanceBefore: BigDecimal? = null
+            val savedBalance = accountBalanceRepository.insertSmsTransactionBalance(
                 parsedTransaction.bankName, targetAccountLast4, entity.dateTime
             ) { before ->
+                balanceBefore = before
                 val newBalance = BalanceCalculator.balanceAfter(
                     explicitBalance = parsedTransaction.balance,
                     // A loan account's balance is owed too: a payment lowers it (#792).
@@ -425,6 +432,7 @@ class SmsTransactionProcessor @Inject constructor(
                     lowBalanceThreshold = existingAccount?.lowBalanceThreshold
                 )
             }
+            notifyIfBalanceFellLow(parsedTransaction.balance, existingAccount, balanceBefore, savedBalance)
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
         }
     }
@@ -466,6 +474,27 @@ class SmsTransactionProcessor @Inject constructor(
         )
 
         accountBalanceRepository.insertBalance(balanceEntity)
+        notifyIfBalanceFellLow(balance, existingAccount, existingAccount?.balance, balanceEntity)
         Log.d(TAG, "Saved wallet balance for ${parsedTransaction.bankName}")
+    }
+
+    /**
+     * #509: tell the user the moment an account falls to its low-balance
+     * threshold. Only on a balance the bank reported ([reported]): a derived one
+     * can drift. Only when [saved] is the account's newest row: a delayed SMS
+     * isn't its balance now. Credit cards and loans owe money, so "low" means nothing there.
+     */
+    private fun notifyIfBalanceFellLow(
+        reported: BigDecimal?,
+        latest: AccountBalanceEntity?,
+        before: BigDecimal?,
+        saved: AccountBalanceEntity
+    ) {
+        if (reported == null || saved.isLiability) return
+        if (latest != null && saved.timestamp.isBefore(latest.timestamp)) return
+        if (!MoneyAlertRules.crossedLowBalance(before, saved.balance, saved.lowBalanceThreshold)) return
+        // Apart from the save: a notification that fails mustn't report the SMS as failed.
+        runCatching { MoneyAlertNotifications.showLowBalance(appContext, saved) }
+            .onFailure { Log.e(TAG, "Low-balance alert failed", it) }
     }
 }

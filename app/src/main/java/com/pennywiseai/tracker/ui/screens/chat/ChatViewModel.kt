@@ -233,6 +233,7 @@ class ChatViewModel @Inject constructor(
                     accountLast4 = draft.accountLast4,
                     currency = currency
                 )
+                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                 llmRepository.clearPendingAction()
                 llmRepository.appendAssistantMessage(
                     "Added ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(draft.amount, currency, maskIfHidden = false)} " +

@@ -188,7 +188,7 @@
     <string name="manage_accounts_estimated_balance_hint">Estimated: your bank\'s SMS don\'t show a balance. Tap to set it once.</string>
     <string name="manage_accounts_low_balance_alert">Low-balance alert</string>
     <!-- %1$s = formatted current balance -->
-    <string name="manage_accounts_low_balance_alert_description">Flag this account when its balance is at or below this amount. Current balance: %1$s</string>
+    <string name="manage_accounts_low_balance_alert_description">Flag this account and notify you when its balance falls to or below this amount. Current balance: %1$s</string>
     <!-- %1$s = currency code -->
     <string name="manage_accounts_threshold_label">Threshold (%1$s)</string>
     <string name="manage_accounts_rename_title">Rename account</string>

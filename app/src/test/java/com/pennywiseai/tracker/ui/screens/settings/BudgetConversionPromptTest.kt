@@ -63,6 +63,7 @@ class BudgetConversionPromptTest {
             scheduledFolderBackupScheduler = mockk(relaxed = true),
             contactsResolver = mockk(relaxed = true),
             modelDownloader = mockk(relaxed = true),
+            moneyAlertChecker = mockk(relaxed = true),
             budgetGroupRepository = budgets,
             currencyConversionService = conversion,
             entitlementGate = mockk(relaxed = true),

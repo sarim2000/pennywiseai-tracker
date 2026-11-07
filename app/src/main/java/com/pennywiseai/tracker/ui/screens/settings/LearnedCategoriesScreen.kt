@@ -88,7 +88,7 @@ fun LearnedCategoriesScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(mapping.merchantName, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            mapping.category,
+                            com.pennywiseai.tracker.ui.icons.categoryLabel(mapping.category),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

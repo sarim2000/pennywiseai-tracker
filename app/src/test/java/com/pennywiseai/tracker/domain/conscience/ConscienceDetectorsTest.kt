@@ -202,6 +202,12 @@ class ConscienceDetectorsTest {
     }
 
     @Test
+    fun `a renewal split on earlier cycles still matches the whole charge`() {
+        fun split(date: LocalDate) = renewal(date, 23, 30, "6").copy(charge = BigDecimal("9.99"))
+        assertNull(lateRenewal(listOf(split(daysAgo(30)), split(daysAgo(60)))))
+    }
+
+    @Test
     fun `renewal clock times compare across midnight`() {
         assertNull(lateRenewal(listOf(renewal(daysAgo(29), 0, 20), renewal(daysAgo(59), 0, 10))))
     }

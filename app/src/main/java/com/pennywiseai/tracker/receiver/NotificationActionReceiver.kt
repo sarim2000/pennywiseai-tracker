@@ -246,7 +246,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val text = ConscienceText(context)
         val message = when {
             remarkId == SAMPLE_REMARK_ID -> R.string.conscience_confirm_sample
-            // A remark already rated (say, on the screen) or pruned keeps what it has; the line just goes away.
+            // Nothing changed (already rated, pruned, or the line already stands that way): the remark just goes away.
             !preferences.reactToConscienceRemark(remarkId, if (liked) ConscienceReaction.LIKED else ConscienceReaction.RETIRED) -> null
             liked -> R.string.conscience_confirm_like
             else -> R.string.conscience_confirm_dislike

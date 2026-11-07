@@ -40,7 +40,7 @@ object ConscienceEligibility {
         return counted.getAmountByCategory().mapNotNull { (name, amount) ->
             val category = ConscienceCategory.fromBuiltinKey(builtinKeyByCategoryName[name])
             if (category == null || amount.signum() <= 0) null
-            else ConsciencePurchase(tx.dateTime, amount, tx.currency, category, tx.id, tx.merchantName, tx.isRecurring)
+            else ConsciencePurchase(tx.dateTime, amount, tx.currency, category, tx.id, tx.merchantName, tx.isRecurring, tx.amount)
         }
     }
 }

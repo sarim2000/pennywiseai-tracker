@@ -535,19 +535,22 @@ open class UserPreferencesRepository @Inject constructor(
             runCatching { conscienceJson.decodeFromString<List<ConscienceRemark>>(raw) }.getOrNull()
         }.orEmpty().let { ConscienceRemarks.fresh(it, nowMillis) }
 
-    /** False when the remark is gone (expired too) or already has a reaction: the first one wins. */
+    /**
+     * True when the line's preference changed, which is what a confirmation promises. False when
+     * the remark is gone (expired too), already has a reaction (the first one wins), or its line
+     * already stands that way: a line that came round again can be liked and stay retired.
+     */
     suspend fun reactToConscienceRemark(remarkId: Long, reaction: ConscienceReaction): Boolean {
-        var applied = false
+        var changed = false
         context.dataStore.edit { prefs ->
-            applied = false
-            val (remarks, feedback) = ConscienceRemarks.react(
-                prefs.conscienceRemarks(), prefs.conscienceFeedback(), remarkId, reaction
-            ) ?: return@edit
+            changed = false
+            val before = prefs.conscienceFeedback()
+            val (remarks, feedback) = ConscienceRemarks.react(prefs.conscienceRemarks(), before, remarkId, reaction) ?: return@edit
             prefs[PreferencesKeys.CONSCIENCE_REMARKS] = conscienceJson.encodeToString(remarks)
             prefs[PreferencesKeys.CONSCIENCE_FEEDBACK] = ConscienceCadence.encodeFeedback(feedback)
-            applied = true
+            changed = feedback != before
         }
-        return applied
+        return changed
     }
 
     /** Forgets likes and retired lines, and clears the remarks' reactions. */

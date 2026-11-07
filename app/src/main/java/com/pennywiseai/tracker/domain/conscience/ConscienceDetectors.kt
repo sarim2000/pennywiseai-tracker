@@ -91,6 +91,7 @@ object ConscienceDetectors {
         val amount: BigDecimal,
         val currency: String,
         val merchant: String,
+        val charge: BigDecimal = amount,
     ) {
         val date: LocalDate get() = at.toLocalDate()
     }
@@ -103,7 +104,7 @@ object ConscienceDetectors {
     private fun List<ConsciencePurchase>.byTransaction(): List<Buy> =
         groupBy { it.transactionId }.values.map { parts ->
             val first = parts.first()
-            Buy(first.at, parts.sumOf { it.amount }, first.currency, first.merchant)
+            Buy(first.at, parts.sumOf { it.amount }, first.currency, first.merchant, first.charge)
         }
 
     private fun List<ConsciencePurchase>.total(): BigDecimal = sumOf { it.amount }
@@ -172,7 +173,7 @@ object ConscienceDetectors {
             .filter {
                 it.currency == current.currency &&
                     RecurringCharge.sameMerchant(current.merchant, it.merchant) &&
-                    RecurringCharge.sameAmount(current.amount, it.amount) &&
+                    RecurringCharge.sameAmount(current.charge, it.charge) &&
                     clockMinutesApart(time, it.at.toLocalTime()) <= RENEWAL_CLOCK_MINUTES
             }
             .sortedByDescending { it.at }

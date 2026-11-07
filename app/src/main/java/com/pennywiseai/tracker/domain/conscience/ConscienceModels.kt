@@ -56,6 +56,8 @@ data class ConsciencePurchase(
     val transactionId: Long = 0,
     val merchant: String = "",
     val recurring: Boolean = false,
+    /** The whole charge, before splits and shared parts: what a renewal repeats. */
+    val charge: BigDecimal = amount,
 )
 
 /** What a detector proved from history. Lines only ever state these facts. */

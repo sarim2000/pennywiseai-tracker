@@ -24,6 +24,7 @@ import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -85,15 +86,16 @@ fun PeriodReviewScreen(
     PennyWiseScaffold(
         title = stringResource(R.string.review_title),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.review_back))
             }
         },
         actions = {
             if (loaded != null && shareLabel != null && loaded.firstRecorded != null) {
-                IconButton(onClick = {
-                    shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel)
-                }) {
+                IconButton(
+                    onClick = { shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel) },
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.review_share))
                 }
             }
@@ -163,6 +165,7 @@ fun PeriodReviewScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun PeriodSwitcher(
     label: String,
@@ -177,7 +180,7 @@ private fun PeriodSwitcher(
             .padding(vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onOlder, enabled = canGoOlder) {
+        IconButton(onClick = onOlder, enabled = canGoOlder, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = stringResource(R.string.review_older),
@@ -191,7 +194,7 @@ private fun PeriodSwitcher(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        IconButton(onClick = onNewer, enabled = canGoNewer) {
+        IconButton(onClick = onNewer, enabled = canGoNewer, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = stringResource(R.string.review_newer),

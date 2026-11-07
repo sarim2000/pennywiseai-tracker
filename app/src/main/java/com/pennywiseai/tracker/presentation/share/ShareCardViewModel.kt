@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.share.ShareCardConfig
@@ -19,6 +20,7 @@ import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.review.isCalendarMonth
+import com.pennywiseai.tracker.presentation.transactions.dateQueryWindow
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import com.pennywiseai.tracker.utils.forTotals
@@ -38,6 +40,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Locale
 import javax.inject.Inject
 
@@ -83,6 +86,7 @@ class ShareCardViewModel @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardRepository: CardRepository,
 ) : ViewModel() {
 
     private val _config = MutableStateFlow(ShareCardConfig())
@@ -173,18 +177,26 @@ class ShareCardViewModel @Inject constructor(
             else -> cycleLabel(if (query.period == SharePeriod.THIS_MONTH) cycle(TimePeriod.THIS_MONTH) else start to end)
         }
 
+        val from = start.atStartOfDay()
+        val to = end.atTime(LocalTime.MAX)
+        val (queryStart, queryEnd) = dateQueryWindow(from, to)
+
         return combine(
-            transactionRepository.getTransactionsBetweenDates(start.atStartOfDay(), end.atTime(23, 59, 59)),
+            transactionRepository.getTransactionsBetweenDates(queryStart, queryEnd),
             accountBalanceRepository.getAllLatestBalances(),
             subscriptionRepository.getActiveSubscriptions(),
             ignoredAccountsStore.keysFlow,
-        ) { allTransactions, balances, subscriptions, ignored ->
+            cardRepository.getAllCards(),
+        ) { allTransactions, balances, subscriptions, ignored, cards ->
+            val ignoredKeys = IgnoredAccountsStore.withLinkedCards(ignored, cards, balances)
             // Scope to the profile the user is currently viewing, without ignored accounts,
             // as Home does for every figure it shows. A recap that didn't would count a
             // Business profile's card, or someone else's account, as the owner's — wrong,
             // and it would put those counts into an image built for sharing.
             val transactions = filterTransactionsByProfile(
-                allTransactions.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) },
+                allTransactions.filter {
+                    it.dateTime in from..to && !IgnoredAccountsStore.isIgnored(ignoredKeys, it.bankName, it.accountNumber)
+                },
                 query.profileId,
                 buildProfileAccountKeys(balances),
             )

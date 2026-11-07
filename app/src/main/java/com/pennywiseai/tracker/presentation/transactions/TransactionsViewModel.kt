@@ -742,32 +742,13 @@ class TransactionsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            // An already-imported card purchase is stored under the *card's*
-            // digits, so ignoring the account it draws on wouldn't hide it.
-            // Expand the set once with each linked card's key and the plain
-            // match below covers both (#826).
+            // Expand the set once and the plain match below covers both (#826).
             combine(
                 ignoredAccountsStore.keysFlow,
                 cardRepository.getAllCards(),
-                accountBalanceRepository.getAllLatestBalances()
-            ) { ignored, cards, balances ->
-                if (ignored.isEmpty()) return@combine ignored
-                val accountKeys = balances.map {
-                    IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4)
-                }.toSet()
-                ignored + cards.mapNotNull { card ->
-                    val account = card.accountLast4 ?: return@mapNotNull null
-                    if (IgnoredAccountsStore.keyFor(card.bankName, account) !in ignored) {
-                        return@mapNotNull null
-                    }
-                    val cardKey = IgnoredAccountsStore.keyFor(card.bankName, card.cardLast4)
-                    // A card's last four can collide with a real account's at
-                    // the same bank. The stored digits are all the list has to
-                    // match on, so adding the key would hide that account too —
-                    // leave it, and lose only the card rows we can't separate.
-                    if (cardKey in accountKeys && cardKey !in ignored) null else cardKey
-                }
-            }.collect { _ignoredAccountKeys.value = it }
+                accountBalanceRepository.getAllLatestBalances(),
+                IgnoredAccountsStore.Companion::withLinkedCards,
+            ).collect { _ignoredAccountKeys.value = it }
         }
         viewModelScope.launch {
             availableTags.collect { tags ->
@@ -847,9 +828,10 @@ class TransactionsViewModel @Inject constructor(
             }
             .onEach { categories ->
                 _availableCategories.value = categories
-                // Auto-clear category filter if the selected category no longer exists in available categories
+                // Auto-clear category filter if the selected category no longer exists in available categories.
+                // Not on a pinned list: a review's category that fell to zero is empty, not every other category.
                 val currentFilter = _categoryFilter.value
-                if (currentFilter != null && currentFilter !in categories) {
+                if (currentFilter != null && currentFilter !in categories && pinnedCurrency.value == null) {
                     _categoryFilter.value = null
                 }
             }

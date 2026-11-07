@@ -1414,7 +1414,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             combine(
                 today,
-                userPreferencesRepository.budgetCycleStartDay,
+                userPreferencesRepository.budgetCycleStartDay.distinctUntilChanged(),
                 periodReviewLoader.rowCountChanges(),
             ) { day, cycleStartDay, _ -> day to cycleStartDay }
                 .collectLatest { (day, cycleStartDay) ->

@@ -7,16 +7,20 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.presentation.transactions.dateQueryWindow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -36,6 +40,7 @@ class PeriodReviewLoader @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardRepository: CardRepository,
 ) {
     fun observe(kind: ReviewKind, offset: Int): Flow<PeriodReview> = flow {
         val range = reviewRange(
@@ -43,9 +48,9 @@ class PeriodReviewLoader @Inject constructor(
         )
         emitAll(
             combine(
-                transactionRepository.getTransactionsWithSplitsFiltered(range.start, range.end),
-                transactionRepository.getTransactionsWithSplitsFiltered(range.previousStart, range.previousEnd),
-                ignoredAccountsStore.keysFlow,
+                rowsIn(range.start, range.end),
+                rowsIn(range.previousStart, range.previousEnd),
+                ignoredKeys(),
                 userPreferencesRepository.selectedProfileId,
                 accountBalanceRepository.getAllLatestBalances(),
             ) { rows, previousRows, ignored, profileId, balances ->
@@ -68,10 +73,13 @@ class PeriodReviewLoader @Inject constructor(
         )
     }
 
-    /** Emits when what [rowCount] depends on may have changed. */
+    /**
+     * Emits when what [rowCount] depends on may have changed. DataStore re-emits on any
+     * write, and marking a banner handled mustn't count as a change.
+     */
     fun rowCountChanges(): Flow<Unit> = combine(
-        ignoredAccountsStore.keysFlow,
-        userPreferencesRepository.selectedProfileId,
+        ignoredKeys(),
+        userPreferencesRepository.selectedProfileId.distinctUntilChanged(),
         accountBalanceRepository.getAllLatestBalances(),
         transactionRepository.observeActiveTransactionCount(),
     ) { _, _, _, _ -> }
@@ -79,12 +87,29 @@ class PeriodReviewLoader @Inject constructor(
     /** How many transactions a period holds, by the same scope the review itself uses. */
     suspend fun rowCount(start: LocalDate, end: LocalDate): Int {
         val keep = scopeOf(
-            ignoredAccountsStore.keys(),
+            ignoredKeys().first(),
             userPreferencesRepository.selectedProfileId.first(),
             accountBalanceRepository.getAllLatestBalances().first(),
         )
-        return transactionRepository.getTransactionsBetweenDates(start, end).first().count(keep)
+        return rowsIn(start, end).first().count { keep(it.transaction) }
     }
+
+    /** Asks SQL for a wider window and filters to the exact dates: see [dateQueryWindow]. */
+    private fun rowsIn(start: LocalDate, end: LocalDate): Flow<List<TransactionWithSplits>> {
+        val from = start.atStartOfDay()
+        val to = end.atTime(LocalTime.MAX)
+        val (queryStart, queryEnd) = dateQueryWindow(from, to)
+        return transactionRepository
+            .getTransactionsWithSplitsFiltered(queryStart.toLocalDate(), queryEnd.toLocalDate())
+            .map { rows -> rows.filter { it.transaction.dateTime in from..to } }
+    }
+
+    private fun ignoredKeys(): Flow<Set<String>> = combine(
+        ignoredAccountsStore.keysFlow,
+        cardRepository.getAllCards(),
+        accountBalanceRepository.getAllLatestBalances(),
+        IgnoredAccountsStore.Companion::withLinkedCards,
+    )
 
     private suspend fun hasRowsBefore(date: LocalDate, keep: (TransactionEntity) -> Boolean): Boolean =
         transactionRepository.getTransactionsBetweenDates(LocalDate.of(2000, 1, 1), date.minusDays(1)).first().any(keep)

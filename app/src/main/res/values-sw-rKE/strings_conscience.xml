@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">Dhamiri</string>
+    <string name="conscience_settings_subtitle_on">Imewashwa · vijembe kuhusu matumizi yako</string>
+    <string name="conscience_settings_subtitle_off">Imezimwa · vijembe kuhusu matumizi yako</string>
+    <string name="conscience_needs_permission">Ruhusu arifa za PennyWise ili dhamiri yako iweze kusema.</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">Matumizi yako yamepata mchambuzi</string>
+    <string name="conscience_hero_body">Vijembe vifupi baada ya chakula, burudani na ununuzi. Na makofi unapostahili.</string>
+    <string name="conscience_switch_title">Iache iongee</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">Imelala. Washa swichi uiamshe 😴</string>
+    <string name="conscience_status_blocked">Arifa zimezimwa, kwa hiyo inaongea na ukuta 🧱</string>
+    <string name="conscience_status_listening">Inasubiri malipo yako yajayo ya chakula, burudani au ununuzi 👂</string>
+    <string name="conscience_status_learning">Bado inajifunza tabia zako. Vijembe vikali zaidi vitafunguka kadiri historia yako inavyokua 🧠</string>
+    <string name="conscience_open_notification_settings">Washa arifa</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">Mifano tuliyoisikia</string>
+    <string name="conscience_example_badge">Mfano</string>
+    <string name="conscience_another_example">Mwingine</string>
+    <string name="conscience_try_it">Nitumie mmoja</string>
+    <string name="conscience_try_sent">Imetumwa! Haina sauti, kwa hiyo chungulia arifa zako.</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">Inachozungumzia</string>
+    <string name="conscience_kind_comeback">Kurudi</string>
+    <string name="conscience_kind_comeback_desc">Kategoria inarudi baada ya mapumziko marefu isivyo kawaida</string>
+    <string name="conscience_kind_record_day">Siku za rekodi</string>
+    <string name="conscience_kind_record_day_desc">Siku yako kubwa zaidi katika kategoria kwa miezi miwili</string>
+    <string name="conscience_kind_repeat">Marudio</string>
+    <string name="conscience_kind_repeat_desc">Kategoria ileile tena na tena ndani ya saa chache</string>
+    <string name="conscience_kind_late_night">Usiku wa manane</string>
+    <string name="conscience_kind_late_night_desc">Malipo baada ya saa tano usiku. Haikuamshi</string>
+    <string name="conscience_kind_spike">Kupanda ghafla</string>
+    <string name="conscience_kind_spike_desc">Wiki iliyo juu sana ya kawaida yako katika kategoria</string>
+    <string name="conscience_kind_positive">Ushindi</string>
+    <string name="conscience_kind_positive_desc">Wiki iliyo chini sana ya kawaida yako, kwa hiyo inashangilia badala yake</string>
+    <string name="conscience_kind_weekly">Mila za kila wiki</string>
+    <string name="conscience_kind_weekly_desc">Kategoria ileile siku ileile ya wiki, wiki baada ya wiki</string>
+    <string name="conscience_kind_hello">Salamu fupi</string>
+    <string name="conscience_kind_hello_desc">Inakupungia mkono mara moja moja, ujue bado iko macho</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">Jinsi inavyoongea</string>
+    <string name="conscience_language_title">Lugha</string>
+    <string name="conscience_language_follows">Inafuata lugha ya app · %1$s</string>
+    <string name="conscience_address_title">Nizungumzie kama</string>
+    <string name="conscience_address_auto">Kiotomatiki</string>
+    <string name="conscience_address_masculine">Mwanaume</string>
+    <string name="conscience_address_feminine">Mwanamke</string>
+    <string name="conscience_frequency_title">Mara ngapi</string>
+    <string name="conscience_frequency_normal">Kawaida</string>
+    <string name="conscience_frequency_less">Mara chache zaidi</string>
+    <string name="conscience_frequency_normal_note">Si zaidi ya mara moja kwa siku na mara 3 kwa wiki.</string>
+    <string name="conscience_frequency_less_note">Si zaidi ya mara moja kwa wiki.</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">Maoni ya karibuni</string>
+    <string name="conscience_recent_empty">Bado hakuna maoni. Inasubiri malipo yako yajayo ya chakula, burudani au ununuzi.</string>
+    <string name="conscience_recent_saved_quietly">Imehifadhiwa kimya kimya</string>
+    <string name="conscience_recent_show_all">Onyesha yote</string>
+    <string name="conscience_recent_show_less">Onyesha machache</string>
+    <string name="conscience_feedback_summary">😂 %1$s yamependwa · 🙅 %2$s yamestaafishwa</string>
+    <string name="conscience_reset_feedback">Weka upya miitikio</string>
+    <string name="conscience_reaction_liked">Umeipenda hii 😂</string>
+    <string name="conscience_reaction_retired">Imestaafishwa milele 🙅</string>
+
+    <string name="conscience_privacy">Vichekesho vilivyoandikwa kwa mkono, vinavyolinganishwa na mienendo yako kwenye simu hii. Hakuna kiasi wala majina ya maduka, kamwe. Chakula, burudani na ununuzi tu.</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">Dhamiri yako</string>
+    <string name="conscience_lock_screen_text">Psst. Neno moja tu 👀</string>
+    <string name="conscience_action_like">😂 Nimeipenda</string>
+    <string name="conscience_action_dislike">🙅 Hii hapana</string>
+    <string name="conscience_confirm_like">Sawa 😂 Zaidi ya hizo, kwa mipaka ileile.</string>
+    <string name="conscience_confirm_dislike">Nimeelewa. Hiyo imestaafu milele 🫡</string>
+    <string name="conscience_confirm_sample">Ni mfano tu, kwa hiyo hakuna kilichobadilika 😉</string>
+    <string name="conscience_confirm_less_often">Sawa, nitapunguza. Ila bado nakutazama 👀</string>
+    <string name="conscience_confirm_paused">Sawa. Sitasema neno 🤐 Mipangilio itanirudisha.</string>
+
+    <!-- Words the lines' placeholders take. Lowercase unless the language capitalizes nouns. -->
+    <string name="conscience_category_food">chakula</string>
+    <string name="conscience_category_entertainment">burudani</string>
+    <string name="conscience_category_shopping">ununuzi</string>
+    <plurals name="conscience_days">
+        <item quantity="one">siku %1$s</item>
+        <item quantity="other">siku %1$s</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">saa %1$s</item>
+        <item quantity="other">saa %1$s</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">Dhamiri</string>
+    <string name="conscience_channel_description">Vijembe vya mara kwa mara kuhusu chakula, burudani na ununuzi. Bila sauti.</string>
+</resources>

@@ -442,6 +442,9 @@ interface TransactionDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): List<TransactionEntity>
+
+    @Query("SELECT MIN(date_time) FROM transactions WHERE is_deleted = 0")
+    suspend fun getOldestTransactionDateTime(): LocalDateTime?
     
     @Query("""
         SELECT * FROM transactions

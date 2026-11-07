@@ -7,7 +7,12 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.manager.ConscienceNotifier
+import com.pennywiseai.tracker.data.manager.ConscienceText
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.conscience.ConscienceReaction
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
@@ -35,6 +40,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun deleteTransactionUseCase(): DeleteTransactionUseCase
         fun transactionRepository(): TransactionRepository
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
+        fun userPreferencesRepository(): UserPreferencesRepository
     }
 
     companion object {
@@ -51,6 +57,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
         const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
+        const val ACTION_CONSCIENCE_LIKE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_LIKE"
+        const val ACTION_CONSCIENCE_RETIRE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE"
+        private const val EXTRA_CONSCIENCE_REMARK_ID = "conscience_remark_id"
+
+        /** The remark id the screen's sample carries: its reactions are acknowledged and change nothing. */
+        const val SAMPLE_REMARK_ID = -1L
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -117,6 +129,24 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+        /**
+         * A reaction to one remark. The remark id is in the data URI too, so each
+         * remark's pair of intents stays distinct and none overwrites another.
+         */
+        fun conscienceReactionIntent(context: Context, remarkId: Long, liked: Boolean): PendingIntent {
+            val action = if (liked) ACTION_CONSCIENCE_LIKE else ACTION_CONSCIENCE_RETIRE
+            return PendingIntent.getBroadcast(
+                context,
+                0,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    this.action = action
+                    data = android.net.Uri.parse("pennywise://conscience/$remarkId/${if (liked) "like" else "retire"}")
+                    putExtra(EXTRA_CONSCIENCE_REMARK_ID, remarkId)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
         private fun Intent.toLearned(transactionId: Long): LearnCategoryUseCase.Learned? {
             val category = getStringExtra(EXTRA_NEW_CATEGORY) ?: return null
             val previous = getStringExtra(EXTRA_PREVIOUS_CATEGORY) ?: return null
@@ -138,7 +168,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val transactionId = intent.getLongExtra(EXTRA_TRANSACTION_ID, -1)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
 
-        if (transactionId == -1L) {
+        val isConscienceAction = intent.action == ACTION_CONSCIENCE_LIKE || intent.action == ACTION_CONSCIENCE_RETIRE
+        if (transactionId == -1L && !isConscienceAction) {
             Log.e(TAG, "No transaction ID provided")
             return
         }
@@ -195,6 +226,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             else dismissNotification(context, notificationId)
                         }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
                     }
+                    ACTION_CONSCIENCE_LIKE, ACTION_CONSCIENCE_RETIRE -> {
+                        val remarkId = intent.getLongExtra(EXTRA_CONSCIENCE_REMARK_ID, SAMPLE_REMARK_ID)
+                        val liked = intent.action == ACTION_CONSCIENCE_LIKE
+                        runCatching { reactToConscience(context, entryPoint.userPreferencesRepository(), remarkId, liked) }
+                            .onFailure { Log.e(TAG, "Error applying a conscience action", it) }
+                    }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")
                     }
@@ -203,6 +240,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 pendingResult.finish()
             }
         }
+    }
+
+    private suspend fun reactToConscience(context: Context, preferences: UserPreferencesRepository, remarkId: Long, liked: Boolean) {
+        val text = ConscienceText(context)
+        val message = when {
+            remarkId == SAMPLE_REMARK_ID -> R.string.conscience_confirm_sample
+            // A remark already rated (say, on the screen) or pruned keeps what it has; the line just goes away.
+            !preferences.reactToConscienceRemark(remarkId, if (liked) ConscienceReaction.LIKED else ConscienceReaction.RETIRED) -> null
+            liked -> R.string.conscience_confirm_like
+            else -> R.string.conscience_confirm_dislike
+        }
+        ConscienceNotifier.showConfirmation(context, remarkId, message?.let(text::string))
     }
 
     private suspend fun deleteTransaction(

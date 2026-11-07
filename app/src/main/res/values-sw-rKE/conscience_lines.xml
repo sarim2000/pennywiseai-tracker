@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Conscience lines in Swahili. Written natively, not translated; see values/conscience_lines.xml
+    for the rules. Swahili does not mark the user's gender, so no {masculine|feminine} alternations.
+    {category} is never the subject of an agreeing verb (burudani and ununuzi take different prefixes).
+-->
+<resources>
+    <string name="conscience_content_locale">sw</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">Ulikaza kwa {days}. Haya basi, tunakula nini?</string>
+    <string name="conscience_line_comeback_food_02">Ushujaa wa {days}. Watakutungia wimbo. Mfupi tu.</string>
+    <string name="conscience_line_comeback_food_03">Niliwaambia watu utadumu mwezi mzima. Ulidumu {days}.</string>
+    <string name="conscience_line_comeback_food_04">Ulidumu {days}. Chapati hazikuwahi kukukatia tamaa.</string>
+    <string name="conscience_line_comeback_food_05">Nidhamu ya {days}, halafu mtu akasema \"onja kidogo tu\".</string>
+    <string name="conscience_line_comeback_food_06">Utafiti mpya: nidhamu yako huisha baada ya {days} 🔬</string>
+    <string name="conscience_line_comeback_food_07">Hukushindwa kwa {days}. Halafu menyu ikatokea.</string>
+    <string name="conscience_line_comeback_food_08">Wewe na menyu mlitengana kwa {days}. Mapenzi ya kweli hayafi 💘</string>
+    <string name="conscience_line_comeback_food_09">Karibu tena! Menyu ilikuwekea kiti kwa {days}.</string>
+    <string name="conscience_line_comeback_food_10">Chakula kimekusamehe baada ya {days}. Hakuna maswali.</string>
+    <string name="conscience_line_comeback_food_11">Baada ya {days}, sahani bado inakumbuka jina lako 🍽️</string>
+    <string name="conscience_line_comeback_food_12">Enzi ya {days} imefikia tamati 🍔</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">Uliacha {category} kwa {days}. Tulivutiwa sana. Kwa muda mfupi.</string>
+    <string name="conscience_line_comeback_02">Ulijiuzulu kutoka {category} kwa {days}. Hotuba ya kuaga ilikuwa tamu 🎤</string>
+    <string name="conscience_line_comeback_03">Amani ya {days} ilikuwa tamu. Haya basi, {category}.</string>
+    <string name="conscience_line_comeback_04">Wewe na {category} mlikuwa mmepeana nafasi. Kwa {days}.</string>
+    <string name="conscience_line_comeback_05">Wewe na {category} mlitazamana kwa {days}. Wewe ndiye ulipepesa macho kwanza 👀</string>
+    <string name="conscience_line_comeback_06">Marufuku ya {category} ilidumu {days}. Ikafutwa kwa kauli moja.</string>
+    <string name="conscience_line_comeback_07">Ulijaribu busara kwa {days}. Kusema kweli, haikukupendeza 😏</string>
+    <string name="conscience_line_comeback_08">Jaribio lilidumu {days}. Matokeo: {category}.</string>
+    <string name="conscience_line_comeback_09">Hakuna anayehesabu. Sawa, mimi nilikuwa nahesabu. {days}.</string>
+    <string name="conscience_line_comeback_10">{days} bila {category}. Haki za kutengeneza filamu bado ziko wazi 🍿</string>
+    <string name="conscience_line_comeback_11">Umerudi kwa {category} baada ya {days}. Hatusemi kitu. Kwa sauti kubwa 📢</string>
+    <string name="conscience_line_comeback_12">Likizo yako ya {category} ilidumu {days}. Natumai ulipumzika vizuri 🏖️</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">Hapana, hapana, endelea tu.</string>
+    <string name="conscience_line_record_day_02">Siku kubwa zaidi ya {category} ndani ya miezi miwili. Hotuba! 🎉</string>
+    <string name="conscience_line_record_day_03">Leo ni siku ya kihistoria ya {category}. Historia yenyewe ni miezi miwili.</string>
+    <string name="conscience_line_record_day_04">Siku bora ya {category} kwa miezi miwili. Sina uhakika kama \"bora\" ndilo neno.</string>
+    <string name="conscience_line_record_day_05">Sijaona kitu. Isipokuwa siku kubwa zaidi ya {category} kwa miezi miwili 🙈</string>
+    <string name="conscience_line_record_day_06">Hii tunaibandika kwenye friji. Siku kubwa zaidi ya {category} kwa miezi miwili.</string>
+    <string name="conscience_line_record_day_07">Medali ya dhahabu ya {category}. Washindani: miezi miwili iliyopita 🥇</string>
+    <string name="conscience_line_record_day_08">Miezi miwili iliyopita imepiga simu. Imekubali kushindwa.</string>
+    <string name="conscience_line_record_day_09">Kwa miezi miwili, hakuna siku ya {category} iliyokaribia leo. Najivunia, kwa njia ya ajabu.</string>
+    <string name="conscience_line_record_day_10">Miezi miwili ya mazoezi, na leo ndiyo fainali.</string>
+    <string name="conscience_line_record_day_11">Kilele cha {category} cha miezi miwili. Mandhari yakoje huko juu? 🏔️</string>
+    <string name="conscience_line_record_day_12">Jedwali la {category} la miezi miwili: siku ya leo imepanda kileleni ⚽</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">Vituo {count} vya chakula ndani ya {hours}. Hiyo si kitafunio, ni ziara 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Chakula tena. Hiyo ni mara {count} ndani ya {hours}. Sihesabu. (Nahesabu.)</string>
+    <string name="conscience_line_repeat_food_03">Chakula mara {count} ndani ya {hours}. Sasa hii ni tamthilia ya misimu? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Mtu ampe huyu kadi ya uaminifu. Chakula mara {count} ndani ya {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Habari za punde: chakula kimeonekana mara {count} ndani ya {hours}. Taarifa kamili saa mbili 📺</string>
+    <string name="conscience_line_repeat_food_06">Safari {count} za chakula ndani ya {hours}. Kitaalamu, hayo ni mazoezi 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">Raundi {count} za {category} ndani ya {hours}. Unapasha moto au umegeuka mtaalamu? 😏</string>
+    <string name="conscience_line_repeat_02">{category} mara {count} ndani ya {hours}. Nani anahesabu? Mimi. Mimi nahesabu.</string>
+    <string name="conscience_line_repeat_03">Mara {count} ndani ya {hours}? Huu ni msimu wa {category}, inaonekana 💅</string>
+    <string name="conscience_line_repeat_04">Tena! Tena! {category} mara {count} ndani ya {hours} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, mara {count} ndani ya {hours}. Unashindana na saa? 🏁</string>
+    <string name="conscience_line_repeat_06">Hesabu yangu: {category} mara {count} ndani ya {hours}. Pointi za zawadi zinanyesha kama masika 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">Chakula saa hizi? Taa ya friji inaona wivu 🌙</string>
+    <string name="conscience_line_late_night_food_02">Chakula cha usiku wa manane? Siri yako iko salama. Hata asubuhi haitajua 🤫</string>
+    <string name="conscience_line_late_night_food_03">Menyu ya usiku wa manane: imefunguliwa 🔓</string>
+    <string name="conscience_line_late_night_food_04">Mwezi umepiga simu. Nao unataka kuonja 🌝</string>
+    <string name="conscience_line_late_night_food_05">Chakula gizani: muendelezo ambao hakuna aliyeuomba, ila wote tunaupenda 🎬</string>
+    <string name="conscience_line_late_night_food_06">Ni usiku, chakula ni halisi, na mimi najifanya nimelala 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} saa hizi? Hali ya bundi: imewashwa 🦉</string>
+    <string name="conscience_line_late_night_02">Zamu ya usiku ya {category} imeanza 🌙</string>
+    <string name="conscience_line_late_night_03">{category} usiku wa manane. Kesho asubuhi utakuwa na maswali ☕</string>
+    <string name="conscience_line_late_night_04">Kila mtu amelala isipokuwa wewe na {category} 👀</string>
+    <string name="conscience_line_late_night_05">{category} chini ya nyota. Mahaba ya kweli, kwa upande wa pochi ✨</string>
+    <string name="conscience_line_late_night_06">Shh, ni usiku sana. {category} kwa minong\'ono tu 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">Wiki hii ya {category} iko mbele sana ya wiki zako za kawaida 📈 Nasema tu.</string>
+    <string name="conscience_line_spike_02">Wiki hii ya {category} inaringa mbele ya wiki zako za kawaida 💪</string>
+    <string name="conscience_line_spike_03">Wiki yako ya {category} imevunja chati. Chati zako, haswa 📊</string>
+    <string name="conscience_line_spike_04">Ni wiki kubwa kwa {category}. Kubwa kuliko kawaida, tena kwa mbali 🚀</string>
+    <string name="conscience_line_spike_05">Wiki ya kawaida ya {category}: shwari. Wiki hii: tamasha 🎪</string>
+    <string name="conscience_line_spike_06">Kumbe! Siku saba za {category} zimeipita wiki yako ya kawaida kwa mbali 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">Wiki iliyopita, matumizi ya {category} yalikuwa {percent} chini ya kawaida. Hebu jiangalie 🌟</string>
+    <string name="conscience_line_positive_02">{percent} chini kwenye {category} kuliko wiki ya kawaida. Makofi, tafadhali 👏</string>
+    <string name="conscience_line_positive_03">Kumbe! Wiki iliyopita ulitumia {percent} chini kwenye {category} kuliko kawaida 😮</string>
+    <string name="conscience_line_positive_04">Matumizi ya {category} yalishuka kwa {percent} wiki iliyopita. Karibu nijivunie. Karibu 🥲</string>
+    <string name="conscience_line_positive_05">Wiki iliyopita: {category} chini kwa {percent}. Pochi yako inakusalimia 💌</string>
+    <string name="conscience_line_positive_06">{percent} chini ya wastani wako wa {category} wiki iliyopita. Wewe ni nani? 😎</string>
+    <string name="conscience_line_positive_07">Haba na haba hujaza kibaba. Wiki iliyopita, {percent} chini kwenye {category} 🏅</string>
+    <string name="conscience_line_positive_08">Nyota ya dhahabu ⭐ Wiki iliyopita ulibana matumizi ya {category} kwa {percent}.</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} + {category}. Hadithi ya mapenzi kwa vipindi vya kila wiki 💞</string>
+    <string name="conscience_line_weekly_02">Ni {weekday}, kwa hiyo bila shaka: {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">{weekday} tena, {category} tena. Mila ni mila 🎉</string>
+    <string name="conscience_line_weekly_04">{weekday} yako ina mada, na mada yenyewe ni {category} 😄</string>
+    <string name="conscience_line_weekly_05">Wengine wana mipango ya {weekday}. Wewe una {weekday} ya {category} 😏</string>
+    <string name="conscience_line_weekly_06">Kama saa: {weekday} maana yake {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">Chakula kimeonekana. Nimeitwa 👀</string>
+    <string name="conscience_line_hello_food_02">Chakula kimeingia! Ufurahie mlo, mimi nitakaa hapa nikitazama tu 🍽️</string>
+    <string name="conscience_line_hello_food_03">Chakula kwenye daftari. Sihukumu. Angalau si kwa sauti 🤐</string>
+    <string name="conscience_line_hello_food_04">Ding! Chakula kimeandikwa. Nyusi yangu imepanda kidogo 🤨</string>
+    <string name="conscience_line_hello_food_05">Chakula kipya kwenye orodha. Heko kwa mpishi 🤌</string>
+    <string name="conscience_line_hello_food_06">Chakula, unasema? Nieleze kila kitu. Aah, usinieleze 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">Na sasa, kwenye gumzo: {category} 💬</string>
+    <string name="conscience_line_hello_02">Mgeni wa leo: {category}. Mgeni njoo, mwenyeji apone… tutaona 🚪</string>
+    <string name="conscience_line_hello_03">Nimeona {category}. Nitajifanya sijaona 🙈</string>
+    <string name="conscience_line_hello_04">Imeandikwa: {category}. Endelea, mimi ni msimulizi tu 🎙️</string>
+    <string name="conscience_line_hello_05">Ooh, {category}! Bisi zangu ziko tayari 🍿</string>
+    <string name="conscience_line_hello_06">Aha, {category}? Endelea, nakusikiliza 👂</string>
+</resources>

@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.navigation.AiAccess
 import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Categories
+import com.pennywiseai.tracker.navigation.Conscience
 import com.pennywiseai.tracker.navigation.ExchangeRates
 import com.pennywiseai.tracker.navigation.ImportStatement
 import com.pennywiseai.tracker.navigation.Loans
@@ -133,7 +134,7 @@ fun SettingsSectionScreen(
             SettingsSection.PLANNING -> PlanningPage(onNavigate)
             SettingsSection.CURRENCY -> CurrencyPage(onNavigate)
             SettingsSection.FORMATS -> FormatsPage()
-            SettingsSection.NOTIFICATIONS -> NotificationsPage()
+            SettingsSection.NOTIFICATIONS -> NotificationsPage(onNavigate)
             SettingsSection.SECURITY -> SecurityPage()
             SettingsSection.DATA -> DataPage(onNavigate)
             SettingsSection.AI -> AiPage(onNavigate)
@@ -811,9 +812,13 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
 // ── Notifications ──
 
 @Composable
-private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewModel()) {
+private fun NotificationsPage(
+    onNavigate: (NavKey) -> Unit,
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = DAILY_SUMMARY_DEFAULT)
+    val conscienceEnabled by settingsViewModel.conscienceEnabled.collectAsStateWithLifecycle(initialValue = false)
     // The recap is a notification: on Android 13+ turning it on asks for the
     // permission first, and a refusal leaves it off with a word on why.
     val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
@@ -848,6 +853,15 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
                 }
             },
             position = ListItemPosition.Top
+        )
+        SettingsNavItem(
+            icon = Icons.Default.Psychology,
+            iconBgColor = pink_light,
+            iconTint = pink_dark,
+            title = stringResource(R.string.conscience_title),
+            subtitle = stringResource(if (conscienceEnabled) R.string.conscience_settings_subtitle_on else R.string.conscience_settings_subtitle_off),
+            onClick = { onNavigate(Conscience) },
+            position = ListItemPosition.Middle
         )
         SettingsNavItem(
             icon = Icons.Default.Tune,

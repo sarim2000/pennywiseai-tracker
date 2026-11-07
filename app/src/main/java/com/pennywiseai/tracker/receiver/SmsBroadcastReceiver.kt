@@ -13,6 +13,7 @@ import androidx.core.os.BundleCompat
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.manager.ConscienceManager
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -39,6 +40,7 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
@@ -63,6 +65,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
         fun userPreferencesRepository(): com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+        fun conscienceManager(): ConscienceManager
     }
 
     companion object {
@@ -694,6 +697,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         body: String,
         timestamp: Long
     ) {
+        var conscience: Job? = null
         try {
             // Use the shared processor to parse and save the transaction
             val result = processor.processAndSaveTransaction(sender, body, timestamp)
@@ -710,6 +714,10 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             )
             val repository = entryPoint.transactionRepository()
             val saved = repository.getTransactionById(result.transactionId) ?: return
+            // Beside the alert, not ahead of it: its history reads mustn't hold the alert up.
+            conscience = receiverScope.launch {
+                entryPoint.conscienceManager().onLiveTransaction(saved.id, timestamp)
+            }
             // The same bill as last month (or week, or year)? Offer to track it.
             // Capped (one offer per merchant per 90 days, one a day): a missed offer
             // isn't lost, the Subscriptions screen lists it under "Suggested".
@@ -751,6 +759,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 ?: cancelBalanceDiscrepancyNotification(context, saved)
         } catch (e: Exception) {
             Log.e(TAG, "Error processing SMS", e)
+        } finally {
+            // goAsync() has to stay open until this is done too.
+            conscience?.join()
         }
     }
 

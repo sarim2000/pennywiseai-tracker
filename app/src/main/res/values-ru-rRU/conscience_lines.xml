@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Russian conscience lines. Written natively, not translated. Informal "ты".
+    {category} is nominative: "еда", "развлечения", "покупки" (the last two are
+    plural, so generic pools may use plural verbs). {weekday} is nominative
+    lowercase ("четверг"). {days} and {hours} only in nominative/accusative slots.
+-->
+<resources>
+    <string name="conscience_content_locale">ru</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">{days} силы воли. Ну что, чем угощаемся?</string>
+    <string name="conscience_line_comeback_food_02">Ты {продержался|продержалась} {days}. О таком слагают песни. Короткие.</string>
+    <string name="conscience_line_comeback_food_03">Спорили, сколько ты продержишься. Правильный ответ: {days}.</string>
+    <string name="conscience_line_comeback_food_04">{days} стойкости. Пельмени в тебе ни секунды не сомневались 🥟</string>
+    <string name="conscience_line_comeback_food_05">{days} железной воли, а потом прозвучало «я только попробую».</string>
+    <string name="conscience_line_comeback_food_06">Учёные установили: период полураспада твоей силы воли — {days}.</string>
+    <string name="conscience_line_comeback_food_07">{days} без поражений. А потом случилось меню.</string>
+    <string name="conscience_line_comeback_food_08">{days} разлуки с меню. Встреча вышла очень трогательной 🥹</string>
+    <string name="conscience_line_comeback_food_09">С возвращением! Меню {days} хранило твоё место.</string>
+    <string name="conscience_line_comeback_food_10">Еда ждала {days} и приняла тебя обратно. Без лишних вопросов.</string>
+    <string name="conscience_line_comeback_food_11">Спустя {days} меню всё ещё помнит тебя по имени.</string>
+    <string name="conscience_line_comeback_food_12">{days} — целая эпоха. И вот она закончилась 🍔</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">Ты {держался|держалась} {days}. Вдохновляет. Недолго.</string>
+    <string name="conscience_line_comeback_02">Ты гордо {ушёл|ушла} на пенсию. Пенсия длилась {days}.</string>
+    <string name="conscience_line_comeback_03">{days} тишины. А теперь — {category}.</string>
+    <string name="conscience_line_comeback_04">Ты и {category}: «мы просто взяли паузу». На {days}.</string>
+    <string name="conscience_line_comeback_05">Ты и {category} {days} играли в гляделки. Ты {моргнул|моргнула}.</string>
+    <string name="conscience_line_comeback_06">Запрет на {category} продержался {days}. Отменён единогласно.</string>
+    <string name="conscience_line_comeback_07">{days} благоразумия. Тебе, если честно, не шло.</string>
+    <string name="conscience_line_comeback_08">Эксперимент длился {days}. Результат: {category}.</string>
+    <string name="conscience_line_comeback_09">Никто не считает. Ну ладно, я считаю. {days}.</string>
+    <string name="conscience_line_comeback_10">{days} стойкости. Права на экранизацию пока свободны 🍿</string>
+    <string name="conscience_line_comeback_11">Снова {category}, спустя {days}. Молчу. Громко.</string>
+    <string name="conscience_line_comeback_12">{category} отпустили тебя в отпуск на {days}. Надеюсь, ты {отдохнул|отдохнула}.</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">Нет-нет, продолжай.</string>
+    <string name="conscience_line_record_day_02">{category}: рекордный день за два месяца. Речь! 🎉</string>
+    <string name="conscience_line_record_day_03">Исторический день для категории «{category}». История, правда, длиной в два месяца.</string>
+    <string name="conscience_line_record_day_04">Лучший день за два месяца в категории «{category}». «Лучший» — это громко сказано.</string>
+    <string name="conscience_line_record_day_05">Ничего не вижу. Кроме рекорда за два месяца: {category} 🙈</string>
+    <string name="conscience_line_record_day_06">Повешу на холодильник: рекорд за два месяца, {category}.</string>
+    <string name="conscience_line_record_day_07">Золото в дисциплине «{category}». Соперники: последние два месяца 🥇</string>
+    <string name="conscience_line_record_day_08">Звонили последние два месяца. Сдаются.</string>
+    <string name="conscience_line_record_day_09">{category}: ни один день за два месяца и рядом не стоял. Странно, но горжусь.</string>
+    <string name="conscience_line_record_day_10">Два месяца разминки — и вот он, главный номер программы.</string>
+    <string name="conscience_line_record_day_11">Пик за два месяца, категория «{category}». Как там вид сверху? 🏔️</string>
+    <string name="conscience_line_record_day_12">Турнирная таблица за два месяца ({category}): сегодня на первом месте.</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">{hours} — и уже {count}-й заход за едой. Это не перекус, это гастротур 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Снова еда. {count}-й раз за {hours}. Я не считаю. (Считаю.)</string>
+    <string name="conscience_line_repeat_food_03">Еда, серия номер {count}, и всё за {hours}. У нас уже сериал? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Тебе пора выдать карту постоянного клиента. {count}-й заход за {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Срочная новость: еду засекли в {count}-й раз за {hours}. Подробности в вечернем выпуске 📺</string>
+    <string name="conscience_line_repeat_food_06">За {hours} — уже {count}-й забег за едой. Технически это кардио 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{category}, раунд {count}, и это за {hours}. Разминка или уже высшая лига? 😏</string>
+    <string name="conscience_line_repeat_02">{category}: {count}-й заход за {hours}. Кто считает? Я считаю.</string>
+    <string name="conscience_line_repeat_03">{count}-й раз за {hours}? Похоже, {category} переживают звёздный час 💅</string>
+    <string name="conscience_line_repeat_04">Бис! Бис! На бис уже в {count}-й раз за {hours}: {category} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, {count}-й раз за {hours}. Спидран, категория any% 🏁</string>
+    <string name="conscience_line_repeat_06">{category} за {hours}, счётчик: {count}. Бонусы, наверное, льются рекой 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">Еда в такой час? Свет в холодильнике ревнует 🌙</string>
+    <string name="conscience_line_late_night_food_02">Ночная еда засечена. Утреннему тебе — ни слова 🤫</string>
+    <string name="conscience_line_late_night_food_03">Ночное меню: открыто 🔓</string>
+    <string name="conscience_line_late_night_food_04">Звонила луна. Тоже хочет кусочек 🌝</string>
+    <string name="conscience_line_late_night_food_05">Еда по ночам. Сиквел, который никто не заказывал, но все любят 🎬</string>
+    <string name="conscience_line_late_night_food_06">Поздно, еда настоящая, а я делаю вид, что сплю 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} в такой час? Режим совы: включён 🦉</string>
+    <string name="conscience_line_late_night_02">{category} заступили на ночную смену 🌙</string>
+    <string name="conscience_line_late_night_03">{category} на ночь глядя. У утреннего тебя будут вопросы ☕</string>
+    <string name="conscience_line_late_night_04">Все уже спят, а ты и {category} — нет 👀</string>
+    <string name="conscience_line_late_night_05">{category} под звёздами. Романтика с привкусом банковской выписки ✨</string>
+    <string name="conscience_line_late_night_06">Тсс, уже поздно. Про {category} — только шёпотом 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">Последние семь дней в категории «{category}» сильно обгоняют твою обычную неделю 📈 Просто к сведению.</string>
+    <string name="conscience_line_spike_02">Эта неделя в категории «{category}» откровенно красуется на фоне обычных 💪</string>
+    <string name="conscience_line_spike_03">Неделя в категории «{category}» зашкаливает. По твоей же шкале 📊</string>
+    <string name="conscience_line_spike_04">{category}: неделя что надо. Больше обычного, и намного 🚀</string>
+    <string name="conscience_line_spike_05">Обычная неделя в категории «{category}» — тишь да гладь. Эта — фестиваль 🎪</string>
+    <string name="conscience_line_spike_06">Поворот сюжета: в категории «{category}» эта неделя обошла обычную с огромным отрывом 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">Прошлая неделя, категория «{category}»: на {percent} ниже обычного. Ну ты даёшь 🌟</string>
+    <string name="conscience_line_positive_02">На {percent} меньше обычного в категории «{category}». Аплодисменты, пожалуйста 👏</string>
+    <string name="conscience_line_positive_03">Поворот сюжета: на прошлой неделе в категории «{category}» минус {percent} к обычному 😮</string>
+    <string name="conscience_line_positive_04">{category}: минус {percent} за прошлую неделю. Я почти горжусь. Почти 🥲</string>
+    <string name="conscience_line_positive_05">{category}: прошлая неделя на {percent} ниже нормы. Кошелёк передаёт привет 💌</string>
+    <string name="conscience_line_positive_06">Прошлая неделя в категории «{category}» — на {percent} ниже среднего. А это точно ты? 😎</string>
+    <string name="conscience_line_positive_07">Уважение. Прошлая неделя в категории «{category}» вышла на {percent} скромнее обычного 🏅</string>
+    <string name="conscience_line_positive_08">Пятёрка с плюсом ⭐ Категория «{category}» на прошлой неделе ниже нормы на {percent}.</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} + {category}. История любви в еженедельных сериях 💞</string>
+    <string name="conscience_line_weekly_02">Сегодня {weekday}, а значит — {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">Снова {weekday}, снова {category}. Традиция есть традиция 🎉</string>
+    <string name="conscience_line_weekly_04">У кого-то рыбный четверг, а у тебя {weekday} — день «{category}» 🐟</string>
+    <string name="conscience_line_weekly_05">У кого-то планы на выходные. У тебя — {weekday} и {category} 😏</string>
+    <string name="conscience_line_weekly_06">Как по часам: {weekday} — значит, {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">Замечена еда. Меня вызывали? 👀</string>
+    <string name="conscience_line_hello_food_02">Еда! Приятного аппетита, а я тут посижу, посмотрю 🍽️</string>
+    <string name="conscience_line_hello_food_03">Еда в записях. Я не осуждаю. Вслух 🤐</string>
+    <string name="conscience_line_hello_food_04">Дзынь! Еда записана. Бровь поднялась ровно на два миллиметра 🤨</string>
+    <string name="conscience_line_hello_food_05">Новая запись про еду. Пальчики оближешь 🤌</string>
+    <string name="conscience_line_hello_food_06">Еда, говоришь? Рассказывай всё. Хотя нет, не надо 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">{category} присоединились к чату 💬</string>
+    <string name="conscience_line_hello_02">Появились дикие {category}! 🎮</string>
+    <string name="conscience_line_hello_03">{category} на горизонте. Делаю вид, что ничего не вижу 🙈</string>
+    <string name="conscience_line_hello_04">Записано: {category}. Продолжай, я просто закадровый голос 🎙️</string>
+    <string name="conscience_line_hello_05">{category} на подходе. Попкорн готов 🍿</string>
+    <string name="conscience_line_hello_06">О, {category}? Так-так, продолжай 👂</string>
+</resources>

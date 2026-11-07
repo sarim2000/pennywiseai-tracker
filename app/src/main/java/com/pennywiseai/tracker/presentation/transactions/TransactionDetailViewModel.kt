@@ -42,6 +42,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -488,8 +489,9 @@ class TransactionDetailViewModel @Inject constructor(
         // Load count of other transactions from same merchant + any saved alias
         _transaction.value?.let { txn ->
             viewModelScope.launch {
-                val count = transactionRepository.getOtherTransactionCountForMerchant(
+                val count = transactionRepository.countRecategorizableForMerchant(
                     txn.merchantName,
+                    LearnCategoryUseCase.sameKind(txn.transactionType),
                     txn.id
                 )
                 _existingTransactionCount.value = count
@@ -1097,7 +1099,12 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Update existing transactions if checkbox is checked
                 if (_updateExistingTransactions.value) {
-                    transactionRepository.updateCategoryForMerchant(merchantKey, normalizedTransaction.category)
+                    transactionRepository.updateCategoryForMerchant(
+                        merchantKey,
+                        LearnCategoryUseCase.sameKind(normalizedTransaction.transactionType),
+                        normalizedTransaction.id,
+                        normalizedTransaction.category
+                    )
                 }
 
                 // Persist the merchant display alias (#583), keyed on the saved

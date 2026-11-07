@@ -152,6 +152,9 @@ object ProViews {
                         +"PennyWise is open source — "
                         a(href = "https://github.com/sarim2000/pennywiseai-tracker") { +"read the code" }
                         +". Pro pays for the time to keep adding banks and features."
+                        +" "
+                        a(href = "/terms") { +"Terms of Service" }
+                        +"."
                     }
                 }
             }

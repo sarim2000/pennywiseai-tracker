@@ -1,0 +1,2 @@
+• Subscription tracking: PennyWise now spots repeat charges in your history, flags when a price quietly changes, and reminds you before a bill is due — plus it suggests recurring bills it found that you haven't tracked yet
+• New bank support: City Bank Bangladesh, Commercial Bank of Ceylon (ComBank, Sri Lanka), Arab Bank (debit card purchases), Islamic International Arab Bank (incoming CliQ payments), and Orange Money (Jordan)

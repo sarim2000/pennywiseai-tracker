@@ -1,4 +1,2 @@
-• Import bank statements from Excel or CSV files, with column mapping, a live preview, and a balance check to confirm everything landed correctly
-• Safe-to-spend budget and month-end spending forecast now live on the Home screen
-• On-device AI chat on iOS (Foundation Models) with confirm cards before any change, plus AI fallback for SMS messages from unrecognised banks
-• Connect Claude or ChatGPT to your on-phone data and view a live dashboard — Pro feature
+• Subscription tracking: PennyWise now spots repeat charges in your history, flags when a price quietly changes, and reminds you before a bill is due — plus it suggests recurring bills it found that you haven't tracked yet
+• New bank support: City Bank Bangladesh, Commercial Bank of Ceylon (ComBank, Sri Lanka), Arab Bank (debit card purchases), Islamic International Arab Bank (incoming CliQ payments), and Orange Money (Jordan)

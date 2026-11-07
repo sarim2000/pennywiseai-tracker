@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookLogEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookDeliveredTransactionEntity
@@ -72,6 +73,9 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
+import java.math.BigDecimal
+import java.util.UUID
 
 /**
  * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so
@@ -80,7 +84,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 67
+const val SCHEMA_VERSION = 68
 
 /**
  * The PennyWise Room database.
@@ -152,6 +156,7 @@ const val SCHEMA_VERSION = 67
         // 66→67 adds the loan_shares table and transactions.lent_shares_total
         // for split bills (#346) — purely additive.
         AutoMigration(from = 66, to = 67)
+        // 67→68 adds transactions.transfer_pair_id and links existing pairs: manual.
     ]
 )
 @ColumnTypeConverters(Converters::class)
@@ -725,6 +730,58 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         }
 
         /**
+         * Links the transfer pairs marked before this column existed, so they stop
+         * counting twice. Pairing happens in Kotlin, so the only SQL here is the
+         * plain SELECT and UPDATE that SQLite 3.18 runs. A row that can't be read is
+         * left unlinked: it must not fail the update for the whole database.
+         */
+        val MIGRATION_67_68 = object : Migration(67, 68) {
+            override suspend fun migrate(db: SQLiteConnection) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN transfer_pair_id TEXT DEFAULT NULL")
+                val converters = Converters()
+                val rows = db.prepare("""
+                    SELECT id, amount, currency, date_time, updated_at, bank_name, account_number,
+                           from_account, to_account, from_bank_name, to_bank_name, is_deleted
+                    FROM transactions
+                    WHERE transaction_type = 'TRANSFER' AND (from_account IS NOT NULL OR to_account IS NOT NULL)
+                """.trimIndent()).use { stmt ->
+                    fun text(column: Int) = if (stmt.isNull(column)) null else stmt.getText(column)
+                    buildList {
+                        while (stmt.step()) {
+                            val row = runCatching {
+                                TransactionEntity(
+                                    id = stmt.getLong(0),
+                                    amount = BigDecimal(stmt.getText(1)),
+                                    merchantName = "",
+                                    category = "",
+                                    transactionType = TransactionType.TRANSFER,
+                                    currency = stmt.getText(2),
+                                    dateTime = converters.toLocalDateTime(stmt.getText(3))!!,
+                                    updatedAt = converters.toLocalDateTime(stmt.getText(4))!!,
+                                    transactionHash = "",
+                                    bankName = text(5),
+                                    accountNumber = text(6),
+                                    fromAccount = text(7),
+                                    toAccount = text(8),
+                                    fromBankName = text(9),
+                                    toBankName = text(10),
+                                    isDeleted = stmt.getLong(11) != 0L
+                                )
+                            }
+                            row.getOrNull()?.let(::add)
+                        }
+                    }
+                }
+                findUnlinkedTransferPairs(rows).forEach { (source, destination) ->
+                    db.execSQL(
+                        "UPDATE transactions SET transfer_pair_id = ? WHERE id IN (?, ?)",
+                        arrayOf(UUID.randomUUID().toString(), source, destination)
+                    )
+                }
+            }
+        }
+
+        /**
          * Single source of truth for the migration list. Both the Hilt-built
          * database (DatabaseModule.providePennyWiseDatabase) and the
          * BroadcastReceiver fallback path (getInstance above) reference this
@@ -759,6 +816,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_62_63,
             MIGRATION_63_64,
             MIGRATION_64_65,
+            MIGRATION_67_68,
         )
     }
     

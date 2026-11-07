@@ -13,6 +13,8 @@ import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.isPairedTransferLeg
+import com.pennywiseai.tracker.utils.ledgerType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
@@ -400,9 +402,9 @@ open class AccountBalanceRepository @Inject constructor(
                     val latest = getLatestBalance(bank, acct)
                     if (latest != null) {
                         val net = BalanceCalculator.signedBalanceEffect(
-                            latest.isLiability, updated!!.transactionType, updated.amount
+                            latest.isLiability, updated!!.ledgerType(), updated.amount
                         ) - BalanceCalculator.signedBalanceEffect(
-                            latest.isLiability, original!!.transactionType, original.amount
+                            latest.isLiability, original!!.ledgerType(), original.amount
                         )
                         if (net.signum() != 0) {
                             insertBalanceDelta(bank, acct, net, LocalDateTime.now(), updated.id)
@@ -413,24 +415,24 @@ open class AccountBalanceRepository @Inject constructor(
             }
 
             if (original != null) {
-                if (original.transactionType == TransactionType.TRANSFER) {
+                if (original.transactionType == TransactionType.TRANSFER && !original.isPairedTransferLeg) {
                     shiftTransferLeg(original.fromAccount, incoming = false, revert = true,
                         original.amount, updated?.id, original.fromBankName)
                     shiftTransferLeg(original.toAccount, incoming = true, revert = true,
                         original.amount, updated?.id, original.toBankName)
                 } else if (origKey != null) {
-                    shiftSingleAccount(origKey, original.transactionType, original.amount,
+                    shiftSingleAccount(origKey, original.ledgerType(), original.amount,
                         revert = true, updated?.id)
                 }
             }
             if (updated != null) {
-                if (updated.transactionType == TransactionType.TRANSFER) {
+                if (updated.transactionType == TransactionType.TRANSFER && !updated.isPairedTransferLeg) {
                     shiftTransferLeg(updated.fromAccount, incoming = false, revert = false,
                         updated.amount, updated.id, updated.fromBankName)
                     shiftTransferLeg(updated.toAccount, incoming = true, revert = false,
                         updated.amount, updated.id, updated.toBankName)
                 } else if (updKey != null) {
-                    shiftSingleAccount(updKey, updated.transactionType, updated.amount,
+                    shiftSingleAccount(updKey, updated.ledgerType(), updated.amount,
                         revert = false, updated.id)
                 }
             }
@@ -614,12 +616,12 @@ open class AccountBalanceRepository @Inject constructor(
     }
 
     /**
-     * The (bankName, accountLast4) pair a non-TRANSFER transaction's balance
-     * effect lands on, or null when there is nothing to shift (no account, or a
-     * TRANSFER — whose effects travel through its legs instead).
+     * The (bankName, accountLast4) pair a transaction's balance effect lands on, or
+     * null when there is nothing to shift (no account, or a standalone TRANSFER —
+     * whose effects travel through its legs instead). A paired leg moves only this account.
      */
     private fun singleAccountKey(txn: TransactionEntity?): Pair<String, String>? {
-        if (txn == null || txn.transactionType == TransactionType.TRANSFER) return null
+        if (txn == null || (txn.transactionType == TransactionType.TRANSFER && !txn.isPairedTransferLeg)) return null
         val bank = txn.bankName ?: return null
         val acct = txn.accountNumber ?: return null
         return bank to acct
@@ -760,6 +762,16 @@ open class AccountBalanceRepository @Inject constructor(
                 if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
         for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
+            if (tx.isPairedTransferLeg) {
+                if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
+                    when (tx.ledgerType()) {
+                        TransactionType.INCOME -> sum += tx.amount
+                        TransactionType.EXPENSE -> sum -= tx.amount
+                        else -> Unit
+                    }
+                }
+                continue
+            }
             if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
             if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
         }

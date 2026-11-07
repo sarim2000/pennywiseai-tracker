@@ -18,6 +18,7 @@ import com.example.ui.BankViews.respondBankPage
 import com.example.ui.BankViews.respondBanksIndex
 import com.example.ui.BankViews.respondCountryPage
 import com.example.ui.ProViews.respondProPage
+import com.example.ui.TermsViews.respondTermsPage
 import com.example.ui.GuideViews.respondGuideHub
 import com.example.ui.GuideViews.respondGuidePage
 
@@ -71,6 +72,7 @@ fun Application.configureRouting() {
         // Serve HTMX page at root
         get("/") { call.respondParsePage() }
         get("/pro") { call.respondProPage() }
+        get("/terms") { call.respondTermsPage() }
         get("/guide") { call.respondGuideHub() }
         get("/guide/{slug}") {
             if (!call.respondGuidePage(call.parameters["slug"].orEmpty())) call.respond(HttpStatusCode.NotFound, "Unknown guide")

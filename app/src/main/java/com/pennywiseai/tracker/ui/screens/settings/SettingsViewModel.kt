@@ -91,7 +91,10 @@ class SettingsViewModel @Inject constructor(
     
     
     // Download state
-    private val _downloadState = MutableStateFlow(DownloadState.NOT_DOWNLOADED)
+    // Starts from the cheap marker check, so a ready model doesn't flash "Download".
+    private val _downloadState = MutableStateFlow(
+        if (modelRepository.isModelVerified()) DownloadState.COMPLETED else DownloadState.NOT_DOWNLOADED
+    )
     val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
     
     private val _downloadProgress = MutableStateFlow(0)
@@ -239,13 +242,19 @@ class SettingsViewModel @Inject constructor(
             initialValue = 0
         )
     
-    init {
-        // Resolves the shared ModelState (verifying a present file when needed) across
-        // every branch below, so it replaces the old size-only checkModelState().
-        checkDownloadStatus()
-    }
-    
-    private fun checkDownloadStatus() {
+    private var watchingModelStatus = false
+
+    /**
+     * Called by the AI page, the one place this state shows. Every Settings page has
+     * its own ViewModel, so doing this on init would resume downloads and re-verify
+     * the model from pages that have nothing to do with it.
+     *
+     * Resolves the shared ModelState (verifying a present file when needed) across
+     * every branch below, so it replaces the old size-only checkModelState().
+     */
+    fun watchModelStatus() {
+        if (watchingModelStatus) return
+        watchingModelStatus = true
         viewModelScope.launch {
             if (!modelDownloader.isRunning &&
                 !modelDownloader.adoptLegacyDownload() &&

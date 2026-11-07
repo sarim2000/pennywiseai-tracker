@@ -234,6 +234,7 @@ interface TransactionDao {
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)
+          AND transaction_hash NOT LIKE 'taught_%'
           AND date_time >= :from
     """)
     suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
@@ -347,8 +348,26 @@ interface TransactionDao {
     suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity?
 
     /**
+     * A stored row for this SMS at about this time, for messages whose text can
+     * repeat ("Paid SAR 12 at Cafe" every morning): same words at another time are
+     * another payment, so the time is part of its identity. (#279)
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE sms_body = :smsBody
+          AND (sms_sender = :smsSender OR (:smsSender IS NULL AND sms_sender IS NULL))
+          AND date_time BETWEEN :from AND :to
+        ORDER BY is_deleted ASC, id ASC
+        LIMIT 1
+        """
+    )
+    suspend fun getAnyBySmsBetween(smsBody: String, smsSender: String?, from: LocalDateTime, to: LocalDateTime): TransactionEntity?
+
+    /**
      * Active rows that share their exact SMS with another active row — duplicates
-     * left by earlier rescans (#886). Grouped and resolved by the caller.
+     * left by earlier rescans (#886). Grouped and resolved by the caller. Rows booked
+     * from a taught template (#279) are exempt: for them, repeated text is repeated payments.
      */
     @Query(
         """
@@ -356,10 +375,11 @@ interface TransactionDao {
         INNER JOIN (
             SELECT sms_body AS body, IFNULL(sms_sender, '') AS sender FROM transactions
             WHERE is_deleted = 0 AND sms_body IS NOT NULL AND sms_body != ''
+              AND transaction_hash NOT LIKE 'taught_%'
             GROUP BY sms_body, IFNULL(sms_sender, '')
             HAVING COUNT(*) > 1
         ) d ON t.sms_body = d.body AND IFNULL(t.sms_sender, '') = d.sender
-        WHERE t.is_deleted = 0
+        WHERE t.is_deleted = 0 AND t.transaction_hash NOT LIKE 'taught_%'
         ORDER BY t.sms_body, t.id
         """
     )

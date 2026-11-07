@@ -61,6 +61,16 @@ fun UnrecognizedSmsScreen(
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showReported by viewModel.showReported.collectAsStateWithLifecycle()
+    val formatChanged by viewModel.formatChanged.collectAsStateWithLifecycle()
+    val taughtTemplates by viewModel.taughtTemplates.collectAsStateWithLifecycle()
+    val teach by viewModel.teach.collectAsStateWithLifecycle()
+    val inboxPicker by viewModel.inboxPicker.collectAsStateWithLifecycle()
+    var showTaughtTemplates by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.notices.collect { snackbarHostState.showSnackbar(context.getString(it)) }
+    }
     var selectedMessage by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
@@ -84,6 +94,7 @@ fun UnrecognizedSmsScreen(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -197,6 +208,25 @@ fun UnrecognizedSmsScreen(
                                     }
                                 }
                             }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                if (viewModel.canReadInbox) {
+                                    TextButton(onClick = viewModel::openInboxPicker, shapes = ButtonDefaults.shapes()) {
+                                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text(stringResource(R.string.teach_find_message))
+                                    }
+                                }
+                                if (taughtTemplates.isNotEmpty()) {
+                                    TextButton(onClick = { showTaughtTemplates = true }, shapes = ButtonDefaults.shapes()) {
+                                        Text(stringResource(R.string.teach_taught_count, taughtTemplates.size))
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -237,8 +267,12 @@ fun UnrecognizedSmsScreen(
                             message = message,
                             suggestion = suggestions[message.id]?.transaction,
                             onAddSuggestion = {
-                                suggestions[message.id]?.let { onAddSuggestion(it.draft()) }
+                                suggestions[message.id]?.let {
+                                    if (it.taught) viewModel.addTaught(message) else onAddSuggestion(it.draft())
+                                }
                             },
+                            formatChanged = message.id in formatChanged,
+                            onTeach = { viewModel.teachWaiting(message) },
                             onReport = {
                                 viewModel.reportMessage(message)
                             },
@@ -251,6 +285,36 @@ fun UnrecognizedSmsScreen(
                 }
             }
         }
+    }
+
+    teach?.let { state ->
+        TeachMessageSheet(
+            state = state,
+            onTap = viewModel::onTeachTap,
+            onSelectField = viewModel::onTeachField,
+            onSelectType = viewModel::onTeachType,
+            onSelectCurrency = viewModel::onTeachCurrency,
+            onSelectFormat = viewModel::onTeachFormat,
+            onMerchantTyped = viewModel::onTeachMerchantTyped,
+            onSave = viewModel::saveTeach,
+            onDismiss = viewModel::dismissTeach
+        )
+    }
+
+    inboxPicker?.let { picker ->
+        InboxPickerSheet(
+            messages = picker.messages,
+            onPick = viewModel::teachFromInbox,
+            onDismiss = viewModel::closeInboxPicker
+        )
+    }
+
+    if (showTaughtTemplates && taughtTemplates.isNotEmpty()) {
+        TaughtTemplatesSheet(
+            templates = taughtTemplates,
+            onDelete = viewModel::deleteTemplate,
+            onDismiss = { showTaughtTemplates = false }
+        )
     }
 
     // Delete confirmation dialog
@@ -299,6 +363,8 @@ private fun UnrecognizedSmsItem(
     message: UnrecognizedSmsEntity,
     suggestion: ParsedTransaction?,
     onAddSuggestion: (ParsedTransaction) -> Unit,
+    formatChanged: Boolean,
+    onTeach: () -> Unit,
     onReport: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -358,56 +424,47 @@ private fun UnrecognizedSmsItem(
                 SuggestionLine(tx, onAdd = { onAddSuggestion(tx) })
             }
 
+            if (formatChanged) {
+                Text(
+                    text = stringResource(R.string.teach_format_changed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
             // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.unrecognized_delete),
+                        modifier = Modifier.size(Dimensions.Icon.inline)
+                    )
+                }
+
                 if (!message.reported) {
-                    TextButton(
-                        onClick = onDelete,
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.unrecognized_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_delete))
-                    }
-
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-
-                    FilledTonalButton(
-                        onClick = onReport,
-                        shapes = ButtonDefaults.shapes()
-                    ) {
+                    IconButton(onClick = onReport, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.BugReport,
                             contentDescription = stringResource(R.string.unrecognized_report),
-                            modifier = Modifier.size(Dimensions.Icon.small)
+                            modifier = Modifier.size(Dimensions.Icon.inline)
                         )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_report))
                     }
-                } else {
-                    TextButton(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        ),
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.unrecognized_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_delete))
-                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                FilledTonalButton(onClick = onTeach, shapes = ButtonDefaults.shapes()) {
+                    Icon(
+                        Icons.Default.School,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.teach_action))
                 }
             }
         }

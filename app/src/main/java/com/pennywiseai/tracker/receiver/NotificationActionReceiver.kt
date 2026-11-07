@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
@@ -20,6 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 /**
@@ -35,6 +38,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun deleteTransactionUseCase(): DeleteTransactionUseCase
         fun transactionRepository(): TransactionRepository
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
+        fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
     }
 
     companion object {
@@ -51,6 +55,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
         const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
+        const val ACTION_ADD_TAUGHT = "com.pennywiseai.tracker.ACTION_ADD_TAUGHT"
+        private const val EXTRA_UNRECOGNIZED_SMS_ID = "unrecognized_sms_id"
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -73,6 +79,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     putExtra(EXTRA_PREVIOUS_MAPPING, learned.previousMapping)
                     putExtra(EXTRA_MOVED_IDS, learned.movedIds.toLongArray())
                     putExtra(EXTRA_MAPPED_AT, learned.mappedAt?.toString())
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+        /** "Add" on a message the user taught PennyWise to read: their one-tap confirmation (#279). */
+        fun addTaughtIntent(context: Context, requestCode: Int, unrecognizedSmsId: Long): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                requestCode,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_ADD_TAUGHT
+                    putExtra(EXTRA_UNRECOGNIZED_SMS_ID, unrecognizedSmsId)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -135,6 +153,10 @@ class NotificationActionReceiver : BroadcastReceiver() {
     private val receiverScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_ADD_TAUGHT) {
+            addTaught(context, intent.getLongExtra(EXTRA_UNRECOGNIZED_SMS_ID, -1))
+            return
+        }
         val transactionId = intent.getLongExtra(EXTRA_TRANSACTION_ID, -1)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
 
@@ -264,6 +286,32 @@ class NotificationActionReceiver : BroadcastReceiver() {
             WidgetRefresher.refreshTransactionWidgets(context)
         } catch (e: Exception) {
             Log.e(TAG, "Error changing category", e)
+        }
+    }
+
+    private fun addTaught(context: Context, smsId: Long) {
+        if (smsId <= 0) return
+        val booker = EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            NotificationActionReceiverEntryPoint::class.java
+        ).taughtMessageBooker()
+        val pendingResult = goAsync()
+        receiverScope.launch {
+            try {
+                val outcome = runCatching { booker.bookWaiting(smsId) }
+                    .onFailure { Log.e(TAG, "Error adding a taught message", it) }
+                    .getOrDefault(com.pennywiseai.tracker.data.manager.TaughtMessageBooker.Outcome.FAILED)
+                if (outcome == com.pennywiseai.tracker.data.manager.TaughtMessageBooker.Outcome.FAILED) {
+                    // The message is still in Unrecognized SMS, so keep the alert pointing there.
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context.applicationContext, R.string.teach_booking_failed, Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    SmsBroadcastReceiver.cancelSuggestion(context, smsId)
+                }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 

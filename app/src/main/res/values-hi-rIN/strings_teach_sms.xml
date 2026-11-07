@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">सिखाएँ</string>
+    <string name="teach_title">PennyWise को यह मैसेज सिखाएँ</string>
+    <string name="teach_field_amount">राशि</string>
+    <string name="teach_field_merchant">व्यापारी</string>
+    <string name="teach_field_account">खाता</string>
+    <string name="teach_hint_amount">मैसेज में राशि पर टैप करें।</string>
+    <string name="teach_hint_merchant">व्यापारी का नाम शब्द-दर-शब्द टैप करें। बिना चिह्नित किए, अगली बार केवल यही नाम मेल खाएगा।</string>
+    <string name="teach_hint_account">खाते या कार्ड के अंकों पर टैप करें। वैकल्पिक।</string>
+    <string name="teach_amount_placeholder">अभी तक कोई राशि नहीं</string>
+    <string name="teach_amount_source">यहाँ से पढ़ा: “%1$s”</string>
+    <string name="teach_direction_out">खर्च</string>
+    <string name="teach_direction_in">आमदनी</string>
+    <string name="teach_currency">मुद्रा</string>
+    <string name="teach_format_question">कौन-सी राशि है?</string>
+    <string name="teach_merchant_label">व्यापारी (वैकल्पिक)</string>
+    <string name="teach_account_value">खाता ••%1$s</string>
+    <string name="teach_account_none">कोई खाता नहीं</string>
+    <string name="teach_note">इस भेजने वाले के ऐसे ही मैसेज जोड़ने से पहले आपसे पूछे जाएँगे।</string>
+    <string name="teach_save_expense">%1$s खर्च सहेजें</string>
+    <string name="teach_save_income">%1$s आमदनी सहेजें</string>
+    <string name="teach_need_amount">पहले राशि पर टैप करें</string>
+    <string name="teach_need_currency">मुद्रा चुनें</string>
+    <string name="teach_need_format">चुनें कि कौन-सी राशि है</string>
+    <string name="teach_need_direction">खर्च या आमदनी चुनें</string>
+    <string name="teach_cannot_learn">PennyWise इस मैसेज को भरोसे से दोबारा नहीं पढ़ पा रहा। दूसरे शब्दों पर टैप करके देखें, या व्यापारी का नाम और जोड़ें।</string>
+    <string name="teach_saved">जोड़ दिया गया। ऐसे ही मैसेज जोड़ने से पहले पूछे जाएँगे।</string>
+    <string name="teach_added">जोड़ा गया।</string>
+    <string name="teach_settled">जोड़ा नहीं गया: यह पहले से मौजूद है, या आपकी सेटिंग इसे छोड़ देती है।</string>
+    <string name="teach_booking_failed">जोड़ा नहीं जा सका। यह अब भी नहीं पहचाने गए SMS में है।</string>
+    <string name="teach_format_changed">इस भेजने वाले का नया फ़ॉर्मैट। इसे भी सिखाएँ।</string>
+    <string name="teach_find_message">मैसेज खोजें</string>
+    <string name="teach_picker_title">हाल के पैसों वाले मैसेज</string>
+    <string name="teach_picker_body">आपके इनबॉक्स से: ऐसे मैसेज जो पैसों से जुड़े लगते हैं पर आपके लेन-देन में नहीं हैं। कुछ भी आपके फ़ोन से बाहर नहीं जाता।</string>
+    <string name="teach_picker_empty">अभी सिखाने के लिए कुछ नहीं है।</string>
+    <string name="teach_taught_count">सिखाए गए (%1$d)</string>
+    <string name="teach_taught_title">सिखाए गए मैसेज</string>
+    <string name="teach_taught_body">PennyWise इन पैटर्न को पढ़ता है और जोड़ने से पहले आपसे पूछता है। किसी को हटाने पर उसके जोड़े गए लेन-देन बने रहते हैं।</string>
+    <string name="teach_delete_template">हटाएँ</string>
+    <string name="notif_taught_text">%1$s से। इसे जोड़ें, या देखने के लिए टैप करें।</string>
+</resources>

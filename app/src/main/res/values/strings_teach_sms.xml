@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Teach</string>
+    <string name="teach_title">Teach PennyWise this message</string>
+    <string name="teach_field_amount">Amount</string>
+    <string name="teach_field_merchant">Merchant</string>
+    <string name="teach_field_account">Account</string>
+    <string name="teach_hint_amount">Tap the amount in the message.</string>
+    <string name="teach_hint_merchant">Tap the merchant\'s name, word by word. Unmarked, only this exact name will match next time.</string>
+    <string name="teach_hint_account">Tap the account or card digits. Optional.</string>
+    <string name="teach_amount_placeholder">No amount yet</string>
+    <string name="teach_amount_source">Read from: “%1$s”</string>
+    <string name="teach_direction_out">Money out</string>
+    <string name="teach_direction_in">Money in</string>
+    <string name="teach_currency">Currency</string>
+    <string name="teach_format_question">Which amount is it?</string>
+    <string name="teach_merchant_label">Merchant (optional)</string>
+    <string name="teach_account_value">Account ••%1$s</string>
+    <string name="teach_account_none">No account</string>
+    <string name="teach_note">Similar messages from this sender will ask you before they\'re added.</string>
+    <string name="teach_save_expense">Save %1$s expense</string>
+    <string name="teach_save_income">Save %1$s income</string>
+    <string name="teach_need_amount">Tap the amount first</string>
+    <string name="teach_need_currency">Choose the currency</string>
+    <string name="teach_need_format">Choose which amount it is</string>
+    <string name="teach_need_direction">Choose money out or in</string>
+    <string name="teach_cannot_learn">PennyWise can\'t read this back reliably. Try tapping different words, or add more of the merchant\'s name.</string>
+    <string name="teach_saved">Added. Similar messages will ask before they\'re added.</string>
+    <string name="teach_added">Added.</string>
+    <string name="teach_settled">Not added: it\'s already there, or your settings skip it.</string>
+    <string name="teach_booking_failed">Couldn\'t add it. It\'s still in Unrecognized SMS.</string>
+    <string name="teach_format_changed">New format from this sender. Teach it too.</string>
+    <string name="teach_find_message">Find a message</string>
+    <string name="teach_picker_title">Recent money messages</string>
+    <string name="teach_picker_body">From your inbox: messages that look like money but aren\'t in your transactions. Nothing leaves your phone.</string>
+    <string name="teach_picker_empty">Nothing to teach right now.</string>
+    <string name="teach_taught_count">Taught (%1$d)</string>
+    <string name="teach_taught_title">Taught messages</string>
+    <string name="teach_taught_body">PennyWise reads these shapes and asks you before adding. Removing one keeps the transactions it added.</string>
+    <string name="teach_delete_template">Remove</string>
+    <string name="notif_taught_text">From %1$s. Add it, or tap to review.</string>
+</resources>

@@ -77,7 +77,9 @@ class SmsTransactionProcessor @Inject constructor(
          */
         val intentionallySkipped: Boolean = false,
         /** Set when this charge may be a subscription at a new price; nothing changes until the user confirms. */
-        val priceChange: PriceChange? = null
+        val priceChange: PriceChange? = null,
+        /** True when saving threw, so nothing was decided about this message and it's worth keeping. */
+        val failed: Boolean = false
     )
 
     /** [subscriptionName] bills [previousAmount]; the saved charge carries the new amount and currency. */
@@ -131,7 +133,9 @@ class SmsTransactionProcessor @Inject constructor(
      */
     suspend fun saveParsedTransaction(
         parsedInput: ParsedTransaction,
-        smsBody: String
+        smsBody: String,
+        /** Set when identical text can be a new payment: only a row this close in time is this SMS. See TaughtMessageBooker. */
+        sameEventWindow: java.time.Duration? = null
     ): ProcessingResult = BankAccountMergeStore.mutationMutex.withLock {
         // One lock across the SMS receiver and the notification listener: a bank
         // that texts and pushes at the same moment would otherwise let both pass
@@ -179,7 +183,12 @@ class SmsTransactionProcessor @Inject constructor(
             // Same SMS already stored under an older hash (a parser fix changed the
             // amount): never insert it twice, and repair a known-bad amount. (#886)
             entity.smsBody?.let { body ->
-                transactionRepository.getAnyBySms(body, entity.smsSender)?.let { stored ->
+                val sameSms = if (sameEventWindow != null) {
+                    transactionRepository.getAnyBySmsAround(body, entity.smsSender, entity.dateTime, sameEventWindow)
+                } else {
+                    transactionRepository.getAnyBySms(body, entity.smsSender)
+                }
+                sameSms?.let { stored ->
                     if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
                         transactionRepository.correctParsedAmount(stored, entity)
                     }
@@ -303,7 +312,7 @@ class SmsTransactionProcessor @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error saving transaction: ${e.message}")
-            return ProcessingResult(false, reason = e.message)
+            return ProcessingResult(false, reason = e.message, failed = true)
         }
     }
 

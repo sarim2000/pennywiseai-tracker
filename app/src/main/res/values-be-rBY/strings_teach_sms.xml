@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Навучыць</string>
+    <string name="teach_title">Навучыце PennyWise гэтаму паведамленню</string>
+    <string name="teach_field_amount">Сума</string>
+    <string name="teach_field_merchant">Атрымальнік</string>
+    <string name="teach_field_account">Рахунак</string>
+    <string name="teach_hint_amount">Націсніце на суму ў паведамленні.</string>
+    <string name="teach_hint_merchant">Націскайце на назву атрымальніка слова за словам. Без адзнакі наступным разам падыдзе толькі гэтая назва.</string>
+    <string name="teach_hint_account">Націсніце на лічбы рахунку або карты. Неабавязкова.</string>
+    <string name="teach_amount_placeholder">Сумы пакуль няма</string>
+    <string name="teach_amount_source">Прачытана з: «%1$s»</string>
+    <string name="teach_direction_out">Расход</string>
+    <string name="teach_direction_in">Прыход</string>
+    <string name="teach_currency">Валюта</string>
+    <string name="teach_format_question">Якая гэта сума?</string>
+    <string name="teach_merchant_label">Атрымальнік (неабавязкова)</string>
+    <string name="teach_account_value">Рахунак ••%1$s</string>
+    <string name="teach_account_none">Без рахунку</string>
+    <string name="teach_note">Пра падобныя паведамленні ад гэтага адпраўніка праграма спытае вас, перш чым дадаць іх.</string>
+    <string name="teach_save_expense">Захаваць расход %1$s</string>
+    <string name="teach_save_income">Захаваць прыход %1$s</string>
+    <string name="teach_need_amount">Спачатку націсніце на суму</string>
+    <string name="teach_need_currency">Выберыце валюту</string>
+    <string name="teach_need_format">Выберыце, якая гэта сума</string>
+    <string name="teach_need_direction">Выберыце расход або прыход</string>
+    <string name="teach_cannot_learn">PennyWise не можа надзейна прачытаць гэта паведамленне зноў. Паспрабуйце націснуць на іншыя словы або дадайце больш з назвы атрымальніка.</string>
+    <string name="teach_saved">Дададзена. Пра падобныя паведамленні праграма спытае перад даданнем.</string>
+    <string name="teach_added">Дададзена.</string>
+    <string name="teach_settled">Не дададзена: яно ўжо ёсць або вашы налады яго прапускаюць.</string>
+    <string name="teach_booking_failed">Не ўдалося дадаць. Паведамленне засталося ў Нераспазнаныя SMS.</string>
+    <string name="teach_format_changed">Новы фармат ад гэтага адпраўніка. Навучыце і яму.</string>
+    <string name="teach_find_message">Знайсці паведамленне</string>
+    <string name="teach_picker_title">Нядаўнія паведамленні пра грошы</string>
+    <string name="teach_picker_body">З вашай скрыні ўваходных: паведамленні, падобныя на грашовыя, але іх няма ў вашых транзакцыях. Нічога не пакідае ваш тэлефон.</string>
+    <string name="teach_picker_empty">Цяпер вучыць няма чаму.</string>
+    <string name="teach_taught_count">Навучаныя (%1$d)</string>
+    <string name="teach_taught_title">Навучаныя паведамленні</string>
+    <string name="teach_taught_body">PennyWise чытае гэтыя шаблоны і пытаецца ў вас перад даданнем. Выдаленне шаблона пакідае транзакцыі, якія ён дадаў.</string>
+    <string name="teach_delete_template">Прыбраць</string>
+    <string name="notif_taught_text">Ад %1$s. Дадайце або націсніце, каб праверыць.</string>
+</resources>

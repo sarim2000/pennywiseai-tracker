@@ -229,3 +229,10 @@ Run them:
 When you touch the backup format, **add a regression test that decodes an
 older-shaped JSON fixture** (a raw string missing your new key) and asserts the
 default is applied — that's the only thing that protects real users' old files.
+
+## Taught message templates (#279)
+
+`preferences.app.taught_templates` is a defaulted list of `TaughtTemplate` (FULL
+exports only: its text names the bank and whatever a message always says). Fields
+and enums travel by name. A template this version can't fully understand stays in
+the list, and in the next export, but reads nothing. Restore is additive by `id`.

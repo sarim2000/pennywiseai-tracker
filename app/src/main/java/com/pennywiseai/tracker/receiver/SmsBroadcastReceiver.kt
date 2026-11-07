@@ -62,6 +62,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun learnedSendersStore(): LearnedSendersStore
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
+        fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
         fun userPreferencesRepository(): com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
     }
 
@@ -573,6 +574,28 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 SmsBroadcastReceiverEntryPoint::class.java
             )
             val learned = entryPoint.learnedSendersStore()
+            val booker = entryPoint.taughtMessageBooker()
+            fun row() = UnrecognizedSmsEntity(
+                sender = sender,
+                smsBody = body,
+                receivedAt = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
+                )
+            )
+            // The user taught this shape (#279). That's their word over any parser's silence,
+            // though it still only offers: nothing is booked until they tap Add.
+            booker.read(sender, body, timestamp)?.let { taught ->
+                if (booker.isIgnored(taught)) return
+                val sms = row()
+                val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
+                showSuggestionNotification(context, Suggestion(sms.copy(id = id), taught, null, taught = true))
+                return
+            }
+            // A taught sender's new format waits in the list with a note, rather than vanishing.
+            if (booker.formatChanged(sender, body, timestamp)) {
+                entryPoint.unrecognizedSmsRepository().insertOrRevive(row())
+                return
+            }
             // A parser that turned this SMS down (an OTP, a promo) knows the sender better than we do.
             val isLearned = learned.isLearned(sender)
             if (!fromTrackedApp && (!isLearned || BankParserFactory.getParsers(sender).isNotEmpty())) return
@@ -581,13 +604,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)?.let {
                 if (entryPoint.ignoredAccountsStore().isIgnored(it.bankName, it.accountLast4)) return
             }
-            val sms = UnrecognizedSmsEntity(
-                sender = sender,
-                smsBody = body,
-                receivedAt = java.time.LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
-                )
-            )
+            val sms = row()
             // Already offered (the same SMS delivered twice): -1, no second alert.
             val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
             if (isLearned) showSuggestionNotification(context, Suggestion(sms.copy(id = id), transaction, learnedAccount))
@@ -603,7 +620,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             } else {
                 context.getString(R.string.notif_suggestion_title_spent, amount, merchant)
             }
-            val intent = Intent(context, MainActivity::class.java).apply {
+            // A taught message is reviewed in its own list, and booked from there or by Add below.
+            val intent = if (suggestion.taught) {
+                Intent(context, MainActivity::class.java).apply {
+                    action = ACTION_ADD_SUGGESTION
+                    putExtra(MainActivity.EXTRA_OPEN_UNRECOGNIZED, true)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            } else Intent(context, MainActivity::class.java).apply {
                 action = ACTION_ADD_SUGGESTION
                 putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
                 putExtra(MainActivity.EXTRA_ADD_AMOUNT, draft.amount)
@@ -623,7 +647,12 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
-                    .setContentText(context.getString(R.string.notif_suggestion_text, context.bidiIsolate(BankNotificationConfig.displayName(context, suggestion.sms.sender))))
+                    .setContentText(
+                        context.getString(
+                            if (suggestion.taught) R.string.notif_taught_text else R.string.notif_suggestion_text,
+                            context.bidiIsolate(BankNotificationConfig.displayName(context, suggestion.sms.sender))
+                        )
+                    )
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setContentIntent(
                         PendingIntent.getActivity(
@@ -634,6 +663,15 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         )
                     )
                     .setAutoCancel(true)
+                    .apply {
+                        if (suggestion.taught) {
+                            addAction(
+                                0,
+                                context.getString(R.string.unrecognized_suggestion_add),
+                                NotificationActionReceiver.addTaughtIntent(context, notificationId, suggestion.sms.id)
+                            )
+                        }
+                    }
                     .build()
             )
         }

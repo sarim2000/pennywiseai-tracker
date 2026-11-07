@@ -230,7 +230,7 @@ fun ManageAccountsScreen(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                    bottom = 0.dp
+                    bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -753,7 +753,9 @@ private fun CreditCardItem(
                 MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
             } else {
                 MaterialTheme.colorScheme.surfaceContainerLow
-            }
+            },
+            // Set outright: a translucent container matches no theme colour, so the default went black.
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -1109,7 +1111,9 @@ private fun AccountItem(
                 )
                 isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
                 else -> MaterialTheme.colorScheme.surfaceContainerLow
-            }
+            },
+            // Set outright: a translucent container matches no theme colour, so the default went black.
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {

@@ -416,7 +416,7 @@ open class UserPreferencesRepository @Inject constructor(
 
     /** True once per dip of this account under its threshold; [isLow] false rearms it. */
     suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
-        val key = booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
+        val key = lowBalanceToldKey(bankName, accountLast4)
         var claimed = false
         context.dataStore.edit { preferences ->
             if (!isLow) {
@@ -428,6 +428,20 @@ open class UserPreferencesRepository @Inject constructor(
         }
         return claimed
     }
+
+    /** A rename is the same account in the same dip, so what it was told goes with it. */
+    suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String) {
+        val oldKey = lowBalanceToldKey(oldBankName, accountLast4)
+        context.dataStore.edit { preferences ->
+            if (preferences[oldKey] == true) {
+                preferences.remove(oldKey)
+                preferences[lowBalanceToldKey(newBankName, accountLast4)] = true
+            }
+        }
+    }
+
+    private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
+        booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
     
     suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->

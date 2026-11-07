@@ -284,6 +284,9 @@ open class AccountBalanceRepository @Inject constructor(
             }
             transactionDao.mergeAccountTransactions(oldBankName, accountLast4, newBankName, accountLast4, now)
             accountBalanceDao.updateAccountBankName(oldBankName, accountLast4, newBankName)
+        }.also {
+            // Apart from the rename, like the rearm: worst case is one repeated alert.
+            runCatching { userPreferencesRepository.moveLowBalanceAlert(oldBankName, accountLast4, newBankName) }
         }
     }
 

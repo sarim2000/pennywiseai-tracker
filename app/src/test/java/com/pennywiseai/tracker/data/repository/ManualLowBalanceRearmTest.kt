@@ -16,6 +16,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
@@ -113,6 +114,16 @@ class ManualLowBalanceRearmTest {
         coEvery { balanceDao.getLatestBalance(BANK, ACCT) } returns row("MANUAL", "500", balance = "400")
         repo.setLowBalanceThreshold(BANK, ACCT, null)
         verifyRearms(1)
+    }
+
+    @Test
+    fun `renaming carries the alert over and survives a failed move`() = runBlocking {
+        coEvery { balanceDao.updateAccountBankName(BANK, ACCT, "Wallet") } returns 3
+        coEvery { preferences.moveLowBalanceAlert(BANK, ACCT, "Wallet") } throws IllegalStateException("disk full")
+
+        assertEquals(3, repo.updateAccountBankName(BANK, ACCT, "Wallet"))
+
+        coVerify(exactly = 1) { preferences.moveLowBalanceAlert(BANK, ACCT, "Wallet") }
     }
 
     private companion object {

@@ -5,6 +5,7 @@ import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.repository.CardRepository
@@ -29,7 +30,8 @@ class TaughtMessageBooker @Inject constructor(
     private val templates: TaughtTemplatesStore,
     private val learnedSenders: LearnedSendersStore,
     private val unrecognizedSms: UnrecognizedSmsRepository,
-    private val cards: CardRepository
+    private val cards: CardRepository,
+    private val ignoredAccounts: IgnoredAccountsStore
 ) {
     enum class Outcome {
         /** A new transaction. */
@@ -50,6 +52,12 @@ class TaughtMessageBooker @Inject constructor(
         val account = LearnedSendersStore.accountToUse(learnedSenders.accountFor(sender), parsed.accountLast4, parsed.currency)
             ?: return parsed
         return parsed.copy(bankName = account.bankName, accountLast4 = account.accountLast4)
+    }
+
+    /** Whether the user ignored the account [parsed] moves, including the account behind a known card (#826). */
+    suspend fun isIgnored(parsed: ParsedTransaction): Boolean {
+        val linked = parsed.accountLast4?.let { cards.getCard(parsed.bankName, it)?.accountLast4 }
+        return ignoredAccounts.isIgnored(parsed.bankName, parsed.accountLast4, linked)
     }
 
     /** A sender the user taught sent money wording no template fits: it may have changed its format. */

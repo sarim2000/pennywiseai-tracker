@@ -4,6 +4,7 @@ import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.parser.core.TeachSelection
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.repository.CardRepository
@@ -33,7 +34,8 @@ class TaughtMessageBookerTest {
     private val learned = mockk<LearnedSendersStore>()
     private val waiting = mockk<UnrecognizedSmsRepository>(relaxed = true)
     private val cards = mockk<CardRepository>()
-    private val booker = TaughtMessageBooker(processor, store, learned, waiting, cards)
+    private val ignored = mockk<IgnoredAccountsStore>()
+    private val booker = TaughtMessageBooker(processor, store, learned, waiting, cards, ignored)
 
     private val template = MessageTemplates.build(
         id = "t", senderKey = "ZQTBNK", body = sample,
@@ -49,6 +51,16 @@ class TaughtMessageBookerTest {
         every { store.forSender(any()) } returns listOf(template)
         every { learned.accountFor(any()) } returns null
         coEvery { cards.getCard(any(), any()) } returns null
+    }
+
+    @Test
+    fun `a card's purchase is ignored when its linked account is`() = runBlocking {
+        // Only the linked account "2222" is ignored; the message names the card "1111".
+        every { ignored.isIgnored(any(), *anyVararg()) } answers { "2222" in (args[1] as Array<*>) }
+        coEvery { cards.getCard("Zqt Bank", "1111") } returns mockk { every { accountLast4 } returns "2222" }
+        val parsed = booker.read(sender, later, 1L)!!.copy(accountLast4 = "1111")
+        assertTrue(booker.isIgnored(parsed))
+        assertFalse(booker.isIgnored(parsed.copy(accountLast4 = "3333")))
     }
 
     @Test

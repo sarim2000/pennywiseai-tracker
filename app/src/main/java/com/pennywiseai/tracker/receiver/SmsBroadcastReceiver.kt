@@ -585,7 +585,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             // The user taught this shape (#279). That's their word over any parser's silence,
             // though it still only offers: nothing is booked until they tap Add.
             booker.read(sender, body, timestamp)?.let { taught ->
-                if (entryPoint.ignoredAccountsStore().isIgnored(taught.bankName, taught.accountLast4)) return
+                if (booker.isIgnored(taught)) return
                 val sms = row()
                 val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
                 showSuggestionNotification(context, Suggestion(sms.copy(id = id), taught, null, taught = true))

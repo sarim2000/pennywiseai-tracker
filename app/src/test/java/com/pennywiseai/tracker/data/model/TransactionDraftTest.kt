@@ -233,6 +233,8 @@ class TransactionDraftTest {
         val shared = turn("lunch 200, dinner 400, all of it yesterday", item(200), item(400))
         assertEquals(listOf(TODAY.minusDays(1), TODAY.minusDays(1)), shared.map { it.date })
         assertEquals(listOf(TODAY.minusDays(1), TODAY), turn("lunch 300 yesterday and tea 70 just now", item(300), item(70)).map { it.date })
+        // Another row's "yesterday" mustn't reach a row that says it was today.
+        assertEquals(listOf(TODAY.minusDays(1), TODAY), turn("coffee 50 yesterday and tea 30 this afternoon", item(50), item(30)).map { it.date })
 
         assertEquals(listOf("USD", "EUR"), turn("$12 for lunch and €8 for coffee", item(12), item(8)).map { it.currency })
         assertEquals(listOf("USD", "USD"), turn("in dollars: lunch 12, taxi 30", item(12), item(30)).map { it.currency })

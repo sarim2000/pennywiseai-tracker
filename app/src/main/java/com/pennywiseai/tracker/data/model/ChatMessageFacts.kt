@@ -213,7 +213,7 @@ internal object ChatMessageFacts {
     private val YESTERDAY = regex(
         "${word("yesterday|last night|kal")}|(?<![\\p{L}\\p{M}])[وب]?(?:امس|أمس)(?![\\p{L}\\p{M}])|البارح|مبارح|امبارح|${word("कल")}"
     )
-    private val TODAY = regex("${word("today|tonight|this morning|just now|right now|aaj")}|اليوم|${word("आज")}")
+    private val TODAY = regex("${word("today|tonight|this (?:morning|afternoon|evening)|earlier today|just now|right now|aaj")}|اليوم|${word("आज")}")
     private val TWO_DAYS_AGO = regex("(?:قبل|من)\\s*يومين|${word("two days (?:ago|back)|do din (?:pehle|pahle)")}|दो दिन पहले")
     private val N_DAYS_AGO = regex("(\\d+)\\s*(?:days?\\s*ago|din\\s*(?:pehle|pahle)|दिन\\s*पहले)|قبل\\s*(\\d+)\\s*(?:يوم|ايام|أيام)")
     private val N_WEEKS_AGO = regex("(\\d+)\\s*(?:weeks?\\s*ago|hafte\\s*(?:pehle|pahle)|हफ्ते\\s*पहले)|قبل\\s*(\\d+)\\s*(?:اسبوع|أسبوع|اسابيع|أسابيع)")

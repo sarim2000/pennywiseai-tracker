@@ -28,18 +28,31 @@ class ChatReplayTest {
                 val case = cases[row["id"]] ?: return@forEachLine
                 val base = case["base"] as? String ?: "INR"
                 row["replayed"] = true
-                row["calls"] = (row["calls"] as List<*>).mapNotNull { c ->
-                    @Suppress("UNCHECKED_CAST") val call = c as Map<String, Any?>
-                    if (call["name"] != "add_transaction") return@mapNotNull call
+                @Suppress("UNCHECKED_CAST") val calls = row["calls"] as List<Map<String, Any?>>
+                // The array shape's items, as if each were its own call.
+                val adds = calls.flatMap { call ->
                     @Suppress("UNCHECKED_CAST") val args = call["args"] as Map<String, Any?>
-                    val draft = TransactionDraft.fromToolArgs(args, case["text"] as String, categories, emptyList(), base, today) { null }
-                        ?: return@mapNotNull null
-                    mapOf("name" to "add_transaction", "args" to mapOf(
-                        "amount" to draft.amount.toPlainString(), "merchant" to draft.merchant, "category" to draft.category,
-                        "type" to draft.type.name, "currency" to draft.currency,
-                        "days_ago" to ChronoUnit.DAYS.between(draft.date, today), "flagged" to !draft.amountInMessage
-                    ))
+                    when (call["name"]) {
+                        "add_transaction" -> listOf(args)
+                        "add_transactions" -> TransactionDraft.itemsOfCall(args)
+                        else -> emptyList()
+                    }
                 }
+                val rescued = if (adds.isEmpty()) {
+                    TransactionDraft.itemsInBrokenCall((row["error"] as? String).orEmpty())
+                        ?: (row["text"] as? String).orEmpty().trimStart().takeIf { it.startsWith("<tool_call>") }?.let(TransactionDraft::itemsInBrokenCall)
+                } else null
+                if (rescued != null) row.remove("error")
+                val drafts = TransactionDraft.fromToolCalls(rescued ?: adds, case["text"] as String, categories, emptyList(), base, today) { null }
+                row["calls"] = calls.filter { it["name"] != "add_transaction" && it["name"] != "add_transactions" } +
+                    TransactionDraft.reviewRows(drafts).map { it ->
+                        val draft = it.draft
+                        mapOf("name" to "add_transaction", "args" to mapOf(
+                            "amount" to draft.amount.toPlainString(), "merchant" to draft.merchant, "category" to draft.category,
+                            "type" to draft.type.name, "currency" to draft.currency,
+                            "days_ago" to ChronoUnit.DAYS.between(draft.date, today), "selected" to it.selected
+                        ))
+                    }
                 out.println(gson.toJson(row))
             }
         }

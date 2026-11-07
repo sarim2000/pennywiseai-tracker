@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.service
 
+import com.google.ai.edge.litertlm.OpenApiTool
 import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
@@ -12,17 +13,6 @@ import com.google.ai.edge.litertlm.ToolSet
  */
 @Suppress("unused")
 class PennyWiseTools : ToolSet {
-    @Tool(description = "Record a transaction the user is telling you about: money they spent, paid, bought, or received.")
-    fun addTransaction(
-        @ToolParam(description = "Amount of money as a number, without currency symbol") amount: Double,
-        @ToolParam(description = "The shop, service or person the money went to or came from. Never a bank or card.") merchant: String,
-        @ToolParam(description = "One of the known category names") category: String,
-        @ToolParam(description = "EXPENSE for money spent or paid (the usual case), INCOME only for money received such as salary, refund or cashback") type: String,
-        @ToolParam(description = "The bank, card or cash the user mentioned, or empty if not mentioned") account: String,
-        @ToolParam(description = "ISO currency code if the user named a currency, e.g. USD, or empty if not mentioned") currency: String,
-        @ToolParam(description = "How many days ago: 0 for today or if not mentioned, 1 for yesterday") daysAgo: Int
-    ): String = ""
-
     @Tool(description = "Delete a transaction the user recorded earlier, e.g. 'delete the starbucks coffee from yesterday'.")
     fun deleteTransaction(
         @ToolParam(description = "Merchant, shop or description words the user used to identify it") merchant: String,
@@ -48,10 +38,31 @@ class PennyWiseTools : ToolSet {
     ): String = ""
 
     companion object {
-        const val ADD_TRANSACTION = "add_transaction"
+        const val ADD_TRANSACTIONS = "add_transactions"
         const val SPENDING_BY_CATEGORY = "spending_by_category"
         const val DELETE_TRANSACTION = "delete_transaction"
         const val UPDATE_TRANSACTION = "update_transaction"
         const val MONTH_SUMMARY = "month_summary"
     }
+}
+
+/**
+ * One call with every transaction of a message. Qwen2.5 merges amounts far less often this way
+ * than with one call per transaction, and the array needs a hand-written schema. Never executed,
+ * like the tools above.
+ */
+class AddTransactionsTool : OpenApiTool {
+    override fun getToolDescriptionJsonString() = """
+        {"name":"${PennyWiseTools.ADD_TRANSACTIONS}","description":"Record the transactions the user is telling you about: money they spent, paid, bought, or received.","parameters":{"type":"object","properties":{"items":{"type":"array","items":{"type":"object","properties":{
+        "amount":{"type":"number","description":"Amount of money as a number, without currency symbol"},
+        "merchant":{"type":"string","description":"The shop, service or person the money went to or came from. Never a bank or card."},
+        "category":{"type":"string","description":"One of the known category names"},
+        "type":{"type":"string","description":"EXPENSE for money spent or paid (the usual case), INCOME only for money received such as salary, refund or cashback"},
+        "account":{"type":"string","description":"The bank, card or cash the user mentioned, or empty if not mentioned"},
+        "currency":{"type":"string","description":"ISO currency code if the user named a currency, e.g. USD, or empty if not mentioned"},
+        "days_ago":{"type":"integer","description":"How many days ago: 0 for today or if not mentioned, 1 for yesterday"}
+        },"required":["amount","merchant","category","type","account","currency","days_ago"]}}},"required":["items"]}}
+    """.trimIndent()
+
+    override fun execute(paramsJsonString: String) = ""
 }

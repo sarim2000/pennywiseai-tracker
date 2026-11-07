@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.model.TransactionFinder
 import com.pennywiseai.tracker.data.model.PendingChatAction
+import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -52,10 +53,19 @@ class LlmRepository @Inject constructor(
     private val _pendingAction = MutableStateFlow<PendingChatAction?>(null)
     val pendingAction: StateFlow<PendingChatAction?> = _pendingAction.asStateFlow()
 
+    // Here, not in the ViewModel: a save outlives the screen, and a new screen must not start a new card under it.
+    val isConfirming = MutableStateFlow(false)
+
     // What became of the last card. The live conversation can't see the app's own
     // writes, so the model hears this in front of the next message; never shown or saved.
     // No amount or merchant in it: told "Added ₹90 at Tea Stall", Qwen2.5 records that again.
     private var cardOutcome: String? = null
+
+    /** The user changed the rows on the review card. */
+    fun updateRows(change: (List<ReviewRow>) -> List<ReviewRow>) {
+        val card = _pendingAction.value as? PendingChatAction.Add ?: return
+        _pendingAction.value = card.copy(rows = change(card.rows))
+    }
 
     /** The card was cancelled, left or superseded: nothing changed, and the model hears that. */
     fun clearPendingAction() {
@@ -67,7 +77,9 @@ class LlmRepository @Inject constructor(
     suspend fun completePendingAction(line: String) {
         _pendingAction.value = null
         cardOutcome = "The user confirmed the last card. It is saved."
-        chatDao.insertMessage(ChatMessage(message = line, isUser = false))
+        // The save already happened. A lost line must not read as a failed save worth repeating.
+        runCatching { chatDao.insertMessage(ChatMessage(message = line, isUser = false)) }
+            .onFailure { Log.w(TAG, "Couldn't save the line after a card (${it.javaClass.simpleName})") }
     }
 
     fun getAllMessages(): Flow<List<ChatMessage>> = chatDao.getAllMessages()
@@ -158,43 +170,74 @@ class LlmRepository @Inject constructor(
         val prompt = cardOutcome?.let { "($it)\n$userMessage" } ?: userMessage
         cardOutcome = null
         var unreadableToolCall = false
+        var conversationBroken = false
+        var shownUpTo = 0
         llmService.sendMessageEvents(prompt)
             .catch { e ->
                 if (e.message?.contains(TOOL_CALL_PARSE_FAILURE, ignoreCase = true) != true) throw e
                 Log.w(TAG, "The model wrote a tool call that doesn't parse")
-                unreadableToolCall = true
+                conversationBroken = true
+                TransactionDraft.itemsInBrokenCall(e.message.orEmpty())?.let { toolCalls.add(addCall(it)) } ?: run { unreadableToolCall = true }
             }
             .collect { event ->
                 when (event) {
                     is LlmEvent.Text -> {
                         // The model can open with bare newlines before a tool call: no empty lines on top.
                         val text = if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta
-                        if (text.isNotEmpty()) { responseBuilder.append(text); emit(text) }
+                        if (text.isNotEmpty()) {
+                            responseBuilder.append(text)
+                            // A tool call the runtime didn't catch: never show its JSON, or the start of its tag.
+                            val written = responseBuilder.toString()
+                            if (!written.startsWith(TOOL_CALL_TAG) && !TOOL_CALL_TAG.startsWith(written)) {
+                                emit(written.substring(shownUpTo))
+                                shownUpTo = written.length
+                            }
+                        }
                     }
                     is LlmEvent.ToolCall -> toolCalls.add(event)
                 }
             }
+        // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
+        val written = responseBuilder.toString()
+        if (written.startsWith(TOOL_CALL_TAG)) {
+            TransactionDraft.itemsInBrokenCall(written)?.let { toolCalls.add(addCall(it)) } ?: run {
+                unreadableToolCall = true
+                conversationBroken = true
+            }
+            responseBuilder.clear()
+        } else if (written.isNotEmpty() && TOOL_CALL_TAG.startsWith(written)) {
+            // Text held back in case it became a tag, and it didn't.
+            if (toolCalls.isEmpty()) emit(written) else responseBuilder.clear()
+        }
         suspend fun addLine(line: String) {
             if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) { responseBuilder.append("\n"); emit("\n") }
             responseBuilder.append(line); emit(line)
         }
-        // One card at a time for now: a second proposal would replace the first unseen.
+        // Everything to add in a turn shares one review card. Any other card stays one at a
+        // time, since a second proposal would replace the first unseen.
+        val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
+        var addsProposed = false
         var skippedCards = 0
         for (call in toolCalls) {
+            if (call.name == PennyWiseTools.ADD_TRANSACTIONS && addsProposed) continue
             if (call.name in CARD_TOOLS && _pendingAction.value != null) { skippedCards++; continue }
-            handleToolCall(call, userMessage)?.let { addLine(it) }
+            if (call.name == PennyWiseTools.ADD_TRANSACTIONS) {
+                addsProposed = true
+                addLine(proposeAdds(adds.flatMap { TransactionDraft.itemsOfCall(it.arguments) }, userMessage))
+            } else {
+                handleToolCall(call, userMessage)?.let { addLine(it) }
+            }
         }
         if (skippedCards > 0) addLine(context.getString(R.string.chat_reply_one_card_at_a_time))
-        if (unreadableToolCall) {
-            // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
-            llmService.closeConversation()
-            addLine(context.getString(R.string.chat_reply_unreadable))
-        }
+        // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
+        if (conversationBroken) llmService.closeConversation()
         // A small model sometimes narrates a change instead of calling the tool.
         // Nothing happened — say so, or the user walks away believing it did.
         if (toolCalls.isEmpty() && CLAIMS_A_CHANGE.containsMatchIn(responseBuilder)) {
             addLine(context.getString(R.string.chat_reply_nothing_changed))
         }
+        // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
+        if (unreadableToolCall) addLine(context.getString(R.string.chat_reply_unreadable))
 
         // Save the complete AI response
         val finalResponse = responseBuilder.toString()
@@ -286,28 +329,41 @@ class LlmRepository @Inject constructor(
             ?: categories.firstOrNull { norm(it.name).split(" ").first() == w.split(" ").first() }?.name
     }
 
-    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = when (call.name) {
-        PennyWiseTools.ADD_TRANSACTION -> {
-            val draft = TransactionDraft.fromToolArgs(
-                args = call.arguments,
-                sourceText = userMessage,
-                categories = categoryRepository.getVisibleCategories().first(),
-                accounts = accountBalanceRepository.getAllLatestBalancesOnce(),
-                baseCurrency = userPreferencesRepository.baseCurrency.first(),
-                noAccountLabel = context.getString(R.string.chat_account_none),
-                ambiguousAccountLabel = context.getString(R.string.chat_account_ambiguous),
-                fallbackCategory = { merchant ->
-                    com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(SharedCategoryMapping.getCategory(merchant))
+    private fun addCall(items: List<Map<String, Any?>>) = LlmEvent.ToolCall(PennyWiseTools.ADD_TRANSACTIONS, mapOf("items" to items))
+
+    /** Turns the items of a turn into one review card, and returns the line that introduces it. */
+    private suspend fun proposeAdds(items: List<Map<String, Any?>>, userMessage: String): String {
+        val drafts = TransactionDraft.fromToolCalls(
+            calls = items,
+            sourceText = userMessage,
+            categories = categoryRepository.getVisibleCategories().first(),
+            accounts = accountBalanceRepository.getAllLatestBalancesOnce(),
+            baseCurrency = userPreferencesRepository.baseCurrency.first(),
+            noAccountLabel = context.getString(R.string.chat_account_none),
+            ambiguousAccountLabel = context.getString(R.string.chat_account_ambiguous),
+            fallbackCategory = { merchant ->
+                com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(SharedCategoryMapping.getCategory(merchant))
+            }
+        )
+        if (drafts.isEmpty()) return context.getString(R.string.chat_reply_amount_unclear)
+        val rows = TransactionDraft.reviewRows(drafts)
+        _pendingAction.value = PendingChatAction.Add(rows)
+        return buildList {
+            val only = rows.singleOrNull()?.draft
+            add(
+                if (only == null) {
+                    context.getString(R.string.chat_reply_add_many)
+                } else {
+                    val line = amountLine(only.amount, only.currency, only.type, only.merchant)
+                    context.getString(R.string.chat_reply_add, "$line · ${only.category} · ${only.accountLabel} · ${only.date.format(DAY_MONTH)}")
                 }
             )
-            if (draft == null) {
-                context.getString(R.string.chat_reply_amount_unclear)
-            } else {
-                _pendingAction.value = PendingChatAction.Add(draft)
-                val line = amountLine(draft.amount, draft.currency, draft.type, draft.merchant)
-                context.getString(R.string.chat_reply_add, "$line · ${draft.category} · ${draft.accountLabel} · ${draft.date.format(DAY_MONTH)}")
-            }
-        }
+            if (drafts.size > rows.size) add(context.getString(R.string.chat_reply_too_many, TransactionDraft.MAX_ROWS))
+            if (items.size > drafts.size) add(context.getString(R.string.chat_reply_amount_unclear))
+        }.joinToString("\n")
+    }
+
+    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = when (call.name) {
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
             val match = findTransaction(call.arguments, userMessage)
             val target = match?.transaction
@@ -456,9 +512,9 @@ class LlmRepository @Inject constructor(
             You are PennyWise AI, a friendly assistant inside an expense tracker. Today is $currentDate.
             This month so far: $monthLine.
 
-            When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
+            When the user tells you about money they spent, paid, bought or received, call addTransactions. Use EXPENSE unless they clearly received money.
             When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
-            If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
+            If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransactions for those.
             Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 
             Expense categories: ${promptList(expenseCategories, MAX_EXPENSE_CATEGORY_CHARS)}
@@ -466,8 +522,9 @@ class LlmRepository @Inject constructor(
             Accounts: ${promptList(accounts, MAX_ACCOUNT_CHARS).ifEmpty { "none yet" }}
 
             Plain text only: no markdown, asterisks or backticks.
-            If a message mentions several transactions, call addTransaction once for each of them.
+            A message can mention several transactions: call addTransactions once, with one entry in items for each of them.
             Every amount the user states is its own transaction: never add amounts together and never merge items.
+            Money received, such as salary, is a transaction too: call addTransactions, don't just acknowledge it.
             Leave account empty unless the user names a bank, card or cash in this message.
             """.trimIndent()
 
@@ -485,15 +542,19 @@ class LlmRepository @Inject constructor(
         private const val MAX_ACCOUNT_CHARS = 500
         // The model replies in the user's language, so a false claim comes in it too.
         private val CLAIMS_A_CHANGE = Regex(
-            "\\b(I(?:'ve| have)?|has been|have been|is now|was) (added|updated|changed|deleted|removed|recorded)\\b" +
+            // ponytail: "the rate has been changed by the bank" matches too. That adds one harmless line, and a missed claim is worse.
+            "\\b(I(?:'ve| have)?|has been|have been|is now) (added|updated|changed|deleted|removed|recorded)\\b" +
+                "|\\b(transaction|expense|income|payment|purchase|amount|it)s? (is|are|was|were) (added|updated|changed|deleted|removed|recorded)\\b" +
+                "|\\b(added|recorded) successfully\\b" +
                 "|أضفت|اضفت|سجلت|حذفت|عدلت|غيرت|تمت? (?:إضافة|اضافة|تسجيل|حذف|تعديل|تغيير)" +
                 "|जोड़ दिया|जोड़ दी|हटा दिया|हटा दी|बदल दिया|बदल दी|दर्ज कर",
             RegexOption.IGNORE_CASE
         )
         private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
-        private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTION, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
+        private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         // LiteRT-LM has no error type for it, only this message (0.19.0).
         private const val TOOL_CALL_PARSE_FAILURE = "Failed to parse tool calls"
+        private const val TOOL_CALL_TAG = "<tool_call>"
         private const val TAG = "LlmRepository"
     }
 }

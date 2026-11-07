@@ -6,13 +6,24 @@ import java.time.LocalDate
 
 /** Something the AI proposed doing to the user's data (#170). Applied only after the user confirms. */
 sealed class PendingChatAction {
-    data class Add(val draft: TransactionDraft) : PendingChatAction()
+    data class Add(val rows: List<ReviewRow>) : PendingChatAction()
     data class Delete(val transaction: TransactionEntity) : PendingChatAction()
     data class Update(
         val transaction: TransactionEntity,
         val newCategory: String?,
         val newMerchant: String?
     ) : PendingChatAction()
+}
+
+/** One proposed transaction on the review card. Unticked rows are dropped when the card is saved. */
+data class ReviewRow(
+    val id: Int,
+    val draft: TransactionDraft,
+    val check: Check? = null,
+    val selected: Boolean = check == null
+) {
+    /** Why the row starts unticked: the user decides, the code never drops it silently. */
+    enum class Check { AMOUNT_NOT_IN_MESSAGE, REPEATED, NOT_A_PAYMENT }
 }
 
 /** Picks the transaction the user most likely means from words, an optional amount and "days ago". */

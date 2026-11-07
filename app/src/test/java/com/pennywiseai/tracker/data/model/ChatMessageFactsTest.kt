@@ -235,4 +235,39 @@ class ChatMessageFactsTest {
         assertTrue(ChatMessageFacts.statesADay("the rent on monday"))
         assertFalse(ChatMessageFacts.statesADay("delete the tea"))
     }
+
+    private fun clauses(message: String, vararg amounts: Number) =
+        ChatMessageFacts.clauses(message, amounts.map { BigDecimal(it.toString()) })?.map { it.trim() }
+
+    @Test
+    fun `a message is cut into one clause per amount`() {
+        assertEquals(listOf("got 45000 salary", "paid 12000 rent"), clauses("got 45000 salary and paid 12000 rent", 45000, 12000))
+        assertEquals(listOf("sold my bike for 30000", "paid 500 for the ad"), clauses("sold my bike for 30000, paid 500 for the ad", 30000, 500))
+        assertEquals(listOf("tickets 1.5k", "hotel 12.5k"), clauses("tickets 1.5k and hotel 12.5k", 1500, 12500))
+        assertEquals(listOf("Spent 1,250.50 at the pharmacy", "75.25 at the bakery"), clauses("Spent 1,250.50 at the pharmacy and 75.25 at the bakery", 1250.5, 75.25))
+        // In the model's order.
+        assertEquals(listOf("tea 200", "coffee 100"), clauses("coffee 100, tea 200", 200, 100))
+        // A letter that grows when lowercased moves nothing.
+        assertEquals(listOf("İSTANBUL 5", "İZMİR 6"), clauses("İSTANBUL 5 and İZMİR 6", 5, 6))
+    }
+
+    @Test
+    fun `punctuation beats and, and number punctuation is no break`() {
+        assertEquals(
+            listOf("Paid 140 at the bakery", "then at Bun and Bean paid 260"),
+            clauses("Paid 140 at the bakery, then at Bun and Bean paid 260", 140, 260)
+        )
+        assertEquals(listOf("Paid 12 for lunch", "got USD .50 back"), clauses("Paid 12 for lunch; got USD .50 back", 12, 0.5))
+        assertEquals(listOf("paid rs.500 for tea", "rs.20 for a bun"), clauses("paid rs.500 for tea, rs.20 for a bun", 500, 20))
+    }
+
+    @Test
+    fun `amounts that can't be placed make no clauses`() {
+        assertEquals(null, clauses("tea 15 samosa 20", 15, 20))
+        assertEquals(null, clauses("coffee 120 and lunch 300", 420, 300))
+        assertEquals(null, clauses("paid 155 at Shop 24 and 24 for parking", 155, 24))
+        // Which 450 is which depends on the model's order, so neither says anything.
+        assertEquals(null, clauses("received 450 refund, then paid 450 for haircut", 450, 450))
+        assertEquals(null, clauses("paid 450 for haircut and 200 at Shop 450", 450, 200))
+    }
 }

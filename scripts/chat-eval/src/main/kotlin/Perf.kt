@@ -12,6 +12,7 @@ import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.ThinkingConfig
 import com.google.ai.edge.litertlm.tool
 import com.google.gson.Gson
+import com.pennywiseai.tracker.data.service.AddTransactionsTool
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.data.service.QwenChatTemplate
 import kotlinx.coroutines.flow.collect
@@ -58,10 +59,10 @@ private suspend fun perf(argv: Array<String>) {
     val engine = Engine(EngineConfig(modelPath = model, backend = backend, cacheDir = cacheDir)).also { it.initialize() }
     println("engine_init_ms=${ms(t0)} rss_mb=${rssMb()}")
 
-    val system = systemPrompt("INR", "")
+    val system = appSystemPrompt("INR")
     fun config(prefill: Boolean) = ConversationConfig(
         systemInstruction = Contents.of(system),
-        tools = listOf(tool(PennyWiseTools())),
+        tools = listOf(tool(AddTransactionsTool()), tool(PennyWiseTools())),
         automaticToolCalling = false,
         samplerConfig = SamplerConfig(topK = 10, topP = 0.95, temperature = 0.8),
         chatTemplate = template,

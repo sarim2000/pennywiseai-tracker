@@ -258,7 +258,7 @@ class LlmServiceImpl @Inject constructor(
             },
             // Tool calls are surfaced, never auto-executed (#170): every
             // mutation goes through the user first.
-            tools = if (withTools) listOf(tool(PennyWiseTools())) else emptyList(),
+            tools = if (withTools) listOf(tool(AddTransactionsTool()), tool(PennyWiseTools())) else emptyList(),
             automaticToolCalling = false,
             samplerConfig = SamplerConfig(
                 topK = 10,

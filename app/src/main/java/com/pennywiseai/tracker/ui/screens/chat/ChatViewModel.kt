@@ -24,7 +24,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -35,6 +37,7 @@ class ChatViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase,
     private val deleteTransactionUseCase: com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase,
+    categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val modelDownloader: ModelDownloader
 ) : ViewModel() {
@@ -173,10 +176,26 @@ class ChatViewModel @Inject constructor(
     // is written until the user taps Add.
     val pendingAction: StateFlow<com.pennywiseai.tracker.data.model.PendingChatAction?> = llmRepository.pendingAction
 
-    private val _isConfirming = MutableStateFlow(false)
+    private val _isConfirming = llmRepository.isConfirming
     val isConfirming: StateFlow<Boolean> = _isConfirming.asStateFlow()
 
-    fun dismissPendingAction() = llmRepository.clearPendingAction()
+    val categories = categoryRepository.getVisibleCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun dismissPendingAction() {
+        if (!_isConfirming.value) llmRepository.clearPendingAction()
+    }
+
+    fun toggleRow(id: Int) {
+        if (_isConfirming.value) return
+        llmRepository.updateRows { rows -> rows.map { if (it.id == id) it.copy(selected = !it.selected) else it } }
+    }
+
+    /** Having reviewed the row, the user has answered whatever its check asked. */
+    fun editRow(id: Int, draft: com.pennywiseai.tracker.data.model.TransactionDraft) {
+        if (_isConfirming.value) return
+        llmRepository.updateRows { rows -> rows.map { if (it.id == id) it.copy(draft = draft, check = null, selected = true) else it } }
+    }
 
     /** A card belongs to the conversation that produced it: leaving the screen drops it. */
     override fun onCleared() {
@@ -212,26 +231,21 @@ class ChatViewModel @Inject constructor(
                         )
                     }
                     is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
-                        val draft = action.draft
-                        addTransactionUseCase.execute(
-                            amount = draft.amount,
-                            merchant = draft.merchant,
-                            category = draft.category,
-                            type = draft.type,
-                            date = draft.date.atTime(java.time.LocalTime.now()),
-                            notes = "Added from chat: \"${draft.sourceText}\"",
-                            bankName = draft.bankName,
-                            accountLast4 = draft.accountLast4,
-                            currency = draft.currency
-                        )
-                        com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
-                        llmRepository.completePendingAction(
-                            context.getString(
-                                R.string.chat_done_added,
-                                llmRepository.amountLine(draft.amount, draft.currency, draft.type, draft.merchant),
-                                draft.category
+                        val drafts = action.rows.filter { it.selected }.map { it.draft }
+                        // The user tapped Add: leaving the screen now can't undo that, or lose what was saved.
+                        if (drafts.isNotEmpty()) withContext(NonCancellable) {
+                            addTransactionUseCase.executeAll(drafts)
+                            com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
+                            llmRepository.completePendingAction(
+                                drafts.joinToString("\n") { draft ->
+                                    context.getString(
+                                        R.string.chat_done_added,
+                                        llmRepository.amountLine(draft.amount, draft.currency, draft.type, draft.merchant),
+                                        draft.category
+                                    )
+                                }
                             )
-                        )
+                        }
                     }
                 }
             } catch (e: Exception) {

@@ -73,6 +73,7 @@ class SettingsViewModel @Inject constructor(
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
     private val modelDownloader: com.pennywiseai.tracker.data.manager.ModelDownloader,
+    private val moneyAlertChecker: com.pennywiseai.tracker.worker.MoneyAlertChecker,
     private val budgetGroupRepository: com.pennywiseai.tracker.data.repository.BudgetGroupRepository,
     private val currencyConversionService: com.pennywiseai.tracker.data.currency.CurrencyConversionService,
     entitlementGate: EntitlementGate,
@@ -437,6 +438,16 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.setDisplayCurrency(currency)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        }
+    }
+
+    val budgetAlertsEnabled = userPreferencesRepository.budgetAlertsEnabled
+
+    /** On comes first: a check cut short by leaving Settings costs one true alert, not the switch. */
+    fun setBudgetAlertsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setBudgetAlertsEnabled(enabled)
+            if (enabled) runCatching { moneyAlertChecker.checkBudgets(notify = false) }
         }
     }
 

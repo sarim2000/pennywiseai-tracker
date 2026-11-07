@@ -68,7 +68,7 @@ class SmsBalanceOrderTest {
     } as AccountBalanceDao
 
     private val database = mockk<PennyWiseDatabase>()
-    private val repo = AccountBalanceRepository(dao, mockk(), database)
+    private val repo = AccountBalanceRepository(dao, mockk(), database, mockk(relaxed = true))
 
     @Before
     fun setUp() {

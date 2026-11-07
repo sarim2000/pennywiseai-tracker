@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">Conscience</string>
+    <string name="conscience_settings_subtitle">Silent, cheeky comments on food, fun and shopping.</string>
+    <string name="conscience_needs_permission">Allow notifications for PennyWise so your conscience can speak up.</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">Your conscience</string>
+    <string name="conscience_lock_screen_text">Psst. A quick word 👀</string>
+    <string name="conscience_action_dislike">🙅 Not this one</string>
+    <string name="conscience_confirm_dislike">Got it. That one\'s retired for good 🫡</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">Conscience</string>
+    <string name="conscience_channel_description">Occasional cheeky comments on food, entertainment and shopping. Silent.</string>
+</resources>

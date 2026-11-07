@@ -9,6 +9,8 @@ import android.util.Log
 import android.widget.Toast
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.manager.ConscienceNotifier
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
@@ -39,6 +41,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun transactionRepository(): TransactionRepository
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
+        fun userPreferencesRepository(): UserPreferencesRepository
     }
 
     companion object {
@@ -57,6 +60,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val ACTION_UPDATE_PRICE = "com.pennywiseai.tracker.ACTION_UPDATE_PRICE"
         const val ACTION_ADD_TAUGHT = "com.pennywiseai.tracker.ACTION_ADD_TAUGHT"
         private const val EXTRA_UNRECOGNIZED_SMS_ID = "unrecognized_sms_id"
+        const val ACTION_CONSCIENCE_RETIRE = "com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE"
+        private const val EXTRA_CONSCIENCE_LINE_KEY = "conscience_line_key"
         private const val EXTRA_BILLING_CYCLE = "billing_cycle"
         private const val EXTRA_PREVIOUS_CATEGORY = "previous_category"
         private const val EXTRA_MERCHANT = "merchant"
@@ -135,6 +140,18 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+        /** "Not this one" on a remark: only one is ever shown, so one request code is enough. */
+        fun conscienceRetireIntent(context: Context, lineKey: String): PendingIntent =
+            PendingIntent.getBroadcast(
+                context,
+                0,
+                Intent(context, NotificationActionReceiver::class.java).apply {
+                    action = ACTION_CONSCIENCE_RETIRE
+                    putExtra(EXTRA_CONSCIENCE_LINE_KEY, lineKey)
+                },
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
         private fun Intent.toLearned(transactionId: Long): LearnCategoryUseCase.Learned? {
             val category = getStringExtra(EXTRA_NEW_CATEGORY) ?: return null
             val previous = getStringExtra(EXTRA_PREVIOUS_CATEGORY) ?: return null
@@ -160,7 +177,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         val transactionId = intent.getLongExtra(EXTRA_TRANSACTION_ID, -1)
         val notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, -1)
 
-        if (transactionId == -1L) {
+        if (transactionId == -1L && intent.action != ACTION_CONSCIENCE_RETIRE) {
             Log.e(TAG, "No transaction ID provided")
             return
         }
@@ -216,6 +233,12 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             if (exclude && txn != null) SmsBroadcastReceiver.showExcludedNotification(context, notificationId, txn)
                             else dismissNotification(context, notificationId)
                         }.onFailure { Log.e(TAG, "Error setting excluded=$exclude", it) }
+                    }
+                    ACTION_CONSCIENCE_RETIRE -> {
+                        runCatching {
+                            intent.getStringExtra(EXTRA_CONSCIENCE_LINE_KEY)?.let { entryPoint.userPreferencesRepository().retireConscienceLine(it) }
+                            ConscienceNotifier.showRetired(context)
+                        }.onFailure { Log.e(TAG, "Error retiring a conscience line", it) }
                     }
                     else -> {
                         Log.w(TAG, "Unknown action: ${intent.action}")

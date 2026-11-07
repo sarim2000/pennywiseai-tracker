@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Conscience lines: playful one-liners posted after a purchase. Every language
+    writes its own jokes rather than translating word for word; keep the tone
+    cheeky, warm and never shaming. That's why this file isn't named strings*.xml:
+    it stays out of Crowdin, and each values-*/conscience_lines.xml is edited here.
+    The feature only appears in an app language that has this file, so add one only
+    once a speaker has read its lines.
+
+    Rules (ConscienceLinesTest checks that every line renders, and that none carries a currency):
+    - Say only what the pool's fact proves. Never an amount, a merchant, a reason
+      for buying, or that food was ordered in (Food covers eating out and coffee).
+    - Placeholders: {hours} {count} {category} {percent}, and only the ones the pool
+      lists.
+    - Never mark the user's gender: reword the line so it doesn't need it.
+    - One or two short sentences, at most two emoji.
+    - Ids are stored on the phone: never renumber, reuse or delete one.
+-->
+<resources>
+    <!-- The language these lines are written in (a BCP 47 tag such as ar or pt-BR); part of every stored line key. -->
+    <string name="conscience_content_locale">en</string>
+
+    <!-- Words the placeholders take. They live here, not in strings_conscience.xml, so Crowdin can't change a word the lines are written around. -->
+    <string name="conscience_category_food">food</string>
+    <string name="conscience_category_entertainment">fun</string>
+    <string name="conscience_category_shopping">shopping</string>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s hour</item>
+        <item quantity="other">%1$s hours</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">{count} food stops in {hours}. That\'s not a snack, that\'s a tour 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Food, again. That\'s {count} in {hours}. I\'m not counting. (I am.)</string>
+    <string name="conscience_line_repeat_food_03">{count} food entries in {hours}. Is this a series now? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Someone get this person a punch card. {count} food stops in {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Breaking: food spotted {count} times in {hours}. More at eleven 📺</string>
+    <string name="conscience_line_repeat_food_06">{count} food runs in {hours}. Cardio, technically 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{count} rounds of {category} in {hours}. Warming up or going pro? 😏</string>
+    <string name="conscience_line_repeat_02">That\'s {count} {category} hits in {hours}. Who\'s counting? Me. I\'m counting.</string>
+    <string name="conscience_line_repeat_03">{count} in {hours}? {category} is having a moment, apparently 💅</string>
+    <string name="conscience_line_repeat_04">Encore! Encore! {count} {category} entries in {hours} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, {count} times in {hours}. Speedrun category: any% 🏁</string>
+    <string name="conscience_line_repeat_06">{count} {category} stops in {hours}. Loyalty points must be raining 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">Food at this hour? The fridge light is jealous 🌙</string>
+    <string name="conscience_line_late_night_food_02">Late-night food spotted. I won\'t tell morning-you 🤫</string>
+    <string name="conscience_line_late_night_food_03">Midnight menu: unlocked 🔓</string>
+    <string name="conscience_line_late_night_food_04">The moon called. It wants a bite too 🌝</string>
+    <string name="conscience_line_late_night_food_05">Food after dark. The sequel nobody asked for, everybody enjoys 🎬</string>
+    <string name="conscience_line_late_night_food_06">It\'s late, the food is real, and I\'m pretending to be asleep 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} at this hour? Night-owl mode: on 🦉</string>
+    <string name="conscience_line_late_night_02">The {category} night shift has clocked in 🌙</string>
+    <string name="conscience_line_late_night_03">Late-night {category}. Morning-you will have questions ☕</string>
+    <string name="conscience_line_late_night_04">Everyone\'s asleep except you and {category} 👀</string>
+    <string name="conscience_line_late_night_05">{category} under the stars. Romantic, in a wallet kind of way ✨</string>
+    <string name="conscience_line_late_night_06">Shh, it\'s late. {category} whispers only 🤫</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">Last week\'s {category} came in {percent} under your usual. Look at you 🌟</string>
+    <string name="conscience_line_positive_02">{percent} less {category} than a usual week. A round of applause, please 👏</string>
+    <string name="conscience_line_positive_03">Plot twist: last week you spent {percent} less on {category} than usual 😮</string>
+    <string name="conscience_line_positive_04">{category} dropped {percent} last week. I\'m almost proud. Almost 🥲</string>
+    <string name="conscience_line_positive_05">Last week: {category} down {percent}. Your wallet sends its regards 💌</string>
+    <string name="conscience_line_positive_06">{percent} under your {category} average last week. Who are you? 😎</string>
+    <string name="conscience_line_positive_07">Respect. {category} was {percent} lighter last week 🏅</string>
+    <string name="conscience_line_positive_08">Gold star ⭐ Last week\'s {category} was {percent} below normal.</string>
+
+</resources>

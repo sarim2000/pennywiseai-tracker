@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.navigation.AiAccess
 import com.pennywiseai.tracker.navigation.BackgroundAccess
 import com.pennywiseai.tracker.navigation.LearnedCategories
+import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.ExchangeRates
@@ -852,6 +853,7 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
     val context = LocalContext.current
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = DAILY_SUMMARY_DEFAULT)
     val weeklySummaryEnabled by settingsViewModel.weeklySummaryEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val conscienceEnabled by settingsViewModel.conscienceEnabled.collectAsStateWithLifecycle(initialValue = false)
     // The recap is a notification: on Android 13+ turning it on asks for the
     // permission first, and a refusal leaves it off with a word on why.
     val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
@@ -880,6 +882,16 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             settingsViewModel.setBudgetAlertsEnabled(true)
         } else {
             Toast.makeText(context, R.string.settings_budget_alerts_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    val conscienceAvailable = remember(context) { ConscienceText(context).speaksAppLanguage }
+    val consciencePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setConscienceEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.conscience_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
     fun needsNotificationPermission() =
@@ -938,6 +950,24 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             },
             position = ListItemPosition.Middle
         )
+        if (conscienceAvailable) {
+            SettingsSwitchRow(
+                icon = Icons.Default.Psychology,
+                iconBgColor = pink_light,
+                iconTint = pink_dark,
+                title = stringResource(R.string.conscience_title),
+                subtitle = stringResource(R.string.conscience_settings_subtitle),
+                checked = conscienceEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled && needsNotificationPermission()) {
+                        consciencePermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        settingsViewModel.setConscienceEnabled(enabled)
+                    }
+                },
+                position = ListItemPosition.Middle
+            )
+        }
         SettingsNavItem(
             icon = Icons.Default.Tune,
             iconBgColor = indigo_light,

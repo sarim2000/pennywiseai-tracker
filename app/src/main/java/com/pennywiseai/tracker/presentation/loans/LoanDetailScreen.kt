@@ -7,7 +7,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,7 +35,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -253,20 +252,16 @@ fun LoanDetailScreen(
                     SectionHeaderV2(title = stringResource(R.string.loan_detail_history))
                 }
 
-                item(key = "history") {
-                    val transactions = uiState.linkedTransactions
-                    GroupedList {
-                        transactions.forEachIndexed { index, txn ->
-                            // Principal flows the loan's way (LENT→money out, BORROWED→money in).
-                            val isOriginal = LoanMath.isPrincipal(loan.direction, txn.transactionType)
-                            LoanTransactionItem(
-                                transaction = txn,
-                                isOriginal = isOriginal,
-                                position = ListItemPosition.from(index, transactions.size),
-                                onClick = { onNavigateToTransactionDetail(txn.id) }
-                            )
-                        }
-                    }
+                val transactions = uiState.linkedTransactions
+                itemsIndexed(transactions, key = { _, txn -> txn.id }) { index, txn ->
+                    // Principal flows the loan's way (LENT→money out, BORROWED→money in).
+                    val isOriginal = LoanMath.isPrincipal(loan.direction, txn.transactionType)
+                    LoanTransactionItem(
+                        transaction = txn,
+                        isOriginal = isOriginal,
+                        position = ListItemPosition.from(index, transactions.size),
+                        onClick = { onNavigateToTransactionDetail(txn.id) }
+                    )
                 }
             }
         }

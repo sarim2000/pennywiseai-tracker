@@ -365,7 +365,6 @@ fun CreateRuleScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
-                .imePadding()
                 .overScrollVertical()
                 .verticalScroll(rememberScrollState())
                 .padding(Dimensions.Padding.content),

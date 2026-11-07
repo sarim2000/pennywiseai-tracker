@@ -968,6 +968,17 @@
       "reference": null,
       "balance": "2350000"
     },
+    "PhonePe Wallet": {
+      "sender": "JD-PHONPE-S",
+      "message": "You've paid Rs.14.36 via PhonePe wallet for SAMPLE KIRANA STORE. Not you? Call us on 022-00000000. Remaining balance: Rs.0. To top-up click https://phone.pe/PHONPE/ws",
+      "currency": "INR",
+      "amount": "14.36",
+      "type": "EXPENSE",
+      "merchant": "SAMPLE KIRANA STORE",
+      "accountLast4": null,
+      "reference": null,
+      "balance": null
+    },
     "Pluxee": {
       "sender": "AD-PLUXEE",
       "message": "Rs. 40.00 spent from Pluxee  Meal wallet, card no.xx1234 on 17-08-2026 16:03:14 at NEW SHAKTHI  . Avl bal Rs.24342.81. Not you call 18002161234",

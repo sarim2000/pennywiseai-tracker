@@ -153,6 +153,9 @@ class TransactionsViewModel @Inject constructor(
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
+    // Set by a review's drill-down, which lists one currency's own rows even in unified mode.
+    private val pinnedCurrency = MutableStateFlow<String?>(null)
+
     // Map of transactionId -> converted amount in display currency (for unified mode)
     private val _convertedAmounts = MutableStateFlow<Map<Long, BigDecimal>>(emptyMap())
     val convertedAmounts: StateFlow<Map<Long, BigDecimal>> = _convertedAmounts.asStateFlow()
@@ -780,11 +783,11 @@ class TransactionsViewModel @Inject constructor(
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             combine(
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { unifiedMode, displayCurrency ->
-                unifiedMode to displayCurrency
-            }.collect { (unifiedMode, displayCurrency) ->
-                val pinned = pinnedCurrency
+                userPreferencesRepository.displayCurrency,
+                pinnedCurrency
+            ) { unifiedMode, displayCurrency, pinned ->
+                Triple(unifiedMode, displayCurrency, pinned)
+            }.collect { (unifiedMode, displayCurrency, pinned) ->
                 _isUnifiedMode.value = unifiedMode && pinned == null
                 _selectedCurrency.value = when {
                     pinned != null -> pinned
@@ -1054,11 +1057,14 @@ class TransactionsViewModel @Inject constructor(
         _selectedCurrency.value = currency
     }
 
-    private var pinnedCurrency: String? = null
-
-    /** Lists only rows written in [currency], with no conversion, even in unified mode. */
+    /**
+     * Lists only rows written in [currency], with no conversion, even in unified mode.
+     * The screen calls this on every return to it, so only the first call counts: a later
+     * one must not undo a currency the user has since chosen. The guard lives here rather
+     * than in saved UI state because a ViewModel rebuilt after process death needs the pin back.
+     */
     fun pinCurrency(currency: String) {
-        pinnedCurrency = currency
+        if (!pinnedCurrency.compareAndSet(null, currency)) return
         _isUnifiedMode.value = false
         _selectedCurrency.value = currency
     }
@@ -1149,7 +1155,10 @@ class TransactionsViewModel @Inject constructor(
         clearTagFilter()
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
-        if (!_isUnifiedMode.value) {
+        if (pinnedCurrency.value != null) {
+            // The preference collector restores the normal view, unified or not.
+            pinnedCurrency.value = null
+        } else if (!_isUnifiedMode.value) {
             viewModelScope.launch {
                 _selectedCurrency.value = userPreferencesRepository.baseCurrency.first()
             }

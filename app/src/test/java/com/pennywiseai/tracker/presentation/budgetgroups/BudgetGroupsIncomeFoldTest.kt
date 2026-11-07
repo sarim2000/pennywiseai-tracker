@@ -10,7 +10,7 @@ import java.time.LocalDate
 /**
  * Pins down the data-shape invariant the Budgets page's unified-currency
  * path depends on for [BudgetOverallSummary.totalIncome]. The earlier
- * shape of [BudgetGroupsViewModel.convertRawToSummary] was:
+ * shape of [com.pennywiseai.tracker.data.repository.BudgetSummaryProvider.convertRawToSummary] was:
  *
  *     raw.windowedSpend.flatMap { prevCycleTransactions }
  *

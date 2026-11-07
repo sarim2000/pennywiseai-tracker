@@ -152,7 +152,7 @@ fun UnrecognizedSmsScreen(
                                 Icon(
                                     Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = stringResource(R.string.unrecognized_header_title),
@@ -388,7 +388,7 @@ private fun UnrecognizedSmsItem(
                         text = displayName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = message.receivedAt.format(

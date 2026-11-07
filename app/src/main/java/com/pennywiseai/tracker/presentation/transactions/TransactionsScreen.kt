@@ -98,6 +98,7 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    currencyOnly: Boolean = false,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -230,6 +231,7 @@ fun TransactionsScreen(
             initialTag,
             initialTransactionType
         )
+        if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
     }
 
     // Track if we've already processed these specific nav params
@@ -358,6 +360,11 @@ fun TransactionsScreen(
                             // Link exactly two selected rows as a transfer — the
                             // manual counterpart to the auto-detected chip (#614),
                             // covering pairs the detector misses (fees, wide gaps).
+                            if (selectedIds.size < uiState.transactions.size) {
+                                IconButton(onClick = { viewModel.selectAllVisible() }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.txn_list_select_all))
+                                }
+                            }
                             if (selectedIds.size == 2) {
                                 IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(

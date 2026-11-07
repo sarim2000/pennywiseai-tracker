@@ -128,7 +128,8 @@ class RestoreTransactionUseCaseTest {
         accountBalanceRepository = object : AccountBalanceRepository(
             acctDao,
             txDao,
-            TestDb()
+            TestDb(),
+            io.mockk.mockk(relaxed = true)
         ) {
             override suspend fun applyRestoreBalanceShift(transaction: TransactionEntity) {
                 balanceShiftTransactions.add(transaction)

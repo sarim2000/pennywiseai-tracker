@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Review screen -->
+    <string name="review_title">Reviews</string>
+    <string name="review_back">Back</string>
+    <string name="review_share">Share</string>
+    <string name="review_kind_week">Week</string>
+    <string name="review_kind_month">Month</string>
+    <string name="review_kind_year">Year</string>
+    <string name="review_older">Earlier period</string>
+    <string name="review_newer">Later period</string>
+    <string name="review_empty">Nothing recorded in this period.</string>
+    <string name="review_spent">Spent</string>
+    <string name="review_income">Income recorded</string>
+    <string name="review_transactions">Transactions</string>
+    <string name="review_by_month">By month</string>
+    <string name="review_categories_changed">What changed most</string>
+    <string name="review_categories_top">Top categories</string>
+    <!-- %1$d = year -->
+    <string name="review_year_so_far">%1$d so far</string>
+    <!-- %1$d = percent, %2$s = what it is compared with -->
+    <string name="review_change_less">%1$d%% less than %2$s</string>
+    <string name="review_change_more">%1$d%% more than %2$s</string>
+    <!-- %1$s = what it is compared with -->
+    <string name="review_change_same">About the same as %1$s</string>
+    <string name="review_target_week">the week before</string>
+    <string name="review_target_cycle">the previous cycle</string>
+    <!-- %1$d = year -->
+    <string name="review_target_same_span">the same period in %1$d</string>
+    <string name="review_coverage">Based on recorded transactions. Cash you didn\'t add isn\'t included.</string>
+    <!-- %1$s, %2$s = first and last recorded dates -->
+    <string name="review_coverage_span">Based on transactions recorded from %1$s to %2$s. Cash you didn\'t add isn\'t included.</string>
+
+    <!-- Home -->
+    <string name="home_menu_share_card">Share card</string>
+    <!-- %1$s = year -->
+    <string name="review_banner_year_title">Your %1$s in review</string>
+    <string name="review_banner_year_subtitle">Where the year went, from what you recorded</string>
+
+    <!-- Share card -->
+    <plurals name="share_card_caption_merchants">
+        <item quantity="one">merchant paid</item>
+        <item quantity="other">merchants paid</item>
+    </plurals>
+    <string name="share_sheet_merchants">Merchants</string>
+    <!-- The message sent with the image, in the sharer's voice. %1$d = count -->
+    <plurals name="share_text_transactions">
+        <item quantity="one">PennyWise tracked %1$d transaction for me from my bank texts.</item>
+        <item quantity="other">PennyWise tracked %1$d transactions for me from my bank texts.</item>
+    </plurals>
+    <plurals name="share_text_subscriptions">
+        <item quantity="one">PennyWise found %1$d subscription I\'d forgotten I was paying for.</item>
+        <item quantity="other">PennyWise found %1$d subscriptions I\'d forgotten I was paying for.</item>
+    </plurals>
+    <plurals name="share_text_merchants">
+        <item quantity="one">PennyWise kept track of the %1$d merchant I paid.</item>
+        <item quantity="other">PennyWise kept track of the %1$d merchants I paid.</item>
+    </plurals>
+    <!-- %1$s = the app's website -->
+    <string name="share_text_suffix">It reads bank SMS on your phone, and nothing gets uploaded. https://%1$s</string>
+
+    <!-- Weekly recap -->
+    <string name="settings_weekly_summary_title">Weekly recap</string>
+    <string name="settings_weekly_summary_subtitle">Last week\'s spending compared with the week before</string>
+    <string name="settings_weekly_summary_needs_permission">Allow notifications for PennyWise to get the weekly recap.</string>
+    <string name="notif_weekly_channel_name">Weekly recap</string>
+    <string name="notif_weekly_channel_description">A short recap of last week\'s spending</string>
+    <!-- %1$s = amount -->
+    <string name="notif_weekly_title">Last week you spent %1$s</string>
+</resources>

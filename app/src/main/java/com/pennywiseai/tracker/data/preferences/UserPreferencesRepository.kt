@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
@@ -74,6 +76,11 @@ open class UserPreferencesRepository @Inject constructor(
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        val BACKGROUND_OEM_STEP_CONFIRMED_ON = stringPreferencesKey("background_oem_step_confirmed_on")
+        val BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
+        val WEEKLY_SUMMARY_ENABLED = booleanPreferencesKey("weekly_summary_enabled")
+        val WEEKLY_SUMMARY_LAST_WEEK = stringPreferencesKey("weekly_summary_last_week")
+        val REVIEW_PROMPT_HANDLED_YEAR = stringPreferencesKey("review_prompt_handled_year")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -382,6 +389,80 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] = enabled
         }
     }
+
+    /**
+     * The device the user said the manufacturer step is done on: the setting lives
+     * on that phone, so a phone transfer must not carry the answer over. Not in backups.
+     */
+    val backgroundOemStepConfirmedOn: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] }
+
+    suspend fun setBackgroundOemStepConfirmedOn(device: String?) {
+        context.dataStore.edit { preferences ->
+            if (device != null) {
+                preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] = device
+            } else {
+                preferences.remove(PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON)
+            }
+        }
+    }
+
+    /** Budget notifications (MoneyAlertWorker); an opt-in from Settings → Notifications. */
+    val budgetAlertsEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] ?: false }
+
+    suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Atomically records that this budget's [tier] alert is due for [window].
+     * True at most once, across concurrent checks: see [MoneyAlertRules.nextBudgetLatch].
+     * Stays on this device, outside backups: a restore can only cost one more true alert.
+     */
+    // ponytail: a deleted budget leaves its short key behind; sweep if budgets ever churn.
+    suspend fun claimBudgetAlert(budgetId: Long, window: String, tier: BudgetAlertTier): Boolean {
+        val key = stringPreferencesKey("budget_alert_$budgetId")
+        var claimed = false
+        context.dataStore.edit { preferences ->
+            MoneyAlertRules.nextBudgetLatch(preferences[key], window, tier)?.let {
+                preferences[key] = it
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** True once per dip of this account under its threshold; [isLow] false rearms it. */
+    suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
+        val key = lowBalanceToldKey(bankName, accountLast4)
+        var claimed = false
+        context.dataStore.edit { preferences ->
+            if (!isLow) {
+                preferences.remove(key)
+            } else if (preferences[key] != true) {
+                preferences[key] = true
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** A rename is the same account in the same dip, so what it was told goes with it. */
+    suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String) {
+        val oldKey = lowBalanceToldKey(oldBankName, accountLast4)
+        context.dataStore.edit { preferences ->
+            if (preferences[oldKey] == true) {
+                preferences.remove(oldKey)
+                preferences[lowBalanceToldKey(newBankName, accountLast4)] = true
+            }
+        }
+    }
+
+    private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
+        booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
     
     suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->
@@ -528,6 +609,31 @@ open class UserPreferencesRepository @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] = month
         }
+    }
+
+    /** The year ("2026") whose January review banner was opened or dismissed. */
+    val reviewPromptHandledYear: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] }
+
+    /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
+    suspend fun markReviewPromptHandledYear(year: String) {
+        context.dataStore.edit { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] = year }
+    }
+
+    /** The opt-in weekly recap (WeeklySummaryWorker). */
+    val weeklySummaryEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] ?: false }
+
+    suspend fun setWeeklySummaryEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] = enabled }
+    }
+
+    /** The first day of the last week the weekly recap has dealt with. */
+    val weeklySummaryLastWeek: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] }
+
+    suspend fun setWeeklySummaryLastWeek(weekStart: String) {
+        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] = weekStart }
     }
 
     /** Whether the one-time Home Pro card (#945) has been tapped or dismissed. */

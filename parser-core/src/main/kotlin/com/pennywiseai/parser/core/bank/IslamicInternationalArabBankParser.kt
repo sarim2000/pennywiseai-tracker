@@ -76,11 +76,24 @@ class IslamicInternationalArabBankParser : BankParser() {
 
     // ponytail: the bank collapses the fixed-width card field's padding, so the
     // name/city boundary is lost. Strips the country code, a trailing phone number
-    // and the common Jordanian cities; anything else keeps its city suffix.
-    private fun cleanLocation(raw: String): String =
-        raw.trim()
+    // and the common Jordanian cities; anything else keeps its city suffix. A
+    // branch named after its city ("SWEETS - ALZARQA" in Zarqa) loses both, but a
+    // second city needs that dash: "CAFE IRBID" in Amman keeps its name. "Al" goes
+    // with the city only after a space or dash, so "CENTRAL" stays whole.
+    private fun cleanLocation(raw: String): String {
+        var name = raw.trim()
             .replace(Regex("""\s*[A-Z]{2}$"""), "")
             .replace(Regex("""\s+[\d*+\-]+$"""), "")
-            .replace(Regex("""\s*(?:AMMAN|ZARQA|IRBID|AQABA|JUBEIHA)(?:\s+JORDAN)?$""", RegexOption.IGNORE_CASE), "")
-            .trim()
+        for (suffix in listOf(citySuffix, branchSuffix)) {
+            val stripped = name.replace(suffix, "").trimEnd(' ', '-', '–', ',')
+            if (stripped.isNotEmpty()) name = stripped
+        }
+        return name.trim()
+    }
+
+    private val citySuffix =
+        Regex("""\s*(?:(?<=[\s\-])AL[\s\-]?)?(?:AMMAN|ZARQA|IRBID|AQABA|JUBEIHA)(?:\s+JORDAN)?$""", RegexOption.IGNORE_CASE)
+
+    private val branchSuffix =
+        Regex("""\s*[-–]\s*(?:AL[\s\-]?)?(?:AMMAN|ZARQA|IRBID|AQABA|JUBEIHA)$""", RegexOption.IGNORE_CASE)
 }

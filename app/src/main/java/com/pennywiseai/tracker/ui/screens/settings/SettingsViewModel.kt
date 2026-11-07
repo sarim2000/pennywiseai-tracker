@@ -73,6 +73,7 @@ class SettingsViewModel @Inject constructor(
     private val scheduledFolderBackupScheduler: ScheduledFolderBackupScheduler,
     private val contactsResolver: com.pennywiseai.tracker.data.contacts.ContactsResolver,
     private val modelDownloader: com.pennywiseai.tracker.data.manager.ModelDownloader,
+    private val moneyAlertChecker: com.pennywiseai.tracker.worker.MoneyAlertChecker,
     private val budgetGroupRepository: com.pennywiseai.tracker.data.repository.BudgetGroupRepository,
     private val currencyConversionService: com.pennywiseai.tracker.data.currency.CurrencyConversionService,
     entitlementGate: EntitlementGate,
@@ -173,6 +174,7 @@ class SettingsViewModel @Inject constructor(
     val countCreditCardAsExpense = userPreferencesRepository.countCreditCardAsExpense
 
     val dailySummaryEnabled = userPreferencesRepository.dailySummaryEnabled
+    val weeklySummaryEnabled = userPreferencesRepository.weeklySummaryEnabled
 
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
@@ -439,10 +441,27 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    val budgetAlertsEnabled = userPreferencesRepository.budgetAlertsEnabled
+
+    /** On comes first: a check cut short by leaving Settings costs one true alert, not the switch. */
+    fun setBudgetAlertsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setBudgetAlertsEnabled(enabled)
+            if (enabled) runCatching { moneyAlertChecker.checkBudgets(notify = false) }
+        }
+    }
+
     fun setDailySummaryEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setDailySummaryEnabled(enabled)
             com.pennywiseai.tracker.worker.DailySummaryWorker.sync(context, enabled)
+        }
+    }
+
+    fun setWeeklySummaryEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.setWeeklySummaryEnabled(enabled)
+            com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(context, enabled)
         }
     }
 

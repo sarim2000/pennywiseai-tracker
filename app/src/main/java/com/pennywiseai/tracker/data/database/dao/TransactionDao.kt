@@ -239,8 +239,18 @@ interface TransactionDao {
     """)
     suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
     
-    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE")
-    suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
+    /**
+     * Moves [merchantName]'s other live rows of [types] to [newCategory] (the
+     * "Update existing transactions" box). Spaces around the name and case are
+     * ignored; loan-linked, split-bill and category-split rows are left alone,
+     * as is a refund when the edited row is a purchase. Same rows as
+     * [countRecategorizableForMerchant].
+     */
+    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE " + RECATEGORIZABLE_FOR_MERCHANT)
+    suspend fun updateCategoryForMerchant(merchantName: String, types: List<String>, excludeId: Long, newCategory: String): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE " + RECATEGORIZABLE_FOR_MERCHANT)
+    suspend fun countRecategorizableForMerchant(merchantName: String, types: List<String>, excludeId: Long): Int
 
     /**
      * [merchantName]'s live rows of [types] still in [category], minus loan-linked,
@@ -269,8 +279,6 @@ interface TransactionDao {
     @Query("UPDATE transactions SET excluded_from_analytics = :excluded, updated_at = :updatedAt WHERE id = :transactionId AND excluded_from_analytics != :excluded")
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean, updatedAt: LocalDateTime): Int
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName COLLATE NOCASE AND id != :excludeId")
-    suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
 
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
@@ -716,3 +724,13 @@ interface TransactionDao {
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 AND is_recurring = 1 AND sms_body IS NOT NULL AND currency = :currency")
     suspend fun getBankChargedRecurringMerchants(currency: String): List<String>
 }
+
+private const val RECATEGORIZABLE_FOR_MERCHANT = """
+    TRIM(merchant_name) = TRIM(:merchantName) COLLATE NOCASE
+    AND id != :excludeId
+    AND is_deleted = 0
+    AND transaction_type IN (:types)
+    AND loan_id IS NULL
+    AND lent_shares_total IS NULL
+    AND id NOT IN (SELECT transaction_id FROM transaction_splits)
+"""

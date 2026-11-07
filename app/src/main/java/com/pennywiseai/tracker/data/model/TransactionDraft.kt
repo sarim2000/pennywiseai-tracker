@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
+import java.time.LocalDate
 
 /**
  * A transaction the model proposed from a chat message (#170). Never saved by
@@ -11,24 +12,42 @@ import java.math.BigDecimal
  */
 data class TransactionDraft(
     val amount: BigDecimal,
+    val currency: String,
+    val date: LocalDate,
     val merchant: String,
     val category: String,
     val type: TransactionType,
     val bankName: String?,
     val accountLast4: String?,
     val accountLabel: String,
-    val sourceText: String
+    val sourceText: String,
+    /** False when the message doesn't contain [amount]: the card asks the user to check it. */
+    val amountInMessage: Boolean
 ) {
     companion object {
+        // Whole words, so "مراتب" isn't "راتب" and Milan's "मिलान" isn't "मिला". Arabic keeps its
+        // prefixes and suffixes ("الراتب", "راتبي"), and lookarounds because \\b differs on ICU.
+        // "رجع" means "came back" and "gave back" too ("رجعت البيت", "رجعت فلوسه"), so these words
+        // decide only when the money came back to the speaker: "رجعلي", "رجعوا فلوسي". Anything
+        // else is left to the model, and the card shows the type before it's saved.
+        private const val MY_MONEY = "(?:فلوسي|مصاريي|مبلغي)"
+        private const val MONEY_CAME_BACK = "رجع(?:وا|و|ت)?\\s*(?:لي|لنا)(?![\\p{L}\\p{M}])" +
+            "|رجع(?:وا|و|ت)?\\s+$MY_MONEY(?![\\p{L}\\p{M}])" +
+            "|$MY_MONEY\\s+رجع(?:وا|و|ت)?(?![\\p{L}\\p{M}])"
+        private fun arabicWord(words: String) = "(?<![\\p{L}\\p{M}])[وفب]?(?:ال)?(?:$words)"
+        private fun hindiWord(words: String) = "(?<![\\p{L}\\p{M}])(?:$words)(?![\\p{L}\\p{M}])"
+
         // The model flips EXPENSE→INCOME on plain spends ~1 in 6 times, so the
         // user's own words decide: a spend verb wins ("spent my salary on rent"),
         // then an income word, then the model's type.
         private val SPEND_WORDS = Regex(
-            "\\b(spent|spend|paid|pay|bought|buy|purchased|gave|sent|ordered|bill|fee|fees|rent|recharge|donated|subscription)\\b",
+            "\\b(spent|spend|(?<!got )paid|pay|bought|buy|purchased|gave|sent|ordered|bill|fee|fees|rent|recharge|donated|subscription|diya|diye|kharch|kharida|bhara)\\b" +
+                "|${arabicWord("دفعت|اشتريت|شريت|صرفت|سددت")}|${hindiWord("दिया|दिए|खर्च|खरीदा|खरीदी|भरा|चुकाया")}",
             RegexOption.IGNORE_CASE
         )
         private val INCOME_WORDS = Regex(
-            "\\b(received|got|salary|refund|refunded|cashback|credited|sold|bonus|interest|income|won|earned|reimburse\\w*)\\b",
+            "\\b(received|salary|refund|refunded|cashback|credited|sold|bonus|interest|income|won|earned|reimburse\\w*|aayi|tankha)\\b" +
+                "|${arabicWord("راتب|استلمت|$MONEY_CAME_BACK|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("सैलरी|वेतन|रिफंड|कैशबैक")}",
             RegexOption.IGNORE_CASE
         )
 
@@ -38,13 +57,13 @@ data class TransactionDraft(
             sourceText: String,
             categories: List<CategoryEntity>,
             accounts: List<AccountBalanceEntity>,
+            baseCurrency: String,
+            today: LocalDate = LocalDate.now(),
+            noAccountLabel: String = "Cash / manual",
+            ambiguousAccountLabel: String = "No account (say which — last 4 digits)",
             fallbackCategory: (merchant: String) -> String?
         ): TransactionDraft? {
-            val amount = when (val a = args["amount"]) {
-                is Number -> BigDecimal.valueOf(a.toDouble())
-                is String -> a.replace(Regex("[^0-9.]"), "").toBigDecimalOrNull()
-                else -> null
-            }?.takeIf { it.signum() > 0 } ?: return null
+            val amount = ChatMessageFacts.parseAmount(args["amount"]) ?: return null
 
             val merchant = (args["merchant"] as? String)?.trim().orEmpty().ifEmpty { "Unknown" }
             // With no verb either way, trust the model's INCOME only when it also
@@ -56,6 +75,7 @@ data class TransactionDraft(
             val type = when {
                 SPEND_WORDS.containsMatchIn(sourceText) -> TransactionType.EXPENSE
                 INCOME_WORDS.containsMatchIn(sourceText) -> TransactionType.INCOME
+                ChatMessageFacts.gotMoney(sourceText, amount) -> TransactionType.INCOME
                 modelSaysIncome && incomeOnlyCategory -> TransactionType.INCOME
                 else -> TransactionType.EXPENSE
             }
@@ -86,18 +106,24 @@ data class TransactionDraft(
                     else -> accounts.filter(namesBank)
                 }.distinctBy { it.bankName to it.accountLast4 }
             }.orEmpty()
-            val account = matches.singleOrNull()
+            val currency = ChatMessageFacts.currency(sourceText, args["currency"] as? String, baseCurrency)
+            // An account's balance moves by the raw amount, so only a transaction in its own currency may link.
+            val account = matches.singleOrNull()?.takeIf { it.currency == currency }
             val ambiguous = matches.size > 1
             return TransactionDraft(
                 amount = amount,
+                currency = currency,
+                // LiteRT-LM snake_cases parameter names.
+                date = today.minusDays(ChatMessageFacts.daysAgo(sourceText, args["daysAgo"] ?: args["days_ago"]).toLong()),
                 merchant = merchant,
                 category = category,
                 type = type,
                 bankName = account?.bankName,
                 accountLast4 = account?.accountLast4,
                 accountLabel = account?.let { "${it.bankName} ••${it.accountLast4}" }
-                    ?: if (ambiguous) "No account (say which — last 4 digits)" else "Cash / manual",
-                sourceText = sourceText
+                    ?: if (ambiguous) ambiguousAccountLabel else noAccountLabel,
+                sourceText = sourceText,
+                amountInMessage = ChatMessageFacts.statesAmount(sourceText, amount)
             )
         }
     }

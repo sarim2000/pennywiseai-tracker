@@ -7,10 +7,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** #170: the tool-call → draft normaliser. The model's words are advisory; the user's text decides type. */
 class TransactionDraftTest {
+    private val TODAY = LocalDate.of(2026, 11, 4)
     private val cats = listOf(
         CategoryEntity(id = 1, name = "Food & Dining", color = "#000"),
         CategoryEntity(id = 2, name = "Groceries", color = "#000"),
@@ -23,7 +25,7 @@ class TransactionDraftTest {
         AccountBalanceEntity(bankName = "Kotak Bank", accountLast4 = "5678", balance = BigDecimal.TEN, timestamp = LocalDateTime.now(), alias = "Salary a/c")
     )
     private fun draft(args: Map<String, Any?>, text: String) =
-        TransactionDraft.fromToolArgs(args, text, cats, accounts) { m -> if (m.contains("starbucks", true)) "Food & Dining" else null }
+        TransactionDraft.fromToolArgs(args, text, cats, accounts, baseCurrency = "INR", today = TODAY) { m -> if (m.contains("starbucks", true)) "Food & Dining" else null }
 
     @Test
     fun `plain spend stays EXPENSE even when the model says INCOME`() {
@@ -70,7 +72,7 @@ class TransactionDraftTest {
     @Test
     fun `an ambiguous account is left unlinked`() {
         val two = accounts + AccountBalanceEntity(bankName = "HDFC Bank", accountLast4 = "9999", balance = BigDecimal.TEN, timestamp = LocalDateTime.now())
-        val d = TransactionDraft.fromToolArgs(mapOf("amount" to 1.0, "merchant" to "x", "category" to "", "type" to "", "account" to "hdfc"), "x 1", cats, two) { null }!!
+        val d = TransactionDraft.fromToolArgs(mapOf("amount" to 1.0, "merchant" to "x", "category" to "", "type" to "", "account" to "hdfc"), "x 1", cats, two, baseCurrency = "INR") { null }!!
         assertNull(d.bankName)
         assertEquals("No account (say which — last 4 digits)", d.accountLabel)
     }
@@ -78,7 +80,7 @@ class TransactionDraftTest {
     @Test
     fun `last4 picks the right one of two same-bank accounts`() {
         val two = accounts + AccountBalanceEntity(bankName = "HDFC Bank", accountLast4 = "9999", balance = BigDecimal.TEN, timestamp = LocalDateTime.now())
-        val acc = { a: String -> TransactionDraft.fromToolArgs(mapOf("amount" to 1.0, "merchant" to "x", "account" to a), "x 1", cats, two) { null }!! }
+        val acc = { a: String -> TransactionDraft.fromToolArgs(mapOf("amount" to 1.0, "merchant" to "x", "account" to a), "x 1", cats, two, baseCurrency = "INR") { null }!! }
         assertEquals("1234", acc("HDFC 1234").accountLast4)
         assertEquals("9999", acc("hdfc bank 9999").accountLast4)
         assertEquals("9999", acc("9999").accountLast4)                 // last-4 alone
@@ -92,5 +94,91 @@ class TransactionDraftTest {
     fun `no usable amount means no draft`() {
         assertNull(draft(mapOf("amount" to 0, "merchant" to "x"), "x"))
         assertNull(draft(mapOf("merchant" to "x"), "x"))
+    }
+
+    @Test
+    fun `currency and date default unless the message states them`() {
+        val invented = draft(mapOf("amount" to 120.0, "merchant" to "tea", "currency" to "USD", "days_ago" to 3), "tea 120")!!
+        assertEquals("INR", invented.currency)
+        assertEquals(TODAY, invented.date)
+        val stated = draft(mapOf("amount" to 5.0, "merchant" to "tea", "currency" to "USD", "days_ago" to 1), "paid $5 for tea yesterday")!!
+        assertEquals("USD", stated.currency)
+        assertEquals(TODAY.minusDays(1), stated.date)
+    }
+
+    @Test
+    fun `the card knows when the amount is not in the message`() {
+        assertEquals(true, draft(mapOf("amount" to 120.0, "merchant" to "x"), "x 120")!!.amountInMessage)
+        assertEquals(false, draft(mapOf("amount" to 420.0, "merchant" to "x"), "coffee 120 lunch 300")!!.amountInMessage)
+    }
+
+    @Test
+    fun `a negative amount is the amount`() {
+        assertEquals(0, BigDecimal("15000").compareTo(draft(mapOf("amount" to -15000.0, "merchant" to "x"), "x 15000")!!.amount))
+    }
+
+    @Test
+    fun `the user's words decide the type in Arabic and Hindi too`() {
+        fun type(text: String, modelType: String) = draft(mapOf("amount" to 1.0, "merchant" to "x", "category" to "Others", "type" to modelType), text)!!.type
+        assertEquals(TransactionType.INCOME, type("نزل الراتب 12000", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعولي 150 ريال من نون", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("सैलरी आई 45000", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("salary aa gayi 60000", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("دفعت 230 ريال فاتورة الكهرباء", "INCOME"))
+        assertEquals(TransactionType.EXPENSE, type("दूध के लिए 60 रुपये दिए", "INCOME"))
+        assertEquals(TransactionType.INCOME, type("نزلت الراتب", "EXPENSE"))
+        // Part of a longer word isn't the word.
+        assertEquals(TransactionType.EXPENSE, type("مرجع برمجة 50", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("مراتب 50", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("تذكرة رجعة 50", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("رجعت البيت بتاكسي 50", "EXPENSE")) // "I came home", not a refund.
+        assertEquals(TransactionType.EXPENSE, type("رجعت ليلا بتاكسي 50", "EXPENSE")) // "At night", not "to me".
+        assertEquals(TransactionType.INCOME, type("محل الورق رجعلي 260 جنيه", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعت لي 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعولنا 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("رجعوا فلوسي 50", "EXPENSE"))
+        assertEquals(TransactionType.INCOME, type("فلوسي رجعت 50", "EXPENSE"))
+        // Money given back, or with no one named: the words don't decide.
+        assertEquals(TransactionType.EXPENSE, type("رجعت فلوسه 100 ريال", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("رجعتله 100", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("رجعت الفلوس 100", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("فلوسي رجعتها 100", "EXPENSE"))
+        assertEquals(TransactionType.EXPENSE, type("मिलान में कॉफी 500", "EXPENSE"))
+    }
+
+    @Test
+    fun `got and mila are income only next to the amount`() {
+        fun type(text: String, amount: Any = 500, model: String = "EXPENSE") =
+            draft(mapOf("amount" to amount, "merchant" to "x", "category" to "Others", "type" to model), text)!!.type
+        listOf(
+            "got 500 from mom", "got 500 for 2 hours of tutoring", "got ₹500", "got rs.500", "got USD 500", "got back 500",
+            "got my money back 500", "500 mila", "mila 500", "मुझे 500 रुपये मिले", "मिले ५०० रुपये", "got a refund for 500",
+            "got JD 500 from mom", "got SR 500", "got DHS 500", "got five hundred from mom", "got some cash from mom 500", "got paid 500",
+            "got a payment of 500 from a client", "got payment from a client 500", "got a tip of 500", "got an advance of 500", "got a transfer of 500 from dad", "got money for my birthday 500", "got a payment for 500 from a client"
+        ).forEach { assertEquals(it, TransactionType.INCOME, type(it)) }
+        assertEquals(TransactionType.INCOME, type("got 5k", 5000))
+        assertEquals(TransactionType.INCOME, type("got $.50", 0.5))
+        assertEquals(TransactionType.INCOME, type(".50 मिले", 0.5))
+        assertEquals(TransactionType.INCOME, type("10 हजार मिले", 10000))
+
+        listOf(
+            "got a transfer to the airport for 500", "got a tip for the waiter 500", "got a phone for 500", "got tea 500", "got paid version of the app for 500", "got shoes for ₹500", "got a phone for USD 500", "got coffee 50 and tea 500", "मुझे फोन 500 में मिला",
+            "मुझे फोन 500 रुपये में मिला", "phone 500 me mila", "got back home by taxi for 500"
+        ).forEach { assertEquals(it, TransactionType.EXPENSE, type(it)) }
+        assertEquals(TransactionType.EXPENSE, type("got 2 shirts for rs 500", model = "INCOME"))
+        assertEquals(TransactionType.EXPENSE, type("phone 10k mein mila", 10000))
+        assertEquals(TransactionType.EXPENSE, type("फोन 10 हजार में मिला", 10000))
+        // With no word to go on, an income category from the model still counts.
+        assertEquals(TransactionType.INCOME, draft(mapOf("amount" to 500, "category" to "Salary", "type" to "INCOME"), "got something for 500")!!.type)
+    }
+
+    @Test
+    fun `a transaction links only to an account in its own currency`() {
+        val args = mapOf("amount" to 20.0, "merchant" to "lunch", "account" to "hdfc")
+        assertEquals("1234", draft(args, "paid 20 for lunch using hdfc")!!.accountLast4)
+        val foreign = draft(args, "paid USD 20 for lunch using hdfc")!!
+        assertEquals("USD", foreign.currency)
+        assertNull(foreign.accountLast4) // Its INR balance would drop by a raw 20.
+        assertEquals("Cash / manual", foreign.accountLabel)
     }
 }

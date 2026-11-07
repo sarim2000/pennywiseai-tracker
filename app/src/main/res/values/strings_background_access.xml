@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="background_access_title">Keep tracking working</string>
+    <string name="background_access_settings_subtitle">Stop Android from pausing your bank SMS tracking</string>
+    <plurals name="background_access_settings_left">
+        <item quantity="one">%d left</item>
+        <item quantity="other">%d left</item>
+    </plurals>
+    <string name="background_access_intro">Android stops apps that run in the background, and then your bank transactions stop arriving.</string>
+    <plurals name="background_access_steps_left">
+        <item quantity="one">%d step left.</item>
+        <item quantity="other">%d steps left.</item>
+    </plurals>
+    <string name="background_access_all_set">All set. PennyWise can keep tracking your bank messages in the background.</string>
+
+    <string name="background_access_allow">Allow</string>
+    <string name="background_access_open_settings">Open Settings</string>
+    <string name="background_access_mark_done">I\'ve done this</string>
+    <string name="background_access_confirmed_by_you">Confirmed by you</string>
+    <string name="background_access_undo">Undo</string>
+    <string name="background_access_status_done">Done</string>
+    <string name="background_access_status_needed">Needs attention</string>
+    <string name="background_access_status_optional">Optional</string>
+
+    <string name="background_access_battery_title">Battery: Unrestricted</string>
+    <string name="background_access_battery_why">Stops Android from putting PennyWise to sleep, so your bank transactions arrive on time. Find PennyWise in the list and choose Don\'t optimize.</string>
+    <string name="background_access_activity_title">Background activity</string>
+    <string name="background_access_activity_why">PennyWise is set to Restricted. Open its battery settings and choose Unrestricted.</string>
+    <string name="background_access_keep_title">Keep access when not opened</string>
+    <string name="background_access_keep_why">Turn off \"Pause app activity if unused\" or \"Remove permissions if app is unused\". Otherwise Android takes back PennyWise\'s SMS access after a few months.</string>
+
+    <string name="background_access_oem_title_samsung">Never sleeping apps</string>
+    <string name="background_access_oem_title_autostart">Autostart</string>
+    <string name="background_access_oem_howto_samsung">Prefer not to allow the battery step? Samsung can put PennyWise to sleep, so open this list, tap Add apps and pick PennyWise.</string>
+    <string name="background_access_oem_howto_xiaomi">Turn on Autostart for PennyWise. Path: Settings → Apps → Permissions → Background autostart.</string>
+    <string name="background_access_oem_howto_huawei">For PennyWise, turn off Manage automatically, then turn on Auto-launch, Secondary launch and Run in background. Path: Settings → Battery → App launch.</string>
+    <string name="background_access_oem_howto_coloros">Turn on Allow auto launch and Allow background activity for PennyWise. Not on the screen that opens? Look in App info → Battery usage.</string>
+    <string name="background_access_oem_howto_vivo">Turn on Autostart for PennyWise, then allow it in Settings → Battery → Background power consumption management.</string>
+    <string name="background_access_oem_howto_transsion">Allow PennyWise under Auto-start in the Phone Master app.</string>
+    <string name="background_access_oem_howto_asus">Allow PennyWise under Auto-start Manager in the Mobile Manager app.</string>
+    <string name="background_access_oem_howto_other">Some phones have their own background controls. In App info, turn on anything like Auto launch or Run in background for PennyWise.</string>
+</resources>

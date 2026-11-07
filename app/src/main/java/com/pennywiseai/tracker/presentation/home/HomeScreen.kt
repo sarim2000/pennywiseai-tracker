@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.home
 
 import com.pennywiseai.tracker.utils.AppDates
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -20,7 +21,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -73,12 +74,12 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
-import com.pennywiseai.tracker.ui.components.ShareMonthBanner
+import com.pennywiseai.tracker.ui.components.ReviewPromptBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
@@ -144,6 +145,7 @@ fun HomeScreen(
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -157,6 +159,8 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // Time to full display: the balance and recent list show data, not skeletons.
+    ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
     val isProEntitled by viewModel.isProEntitled.collectAsState()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsState()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
@@ -165,7 +169,7 @@ fun HomeScreen(
     val groupSummaries by viewModel.groupSummaries.collectAsState()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
-    val showSharePrompt by viewModel.showSharePrompt.collectAsState()
+    val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
@@ -183,9 +187,6 @@ fun HomeScreen(
     var showMenuSheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var showEditWidgetsSheet by remember { mutableStateOf(false) }
-    // Period the sheet should open on. The monthly banner points it at the finished
-    // month; opening from the overflow menu uses whatever the user saved.
-    var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
     // Profile filter dropdown state
@@ -542,18 +543,19 @@ fun HomeScreen(
             val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
                 val payday = paydaySuggestion
                 val recurring = recurringSuggestions
-                // Monthly share prompt. Offers the user something ("your month, summed
-                // up") rather than asking a favour, and only appears when the finished month
-                // actually has enough in it to be worth sending.
-                if (showSharePrompt) {
+                // Review prompt. Offers the user something ("your month, summed up")
+                // rather than asking a favour, and only appears when the finished period
+                // actually has enough in it to be worth reading.
+                val prompt = reviewPrompt
+                if (prompt != null) {
                     item {
-                        ShareMonthBanner(
+                        ReviewPromptBanner(
+                            prompt = prompt,
                             onOpen = {
-                                viewModel.markSharePromptHandled()
-                                sharePromptPeriod = SharePeriod.LAST_MONTH
-                                showShareSheet = true
+                                viewModel.markReviewPromptHandled()
+                                onNavigateToReview(prompt.kind)
                             },
-                            onDismiss = { viewModel.markSharePromptHandled() },
+                            onDismiss = { viewModel.markReviewPromptHandled() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         )
                     }
@@ -1241,7 +1243,7 @@ fun HomeScreen(
                     Icon(
                         imageVector = Icons.Default.Sync,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 title = {
@@ -1305,10 +1307,7 @@ fun HomeScreen(
 
     // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
     if (showShareSheet) {
-        ShareCardSheet(
-            initialPeriod = sharePromptPeriod,
-            onDismiss = { showShareSheet = false; sharePromptPeriod = null },
-        )
+        ShareCardSheet(onDismiss = { showShareSheet = false })
     }
 
     // Avatar menu bottom sheet
@@ -1336,14 +1335,23 @@ fun HomeScreen(
                         .fillMaxWidth()
                 )
 
-                // Monthly recap (Top) — the growth loop lives here rather than buried
-                // in the Subscriptions screen, where nobody would find it. Named for what
-                // it is rather than "Share ...": the menu sits beside Settings and Rate,
-                // and leading with the ask makes it read as a favour being requested.
+                // Reviews (Top) — week, cycle and year, whatever the Home banner is offering.
                 MenuListItem(
-                    headline = stringResource(R.string.home_menu_monthly_recap),
-                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    headline = stringResource(R.string.review_title),
+                    icon = { Icon(Icons.Default.Insights, contentDescription = null) },
                     position = ListItemPosition.Top,
+                    onClick = {
+                        showMenuSheet = false
+                        onNavigateToReview(ReviewKind.MONTH)
+                    }
+                )
+
+                // Share card (Middle) — the growth loop lives here rather than buried
+                // in the Subscriptions screen, where nobody would find it.
+                MenuListItem(
+                    headline = stringResource(R.string.home_menu_share_card),
+                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
                         showShareSheet = true
@@ -1621,7 +1629,7 @@ private fun BreakdownPeriod(
         Text(
             text = period,
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary
+            color = MaterialTheme.colorScheme.onSurface
         )
         BreakdownRow(label = stringResource(R.string.home_breakdown_income), amount = income, isIncome = true, currency = currency)
         BreakdownRow(label = stringResource(R.string.home_breakdown_expenses), amount = expenses, isIncome = false, currency = currency)
@@ -1631,6 +1639,7 @@ private fun BreakdownPeriod(
             amount = net,
             isIncome = net >= BigDecimal.ZERO,
             isBold = true,
+            isNet = true,
             currency = currency
         )
     }
@@ -1642,6 +1651,7 @@ private fun BreakdownRow(
     amount: BigDecimal,
     isIncome: Boolean,
     isBold: Boolean = false,
+    isNet: Boolean = false,
     currency: String
 ) {
     Row(
@@ -1658,10 +1668,11 @@ private fun BreakdownRow(
             style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
                 fontWeight = FontWeight.Normal
             ),
-            color = if (isIncome) {
-                if (!isSystemInDarkTheme()) income_light else income_dark
-            } else {
-                if (!isSystemInDarkTheme()) expense_light else expense_dark
+            // Spending is ink; red is kept for a negative net.
+            color = when {
+                isIncome -> MaterialTheme.colorScheme.income
+                isNet -> MaterialTheme.colorScheme.expense
+                else -> MaterialTheme.colorScheme.onSurface
             }
         )
     }
@@ -1835,8 +1846,7 @@ private fun ActiveLoansSummaryCard(
     currency: String,
     onClick: () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
+    val loanColor = MaterialTheme.colorScheme.loan
 
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),

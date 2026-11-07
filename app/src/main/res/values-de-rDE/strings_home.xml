@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Liest SMS-Transaktionen neu ein, um Verbesserungen der Erkennung zu übernehmen. Änderungen an SMS-Transaktionen werden zurückgesetzt. Manuelle, importierte, Darlehens- und gruppierte Transaktionen bleiben erhalten.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Weitere Optionen</string>
-    <string name="home_menu_monthly_recap">Monatliche Rücknahme</string>
     <string name="home_menu_settings">Einstellungen</string>
     <string name="home_menu_edit_home">Homescreen bearbeiten</string>
     <string name="home_menu_discord">Trete Discord bei für Feedback</string>
@@ -267,13 +266,13 @@
     <string name="notif_txn_action_more">Mehr…</string>
     <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • Kontostand prüfen</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">%1$s bei %2$s ausgegeben</string>
-    <string name="notif_txn_title_received">%1$s von %2$s erhalten</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">%1$s ausgegeben</string>
+    <string name="notif_txn_title_received">%1$s erhalten</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">Wofür war das? · %1$s</string>
-    <string name="notif_txn_action_change">Ändern</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">Wofür war das?</string>
+    <string name="notif_txn_action_change">Kategorie ändern</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">Keine Ausgabe</string>
     <string name="notif_txn_action_not_income">Keine Einnahme</string>

@@ -32,6 +32,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SubscriptionsViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val subscriptionRepository: SubscriptionRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
@@ -278,6 +279,9 @@ class SubscriptionsViewModel @Inject constructor(
     fun markAsPaid(subscriptionId: Long, paymentDate: java.time.LocalDate) {
         viewModelScope.launch {
             val result = markSubscriptionPaidUseCase.execute(subscriptionId, paymentDate)
+            if (result is MarkSubscriptionPaidUseCase.Result.Created) {
+                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(appContext)
+            }
             val merchant = _uiState.value.activeSubscriptions.find { it.id == subscriptionId }?.merchantName
                 ?: "Subscription"
             val message = when (result) {

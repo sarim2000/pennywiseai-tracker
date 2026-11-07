@@ -1,11 +1,12 @@
 package com.pennywiseai.tracker.data.share
 
+import java.time.LocalDate
+
 /**
  * Window the share card summarises.
  *
- * [LAST_MONTH] exists for the monthly prompt: on the 1st, "this month" is nearly empty,
- * and a card showing three transactions is worse than no card. A completed month is the
- * only version of this worth sending.
+ * [LAST_MONTH] exists because on the 1st "this month" is nearly empty, and a card showing
+ * three transactions is worse than no card. The month periods follow the budget cycle.
  */
 enum class SharePeriod {
     THIS_MONTH,
@@ -32,7 +33,10 @@ enum class ShareHero {
     TRANSACTIONS,
 
     /** "4 — subscriptions I'd forgotten." A discovery, so it carries higher share intent. */
-    SUBSCRIPTIONS;
+    SUBSCRIPTIONS,
+
+    /** "86 — merchants paid." A count about the period that names none of them. */
+    MERCHANTS;
 
     companion object {
         fun fromName(value: String?): ShareHero =
@@ -63,10 +67,15 @@ data class ShareCardConfig(
      * the chip and changed nothing, which reads as a broken control rather than a
      * deliberate substitution.
      */
-    fun effectiveHero(subscriptionCount: Int): ShareHero =
-        if (hero == ShareHero.SUBSCRIPTIONS && subscriptionCount == 0) {
-            ShareHero.TRANSACTIONS
-        } else {
-            hero
-        }
+    fun effectiveHero(subscriptionCount: Int, merchantCount: Int): ShareHero = when {
+        hero == ShareHero.SUBSCRIPTIONS && subscriptionCount == 0 -> ShareHero.TRANSACTIONS
+        hero == ShareHero.MERCHANTS && merchantCount == 0 -> ShareHero.TRANSACTIONS
+        else -> hero
+    }
 }
+
+/**
+ * The exact dates a review is sharing, so its card counts what the review showed: a
+ * cycle isn't a calendar month, and a year's label says which months it really covers.
+ */
+data class ShareWindow(val start: LocalDate, val end: LocalDate, val label: String)

@@ -260,13 +260,13 @@
     <string name="notif_txn_action_more">Más…</string>
     <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • hay que revisar el saldo</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">Gastaste %1$s en %2$s</string>
-    <string name="notif_txn_title_received">Recibiste %1$s de %2$s</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">Gastaste %1$s</string>
+    <string name="notif_txn_title_received">Recibiste %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">¿Para qué fue esto? · %1$s</string>
-    <string name="notif_txn_action_change">Cambiar</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">¿Para qué fue esto?</string>
+    <string name="notif_txn_action_change">Cambiar categoría</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">No es un gasto</string>
     <string name="notif_txn_action_not_income">No es un ingreso</string>

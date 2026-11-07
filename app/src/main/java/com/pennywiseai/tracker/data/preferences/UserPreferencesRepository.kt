@@ -74,6 +74,7 @@ open class UserPreferencesRepository @Inject constructor(
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        val BACKGROUND_OEM_STEP_CONFIRMED_ON = stringPreferencesKey("background_oem_step_confirmed_on")
         val WEEKLY_SUMMARY_ENABLED = booleanPreferencesKey("weekly_summary_enabled")
         val WEEKLY_SUMMARY_LAST_WEEK = stringPreferencesKey("weekly_summary_last_week")
         val REVIEW_PROMPT_HANDLED_YEAR = stringPreferencesKey("review_prompt_handled_year")
@@ -383,6 +384,23 @@ open class UserPreferencesRepository @Inject constructor(
     suspend fun setDailySummaryEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * The device the user said the manufacturer step is done on: the setting lives
+     * on that phone, so a phone transfer must not carry the answer over. Not in backups.
+     */
+    val backgroundOemStepConfirmedOn: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] }
+
+    suspend fun setBackgroundOemStepConfirmedOn(device: String?) {
+        context.dataStore.edit { preferences ->
+            if (device != null) {
+                preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] = device
+            } else {
+                preferences.remove(PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON)
+            }
         }
     }
     

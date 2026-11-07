@@ -254,8 +254,11 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 alerts.size == 1 && active.none { it.id == GROUP_SUMMARY_ID } -> Unit
                 else -> {
                     val title = context.resources.getQuantityString(R.plurals.notif_txn_group_title, alerts.size, alerts.size)
-                    val lines = alerts.values.sortedByDescending { it.`when` }
-                        .mapNotNull { it.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) }
+                    // An alert's title is just the amount; its text says where.
+                    val lines = alerts.values.sortedByDescending { it.`when` }.mapNotNull { alert ->
+                        val amount = alert.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) ?: return@mapNotNull null
+                        listOfNotNull(amount, alert.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)).joinToString(" · ")
+                    }
                     notificationManager.notify(
                         GROUP_SUMMARY_ID,
                         NotificationCompat.Builder(context, CHANNEL_ID)
@@ -779,27 +782,28 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
 
             val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)
             val merchant = context.bidiIsolate(transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) })
-            val bankName = context.bidiIsolate(transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank))
+            // The amount gets the title to itself and the merchant the line below,
+            // so a long name never cuts the amount off (or the amount the name).
             val title = when (transaction.transactionType) {
-                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount, merchant)
-                TransactionType.EXPENSE, TransactionType.CREDIT ->
-                    context.getString(R.string.notif_txn_title_spent, amount, merchant)
-                else -> context.getString(R.string.notif_txn_title_other, amount, merchant)
+                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount)
+                TransactionType.EXPENSE, TransactionType.CREDIT -> context.getString(R.string.notif_txn_title_spent, amount)
+                else -> amount
             }
             // From the table: a process started for this SMS may not have mirrored CategoryMapping.userStyles yet.
             val categories = categoryRepository.getAllCategories().first()
             // Unsorted: ask, with one-tap answers. Sorted: the category sits in the header.
             val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
-            val summaryLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category, bankName) else bankName
-            val content = listOfNotNull(summaryLine, priceLine).joinToString("\n")
+            // No bank: the user knows which account they paid from. The question
+            // and a price change wait for the expanded view, beside the buttons they explain.
+            val askLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category) else null
+            val expanded = listOfNotNull(merchant, askLine, priceLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(title)
-                .setContentText(content)
+                .setContentText(merchant)
                 .setSubText(if (uncategorized) null else CategoryMapping.label(context, transaction.category, categories))
-                // A price change adds a second line.
-                .apply { if (priceLine != null) setStyle(NotificationCompat.BigTextStyle().bigText(content)) }
+                .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)

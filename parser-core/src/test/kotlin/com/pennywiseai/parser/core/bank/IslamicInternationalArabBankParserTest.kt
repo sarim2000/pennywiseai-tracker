@@ -31,6 +31,42 @@ class IslamicInternationalArabBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Card purchase, branch named after its city loses both",
+                message = "حركة شراء Sample Sweets - Alzarqa Zarqa JO\nالمبلغ: 9.000 JOD\nحساب: 4321*1234\n" +
+                    "تاريخ: 05/11/2026 16:04:00\nالرصيد: 100.000 JOD",
+                sender = "ARABIISLAMI",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("9.000"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Sample Sweets"
+                )
+            ),
+            ParserTestCase(
+                name = "Card purchase, a name ending in another city keeps it",
+                message = "حركة شراء SAMPLE CAFE IRBID AMMAN JO\nالمبلغ: 3.000 JOD\nحساب: 4321*1234\n" +
+                    "تاريخ: 05/11/2026 16:04:00\nالرصيد: 100.000 JOD",
+                sender = "ARABIISLAMI",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3.000"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SAMPLE CAFE IRBID"
+                )
+            ),
+            ParserTestCase(
+                name = "Card purchase, a name ending in AL glued to the city keeps its AL",
+                message = "حركة شراء SAMPLE CENTRALAMMAN JO\nالمبلغ: 3.000 JOD\nحساب: 4321*1234\n" +
+                    "تاريخ: 05/11/2026 16:04:00\nالرصيد: 100.000 JOD",
+                sender = "ARABIISLAMI",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("3.000"),
+                    currency = "JOD",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SAMPLE CENTRAL"
+                )
+            ),
+            ParserTestCase(
                 name = "Card purchase, foreign merchant with phone number",
                 message = "حركة شراء APPLE.COM/US 800-000-0000 US\nالمبلغ: 7.102 JOD\nحساب: 4321*1234\n" +
                     "تاريخ: 21/07/2026 11:25:39\nالرصيد: 218.610 JOD",

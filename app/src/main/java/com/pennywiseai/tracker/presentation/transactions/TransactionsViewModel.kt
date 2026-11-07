@@ -153,6 +153,9 @@ class TransactionsViewModel @Inject constructor(
     private val _isUnifiedMode = MutableStateFlow(false)
     val isUnifiedMode: StateFlow<Boolean> = _isUnifiedMode.asStateFlow()
 
+    // Set by a review's drill-down, which lists one currency's own rows even in unified mode.
+    private val pinnedCurrency = MutableStateFlow<String?>(null)
+
     // Map of transactionId -> converted amount in display currency (for unified mode)
     private val _convertedAmounts = MutableStateFlow<Map<Long, BigDecimal>>(emptyMap())
     val convertedAmounts: StateFlow<Map<Long, BigDecimal>> = _convertedAmounts.asStateFlow()
@@ -739,32 +742,13 @@ class TransactionsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            // An already-imported card purchase is stored under the *card's*
-            // digits, so ignoring the account it draws on wouldn't hide it.
-            // Expand the set once with each linked card's key and the plain
-            // match below covers both (#826).
+            // Expand the set once and the plain match below covers both (#826).
             combine(
                 ignoredAccountsStore.keysFlow,
                 cardRepository.getAllCards(),
-                accountBalanceRepository.getAllLatestBalances()
-            ) { ignored, cards, balances ->
-                if (ignored.isEmpty()) return@combine ignored
-                val accountKeys = balances.map {
-                    IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4)
-                }.toSet()
-                ignored + cards.mapNotNull { card ->
-                    val account = card.accountLast4 ?: return@mapNotNull null
-                    if (IgnoredAccountsStore.keyFor(card.bankName, account) !in ignored) {
-                        return@mapNotNull null
-                    }
-                    val cardKey = IgnoredAccountsStore.keyFor(card.bankName, card.cardLast4)
-                    // A card's last four can collide with a real account's at
-                    // the same bank. The stored digits are all the list has to
-                    // match on, so adding the key would hide that account too —
-                    // leave it, and lose only the card rows we can't separate.
-                    if (cardKey in accountKeys && cardKey !in ignored) null else cardKey
-                }
-            }.collect { _ignoredAccountKeys.value = it }
+                accountBalanceRepository.getAllLatestBalances(),
+                IgnoredAccountsStore.Companion::withLinkedCards,
+            ).collect { _ignoredAccountKeys.value = it }
         }
         viewModelScope.launch {
             availableTags.collect { tags ->
@@ -780,15 +764,16 @@ class TransactionsViewModel @Inject constructor(
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             combine(
                 userPreferencesRepository.unifiedCurrencyMode,
-                userPreferencesRepository.displayCurrency
-            ) { unifiedMode, displayCurrency ->
-                unifiedMode to displayCurrency
-            }.collect { (unifiedMode, displayCurrency) ->
-                _isUnifiedMode.value = unifiedMode
-                if (unifiedMode) {
-                    _selectedCurrency.value = displayCurrency
-                } else {
-                    _selectedCurrency.value = baseCurrency
+                userPreferencesRepository.displayCurrency,
+                pinnedCurrency
+            ) { unifiedMode, displayCurrency, pinned ->
+                Triple(unifiedMode, displayCurrency, pinned)
+            }.collect { (unifiedMode, displayCurrency, pinned) ->
+                _isUnifiedMode.value = unifiedMode && pinned == null
+                _selectedCurrency.value = when {
+                    pinned != null -> pinned
+                    unifiedMode -> displayCurrency
+                    else -> baseCurrency
                 }
             }
         }
@@ -843,9 +828,10 @@ class TransactionsViewModel @Inject constructor(
             }
             .onEach { categories ->
                 _availableCategories.value = categories
-                // Auto-clear category filter if the selected category no longer exists in available categories
+                // Auto-clear category filter if the selected category no longer exists in available categories.
+                // Not on a pinned list: a review's category that fell to zero is empty, not every other category.
                 val currentFilter = _categoryFilter.value
-                if (currentFilter != null && currentFilter !in categories) {
+                if (currentFilter != null && currentFilter !in categories && pinnedCurrency.value == null) {
                     _categoryFilter.value = null
                 }
             }
@@ -930,7 +916,7 @@ class TransactionsViewModel @Inject constructor(
                             val finalCurrency =
                                 if (allAvailableCurrencies.isNotEmpty() && !allAvailableCurrencies.contains(
                                         currentCurrency
-                                    )
+                                    ) && !isPinned(currentCurrency)
                                 ) {
                                     // Auto-select: prefer baseCurrency from preferences, then first available
                                     val baseCurrency =
@@ -976,7 +962,7 @@ class TransactionsViewModel @Inject constructor(
                 // Auto-select primary currency if not already selected or if current currency no longer exists
                 if (!_isUnifiedMode.value) {
                     val currentCurrency = selectedCurrency.value
-                    if (!computed.totals.availableCurrencies.contains(currentCurrency) && computed.totals.hasAnyCurrency()) {
+                    if (!computed.totals.availableCurrencies.contains(currentCurrency) && computed.totals.hasAnyCurrency() && !isPinned(currentCurrency)) {
                         val baseCurrency = userPreferencesRepository.baseCurrency.first()
                         _selectedCurrency.value = computed.totals.getPrimaryCurrency(baseCurrency)
                     }
@@ -1052,6 +1038,24 @@ class TransactionsViewModel @Inject constructor(
     fun selectCurrency(currency: String) {
         _selectedCurrency.value = currency
     }
+
+    /**
+     * Lists only rows written in [currency], with no conversion, even in unified mode.
+     * The screen calls this on every return to it, so only the first call counts: a later
+     * one must not undo a currency the user has since chosen. The guard lives here rather
+     * than in saved UI state because a ViewModel rebuilt after process death needs the pin back.
+     */
+    fun pinCurrency(currency: String) {
+        if (!pinnedCurrency.compareAndSet(null, currency)) return
+        _isUnifiedMode.value = false
+        _selectedCurrency.value = currency
+    }
+
+    /**
+     * A pinned list stays on its currency even with no rows there, so it never shows another
+     * currency under the card it opened from. A currency the user picked later can still fall back.
+     */
+    private fun isPinned(currency: String) = currency == pinnedCurrency.value
 
     /**
      * Sets a custom date range filter and switches the period to CUSTOM.
@@ -1139,7 +1143,10 @@ class TransactionsViewModel @Inject constructor(
         clearTagFilter()
         _selectedProfileId.value = null  // reset local state only; does not update the shared DataStore preference
         setSortOption(SortOption.DATE_NEWEST)
-        if (!_isUnifiedMode.value) {
+        if (pinnedCurrency.value != null) {
+            // The preference collector restores the normal view, unified or not.
+            pinnedCurrency.value = null
+        } else if (!_isUnifiedMode.value) {
             viewModelScope.launch {
                 _selectedCurrency.value = userPreferencesRepository.baseCurrency.first()
             }

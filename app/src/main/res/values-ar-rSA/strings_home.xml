@@ -37,7 +37,6 @@
     <string name="home_resync_rebuild_desc">يعيد قراءة معاملات SMS للاستفادة من إصلاحات قراءة الرسائل. تُلغى التعديلات على معاملات SMS. ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
-    <string name="home_menu_monthly_recap">موجز شهري</string>
     <string name="home_menu_settings">الإعدادات</string>
     <string name="home_menu_edit_home">تعديل الشاشة الرئيسية</string>
     <string name="home_menu_discord">انضم إلى ديسكورد للحصول على تعليقات</string>

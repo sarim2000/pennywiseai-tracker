@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">पार्सर के सुधार लागू करने के लिए SMS लेन-देन दोबारा पढ़ता है। SMS लेन-देन में किए बदलाव रीसेट हो जाएंगे। मैनुअल, आयात किए गए, उधार और ग्रुप वाले लेन-देन बने रहेंगे।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">अधिक विकल्प</string>
-    <string name="home_menu_monthly_recap">महीने का सारांश</string>
     <string name="home_menu_settings">सेटिंग्स</string>
     <string name="home_menu_edit_home">होम स्क्रीन बदलें</string>
     <string name="home_menu_discord">फ़ीडबैक के लिए Discord से जुड़ें</string>

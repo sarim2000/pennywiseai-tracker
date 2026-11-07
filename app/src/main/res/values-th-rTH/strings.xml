@@ -8,10 +8,13 @@
     <string name="widget_description_category_pie">การใช้จ่ายเดือนนี้แยกตามหมวดหมู่ เป็นกราฟวงกลมพร้อมคำอธิบาย</string>
     <string name="widget_name_add_transaction">จ่ายเงินสด</string>
     <string name="widget_name_summary">สรุปการใช้จ่าย</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">เพิ่มธุรกรรม</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">เพิ่ม</string>
     <string name="shortcut_add_transaction_long">เพิ่มธุรกรรม</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">สนับสนุนการพัฒนา</string>
     <string name="support_subtitle">สร้างโดยนักพัฒนาคนเดียว ทิปเล็กๆ ช่วยให้ไปต่อได้ 🦉</string>
     <string name="support_dialog_body">PennyWise ใช้ฟรีและเป็นโอเพนซอร์ส สร้างโดยนักพัฒนาคนเดียว ในเวอร์ชันนี้ทุกอย่างปลดล็อกไว้หมดแล้ว ถ้าแอปนี้มีประโยชน์กับคุณ ทิปเล็กๆ ช่วยให้ไปต่อได้ 🦉</string>

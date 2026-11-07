@@ -245,6 +245,11 @@
     <string name="settings_report_issue_title">समस्या रिपोर्ट गर्नुहोस्</string>
     <string name="settings_report_issue_subtitle">GitHub मा बग रिपोर्ट पठाउनुहोस्</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">रुपरेखा</string>
     <string name="appearance_back">पछाडि</string>

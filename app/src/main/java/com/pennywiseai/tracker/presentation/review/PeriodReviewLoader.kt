@@ -42,9 +42,9 @@ class PeriodReviewLoader @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardRepository: CardRepository,
 ) {
-    fun observe(kind: ReviewKind, offset: Int): Flow<PeriodReview> = flow {
+    fun observe(kind: ReviewKind, offset: Int, today: LocalDate = LocalDate.now()): Flow<PeriodReview> = flow {
         val range = reviewRange(
-            kind, offset, LocalDate.now(), userPreferencesRepository.getBudgetCycleStartDay(), localFirstDayOfWeek()
+            kind, offset, today, userPreferencesRepository.getBudgetCycleStartDay(), localFirstDayOfWeek()
         )
         emitAll(
             combine(

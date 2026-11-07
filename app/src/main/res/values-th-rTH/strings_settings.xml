@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">ยกเลิก</string>
     <string name="settings_action_ok">ตกลง</string>
-    <string name="settings_action_done">เสร็จสิ้น</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">อัปเกรดเป็น PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">ใช้งานอยู่ · ปลดล็อกฟีเจอร์ขั้นสูงทั้งหมดแล้ว</string>
@@ -29,10 +28,13 @@
     <string name="settings_card_spend_as_expense_subtitle">รวมยอดใช้บัตรเครดิตใน \"ใช้ไปเดือนนี้\"</string>
     <string name="settings_default_currency_title">สกุลเงินเริ่มต้น</string>
     <string name="settings_default_currency_subtitle">สกุลเงินที่ใช้ในการแปลง</string>
+    <string name="settings_budget_convert_title">แปลงงบประมาณของคุณไหม</string>
+    <string name="settings_budget_convert_message">วงเงินงบประมาณของคุณเคยเป็น %1$s และตอนนี้แสดงเป็น %2$s แปลงตามอัตราล่าสุดที่มี (%3$s) หรือคงตัวเลขเดิมไว้</string>
+    <string name="settings_budget_convert_confirm">แปลง</string>
+    <string name="settings_budget_convert_keep">คงตัวเลขเดิม</string>
     <string name="settings_main_account_title">บัญชีหลัก</string>
     <string name="settings_main_account_subtitle">ใช้กำหนดสกุลเงินเริ่มต้นของคุณ</string>
     <string name="settings_main_account_not_set">ยังไม่ได้ตั้งค่า</string>
-    <string name="settings_currency_field_label">สกุลเงิน</string>
     <string name="settings_number_format_title">รูปแบบตัวเลข</string>
     <string name="settings_number_format_subtitle">วิธีแบ่งหลักของจำนวนเงินก้อนใหญ่</string>
     <string name="settings_number_format_auto">อัตโนมัติ</string>
@@ -44,9 +46,7 @@
     <string name="settings_date_format_title">รูปแบบวันที่</string>
     <string name="settings_date_format_subtitle">วิธีแสดงวันที่</string>
     <!-- Budget -->
-    <string name="settings_budget_section">งบประมาณ</string>
     <string name="settings_budget_cycle_title">วันเริ่มรอบงบประมาณ</string>
-    <string name="settings_budget_cycle_subtitle">เลื่อนวันเริ่มของรอบงบประมาณรายเดือน เช่น 25 หมายถึงรอบจะเริ่มวันที่ 25 → 24</string>
     <string name="settings_budget_cycle_dialog_body">เลือกวันที่เริ่มรอบงบประมาณแต่ละเดือน เช่น 25 หมายถึงรอบจะเริ่มวันที่ 25 ถึงวันที่ 24 ของเดือนถัดไป</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">รายชื่อติดต่อ</string>

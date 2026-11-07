@@ -6,6 +6,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.TransactionDraft
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
@@ -30,7 +31,10 @@ class AddTransactionBatchTest {
     private val useCase = AddTransactionUseCase(
         db,
         SubscriptionRepository(db.subscriptionDao(), db.categoryDao()),
-        AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db),
+        AccountBalanceRepository(
+            db.accountBalanceDao(), db.transactionDao(), db,
+            UserPreferencesRepository(InstrumentationRegistry.getInstrumentation().targetContext)
+        ),
         TagRepository(db, db.tagDao())
     )
     private val day = LocalDate.of(2026, 1, 15)

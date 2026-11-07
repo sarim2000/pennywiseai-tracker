@@ -235,6 +235,7 @@ class ChatViewModel @Inject constructor(
                         // The user tapped Add: leaving the screen now can't undo that, or lose what was saved.
                         if (drafts.isNotEmpty()) withContext(NonCancellable) {
                             addTransactionUseCase.executeAll(drafts)
+                            com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                             llmRepository.completePendingAction(
                                 drafts.joinToString("\n") { draft ->
                                     context.getString(

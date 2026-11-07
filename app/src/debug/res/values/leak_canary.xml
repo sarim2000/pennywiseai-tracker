@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- LeakCanary's own launcher entry makes MAIN/LAUNCHER ambiguous, so scripted launches
+         land on a chooser. Its notification still opens the leak list. -->
+    <bool name="leak_canary_add_launcher_icon">false</bool>
+</resources>

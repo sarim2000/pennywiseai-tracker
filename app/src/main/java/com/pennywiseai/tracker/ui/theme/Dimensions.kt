@@ -128,6 +128,9 @@ object Dimensions {
     object Component {
         val bottomBarHeight = 80.dp
 
+        /** Widest a current value may get at the end of a settings row. */
+        val rowValueMaxWidth = 96.dp
+
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
 

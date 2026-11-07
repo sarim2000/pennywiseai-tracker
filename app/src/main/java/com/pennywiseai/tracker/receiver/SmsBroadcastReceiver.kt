@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.bidiIsolate
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -253,8 +254,11 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 alerts.size == 1 && active.none { it.id == GROUP_SUMMARY_ID } -> Unit
                 else -> {
                     val title = context.resources.getQuantityString(R.plurals.notif_txn_group_title, alerts.size, alerts.size)
-                    val lines = alerts.values.sortedByDescending { it.`when` }
-                        .mapNotNull { it.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) }
+                    // An alert's title is just the amount; its text says where.
+                    val lines = alerts.values.sortedByDescending { it.`when` }.mapNotNull { alert ->
+                        val amount = alert.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) ?: return@mapNotNull null
+                        listOfNotNull(amount, alert.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)).joinToString(" · ")
+                    }
                     notificationManager.notify(
                         GROUP_SUMMARY_ID,
                         NotificationCompat.Builder(context, CHANNEL_ID)
@@ -319,7 +323,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 ?.takeIf { it.extras.getBoolean(EXTRA_BILL_ACTION) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(context.getString(R.string.notif_txn_learned_title, CategoryMapping.label(context, learned.category)))
+                .setContentTitle(context.getString(R.string.notif_txn_learned_title, context.bidiIsolate(CategoryMapping.label(context, learned.category))))
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setContentIntent(openTransactionIntent(context, learned.transactionId))
@@ -416,14 +420,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 val text = if (priceUpdated) {
                     context.getString(
                         R.string.recurring_alert_price_updated,
-                        tracked.merchantName,
+                        context.bidiIsolate(tracked.merchantName),
                         CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency, maskIfHidden = false),
                         next
                     )
                 } else {
                     context.getString(
                         R.string.recurring_alert_tracking,
-                        tracked.merchantName,
+                        context.bidiIsolate(tracked.merchantName),
                         context.getString(cycleLabel(tracked.billingCycle)),
                         next
                     )
@@ -450,7 +454,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          * lock screen: private, with a public version that carries no figures.
          */
         internal fun showBalanceDiscrepancyNotification(context: Context, transaction: TransactionEntity, discrepancy: BalanceDiscrepancy) {
-            val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
+            val bankName = context.bidiIsolate(transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank))
             val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency, maskIfHidden = false)
             val title = context.getString(
                 if (discrepancy.delta.signum() > 0) R.string.notif_balance_higher else R.string.notif_balance_lower,
@@ -503,7 +507,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 if (transaction.transactionType == TransactionType.INCOME) R.string.notif_txn_excluded_income
                 else R.string.notif_txn_excluded_spending
             )
-            val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
+            val merchant = context.bidiIsolate(transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) })
             ensureChannel(context).notify(
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
@@ -593,7 +597,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val draft = suggestion.draft()
             val tx = suggestion.transaction
             val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency, maskIfHidden = false)
-            val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
+            val merchant = context.bidiIsolate(tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant))
             val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
                 context.getString(R.string.notif_suggestion_title_received, amount, merchant)
             } else {
@@ -619,7 +623,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
-                    .setContentText(context.getString(R.string.notif_suggestion_text, BankNotificationConfig.displayName(context, suggestion.sms.sender)))
+                    .setContentText(context.getString(R.string.notif_suggestion_text, context.bidiIsolate(BankNotificationConfig.displayName(context, suggestion.sms.sender))))
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setContentIntent(
                         PendingIntent.getActivity(
@@ -731,7 +735,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val priceLine = result.priceChange?.let { change ->
                 context.getString(
                     if (saved.amount > change.previousAmount) R.string.recurring_alert_price_up else R.string.recurring_alert_price_down,
-                    change.subscriptionName,
+                    context.bidiIsolate(change.subscriptionName),
                     CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency, maskIfHidden = false),
                     CurrencyFormatter.formatCurrency(saved.amount, saved.currency, maskIfHidden = false)
                 )
@@ -777,28 +781,29 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val pendingIntent = openTransactionIntent(context, transactionId)
 
             val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)
-            val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
-            val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
+            val merchant = context.bidiIsolate(transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) })
+            // The amount gets the title to itself and the merchant the line below,
+            // so a long name never cuts the amount off (or the amount the name).
             val title = when (transaction.transactionType) {
-                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount, merchant)
-                TransactionType.EXPENSE, TransactionType.CREDIT ->
-                    context.getString(R.string.notif_txn_title_spent, amount, merchant)
-                else -> context.getString(R.string.notif_txn_title_other, amount, merchant)
+                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount)
+                TransactionType.EXPENSE, TransactionType.CREDIT -> context.getString(R.string.notif_txn_title_spent, amount)
+                else -> amount
             }
             // From the table: a process started for this SMS may not have mirrored CategoryMapping.userStyles yet.
             val categories = categoryRepository.getAllCategories().first()
             // Unsorted: ask, with one-tap answers. Sorted: the category sits in the header.
             val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
-            val summaryLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category, bankName) else bankName
-            val content = listOfNotNull(summaryLine, priceLine).joinToString("\n")
+            // No bank: the user knows which account they paid from. The question
+            // and a price change wait for the expanded view, beside the buttons they explain.
+            val askLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category) else null
+            val expanded = listOfNotNull(merchant, askLine, priceLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(title)
-                .setContentText(content)
+                .setContentText(merchant)
                 .setSubText(if (uncategorized) null else CategoryMapping.label(context, transaction.category, categories))
-                // A price change adds a second line.
-                .apply { if (priceLine != null) setStyle(NotificationCompat.BigTextStyle().bigText(content)) }
+                .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)

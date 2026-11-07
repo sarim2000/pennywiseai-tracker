@@ -43,6 +43,18 @@ interface BudgetDao {
     @Update
     suspend fun updateBudget(budget: BudgetEntity)
 
+    @Update
+    suspend fun updateBudgets(budgets: List<BudgetEntity>)
+
+    @Update
+    suspend fun updateBudgetCategories(categories: List<BudgetCategoryEntity>)
+
+    @Transaction
+    suspend fun updateBudgetsAndCategories(budgets: List<BudgetEntity>, categories: List<BudgetCategoryEntity>) {
+        updateBudgets(budgets)
+        updateBudgetCategories(categories)
+    }
+
     @Query("UPDATE budgets SET is_active = 0, updated_at = datetime('now') WHERE id = :budgetId")
     suspend fun deactivateBudget(budgetId: Long)
 

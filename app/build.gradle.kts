@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -21,8 +22,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 108
-        versionName = "2.24.0"
+        versionCode = 109
+        versionName = "2.25.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -185,6 +186,26 @@ kotlin {
     }
 }
 
+// A single profile for both flavors. Generation runs only when asked for
+// (docs/performance.md), never as part of assemble.
+baselineProfile {
+    mergeIntoMain = true
+}
+
+// The plugin's two profileable variants (benchmarkRelease measures, nonMinifiedRelease
+// generates) install beside any real build, and they alone carry the benchmark seed.
+// release has no isProfileable and no src/benchmarkSeed.
+val benchmarkBuildTypes = listOf("benchmarkRelease", "nonMinifiedRelease")
+android.sourceSets {
+    benchmarkBuildTypes.forEach { maybeCreate(it).kotlin.directories.add("src/benchmarkSeed/java") }
+}
+androidComponents.onVariants { variant ->
+    if (variant.buildType in benchmarkBuildTypes) {
+        variant.applicationId.set("com.pennywiseai.tracker.benchmark")
+        variant.sources.manifests.addStaticManifestFile("src/benchmarkSeed/AndroidManifest.xml")
+    }
+}
+
 // Configure Room schema export
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
@@ -219,7 +240,9 @@ dependencies {
     // Local modules
     implementation(project(":parser-core"))
     implementation(project(":shared"))
+    baselineProfile(project(":baselineprofile"))
 
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -310,6 +333,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    debugImplementation(libs.leakcanary.android)
     
     // Coil for image loading
     implementation(libs.coil.compose)
@@ -338,6 +362,16 @@ dependencies {
 }
 
 android.sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
+// androidx.test asks for concurrent-futures 1.2.0, but AGP holds test classpaths to
+// the app's runtime version (1.1.0, via Glance), so no androidTest resolves without
+// this. Test-only: the app stays on 1.1.0.
+// ponytail: hard-coded versions, drop this once Glance moves the app to 1.2.0.
+configurations.matching { "AndroidTest" in it.name }.configureEach {
+    resolutionStrategy.force(
+        "androidx.concurrent:concurrent-futures:1.1.0",
+        "androidx.concurrent:concurrent-futures-ktx:1.1.0",
+    )
+}
 // StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
 // infer. Without this the test task stays UP-TO-DATE when only translations
 // change — i.e. for exactly the pull requests it exists to check.

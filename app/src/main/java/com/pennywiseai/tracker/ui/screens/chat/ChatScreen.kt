@@ -130,7 +130,7 @@ fun ChatScreen(
                                     Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
@@ -898,7 +898,7 @@ private fun ChatEmptyState(
             Icons.Default.AutoAwesome,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(

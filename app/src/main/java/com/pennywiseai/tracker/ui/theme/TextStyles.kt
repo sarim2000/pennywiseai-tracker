@@ -27,8 +27,7 @@ object PennyWiseText {
     /** The one big number on a screen — Home balance, account balance. */
     val heroAmount: TextStyle
         @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.displaySmall.copy(
-            fontWeight = FontWeight.Bold,
+        get() = MaterialTheme.typography.displaySmallEmphasized.copy(
             fontFeatureSettings = TABULAR
         )
 

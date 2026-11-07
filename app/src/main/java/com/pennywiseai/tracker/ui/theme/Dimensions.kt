@@ -128,6 +128,9 @@ object Dimensions {
     object Component {
         val bottomBarHeight = 80.dp
 
+        /** Widest a current value may get at the end of a settings row. */
+        val rowValueMaxWidth = 96.dp
+
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
 
@@ -140,6 +143,8 @@ object Dimensions {
 
         /** Corner of the squircle action docked beside the floating nav pill. */
         val dockedActionCornerRadius = 20.dp
+        /** Corner while the docked action is held — the M3 Expressive press morph. */
+        val dockedActionPressedCornerRadius = 12.dp
 
         val buttonHeight = 48.dp
 

@@ -192,7 +192,8 @@ fun UnifiedAccountsCard(
                 if (totalAccounts > 4) {
                     TextButton(
                         onClick = { showAllAccounts = !showAllAccounts },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(
                             text = if (showAllAccounts) stringResource(R.string.accounts_overview_show_less) else pluralStringResource(R.plurals.accounts_overview_view_all, totalAccounts, totalAccounts),

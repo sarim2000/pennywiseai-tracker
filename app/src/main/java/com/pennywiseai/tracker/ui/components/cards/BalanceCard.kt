@@ -7,7 +7,6 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,9 +30,11 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -111,7 +112,7 @@ fun BalanceCard(
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (isExpanded) 180f else 0f,
-        animationSpec = tween(Dimensions.Animation.medium),
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "chevronRotation"
     )
 
@@ -141,7 +142,7 @@ fun BalanceCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(
-                    animationSpec = tween(Dimensions.Animation.medium)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
                 .then(
                     if (blurEffects) Modifier
@@ -529,7 +530,8 @@ private fun SpendingAmountHeader(
         )
         IconButton(
             onClick = onToggleBalanceVisibility,
-            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -569,16 +571,17 @@ private fun SpendingMetaRow(
                 onClick = { showMenu = true }
             )
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                currencies.forEach { code ->
-                    DropdownMenuItem(
+                currencies.forEachIndexed { index, code ->
+                    SelectableDropdownMenuItem(
+                        selected = code == currency,
                         text = { Text(code) },
                         onClick = {
                             if (code != currency) onCurrencySelected(code)
                             showMenu = false
                         },
-                        trailingIcon = if (code == currency) {
-                            { Icon(Icons.Default.Check, contentDescription = null) }
-                        } else null
+                        shapes = MenuDefaults.itemShape(index, currencies.size),
+                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                     )
                 }
             }

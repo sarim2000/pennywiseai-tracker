@@ -277,7 +277,6 @@
     <string name="subscriptions_edit_no_account">Hakuna akaunti</string>
     <string name="subscriptions_edit_paid_from">Imelipwa kutoka</string>
     <string name="subscriptions_edit_pick_account">Chagua akaunti</string>
-    <string name="subscriptions_edit_selected">Imechaguliwa</string>
     <string name="subscriptions_edit_save">Hifadhi</string>
     <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">%1$s imewekwa kuwa imelipwa · mzunguko ujao %2$s</string>

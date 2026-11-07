@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.receiver.BillReminderActionReceiver
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.bidiIsolate
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -89,7 +90,7 @@ class BillReminderWorker @AssistedInject constructor(
                 transactionDao.getBankChargedRecurringMerchants(sub.currency).any { RecurringCharge.sameMerchant(it, sub.merchantName) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(context.getString(R.string.bill_reminder_title, sub.merchantName))
+                .setContentTitle(context.getString(R.string.bill_reminder_title, context.bidiIsolate(sub.merchantName)))
                 .setContentText(
                     context.getString(
                         R.string.bill_reminder_text,

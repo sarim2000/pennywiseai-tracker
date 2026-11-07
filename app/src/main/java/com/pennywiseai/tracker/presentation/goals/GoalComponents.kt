@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import android.content.Context
 import android.content.res.Resources
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +25,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -94,7 +94,7 @@ fun GoalRing(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val animated by animateFloatAsState(progress.fraction(), tween(Dimensions.Animation.long), label = "goalRing")
+    val animated by animateFloatAsState(progress.fraction(), MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalRing")
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val color = progress.color()
     val description = stringResource(R.string.goals_ring_description, progress.percent())
@@ -314,7 +314,7 @@ fun GoalsSection(
             topSpacing = Spacing.none,
             action = if (active.isNotEmpty()) {
                 {
-                    TextButton(onClick = create) {
+                    TextButton(onClick = create, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                         Spacer(Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.goals_new))
@@ -374,7 +374,7 @@ fun GoalsSection(
                                     CurrencyFormatter.formatCurrency(goal.goal.targetAmount, goal.goal.currency),
                                 ),
                             )
-                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }) {
+                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.goals_unarchive))
                             }
                         }
@@ -409,7 +409,7 @@ private fun GoalsEmptyCard(onCreate: () -> Unit) {
             }
         }
         Spacer(Modifier.size(Spacing.md))
-        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
             Text(stringResource(R.string.goals_empty_action))
         }
     }

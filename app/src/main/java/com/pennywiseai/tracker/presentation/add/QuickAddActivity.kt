@@ -20,10 +20,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -224,7 +226,7 @@ class QuickAddActivity : FragmentActivity() {
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { openFullForm(amountText, where, category, account) }) {
+                TextButton(onClick = { openFullForm(amountText, where, category, account) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.quick_add_more_details))
                 }
             }
@@ -258,6 +260,8 @@ class QuickAddActivity : FragmentActivity() {
                 setup.categories.forEach { c ->
                     FilterChip(
                         selected = category == c.name,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             category = c.name
                             // Typing is done once the category is picked; on a short phone the keyboard hides Save.
@@ -271,7 +275,8 @@ class QuickAddActivity : FragmentActivity() {
             Button(
                 onClick = { save(amount!!, category!!, where, account, setup.currency) },
                 enabled = amount != null && category != null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget)
+                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.add_save))
             }

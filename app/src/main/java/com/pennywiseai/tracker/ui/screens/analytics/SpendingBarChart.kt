@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.ui.screens.analytics
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -76,9 +75,11 @@ fun SpendingBarChart(
     }
 
     val animationProgress = remember { Animatable(0f) }
+    // Bar heights are data: an effects spec settles without overshooting the value.
+    val motion = MaterialTheme.motionScheme
     LaunchedEffect(chartData) {
         animationProgress.snapTo(0f)
-        animationProgress.animateTo(1f, animationSpec = tween(600))
+        animationProgress.animateTo(1f, animationSpec = motion.slowEffectsSpec())
     }
     val progress = animationProgress.value
 

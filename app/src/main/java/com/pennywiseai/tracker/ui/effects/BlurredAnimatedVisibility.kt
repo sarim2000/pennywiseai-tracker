@@ -13,14 +13,15 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,9 +50,10 @@ fun BlurredAnimatedVisibility(
         label = "blurTransition"
     )
 
+    val motion = MaterialTheme.motionScheme
     val blurRadius by transition.animateFloat(
         label = "blurRadius",
-        transitionSpec = { tween(durationMillis = 300) }
+        transitionSpec = { motion.defaultEffectsSpec() }
     ) { state ->
         if (state && transition.currentState == transition.targetState) 0f else 5f
     }
@@ -78,7 +80,7 @@ fun BlurredAnimatedVisibility(
             }
         }
     } else {
-        // For Android 10-11, use a custom RenderScript blur implementation
+        // Below Android 12, use a custom RenderScript blur implementation
         AnimatedVisibility(
             visible = visible,
             enter = enter,
@@ -103,6 +105,14 @@ fun CustomBlurEffect(
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     val renderScript = remember { RenderScript.create(context) }
     val scriptBlur = remember { ScriptIntrinsicBlur.create(renderScript, Element.U8_4(renderScript)) }
+    // Both hold native resources the GC doesn't free for us. The bitmap is left to the
+    // GC: a display list recorded earlier may still reference it.
+    DisposableEffect(renderScript, scriptBlur) {
+        onDispose {
+            scriptBlur.destroy()
+            renderScript.destroy()
+        }
+    }
 
     Box(
         modifier = Modifier

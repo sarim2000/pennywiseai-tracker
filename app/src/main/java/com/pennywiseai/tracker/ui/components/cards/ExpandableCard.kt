@@ -4,7 +4,6 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
@@ -31,7 +30,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import android.view.HapticFeedbackConstants
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable
@@ -49,7 +47,7 @@ fun ExpandableCard(
 
     val chevronRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        animationSpec = tween(Dimensions.Animation.medium),
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "chevronRotation"
     )
 
@@ -86,10 +84,10 @@ fun ExpandableCard(
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically(
-                    animationSpec = tween(Dimensions.Animation.medium)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 ),
                 exit = shrinkVertically(
-                    animationSpec = tween(Dimensions.Animation.short)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
             ) {
                 Column(

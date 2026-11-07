@@ -417,7 +417,8 @@ fun SubscriptionTabContent(
                     if (uiState.selectedAccount != null) {
                         IconButton(
                             onClick = { viewModel.updateSubscriptionAccount(null) },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.Clear,
@@ -440,7 +441,10 @@ fun SubscriptionTabContent(
                 expanded = showAccountMenu,
                 onDismissRequest = { showAccountMenu = false }
             ) {
-                DropdownMenuItem(
+                SelectableDropdownMenuItem(
+                    selected = uiState.selectedAccount == null,
+                    shapes = MenuDefaults.itemShape(0, 1),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                     text = {
                         Column {
                             Text(stringResource(R.string.add_sub_no_account))
@@ -455,7 +459,8 @@ fun SubscriptionTabContent(
                         viewModel.updateSubscriptionAccount(null)
                         showAccountMenu = false
                     },
-                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                 )
                 HorizontalDivider()
                 val groupedAccounts = accounts.groupBy { it.getAccountType() }
@@ -472,8 +477,11 @@ fun SubscriptionTabContent(
                         onClick = {},
                         enabled = false
                     )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
+                    accountList.forEachIndexed { index, account ->
+                        SelectableDropdownMenuItem(
+                            selected = uiState.selectedAccount?.id == account.id,
+                            shapes = MenuDefaults.itemShape(index, accountList.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = {
                                 Column {
                                     Text(account.displayLabel)
@@ -494,11 +502,7 @@ fun SubscriptionTabContent(
                                     contentDescription = null
                                 )
                             },
-                            trailingIcon = {
-                                if (uiState.selectedAccount?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }
@@ -531,7 +535,8 @@ fun SubscriptionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -565,11 +570,12 @@ fun SubscriptionTabContent(
                             viewModel.updateSubscriptionNextPaymentDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

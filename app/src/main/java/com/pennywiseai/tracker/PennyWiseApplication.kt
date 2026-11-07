@@ -5,6 +5,9 @@ import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration as ResConfiguration
 import android.os.Bundle
+import android.os.StrictMode
+import androidx.compose.material3.ComposeMaterial3Flags
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -71,7 +74,19 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate() {
+        // Log-only, so main-thread I/O and leaks show in logcat without crashing a debug build.
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().detectNetwork().penaltyLog().build()
+            )
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectActivityLeaks().penaltyLog().build()
+            )
+        }
+        // Opt into M3's fixed Snackbar layout (multi-line text aligns vertically); must precede any composition.
+        ComposeMaterial3Flags.isSnackbarStylingFixEnabled = true
         super.onCreate()
         // Create CategoryMapping's snapshot-state map before any composition exists.
         // Left to its first use, it could be created after a composition's snapshot

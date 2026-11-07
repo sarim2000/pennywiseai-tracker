@@ -109,7 +109,7 @@ object SharedComponents {
     fun FlowContent.proBanner() {
         a(href = "/pro", classes = "pro-banner") {
             span(classes = "pro-banner-title") { +"PennyWise Pro" }
-            span(classes = "pro-banner-prices") { +"₹2,000 lifetime · ₹699 / year · ₹149 / month" }
+            span(classes = "pro-banner-prices") { +if (ProViews.offerActive()) "Diwali: 25% off Annual and Lifetime until 10 Nov" else "₹2,000 lifetime · ₹699 / year · ₹149 / month" }
             span(classes = "pro-banner-cta") { +"Get Pro →" }
         }
     }

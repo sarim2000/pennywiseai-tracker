@@ -324,7 +324,8 @@ fun AnalyticsScreen(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 ),
-                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs)
+                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     imageVector = when (chartType) {
@@ -450,7 +451,7 @@ fun AnalyticsScreen(
                                 } else {
                                     CategoryViewType.CHART
                                 }
-                            }) {
+                            }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = if (categoryViewType == CategoryViewType.CHART)
                                         Icons.AutoMirrored.Filled.List
@@ -526,7 +527,7 @@ fun AnalyticsScreen(
                                 } else {
                                     CategoryViewType.CHART
                                 }
-                            }) {
+                            }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     imageVector = if (tagViewType == CategoryViewType.CHART)
                                         Icons.AutoMirrored.Filled.List
@@ -771,17 +772,16 @@ private fun AnalyticsFilterBar(
                     onDismissRequest = onGroupByDismiss,
                     shape = MaterialTheme.shapes.large
                 ) {
-                    AnalyticsGroupBy.entries.forEach { option ->
-                        DropdownMenuItem(
+                    AnalyticsGroupBy.entries.forEachIndexed { index, option ->
+                        SelectableDropdownMenuItem(
+                            selected = groupBy == option,
                             text = { Text(option.label()) },
-                            leadingIcon = {
-                                Icon(
-                                    if (groupBy == option) Icons.Default.Check else option.icon(),
-                                    contentDescription = null
-                                )
-                            },
+                            shapes = MenuDefaults.itemShape(index, AnalyticsGroupBy.entries.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                            leadingIcon = { Icon(option.icon(), contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                             // Subtle Pro hint for free users; picking it opens the upgrade sheet.
-                            trailingIcon = if (option.isPro && !isProEntitled) {
+                            trailingContent = if (option.isPro && !isProEntitled) {
                                 {
                                     Icon(
                                         Icons.Default.Lock,
@@ -840,14 +840,13 @@ private fun AnalyticsFilterBar(
                     onDismissRequest = onPeriodDismiss,
                     shape = MaterialTheme.shapes.large
                 ) {
-                    timePeriods.forEach { period ->
-                        DropdownMenuItem(
+                    timePeriods.forEachIndexed { index, period ->
+                        SelectableDropdownMenuItem(
+                            selected = selectedPeriod == period,
                             text = { Text(period.label) },
-                            leadingIcon = {
-                                if (selectedPeriod == period) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                }
-                            },
+                            shapes = MenuDefaults.itemShape(index, timePeriods.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                             onClick = { onPeriodSelected(period) }
                         )
                     }
@@ -873,16 +872,14 @@ private fun AnalyticsFilterBar(
                     onDismissRequest = onTypeDismiss,
                     shape = MaterialTheme.shapes.large
                 ) {
-                    TransactionTypeFilter.values().forEach { typeFilter ->
-                        DropdownMenuItem(
+                    TransactionTypeFilter.entries.forEachIndexed { index, typeFilter ->
+                        SelectableDropdownMenuItem(
+                            selected = transactionTypeFilter == typeFilter,
                             text = { Text(typeFilter.label) },
-                            leadingIcon = {
-                                if (transactionTypeFilter == typeFilter) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                } else {
-                                    Icon(typeFilter.filterIcon(), contentDescription = null)
-                                }
-                            },
+                            shapes = MenuDefaults.itemShape(index, TransactionTypeFilter.entries.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                            leadingIcon = { Icon(typeFilter.filterIcon(), contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                             onClick = { onTypeSelected(typeFilter) }
                         )
                     }
@@ -909,14 +906,13 @@ private fun AnalyticsFilterBar(
                         onDismissRequest = onCurrencyDismiss,
                         shape = MaterialTheme.shapes.large
                     ) {
-                        availableCurrencies.forEach { currency ->
-                            DropdownMenuItem(
+                        availableCurrencies.forEachIndexed { index, currency ->
+                            SelectableDropdownMenuItem(
+                                selected = selectedCurrency == currency,
                                 text = { Text(currency) },
-                                leadingIcon = {
-                                    if (selectedCurrency == currency) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    }
-                                },
+                                shapes = MenuDefaults.itemShape(index, availableCurrencies.size),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                 onClick = { onCurrencySelected(currency) }
                             )
                         }
@@ -942,20 +938,19 @@ private fun AnalyticsFilterBar(
                         onDismissRequest = onCategoryDismiss,
                         shape = MaterialTheme.shapes.large
                     ) {
-                        DropdownMenuItem(
+                        SelectableDropdownMenuItem(
+                            selected = categoryFilter == null,
                             text = { Text(stringResource(R.string.analytics_filter_all_categories)) },
-                            leadingIcon = {
-                                if (categoryFilter == null) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                } else {
-                                    Icon(Icons.Default.Category, contentDescription = null)
-                                }
-                            },
+                            shapes = MenuDefaults.itemShape(0, availableCategories.size + 1),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                            leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                             onClick = { onCategorySelected(null) }
                         )
 
-                        availableCategories.forEach { category ->
-                            DropdownMenuItem(
+                        availableCategories.forEachIndexed { index, category ->
+                            SelectableDropdownMenuItem(
+                                selected = categoryFilter == category,
                                 text = {
                                     Text(
                                         categoryLabel(category),
@@ -963,16 +958,15 @@ private fun AnalyticsFilterBar(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 },
+                                shapes = MenuDefaults.itemShape(index + 1, availableCategories.size + 1),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                 leadingIcon = {
-                                    if (categoryFilter == category) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    } else {
-                                        CategoryIcon(
-                                            category = category,
-                                            size = Dimensions.Icon.small
-                                        )
-                                    }
+                                    CategoryIcon(
+                                        category = category,
+                                        size = Dimensions.Icon.small
+                                    )
                                 },
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                 onClick = { onCategorySelected(category) }
                             )
                         }
@@ -1000,19 +994,18 @@ private fun AnalyticsFilterBar(
                         onDismissRequest = onAccountDismiss,
                         shape = MaterialTheme.shapes.large
                     ) {
-                        DropdownMenuItem(
+                        SelectableDropdownMenuItem(
+                            selected = accountFilter == null,
                             text = { Text(stringResource(R.string.analytics_filter_all_accounts)) },
-                            leadingIcon = {
-                                if (accountFilter == null) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                } else {
-                                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
-                                }
-                            },
+                            shapes = MenuDefaults.itemShape(0, accountOptions.size + 1),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                            leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                             onClick = { onAccountSelected(null) }
                         )
-                        accountOptions.forEach { option ->
-                            DropdownMenuItem(
+                        accountOptions.forEachIndexed { index, option ->
+                            SelectableDropdownMenuItem(
+                                selected = accountFilter == option.key,
                                 text = {
                                     Text(
                                         option.label,
@@ -1020,13 +1013,10 @@ private fun AnalyticsFilterBar(
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 },
-                                leadingIcon = {
-                                    if (accountFilter == option.key) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    } else {
-                                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null)
-                                    }
-                                },
+                                shapes = MenuDefaults.itemShape(index + 1, accountOptions.size + 1),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                 onClick = { onAccountSelected(option.key) }
                             )
                         }

@@ -147,7 +147,7 @@ fun ChatScreen(
                                         progress = { downloadProgress / 100f },
                                         modifier = Modifier.fillMaxWidth()
                                     )
-                                    OutlinedButton(onClick = { viewModel.cancelDownload() }) {
+                                    OutlinedButton(onClick = { viewModel.cancelDownload() }, shapes = ButtonDefaults.shapes()) {
                                         Icon(
                                             Icons.Default.Close,
                                             contentDescription = null,
@@ -157,7 +157,7 @@ fun ChatScreen(
                                         Text(stringResource(R.string.chat_cancel))
                                     }
                                 } else {
-                                    Button(onClick = { viewModel.startModelDownload() }) {
+                                    Button(onClick = { viewModel.startModelDownload() }, shapes = ButtonDefaults.shapes()) {
                                         Icon(
                                             Icons.Default.Download,
                                             contentDescription = null,
@@ -167,7 +167,7 @@ fun ChatScreen(
                                         Text(stringResource(R.string.chat_download_with_size, totalMB))
                                     }
                                 }
-                                TextButton(onClick = onNavigateToSettings) {
+                                TextButton(onClick = onNavigateToSettings, shapes = ButtonDefaults.shapes()) {
                                     Text(stringResource(R.string.chat_settings))
                                 }
                             }
@@ -226,7 +226,8 @@ fun ChatScreen(
                                     }
                                     OutlinedButton(
                                         onClick = { viewModel.cancelDownload() },
-                                        modifier = Modifier.padding(start = Spacing.sm)
+                                        modifier = Modifier.padding(start = Spacing.sm),
+                                        shapes = ButtonDefaults.shapes()
                                     ) {
                                         Text(stringResource(R.string.chat_cancel))
                                     }
@@ -259,7 +260,8 @@ fun ChatScreen(
                                 }
                                 Button(
                                     onClick = { viewModel.startModelDownload() },
-                                    modifier = Modifier.padding(start = Spacing.sm)
+                                    modifier = Modifier.padding(start = Spacing.sm),
+                                    shapes = ButtonDefaults.shapes()
                                 ) {
                                     Icon(
                                         Icons.Default.Download,
@@ -348,7 +350,8 @@ fun ChatScreen(
                                         onClick = { viewModel.clearChat() },
                                         colors = ButtonDefaults.textButtonColors(
                                             contentColor = MaterialTheme.colorScheme.error
-                                        )
+                                        ),
+                                        shapes = ButtonDefaults.shapes()
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
@@ -456,7 +459,7 @@ fun ChatScreen(
                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    IconButton(onClick = { viewModel.clearError() }) {
+                                    IconButton(onClick = { viewModel.clearError() }, shapes = IconButtonDefaults.shapes()) {
                                         Icon(
                                             Icons.Default.Close,
                                             contentDescription = stringResource(R.string.chat_dismiss),
@@ -501,7 +504,8 @@ fun ChatScreen(
                                         focusRequester.requestFocus()
                                     },
                                     enabled = inputText.isNotBlank() && !uiState.isLoading,
-                                    modifier = Modifier.size(48.dp)
+                                    modifier = Modifier.size(48.dp),
+                                    shapes = IconButtonDefaults.shapes()
                                 ) {
                                     if (uiState.isLoading) {
                                         CircularProgressIndicator(
@@ -590,7 +594,8 @@ fun TokenLimitWarning(
                     onClick = onClearChat,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = contentColor
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.chat_clear), fontWeight = FontWeight.Bold)
                 }
@@ -980,12 +985,13 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.chat_cancel)) }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
-                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(button) }
             }
         }

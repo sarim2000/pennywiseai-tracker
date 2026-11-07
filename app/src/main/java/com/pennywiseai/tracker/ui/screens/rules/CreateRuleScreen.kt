@@ -295,7 +295,7 @@ fun CreateRuleScreen(
                 title = stringResource(if (isEditing) R.string.rules_edit_title else R.string.rules_create_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rules_close))
                     }
                 },
@@ -328,7 +328,8 @@ fun CreateRuleScreen(
                                  conditions.isNotEmpty() &&
                                  conditions.all { it.validate() } &&
                                  actions.isNotEmpty() &&
-                                 actions.all { it.validate() }
+                                 actions.all { it.validate() },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.rules_save))
                     }
@@ -432,7 +433,8 @@ fun CreateRuleScreen(
                                     operator = ConditionOperator.LESS_THAN,
                                     value = ""
                                 )).toMutableList()
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
@@ -479,7 +481,8 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 conditions = conditions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                            shapes = IconButtonDefaults.shapes()
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
@@ -543,7 +546,8 @@ fun CreateRuleScreen(
                                         actionType = ActionType.SET,
                                         value = ""
                                     )
-                                }
+                                },
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                                 Spacer(modifier = Modifier.width(Spacing.xs))
@@ -580,7 +584,8 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 actions = actions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                            shapes = IconButtonDefaults.shapes()
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
@@ -762,10 +767,10 @@ fun CreateRuleScreen(
                 TextButton(onClick = {
                     actions = listOf(pendingBlockAction!!)
                     pendingBlockAction = null
-                }) { Text(stringResource(R.string.rules_block_confirm_action)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_block_confirm_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingBlockAction = null }) { Text(stringResource(R.string.rules_cancel)) }
+                TextButton(onClick = { pendingBlockAction = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
             }
         )
     }
@@ -844,6 +849,8 @@ private fun ConditionFieldSelector(
         operators.forEach { (op, label) ->
             FilterChip(
                 selected = condition.operator == op,
+                shapes = FilterChipDefaults.shapes(),
+                colors = FilterChipDefaults.filterChipColors(),
                 onClick = { onConditionChange(condition.copy(operator = op)) },
                 label = { Text(stringResource(label)) }
             )
@@ -867,6 +874,8 @@ private fun ConditionFieldSelector(
                 RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                     FilterChip(
                         selected = condition.value.equals(type, ignoreCase = true),
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = { onConditionChange(condition.copy(value = type)) },
                         label = {
                             Text(stringResource(displayLabel), style = MaterialTheme.typography.bodySmall)
@@ -890,6 +899,8 @@ private fun ConditionFieldSelector(
                     days.forEach { (value, label) ->
                         FilterChip(
                             selected = value in selectedDays,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 val newSet = if (value in selectedDays) selectedDays - value else selectedDays + value
                                 onConditionChange(condition.copy(value = newSet.sorted().joinToString(",")))
@@ -901,6 +912,8 @@ private fun ConditionFieldSelector(
                     days.forEach { (value, label) ->
                         FilterChip(
                             selected = condition.value == value,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = { onConditionChange(condition.copy(value = value)) },
                             label = { Text(stringResource(label), style = MaterialTheme.typography.bodySmall) }
                         )
@@ -937,7 +950,7 @@ private fun ConditionFieldSelector(
                 label = { Text(stringResource(R.string.rules_time_label)) },
                 placeholder = { Text(stringResource(R.string.rules_time_placeholder)) },
                 trailingIcon = {
-                    IconButton(onClick = { showTimePicker = true }) {
+                    IconButton(onClick = { showTimePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.rules_pick_time))
                     }
                 },
@@ -953,10 +966,10 @@ private fun ConditionFieldSelector(
                             val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                             onConditionChange(condition.copy(value = formatted))
                             showTimePicker = false
-                        }) { Text(stringResource(R.string.rules_ok)) }
+                        }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_ok)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                     },
                     text = { TimePicker(state = timePickerState) }
                 )
@@ -1276,6 +1289,8 @@ private fun ActionEditor(
                         commonCategories.forEach { category ->
                             FilterChip(
                                 selected = action.value == category,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = category)) },
                                 label = { Text(categoryLabel(category), style = MaterialTheme.typography.bodySmall) }
                             )
@@ -1307,6 +1322,8 @@ private fun ActionEditor(
                         RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                             FilterChip(
                                 selected = action.value.equals(type, ignoreCase = true),
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = type)) },
                                 label = {
                                     Text(

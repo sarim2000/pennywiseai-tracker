@@ -14,7 +14,6 @@ import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
@@ -228,6 +227,7 @@ fun HomeScreen(
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val density = LocalDensity.current
     val slideOffsetPx = with(density) { ENTRANCE_SLIDE_DISTANCE.roundToPx() }
+    val motion = MaterialTheme.motionScheme
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
@@ -492,9 +492,9 @@ fun HomeScreen(
                 }
                 AnimatedVisibility(
                     visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
+                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                         initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
+                        animationSpec = motion.defaultSpatialSpec()
                     )
                 ) {
                     if (!uiState.isBalanceReady) {
@@ -627,9 +627,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     SafeToSpendCard(
@@ -653,9 +653,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -665,7 +665,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_budgets),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToBudgets) {
+                                                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -696,9 +696,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -708,7 +708,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_goals),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToBudgets) {
+                                                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -738,9 +738,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -750,7 +750,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_loans),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToLoans) {
+                                                TextButton(onClick = onNavigateToLoans, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -788,9 +788,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -800,7 +800,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_groups),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToTransactionGroups) {
+                                                TextButton(onClick = onNavigateToTransactionGroups, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -835,9 +835,9 @@ fun HomeScreen(
                             }
                             AnimatedVisibility(
                                 visible = visible.value,
-                                enter = fadeIn(tween(300)) + slideInVertically(
+                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                     initialOffsetY = { slideOffsetPx },
-                                    animationSpec = tween(300)
+                                    animationSpec = motion.defaultSpatialSpec()
                                 )
                             ) {
                                 Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
@@ -851,7 +851,8 @@ fun HomeScreen(
                                                 // Search button
                                                 IconButton(
                                                     onClick = onNavigateToTransactionsWithSearch,
-                                                    modifier = Modifier.size(Dimensions.Component.iconButton)
+                                                    modifier = Modifier.size(Dimensions.Component.iconButton),
+                                                    shapes = IconButtonDefaults.shapes()
                                                 ) {
                                                     Icon(
                                                         imageVector = Icons.Default.Search,
@@ -861,7 +862,7 @@ fun HomeScreen(
                                                 }
 
                                                 // View All button
-                                                TextButton(onClick = onNavigateToTransactions) {
+                                                TextButton(onClick = onNavigateToTransactions, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -895,9 +896,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     PennyWiseEmptyState(
@@ -927,9 +928,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -973,9 +974,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -985,7 +986,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_accounts),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToManageAccounts) {
+                                                TextButton(onClick = onNavigateToManageAccounts, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_manage))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -1022,9 +1023,9 @@ fun HomeScreen(
                                 }
                                 AnimatedVisibility(
                                     visible = visible.value,
-                                    enter = fadeIn(tween(300)) + slideInVertically(
+                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                         initialOffsetY = { slideOffsetPx },
-                                        animationSpec = tween(300)
+                                        animationSpec = motion.defaultSpatialSpec()
                                     )
                                 ) {
                                     Column(
@@ -1034,7 +1035,7 @@ fun HomeScreen(
                                             title = stringResource(R.string.home_section_subscriptions),
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                             action = {
-                                                TextButton(onClick = onNavigateToSubscriptions) {
+                                                TextButton(onClick = onNavigateToSubscriptions, shapes = ButtonDefaults.shapes()) {
                                                     Text(stringResource(R.string.home_view_all))
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -1073,9 +1074,9 @@ fun HomeScreen(
                         }
                         AnimatedVisibility(
                             visible = visible.value,
-                            enter = fadeIn(tween(300)) + slideInVertically(
+                            enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                 initialOffsetY = { slideOffsetPx },
-                                animationSpec = tween(300)
+                                animationSpec = motion.defaultSpatialSpec()
                             )
                         ) {
                             CashFlowCard(
@@ -1102,9 +1103,9 @@ fun HomeScreen(
                             }
                             AnimatedVisibility(
                                 visible = visible.value,
-                                enter = fadeIn(tween(300)) + slideInVertically(
+                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
                                     initialOffsetY = { slideOffsetPx },
-                                    animationSpec = tween(300)
+                                    animationSpec = motion.defaultSpatialSpec()
                                 )
                             ) {
                                 Column(
@@ -1270,7 +1271,8 @@ fun HomeScreen(
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { showFullResyncDialog = false }
+                        onClick = { showFullResyncDialog = false },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.home_cancel))
                     }
@@ -1495,11 +1497,13 @@ fun HomeScreen(
                         )
                         IconButton(
                             enabled = i > 0,
-                            onClick = { viewModel.moveHomeSection(section, -1) }
+                            onClick = { viewModel.moveHomeSection(section, -1) },
+                            shapes = IconButtonDefaults.shapes()
                         ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.home_edit_move_up, sectionLabel)) }
                         IconButton(
                             enabled = i < homeSectionLayout.lastIndex,
-                            onClick = { viewModel.moveHomeSection(section, +1) }
+                            onClick = { viewModel.moveHomeSection(section, +1) },
+                            shapes = IconButtonDefaults.shapes()
                         ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.home_edit_move_down, sectionLabel)) }
                         Switch(
                             checked = isVisible,
@@ -1594,7 +1598,8 @@ private fun BreakdownDialog(
 
                 TextButton(
                     onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End)
+                    modifier = Modifier.align(Alignment.End),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.home_close))
                 }

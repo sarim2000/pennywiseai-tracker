@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -113,7 +114,7 @@ fun GoalDetailScreen(
     PennyWiseScaffold(
         title = progress?.goal?.name.orEmpty(),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
             }
         },
@@ -173,9 +174,10 @@ fun GoalDetailScreen(
                 Button(
                     onClick = { showDelete = false; viewModel.delete() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_menu_delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDelete = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         )
     }
 
@@ -194,7 +196,7 @@ private fun GoalOverflowMenu(
     val archived = progress.status == GoalStatus.ARCHIVED
     // Repeat fits a goal that has run its course: Reached, or Missed.
     val canRepeat = progress.status == GoalStatus.REACHED || progress.status == GoalStatus.MISSED
-    IconButton(onClick = { open = true }) {
+    IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
         Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.goal_more))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -306,11 +308,11 @@ private fun GoalDetailContent(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = onAdd, modifier = Modifier.weight(1f)) {
+                Button(onClick = onAdd, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
                     Text(stringResource(R.string.goal_add_money))
                 }
-                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
                     Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
                     Text(stringResource(R.string.goal_take_out))
                 }
@@ -476,7 +478,7 @@ private fun MoneySheet(
                 readOnly = true,
                 label = { Text(stringResource(R.string.goal_money_date)) },
                 trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
+                    IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.goal_money_date))
                     }
                 },
@@ -494,7 +496,7 @@ private fun MoneySheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) {
+                    TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.goal_contribution_delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -502,6 +504,7 @@ private fun MoneySheet(
                 Button(
                     onClick = { onSave(amount.toBigDecimalOrNull(), currency, date, note, manual.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }) },
                     enabled = !state.saving,
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_money_save)) }
             }
         }
@@ -515,9 +518,9 @@ private fun MoneySheet(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { date = it.toUtcDate() }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.goal_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         ) { DatePicker(state = pickerState) }
     }
 }

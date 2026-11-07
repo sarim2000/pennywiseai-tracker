@@ -266,7 +266,7 @@
     </plurals>
     <string name="txn_list_bulk_transfer_need_two">حدد بالضبط 2 من المعاملات لتمييزها كتحويل</string>
     <string name="txn_list_bulk_transfer_need_pair">اختر معاملة واحدة صادرة (نفقات) و معاملة واحدة واردة (دخل)</string>
-    <string name="txn_list_bulk_marked_transfer">وضع علامة كنقل</string>
+    <string name="txn_list_bulk_marked_transfer">نُقل بين حساباتك، فلا يُحسب دخلًا ولا نفقات.</string>
     <plurals name="txn_list_bulk_deleted">
         <item quantity="zero">تم حذف %1$d</item>
         <item quantity="one">تم حذف %1$d</item>
@@ -294,7 +294,6 @@
     <string name="add_field_reference">الرقم المرجعي (اختياري)</string>
     <string name="add_field_category">الفئة</string>
     <string name="add_clear">مسح</string>
-    <string name="add_selected">المحدد</string>
     <string name="add_save">حفظ</string>
     <string name="add_ok">موافق</string>
     <string name="add_cancel">إلغاء</string>

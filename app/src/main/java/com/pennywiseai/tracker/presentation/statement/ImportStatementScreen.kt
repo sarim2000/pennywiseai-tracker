@@ -135,7 +135,8 @@ fun ImportStatementScreen(
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                 contentColor = MaterialTheme.colorScheme.onBackground
-                            )
+                            ),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -372,12 +373,13 @@ private fun MappingContent(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = { onHeaderRow(mapping.headerRow - 1) }, enabled = mapping.headerRow > 0) {
+                IconButton(onClick = { onHeaderRow(mapping.headerRow - 1) }, enabled = mapping.headerRow > 0, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.import_statement_header_row_up))
                 }
                 IconButton(
                     onClick = { onHeaderRow(mapping.headerRow + 1) },
-                    enabled = mapping.headerRow < state.rows.lastIndex
+                    enabled = mapping.headerRow < state.rows.lastIndex,
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.import_statement_header_row_down))
                 }
@@ -661,7 +663,7 @@ private fun PreviewContent(
                     )
                 }
                 if (state.fromSpreadsheet) {
-                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.import_statement_edit_mapping))
                     }
                 }
@@ -904,7 +906,7 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             else -> {
-                FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.import_statement_balance_set, money(corrected)))
                 }
                 if (corrected.compareTo(check.statementBalance) != 0) {
@@ -1030,12 +1032,12 @@ private fun PdfPasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty()) {
+            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.import_statement_password_open))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.import_statement_password_cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.import_statement_password_cancel)) }
         }
     )
 }

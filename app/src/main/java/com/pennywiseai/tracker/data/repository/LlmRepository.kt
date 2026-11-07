@@ -64,7 +64,7 @@ class LlmRepository @Inject constructor(
         )
         chatDao.insertMessage(userChatMessage)
 
-        ensureConversation()
+        ensureConversation(pending = userChatMessage)
 
         // Use synchronous collection for non-streaming path
         val responseBuilder = StringBuilder()
@@ -127,7 +127,7 @@ class LlmRepository @Inject constructor(
         }
 
         // Ensure engine is initialized and conversation is active
-        ensureConversation()
+        ensureConversation(pending = userChatMessage)
 
         Log.d(TAG, "=== SENDING TO LLM ===")
         Log.d(TAG, "Total messages in context: ${currentMessages.size}")
@@ -168,7 +168,8 @@ class LlmRepository @Inject constructor(
         Log.d(TAG, "AI response saved")
     }
 
-    private suspend fun ensureConversation() {
+    /** [pending] is the message about to be sent: saved already, so kept out of the replayed history. */
+    private suspend fun ensureConversation(pending: ChatMessage) {
         // Initialize engine if needed
         if (!llmService.isInitialized()) {
             val modelFile = modelRepository.getModelFile()
@@ -201,9 +202,10 @@ class LlmRepository @Inject constructor(
                     buildSystemPrompt(chatContext)
                 }
 
-            // Build history (excluding system prompt)
+            // Build history (excluding system prompt, and the message being sent —
+            // replaying it too would put it in front of the model twice)
             val history = allMessages
-                .filter { !it.isSystemPrompt }
+                .filter { !it.isSystemPrompt && it.id != pending.id }
                 .map { it.message to it.isUser }
 
             val result = llmService.createConversation(systemPrompt, history, withTools = true)

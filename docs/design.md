@@ -272,6 +272,9 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
 
 - **One-of-N choice rows** → `ConnectedChoiceRow` (a connected `ToggleButton`
   group). Don't use `SegmentedButton`; Expressive replaces it.
+- **Picking a value from a Settings row** → `SettingsChoiceSheet`, a bottom sheet
+  of radio rows that opens on the current choice and fits long lists (31 days,
+  every currency).
 - **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
   spinners inside buttons or rows stay `CircularProgressIndicator`.
 - **Activity progress** (scan, import, export, download) →
@@ -279,6 +282,34 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
   stay flat `LinearProgressIndicator` — the wave signals *work happening*.
 - Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
   specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
+  **Spatial** specs (offset, size, scale, rotation) are springs that
+  overshoot: `fast` for small parts, `default` for cards/panels, `slow` for
+  full-screen moves. **Effects** specs (alpha, colour) don't overshoot — also
+  use them for bounded data values (progress fractions, chart sweeps), where
+  a bounce past 100% reads as wrong. `tween` stays only inside
+  `infiniteRepeatable` loops or where a duration is load-bearing.
+- **Buttons morph on press.** Every Material button passes
+  `shapes = ButtonDefaults.shapes()` (icon buttons:
+  `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
+- **Tappable list rows morph too.** `GroupedRow` (with `onClick`) and
+  `ListItemCardV2` (with `onClick`) render as M3 `SegmentedListItem`s: same
+  resting corners, plus the native press/focus morph to `shapes.large`.
+  Static rows stay plain surfaces.
+- **Chips** use the `shapes =` overload (`FilterChipDefaults.shapes()`), which
+  morphs on press and selection. Pass `colors` explicitly; the overload
+  otherwise defaults to tonal colours.
+- **Single-choice menus** use `SelectableDropdownMenuItem` with
+  `MenuDefaults.itemShape(index, count)`, a check in `selectedLeadingIcon`
+  and `MenuDefaults.selectableItemColors(containerColor = Color.Transparent)`.
+  The transparent container matters: the classic `DropdownMenu` surface
+  differs from the item fill, and without it every row reads as a tile.
+  Action menus stay `DropdownMenuItem`. Include/exclude lists whose items are
+  all ticked by default keep checkbox rows (their icons identify them).
+- **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
+  for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
+  expanded app-bar title.
+- The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
+  (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 
 ---
 

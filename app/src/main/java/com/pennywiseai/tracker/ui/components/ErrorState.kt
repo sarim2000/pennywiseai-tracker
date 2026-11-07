@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,7 +44,7 @@ fun ErrorState(
         )
         if (onRetry != null) {
             Spacer(modifier = Modifier.height(Spacing.sm))
-            TextButton(onClick = onRetry) {
+            TextButton(onClick = onRetry, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.error_state_retry))
             }
         }

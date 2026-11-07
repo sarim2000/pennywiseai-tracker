@@ -221,6 +221,10 @@ open class TransactionRepository @Inject constructor(
     suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity? =
         transactionDao.getAnyBySms(smsBody, smsSender)
 
+    /** See [TransactionDao.getAnyBySmsBetween]. */
+    suspend fun getAnyBySmsAround(smsBody: String, smsSender: String?, time: LocalDateTime, window: java.time.Duration): TransactionEntity? =
+        transactionDao.getAnyBySmsBetween(smsBody, smsSender, time.minus(window), time.plus(window))
+
     /** See [TransactionDao.getActiveSmsDuplicateRows]. */
     suspend fun getActiveSmsDuplicateRows(): List<TransactionEntity> =
         transactionDao.getActiveSmsDuplicateRows()

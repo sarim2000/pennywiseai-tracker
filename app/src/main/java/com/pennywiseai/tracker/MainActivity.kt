@@ -30,6 +30,7 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
+        const val EXTRA_OPEN_UNRECOGNIZED = "com.pennywiseai.tracker.OPEN_UNRECOGNIZED"
 
         /** The quick add sheet's draft, carried into the full form by "More details". */
         const val EXTRA_ADD_AMOUNT = "com.pennywiseai.tracker.ADD_AMOUNT"
@@ -171,6 +172,8 @@ class MainActivity : FragmentActivity() {
         val goalId = intent.getLongExtra(EXTRA_OPEN_GOAL_ID, -1L)
         widgetDestination = when {
             goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+            intent.getBooleanExtra(EXTRA_OPEN_UNRECOGNIZED, false) ->
+                com.pennywiseai.tracker.navigation.UnrecognizedSms
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
                 com.pennywiseai.tracker.navigation.BudgetGroups(
                     createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false),

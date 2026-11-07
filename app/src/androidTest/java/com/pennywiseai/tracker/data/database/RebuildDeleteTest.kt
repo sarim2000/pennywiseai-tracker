@@ -38,7 +38,9 @@ class RebuildDeleteTest {
             row(3, "ICICI PDF"),             // PDF import -> kept
             row(4, notification),            // bank-app notification -> kept
             row(5, "AD-KOTAKB", deleted = true), // user deleted it -> kept, so it isn't resurrected
-            row(6, "AD-KOTAKB", date = LocalDateTime.of(2025, 1, 1, 12, 0)) // older than the re-read window -> kept
+            row(6, "AD-KOTAKB", date = LocalDateTime.of(2025, 1, 1, 12, 0)), // older than the re-read window -> kept
+            // Booked from a taught template: only comes back if the user confirms it again -> kept
+            row(7, "AD-KOTAKB").copy(transactionHash = "taught_h7")
         ).forEach { dao.insertTransaction(it) }
 
         dao.deleteRebuildableSmsTransactions(
@@ -47,6 +49,6 @@ class RebuildDeleteTest {
         )
 
         val left = db.longs("SELECT id FROM transactions ORDER BY id")
-        assertEquals(listOf(2L, 3L, 4L, 5L, 6L), left)
+        assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L), left)
     }
 }

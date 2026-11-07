@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.worker
 
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
+import com.pennywiseai.parser.core.MessageTemplate
+import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
@@ -87,9 +90,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
-    private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase
+    private val generateIncomeAutopayUseCase: com.pennywiseai.tracker.domain.usecase.GenerateIncomeAutopayUseCase,
+    taughtTemplatesStore: com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 ) : CoroutineWorker(appContext, workerParams) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
+    private val taughtTemplates by lazy {
+        taughtTemplatesStore.all().groupBy { it.senderKey }
+    }
 
     companion object {
         const val TAG                               = "OptimizedSmsReaderWorker"
@@ -150,6 +157,20 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     m.groupValues[1].ifEmpty { m.groupValues[2] } in ISO_CURRENCY_CODES
                 }
         }
+
+        /**
+         * A taught sender's message that nothing else keeps (#279): its taught shape, or recent
+         * money wording that may be a new format, as the live receiver keeps it. An older one is
+         * history rather than a change, and the scan's own cleanup would drop it anyway.
+         */
+        internal fun taughtSenderKeeps(
+            templates: List<MessageTemplate>,
+            sender: String,
+            body: String,
+            timestamp: Long,
+            recentSince: Long
+        ): Boolean = MessageTemplates.matchAny(templates, body, sender, timestamp) != null ||
+            (timestamp > recentSince && MessageTemplates.looksLikeMoney(sender, body))
 
         private val SMS_PROJECTION = arrayOf(
             Telephony.Sms._ID,
@@ -627,7 +648,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val parsers = cachedParsers(sms.sender)
         val parser = parsers.firstOrNull()
-            ?: return if (isUnrecognizedCandidate(sms.sender, sms.body))
+            ?: return if (isUnrecognizedCandidate(sms.sender, sms.body) || keptForTaughtSender(sms))
                 ParseResult.StoreUnrecognized(sms)
             else
                 ParseResult.Discard(sms)
@@ -640,9 +661,20 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         // Shared senders (M-Pesa KE/TZ/MZ): first candidate whose content parses.
         val parsed = parsers.firstNotNullOfOrNull { it.parse(sms.body, sms.sender, sms.timestamp) }
-            ?: return ParseResult.Discard(sms)
+            ?: return if (keptForTaughtSender(sms)) ParseResult.StoreUnrecognized(sms) else ParseResult.Discard(sms)
 
         return ParseResult.Transaction(sms, parsed)
+    }
+
+    private fun keptForTaughtSender(sms: SmsMessage): Boolean {
+        val templates = taughtTemplates[LearnedSendersStore.normalize(sms.sender)] ?: return false
+        return taughtSenderKeeps(templates, sms.sender, sms.body, sms.timestamp, thirtyDaysAgoMillis)
+    }
+
+    /** The user taught this shape (#279), so it's offered for confirming whatever else would have dropped it. */
+    private fun matchesTaughtTemplate(sms: SmsMessage): Boolean {
+        val templates = taughtTemplates[LearnedSendersStore.normalize(sms.sender)] ?: return false
+        return MessageTemplates.matchAny(templates, sms.body, sms.sender, sms.timestamp) != null
     }
 
     // ─── Subscription / balance detection (pure parse, zero DB access) ────────
@@ -1085,15 +1117,22 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────
 
     private suspend fun flushUnrecognizedBatch(batch: ArrayList<SmsMessage>) {
-        val entities = batch.map { sms ->
-            UnrecognizedSmsEntity(
-                sender     = sms.sender,
-                smsBody    = sms.body,
-                receivedAt = sms.timestamp.toLocalDateTime()
-            )
-        }
+        fun SmsMessage.toRow() = UnrecognizedSmsEntity(
+            sender     = sender,
+            smsBody    = body,
+            receivedAt = timestamp.toLocalDateTime()
+        )
+        val (taught, others) = batch.partition(::matchesTaughtTemplate)
         try {
-            unrecognizedSmsRepository.insertAll(entities)
+            unrecognizedSmsRepository.insertAll(others.map { it.toRow() })
+            // A taught sender's text can repeat: the same words later are another payment, offered
+            // again unless that very SMS is already booked, as on every rescan after confirming it.
+            taught.forEach { sms ->
+                val booked = transactionRepository.getAnyBySmsAround(
+                    sms.body, sms.sender, sms.timestamp.toLocalDateTime(), UnrecognizedSmsRepository.REDELIVERY_WINDOW
+                )
+                if (booked == null) unrecognizedSmsRepository.insertOrRevive(sms.toRow())
+            }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             Log.e(TAG, "Error storing unrecognized SMS batch: ${e.message}")

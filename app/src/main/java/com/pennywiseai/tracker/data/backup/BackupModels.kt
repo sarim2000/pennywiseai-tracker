@@ -383,7 +383,60 @@ data class AppPreferences(
     // Recurring-bill suggestions marked "Not recurring" ("CUR|merchantkey"), so a
     // restore doesn't ask again. FULL exports only: they name merchants.
     @SerialName("dismissed_recurring_suggestions")
-    val dismissedRecurringSuggestions: List<String> = emptyList()
+    val dismissedRecurringSuggestions: List<String> = emptyList(),
+
+    // Message shapes the user taught (#279). FULL exports only: their text names
+    // the bank and whatever else a message always says.
+    @SerialName("taught_templates")
+    val taughtTemplates: List<TaughtTemplate> = emptyList()
+)
+
+/**
+ * One taught message shape, as stored on the device and in backups. Fields and enums
+ * travel by name, so a backup from a newer version still decodes, and the store just
+ * won't use a template it can't fully understand.
+ */
+@Serializable
+data class TaughtTemplate(
+    @SerialName("version")
+    val version: Int = CURRENT_VERSION,
+
+    @SerialName("id")
+    val id: String = "",
+
+    @SerialName("sender_key")
+    val senderKey: String = "",
+
+    @SerialName("parts")
+    val parts: List<TaughtTemplatePart> = emptyList(),
+
+    @SerialName("type")
+    val type: String = "",
+
+    @SerialName("currency")
+    val currency: String = "",
+
+    @SerialName("bank_name")
+    val bankName: String = "",
+
+    @SerialName("amount_format")
+    val amountFormat: String? = null,
+
+    @SerialName("fixed_merchant")
+    val fixedMerchant: String? = null
+) {
+    companion object {
+        const val CURRENT_VERSION = 1
+    }
+}
+
+@Serializable
+data class TaughtTemplatePart(
+    @SerialName("field")
+    val field: String = "",
+
+    @SerialName("text")
+    val text: String = ""
 )
 
 /**

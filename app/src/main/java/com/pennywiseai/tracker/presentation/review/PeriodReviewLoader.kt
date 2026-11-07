@@ -62,7 +62,7 @@ class PeriodReviewLoader @Inject constructor(
                     // An empty month mustn't wall off the months before it. Only looks
                     // further back when the previous period didn't already answer it.
                     if (review.hasOlder) review
-                    else review.copy(hasOlder = hasRowsBefore(range.previousStart, keep))
+                    else review.copy(hasOlder = hasRowsBefore(range.start, keep))
                 }
             }
         )

@@ -418,6 +418,7 @@ fun PennyWiseNavHost(
                             currency = currency,
                             startDate = start.toEpochDay(),
                             endDate = end.toEpochDay(),
+                            currencyOnly = true,
                         )
                     )
                 }
@@ -431,6 +432,7 @@ fun PennyWiseNavHost(
                 initialCurrency = args.currency,
                 initialCustomStartEpochDay = args.startDate,
                 initialCustomEndEpochDay = args.endDate,
+                currencyOnly = args.currencyOnly,
                 onNavigateBack = { backStack.pop(args) },
                 onTransactionClick = { transactionId ->
                     backStack.navigate(TransactionDetail(transactionId))

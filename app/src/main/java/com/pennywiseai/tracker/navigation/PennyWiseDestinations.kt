@@ -162,7 +162,9 @@ data class TransactionsWithFilter(
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,
-    val endDate: Long? = null
+    val endDate: Long? = null,
+    /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
+    val currencyOnly: Boolean = false
 ) : NavKey
 
 /**

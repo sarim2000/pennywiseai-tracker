@@ -781,11 +781,12 @@ class TransactionsViewModel @Inject constructor(
             ) { unifiedMode, displayCurrency ->
                 unifiedMode to displayCurrency
             }.collect { (unifiedMode, displayCurrency) ->
-                _isUnifiedMode.value = unifiedMode
-                if (unifiedMode) {
-                    _selectedCurrency.value = displayCurrency
-                } else {
-                    _selectedCurrency.value = baseCurrency
+                val pinned = pinnedCurrency
+                _isUnifiedMode.value = unifiedMode && pinned == null
+                _selectedCurrency.value = when {
+                    pinned != null -> pinned
+                    unifiedMode -> displayCurrency
+                    else -> baseCurrency
                 }
             }
         }
@@ -1047,6 +1048,15 @@ class TransactionsViewModel @Inject constructor(
     }
 
     fun selectCurrency(currency: String) {
+        _selectedCurrency.value = currency
+    }
+
+    private var pinnedCurrency: String? = null
+
+    /** Lists only rows written in [currency], with no conversion, even in unified mode. */
+    fun pinCurrency(currency: String) {
+        pinnedCurrency = currency
+        _isUnifiedMode.value = false
         _selectedCurrency.value = currency
     }
 

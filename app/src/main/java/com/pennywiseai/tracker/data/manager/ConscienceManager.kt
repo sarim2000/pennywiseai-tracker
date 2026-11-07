@@ -14,7 +14,6 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.conscience.ConscienceDetectors
 import com.pennywiseai.tracker.domain.conscience.ConscienceEligibility
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -69,9 +68,10 @@ class ConscienceManager @Inject constructor(
         if (!isFresh(eventTimeMillis, saved.dateTime, nowMillis, ZoneId.systemDefault())) return
 
         val balances = accountBalanceRepository.getAllLatestBalances().first()
+        val cards = cardRepository.getAllCards().first()
         val inScope = ConscienceEligibility.inScope(
-            IgnoredAccountsStore.withLinkedCards(ignoredAccountsStore.keys(), cardRepository.getAllCards().first(), balances),
-            buildProfileAccountKeys(balances)
+            IgnoredAccountsStore.withLinkedCards(ignoredAccountsStore.keys(), cards, balances),
+            ConscienceEligibility.profileAccountKeys(balances, cards)
         )
         if (!inScope(saved)) return
 
@@ -91,13 +91,14 @@ class ConscienceManager @Inject constructor(
         val rows = transactionRepository.getTransactionsWithSplitsFiltered(today.minusDays(days), today.plusDays(1)).first()
             .filter { it.transaction.id != transactionId && inScope(it.transaction) }
         val history = rows.flatMap { ConscienceEligibility.historyOf(it, builtinKeys) }
+        val refunds = rows.mapNotNull { ConscienceEligibility.refundOf(it.transaction, builtinKeys) }
         // Days with any spending at all: a quiet week only counts as a win when the ledger was still being fed.
         val activeDates = rows
             .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
             .map { it.transaction.dateTime.toLocalDate() }
             .toSet() + today
         val ledgerStart = transactionRepository.getOldestTransactionDateTime()?.toLocalDate()
-        val facts = ConscienceDetectors.detect(current, history, ledgerStart, activeDates)
+        val facts = ConscienceDetectors.detect(current, history, ledgerStart, activeDates, refunds)
         if (facts.isEmpty()) return
 
         val choice = preferences.tryClaimConscience(

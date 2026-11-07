@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.domain.conscience
 
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.CardEntity
+import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
@@ -55,6 +59,44 @@ class ConscienceEligibilityTest {
         assertFalse(inScope(eligible.copy(profileId = ProfileEntity.BUSINESS_ID)))
         assertTrue(inScope(bank.copy(profileId = ProfileEntity.PERSONAL_ID)))
         assertTrue(inScope(bank.copy(accountNumber = "9999")))
+    }
+
+    @Test
+    fun `a business account's debit card is business too`() {
+        fun balance(last4: String, profile: Long) = AccountBalanceEntity(
+            bankName = "Test Bank", accountLast4 = last4, balance = BigDecimal.ZERO, timestamp = at, profileId = profile,
+        )
+        fun card(last4: String, account: String?) = CardEntity(
+            cardLast4 = last4, cardType = CardType.DEBIT, bankName = "Test Bank", accountLast4 = account,
+        )
+        val keys = ConscienceEligibility.profileAccountKeys(
+            listOf(balance("1234", ProfileEntity.BUSINESS_ID), balance("5678", ProfileEntity.PERSONAL_ID)),
+            listOf(card("4321", "1234"), card("8765", "5678"), card("5678", "1234"), card("1111", null)),
+        )
+        val inScope = ConscienceEligibility.inScope(emptySet(), keys)
+        fun paidWith(last4: String) = eligible.copy(bankName = "Test Bank", accountNumber = last4)
+        assertFalse(inScope(paidWith("4321")))
+        assertTrue(inScope(paidWith("8765")))
+        // A card sharing a personal account's digits can't be told apart: it stays personal.
+        assertTrue(inScope(paidWith("5678")))
+        assertTrue(inScope(paidWith("1111")))
+    }
+
+    @Test
+    fun `only a refund that comes off spending is one`() {
+        val refund = eligible.copy(
+            transactionType = TransactionType.INCOME,
+            budgetImpactType = BudgetImpactType.DEDUCT_SPENT,
+            budgetCategory = "Eats",
+        )
+        assertEquals(
+            ConsciencePurchase(at, BigDecimal("12.50"), "JOD", ConscienceCategory.FOOD, 7),
+            ConscienceEligibility.refundOf(refund, keys),
+        )
+        assertNull(ConscienceEligibility.refundOf(refund.copy(budgetImpactType = null), keys))
+        assertNull(ConscienceEligibility.refundOf(refund.copy(budgetCategory = null), keys))
+        assertNull(ConscienceEligibility.refundOf(refund.copy(budgetCategory = "Bills"), keys))
+        assertNull(ConscienceEligibility.refundOf(refund.copy(transactionType = TransactionType.EXPENSE), keys))
     }
 
     @Test

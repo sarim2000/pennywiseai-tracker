@@ -36,19 +36,21 @@ object ConscienceDetectors {
      * Every fact that holds for [current], in [ConscienceKind] order: the cadence
      * decides which one speaks.
      * [history] may hold purchases after [current]; only earlier ones count.
+     * [refunds] are refunds that come off a category's spending elsewhere in the app.
      */
     fun detect(
         current: ConsciencePurchase,
         history: List<ConsciencePurchase>,
         ledgerStart: LocalDate?,
         activeDates: Set<LocalDate> = emptySet(),
+        refunds: List<ConsciencePurchase> = emptyList(),
         zone: ZoneId = ZoneId.systemDefault(),
     ): List<ConscienceFact> {
         val today = current.at.toLocalDate()
         val prior = history.filter { it.isBefore(current) }
         val inCategory = prior.filter { it.category == current.category }
         return listOfNotNull(
-            positive(current, inCategory, today, ledgerStart, activeDates),
+            positive(current, inCategory, refunds.filter { it.category == current.category }, today, ledgerStart, activeDates),
             repeat(current, inCategory, zone),
             lateNight(current, prior),
         ).sortedBy { it.kind.ordinal }
@@ -162,6 +164,7 @@ object ConscienceDetectors {
     private fun positive(
         current: ConsciencePurchase,
         inCategory: List<ConsciencePurchase>,
+        refundsInCategory: List<ConsciencePurchase>,
         today: LocalDate,
         ledgerStart: LocalDate?,
         activeDates: Set<LocalDate>,
@@ -170,6 +173,9 @@ object ConscienceDetectors {
         // Index 0 is the week just finished; 1..4 its baseline.
         val starts = (1..POSITIVE_BASELINE_WEEKS + 1).map { thisMonday.minusWeeks(it.toLong()) }
         if (ledgerStart == null || ledgerStart.isAfter(starts.last())) return null
+        // ponytail: a refund in the five weeks skips the win rather than netting it. Gross weeks
+        // can't be compared once a refund moves one; net them if wins get too rare for shoppers.
+        if (refundsInCategory.any { it.isOn(starts.last(), thisMonday.minusDays(1)) }) return null
 
         val weeks = starts.map { start -> inCategory.filter { it.isOn(start, start.plusDays(6)) } }
         // "Less on food" is only true when one currency carried the whole category:

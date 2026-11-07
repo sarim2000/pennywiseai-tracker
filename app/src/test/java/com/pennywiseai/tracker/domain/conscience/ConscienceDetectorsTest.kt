@@ -55,7 +55,8 @@ class ConscienceDetectorsTest {
         current: ConsciencePurchase = now(),
         ledgerStart: LocalDate? = longLedger,
         active: Set<LocalDate> = emptySet(),
-    ) = ConscienceDetectors.detect(current, history, ledgerStart, active)
+        refunds: List<ConsciencePurchase> = emptyList(),
+    ) = ConscienceDetectors.detect(current, history, ledgerStart, active, refunds)
 
     private inline fun <reified T : ConscienceFact> List<ConscienceFact>.find(): T? = filterIsInstance<T>().firstOrNull()
 
@@ -238,7 +239,20 @@ class ConscienceDetectorsTest {
         active: Set<LocalDate> = everyDay,
         ledgerStart: LocalDate = longLedger,
         current: ConsciencePurchase = now(date = wednesday),
-    ) = detect(history, current, ledgerStart, active).find<Positive>()
+        refunds: List<ConsciencePurchase> = emptyList(),
+    ) = detect(history, current, ledgerStart, active, refunds).find<Positive>()
+
+    @Test
+    fun `a refund in the category within the five weeks is no win`() {
+        val history = usualWeeks + pWeek(0, "80")
+        // A return in a baseline week: gross says last week was lighter, net may not.
+        assertNull(positive(history, refunds = listOf(on(positiveWeekStart(3).plusDays(1), "60"))))
+        assertNull(positive(history, refunds = listOf(on(positiveWeekStart(0).plusDays(6), "60"))))
+        // Another category's refund, or one before the baseline or this week, changes nothing.
+        assertEquals(Positive(FOOD, 20), positive(history, refunds = listOf(on(positiveWeekStart(2), "60", category = SHOPPING))))
+        assertEquals(Positive(FOOD, 20), positive(history, refunds = listOf(on(positiveWeekStart(4).minusDays(1), "60"))))
+        assertEquals(Positive(FOOD, 20), positive(history, refunds = listOf(on(today, "60"))))
+    }
 
     @Test
     fun `last week 20 percent under the usual week is a win`() {

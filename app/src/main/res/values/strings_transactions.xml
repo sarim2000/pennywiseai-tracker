@@ -243,7 +243,7 @@
     </plurals>
     <string name="txn_list_bulk_transfer_need_two">Select exactly 2 transactions to mark as a transfer</string>
     <string name="txn_list_bulk_transfer_need_pair">Pick one outgoing (expense) and one incoming (income) transaction</string>
-    <string name="txn_list_bulk_marked_transfer">Marked as transfer</string>
+    <string name="txn_list_bulk_marked_transfer">Moved between your accounts, so it isn\'t counted as income or spending.</string>
     <plurals name="txn_list_bulk_deleted">
         <item quantity="one">%1$d deleted</item>
         <item quantity="other">%1$d deleted</item>

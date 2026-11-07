@@ -326,6 +326,21 @@ light/dark from the app's scheme. Always use these tokens, never pick a
 the theme, check `isAppInDarkTheme()`, not `isSystemInDarkTheme()`: Appearance
 can force Light or Dark regardless of the system.
 
+### What colour means
+
+Most transactions are spending, so the common case stays quiet and red keeps
+its meaning:
+
+- **Spending is ink** (`onSurface`, or the `on*` role of the container it sits
+  on). The sign ("-"), a label or an icon tells it apart, never colour alone.
+- **Income** uses `income`, with a "+".
+- **Credit, transfer, investment, loan** keep their own tokens.
+- **Red (`expense` / `error`) or `warning` only for a problem**: over budget,
+  overdue, a negative net or balance, low balance, limit exceeded, errors.
+- **Charts keep series colours** (the expense line, legend dots): series need
+  to be told apart.
+- **Identity colours** (categories, merchants) stay.
+
 ---
 
 ## Accessibility checklist

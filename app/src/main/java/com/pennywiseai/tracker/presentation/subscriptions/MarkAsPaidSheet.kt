@@ -56,7 +56,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
@@ -102,7 +101,7 @@ fun MarkAsPaidSheet(
     val amountColor = if (isIncome) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.expense
+        MaterialTheme.colorScheme.onSurface
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -330,8 +329,8 @@ fun MarkAsPaidSheet(
 }
 
 /**
- * One suggested-payment card. Compact row: amount on the left (in expense
- * tint to mirror the transactions list), merchant + relative date on the
+ * One suggested-payment card. Compact row: amount on the left (in ink, like
+ * a spend in the transactions list), merchant + relative date on the
  * right. Tap = link this transaction as the cycle's payment.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -340,7 +339,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = MaterialTheme.colorScheme.expense
+    val amountColor = MaterialTheme.colorScheme.onSurface
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),

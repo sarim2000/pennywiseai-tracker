@@ -652,7 +652,7 @@ private fun TransactionReceipt(
 ) {
     val typeColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
-        TransactionType.EXPENSE -> MaterialTheme.colorScheme.expense
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
         TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
@@ -2485,7 +2485,7 @@ private fun BalanceAdjustmentSheet(
     var expanded by remember { mutableStateOf(false) }
     val amountColor = when {
         isIncome -> MaterialTheme.colorScheme.income
-        else -> MaterialTheme.colorScheme.expense
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
     ModalBottomSheet(

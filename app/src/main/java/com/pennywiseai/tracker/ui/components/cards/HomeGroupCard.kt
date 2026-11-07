@@ -22,7 +22,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -40,7 +39,7 @@ fun HomeGroupCard(
     modifier: Modifier = Modifier
 ) {
     val accentColor = MaterialTheme.colorScheme.income
-    val expenseColor = MaterialTheme.colorScheme.expense
+    val expenseColor = MaterialTheme.colorScheme.onSurface
 
     PennyWiseCardV2(
         modifier = modifier.width(210.dp),

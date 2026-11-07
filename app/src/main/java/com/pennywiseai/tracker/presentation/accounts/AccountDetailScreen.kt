@@ -426,7 +426,7 @@ private fun SummaryStatistics(
                     label = stringResource(R.string.account_detail_expenses),
                     value = formatWithEstimatedDisplay(totalExpenses, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = MaterialTheme.colorScheme.expense
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_net),
@@ -525,10 +525,16 @@ private fun AccountTransactionItem(
 ) {
     val amountColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
-        TransactionType.EXPENSE -> MaterialTheme.colorScheme.expense
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
         TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
+    }
+    // Same sign convention as TransactionItem, so expense vs income reads without colour.
+    val amountPrefix = when (transaction.transactionType) {
+        TransactionType.INCOME -> "+"
+        TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "-"
+        TransactionType.TRANSFER -> ""
     }
     
     Card(
@@ -596,7 +602,7 @@ private fun AccountTransactionItem(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency),
+                    text = CurrencyFormatter.signed(amountPrefix, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = amountColor

@@ -107,7 +107,7 @@ fun TransactionTotalsCard(
                     add(TotalTileData(Icons.AutoMirrored.Filled.TrendingUp, stringResource(R.string.txn_totals_income),
                         CurrencyFormatter.formatCurrency(income, currency), MaterialTheme.colorScheme.income, incomeAlpha))
                     add(TotalTileData(Icons.AutoMirrored.Filled.TrendingDown, stringResource(R.string.txn_totals_expenses),
-                        CurrencyFormatter.formatCurrency(expenses, currency), MaterialTheme.colorScheme.expense, expenseAlpha))
+                        CurrencyFormatter.formatCurrency(expenses, currency), MaterialTheme.colorScheme.onSurface, expenseAlpha))
                     if (extra != null) {
                         val (extraIcon, extraLabel, extraColor) = when (extra.kind) {
                             ExtraTotalKind.CREDIT -> Triple(Icons.Filled.CreditCard, stringResource(R.string.txn_totals_credit), MaterialTheme.colorScheme.credit)

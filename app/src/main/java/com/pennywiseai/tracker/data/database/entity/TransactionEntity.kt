@@ -128,7 +128,11 @@ data class TransactionEntity(
     val groupId: Long? = null,
 
     @ColumnInfo(name = "profile_id", defaultValue = "NULL")
-    val profileId: Long? = null
+    val profileId: Long? = null,
+
+    // Shared by the debit and credit marked as one transfer; see utils/TransferPairs.kt.
+    @ColumnInfo(name = "transfer_pair_id", defaultValue = "NULL")
+    val transferPairId: String? = null
 )
 
 @Serializable

@@ -215,7 +215,7 @@ fun RulesScreen(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                    bottom = 0.dp
+                    bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance
                 ),
                 state = lazyListState,
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },

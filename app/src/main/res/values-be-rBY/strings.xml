@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - Улік выдаткаў</string>
     <string name="widget_name_budget">Агляд бюджэту</string>
     <string name="widget_description_budget">Паказвае прагрэс месячнага бюджэту, зберажэнні і дзённы ліміт адным позіркам.</string>
     <string name="widget_loading">Загрузка віджэта…</string>

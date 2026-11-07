@@ -18,7 +18,7 @@ back to English per string, so partial languages are safe to ship.
 
 `generateLocaleConfig` turns each `values-<lang>/` folder into a supported
 locale, so Android 13+ lists PennyWise under **Settings → App languages** (the
-in-app *Settings → Language* row opens that screen). Android 12 and below
+in-app *Settings → Language & formats → Language* row opens that screen). Android 12 and below
 follow the device language.
 
 **Checking a screen for hardcoded text:** debug builds enable pseudo-locales.

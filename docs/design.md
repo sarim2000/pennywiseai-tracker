@@ -272,6 +272,9 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
 
 - **One-of-N choice rows** → `ConnectedChoiceRow` (a connected `ToggleButton`
   group). Don't use `SegmentedButton`; Expressive replaces it.
+- **Picking a value from a Settings row** → `SettingsChoiceSheet`, a bottom sheet
+  of radio rows that opens on the current choice and fits long lists (31 days,
+  every currency).
 - **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
   spinners inside buttons or rows stay `CircularProgressIndicator`.
 - **Activity progress** (scan, import, export, download) →

@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Cancelar</string>
     <string name="settings_action_ok">Aceptar</string>
-    <string name="settings_action_done">Listo</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">Pásate a PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Activo · todas las funciones avanzadas desbloqueadas</string>
@@ -36,7 +35,6 @@
     <string name="settings_main_account_title">Cuenta principal</string>
     <string name="settings_main_account_subtitle">Define tu moneda predeterminada</string>
     <string name="settings_main_account_not_set">Sin definir</string>
-    <string name="settings_currency_field_label">Moneda</string>
     <string name="settings_number_format_title">Formato de números</string>
     <string name="settings_number_format_subtitle">Cómo se agrupan los montos grandes</string>
     <string name="settings_number_format_auto">Automático</string>
@@ -47,9 +45,7 @@
     <string name="settings_date_format_title">Formato de fecha</string>
     <string name="settings_date_format_subtitle">Cómo se muestran las fechas</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Presupuesto</string>
     <string name="settings_budget_cycle_title">Día de inicio del ciclo del presupuesto</string>
-    <string name="settings_budget_cycle_subtitle">Mueve el inicio de cada período mensual del presupuesto; p. ej., 25 significa que tu ciclo va del 25 al 24</string>
     <string name="settings_budget_cycle_dialog_body">Elige el día en que empieza cada ciclo mensual del presupuesto. P. ej., 25 significa que el ciclo va del 25 al 24 del mes siguiente.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Contactos</string>

@@ -367,7 +367,7 @@ fun TransactionTabContent(
                             Text(
                                 text = uiState.date.format(DateTimeFormatter.ofPattern("yyyy")),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = uiState.date.format(AppDates.pattern("dd MMMM")),
@@ -600,7 +600,7 @@ fun TransactionTabContent(
                                     Text(
                                         CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },

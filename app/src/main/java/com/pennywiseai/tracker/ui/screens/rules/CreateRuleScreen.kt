@@ -418,7 +418,7 @@ fun CreateRuleScreen(
                             Icon(
                                 Icons.Default.FilterList,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = stringResource(R.string.rules_when),
@@ -528,7 +528,7 @@ fun CreateRuleScreen(
                             Icon(
                                 Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = stringResource(R.string.rules_then),

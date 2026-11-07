@@ -250,7 +250,7 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
         imageVector = Icons.Default.Description,
         contentDescription = null,
         modifier = Modifier.size(80.dp),
-        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        tint = MaterialTheme.colorScheme.onSurfaceVariant
     )
 
     Spacer(modifier = Modifier.height(Spacing.md))
@@ -498,7 +498,7 @@ private fun TablePreview(rows: List<List<String>>, columnCount: Int, serialDateC
                 Text(
                     text = columnLetter(i),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.width(Dimensions.Component.tableCellWidth).padding(end = Spacing.sm)
                 )
             }

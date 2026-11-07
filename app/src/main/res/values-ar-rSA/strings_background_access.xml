@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="background_access_title">إبقاء التتبع يعمل</string>
+    <string name="background_access_settings_subtitle">امنع أندرويد من إيقاف تتبع رسائل البنك</string>
+    <plurals name="background_access_settings_left">
+        <item quantity="zero">%d خطوة</item>
+        <item quantity="one">%d خطوة</item>
+        <item quantity="two">%d خطوة</item>
+        <item quantity="few">%d خطوات</item>
+        <item quantity="many">%d خطوة</item>
+        <item quantity="other">%d خطوة</item>
+    </plurals>
+    <string name="background_access_intro">يوقف أندرويد التطبيقات التي تعمل في الخلفية، فتتوقف معاملاتك البنكية عن الوصول.</string>
+    <plurals name="background_access_steps_left">
+        <item quantity="zero">بقيت %d خطوة.</item>
+        <item quantity="one">بقيت %d خطوة.</item>
+        <item quantity="two">بقيت %d خطوة.</item>
+        <item quantity="few">بقيت %d خطوات.</item>
+        <item quantity="many">بقيت %d خطوة.</item>
+        <item quantity="other">بقيت %d خطوة.</item>
+    </plurals>
+    <string name="background_access_all_set">كل شيء جاهز. يمكن لـ PennyWise مواصلة تتبع رسائل البنك في الخلفية.</string>
+
+    <string name="background_access_allow">السماح</string>
+    <string name="background_access_open_settings">فتح الإعدادات</string>
+    <string name="background_access_mark_done">قمت بذلك</string>
+    <string name="background_access_confirmed_by_you">أكّدتها بنفسك</string>
+    <string name="background_access_undo">تراجع</string>
+    <string name="background_access_status_done">تم</string>
+    <string name="background_access_status_needed">تحتاج إلى إجراء</string>
+    <string name="background_access_status_optional">اختياري</string>
+
+    <string name="background_access_battery_title">البطارية: غير مقيّدة</string>
+    <string name="background_access_battery_why">يمنع أندرويد من وضع PennyWise في السكون، لتصل معاملاتك البنكية في وقتها. ابحث عن PennyWise في القائمة واختر «عدم التحسين».</string>
+    <string name="background_access_activity_title">النشاط في الخلفية</string>
+    <string name="background_access_activity_why">تم ضبط PennyWise على «مقيّد». افتح إعدادات البطارية الخاصة به واختر «غير مقيّد».</string>
+    <string name="background_access_keep_title">إبقاء الوصول عند عدم فتح التطبيق</string>
+    <string name="background_access_keep_why">أوقف خيار «إيقاف نشاط التطبيق مؤقتًا في حال عدم استخدامه» أو «إزالة الأذونات في حال عدم استخدام التطبيق». وإلا سيسحب أندرويد إذن الرسائل من PennyWise بعد بضعة أشهر.</string>
+
+    <string name="background_access_oem_title_samsung">التطبيقات التي لا تدخل في السكون مطلقًا</string>
+    <string name="background_access_oem_title_autostart">التشغيل التلقائي</string>
+    <string name="background_access_oem_howto_samsung">لا تريد السماح بخطوة البطارية؟ قد تُدخل سامسونج PennyWise في السكون، فافتح هذه القائمة، واضغط «إضافة تطبيقات» واختر PennyWise.</string>
+    <string name="background_access_oem_howto_xiaomi">فعّل التشغيل التلقائي لـ PennyWise. المسار: الإعدادات ← التطبيقات ← الأذونات ← التشغيل التلقائي في الخلفية.</string>
+    <string name="background_access_oem_howto_huawei">لـ PennyWise، أوقف «الإدارة التلقائية»، ثم فعّل التشغيل التلقائي والتشغيل الثانوي والتشغيل في الخلفية. المسار: الإعدادات ← البطارية ← تشغيل التطبيقات.</string>
+    <string name="background_access_oem_howto_coloros">فعّل «السماح بالتشغيل التلقائي» و«السماح بالنشاط في الخلفية» لـ PennyWise. إن لم تجدهما في الشاشة التي تُفتح، فابحث في معلومات التطبيق ← استخدام البطارية.</string>
+    <string name="background_access_oem_howto_vivo">فعّل التشغيل التلقائي لـ PennyWise، ثم اسمح له من الإعدادات ← البطارية ← إدارة استهلاك الطاقة في الخلفية.</string>
+    <string name="background_access_oem_howto_transsion">اسمح لـ PennyWise ضمن «التشغيل التلقائي» في تطبيق Phone Master.</string>
+    <string name="background_access_oem_howto_asus">اسمح لـ PennyWise ضمن «إدارة التشغيل التلقائي» في تطبيق Mobile Manager.</string>
+    <string name="background_access_oem_howto_other">لبعض الهواتف إعدادات خلفية خاصة بها. من معلومات التطبيق، فعّل أي خيار مثل «التشغيل التلقائي» أو «التشغيل في الخلفية» لـ PennyWise.</string>
+</resources>

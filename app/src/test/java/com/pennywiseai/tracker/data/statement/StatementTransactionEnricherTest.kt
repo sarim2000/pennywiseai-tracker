@@ -40,6 +40,18 @@ class StatementTransactionEnricherTest {
     }
 
     @Test
+    fun `a marked pair's incoming leg matches a statement credit, not a debit`() {
+        val leg = transaction(
+            id = 1, transactionType = TransactionType.TRANSFER, fromAccount = "1357", toAccount = "2468"
+        ).copy(fromBankName = "Other Bank", toBankName = "South Indian Bank", transferPairId = "pair")
+        val credit = transaction(id = 2, transactionType = TransactionType.INCOME, sender = "GPay PDF")
+        val debit = transaction(id = 3, sender = "GPay PDF")
+
+        assertTrue(StatementTransactionEnricher.isPossibleAmountDateMatch(leg, credit))
+        assertFalse(StatementTransactionEnricher.isPossibleAmountDateMatch(leg, debit))
+    }
+
+    @Test
     fun `fallback does not match specific merchant`() {
         val sms = transaction(id = 1, merchantName = "Specific Merchant", reference = "")
         val statement = transaction(

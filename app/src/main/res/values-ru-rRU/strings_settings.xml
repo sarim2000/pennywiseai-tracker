@@ -6,9 +6,7 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Отмена</string>
     <string name="settings_action_ok">ОК</string>
-    <string name="settings_action_done">Готово</string>
     <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
     <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">Обновить до PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Активные · все функции разблокированы</string>
@@ -31,10 +29,13 @@
     <string name="settings_card_spend_as_expense_subtitle">Включить трату кредитной карты в \"Потрачено в этом месяце\"</string>
     <string name="settings_default_currency_title">Валюта по умолчанию</string>
     <string name="settings_default_currency_subtitle">Валюта, используемая для конверсий</string>
+    <string name="settings_budget_convert_title">Конвертировать бюджеты?</string>
+    <string name="settings_budget_convert_message">Лимиты ваших бюджетов были в %1$s и теперь показываются в %2$s. Конвертируйте их по последнему доступному курсу (%3$s) или оставьте те же числа.</string>
+    <string name="settings_budget_convert_confirm">Конвертировать</string>
+    <string name="settings_budget_convert_keep">Оставить числа</string>
     <string name="settings_main_account_title">Основной счет</string>
     <string name="settings_main_account_subtitle">Устанавливает валюту по умолчанию</string>
     <string name="settings_main_account_not_set">Не задано</string>
-    <string name="settings_currency_field_label">Валюта</string>
     <string name="settings_number_format_title">Числовой формат</string>
     <string name="settings_number_format_subtitle">Как группируются разряды больших сумм</string>
     <string name="settings_number_format_auto">Авто</string>
@@ -46,9 +47,7 @@
     <string name="settings_date_format_title">Формат даты</string>
     <string name="settings_date_format_subtitle">Как отображаются даты</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Бюджет</string>
     <string name="settings_budget_cycle_title">День начала цикла бюджета</string>
-    <string name="settings_budget_cycle_subtitle">Переключает начало каждого месячного бюджетного периода; например, 25 означает, что ваш цикл проходит 25 → 24</string>
     <string name="settings_budget_cycle_dialog_body">Выберите день каждого месячного бюджетного цикла, например 25 означает, что цикл проходит с 25 по 24 следующего месяца.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Контакты</string>

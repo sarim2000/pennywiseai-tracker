@@ -231,7 +231,6 @@ fun PennyWiseApp(
                 backStack = backStack,
                 // Out of the accessibility tree too, or TalkBack reads what the cover hides.
                 modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
-                themeViewModel = actualThemeViewModel,
                 onEditComplete = onEditComplete ?: {}
             )
             if (covered) {

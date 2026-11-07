@@ -41,7 +41,6 @@ import androidx.savedstate.serialization.encodeToSavedState
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.MainScreen
-import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import kotlinx.serialization.serializer
 
 /** navigate(key) { launchSingleTop = true }: the same kind of screen on top is replaced, not stacked. */
@@ -128,7 +127,6 @@ private fun fadeOnly(m: MotionScheme): Map<String, Any> {
 fun PennyWiseNavHost(
     backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
-    themeViewModel: ThemeViewModel = hiltViewModel(),
     onEditComplete: () -> Unit = {}
 ) {
     val motion = MaterialTheme.motionScheme
@@ -175,42 +173,6 @@ fun PennyWiseNavHost(
             }
         }
 
-        entry<Settings> { key ->
-            com.pennywiseai.tracker.ui.screens.settings.SettingsScreen(
-                themeViewModel = themeViewModel,
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToCategories = {
-                    backStack.navigate(Categories)
-                },
-                onNavigateToUnrecognizedSms = {
-                    backStack.navigate(UnrecognizedSms)
-                },
-                onNavigateToFaq = {
-                    backStack.navigate(Faq)
-                },
-                onNavigateToBudgets = {
-                    backStack.navigate(BudgetGroups())
-                },
-                onNavigateToExchangeRates = {
-                    backStack.navigate(ExchangeRates)
-                },
-                onNavigateToImportStatement = {
-                    backStack.navigate(ImportStatement)
-                },
-                onNavigateToTransactionGroups = {
-                    backStack.navigate(TransactionGroups)
-                },
-                onNavigateToWebhooks = {
-                    backStack.navigate(Webhooks)
-                },
-                onNavigateToAiAccess = {
-                    backStack.navigate(AiAccess)
-                }
-            )
-        }
-
         entry<AiAccess> { key ->
             com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
                 onNavigateBack = { backStack.pop(key) }
@@ -220,14 +182,6 @@ fun PennyWiseNavHost(
         entry<Webhooks> { key ->
             com.pennywiseai.tracker.ui.screens.settings.webhooks.WebhooksScreen(
                 onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<Categories> { key ->
-            com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
             )
         }
 
@@ -257,25 +211,6 @@ fun PennyWiseNavHost(
 
         entry<AddTransaction> { key ->
             com.pennywiseai.tracker.presentation.add.AddScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
-            )
-        }
-
-        entry<UnrecognizedSms> { key ->
-            com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onAddSuggestion = { draft ->
-                    backStack.navigate(draft)
-                }
-            )
-        }
-
-        entry<Faq> { key ->
-            com.pennywiseai.tracker.ui.screens.settings.FAQScreen(
                 onNavigateBack = {
                     backStack.pop(key)
                 }
@@ -472,14 +407,6 @@ fun PennyWiseNavHost(
             )
         }
 
-        entry<ImportStatement> { key ->
-            com.pennywiseai.tracker.presentation.statement.ImportStatementScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
-            )
-        }
-
         entry<Review> { key ->
             com.pennywiseai.tracker.presentation.review.PeriodReviewScreen(
                 onNavigateBack = { backStack.pop(key) },
@@ -510,9 +437,6 @@ fun PennyWiseNavHost(
                 },
                 onAddTransactionClick = {
                     backStack.navigate(AddTransaction())
-                },
-                onNavigateToSettings = {
-                    backStack.navigate(Settings)
                 }
             )
         }

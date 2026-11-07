@@ -23,8 +23,11 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -61,14 +64,20 @@ class TransactionsViewModelPinTest {
 
     private lateinit var viewModel: TransactionsViewModel
 
+    // The screen sets its filters and its pin in one go on the main thread. Here Main is unconfined, so
+    // the auto-clear could run between the two on a worker: rows wait until the test has done both.
+    private val filtersSet = MutableStateFlow(false)
+    private fun <T> afterFiltersSet(value: () -> T) = filtersSet.filter { it }.map { value() }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         val rows = listOf(september, shopping)
         val transactions = mockk<TransactionRepository> {
-            every { getAllTransactions() } returns flowOf(rows)
+            every { getAllTransactions() } returns afterFiltersSet { rows }
             every { getTransactionsBetweenDates(any<LocalDateTime>(), any<LocalDateTime>()) } answers {
-                flowOf(rows.filter { it.dateTime in firstArg<LocalDateTime>()..secondArg<LocalDateTime>() })
+                val range = firstArg<LocalDateTime>()..secondArg<LocalDateTime>()
+                afterFiltersSet { rows.filter { it.dateTime in range } }
             }
             every { getAllCurrencies() } returns flowOf(listOf("USD"))
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(listOf("USD"))
@@ -121,6 +130,7 @@ class TransactionsViewModelPinTest {
     fun `a pinned list keeps a category with no rows and shows nothing`() = runBlocking {
         openTravelInOctober()
         viewModel.pinCurrency("USD")
+        filtersSet.value = true
 
         withTimeout(10_000) { viewModel.availableCategories.first { "Shopping" in it } }
         // Long enough for an auto-clear and the list after it to have landed.
@@ -133,6 +143,7 @@ class TransactionsViewModelPinTest {
     @Test
     fun `any other list still drops a category the period no longer has`() = runBlocking {
         openTravelInOctober()
+        filtersSet.value = true
 
         withTimeout(10_000) { viewModel.categoryFilter.first { it == null } }
         val shown = withTimeout(10_000) { viewModel.uiState.first { it.transactions.isNotEmpty() } }

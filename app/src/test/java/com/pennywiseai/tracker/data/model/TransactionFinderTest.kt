@@ -84,4 +84,20 @@ class TransactionFinderTest {
     fun `no merchant match still finds nothing`() {
         assertNull(TransactionFinder.findWithFallback(txs, "Nonexistent", null, daysAgo = 0, today = today))
     }
+
+    @Test
+    fun `a day the user stated is flagged when it had to be dropped`() {
+        val rows = listOf(tx(1, "Tea stall", "20", daysAgo = 3))
+        assertEquals(true, TransactionFinder.findWithFallback(rows, "tea", null, 1, today, dayStated = true)?.loosened)
+        assertEquals(false, TransactionFinder.findWithFallback(rows, "tea", null, 1, today, dayStated = false)?.loosened)
+    }
+
+    @Test
+    fun `non-Latin words find their row, whatever the article or spelling`() {
+        val rows = listOf(tx(1, "قهوة", "15", daysAgo = 0), tx(2, "चाय", "20", daysAgo = 0), tx(3, "Uber", "30", daysAgo = 0))
+        assertEquals(1L, TransactionFinder.findBest(rows, "القهوة", null, null, today)?.id)
+        assertEquals(1L, TransactionFinder.findBest(rows, "احذف قهوه اليوم", null, null, today)?.id)
+        assertEquals(2L, TransactionFinder.findBest(rows, "चाय", null, null, today)?.id)
+        assertEquals(null, TransactionFinder.findBest(rows, "كتاب", null, null, today))
+    }
 }

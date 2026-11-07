@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Benchmark variants only; see BenchmarkSeedReceiver. DUMP is held by adb
+             shell but not grantable to third-party apps. -->
+        <receiver
+            android:name="com.pennywiseai.tracker.benchmark.BenchmarkSeedReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
+    </application>
+</manifest>

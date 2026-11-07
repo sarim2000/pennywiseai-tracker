@@ -1,0 +1,260 @@
+{
+  "cases": [
+    {
+      "id": "mh_01", "lang": "en", "group": "list",
+      "text": "Log these purchases: tea 35, sandwich 145, bus fare 28.", "expect": "add",
+      "items": [
+        {"amount": 35, "merchant": ["tea"], "type": "EXPENSE"},
+        {"amount": 145, "merchant": ["sandwich"], "type": "EXPENSE"},
+        {"amount": 28, "merchant": ["bus"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_02", "lang": "en", "group": "list",
+      "text": "Today's spending:\n1. Breakfast 85\n2. Parking 25\n3. Fruit 160\n4. Laundry 240", "expect": "add",
+      "items": [
+        {"amount": 85, "merchant": ["breakfast"], "type": "EXPENSE"},
+        {"amount": 25, "merchant": ["parking"], "type": "EXPENSE"},
+        {"amount": 160, "merchant": ["fruit"], "type": "EXPENSE"},
+        {"amount": 240, "merchant": ["laundry"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_03", "lang": "en", "group": "list",
+      "text": "Paid for all of these today: breakfast 90; train 45; lunch 210; groceries 680; dinner 330.", "expect": "add",
+      "items": [
+        {"amount": 90, "merchant": ["breakfast"], "type": "EXPENSE"},
+        {"amount": 45, "merchant": ["train"], "type": "EXPENSE"},
+        {"amount": 210, "merchant": ["lunch"], "type": "EXPENSE"},
+        {"amount": 680, "merchant": ["grocer"], "type": "EXPENSE"},
+        {"amount": 330, "merchant": ["dinner"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_04", "lang": "en", "group": "list",
+      "text": "Please record six separate expenses: milk 62, bread 48, eggs 96, soap 54, rice 420, delivery 30.", "expect": "add",
+      "items": [
+        {"amount": 62, "merchant": ["milk"], "type": "EXPENSE"},
+        {"amount": 48, "merchant": ["bread"], "type": "EXPENSE"},
+        {"amount": 96, "merchant": ["egg"], "type": "EXPENSE"},
+        {"amount": 54, "merchant": ["soap"], "type": "EXPENSE"},
+        {"amount": 420, "merchant": ["rice"], "type": "EXPENSE"},
+        {"amount": 30, "merchant": ["delivery"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_05", "lang": "en", "group": "and",
+      "text": "Lunch 275 and coffee 65 paid by card. Add both expenses.", "expect": "add",
+      "items": [
+        {"amount": 275, "merchant": ["lunch"], "type": "EXPENSE"},
+        {"amount": 65, "merchant": ["coffee"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_06", "lang": "en", "group": "and",
+      "text": "Received 800 for tutoring and 350 for proofreading. Record both payments as income.", "expect": "add",
+      "items": [
+        {"amount": 800, "merchant": ["tutor"], "type": "INCOME"},
+        {"amount": 350, "merchant": ["proofread"], "type": "INCOME"}
+      ]
+    },
+    {
+      "id": "mh_07", "lang": "en", "group": "same_amount",
+      "text": "Bought coffee for 50 in the morning and another coffee for 50 this afternoon. Two separate purchases, please.", "expect": "add",
+      "items": [
+        {"amount": 50, "merchant": ["coffee"], "type": "EXPENSE"},
+        {"amount": 50, "merchant": ["coffee"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_08", "lang": "en", "group": "same_amount",
+      "text": "Received a 450 refund from the shoe shop, then paid 450 for a haircut. Add both.", "expect": "add",
+      "items": [
+        {"amount": 450, "merchant": ["shoe"], "type": "INCOME"},
+        {"amount": 450, "merchant": ["hair", "barber", "salon"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_09", "lang": "en", "group": "same_amount",
+      "text": "Paid USD 50 for software and INR 50 for tea. Record these separately.", "expect": "add",
+      "items": [
+        {"amount": 50, "merchant": ["software"], "type": "EXPENSE", "currency": "USD"},
+        {"amount": 50, "merchant": ["tea"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_10", "lang": "en", "group": "same_amount",
+      "text": "Add my two expenses: 120 for milk and 120 for bread.", "expect": "add",
+      "items": [
+        {"amount": 120, "merchant": ["milk"], "type": "EXPENSE"},
+        {"amount": 120, "merchant": ["bread"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_11", "lang": "en", "group": "mixed_type",
+      "text": "Got 1250 back from the appliance shop and bought groceries for 740. Log both.", "expect": "add",
+      "items": [
+        {"amount": 1250, "merchant": ["appliance"], "type": "INCOME"},
+        {"amount": 740, "merchant": ["grocer"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_12", "lang": "en", "group": "mixed_type",
+      "text": "My wages of 18500 came in today; I paid 6200 for rent and 950 for electricity. Add all three transactions.", "expect": "add",
+      "items": [
+        {"amount": 18500, "merchant": [], "type": "INCOME"},
+        {"amount": 6200, "merchant": ["rent"], "type": "EXPENSE"},
+        {"amount": 950, "merchant": ["electric"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_13", "lang": "en", "group": "mixed_type",
+      "text": "Got a used phone for 3200 and received 900 from selling my old monitor. Record the purchase and the sale.", "expect": "add",
+      "items": [
+        {"amount": 3200, "merchant": ["phone"], "type": "EXPENSE"},
+        {"amount": 900, "merchant": ["monitor"], "type": "INCOME"}
+      ]
+    },
+    {
+      "id": "mh_14", "lang": "en", "group": "mixed_type",
+      "text": "Rent 12000 and train tickets 500 were both refunded today. Then I spent 80 on breakfast. Record the two refunds and the breakfast expense.", "expect": "add",
+      "items": [
+        {"amount": 12000, "merchant": ["rent"], "type": "INCOME"},
+        {"amount": 500, "merchant": ["train"], "type": "INCOME"},
+        {"amount": 80, "merchant": ["breakfast"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_15", "lang": "en", "group": "currency",
+      "text": "Paid $12.50 for lunch, 8.25 EUR for a museum ticket, and INR 180 for a taxi. Please log three expenses.", "expect": "add",
+      "items": [
+        {"amount": 12.5, "merchant": ["lunch"], "type": "EXPENSE", "currency": "USD"},
+        {"amount": 8.25, "merchant": ["museum"], "type": "EXPENSE", "currency": "EUR"},
+        {"amount": 180, "merchant": ["taxi"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_16", "lang": "en", "group": "currency",
+      "text": "Add coffee 4.75 and lunch 16.20, both amounts in USD.", "expect": "add",
+      "items": [
+        {"amount": 4.75, "merchant": ["coffee"], "type": "EXPENSE", "currency": "USD"},
+        {"amount": 16.2, "merchant": ["lunch"], "type": "EXPENSE", "currency": "USD"}
+      ]
+    },
+    {
+      "id": "mh_17", "lang": "en", "group": "currency",
+      "text": "All in euros: bread 3.40, cheese 7.60 and apples 2.80. These are purchases I made today; add them.", "expect": "add",
+      "items": [
+        {"amount": 3.4, "merchant": ["bread"], "type": "EXPENSE", "currency": "EUR"},
+        {"amount": 7.6, "merchant": ["cheese"], "type": "EXPENSE", "currency": "EUR"},
+        {"amount": 2.8, "merchant": ["apple"], "type": "EXPENSE", "currency": "EUR"}
+      ]
+    },
+    {
+      "id": "mh_18", "lang": "en", "group": "currency", "base": "USD",
+      "text": "Record two expenses: USD 14 for breakfast and 260 rupees for a rickshaw.", "expect": "add",
+      "items": [
+        {"amount": 14, "merchant": ["breakfast"], "type": "EXPENSE"},
+        {"amount": 260, "merchant": ["rickshaw"], "type": "EXPENSE", "currency": "INR"}
+      ]
+    },
+    {
+      "id": "mh_19", "lang": "en", "group": "date",
+      "text": "Coffee 95 and lunch 285 yesterday. Add both purchases.", "expect": "add",
+      "items": [
+        {"amount": 95, "merchant": ["coffee"], "type": "EXPENSE", "days_ago": 1},
+        {"amount": 285, "merchant": ["lunch"], "type": "EXPENSE", "days_ago": 1}
+      ]
+    },
+    {
+      "id": "mh_20", "lang": "en", "group": "date",
+      "text": "Add yesterday's 175 lunch, today's 60 tea, and the 310 taxi ride from two days ago.", "expect": "add",
+      "items": [
+        {"amount": 175, "merchant": ["lunch"], "type": "EXPENSE", "days_ago": 1},
+        {"amount": 60, "merchant": ["tea"], "type": "EXPENSE"},
+        {"amount": 310, "merchant": ["taxi"], "type": "EXPENSE", "days_ago": 2}
+      ]
+    },
+    {
+      "id": "mh_21", "lang": "en", "group": "date",
+      "text": "Log these: breakfast 110, bus 32 and dinner 290. All three were paid two days ago.", "expect": "add",
+      "items": [
+        {"amount": 110, "merchant": ["breakfast"], "type": "EXPENSE", "days_ago": 2},
+        {"amount": 32, "merchant": ["bus"], "type": "EXPENSE", "days_ago": 2},
+        {"amount": 290, "merchant": ["dinner"], "type": "EXPENSE", "days_ago": 2}
+      ]
+    },
+    {
+      "id": "mh_22", "lang": "en", "group": "noise",
+      "text": "Bought 3 notebooks for 225 total and 2 pens for 40 total, using card ending 6789. Add the two purchases.", "expect": "add",
+      "items": [
+        {"amount": 225, "merchant": ["notebook", "stationery"], "type": "EXPENSE"},
+        {"amount": 40, "merchant": ["pen", "stationery"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_23", "lang": "en", "group": "noise",
+      "text": "Paid 155 at Shop 24, then 285 at Cafe 8. Add both expenses.", "expect": "add",
+      "items": [
+        {"amount": 155, "merchant": ["shop 24"], "type": "EXPENSE"},
+        {"amount": 285, "merchant": ["cafe 8", "café 8"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_24", "lang": "en", "group": "noise",
+      "text": "Paid 140 at the bakery, then at Bun and Bean paid 260, and at the florist paid 390. Log all three.", "expect": "add",
+      "items": [
+        {"amount": 140, "merchant": ["bakery"], "type": "EXPENSE"},
+        {"amount": 260, "merchant": ["bun and bean", "bun & bean"], "type": "EXPENSE"},
+        {"amount": 390, "merchant": ["florist"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_25", "lang": "en", "group": "decoy",
+      "text": "Add lunch 230 and taxi 170 as two separate expenses. The total was 400; do not add the total as another transaction.", "expect": "add",
+      "items": [
+        {"amount": 230, "merchant": ["lunch"], "type": "EXPENSE"},
+        {"amount": 170, "merchant": ["taxi"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_26", "lang": "en", "group": "decoy",
+      "text": "Tomorrow I might spend 250 on lunch and 90 on a bus. This is just a plan; I haven't paid anything. Don't record transactions.", "expect": "none"
+    },
+    {
+      "id": "mh_27", "lang": "en", "group": "decoy",
+      "text": "Is 'paid 120 for lunch and 60 for tea' a clear example sentence? It's fictional; don't add anything.", "expect": "none"
+    },
+    {
+      "id": "mh_28", "lang": "en", "group": "single",
+      "text": "Paid 1.5k for bicycle repairs today. Please add it.", "expect": "add",
+      "items": [{"amount": 1500, "merchant": ["bicycle", "bike", "repair"], "type": "EXPENSE"}]
+    },
+    {
+      "id": "mh_29", "lang": "en", "group": "single",
+      "text": "Add the postage I paid today: USD .50.", "expect": "add",
+      "items": [{"amount": 0.5, "merchant": ["postage", "post"], "type": "EXPENSE", "currency": "USD"}]
+    },
+    {
+      "id": "mh_30", "lang": "en", "group": "single",
+      "text": "I paid five hundred rupees for shoe repairs today. Record that expense.", "expect": "add",
+      "items": [{"amount": 500, "merchant": ["shoe", "repair"], "type": "EXPENSE"}]
+    },
+    {
+      "id": "mh_31", "lang": "en", "group": "and",
+      "text": "Paid 1.5k for repairs and 275.50 for groceries. Add both expenses.", "expect": "add",
+      "items": [
+        {"amount": 1500, "merchant": ["repair"], "type": "EXPENSE"},
+        {"amount": 275.5, "merchant": ["grocer"], "type": "EXPENSE"}
+      ]
+    },
+    {
+      "id": "mh_32", "lang": "en", "group": "same_amount",
+      "text": "The bookshop refunded 450, then I paid the bookshop 450 for a new order. Add the refund and the purchase.", "expect": "add",
+      "items": [
+        {"amount": 450, "merchant": ["bookshop", "book shop"], "type": "INCOME"},
+        {"amount": 450, "merchant": ["bookshop", "book shop"], "type": "EXPENSE"}
+      ]
+    }
+  ]
+}

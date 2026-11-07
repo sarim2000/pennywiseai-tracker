@@ -18,6 +18,7 @@ import com.google.ai.edge.litertlm.ToolSet
 import com.google.ai.edge.litertlm.tool
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import com.pennywiseai.tracker.data.service.AddTransactionsTool
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.data.service.QwenChatTemplate
 import kotlinx.coroutines.flow.collect
@@ -31,7 +32,7 @@ import kotlin.concurrent.thread
  *
  *   ./run.sh <model> <shape> [key=value...]
  * Shapes: app (the app's tools and prompt as they are now), prod, prod_hint, ext_hint, ext_rules, ext_few, array, array_rules, array_few, json.
- * "prod" compiles the app's PennyWiseTools, so it only means the pre-phase-1 tools on a checkout from before them.
+ * "prod" and "prod_hint" compile the app's PennyWiseTools, so they only mean the old tools on a checkout from before them.
  * Output is one JSON object per run. A case with "turns" sends them in one conversation; its calls and text cover all turns.
  * Keys: cases, out, backend (cpu|gpu), threads, temp, topk, topp, reps, template (app|builtin), only, prefix (put in front of each message), perf.
  */
@@ -63,9 +64,14 @@ internal fun systemPrompt(base: String, hint: String): String {
 """.trimIndent() + hint
 }
 
+/** The prompt the app sends today: LlmRepository.composeSystemPrompt names the array tool and adds these rules. */
+internal fun appSystemPrompt(base: String) =
+    systemPrompt(base, ONE_CALL_ITEMS + RULES).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
+
 private const val ONE_CALL_EACH = "\nIf a message mentions several transactions, call addTransaction once for each of them."
 private const val RULES = """
 Every amount the user states is its own transaction: never add amounts together and never merge items.
+Money received, such as salary, is a transaction too: call addTransactions, don't just acknowledge it.
 Leave account empty unless the user names a bank, card or cash in this message."""
 
 private const val EXAMPLES = RULES + """
@@ -201,7 +207,10 @@ fun main(argv: Array<String>) = runBlocking {
         val tools: List<ToolProvider>
         val system: String
         when (shape) {
-            "app" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, ONE_CALL_EACH + RULES) }
+            "app" -> {
+                tools = listOf(tool(AddTransactionsTool()), tool(PennyWiseTools()))
+                system = appSystemPrompt(c.currency)
+            }
             "prod" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, "") }
             "prod_hint" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, ONE_CALL_EACH) }
             "ext_hint" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(c.currency, ONE_CALL_EACH) }
@@ -256,7 +265,7 @@ fun main(argv: Array<String>) = runBlocking {
                 row["bench"] = b.toString()
             }
         } catch (e: Throwable) {
-            row["error"] = "${e.javaClass.simpleName}: ${e.message?.take(300)}"
+            row["error"] = "${e.javaClass.simpleName}: ${e.message?.take(3000)}"
         } finally {
             runCatching { convo?.close() }
         }

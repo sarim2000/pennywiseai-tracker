@@ -8,10 +8,13 @@
     <string name="widget_description_category_pie">Выдаткі гэтага месяца па катэгорыях: кругавая дыяграма з легендай.</string>
     <string name="widget_name_add_transaction">Выдатак наяўнымі</string>
     <string name="widget_name_summary">Зводка выдаткаў</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Дадаць транзакцыю</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Дадаць</string>
     <string name="shortcut_add_transaction_long">Дадаць транзакцыю</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Падтрымаць распрацоўку</string>
     <string name="support_subtitle">Робіць адзін распрацоўшчык — невялікі донат дапамагае працягваць 🦉</string>
     <string name="support_dialog_body">PennyWise бясплатны і з адкрытым кодам, яго робіць адзін распрацоўшчык. У гэтай зборцы ўжо ўсё адкрыта. Калі праграма вам карысная, невялікі донат дапаможа яе развіваць 🦉</string>

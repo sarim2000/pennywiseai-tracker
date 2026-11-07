@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
@@ -75,6 +77,7 @@ open class UserPreferencesRepository @Inject constructor(
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         val BACKGROUND_OEM_STEP_CONFIRMED_ON = stringPreferencesKey("background_oem_step_confirmed_on")
+        val BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -400,6 +403,63 @@ open class UserPreferencesRepository @Inject constructor(
             }
         }
     }
+
+    /** Budget notifications (MoneyAlertWorker); an opt-in from Settings → Notifications. */
+    val budgetAlertsEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] ?: false }
+
+    suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Atomically records that this budget's [tier] alert is due for [window].
+     * True at most once, across concurrent checks: see [MoneyAlertRules.nextBudgetLatch].
+     * Stays on this device, outside backups: a restore can only cost one more true alert.
+     */
+    // ponytail: a deleted budget leaves its short key behind; sweep if budgets ever churn.
+    suspend fun claimBudgetAlert(budgetId: Long, window: String, tier: BudgetAlertTier): Boolean {
+        val key = stringPreferencesKey("budget_alert_$budgetId")
+        var claimed = false
+        context.dataStore.edit { preferences ->
+            MoneyAlertRules.nextBudgetLatch(preferences[key], window, tier)?.let {
+                preferences[key] = it
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** True once per dip of this account under its threshold; [isLow] false rearms it. */
+    suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
+        val key = lowBalanceToldKey(bankName, accountLast4)
+        var claimed = false
+        context.dataStore.edit { preferences ->
+            if (!isLow) {
+                preferences.remove(key)
+            } else if (preferences[key] != true) {
+                preferences[key] = true
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** A rename is the same account in the same dip, so what it was told goes with it. */
+    suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String) {
+        val oldKey = lowBalanceToldKey(oldBankName, accountLast4)
+        context.dataStore.edit { preferences ->
+            if (preferences[oldKey] == true) {
+                preferences.remove(oldKey)
+                preferences[lowBalanceToldKey(newBankName, accountLast4)] = true
+            }
+        }
+    }
+
+    private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
+        booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
     
     suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->

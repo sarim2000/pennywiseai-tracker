@@ -852,6 +852,22 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
+    val budgetAlertsEnabled by settingsViewModel.budgetAlertsEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val budgetAlertsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setBudgetAlertsEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_budget_alerts_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    fun needsNotificationPermission() =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
 
     SettingsGroup {
         SettingsSwitchRow(
@@ -862,19 +878,29 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             subtitle = stringResource(R.string.settings_daily_summary_subtitle),
             checked = dailySummaryEnabled,
             onCheckedChange = { enabled ->
-                val needsPermission = enabled &&
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    androidx.core.content.ContextCompat.checkSelfPermission(
-                        context,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (needsPermission) {
+                if (enabled && needsNotificationPermission()) {
                     dailySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     settingsViewModel.setDailySummaryEnabled(enabled)
                 }
             },
             position = ListItemPosition.Top
+        )
+        SettingsSwitchRow(
+            icon = Icons.Default.Notifications,
+            iconBgColor = indigo_light,
+            iconTint = indigo_dark,
+            title = stringResource(R.string.settings_budget_alerts_title),
+            subtitle = stringResource(R.string.settings_budget_alerts_subtitle, 80),
+            checked = budgetAlertsEnabled,
+            onCheckedChange = { enabled ->
+                if (enabled && needsNotificationPermission()) {
+                    budgetAlertsPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    settingsViewModel.setBudgetAlertsEnabled(enabled)
+                }
+            },
+            position = ListItemPosition.Middle
         )
         SettingsNavItem(
             icon = Icons.Default.Tune,

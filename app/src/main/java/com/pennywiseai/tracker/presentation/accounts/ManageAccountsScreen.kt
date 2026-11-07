@@ -1527,6 +1527,11 @@ private fun LowBalanceThresholdDialog(
 ) {
     var text by remember { mutableStateOf(currentThreshold?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
+    val context = LocalContext.current
+    // A refusal still saves: the card turns red either way, only the notification needs this.
+    val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { onConfirm(parsed) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1555,7 +1560,18 @@ private fun LowBalanceThresholdDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(parsed) },
+                onClick = {
+                    val needsPermission = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (needsPermission) {
+                        notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        onConfirm(parsed)
+                    }
+                },
                 enabled = parsed != null && parsed >= BigDecimal.ZERO,
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }

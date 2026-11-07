@@ -280,6 +280,7 @@
     <string name="chat_action_update">อัปเดต</string>
     <string name="chat_action_change_merchant">ร้านค้า → %1$s</string>
     <string name="chat_action_change_category">หมวดหมู่ → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">ทำรายการนี้ไม่ได้: %1$s</string>
     <string name="chat_error_memory_full">หน่วยความจำแชทเต็มแล้ว ล้างแชทเพื่อคุยต่อ</string>

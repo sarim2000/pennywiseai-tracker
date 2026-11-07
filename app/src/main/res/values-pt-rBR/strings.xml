@@ -8,10 +8,13 @@
     <string name="widget_description_category_pie">Gastos do mês por categoria em um gráfico de pizza com legenda.</string>
     <string name="widget_name_add_transaction">Gasto em dinheiro</string>
     <string name="widget_name_summary">Resumo de gastos</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Adicionar transação</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Adicionar</string>
     <string name="shortcut_add_transaction_long">Adicionar transação</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Apoie o desenvolvimento</string>
     <string name="support_subtitle">Feito por um dev solo — uma pequena gorjeta ajuda a continuar 🦉</string>
     <string name="support_dialog_body">O PennyWise é gratuito e de código aberto, feito por um único desenvolvedor. Tudo já está liberado nesta versão. Se o app for útil para você, uma gorjeta ajuda a manter o projeto 🦉</string>

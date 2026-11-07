@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Review screen -->
+    <!-- %1$d = year -->
+    <!-- %1$d = percent, %2$s = what it is compared with -->
+    <!-- %1$s = what it is compared with -->
+    <!-- %1$d = year -->
+    <!-- %1$s, %2$s = first and last recorded dates -->
+    <!-- Home -->
+    <!-- %1$s = year -->
+    <!-- Share card -->
+    <!-- The message sent with the image, in the sharer's voice. %1$d = count -->
+    <!-- %1$s = the app's website -->
+    <!-- Weekly recap -->
+    <!-- %1$s = amount -->
+</resources>

@@ -324,6 +324,7 @@
     <string name="chat_action_update">تحديث</string>
     <string name="chat_action_change_merchant">التاجر → %1$s</string>
     <string name="chat_action_change_category">الفئة → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">تعذر تطبيق ما يلي: %1$s</string>
     <string name="chat_error_memory_full">ذاكرة الدردشة ممتلئة. يرجى مسح الدردشة للمتابعة.</string>

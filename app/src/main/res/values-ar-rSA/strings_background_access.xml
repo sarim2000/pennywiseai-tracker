@@ -20,7 +20,6 @@
         <item quantity="other">بقيت %d خطوة.</item>
     </plurals>
     <string name="background_access_all_set">كل شيء جاهز. يمكن لـ PennyWise مواصلة تتبع رسائل البنك في الخلفية.</string>
-
     <string name="background_access_allow">السماح</string>
     <string name="background_access_open_settings">فتح الإعدادات</string>
     <string name="background_access_mark_done">قمت بذلك</string>
@@ -29,14 +28,12 @@
     <string name="background_access_status_done">تم</string>
     <string name="background_access_status_needed">تحتاج إلى إجراء</string>
     <string name="background_access_status_optional">اختياري</string>
-
     <string name="background_access_battery_title">البطارية: غير مقيّدة</string>
     <string name="background_access_battery_why">يمنع أندرويد من وضع PennyWise في السكون، لتصل معاملاتك البنكية في وقتها. ابحث عن PennyWise في القائمة واختر «عدم التحسين».</string>
     <string name="background_access_activity_title">النشاط في الخلفية</string>
     <string name="background_access_activity_why">تم ضبط PennyWise على «مقيّد». افتح إعدادات البطارية الخاصة به واختر «غير مقيّد».</string>
     <string name="background_access_keep_title">إبقاء الوصول عند عدم فتح التطبيق</string>
     <string name="background_access_keep_why">أوقف خيار «إيقاف نشاط التطبيق مؤقتًا في حال عدم استخدامه» أو «إزالة الأذونات في حال عدم استخدام التطبيق». وإلا سيسحب أندرويد إذن الرسائل من PennyWise بعد بضعة أشهر.</string>
-
     <string name="background_access_oem_title_samsung">التطبيقات التي لا تدخل في السكون مطلقًا</string>
     <string name="background_access_oem_title_autostart">التشغيل التلقائي</string>
     <string name="background_access_oem_howto_samsung">لا تريد السماح بخطوة البطارية؟ قد تُدخل سامسونج PennyWise في السكون، فافتح هذه القائمة، واضغط «إضافة تطبيقات» واختر PennyWise.</string>

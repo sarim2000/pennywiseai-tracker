@@ -247,6 +247,11 @@
     <string name="settings_report_issue_subtitle">Fehlerberichte auf GitHub senden</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Erscheinungsbild</string>
     <string name="appearance_back">Zurück</string>

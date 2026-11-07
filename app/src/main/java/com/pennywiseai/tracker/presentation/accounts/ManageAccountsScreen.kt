@@ -230,7 +230,7 @@ fun ManageAccountsScreen(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                    bottom = 0.dp
+                    bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -753,7 +753,9 @@ private fun CreditCardItem(
                 MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
             } else {
                 MaterialTheme.colorScheme.surfaceContainerLow
-            }
+            },
+            // Set outright: a translucent container matches no theme colour, so the default went black.
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -777,7 +779,7 @@ private fun CreditCardItem(
                     Icon(
                         imageVector = Icons.Default.CreditCard,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Column {
                         Row(
@@ -853,7 +855,7 @@ private fun CreditCardItem(
                         text = CurrencyFormatter.formatCurrency(available, card.currency),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 
@@ -1109,7 +1111,9 @@ private fun AccountItem(
                 )
                 isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
                 else -> MaterialTheme.colorScheme.surfaceContainerLow
-            }
+            },
+            // Set outright: a translucent container matches no theme colour, so the default went black.
+            contentColor = MaterialTheme.colorScheme.onSurface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -1133,7 +1137,7 @@ private fun AccountItem(
                     Icon(
                         imageVector = if (account.isLoan) AccountType.LOAN.icon else Icons.Default.AccountBalance,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     val alias = account.alias?.takeIf { it.isNotBlank() }
                     Column {
@@ -1207,7 +1211,7 @@ private fun AccountItem(
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1523,6 +1527,11 @@ private fun LowBalanceThresholdDialog(
 ) {
     var text by remember { mutableStateOf(currentThreshold?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
+    val context = LocalContext.current
+    // A refusal still saves: the card turns red either way, only the notification needs this.
+    val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { onConfirm(parsed) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1551,7 +1560,18 @@ private fun LowBalanceThresholdDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(parsed) },
+                onClick = {
+                    val needsPermission = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.POST_NOTIFICATIONS
+                        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (needsPermission) {
+                        notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        onConfirm(parsed)
+                    }
+                },
                 enabled = parsed != null && parsed >= BigDecimal.ZERO,
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
@@ -1885,7 +1905,7 @@ private fun OrphanedCardItem(
                 Icon(
                     imageVector = Icons.Default.CreditCard,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -1903,7 +1923,7 @@ private fun OrphanedCardItem(
                         Text(
                             text = stringResource(R.string.manage_accounts_last_balance, CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     // Show source SMS that triggered card detection
@@ -2233,7 +2253,7 @@ private fun DeleteAccountConfirmDialog(
                         Icon(
                             Icons.Default.AccountBalance,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Column {
                             Text(

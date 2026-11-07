@@ -19,6 +19,13 @@ class BalanceDiscrepancyTest {
     private fun effects(vararg t: TransactionEntity) = t.map { BalanceDiscrepancy.effectOn(it, "5678") }
 
     @Test
+    fun `a paired leg moves its own account by its direction`() {
+        val leg = tx(TransactionType.TRANSFER, "100", from = "5678", to = "1234").copy(transferPairId = "pair")
+        assertEquals(bd("-100"), BalanceDiscrepancy.effectOn(leg.copy(accountNumber = "5678"), "5678"))
+        assertEquals(bd("100"), BalanceDiscrepancy.effectOn(leg.copy(accountNumber = "1234"), "1234"))
+    }
+
+    @Test
     fun `consistent ledger reports nothing`() {
         assertNull(BalanceDiscrepancy.compute(bd("3000"), effects(tx(TransactionType.EXPENSE, "100")), bd("2900"), "INR"))
     }

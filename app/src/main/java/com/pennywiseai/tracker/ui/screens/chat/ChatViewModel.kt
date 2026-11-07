@@ -224,6 +224,7 @@ class ChatViewModel @Inject constructor(
                             accountLast4 = draft.accountLast4,
                             currency = draft.currency
                         )
+                        com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                         llmRepository.completePendingAction(
                             context.getString(
                                 R.string.chat_done_added,

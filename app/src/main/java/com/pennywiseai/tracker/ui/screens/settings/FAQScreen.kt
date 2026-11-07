@@ -289,7 +289,7 @@ fun FAQScreen(
                         Icon(
                             Icons.Default.BugReport,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Column {
                             Text(

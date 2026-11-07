@@ -80,6 +80,12 @@ Avoid features newer than 3.18 in migration SQL — e.g. `HAVING` without `GROUP
 
 If the AVD is missing: `sdkmanager "system-images;android-26;google_apis;arm64-v8a"` then `avdmanager create avd -n Api26_Migration -k "system-images;android-26;google_apis;arm64-v8a" -d pixel_2`.
 
+**CI:** `.github/workflows/database-upgrade-test.yml` runs `FullUpgradeTest` (v47 → `SCHEMA_VERSION`) on an API 26 x86_64 emulator when the schemas or `data/database/` change. It uses the `standard` flavor because `fdroid` is ARM-only. It doesn't launch the app or start from a real older install, so still do the check above. To run the same test locally:
+
+```bash
+ANDROID_SERIAL=emulator-5562 ./gradlew :app:connectedStandardDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.pennywiseai.tracker.data.database.FullUpgradeTest
+```
+
 ## No destructive fallback
 
 Neither builder calls `fallbackToDestructiveMigration()`. A missing migration fails loudly during development instead of silently wiping a user's transaction history in production. That's deliberate; don't add one "temporarily".

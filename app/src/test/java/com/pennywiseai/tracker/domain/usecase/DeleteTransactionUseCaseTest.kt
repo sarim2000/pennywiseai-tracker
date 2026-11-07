@@ -115,7 +115,8 @@ class DeleteTransactionUseCaseTest {
         accountBalanceRepository = object : AccountBalanceRepository(
             acctDao,
             transactionDao,
-            TestDb()
+            TestDb(),
+            io.mockk.mockk(relaxed = true)
         ) {
             override suspend fun applyDeleteBalanceShift(transaction: TransactionEntity) {
                 balanceShiftTransactions.add(transaction)

@@ -40,6 +40,13 @@ data class Transactions(
 @Serializable
 data object Settings : NavKey
 
+/** A page of the Settings hub. */
+@Serializable
+enum class SettingsSection { TRACKING, ACCOUNTS, PLANNING, CURRENCY, FORMATS, NOTIFICATIONS, SECURITY, DATA, AI, DEVELOPER }
+
+@Serializable
+data class SettingsPage(val section: SettingsSection) : NavKey
+
 @Serializable
 data object Categories : NavKey
 
@@ -150,14 +157,17 @@ data object Webhooks : NavKey
 data object AiAccess : NavKey
 
 @Serializable
+data object BackgroundAccess : NavKey
+
+@Serializable
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,
     val currency: String? = null
 ) : NavKey
 
-// Screens inside MainScreen's tab stacks (Home, Settings, Categories, Faq,
-// UnrecognizedSms and ImportStatement are reused there too).
+// Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq,
+// UnrecognizedSms and ImportStatement live only there).
 @Serializable
 data object Subscriptions : NavKey
 

@@ -343,9 +343,9 @@ open class TransactionRepository @Inject constructor(
         writeKeepingSplit(transaction.copy(isDeleted = false))
     }
     
-    suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String) {
-        transactionDao.updateCategoryForMerchant(merchantName, newCategory)
-    }
+    /** See [TransactionDao.updateCategoryForMerchant]. */
+    suspend fun updateCategoryForMerchant(merchantName: String, types: Collection<TransactionType>, excludeId: Long, newCategory: String): Int =
+        transactionDao.updateCategoryForMerchant(merchantName, types.map { it.name }, excludeId, newCategory)
 
     suspend fun updateCategory(transactionId: Long, category: String) {
         transactionDao.updateCategoryById(transactionId, category, LocalDateTime.now())
@@ -367,9 +367,9 @@ open class TransactionRepository @Inject constructor(
     suspend fun moveCategory(ids: List<Long>, from: String, to: String): Int =
         ids.chunked(500).sumOf { transactionDao.moveCategory(it, from, to) }
     
-    suspend fun getOtherTransactionCountForMerchant(merchantName: String, excludeId: Long): Int {
-        return transactionDao.getTransactionCountForMerchant(merchantName, excludeId)
-    }
+    /** How many rows [updateCategoryForMerchant] would move. */
+    suspend fun countRecategorizableForMerchant(merchantName: String, types: Collection<TransactionType>, excludeId: Long): Int =
+        transactionDao.countRecategorizableForMerchant(merchantName, types.map { it.name }, excludeId)
 
     suspend fun countExplicitProfileMismatchForAccount(
         bankName: String,

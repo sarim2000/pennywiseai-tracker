@@ -150,7 +150,7 @@ fun ExportTransactionsDialog(
                                     Text(
                                         text = transactions.size.toString(),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 
@@ -173,7 +173,7 @@ fun ExportTransactionsDialog(
                                         Text(
                                             text = stringResource(R.string.txn_export_date_range_value, startDate, endDate),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }

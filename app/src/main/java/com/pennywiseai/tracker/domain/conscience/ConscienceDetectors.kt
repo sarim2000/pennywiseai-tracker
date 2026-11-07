@@ -72,15 +72,14 @@ object ConscienceDetectors {
         val today = current.at.toLocalDate()
         val prior = history.filter { it.isBefore(current) }
         val inCategory = prior.filter { it.category == current.category }
-        val sameMoney = inCategory.filter { it.currency == current.currency }
         val facts = listOfNotNull(
             positive(current, inCategory, today, ledgerStart, activeDates),
             comeback(current, inCategory, today),
             repeat(current, inCategory, zone),
             weekly(current, inCategory, today),
             lateNight(current, prior),
-            recordDay(current, sameMoney, today, ledgerStart),
-            spike(current, sameMoney, today, ledgerStart),
+            recordDay(current, inCategory, today, ledgerStart),
+            spike(current, inCategory, today, ledgerStart),
         ).sortedBy { it.kind.ordinal }
         return facts + ConscienceFact.Hello(current.category)
     }
@@ -192,23 +191,25 @@ object ConscienceDetectors {
     /**
      * The last 7 days in this category and currency crossed, with this purchase,
      * a bar well above every ordinary week of the 8 before. Several purchases
-     * have to make the week: one big buy is a purchase, not a spree.
+     * have to make the week: one big buy is a purchase, not a spree. The lines
+     * name no currency, so another one in the window keeps them quiet.
      */
     private fun spike(
         current: ConsciencePurchase,
-        sameMoney: List<ConsciencePurchase>,
+        inCategory: List<ConsciencePurchase>,
         today: LocalDate,
         ledgerStart: LocalDate?,
     ): ConscienceFact? {
         fun weekStart(index: Int): LocalDate = today.minusDays(6L + 7L * index)
         val baselineStart = weekStart(SPIKE_BASELINE_WEEKS)
         if (ledgerStart == null || ledgerStart.isAfter(baselineStart)) return null
+        if (inCategory.any { it.currency != current.currency && it.isOn(baselineStart, today) }) return null
 
         val weeks = (1..SPIKE_BASELINE_WEEKS).map { index ->
             val start = weekStart(index)
-            sameMoney.filter { it.isOn(start, start.plusDays(6)) }.total()
+            inCategory.filter { it.isOn(start, start.plusDays(6)) }.total()
         }
-        val baselineDates = sameMoney.filter { it.isOn(baselineStart, weekStart(1).plusDays(6)) }
+        val baselineDates = inCategory.filter { it.isOn(baselineStart, weekStart(1).plusDays(6)) }
             .map { it.at.toLocalDate() }.distinct().size
         if (baselineDates < SPIKE_MIN_ACTIVE_DAYS) return null
         if (weeks.count { it.signum() > 0 } < SPIKE_MIN_POSITIVE_WEEKS) return null
@@ -221,7 +222,7 @@ object ConscienceDetectors {
         val p90 = sorted[(9 * sorted.size + 9) / 10 - 1]
         val bar = maxOf(usual * SPIKE_MEDIAN_FACTOR, usual + mad * SPIKE_MAD_FACTOR, p90 * SPIKE_P90_FACTOR)
 
-        val thisWeek = sameMoney.filter { it.isOn(weekStart(0), today) }
+        val thisWeek = inCategory.filter { it.isOn(weekStart(0), today) }
         val after = thisWeek.total() + current.amount
         if (after - current.amount > bar || after <= bar) return null
 
@@ -331,22 +332,24 @@ object ConscienceDetectors {
     /**
      * Today's total in this category and currency passed the highest day of the
      * prior 60 by a clear margin, with this purchase, over several purchases.
+     * The lines name no currency, so another one in the window keeps them quiet.
      */
     private fun recordDay(
         current: ConsciencePurchase,
-        sameMoney: List<ConsciencePurchase>,
+        inCategory: List<ConsciencePurchase>,
         today: LocalDate,
         ledgerStart: LocalDate?,
     ): ConscienceFact? {
         val windowStart = today.minusDays(RECORD_WINDOW_DAYS)
         if (ledgerStart == null || ledgerStart.isAfter(windowStart)) return null
-        val dayTotals = sameMoney.filter { it.isOn(windowStart, today.minusDays(1)) }
+        if (inCategory.any { it.currency != current.currency && it.isOn(windowStart, today) }) return null
+        val dayTotals = inCategory.filter { it.isOn(windowStart, today.minusDays(1)) }
             .groupBy { it.at.toLocalDate() }
             .mapValues { (_, purchases) -> purchases.total() }
         if (dayTotals.size < RECORD_MIN_ACTIVE_DAYS) return null
 
         val bar = dayTotals.values.max() * RECORD_MARGIN
-        val todays = sameMoney.filter { it.at.toLocalDate() == today }.byTransaction() + current.toBuy()
+        val todays = inCategory.filter { it.at.toLocalDate() == today }.byTransaction() + current.toBuy()
         val after = todays.sumOf { it.amount }
         if (after - current.amount > bar || after <= bar) return null
         if (todays.size < 2 || Duration.between(todays.minOf { it.at }, current.at) < MIN_SPREAD) return null

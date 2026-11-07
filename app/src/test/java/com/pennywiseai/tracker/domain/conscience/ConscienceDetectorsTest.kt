@@ -315,12 +315,17 @@ class ConscienceDetectorsTest {
     }
 
     @Test
-    fun `spike totals never mix currencies or categories`() {
-        val noise = week(1, "5000", currency = "USD") + on(daysAgo(2), "500", currency = "USD") +
-            on(daysAgo(2), "500", category = SHOPPING)
-        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek + noise))
-        val usdBaseline = (1..8).flatMap { week(it, "50", "50", currency = "USD") }
-        assertNull(spike(usdBaseline + spikeWeek))
+    fun `spike totals never mix categories`() {
+        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek + on(daysAgo(2), "500", category = SHOPPING)))
+    }
+
+    @Test
+    fun `another currency in the spike window keeps it quiet`() {
+        // A far bigger USD week would make "way ahead of your usual week" false for the category.
+        assertNull(spike(steadyWeeks + spikeWeek + week(1, "5000", currency = "USD")))
+        assertNull(spike(steadyWeeks + spikeWeek + on(daysAgo(2), "5", currency = "USD")))
+        // Just before the window: it can't contradict anything.
+        assertEquals(Spike(FOOD), spike(steadyWeeks + spikeWeek + on(spikeWeekStart(8).minusDays(1), "5000", currency = "USD")))
     }
 
     // --- Positive ---
@@ -695,15 +700,21 @@ class ConscienceDetectorsTest {
     }
 
     @Test
-    fun `record totals never mix currencies or categories`() {
-        val noise = listOf(
-            on(daysAgo(3), "99999", currency = "USD"),
-            on(today, "1000", hour = 10, currency = "USD"),
-            on(today, "1000", hour = 10, category = SHOPPING),
-        )
+    fun `record totals never mix categories`() {
+        val noise = on(today, "1000", hour = 10, category = SHOPPING)
         assertEquals(RecordDay(FOOD), record(recordBase + on(today, "60", hour = 9) + noise, "60.01"))
-        val sevenJodOneUsd = (1L..7L).map { on(daysAgo(it), "50") } + on(daysAgo(8), "50", currency = "USD")
-        assertNull(record(sevenJodOneUsd + on(today, "60", hour = 9), "60.01"))
+    }
+
+    @Test
+    fun `another currency in the record window keeps it quiet`() {
+        val todaySoFar = recordBase + on(today, "60", hour = 9)
+        // A far bigger USD day would make "biggest food day in two months" false.
+        assertNull(record(todaySoFar + on(daysAgo(3), "99999", currency = "USD"), "60.01"))
+        assertNull(record(todaySoFar + on(today, "1000", hour = 10, currency = "USD"), "60.01"))
+        // Too small to move any total: only the rule itself can keep this one quiet.
+        assertNull(record(todaySoFar + on(daysAgo(3), "5", currency = "USD"), "60.01"))
+        // Just before the window: it can't contradict anything.
+        assertEquals(RecordDay(FOOD), record(todaySoFar + on(daysAgo(61), "99999", currency = "USD"), "60.01"))
     }
 
     private companion object {

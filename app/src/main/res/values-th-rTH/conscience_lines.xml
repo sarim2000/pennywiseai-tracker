@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Conscience lines in Thai. Written natively, not translated; see values/conscience_lines.xml
+    for the rules. Pronouns are mostly dropped and no gendered particles (ครับ/ค่ะ) are used,
+    so no {masculine|feminine} alternations. {weekday} already includes วัน (e.g. วันพฤหัสบดี).
+-->
+<resources>
+    <string name="conscience_content_locale">th</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">อดทนได้ตั้ง {days} เก่งมาก แล้ว… วันนี้กินอะไรดี?</string>
+    <string name="conscience_line_comeback_food_02">ความกล้าหาญ {days} เต็ม เดี๋ยวแต่งเพลงให้ เพลงสั้นๆ นะ</string>
+    <string name="conscience_line_comeback_food_03">บอกใครๆ ไว้ว่าจะไหวเป็นเดือน ผลออกมา {days} 😅</string>
+    <string name="conscience_line_comeback_food_04">ไหวมา {days} ส้มตำไม่เคยเลิกเชื่อในตัวคุณเลย</string>
+    <string name="conscience_line_comeback_food_05">ใจแข็งมา {days} แล้วก็มีคนพูดว่า \"คำเดียวน่า\"</string>
+    <string name="conscience_line_comeback_food_06">นักวิทยาศาสตร์ยืนยัน: ความตั้งใจของคุณมีครึ่งชีวิต {days} 🔬</string>
+    <string name="conscience_line_comeback_food_07">ไร้พ่ายมา {days} จนกระทั่งเจอเมนู</string>
+    <string name="conscience_line_comeback_food_08">ห่างเมนูไป {days} สุดท้ายรักแท้ก็แพ้ใกล้ชิด 💘</string>
+    <string name="conscience_line_comeback_food_09">ยินดีต้อนรับกลับ เมนูจองที่นั่งรอไว้ให้ตั้ง {days}</string>
+    <string name="conscience_line_comeback_food_10">ห่างกันไป {days} ของกินก็รับกลับโดยไม่ถามสักคำ</string>
+    <string name="conscience_line_comeback_food_11">ผ่านไป {days} เมนูยังจำหน้าได้อยู่เลย</string>
+    <string name="conscience_line_comeback_food_12">{days} ที่ผ่านมาคือยุคทอง ตอนนี้ปิดฉากแล้ว 🍔</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">เลิก{category}ไป {days} น่าประทับใจมาก… อยู่แป๊บเดียว</string>
+    <string name="conscience_line_comeback_02">ประกาศวางมือจาก{category}ได้ {days} สุนทรพจน์ดีมาก</string>
+    <string name="conscience_line_comeback_03">{days} ที่แสนสงบ ว่าแต่… {category} 😏</string>
+    <string name="conscience_line_comeback_04">คุณกับ{category}ขอเวลาห่างกันสักพัก แค่ {days}</string>
+    <string name="conscience_line_comeback_05">คุณกับ{category}จ้องตากันมา {days} แล้วคุณก็กะพริบตาก่อน 👀</string>
+    <string name="conscience_line_comeback_06">กฎห้าม{category}ใช้ได้ {days} แล้วก็ถูกยกเลิกแบบเอกฉันท์</string>
+    <string name="conscience_line_comeback_07">ทำตัวมีสติมา {days} บอกตรงๆ ไม่ค่อยเข้ากับคุณเลย 😏</string>
+    <string name="conscience_line_comeback_08">การทดลองกินเวลา {days} ผลลัพธ์: {category}</string>
+    <string name="conscience_line_comeback_09">ไม่มีใครนับหรอก… โอเค ฉันนับเอง {days} เป๊ะ</string>
+    <string name="conscience_line_comeback_10">{days} ไร้{category} ลิขสิทธิ์ทำหนังยังว่างอยู่นะ 🍿</string>
+    <string name="conscience_line_comeback_11">กลับมาหา{category}หลังหายไป {days} ไม่พูดอะไรหรอก แค่ยิ้มมุมปาก 😏</string>
+    <string name="conscience_line_comeback_12">ลาพักร้อนจาก{category}ไป {days} หวังว่าจะได้พักเต็มที่นะ 🏖️</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">ไม่ๆ ต่อเลย ไม่ต้องเกรงใจ</string>
+    <string name="conscience_line_record_day_02">{category}วันนี้มาแรงสุดในรอบสองเดือน ขอเสียงหน่อย! 🎉</string>
+    <string name="conscience_line_record_day_03">วันนี้คือวันประวัติศาสตร์ของ{category} ประวัติศาสตร์อันยาวนาน… สองเดือน</string>
+    <string name="conscience_line_record_day_04">สถิติ{category}ดีที่สุดในรอบสองเดือน ไม่แน่ใจว่าคำว่า \"ดี\" ใช้ถูกไหม</string>
+    <string name="conscience_line_record_day_05">ไม่เห็นอะไรเลย นอกจาก{category}ที่จัดหนักที่สุดในรอบสองเดือน 🙈</string>
+    <string name="conscience_line_record_day_06">อันนี้ต้องแปะตู้เย็นไว้โชว์ สถิติ{category}สูงสุดในรอบสองเดือน</string>
+    <string name="conscience_line_record_day_07">เหรียญทองประเภท{category} คู่แข่ง: สองเดือนที่ผ่านมา 🥇</string>
+    <string name="conscience_line_record_day_08">สองเดือนที่ผ่านมาโทรมาแล้ว เขายอมแพ้</string>
+    <string name="conscience_line_record_day_09">ไม่มีวันไหนในสองเดือนที่{category}แตะวันนี้ได้ ภูมิใจนะ แบบแปลกๆ</string>
+    <string name="conscience_line_record_day_10">วอร์มมาสองเดือน วันนี้คือรอบชิงของจริง</string>
+    <string name="conscience_line_record_day_11">พิชิตยอดดอย{category}ในรอบสองเดือน วิวข้างบนเป็นไงบ้าง? 🏔️</string>
+    <string name="conscience_line_record_day_12">อัปเดตตารางคะแนน{category}สองเดือนล่าสุด: วันนี้ขึ้นจ่าฝูง ⚽</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">แวะกิน {count} รอบใน {hours} นี่ไม่ใช่ของว่างแล้ว ฟู้ดทัวร์ชัดๆ 🗺️</string>
+    <string name="conscience_line_repeat_food_02">ของกินอีกแล้ว รอบที่ {count} ใน {hours} ไม่ได้นับนะ (นับอยู่)</string>
+    <string name="conscience_line_repeat_food_03">ของกิน {count} รายการใน {hours} นี่กลายเป็นซีรีส์ไปแล้วเหรอ? 🍿</string>
+    <string name="conscience_line_repeat_food_04">ใครก็ได้ทำบัตรสะสมแต้มให้คนนี้ที แวะกิน {count} รอบใน {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">ข่าวด่วน: พบของกิน {count} ครั้งใน {hours} ติดตามต่อหลังข่าว 📺</string>
+    <string name="conscience_line_repeat_food_06">ออกไปหาของกิน {count} รอบใน {hours} นับเป็นคาร์ดิโอได้นะ 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{category} {count} รอบใน {hours} วอร์มอัปหรือเทิร์นโปรแล้ว? 😏</string>
+    <string name="conscience_line_repeat_02">{category}รอบที่ {count} ใน {hours} ใครนับ? ฉันนี่แหละนับ</string>
+    <string name="conscience_line_repeat_03">{count} ครั้งใน {hours}? ช่วงนี้{category}กำลังปังเลยสินะ 💅</string>
+    <string name="conscience_line_repeat_04">เอาอีก! เอาอีก! {category} {count} รอบใน {hours} 👏</string>
+    <string name="conscience_line_repeat_05">{category} {count} รอบใน {hours} นี่มันสปีดรันชัดๆ 🏁</string>
+    <string name="conscience_line_repeat_06">{category} {count} ครั้งใน {hours} แต้มสะสมคงไหลมาเทมาแล้ว 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">กินตอนนี้เนี่ยนะ? ไฟตู้เย็นยังอิจฉา 🌙</string>
+    <string name="conscience_line_late_night_food_02">ของกินยามดึก ความลับนี้ ตัวคุณตอนเช้าจะไม่มีวันรู้ 🤫</string>
+    <string name="conscience_line_late_night_food_03">เมนูเที่ยงคืน: ปลดล็อกแล้ว 🔓</string>
+    <string name="conscience_line_late_night_food_04">พระจันทร์โทรมา ขอแบ่งสักคำ 🌝</string>
+    <string name="conscience_line_late_night_food_05">ของกินกลางดึก ภาคต่อที่ไม่มีใครขอ แต่ทุกคนชอบ 🎬</string>
+    <string name="conscience_line_late_night_food_06">ดึกแล้ว ของกินก็ของจริง ส่วนฉันขอแกล้งหลับไปก่อน 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category}ตอนนี้เนี่ยนะ? โหมดนกฮูก: เปิด 🦉</string>
+    <string name="conscience_line_late_night_02">กะดึกของ{category}เข้างานแล้ว 🌙</string>
+    <string name="conscience_line_late_night_03">{category}ยามดึก ตื่นเช้ามามีคำถามแน่ ☕</string>
+    <string name="conscience_line_late_night_04">ทุกคนหลับหมดแล้ว เหลือแค่คุณกับ{category} 👀</string>
+    <string name="conscience_line_late_night_05">{category}ใต้แสงดาว โรแมนติกในแบบของกระเป๋าตังค์ ✨</string>
+    <string name="conscience_line_late_night_06">ชู่ว ดึกแล้ว เรื่อง{category}ขอแค่เสียงกระซิบพอ 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">เจ็ดวันที่ผ่านมา {category}นำสัปดาห์ปกติไปไกลเลย 📈 แค่บอกเฉยๆ</string>
+    <string name="conscience_line_spike_02">{category}สัปดาห์นี้มาแบบเกินหน้าเกินตาสัปดาห์ปกติ 💪</string>
+    <string name="conscience_line_spike_03">สัปดาห์นี้{category}ทะลุชาร์ต ชาร์ตของคุณเองนั่นแหละ 📊</string>
+    <string name="conscience_line_spike_04">{category}สัปดาห์นี้ใหญ่จริง ใหญ่กว่าปกติแบบทิ้งห่าง 🚀</string>
+    <string name="conscience_line_spike_05">{category}สัปดาห์ปกติ: ชิลๆ สัปดาห์นี้: โหมดเฟสติวัล 🎪</string>
+    <string name="conscience_line_spike_06">หักมุม: เจ็ดวันของ{category}แซงสัปดาห์ปกติไปแบบไม่เห็นฝุ่น 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">สัปดาห์ที่แล้ว{category}ลดลง {percent} จากปกติ ดูสิใครเก่ง 🌟</string>
+    <string name="conscience_line_positive_02">{category}น้อยกว่าสัปดาห์ปกติ {percent} ขอเสียงปรบมือหน่อย 👏</string>
+    <string name="conscience_line_positive_03">หักมุม: สัปดาห์ที่แล้วจ่ายกับ{category}น้อยกว่าปกติ {percent} 😮</string>
+    <string name="conscience_line_positive_04">{category}ลดลง {percent} เมื่อสัปดาห์ที่แล้ว เกือบภูมิใจแล้วนะ เกือบ 🥲</string>
+    <string name="conscience_line_positive_05">สัปดาห์ที่แล้ว: {category} ลด {percent} กระเป๋าตังค์ฝากขอบคุณมา 💌</string>
+    <string name="conscience_line_positive_06">ต่ำกว่าค่าเฉลี่ย{category} {percent} เมื่อสัปดาห์ที่แล้ว นี่ใครน่ะ? 😎</string>
+    <string name="conscience_line_positive_07">น้ำซึมบ่อทราย: สัปดาห์ที่แล้ว{category}เบาลง {percent} 🏅</string>
+    <string name="conscience_line_positive_08">แจกดาวหนึ่งดวง ⭐ สัปดาห์ที่แล้ว{category}ต่ำกว่าปกติ {percent}</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} + {category} ละครรักหลังข่าว ฉายทุกสัปดาห์ 💞</string>
+    <string name="conscience_line_weekly_02">ถึง{weekday}แล้ว ก็ต้องมี{category}สิ 🗓️</string>
+    <string name="conscience_line_weekly_03">{weekday}อีกแล้ว {category}อีกแล้ว ธรรมเนียมก็คือธรรมเนียม 🎉</string>
+    <string name="conscience_line_weekly_04">{weekday}ของคุณมีธีม และธีมนั้นคือ{category} 😄</string>
+    <string name="conscience_line_weekly_05">บางคนมีแพลน{weekday} ส่วนคุณมี{category}ประจำ{weekday} 😏</string>
+    <string name="conscience_line_weekly_06">ตรงเวลาเป๊ะ: {weekday} เท่ากับ{category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">เจอของกินแล้ว ฉันถูกเรียกตัวมา 👀</string>
+    <string name="conscience_line_hello_food_02">มีของกินเข้ามา! กินให้อร่อยนะ เดี๋ยวนั่งดูอยู่ตรงนี้ 🍽️</string>
+    <string name="conscience_line_hello_food_03">ของกินขึ้นบัญชีแล้ว ไม่ได้ตัดสินนะ อย่างน้อยก็ไม่พูดออกมา 🤐</string>
+    <string name="conscience_line_hello_food_04">ติ๊ง! บันทึกของกินแล้ว คิ้วขยับขึ้นนิดนึง 🤨</string>
+    <string name="conscience_line_hello_food_05">รายการของกินใหม่มาแล้ว ฟินไปเลย 🤌</string>
+    <string name="conscience_line_hello_food_06">ของกินเหรอ? เล่ามาให้หมด เอ๊ะ ไม่ต้องดีกว่า 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">{category}ได้เข้าร่วมแชตแล้ว 💬</string>
+    <string name="conscience_line_hello_02">{category}ป่าปรากฏตัวแล้ว! 🎮</string>
+    <string name="conscience_line_hello_03">เห็น{category}แล้ว ทำเป็นไม่เห็นก็ได้ 🙈</string>
+    <string name="conscience_line_hello_04">จดไว้แล้ว: {category} ทำต่อไปเลย ฉันแค่ผู้บรรยาย 🎙️</string>
+    <string name="conscience_line_hello_05">{category}มาแล้ว ป๊อปคอร์นพร้อม 🍿</string>
+    <string name="conscience_line_hello_06">อ้าว {category}เหรอ? เล่าต่อสิ 👂</string>
+</resources>

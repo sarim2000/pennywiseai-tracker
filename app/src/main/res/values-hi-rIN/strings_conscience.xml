@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">ज़मीर</string>
+    <string name="conscience_settings_subtitle_on">चालू · तुम्हारे ख़र्च पर चुटीली टिप्पणियाँ</string>
+    <string name="conscience_settings_subtitle_off">बंद · तुम्हारे ख़र्च पर चुटीली टिप्पणियाँ</string>
+    <string name="conscience_needs_permission">PennyWise के नोटिफ़िकेशन चालू करो, ताकि तुम्हारा ज़मीर बोल सके।</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">तुम्हारे ख़र्च का अपना कमेंटेटर</string>
+    <string name="conscience_hero_body">खाने, मौज-मस्ती और शॉपिंग के बाद चुटीली एक-लाइना बातें। और जब हक़ बनता हो, तो तालियाँ भी।</string>
+    <string name="conscience_switch_title">बोलने दो</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">सो रहा है। जगाने के लिए स्विच दबाओ 😴</string>
+    <string name="conscience_status_blocked">नोटिफ़िकेशन बंद हैं, तो ये दीवार से बातें कर रहा है 🧱</string>
+    <string name="conscience_status_listening">तुम्हारी अगली खाने, मौज-मस्ती या शॉपिंग वाली ख़रीदारी पर कान लगाए बैठा है 👂</string>
+    <string name="conscience_status_learning">अभी तुम्हारी आदतें सीख रहा है। हिस्ट्री जितनी बढ़ेगी, बातें उतनी तीखी होंगी 🧠</string>
+    <string name="conscience_open_notification_settings">नोटिफ़िकेशन चालू करो</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">कुछ सुनी-सुनाई बातें</string>
+    <string name="conscience_example_badge">उदाहरण</string>
+    <string name="conscience_another_example">एक और</string>
+    <string name="conscience_try_it">मुझे एक भेजो</string>
+    <string name="conscience_try_sent">भेज दिया! ये आवाज़ नहीं करता, तो नोटिफ़िकेशन में झाँक लो।</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">किन बातों पर बोलेगा</string>
+    <string name="conscience_kind_comeback">वापसी</string>
+    <string name="conscience_kind_comeback_desc">आम से लंबे ब्रेक के बाद किसी कैटेगरी की वापसी</string>
+    <string name="conscience_kind_record_day">रिकॉर्ड दिन</string>
+    <string name="conscience_kind_record_day_desc">दो महीने में किसी कैटेगरी का तुम्हारा सबसे बड़ा दिन</string>
+    <string name="conscience_kind_repeat">बार-बार</string>
+    <string name="conscience_kind_repeat_desc">कुछ ही घंटों में एक ही कैटेगरी बार-बार</string>
+    <string name="conscience_kind_late_night">देर रात</string>
+    <string name="conscience_kind_late_night_desc">रात 11 बजे के बाद की ख़रीदारी। कभी नहीं जगाता</string>
+    <string name="conscience_kind_spike">उछाल</string>
+    <string name="conscience_kind_spike_desc">किसी कैटेगरी में आम से काफ़ी ज़्यादा ख़र्च वाला हफ़्ता</string>
+    <string name="conscience_kind_positive">जीत</string>
+    <string name="conscience_kind_positive_desc">आम से काफ़ी कम ख़र्च वाला हफ़्ता, तो इस बार तालियाँ</string>
+    <string name="conscience_kind_weekly">हफ़्तेवार रस्में</string>
+    <string name="conscience_kind_weekly_desc">हर हफ़्ते, एक ही दिन, एक ही कैटेगरी</string>
+    <string name="conscience_kind_hello">झटपट हैलो</string>
+    <string name="conscience_kind_hello_desc">कभी-कभार एक हाय, ताकि पता रहे कि ये अभी जाग रहा है</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">कैसे बोलता है</string>
+    <string name="conscience_language_title">भाषा</string>
+    <string name="conscience_language_follows">ऐप की भाषा के साथ चलता है · %1$s</string>
+    <string name="conscience_address_title">मुझसे ऐसे बात करो</string>
+    <string name="conscience_address_auto">अपने-आप</string>
+    <string name="conscience_address_masculine">पुल्लिंग</string>
+    <string name="conscience_address_feminine">स्त्रीलिंग</string>
+    <string name="conscience_frequency_title">कितनी बार</string>
+    <string name="conscience_frequency_normal">सामान्य</string>
+    <string name="conscience_frequency_less">कम बार</string>
+    <string name="conscience_frequency_normal_note">दिन में ज़्यादा से ज़्यादा एक बार, और हफ़्ते में 3 बार।</string>
+    <string name="conscience_frequency_less_note">हफ़्ते में ज़्यादा से ज़्यादा एक बार।</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">हाल की टिप्पणियाँ</string>
+    <string name="conscience_recent_empty">अभी कोई टिप्पणी नहीं। तुम्हारी अगली खाने, मौज-मस्ती या शॉपिंग वाली ख़रीदारी का इंतज़ार है।</string>
+    <string name="conscience_recent_saved_quietly">चुपचाप सेव हुई</string>
+    <string name="conscience_recent_show_all">सब दिखाओ</string>
+    <string name="conscience_recent_show_less">कम दिखाओ</string>
+    <string name="conscience_feedback_summary">😂 %1$s पसंद · 🙅 %2$s रिटायर</string>
+    <string name="conscience_reset_feedback">रिएक्शन रीसेट करो</string>
+    <string name="conscience_reaction_liked">तुम्हें ये पसंद आई 😂</string>
+    <string name="conscience_reaction_retired">हमेशा के लिए रिटायर 🙅</string>
+
+    <string name="conscience_privacy">हाथ से लिखे चुटकुले, इसी फ़ोन पर तुम्हारे पैटर्न से मिलाए गए। रकम या दुकान का नाम कभी नहीं। सिर्फ़ खाना, मनोरंजन और शॉपिंग।</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">तुम्हारा ज़मीर</string>
+    <string name="conscience_lock_screen_text">श्श्श। एक छोटी-सी बात 👀</string>
+    <string name="conscience_action_like">😂 मज़ा आया</string>
+    <string name="conscience_action_dislike">🙅 ये वाली नहीं</string>
+    <string name="conscience_confirm_like">नोट कर लिया 😂 ऐसी और मिलेंगी, सीमा वही रहेगी।</string>
+    <string name="conscience_confirm_dislike">समझ गया। वो वाली हमेशा के लिए रिटायर 🫡</string>
+    <string name="conscience_confirm_sample">ये तो बस नमूना था, कुछ नहीं बदला 😉</string>
+    <string name="conscience_confirm_less_often">ठीक है, थोड़ा कम बोलूँगा। पर नज़र अब भी है 👀</string>
+    <string name="conscience_confirm_paused">ठीक है। एक शब्द नहीं 🤐 सेटिंग्स से फिर बुला लेना।</string>
+
+    <!-- Words the lines' placeholders take. Lowercase unless the language capitalizes nouns. -->
+    <string name="conscience_category_food">खान-पान</string>
+    <string name="conscience_category_entertainment">मौज-मस्ती</string>
+    <string name="conscience_category_shopping">शॉपिंग</string>
+    <plurals name="conscience_days">
+        <item quantity="one">%1$s दिन</item>
+        <item quantity="other">%1$s दिन</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s घंटा</item>
+        <item quantity="other">%1$s घंटे</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">ज़मीर</string>
+    <string name="conscience_channel_description">खाने, मनोरंजन और शॉपिंग पर कभी-कभार चुटीली टिप्पणियाँ। बिना आवाज़ के।</string>
+</resources>

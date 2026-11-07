@@ -176,6 +176,8 @@ class SettingsViewModel @Inject constructor(
     val dailySummaryEnabled = userPreferencesRepository.dailySummaryEnabled
     val weeklySummaryEnabled = userPreferencesRepository.weeklySummaryEnabled
 
+    val conscienceEnabled = userPreferencesRepository.conscienceEnabled
+
     // Replace UPI VPAs with contact names (gated by READ_CONTACTS).
     val useContactsForVpa = userPreferencesRepository.useContactsForVpa
 

@@ -6,6 +6,7 @@ import android.util.Log
 import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.repository.BankNotificationRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.manager.ConscienceManager
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.parser.core.bank.BankParserFactory
@@ -37,6 +38,7 @@ class BankNotificationListenerService : NotificationListenerService() {
         fun bankNotificationRepository(): BankNotificationRepository
         fun transactionRepository(): TransactionRepository
         fun trackedNotificationAppsStore(): TrackedNotificationAppsStore
+        fun conscienceManager(): ConscienceManager
     }
 
     companion object {
@@ -145,6 +147,8 @@ class BankNotificationListenerService : NotificationListenerService() {
                 }
                 if (!result.success) {
                     Log.d(TAG, "Notification skipped: ${result.reason}")
+                } else if (result.transactionId != null) {
+                    entryPoint.conscienceManager().onLiveTransaction(result.transactionId, timestamp)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to process bank notification", e)

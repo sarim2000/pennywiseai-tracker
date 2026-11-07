@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">จิตสำนึก</string>
+    <string name="conscience_settings_subtitle_on">เปิด · แซวการใช้จ่ายของคุณแบบขำๆ</string>
+    <string name="conscience_settings_subtitle_off">ปิด · แซวการใช้จ่ายของคุณแบบขำๆ</string>
+    <string name="conscience_needs_permission">อนุญาตการแจ้งเตือนสำหรับ PennyWise เพื่อให้จิตสำนึกของคุณได้พูดบ้าง</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">การใช้จ่ายของคุณมีนักพากย์แล้ว</string>
+    <string name="conscience_hero_body">แซวสั้นๆ หลังกิน เที่ยว และช้อป และปรบมือให้เมื่อคุณสมควรได้</string>
+    <string name="conscience_switch_title">ปล่อยให้พูด</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">งีบอยู่ เปิดสวิตช์เพื่อปลุก 😴</string>
+    <string name="conscience_status_blocked">การแจ้งเตือนปิดอยู่ เลยได้แต่พูดกับกำแพง 🧱</string>
+    <string name="conscience_status_listening">รอฟังรายการกิน เที่ยว หรือช้อปครั้งถัดไปของคุณ 👂</string>
+    <string name="conscience_status_learning">ยังเรียนรู้นิสัยคุณอยู่ คำแซวที่แสบขึ้นจะปลดล็อกเมื่อประวัติมากขึ้น 🧠</string>
+    <string name="conscience_open_notification_settings">เปิดการแจ้งเตือน</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">ตัวอย่างที่แอบได้ยินมา</string>
+    <string name="conscience_example_badge">ตัวอย่าง</string>
+    <string name="conscience_another_example">อีกอัน</string>
+    <string name="conscience_try_it">ส่งมาสักอัน</string>
+    <string name="conscience_try_sent">ส่งแล้ว! ไม่มีเสียงนะ ลองแอบดูที่การแจ้งเตือน</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">เรื่องที่จะแซว</string>
+    <string name="conscience_kind_comeback">คัมแบ็ก</string>
+    <string name="conscience_kind_comeback_desc">หมวดหมู่ที่กลับมาหลังหายไปนานผิดปกติ</string>
+    <string name="conscience_kind_record_day">วันทำสถิติ</string>
+    <string name="conscience_kind_record_day_desc">วันที่จ่ายในหมวดหมู่หนึ่งมากที่สุดในรอบสองเดือน</string>
+    <string name="conscience_kind_repeat">ซ้ำรัวๆ</string>
+    <string name="conscience_kind_repeat_desc">หมวดหมู่เดิมซ้ำแล้วซ้ำอีกภายในไม่กี่ชั่วโมง</string>
+    <string name="conscience_kind_late_night">ยามดึก</string>
+    <string name="conscience_kind_late_night_desc">รายการหลังห้าทุ่ม ไม่ปลุกคุณแน่นอน</string>
+    <string name="conscience_kind_spike">พุ่งปรี๊ด</string>
+    <string name="conscience_kind_spike_desc">สัปดาห์ที่สูงกว่าปกติมากในหมวดหมู่หนึ่ง</string>
+    <string name="conscience_kind_positive">ผลงานดี</string>
+    <string name="conscience_kind_positive_desc">สัปดาห์ที่ต่ำกว่าปกติมาก เลยเปลี่ยนมาเชียร์แทน</string>
+    <string name="conscience_kind_weekly">กิจวัตรประจำสัปดาห์</string>
+    <string name="conscience_kind_weekly_desc">หมวดหมู่เดิมในวันเดิมของสัปดาห์ สัปดาห์แล้วสัปดาห์เล่า</string>
+    <string name="conscience_kind_hello">ทักทายสั้นๆ</string>
+    <string name="conscience_kind_hello_desc">โบกมือทักเป็นครั้งคราว ให้รู้ว่ายังตื่นอยู่</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">สไตล์การพูด</string>
+    <string name="conscience_language_title">ภาษา</string>
+    <string name="conscience_language_follows">ตามภาษาของแอป · %1$s</string>
+    <string name="conscience_address_title">ใช้คำเรียกฉันแบบ</string>
+    <string name="conscience_address_auto">อัตโนมัติ</string>
+    <string name="conscience_address_masculine">ผู้ชาย</string>
+    <string name="conscience_address_feminine">ผู้หญิง</string>
+    <string name="conscience_frequency_title">บ่อยแค่ไหน</string>
+    <string name="conscience_frequency_normal">ปกติ</string>
+    <string name="conscience_frequency_less">น้อยลง</string>
+    <string name="conscience_frequency_normal_note">ไม่เกินวันละครั้ง และสัปดาห์ละ 3 ครั้ง</string>
+    <string name="conscience_frequency_less_note">ไม่เกินสัปดาห์ละครั้ง</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">คำแซวล่าสุด</string>
+    <string name="conscience_recent_empty">ยังไม่มีคำแซว กำลังรอรายการกิน เที่ยว หรือช้อปครั้งถัดไปของคุณ</string>
+    <string name="conscience_recent_saved_quietly">เก็บไว้เงียบๆ</string>
+    <string name="conscience_recent_show_all">ดูทั้งหมด</string>
+    <string name="conscience_recent_show_less">ดูน้อยลง</string>
+    <string name="conscience_feedback_summary">😂 ชอบ %1$s · 🙅 เลิกใช้ %2$s</string>
+    <string name="conscience_reset_feedback">รีเซ็ตรีแอคชัน</string>
+    <string name="conscience_reaction_liked">คุณชอบอันนี้ 😂</string>
+    <string name="conscience_reaction_retired">เลิกใช้ถาวรแล้ว 🙅</string>
+
+    <string name="conscience_privacy">มุกเขียนด้วยมือ จับคู่กับพฤติกรรมของคุณบนโทรศัพท์เครื่องนี้ ไม่มีจำนวนเงินหรือชื่อร้านค้าเด็ดขาด เฉพาะอาหาร ความบันเทิง และช้อปปิ้งเท่านั้น</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">จิตสำนึกของคุณ</string>
+    <string name="conscience_lock_screen_text">ชู่ว ขอพูดอะไรหน่อย 👀</string>
+    <string name="conscience_action_like">😂 ชอบ</string>
+    <string name="conscience_action_dislike">🙅 ไม่เอาอันนี้</string>
+    <string name="conscience_confirm_like">รับทราบ 😂 จะมีแบบนี้อีก ในโควตาเดิม</string>
+    <string name="conscience_confirm_dislike">เข้าใจแล้ว อันนั้นเลิกใช้ถาวร 🫡</string>
+    <string name="conscience_confirm_sample">แค่ตัวอย่าง เลยไม่มีอะไรเปลี่ยน 😉</string>
+    <string name="conscience_confirm_less_often">ก็ได้ จะเบาลง แต่ยังจับตาดูอยู่นะ 👀</string>
+    <string name="conscience_confirm_paused">ก็ได้ ไม่พูดสักคำ 🤐 เปิดกลับมาได้ในการตั้งค่า</string>
+
+    <!-- Words the lines' placeholders take. Lowercase unless the language capitalizes nouns. -->
+    <string name="conscience_category_food">ของกิน</string>
+    <string name="conscience_category_entertainment">ความบันเทิง</string>
+    <string name="conscience_category_shopping">ช้อปปิ้ง</string>
+    <plurals name="conscience_days">
+        <item quantity="other">%1$s วัน</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="other">%1$s ชั่วโมง</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">จิตสำนึก</string>
+    <string name="conscience_channel_description">คำแซวขำๆ เป็นครั้งคราวเรื่องอาหาร ความบันเทิง และช้อปปิ้ง ไม่มีเสียง</string>
+</resources>

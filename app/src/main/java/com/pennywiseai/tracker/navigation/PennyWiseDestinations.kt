@@ -163,6 +163,9 @@ data object BackgroundAccess : NavKey
 data object LearnedCategories : NavKey
 
 @Serializable
+data object Conscience : NavKey
+
+@Serializable
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,

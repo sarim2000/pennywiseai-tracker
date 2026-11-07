@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="conscience_content_locale">fr</string>
+
+    <string name="conscience_line_comeback_food_01">{days} de résistance héroïque. Bon, on mange quoi ?</string>
+    <string name="conscience_line_comeback_food_02">{days} de sagesse. On en fera une chanson. Courte.</string>
+    <string name="conscience_line_comeback_food_03">Chassez le naturel, il revient au galop. Là, au bout de {days} 🐎</string>
+    <string name="conscience_line_comeback_food_04">Tu as tenu {days}. Les frites, elles, n\'ont jamais douté de toi 🍟</string>
+    <string name="conscience_line_comeback_food_05">{days} de volonté de fer, puis quelqu\'un a dit « juste une bouchée ».</string>
+    <string name="conscience_line_comeback_food_06">Selon les scientifiques, la demi-vie de tes bonnes résolutions est de {days}.</string>
+    <string name="conscience_line_comeback_food_07">{Invaincu|Invaincue} pendant {days}. Et puis, un menu.</string>
+    <string name="conscience_line_comeback_food_08">Toi et la carte : {days} de séparation. C\'était mignon tant que ça a duré.</string>
+    <string name="conscience_line_comeback_food_09">Bon retour ! La carte t\'a gardé ta place au chaud pendant {days}.</string>
+    <string name="conscience_line_comeback_food_10">{days} sans craquer. Le record tient. Enfin, tenait.</string>
+    <string name="conscience_line_comeback_food_11">{days} plus tard, la carte connaît toujours ton prénom.</string>
+    <string name="conscience_line_comeback_food_12">Ces {days}, quelle époque. C\'est fini 🍔</string>
+
+    <string name="conscience_line_comeback_01">Zéro {category} pendant {days}. Inspirant. Brièvement.</string>
+    <string name="conscience_line_comeback_02">Ta retraite côté {category} a duré {days}. Joli discours d\'adieu, au passage.</string>
+    <string name="conscience_line_comeback_03">C\'étaient {days} merveilleux. Bref : {category}.</string>
+    <string name="conscience_line_comeback_04">Pause {category} : terminée au bout de {days}. On se remet ensemble ? 💔</string>
+    <string name="conscience_line_comeback_05">{days} de bras de fer avec l\'envie de {category}. L\'envie a gagné.</string>
+    <string name="conscience_line_comeback_06">Interdiction de {category} : {days}. Levée à l\'unanimité.</string>
+    <string name="conscience_line_comeback_07">{days} à être raisonnable. Franchement, ça ne t\'allait pas.</string>
+    <string name="conscience_line_comeback_08">L\'expérience a duré {days}. Résultat : {category}.</string>
+    <string name="conscience_line_comeback_09">Personne ne compte. Bon, moi si. {days}.</string>
+    <string name="conscience_line_comeback_10">{days} sans {category} : les droits du film sont encore dispo 🍿</string>
+    <string name="conscience_line_comeback_11">Après {days}, re-{category}. Je ne dis rien. Mais je le pense très fort.</string>
+    <string name="conscience_line_comeback_12">Ton congé sabbatique côté {category} a duré {days}. Reposant, j\'espère ?</string>
+
+    <string name="conscience_line_record_day_01">Non, non, continue, je t\'en prie.</string>
+    <string name="conscience_line_record_day_02">Journée record côté {category} : du jamais-vu depuis deux mois. Discours ! 🎉</string>
+    <string name="conscience_line_record_day_03">Journée historique côté {category}. L\'histoire, ici, c\'est les deux derniers mois.</string>
+    <string name="conscience_line_record_day_04">Meilleure journée côté {category} depuis deux mois. « Meilleure », c\'est vite dit.</string>
+    <string name="conscience_line_record_day_05">Je n\'ai rien vu. Sauf le record de {category} des deux derniers mois 🙈</string>
+    <string name="conscience_line_record_day_06">Celle-là, je l\'accroche sur le frigo. Record côté {category} sur deux mois.</string>
+    <string name="conscience_line_record_day_07">Médaille d\'or en {category} 🥇 Concurrents : les deux derniers mois.</string>
+    <string name="conscience_line_record_day_08">Les deux derniers mois ont appelé. Ils déclarent forfait.</string>
+    <string name="conscience_line_record_day_09">Côté {category}, aucun jour depuis deux mois n\'arrive à la cheville d\'aujourd\'hui. Bravo… je crois ?</string>
+    <string name="conscience_line_record_day_10">Deux mois de première partie. Aujourd\'hui : la tête d\'affiche 🎤</string>
+    <string name="conscience_line_record_day_11">Sommet des deux derniers mois côté {category}. Elle est belle, la vue ?</string>
+    <string name="conscience_line_record_day_12">Classement {category} des deux derniers mois : aujourd\'hui prend la tête.</string>
+
+    <string name="conscience_line_repeat_food_01">{count} escales gourmandes en {hours}. Ce n\'est plus un en-cas, c\'est une tournée 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Encore à manger. Ça fait {count} en {hours}. Je ne compte pas. (Si.)</string>
+    <string name="conscience_line_repeat_food_03">{count} épisodes bouffe en {hours}. C\'est devenu une série ? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Il ne manque que la carte de fidélité : {count} arrêts bouffe en {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Flash spécial : de la bouffe repérée {count} fois en {hours}. Détails au JT 📺</string>
+    <string name="conscience_line_repeat_food_06">{count} expéditions bouffe en {hours}. Techniquement, c\'est du cardio 🏃</string>
+
+    <string name="conscience_line_repeat_01">{category} × {count} en {hours}. Échauffement ou passage chez les pros ? 😏</string>
+    <string name="conscience_line_repeat_02">{count} passages côté {category} en {hours}. Qui compte ? Moi. Moi, je compte.</string>
+    <string name="conscience_line_repeat_03">{count} en {hours} ? Mode {category} activé, visiblement 💅</string>
+    <string name="conscience_line_repeat_04">Bis ! Bis ! Rayon {category} : {count} fois en {hours} 👏</string>
+    <string name="conscience_line_repeat_05">{count} fois en {hours}, côté {category}. Hobby ou sport de haut niveau ? 🏁</string>
+    <string name="conscience_line_repeat_06">{category} : {count} fois en {hours}. Les points fidélité doivent pleuvoir 🌧️</string>
+
+    <string name="conscience_line_late_night_food_01">À manger à cette heure-ci ? La lumière du frigo est jalouse 🌙</string>
+    <string name="conscience_line_late_night_food_02">Expédition nocturne repérée. Motus et bouche cousue, ça reste entre nous 🤫</string>
+    <string name="conscience_line_late_night_food_03">Menu de minuit : débloqué 🔓</string>
+    <string name="conscience_line_late_night_food_04">La lune a appelé. Elle aussi veut une bouchée 🌝</string>
+    <string name="conscience_line_late_night_food_05">À manger après la tombée de la nuit. La suite que personne n\'attendait et que tout le monde adore 🎬</string>
+    <string name="conscience_line_late_night_food_06">Il est tard, la bouffe est bien réelle, et moi, je fais semblant de dormir 😴</string>
+
+    <string name="conscience_line_late_night_01">{category} à cette heure-ci ? Mode noctambule : activé 🦉</string>
+    <string name="conscience_line_late_night_02">L\'équipe de nuit côté {category} vient de pointer 🌙</string>
+    <string name="conscience_line_late_night_03">{category} en pleine nuit. Demain matin, il y aura des questions ☕</string>
+    <string name="conscience_line_late_night_04">Tout le monde dort, sauf toi et ton envie de {category} 👀</string>
+    <string name="conscience_line_late_night_05">{category} sous les étoiles. Romantique, version relevé de compte ✨</string>
+    <string name="conscience_line_late_night_06">Chut, il est tard. Côté {category}, on chuchote 🤫</string>
+
+    <string name="conscience_line_spike_01">Les sept derniers jours côté {category} dépassent largement ta semaine habituelle 📈 Je dis ça, je dis rien.</string>
+    <string name="conscience_line_spike_02">Cette semaine, côté {category}, ça frime à côté de tes semaines normales 💪</string>
+    <string name="conscience_line_spike_03">Côté {category}, cette semaine crève le plafond. Ton plafond à toi 📊</string>
+    <string name="conscience_line_spike_04">Semaine de folie côté {category}. Bien au-dessus de tes habitudes 🚀</string>
+    <string name="conscience_line_spike_05">Semaine normale côté {category} : calme. Celle-ci : festival 🎪</string>
+    <string name="conscience_line_spike_06">Coup de théâtre : ces sept jours côté {category} battent ta semaine type à plate couture 🏁</string>
+
+    <string name="conscience_line_positive_01">La semaine dernière, côté {category} : {percent} sous ta moyenne. Mais c\'est qu\'on progresse ! 🌟</string>
+    <string name="conscience_line_positive_02">Côté {category}, {percent} de dépenses en moins qu\'une semaine normale. On applaudit bien fort 👏</string>
+    <string name="conscience_line_positive_03">Rebondissement : la semaine dernière, tu as dépensé {percent} de moins que d\'habitude côté {category} 😮</string>
+    <string name="conscience_line_positive_04">{category} : moins {percent} la semaine dernière. Presque émouvant. Presque 🥲</string>
+    <string name="conscience_line_positive_05">La semaine dernière : {category} en baisse de {percent}. Ton portefeuille te passe le bonjour 💌</string>
+    <string name="conscience_line_positive_06">{percent} sous ta moyenne côté {category} la semaine dernière. Qui es-tu, et qu\'as-tu fait de l\'ancien toi ? 😎</string>
+    <string name="conscience_line_positive_07">Respect 🏅 Côté {category}, l\'addition a baissé de {percent} la semaine dernière.</string>
+    <string name="conscience_line_positive_08">Bon point ⭐ {category} : {percent} sous la normale la semaine dernière.</string>
+
+    <string name="conscience_line_weekly_01">{weekday} + {category}. Une histoire d\'amour en épisodes hebdomadaires 💞</string>
+    <string name="conscience_line_weekly_02">On est {weekday}, alors forcément : {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">Encore {weekday}, encore {category}. La tradition, c\'est la tradition 🎉</string>
+    <string name="conscience_line_weekly_04">Ton {weekday} a un thème : {category} 😄</string>
+    <string name="conscience_line_weekly_05">Certains ont des projets le {weekday}. Toi, tu as ton rituel {category} 😏</string>
+    <string name="conscience_line_weekly_06">Réglé comme une horloge : {weekday} rime avec {category} ⏰</string>
+
+    <string name="conscience_line_hello_food_01">Ça sent la bouffe par ici. J\'arrive 👀</string>
+    <string name="conscience_line_hello_food_02">Une dépense bouffe ! Bon appétit, moi je reste là et je regarde 🍽️</string>
+    <string name="conscience_line_hello_food_03">De la bouffe dans les comptes. Je ne juge pas. À voix haute 🤐</string>
+    <string name="conscience_line_hello_food_04">Ding ! Bouffe enregistrée. Mon sourcil vient de monter de deux millimètres pile 🤨</string>
+    <string name="conscience_line_hello_food_05">Nouvelle entrée côté bouffe. Et comme plat ? 🤌</string>
+    <string name="conscience_line_hello_food_06">À manger, tu dis ? Raconte-moi tout. En fait, non 😌</string>
+
+    <string name="conscience_line_hello_01">Nouvel arrivant dans le chat : {category} 💬</string>
+    <string name="conscience_line_hello_02">Un achat {category} sauvage apparaît ! 🎮</string>
+    <string name="conscience_line_hello_03">Repéré : {category}. Je fais comme si de rien n\'était 🙈</string>
+    <string name="conscience_line_hello_04">C\'est noté : {category}. Continue, je ne suis que la voix off 🎙️</string>
+    <string name="conscience_line_hello_05">{category} en approche. Mon pop-corn est prêt 🍿</string>
+    <string name="conscience_line_hello_06">Oh, {category} ? Je t\'écoute 👂</string>
+</resources>

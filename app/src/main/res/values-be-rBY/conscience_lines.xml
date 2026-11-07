@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Belarusian conscience lines. Written natively, not translated. Informal "ты".
+    {category} is nominative: "ежа", "забавы", "пакупкі" (the last two are plural,
+    so generic pools may use plural verbs). All three end in a vowel, so a word
+    after {category} that starts with у is written ў. {weekday} is nominative
+    lowercase ("чацвер"). {days} and {hours} only in nominative/accusative slots.
+-->
+<resources>
+    <string name="conscience_content_locale">be</string>
+
+    <!-- Comeback, Food & Dining. Fact: no food purchase for {days}, now one. -->
+    <string name="conscience_line_comeback_food_01">{days} сілы волі. Ну што, чым частуемся?</string>
+    <string name="conscience_line_comeback_food_02">Ты {пратрымаўся|пратрымалася} {days}. Пра такое складаюць песні. Кароткія.</string>
+    <string name="conscience_line_comeback_food_03">Спрачаліся, колькі ты пратрымаешся. Правільны адказ: {days}.</string>
+    <string name="conscience_line_comeback_food_04">{days} стойкасці. Дранікі ні секунды ў цябе не сумняваліся 🥔</string>
+    <string name="conscience_line_comeback_food_05">{days} жалезнай волі, а потым прагучала «я толькі пакаштую».</string>
+    <string name="conscience_line_comeback_food_06">Навукоўцы ўстанавілі: перыяд паўраспаду тваёй сілы волі — {days}.</string>
+    <string name="conscience_line_comeback_food_07">{days} без паразаў. А потым здарылася меню.</string>
+    <string name="conscience_line_comeback_food_08">{days} расстання з меню. Сустрэча атрымалася вельмі кранальнай 🥹</string>
+    <string name="conscience_line_comeback_food_09">З вяртаннем! Меню {days} захоўвала тваё месца.</string>
+    <string name="conscience_line_comeback_food_10">Ежа чакала {days} і прыняла цябе назад. Без лішніх пытанняў.</string>
+    <string name="conscience_line_comeback_food_11">Праз {days} меню ўсё яшчэ памятае цябе па імені.</string>
+    <string name="conscience_line_comeback_food_12">{days} — цэлая эпоха. І вось яна скончылася 🍔</string>
+
+    <!-- Comeback, entertainment or shopping. Fact: none of {category} for {days}, now one. -->
+    <string name="conscience_line_comeback_01">Ты {трымаўся|трымалася} {days}. Натхняе. Ненадоўга.</string>
+    <string name="conscience_line_comeback_02">Ты ганарліва {сышоў|сышла} на пенсію. Пенсія доўжылася {days}.</string>
+    <string name="conscience_line_comeback_03">{days} цішыні. А цяпер — {category}.</string>
+    <string name="conscience_line_comeback_04">Ты і {category}: «мы проста ўзялі паўзу». На {days}.</string>
+    <string name="conscience_line_comeback_05">Ты і {category} {days} глядзелі адно аднаму ў вочы. {Першы міргнуў|Першая міргнула} ты.</string>
+    <string name="conscience_line_comeback_06">Забарона на {category} пратрымалася {days}. Адменена аднагалосна.</string>
+    <string name="conscience_line_comeback_07">{days} разважлівасці. Табе, шчыра кажучы, не пасавала.</string>
+    <string name="conscience_line_comeback_08">Эксперымент доўжыўся {days}. Вынік: {category}.</string>
+    <string name="conscience_line_comeback_09">Ніхто не лічыць. Ну добра, я лічу. {days}.</string>
+    <string name="conscience_line_comeback_10">{days} стойкасці. Правы на экранізацыю пакуль вольныя 🍿</string>
+    <string name="conscience_line_comeback_11">Зноў {category}, праз {days}. Маўчу. Гучна.</string>
+    <string name="conscience_line_comeback_12">{category} адпусцілі цябе ў адпачынак на {days}. Спадзяюся, ты {адпачыў|адпачыла}.</string>
+
+    <!-- Record day, any category. Fact: today's {category} total beat every day of the last two months. -->
+    <string name="conscience_line_record_day_01">Не-не, працягвай.</string>
+    <string name="conscience_line_record_day_02">{category}: рэкордны дзень за два месяцы. Прамову! 🎉</string>
+    <string name="conscience_line_record_day_03">Гістарычны дзень для катэгорыі «{category}». Гісторыя, праўда, даўжынёй у два месяцы.</string>
+    <string name="conscience_line_record_day_04">Лепшы дзень за два месяцы ў катэгорыі «{category}». «Лепшы» — гэта гучна сказана.</string>
+    <string name="conscience_line_record_day_05">Нічога не бачу. Акрамя рэкорду за два месяцы: {category} 🙈</string>
+    <string name="conscience_line_record_day_06">Павешу на лядоўню: рэкорд за два месяцы, {category}.</string>
+    <string name="conscience_line_record_day_07">Золата ў дысцыпліне «{category}». Супернікі: апошнія два месяцы 🥇</string>
+    <string name="conscience_line_record_day_08">Тэлефанавалі апошнія два месяцы. Здаюцца.</string>
+    <string name="conscience_line_record_day_09">{category}: ні адзін дзень за два месяцы і блізка не стаяў. Дзіўна, але ганаруся.</string>
+    <string name="conscience_line_record_day_10">Два месяцы размінкі — і вось ён, галоўны нумар праграмы.</string>
+    <string name="conscience_line_record_day_11">Пік за два месяцы, катэгорыя «{category}». Які адтуль краявід? 🏔️</string>
+    <string name="conscience_line_record_day_12">Турнірная табліца за два месяцы ({category}): сёння на першым месцы.</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">{hours} — і ўжо заход па ежу нумар {count}. Гэта не перакус, гэта гастратур 🗺️</string>
+    <string name="conscience_line_repeat_food_02">Зноў ежа. Лічыльнік за {hours}: {count}. Я не лічу. (Лічу.)</string>
+    <string name="conscience_line_repeat_food_03">Ежа, серыя {count}, і ўсё за {hours}. У нас ужо серыял? 🍿</string>
+    <string name="conscience_line_repeat_food_04">Час выдаць табе картку сталага кліента. Заход нумар {count} за {hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">Тэрміновая навіна: ежа, эпізод {count} за {hours}. Падрабязнасці ў вячэрнім выпуску 📺</string>
+    <string name="conscience_line_repeat_food_06">За {hours} — забег па ежу нумар {count}. Тэхнічна гэта кардыя 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{category}, раўнд {count}, і гэта за {hours}. Размінка ці ўжо вышэйшая ліга? 😏</string>
+    <string name="conscience_line_repeat_02">{category}: заход нумар {count} за {hours}. Хто лічыць? Я лічу.</string>
+    <string name="conscience_line_repeat_03">Нумар {count} за {hours}? Здаецца, {category} перажываюць свой зорны час 💅</string>
+    <string name="conscience_line_repeat_04">Біс! Біс! Выхад на біс нумар {count} за {hours}: {category} 👏</string>
+    <string name="conscience_line_repeat_05">{category}, спроба {count} за {hours}. Спідран, катэгорыя any% 🏁</string>
+    <string name="conscience_line_repeat_06">{category} за {hours}, лічыльнік: {count}. Бонусы, мусіць, ліюцца ракой 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">Ежа ў такую гадзіну? Святло ў лядоўні раўнуе 🌙</string>
+    <string name="conscience_line_late_night_food_02">Начная ежа заўважана. Ранішняму табе — ні слова 🤫</string>
+    <string name="conscience_line_late_night_food_03">Начное меню: адкрыта 🔓</string>
+    <string name="conscience_line_late_night_food_04">Тэлефанаваў месяц. Таксама хоча кавалачак 🌝</string>
+    <string name="conscience_line_late_night_food_05">Ежа па начах. Сіквел, якога ніхто не замаўляў, але ўсе любяць 🎬</string>
+    <string name="conscience_line_late_night_food_06">Позна, ежа сапраўдная, а я раблю выгляд, што сплю 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} ў такую гадзіну? Рэжым савы: уключаны 🦉</string>
+    <string name="conscience_line_late_night_02">{category} заступілі на начную змену 🌙</string>
+    <string name="conscience_line_late_night_03">{category} на ноч гледзячы. У ранішняга цябе будуць пытанні ☕</string>
+    <string name="conscience_line_late_night_04">Усе ўжо спяць, а ты і {category} — не 👀</string>
+    <string name="conscience_line_late_night_05">{category} пад зоркамі. Рамантыка з прысмакам банкаўскай выпіскі ✨</string>
+    <string name="conscience_line_late_night_06">Ціха, ужо позна. Пра {category} — толькі шэптам 🤫</string>
+
+    <!-- Spike. Fact: the last 7 days of {category} are well above a usual week. -->
+    <string name="conscience_line_spike_01">Апошнія сем дзён у катэгорыі «{category}» моцна апярэджваюць твой звычайны тыдзень 📈 Проста да ведама.</string>
+    <string name="conscience_line_spike_02">Гэты тыдзень у катэгорыі «{category}» адкрыта фарсіць на фоне звычайных 💪</string>
+    <string name="conscience_line_spike_03">Тыдзень у катэгорыі «{category}» зашкальвае. Па тваёй жа шкале 📊</string>
+    <string name="conscience_line_spike_04">{category}: тыдзень што трэба. Больш, чым звычайна, і значна 🚀</string>
+    <string name="conscience_line_spike_05">Звычайны тыдзень у катэгорыі «{category}» — ціха і роўна. Гэты — фестываль 🎪</string>
+    <string name="conscience_line_spike_06">Паварот сюжэта: у катэгорыі «{category}» гэты тыдзень абышоў звычайны з вялікім адрывам 🏁</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">Мінулы тыдзень, катэгорыя «{category}»: на {percent} ніжэй за звычайнае. Вось гэта так! 🌟</string>
+    <string name="conscience_line_positive_02">На {percent} менш за звычайнае ў катэгорыі «{category}». Апладысменты, калі ласка 👏</string>
+    <string name="conscience_line_positive_03">Паварот сюжэта: на мінулым тыдні ў катэгорыі «{category}» мінус {percent} да звычайнага 😮</string>
+    <string name="conscience_line_positive_04">{category}: мінус {percent} за мінулы тыдзень. Я амаль ганаруся. Амаль 🥲</string>
+    <string name="conscience_line_positive_05">{category}: мінулы тыдзень на {percent} ніжэй за норму. Кашалёк перадае прывітанне 💌</string>
+    <string name="conscience_line_positive_06">Мінулы тыдзень у катэгорыі «{category}» — на {percent} ніжэй за сярэдняе. А гэта дакладна ты? 😎</string>
+    <string name="conscience_line_positive_07">Павага. Мінулы тыдзень у катэгорыі «{category}» выйшаў на {percent} сціплейшым за звычайны 🏅</string>
+    <string name="conscience_line_positive_08">Дзясятка з плюсам ⭐ Катэгорыя «{category}» на мінулым тыдні ніжэй за норму на {percent}.</string>
+
+    <!-- Weekly pattern. Fact: {category} shows up on {weekday} most weeks, and today is {weekday}. -->
+    <string name="conscience_line_weekly_01">{weekday} + {category}. Гісторыя кахання ў штотыднёвых серыях 💞</string>
+    <string name="conscience_line_weekly_02">Сёння {weekday}, а значыць — {category} 🗓️</string>
+    <string name="conscience_line_weekly_03">Зноў {weekday}, зноў {category}. Традыцыя ёсць традыцыя 🎉</string>
+    <string name="conscience_line_weekly_04">У кагосьці рыбны чацвер, а ў цябе {weekday} — дзень «{category}» 🐟</string>
+    <string name="conscience_line_weekly_05">У кагосьці планы на выхадныя. У цябе — {weekday} і {category} 😏</string>
+    <string name="conscience_line_weekly_06">Як па гадзінніку: {weekday} — значыць, {category} ⏰</string>
+
+    <!-- Hello, Food & Dining. Fact: only that a food purchase was just recorded. -->
+    <string name="conscience_line_hello_food_01">Заўважана ежа. Мяне клікалі? 👀</string>
+    <string name="conscience_line_hello_food_02">Ежа! Смачна есці, а я тут пасяджу, пагляджу 🍽️</string>
+    <string name="conscience_line_hello_food_03">Ежа ў запісах. Я не асуджаю. Уголас 🤐</string>
+    <string name="conscience_line_hello_food_04">Дзынь! Ежа запісана. Брыво паднялося якраз на два міліметры 🤨</string>
+    <string name="conscience_line_hello_food_05">Новы запіс пра ежу. Пальчыкі абліжаш 🤌</string>
+    <string name="conscience_line_hello_food_06">Ежа, кажаш? Расказвай усё. Хаця не, не трэба 😌</string>
+
+    <!-- Hello, entertainment or shopping. Fact: only that a {category} purchase was just recorded. -->
+    <string name="conscience_line_hello_01">{category} далучыліся да чата 💬</string>
+    <string name="conscience_line_hello_02">З\'явіліся дзікія {category}! 🎮</string>
+    <string name="conscience_line_hello_03">{category} на гарызонце. Раблю выгляд, што нічога не бачу 🙈</string>
+    <string name="conscience_line_hello_04">Запісана: {category}. Працягвай, я проста закадравы голас 🎙️</string>
+    <string name="conscience_line_hello_05">{category} на падыходзе. Папкорн гатовы 🍿</string>
+    <string name="conscience_line_hello_06">О, {category}? Так-так, працягвай 👂</string>
+</resources>

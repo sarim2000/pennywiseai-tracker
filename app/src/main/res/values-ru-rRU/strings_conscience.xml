@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Opt-in feature: a silent notification that teases the user about a purchase. Keep the tone playful. -->
+    <string name="conscience_title">Совесть</string>
+    <string name="conscience_settings_subtitle_on">Включена · шутливые подколки к твоим тратам</string>
+    <string name="conscience_settings_subtitle_off">Выключена · шутливые подколки к твоим тратам</string>
+    <string name="conscience_needs_permission">Разреши уведомления для PennyWise, чтобы совесть могла высказаться.</string>
+
+    <!-- The hero card at the top of the screen -->
+    <string name="conscience_hero_title">У твоих трат появился комментатор</string>
+    <string name="conscience_hero_body">Ехидные реплики после еды, развлечений и покупок. И аплодисменты, когда заслужишь.</string>
+    <string name="conscience_switch_title">Пусть говорит</string>
+
+    <!-- Status line under the switch -->
+    <string name="conscience_status_off">Спит. Включи переключатель, чтобы разбудить 😴</string>
+    <string name="conscience_status_blocked">Уведомления выключены, так что она говорит со стеной 🧱</string>
+    <string name="conscience_status_listening">Ждёт твою следующую трату на еду, развлечения или покупки 👂</string>
+    <string name="conscience_status_learning">Пока изучает твои привычки. Самые меткие реплики откроются, когда накопится история 🧠</string>
+    <string name="conscience_open_notification_settings">Включить уведомления</string>
+
+    <!-- Examples -->
+    <string name="conscience_examples_title">Подслушанные примеры</string>
+    <string name="conscience_example_badge">Пример</string>
+    <string name="conscience_another_example">Ещё один</string>
+    <string name="conscience_try_it">Прислать пример</string>
+    <string name="conscience_try_sent">Отправлено! Приходит без звука, так что загляни в уведомления.</string>
+
+    <!-- The kinds of comment, each with a toggle -->
+    <string name="conscience_kinds_title">О чём она говорит</string>
+    <string name="conscience_kind_comeback">Возвращения</string>
+    <string name="conscience_kind_comeback_desc">Категория возвращается после необычно долгого перерыва</string>
+    <string name="conscience_kind_record_day">Рекордные дни</string>
+    <string name="conscience_kind_record_day_desc">Самый крупный день в категории за два месяца</string>
+    <string name="conscience_kind_repeat">Серии</string>
+    <string name="conscience_kind_repeat_desc">Одна и та же категория снова и снова за считаные часы</string>
+    <string name="conscience_kind_late_night">Ночные траты</string>
+    <string name="conscience_kind_late_night_desc">Покупки после 23:00. Никогда не будит</string>
+    <string name="conscience_kind_spike">Всплески</string>
+    <string name="conscience_kind_spike_desc">Неделя в категории заметно выше обычной</string>
+    <string name="conscience_kind_positive">Победы</string>
+    <string name="conscience_kind_positive_desc">Неделя заметно ниже обычной — и вместо подколок аплодисменты</string>
+    <string name="conscience_kind_weekly">Еженедельные ритуалы</string>
+    <string name="conscience_kind_weekly_desc">Одна и та же категория в один и тот же день недели, неделя за неделей</string>
+    <string name="conscience_kind_hello">Короткие приветы</string>
+    <string name="conscience_kind_hello_desc">Иногда просто машет рукой, чтобы было видно: она не спит</string>
+
+    <!-- How it talks -->
+    <string name="conscience_settings_title">Как она говорит</string>
+    <string name="conscience_language_title">Язык</string>
+    <string name="conscience_language_follows">Как в приложении · %1$s</string>
+    <string name="conscience_address_title">Обращаться ко мне</string>
+    <string name="conscience_address_auto">Автоматически</string>
+    <string name="conscience_address_masculine">В мужском роде</string>
+    <string name="conscience_address_feminine">В женском роде</string>
+    <string name="conscience_frequency_title">Как часто</string>
+    <string name="conscience_frequency_normal">Обычно</string>
+    <string name="conscience_frequency_less">Реже</string>
+    <string name="conscience_frequency_normal_note">Не чаще раза в день и 3 раз в неделю.</string>
+    <string name="conscience_frequency_less_note">Не чаще раза в неделю.</string>
+
+    <!-- Recent remarks -->
+    <string name="conscience_recent_title">Последние реплики</string>
+    <string name="conscience_recent_empty">Пока ни одной реплики. Она ждёт твою следующую трату на еду, развлечения или покупки.</string>
+    <string name="conscience_recent_saved_quietly">Сохранено тихо</string>
+    <string name="conscience_recent_show_all">Показать все</string>
+    <string name="conscience_recent_show_less">Свернуть</string>
+    <string name="conscience_feedback_summary">😂 понравилось: %1$s · 🙅 на пенсии: %2$s</string>
+    <string name="conscience_reset_feedback">Сбросить реакции</string>
+    <string name="conscience_reaction_liked">Тебе понравилось 😂</string>
+    <string name="conscience_reaction_retired">Отправлено на пенсию навсегда 🙅</string>
+
+    <string name="conscience_privacy">Шутки написаны вручную и подбираются под твои привычки прямо на телефоне. Никаких сумм и названий магазинов. Только еда, развлечения и покупки.</string>
+
+    <!-- The notification -->
+    <string name="conscience_notification_title">Твоя совесть</string>
+    <string name="conscience_lock_screen_text">Псст. На пару слов 👀</string>
+    <string name="conscience_action_like">😂 Смешно</string>
+    <string name="conscience_action_dislike">🙅 Не эту</string>
+    <string name="conscience_confirm_like">Принято 😂 Больше таких, лимиты те же.</string>
+    <string name="conscience_confirm_dislike">Понятно. Эта шутка ушла на пенсию навсегда 🫡</string>
+    <string name="conscience_confirm_sample">Это был просто пример, ничего не изменилось 😉</string>
+    <string name="conscience_confirm_less_often">Ладно, сбавлю обороты. Но я всё вижу 👀</string>
+    <string name="conscience_confirm_paused">Ладно. Молчу 🤐 Вернуть меня можно в настройках.</string>
+
+    <!-- Words the lines' placeholders take. Nominative, lowercase. -->
+    <string name="conscience_category_food">еда</string>
+    <string name="conscience_category_entertainment">развлечения</string>
+    <string name="conscience_category_shopping">покупки</string>
+    <plurals name="conscience_days">
+        <item quantity="one">%1$s день</item>
+        <item quantity="few">%1$s дня</item>
+        <item quantity="many">%1$s дней</item>
+        <item quantity="other">%1$s дня</item>
+    </plurals>
+    <plurals name="conscience_hours">
+        <item quantity="one">%1$s час</item>
+        <item quantity="few">%1$s часа</item>
+        <item quantity="many">%1$s часов</item>
+        <item quantity="other">%1$s часа</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s\u00A0%%</string>
+
+    <!-- Android's notification channel, listed in system settings -->
+    <string name="conscience_channel_name">Совесть</string>
+    <string name="conscience_channel_description">Изредка — шутливые комментарии о еде, развлечениях и покупках. Без звука.</string>
+</resources>

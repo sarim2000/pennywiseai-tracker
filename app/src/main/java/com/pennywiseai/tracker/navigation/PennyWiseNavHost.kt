@@ -191,6 +191,12 @@ fun PennyWiseNavHost(
             )
         }
 
+        entry<Conscience> { key ->
+            com.pennywiseai.tracker.ui.screens.settings.ConscienceScreen(
+                onNavigateBack = { backStack.pop(key) }
+            )
+        }
+
         entry<Webhooks> { key ->
             com.pennywiseai.tracker.ui.screens.settings.webhooks.WebhooksScreen(
                 onNavigateBack = { backStack.pop(key) }

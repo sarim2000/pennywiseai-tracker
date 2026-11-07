@@ -56,10 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense_dark
-import com.pennywiseai.tracker.ui.theme.expense_light
-import com.pennywiseai.tracker.ui.theme.income_dark
-import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -102,9 +99,9 @@ fun MarkAsPaidSheet(
 
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) income_dark else income_light
+        MaterialTheme.colorScheme.income
     } else {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+        MaterialTheme.colorScheme.onSurface
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -332,8 +329,8 @@ fun MarkAsPaidSheet(
 }
 
 /**
- * One suggested-payment card. Compact row: amount on the left (in expense
- * tint to mirror the transactions list), merchant + relative date on the
+ * One suggested-payment card. Compact row: amount on the left (in ink, like
+ * a spend in the transactions list), merchant + relative date on the
  * right. Tap = link this transaction as the cycle's payment.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -342,7 +339,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    val amountColor = MaterialTheme.colorScheme.onSurface
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),
@@ -428,7 +425,7 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
     val content = if (isAccent) {
         MaterialTheme.colorScheme.onSecondaryContainer
     } else {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
     androidx.compose.material3.Surface(
         color = container,

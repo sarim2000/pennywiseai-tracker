@@ -588,6 +588,9 @@ class ICICIBankParser : BaseIndianBankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
+        // The "inr" keyword below would otherwise accept OTPs ("OTP for INR 478.00 ...").
+        if (isNonTransactionMessage(message)) return false
+
         val lowerMessage = message.lowercase()
 
         // Skip SMS BLOCK instructions (not a transaction)

@@ -42,9 +42,11 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -487,13 +489,8 @@ class TransactionDetailViewModel @Inject constructor(
 
         // Load count of other transactions from same merchant + any saved alias
         _transaction.value?.let { txn ->
+            refreshExistingTransactionCount(txn.transactionType)
             viewModelScope.launch {
-                val count = transactionRepository.getOtherTransactionCountForMerchant(
-                    txn.merchantName,
-                    txn.id
-                )
-                _existingTransactionCount.value = count
-
                 val alias = merchantAliasRepository.getAliasForMerchant(txn.merchantName) ?: ""
                 _originalMerchantAlias = alias
                 _merchantAlias.value = alias
@@ -591,7 +588,24 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
     
+    private var existingCountJob: Job? = null
+
+    /**
+     * "Update N existing" counts the rows Save would move, which follow the
+     * edited type, so it is recounted whenever the type changes.
+     */
+    private fun refreshExistingTransactionCount(type: TransactionType) {
+        val txn = _transaction.value ?: return
+        existingCountJob?.cancel()
+        existingCountJob = viewModelScope.launch {
+            _existingTransactionCount.value = transactionRepository.countRecategorizableForMerchant(
+                txn.merchantName, LearnCategoryUseCase.sameKind(type), txn.id
+            )
+        }
+    }
+
     fun updateTransactionType(type: TransactionType) {
+        refreshExistingTransactionCount(type)
         if (type != TransactionType.INCOME) {
             _budgetImpactType.value = null
             _budgetCategory.value = null
@@ -1097,7 +1111,12 @@ class TransactionDetailViewModel @Inject constructor(
 
                 // Update existing transactions if checkbox is checked
                 if (_updateExistingTransactions.value) {
-                    transactionRepository.updateCategoryForMerchant(merchantKey, normalizedTransaction.category)
+                    transactionRepository.updateCategoryForMerchant(
+                        merchantKey,
+                        LearnCategoryUseCase.sameKind(normalizedTransaction.transactionType),
+                        normalizedTransaction.id,
+                        normalizedTransaction.category
+                    )
                 }
 
                 // Persist the merchant display alias (#583), keyed on the saved

@@ -5,7 +5,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -218,9 +217,8 @@ private fun LoanPersonRow(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val owedColor = if (isDark) loan_dark else loan_light
-    val oweColor = if (isDark) income_dark else income_light
+    val owedColor = MaterialTheme.colorScheme.loan
+    val oweColor = MaterialTheme.colorScheme.income
     // Tint the avatar by the first open balance's direction; grey once all settled.
     val accent = person.net.values.firstOrNull()?.let { if (it.isOwedToYou) owedColor else oweColor }
         ?: MaterialTheme.colorScheme.onSurfaceVariant
@@ -284,9 +282,8 @@ private fun LoanSummaryCard(
     totalBorrowed: BigDecimal,
     currency: String
 ) {
-    val isDark = isSystemInDarkTheme()
-    val lentColor = if (isDark) loan_dark else loan_light
-    val borrowedColor = if (isDark) income_dark else income_light
+    val lentColor = MaterialTheme.colorScheme.loan
+    val borrowedColor = MaterialTheme.colorScheme.income
 
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -321,13 +318,12 @@ fun LoanListItem(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
     val directionColor = if (loan.direction == LoanDirection.LENT) {
-        if (isDark) loan_dark else loan_light
+        MaterialTheme.colorScheme.loan
     } else {
-        if (isDark) income_dark else income_light
+        MaterialTheme.colorScheme.income
     }
-    val progressColor = if (isDark) income_dark else income_light
+    val progressColor = MaterialTheme.colorScheme.income
     val progress = if (loan.originalAmount > BigDecimal.ZERO) {
         (BigDecimal.ONE - loan.remainingAmount.divide(loan.originalAmount, 2, java.math.RoundingMode.HALF_UP))
             .toFloat().coerceIn(0f, 1f)

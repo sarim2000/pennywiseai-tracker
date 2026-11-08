@@ -1259,16 +1259,20 @@ class HomeViewModel @Inject constructor(
 
         // Use getWorkInfosById for more direct observation
         workManager.getWorkInfosByTagLiveData(OptimizedSmsReaderWorker.WORK_NAME).observeForever { workInfos ->
-            // Only the latest scan: an earlier, finished one shares the tag and
-            // would otherwise end this scan early or report its own count.
-            val currentWork = workInfos.firstOrNull { it.id == scanWorkId }
+            // A running scan wins (so an earlier, finished one sharing the tag can't
+            // end it early), then the user's own scan, then any (scans started
+            // elsewhere, e.g. onboarding or SmsScanManager, still drive isScanning).
+            val currentWork = workInfos.firstOrNull { !it.state.isFinished }
+                ?: workInfos.firstOrNull { it.id == scanWorkId }
+                ?: workInfos.firstOrNull()
             if (currentWork != null) {
                 _smsScanWorkInfo.value = currentWork
 
                 // Update scanning state based on work state
                 when (currentWork.state) {
                     WorkInfo.State.SUCCEEDED -> {
-                        val justFinished = _uiState.value.isScanning
+                        // "+N" only for the scan the user started here.
+                        val justFinished = _uiState.value.isScanning && currentWork.id == scanWorkId
                         _uiState.value = _uiState.value.copy(isScanning = false)
                         // The final count rides on outputData; progress is already cleared.
                         if (justFinished) showScanResult(currentWork.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, 0))

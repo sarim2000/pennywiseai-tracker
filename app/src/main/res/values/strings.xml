@@ -33,4 +33,11 @@
     <string name="duplicate_accounts_message">Differences in bank SMS formats or earlier parsing may have created duplicate accounts with three and four digits. If %1$s and %2$s are the same account, merge them? Transactions will move to the four-digit account, its balance history will be kept, and future SMS will use it automatically.</string>
     <string name="duplicate_accounts_merge">Merge and remember</string>
     <string name="duplicate_accounts_keep">Keep separate</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
+    <string name="dock_result_new">+%1$d</string>
+    <string name="dock_result_many">%1$d+</string>
+    <plurals name="dock_result_description">
+        <item quantity="one">%1$d new transaction</item>
+        <item quantity="other">%1$d new transactions</item>
+    </plurals>
 </resources>

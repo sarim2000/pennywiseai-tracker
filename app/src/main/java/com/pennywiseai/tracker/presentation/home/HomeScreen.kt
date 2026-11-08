@@ -1019,6 +1019,7 @@ fun HomeScreen(
                     },
                     onLongClickLabel = fullResyncLabel,
                     loading = uiState.isScanning,
+                    resultCount = uiState.scanNewCount,
                     onPositioned = onFabPositioned
                 )
             )

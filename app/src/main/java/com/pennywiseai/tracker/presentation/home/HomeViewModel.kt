@@ -1246,7 +1246,9 @@ class HomeViewModel @Inject constructor(
         )
 
         // Update UI to show scanning
-        _uiState.value = _uiState.value.copy(isScanning = true)
+        scanWorkId = workRequest.id
+        scanResultJob?.cancel()
+        _uiState.value = _uiState.value.copy(isScanning = true, scanNewCount = null)
 
         // Track work progress
         observeWorkProgress()
@@ -1257,13 +1259,20 @@ class HomeViewModel @Inject constructor(
 
         // Use getWorkInfosById for more direct observation
         workManager.getWorkInfosByTagLiveData(OptimizedSmsReaderWorker.WORK_NAME).observeForever { workInfos ->
-            val currentWork = workInfos.firstOrNull { it.tags.contains(OptimizedSmsReaderWorker.WORK_NAME) }
+            // Only the latest scan: an earlier, finished one shares the tag and
+            // would otherwise end this scan early or report its own count.
+            val currentWork = workInfos.firstOrNull { it.id == scanWorkId }
             if (currentWork != null) {
                 _smsScanWorkInfo.value = currentWork
 
                 // Update scanning state based on work state
                 when (currentWork.state) {
-                    WorkInfo.State.SUCCEEDED,
+                    WorkInfo.State.SUCCEEDED -> {
+                        val justFinished = _uiState.value.isScanning
+                        _uiState.value = _uiState.value.copy(isScanning = false)
+                        // The final count rides on outputData; progress is already cleared.
+                        if (justFinished) showScanResult(currentWork.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, 0))
+                    }
                     WorkInfo.State.FAILED,
                     WorkInfo.State.CANCELLED,
                     WorkInfo.State.BLOCKED -> {
@@ -1275,6 +1284,22 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private var scanWorkId: java.util.UUID? = null
+    private var scanResultJob: kotlinx.coroutines.Job? = null
+
+    /**
+     * The user's scan landed: the docked Sync button shows "+N" for a beat, then
+     * its icon again. Nothing new skips straight back to the icon, no wait.
+     */
+    private fun showScanResult(newCount: Int) {
+        if (newCount <= 0) return
+        _uiState.value = _uiState.value.copy(scanNewCount = newCount)
+        scanResultJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(SCAN_RESULT_HOLD_MILLIS)
+            _uiState.value = _uiState.value.copy(scanNewCount = null)
         }
     }
 
@@ -1922,6 +1947,8 @@ class HomeViewModel @Inject constructor(
     }
     private companion object {
         const val RECURRING_CARD_QUIET_MILLIS = 30L * 24 * 60 * 60 * 1000
+        /** How long a finished scan's "+N" holds on the Sync button; load-bearing, so not a motion spec. */
+        const val SCAN_RESULT_HOLD_MILLIS = 1_600L
     }
 
 }
@@ -1989,6 +2016,8 @@ data class HomeUiState(
     val balanceHistory: List<BigDecimal> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
+    /** New transactions the user's just-finished scan saved, shown briefly on the Sync button. */
+    val scanNewCount: Int? = null,
     val showBreakdownDialog: Boolean = false,
     val isUnifiedMode: Boolean = false,
     val transactionHeatmap: Map<Long, Int> = emptyMap(),

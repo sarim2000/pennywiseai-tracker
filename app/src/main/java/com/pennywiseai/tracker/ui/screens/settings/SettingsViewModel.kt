@@ -893,6 +893,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateBudgetCycleStartDay(day: Int) {
+        if (com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(day)) {
+            com.pennywiseai.tracker.data.preferences.WeekendCountryStore.refresh(context)
+        }
         viewModelScope.launch {
             userPreferencesRepository.updateBudgetCycleStartDay(day)
         }

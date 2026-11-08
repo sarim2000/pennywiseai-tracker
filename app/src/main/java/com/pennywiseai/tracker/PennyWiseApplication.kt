@@ -95,11 +95,8 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         CategoryMapping.userStyles
         // Same for the hide-amounts switch, which every money format reads.
         AmountPrivacy.hidden
-        // The weekend a last-working-day budget cycle rolls back over follows the SIM country.
-        getSystemService(android.telephony.TelephonyManager::class.java)?.let { telephony ->
-            com.pennywiseai.tracker.domain.model.BudgetCycle.weekendCountry =
-                telephony.simCountryIso?.takeIf { it.isNotBlank() } ?: telephony.networkCountryIso
-        }
+        // The weekend a last-working-day budget cycle rolls back over: the SIM country, kept once saved.
+        com.pennywiseai.tracker.data.preferences.WeekendCountryStore.load(this)
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
         com.pennywiseai.tracker.utils.useLatinDigitsByDefault()

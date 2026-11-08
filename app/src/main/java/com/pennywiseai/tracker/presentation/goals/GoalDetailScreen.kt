@@ -28,6 +28,8 @@ import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -323,18 +325,7 @@ private fun GoalDetailContent(
                 }
             }
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = onAdd, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                    Text(stringResource(R.string.goal_add_money))
-                }
-                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                    Text(stringResource(R.string.goal_take_out))
-                }
-            }
-        }
+        item { MoneyButtons(canTakeOut = progress.saved.signum() > 0, onAdd = onAdd, onTakeOut = onTakeOut) }
         item { SectionHeaderV2(title = stringResource(R.string.goal_detail_history)) }
         val rows = detail.contributions
         val hasAlreadySaved = goal.alreadySaved.signum() > 0
@@ -368,6 +359,58 @@ private fun GoalDetailContent(
                 }
             }
         }
+    }
+}
+
+/**
+ * Add money / Take out as an M3 Expressive button group: the pressed button
+ * widens and its neighbour yields (spatial spring). Each button keeps half the
+ * row at rest and wraps its label rather than clipping at large font scales.
+ */
+@Composable
+private fun MoneyButtons(canTakeOut: Boolean, onAdd: () -> Unit, onTakeOut: () -> Unit) {
+    val addLabel = stringResource(R.string.goal_add_money)
+    val takeOutLabel = stringResource(R.string.goal_take_out)
+    ButtonGroup(
+        overflowIndicator = { ButtonGroupDefaults.OverflowIndicator(it) },
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        customItem(
+            buttonGroupContent = {
+                val interaction = remember { MutableInteractionSource() }
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier.weight(1f).animateWidth(interaction).heightIn(min = Dimensions.Component.minTouchTarget),
+                    interactionSource = interaction,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
+                    Text(addLabel, textAlign = TextAlign.Center)
+                }
+            },
+            menuContent = { state ->
+                DropdownMenuItem(text = { Text(addLabel) }, onClick = { state.dismiss(); onAdd() })
+            },
+        )
+        customItem(
+            buttonGroupContent = {
+                val interaction = remember { MutableInteractionSource() }
+                OutlinedButton(
+                    onClick = onTakeOut,
+                    enabled = canTakeOut,
+                    modifier = Modifier.weight(1f).animateWidth(interaction).heightIn(min = Dimensions.Component.minTouchTarget),
+                    interactionSource = interaction,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
+                    Text(takeOutLabel, textAlign = TextAlign.Center)
+                }
+            },
+            menuContent = { state ->
+                DropdownMenuItem(text = { Text(takeOutLabel) }, enabled = canTakeOut, onClick = { state.dismiss(); onTakeOut() })
+            },
+        )
     }
 }
 

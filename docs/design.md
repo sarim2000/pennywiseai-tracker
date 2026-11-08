@@ -304,6 +304,26 @@ it by `Dimensions.Component.bottomBarHeight`.
   use them for bounded data values (progress fractions, chart sweeps), where
   a bounce past 100% reads as wrong. `tween` stays only inside
   `infiniteRepeatable` loops or where a duration is load-bearing.
+- **Motion language.** Generic transitions live in
+  `ui/animations/PennyWiseMotion.kt` (`pwEnter`/`pwExit`, `pwFadeIn`/`pwFadeOut`,
+  `pwExpand`/`pwCollapse`, `StaggeredEntrance`, `rememberAnimationsEnabled`);
+  use them before hand-building a fade/slide/expand. No default-spec
+  `fadeIn()`, `expandVertically()`, `animate*AsState` etc. — always pass a
+  `motionScheme` spec.
+  1. **Chrome moves, money settles.** Position/size/shape use spatial specs
+     (`fast` < 48dp parts, `default` cards/sheets/panels, `slow` full screens);
+     amounts, percents, arcs, bars, alpha and colour use effects specs. A number
+     never passes through a value it doesn't have.
+  2. **One beat per change** — no staggering digits or sibling figures.
+  3. **Short travel.** Slides are a fraction of the screen (a few dp for
+     content, a quarter of the bar for chrome), never full-width by default.
+  4. **No bounce on data; no scale-in on icons or content** (Material reads
+     scale as elevation) — fade them.
+  5. **Stagger once**, on a screen's first entrance (`StaggeredEntrance` with a
+     saveable `hasAnimated`); scrolling lists and returning to a tab don't.
+  6. **"Remove animations" means content is just there.** Compose zeroes
+     durations itself; skip `delay`-based choreography too
+     (`rememberAnimationsEnabled()`).
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

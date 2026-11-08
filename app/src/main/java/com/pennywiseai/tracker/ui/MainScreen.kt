@@ -2,7 +2,12 @@ package com.pennywiseai.tracker.ui
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -30,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -118,6 +124,29 @@ private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
 private fun NavBackStack<NavKey>.resetTo(root: NavKey) {
     subList(1, size).clear()
     set(0, root)
+}
+
+/**
+ * A tab switch fades through; anything else (a push or pop inside one tab) cuts.
+ * A scene belongs to the tab whose stack it tops: after a switch both the old and
+ * new screens still top their stacks, while an in-tab push or pop leaves the old
+ * screen buried or removed.
+ */
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSwitchOrCut(
+    tabTops: Map<BottomNavItem, Any?>,
+    fade: FiniteAnimationSpec<Float>,
+): ContentTransform {
+    fun tabTopping(scene: Scene<NavKey>): BottomNavItem? {
+        val key = scene.entries.lastOrNull()?.contentKey ?: return null
+        return tabTops.entries.firstOrNull { it.value == key }?.key
+    }
+    val from = tabTopping(initialState)
+    val to = tabTopping(targetState)
+    return if (from != null && to != null && from != to) {
+        fadeIn(fade) togetherWith fadeOut(fade)
+    } else {
+        EnterTransition.None togetherWith ExitTransition.None
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -511,6 +540,8 @@ fun MainScreen(
             rememberDecoratedNavEntries(tabStacks.getValue(tab), rememberEntryDecorators(), tabEntries(tab))
         }
     }
+    val fastEffects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    val tabTops = decoratedTabs.mapValues { it.value.lastOrNull()?.contentKey }
     val shownEntries = decoratedTabs.getValue(BottomNavItem.Home) +
         if (currentTab == BottomNavItem.Home) emptyList() else decoratedTabs.getValue(currentTab)
 
@@ -532,16 +563,16 @@ fun MainScreen(
                 )
             }
 
-            // NavDisplay — NO padding, fills the full screen. Tab switches and
-            // pops within the tabs don't animate.
+            // NavDisplay — NO padding, fills the full screen. Tab switches are a
+            // fast fade-through; pushes and pops within a tab stay a hard cut.
             NavDisplay(
                 entries = shownEntries,
                 onBack = { back(currentTab) },
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState),
-                transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                popTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
+                transitionSpec = { tabSwitchOrCut(tabTops, fastEffects) },
+                popTransitionSpec = { tabSwitchOrCut(tabTops, fastEffects) },
                 predictivePopTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
             )
 

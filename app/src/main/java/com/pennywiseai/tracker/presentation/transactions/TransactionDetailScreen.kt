@@ -216,12 +216,17 @@ fun TransactionDetailScreen(
     // "Receipt settled": only the user's own Save gets the check + haptic.
     var settled by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
+    var settleRequests by remember { mutableIntStateOf(0) }
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
-            scope.launch {
-                snackbarHostState.showSnackbar(updatedMessage)
-                viewModel.clearSaveSuccess()
-            }
+            // Consume the save first: rotating mid-snackbar must not replay the check.
+            viewModel.clearSaveSuccess()
+            scope.launch { snackbarHostState.showSnackbar(updatedMessage) }
+            settleRequests++
+        }
+    }
+    LaunchedEffect(settleRequests) {
+        if (settleRequests > 0) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             settled = true
             try { delay(SETTLED_HOLD_MS) } finally { settled = false }

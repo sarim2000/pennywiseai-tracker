@@ -49,6 +49,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -129,10 +130,12 @@ fun BudgetCard(
         Spacer(modifier = Modifier.height(Spacing.sm))
 
         // Pace only means something for a spending limit whose window is
-        // still running (daysRemaining is 0 for past windows).
+        // running: started (dayCounts clamps a future window's elapsed to 1)
+        // and not yet over (daysRemaining is 0 for past windows).
         val pace = if (
             groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
-            groupSpending.daysRemaining > 0
+            groupSpending.daysRemaining > 0 &&
+            !groupSpending.windowStart.isAfter(LocalDate.now())
         ) {
             budgetPace(groupSpending.totalActual, groupSpending.totalBudget, groupSpending.daysElapsed, groupSpending.windowDays)
         } else null

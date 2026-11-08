@@ -238,13 +238,16 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // The reply being written, so clearing the chat can stop it instead of leaving it behind.
+    private var sendJob: kotlinx.coroutines.Job? = null
+
     fun sendMessage(message: String) {
         // A write in flight must finish first: its outcome is what the model hears next.
         if (message.isBlank() || _uiState.value.isLoading || _isConfirming.value) return
         // A new message supersedes any card still waiting from the last one.
         llmRepository.clearPendingAction()
 
-        viewModelScope.launch {
+        sendJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 error = null
@@ -287,6 +290,8 @@ class ChatViewModel @Inject constructor(
     
     fun clearChat() {
         if (_isConfirming.value) return
+        // Same thread as the send's own code, so it can't propose a card after this line.
+        sendJob?.cancel()
         llmRepository.clearPendingAction()
         viewModelScope.launch {
             llmRepository.deleteAllMessages()

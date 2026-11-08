@@ -191,11 +191,7 @@ class LlmRepository @Inject constructor(
             ) throw e
             retried = true
             Log.w(TAG, "Context window full; retrying with the older turns dropped")
-            conversationLock.withLock {
-                val window = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt && it.id != userChatMessage.id && it.id !in droppedIds }
-                droppedIds += (window - dropOlderHalf(window).toSet()).map { it.id }
-            }
-            ensureConversation(pending = userChatMessage, incoming = prompt)
+            ensureConversation(pending = userChatMessage, incoming = prompt, shrink = true)
         }
         // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
         val written = responseBuilder.toString()
@@ -265,7 +261,7 @@ class LlmRepository @Inject constructor(
      * replayed history. When the chat outgrows the model's window, its oldest turns leave the
      * window (not the screen) instead of the chat refusing to go on.
      */
-    private suspend fun ensureConversation(pending: ChatMessage?, incoming: String) = conversationLock.withLock {
+    private suspend fun ensureConversation(pending: ChatMessage?, incoming: String, shrink: Boolean = false) = conversationLock.withLock {
         if (!llmService.isInitialized()) {
             val modelFile = modelRepository.getModelFile()
             if (!modelFile.exists()) {
@@ -288,7 +284,7 @@ class LlmRepository @Inject constructor(
             Log.i(TIMING, "hash=${ms(t0, t1)}ms engine=${ms(t1)}ms")
         }
 
-        var outgrown = false
+        var outgrown = shrink
         if (llmService.hasActiveConversation()) {
             val replayed = pending != null && pending.id in replayedIds
             val used = llmService.tokenCount()
@@ -306,8 +302,12 @@ class LlmRepository @Inject constructor(
         // A trailing message that got no reply isn't replayed: it's usually the one being sent,
         // saved while the warm-up loaded the model, and replaying it would mean building twice.
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
+        // Dropped only once a conversation takes the message: a message too long for any window
+        // must not cost the model the rest of the chat.
+        val dropping = mutableSetOf<String>()
+        fun halve() = dropOlderHalf(history).also { kept -> dropping += (history - kept.toSet()).map { it.id } }
         // The live conversation was this history and no longer fits: rebuilt whole, it wouldn't either.
-        if (outgrown) history = dropOlderHalf(history).also { kept -> droppedIds += (history - kept.toSet()).map { it.id } }
+        if (outgrown) history = halve()
         while (true) {
             val t0 = System.nanoTime()
             val result = llmService.createConversation(systemPrompt, history.map { it.message to it.isUser }, withTools = true)
@@ -317,26 +317,34 @@ class LlmRepository @Inject constructor(
             val used = if (failure == null) llmService.tokenCount() ?: 0 else -1
             Log.i(TIMING, "conversation=${ms(t0)}ms history=${history.size} tokens=$used")
             if (failure == null && TokenUtils.fitsWindow(used, incoming)) {
+                droppedIds += dropping
                 replayedIds = history.mapTo(mutableSetOf()) { it.id }
                 _contextTokens.value = used
                 return@withLock
             }
-            // The system prompt and tools alone leave no room for this message.
-            if (history.isEmpty()) throw Exception(MESSAGE_TOO_LONG)
-            val kept = dropOlderHalf(history)
-            droppedIds += (history - kept.toSet()).map { it.id }
-            history = kept
+            // The system prompt and tools alone leave no room for this message. The next one
+            // rebuilds the window as it was, without this one, which the model never saw.
+            if (history.isEmpty()) {
+                llmService.closeConversation()
+                pending?.let { droppedIds += it.id }
+                throw Exception(MESSAGE_TOO_LONG)
+            }
+            history = halve()
         }
     }
 
-    // Under conversationLock: a warm-up mid-build would otherwise replay the cleared chat.
-    suspend fun deleteAllMessages() = conversationLock.withLock {
-        llmService.closeConversation()
-        chatDao.deleteAllMessages()
-        cardOutcome = null
-        droppedIds.clear()
-        replayedIds = emptySet()
-        _contextTokens.value = 0
+    // Under conversationLock: a warm-up mid-build would otherwise replay the cleared chat. That can
+    // make the clear wait for the model to load, so it takes only what was there when it was asked.
+    suspend fun deleteAllMessages() {
+        val asked = System.currentTimeMillis()
+        conversationLock.withLock {
+            llmService.closeConversation()
+            chatDao.deleteMessagesBefore(asked)
+            cardOutcome = null
+            droppedIds.clear()
+            replayedIds = emptySet()
+            _contextTokens.value = 0
+        }
     }
 
     suspend fun getMessageCount(): Int = chatDao.getMessageCount()

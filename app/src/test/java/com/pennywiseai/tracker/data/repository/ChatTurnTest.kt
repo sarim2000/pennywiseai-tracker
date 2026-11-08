@@ -36,6 +36,7 @@ class ChatTurnTest {
     private val chatDao = mockk<ChatDao>(relaxed = true) {
         coEvery { getAllMessagesForContext() } answers { saved.toList() }
         coEvery { insertMessage(any()) } answers { saved += firstArg<ChatMessage>() }
+        coEvery { deleteMessagesBefore(any()) } answers { saved.removeAll { it.timestamp < firstArg<Long>() } }
     }
     private val sent = mutableListOf<String>()
     private var events: List<LlmEvent> = emptyList()
@@ -235,6 +236,33 @@ class ChatTurnTest {
         assertEquals(listOf(8, 4), histories.map { it.size })
         assertEquals("u2" to true, histories[1].first())
         assertEquals(10, saved.count { !it.isSystemPrompt }) // the screen keeps all of it, and the new turn
+    }
+
+    @Test
+    fun `a message too long for any window is rejected without the model forgetting the chat`() = runTest {
+        savedChat(4)
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returnsMany listOf(3500, 3500, 3500, 3500, 1500)
+        val rejected = runCatching { send("x".repeat(3000)) }.exceptionOrNull()
+        assertEquals(LlmRepository.MESSAGE_TOO_LONG, rejected?.message)
+        coVerify { llmService.closeConversation() }
+
+        histories.clear()
+        send("tea 20")
+        // All of the chat again, without the message the model never took.
+        assertEquals(8, histories.first().size)
+        assertFalse(histories.first().any { it.first.startsWith("xxx") })
+    }
+
+    @Test
+    fun `clearing the chat keeps a message sent while the clear waited for the model to load`() = runTest {
+        savedChat(2)
+        // Saved after the tap, while the clear queued behind the warm-up.
+        saved += ChatMessage(message = "tea 20", isUser = true, timestamp = Long.MAX_VALUE)
+        repository.deleteAllMessages()
+        assertEquals(listOf("tea 20"), saved.map { it.message })
     }
 
     @Test

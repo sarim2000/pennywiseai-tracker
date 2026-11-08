@@ -26,6 +26,18 @@ class PhonePeWalletParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Merchant name with an income word stays an expense",
+                message = "You've paid Rs.120.00 via PhonePe wallet for LOADED FRIES REFUND CORNER. Not you? Call us on 022-00000000. Remaining balance: Rs.30.00. To top-up click https://phone.pe/PHONPE/ws",
+                sender = "JD-PHONPE-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("120.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "LOADED FRIES REFUND CORNER",
+                    balance = BigDecimal("30.00")
+                )
+            ),
+            ParserTestCase(
                 name = "Non-wallet PhonePe message is ignored (bank SMS records UPI)",
                 message = "You've paid Rs.250.00 to SAMPLE SHOP via UPI from your bank account. Not you? Call us on 022-00000000.",
                 sender = "JD-PHONPE-S",

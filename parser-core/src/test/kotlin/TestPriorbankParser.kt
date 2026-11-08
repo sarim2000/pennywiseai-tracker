@@ -104,6 +104,18 @@ class PriorbankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "English - foreign-currency payment keeps its currency",
+                message = """Card 4***1234 01-11-26 09:15:02. Payment 12.99 USD. USA SAMPLE STREAMING. Balance: 80.00 USD Tel. 7299090""",
+                sender = "Priorbank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.99"),
+                    currency = "USD",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("80.00")
+                )
+            ),
+            ParserTestCase(
                 name = "English - balance left blank still parses",
                 message = """Card ******** 31-10-26 10:39:14. Payment 5.00 BYN. BLR SHOP. Balance:  BYN Tel. 7299090""",
                 sender = "Priorbank",

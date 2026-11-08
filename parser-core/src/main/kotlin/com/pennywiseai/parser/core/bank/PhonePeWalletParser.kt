@@ -32,12 +32,14 @@ class PhonePeWalletParser : BaseIndianBankParser() {
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
-        val lower = message.lowercase()
+        // Read the action only from the words before "PhonePe wallet", so a merchant
+        // named after it ("… wallet for LOADED FRIES") can't flip the direction.
+        val action = message.lowercase().substringBefore("phonepe wallet")
         return when {
-            lower.contains("refund") || lower.contains("credited") ||
-                lower.contains("added to") || lower.contains("loaded") -> TransactionType.INCOME
-            lower.contains("paid") || lower.contains("debited") -> TransactionType.EXPENSE
-            else -> super.extractTransactionType(message)
+            action.contains("paid") || action.contains("debited") -> TransactionType.EXPENSE
+            action.contains("refund") || action.contains("credited") ||
+                action.contains("added") || action.contains("loaded") -> TransactionType.INCOME
+            else -> null
         }
     }
 

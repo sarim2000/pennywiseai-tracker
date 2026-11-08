@@ -61,11 +61,10 @@ fun SettledCheck(
                 .matchParentSize()
                 .graphicsLayer {
                     this.alpha = alpha.value
-                    val p = shapeProgress.value
-                    scaleX = 0.8f + 0.2f * p
-                    scaleY = scaleX
-                    // The spring overshoots; the morph itself stays within its two shapes.
-                    shape = MorphShape(morph, p.coerceIn(0f, 1f))
+                    // No scale-in (Material reads scale as elevation): the check fades
+                    // while its container morphs. The spring overshoots; the morph
+                    // itself stays within its two shapes.
+                    shape = MorphShape(morph, shapeProgress.value.coerceIn(0f, 1f))
                     clip = true
                 }
                 .background(MaterialTheme.colorScheme.primaryContainer),

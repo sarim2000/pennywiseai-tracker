@@ -62,16 +62,22 @@ fun BudgetCard(
     val pctUsed = groupSpending.percentageUsed
     val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
 
-    var animatedProgress by remember { mutableFloatStateOf(0f) }
-    val animatedProgressState by animateFloatAsState(
-        targetValue = animatedProgress,
+    // One animated fraction drives both the bar and the % pill, so the pill
+    // never reads 80% while the bar is still at 40%. Unclamped: past 100% the
+    // bar stays full while the pill keeps counting to the real figure.
+    var targetFraction by remember { mutableFloatStateOf(0f) }
+    val usedFraction by animateFloatAsState(
+        targetValue = targetFraction,
         animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
 
     LaunchedEffect(pctUsed) {
-        animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
+        targetFraction = pctUsed / 100f
     }
+    val barFraction = usedFraction.coerceIn(0f, 1f)
+    // Settled, read pctUsed itself: fraction * 100 can land on 79.999 → "79%".
+    val pillPercent = (if (usedFraction == pctUsed / 100f) pctUsed else usedFraction * 100f).toInt()
 
     val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val statusColor: Color = when {
@@ -114,7 +120,7 @@ fun BudgetCard(
 
             if (groupSpending.totalBudget > BigDecimal.ZERO) {
                 Text(
-                    text = stringResource(R.string.budget_card_percent, pctUsed.toInt()),
+                    text = stringResource(R.string.budget_card_percent, pillPercent),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
@@ -169,7 +175,7 @@ fun BudgetCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(fraction = animatedProgressState)
+                            .fillMaxWidth(fraction = barFraction)
                             .fillMaxHeight()
                             .clip(barShape)
                             .background(barColor)

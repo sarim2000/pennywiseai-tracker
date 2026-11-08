@@ -296,7 +296,18 @@ class SubscriptionsViewModel @Inject constructor(
                 MarkSubscriptionPaidUseCase.Result.SubscriptionNotFound ->
                     UiText.Res(R.string.subscriptions_msg_not_found)
             }
-            _uiState.value = _uiState.value.copy(markPaidMessage = message)
+            val paid = result is MarkSubscriptionPaidUseCase.Result.Created || result is MarkSubscriptionPaidUseCase.Result.Linked
+            _uiState.value = _uiState.value.copy(
+                markPaidMessage = message,
+                settledSubscriptionId = subscriptionId.takeIf { paid } ?: _uiState.value.settledSubscriptionId,
+            )
+        }
+    }
+
+    /** Ends the settled check on [subscriptionId]'s row, unless a newer one took over. */
+    fun clearSettled(subscriptionId: Long) {
+        if (_uiState.value.settledSubscriptionId == subscriptionId) {
+            _uiState.value = _uiState.value.copy(settledSubscriptionId = null)
         }
     }
 
@@ -346,7 +357,11 @@ class SubscriptionsViewModel @Inject constructor(
                     UiText.Res(R.string.subscriptions_msg_not_found)
                 else -> UiText.Res(R.string.subscriptions_msg_linked_generic)
             }
-            _uiState.value = _uiState.value.copy(markPaidMessage = message)
+            _uiState.value = _uiState.value.copy(
+                markPaidMessage = message,
+                settledSubscriptionId = subscriptionId.takeIf { result is MarkSubscriptionPaidUseCase.Result.Linked }
+                    ?: _uiState.value.settledSubscriptionId,
+            )
         }
     }
 }
@@ -370,6 +385,8 @@ data class SubscriptionsUiState(
     val lastEndedSubscription: SubscriptionEntity? = null,
     /** Snackbar text after a mark-as-paid action; cleared by [SubscriptionsViewModel.clearMarkPaidMessage]. */
     val markPaidMessage: UiText? = null,
+    /** The row the user just marked paid (or linked a payment to): its avatar settles into a check. */
+    val settledSubscriptionId: Long? = null,
     /** Repeating payments found in history that aren't tracked yet. Never counted in the totals. */
     val suggestions: List<RecurringSuggestion> = emptyList(),
     val lastDismissedSuggestion: RecurringSuggestion? = null,

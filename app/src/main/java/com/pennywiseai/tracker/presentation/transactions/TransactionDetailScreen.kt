@@ -90,6 +90,7 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SettledCheck
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -138,8 +139,6 @@ private val editMiddleShape = RoundedCornerShape(4.dp)
 private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
 private val editFullShape = RoundedCornerShape(16.dp)
 
-/** How long the saved-transaction check holds before the avatar returns. */
-private const val SETTLED_HOLD_MS = 900L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -202,7 +201,9 @@ fun TransactionDetailScreen(
     LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
     LaunchedEffect(Unit) { splitViewModel.changed.collect { viewModel.loadTransaction(transactionId) } }
     fun closeAddToGoal() { showAddToGoal = false; goalsViewModel.closeSheet() }
-    LaunchedEffect(addToGoal.done) { if (addToGoal.done) closeAddToGoal() }
+    // Bumped by each confirmed user action that settles the receipt: Save, Add to goal.
+    var settleRequests by remember { mutableIntStateOf(0) }
+    LaunchedEffect(addToGoal.done) { if (addToGoal.done) { closeAddToGoal(); settleRequests++ } }
     // Loads what's left of the transaction whenever the sheet is open without it:
     // on open, and after process recreation restores an open sheet (its typed
     // fields are rememberSaveable and survive; the ViewModel's state doesn't).
@@ -218,7 +219,6 @@ fun TransactionDetailScreen(
     // "Receipt settled": only the user's own Save gets the check + haptic.
     var settled by remember { mutableStateOf(false) }
     val haptics = LocalHapticFeedback.current
-    var settleRequests by remember { mutableIntStateOf(0) }
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
             // Consume the save first: rotating mid-snackbar must not replay the check.
@@ -231,7 +231,7 @@ fun TransactionDetailScreen(
         if (settleRequests > 0) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
             settled = true
-            try { delay(SETTLED_HOLD_MS) } finally { settled = false }
+            try { delay(SETTLED_HOLD_MILLIS) } finally { settled = false }
         }
     }
     

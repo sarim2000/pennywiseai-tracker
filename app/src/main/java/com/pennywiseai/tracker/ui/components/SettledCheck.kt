@@ -27,6 +27,9 @@ import androidx.graphics.shapes.Morph
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
+/** How long a settled check holds before the avatar returns. */
+const val SETTLED_HOLD_MILLIS = 900L
+
 /**
  * "Receipt settled": while [settled] is true, [content] (a merchant avatar)
  * gives way to a check whose container morphs from the avatar's cookie into a
@@ -81,7 +84,7 @@ fun SettledCheck(
 }
 
 /** A [Morph] between two unit-square `MaterialShapes`, scaled to the layout. */
-private class MorphShape(private val morph: Morph, private val progress: Float) : Shape {
+internal class MorphShape(private val morph: Morph, private val progress: Float) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val path = morph.toPath(progress)
         path.transform(Matrix().apply { scale(size.width, size.height) })

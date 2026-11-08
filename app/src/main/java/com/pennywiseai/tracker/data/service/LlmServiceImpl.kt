@@ -8,10 +8,13 @@ import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.Message
+import com.google.ai.edge.litertlm.MessageCallback
 import com.google.ai.edge.litertlm.SamplerConfig
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.tool
 import com.pennywiseai.tracker.domain.service.LlmEvent
+import com.pennywiseai.tracker.domain.service.isContextFull
+import com.pennywiseai.tracker.domain.service.isModelOutputError
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
@@ -22,7 +25,12 @@ import kotlinx.coroutines.flow.transform
 import com.pennywiseai.tracker.domain.service.LlmService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
@@ -54,6 +62,12 @@ class LlmServiceImpl @Inject constructor(
     // True from a GPU start until its first reply completes; KEY_GPU_FAILED stays armed meanwhile.
     @Volatile private var gpuUnconfirmed = false
 
+    // The last send's prefill, until its first callback. Closing a conversation in that window
+    // crashes natively (LiteRT-LM #3771, still in 0.19.0): only the prefill callback reaches the
+    // freed session. Once any callback arrives, a close just waits for the decode to drain.
+    @Volatile private var prefilling: CompletableDeferred<Unit>? = null
+    private var undrained = false
+
     private val backendPrefs by lazy { context.getSharedPreferences("llm_backend", Context.MODE_PRIVATE) }
 
     override suspend fun initialize(modelPath: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -68,9 +82,11 @@ class LlmServiceImpl @Inject constructor(
         return try {
             // GPU first; devices without a usable OpenCL/GPU delegate throw here, so fall back to CPU.
             // A buggy driver can instead crash natively, which no catch sees: the flag is
-            // written before trying and cleared only once the GPU finishes its first reply
-            // (a driver can also die creating the conversation or generating), so a GPU
-            // attempt that crashed or threw is never retried and later starts go to CPU.
+            // written before each piece of GPU work until the first reply (starting the engine,
+            // prefilling the conversation, generating) and cleared once it succeeds, so a GPU
+            // attempt that crashed or threw is never retried and later starts go to CPU. Only
+            // while working: the chat warms the engine up on open, and a process killed while
+            // the user is still typing says nothing about the GPU.
             val cpu = {
                 gpuUnconfirmed = false
                 startEngine(modelPath, Backend.CPU()).also { Log.i(TAG, "Engine initialized on CPU backend") }
@@ -81,6 +97,7 @@ class LlmServiceImpl @Inject constructor(
                 backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit()
                 startEngine(modelPath, Backend.GPU()).also {
                     gpuUnconfirmed = true
+                    backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).commit()
                     Log.i(TAG, "Engine initialized on GPU backend")
                 }
             } catch (e: Throwable) { // incl. UnsatisfiedLinkError when the OpenCL lib is missing
@@ -103,18 +120,34 @@ class LlmServiceImpl @Inject constructor(
             val currentEngine = engine ?: return@withLock Result.failure(
                 IllegalStateException("Engine not initialized")
             )
+            // A conversation that never drained may still run on this engine: nothing new beside it.
+            check(!undrained) { "A conversation never finished its prefill" }
 
             // Close any existing conversation. Taken first, so a failed close can't
             // leave a dead conversation behind for the next caller to close again.
-            takeConversation()?.closeQuietly()
+            takeConversation()?.closeSafely()
 
             val config = chatConversationConfig(systemPrompt, history, withTools)
-            conversation = currentEngine.createConversation(config)
             conversationConfig = config
+            // The preface is prefilled here, so a GPU can fail now rather than on the first reply.
+            conversation = try {
+                if (gpuUnconfirmed) backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit()
+                currentEngine.createConversation(config).also {
+                    if (gpuUnconfirmed) backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).commit()
+                }
+            } catch (e: Exception) {
+                // Too long a history fails the same on any backend, and says the GPU works.
+                if (gpuUnconfirmed && e.isContextFull()) backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).commit()
+                if (!gpuUnconfirmed || e.isContextFull()) throw e
+                Log.w(TAG, "GPU failed to prefill the conversation (${e.javaClass.simpleName}), retrying on CPU")
+                closeEngine()
+                gpuUnconfirmed = false
+                startEngine(modelPath ?: throw e, Backend.CPU()).also { engine = it }.createConversation(config)
+            }
             Log.d(TAG, "Conversation created with ${history.size} history messages")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create conversation", e)
+            Log.e(TAG, "Failed to create conversation (${e.javaClass.simpleName})")
             Result.failure(e)
         }
     } }
@@ -134,28 +167,40 @@ class LlmServiceImpl @Inject constructor(
         return flow {
             val onUnconfirmedGpu = gpuUnconfirmed
             var streamed = false
-            emitAll(
-                stream(activeConversation, message)
-                    .onEach { streamed = true }
-                    .catch { e ->
-                        if (e is CancellationException || !onUnconfirmedGpu || streamed) throw e
-                        Log.w(TAG, "GPU failed its first reply (${e.javaClass.simpleName}), retrying on CPU")
-                        val cpuConversation = restartOnCpu(activeConversation) ?: throw e
-                        emitAll(stream(cpuConversation, message))
-                    }
-            )
+            var used = activeConversation
+            try {
+                emitAll(
+                    stream(activeConversation, message)
+                        .onEach { streamed = true }
+                        .catch { e ->
+                            if (e is CancellationException || !onUnconfirmedGpu || streamed || e.isModelOutputError()) throw e
+                            Log.w(TAG, "GPU failed its first reply (${e.javaClass.simpleName}), retrying on CPU")
+                            used = restartOnCpu(activeConversation) ?: throw e
+                            emitAll(stream(used, message))
+                        }
+                )
+            } catch (e: Throwable) {
+                // A cancelled or failed native call leaves its session unusable (LiteRT's
+                // CancelProcess note), and its history may differ from the saved chat, so the
+                // next message rebuilds it. Done before rethrowing: a caller that retries must
+                // not find it still open. Also when the screen has gone.
+                withContext(NonCancellable + Dispatchers.IO) { closeIfCurrent(used) }
+                throw e
+            }
         }
     }
 
     private fun stream(activeConversation: Conversation, message: String): Flow<LlmEvent> =
-        activeConversation.sendMessageAsync(message)
+        nativeReply(activeConversation, message)
             // Re-arm after a cancelled first reply; commit() so a native crash still finds it.
             .onStart { if (gpuUnconfirmed) backendPrefs.edit().putBoolean(KEY_GPU_FAILED, true).commit() }
             .onCompletion { cause ->
-                // Finished: the GPU works. Cancelled (chat closed): no verdict, so the next
-                // start may try GPU again. A thrown error keeps the flag, so it starts on CPU.
-                if (gpuUnconfirmed && (cause == null || cause is CancellationException)) {
-                    if (cause == null) gpuUnconfirmed = false
+                // Finished, or the model wrote something unreadable: the GPU works. Cancelled (chat
+                // closed): no verdict, so the next start may try GPU again. Any other error keeps
+                // the flag, so it starts on CPU.
+                val worked = cause == null || cause.isModelOutputError()
+                if (gpuUnconfirmed && (worked || cause is CancellationException)) {
+                    if (worked) gpuUnconfirmed = false
                     backendPrefs.edit().putBoolean(KEY_GPU_FAILED, false).apply()
                 }
             }
@@ -174,6 +219,36 @@ class LlmServiceImpl @Inject constructor(
             .flowOn(Dispatchers.IO)
 
     /**
+     * Starts the native reply and records when its prefill is over, for [closeSafely]. Both under
+     * [lifecycle], so no close can slip in between them. LiteRT's own Flow ignores cancellation
+     * (its awaitClose is empty) and the model kept generating after the chat screen had gone;
+     * here a cancelled collection ends in [sendMessageEvents], which cancels and closes it.
+     */
+    private fun nativeReply(activeConversation: Conversation, message: String): Flow<Message> = callbackFlow {
+        lifecycle.withLock {
+            check(conversation === activeConversation) { "Conversation was replaced" }
+            val prefill = CompletableDeferred<Unit>()
+            prefilling = prefill
+            try {
+                activeConversation.sendMessageAsync(message, object : MessageCallback {
+                    override fun onMessage(message: Message) { prefill.complete(Unit); trySend(message) }
+                    override fun onDone() { prefill.complete(Unit); close() }
+                    // Not always the end: a tool call that doesn't parse reports here while decoding goes on.
+                    override fun onError(throwable: Throwable) { prefill.complete(Unit); close(throwable) }
+                })
+            } catch (e: Throwable) {
+                prefill.complete(Unit) // nothing started
+                throw e
+            }
+        }
+        awaitClose()
+    }
+
+    private suspend fun closeIfCurrent(target: Conversation) = lifecycle.withLock {
+        if (conversation === target) takeConversation()?.closeSafely()
+    }
+
+    /**
      * Replaces the GPU engine whose first reply failed with a CPU one and rebuilds the
      * conversation that failed on it. Null if that conversation was closed or replaced
      * meanwhile, or the CPU start failed (the next start then begins on CPU).
@@ -183,7 +258,7 @@ class LlmServiceImpl @Inject constructor(
             val path = modelPath
             val config = conversationConfig
             if (conversation !== failed || path == null || config == null) return@withLock null
-            takeConversation()?.closeQuietly()
+            takeConversation()?.closeSafely()
             closeEngine()
             try {
                 gpuUnconfirmed = false
@@ -201,7 +276,7 @@ class LlmServiceImpl @Inject constructor(
 
     override suspend fun closeConversation() {
         withContext(Dispatchers.IO) {
-            lifecycle.withLock { takeConversation()?.closeQuietly() }
+            lifecycle.withLock { takeConversation()?.closeSafely() }
             Log.d(TAG, "Conversation closed")
         }
     }
@@ -209,7 +284,7 @@ class LlmServiceImpl @Inject constructor(
     override suspend fun reset() {
         withContext(Dispatchers.IO) {
             lifecycle.withLock {
-                takeConversation()?.closeQuietly()
+                takeConversation()?.closeSafely()
                 closeEngine()
             }
             Log.d(TAG, "Engine and conversation reset")
@@ -231,20 +306,40 @@ class LlmServiceImpl @Inject constructor(
     private fun takeConversation(): Conversation? = conversation.also { conversation = null }
 
     private fun closeEngine() {
+        // A conversation that never drained may still run on it: no closing it, and no second engine beside it.
+        check(!undrained) { "A conversation never finished its prefill" }
         engine?.let { e -> runCatching { e.close() }.onFailure { Log.w(TAG, "Ignoring failed engine close", it) } }
         engine = null
     }
 
-    /** Closing is cleanup: a close LiteRT refuses (already closed, mid-generation) must not crash the app. */
-    private fun Conversation.closeQuietly() {
-        runCatching { close() }.onFailure { Log.w(TAG, "Ignoring failed conversation close", it) }
+    /**
+     * Closes once no prefill is in flight (#3771), stopping any decode first. Called under [lifecycle].
+     * A close LiteRT refuses (already closed) must not crash the app.
+     */
+    private suspend fun Conversation.closeSafely() = withContext(NonCancellable + Dispatchers.IO) {
+        // Its owner already let go of it: a cancelled caller must not leave it running unclosed.
+        val prefill = prefilling
+        if (prefill != null && withTimeoutOrNull(PREFILL_DRAIN_MS) { prefill.await() } == null) {
+            // ponytail: leaks this conversation, and keeps its engine, until the app restarts; a crash is worse.
+            Log.e(TAG, "Prefill never finished; leaving that conversation open")
+            undrained = true
+            return@withContext
+        }
+        runCatching { cancelProcess() }
+        runCatching { close() }.onFailure { Log.w(TAG, "Ignoring failed conversation close (${it.javaClass.simpleName})") }
     }
 
     override fun isInitialized(): Boolean = engine != null
 
+    override suspend fun tokenCount(): Int? = withContext(Dispatchers.IO) {
+        lifecycle.withLock { conversation?.let { runCatching { it.getTokenCount() }.getOrNull() } }
+    }
+
     companion object {
         private const val TAG = "LlmServiceImpl"
         private const val KEY_GPU_FAILED = "gpu_failed"
+        // A prefill of the whole 4096-token window takes seconds even on CPU.
+        private const val PREFILL_DRAIN_MS = 60_000L
 
         /** The chat's conversation setup; the debug LLM probe builds the same one. */
         internal fun chatConversationConfig(
@@ -260,6 +355,9 @@ class LlmServiceImpl @Inject constructor(
             // mutation goes through the user first.
             tools = if (withTools) listOf(tool(AddTransactionsTool()), tool(PennyWiseTools())) else emptyList(),
             automaticToolCalling = false,
+            // The system prompt, tools and history are prefilled when the conversation is
+            // created, which the chat does on open, while the user is still typing.
+            prefillPrefaceOnInit = true,
             samplerConfig = SamplerConfig(
                 topK = 10,
                 topP = 0.95,

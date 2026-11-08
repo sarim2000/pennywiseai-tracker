@@ -267,9 +267,6 @@
     <string name="chat_dismiss">Схаваць</string>
     <string name="chat_input_placeholder">Спытайце або раскажыце, на што выдаткавалі…</string>
     <string name="chat_send">Адправіць</string>
-    <string name="chat_memory_almost_full">Памяць чата амаль поўная! Ачысціце чат, каб працягнуць.</string>
-    <string name="chat_memory_warning">Памяць чата запоўнена на %1$d%%. Хутка варта яе ачысціць.</string>
-    <string name="chat_memory_usage">Памяць чата запоўнена на %1$d%%.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d паведамленне</item>
         <item quantity="few">Qwen 2.5 1.5B • %1$d паведамленні</item>
@@ -278,7 +275,6 @@
     </plurals>
     <string name="chat_stats_tokens">Токенаў: %1$s</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s токенаў</string>
-    <string name="chat_stats_system_tokens">Сістэма: %1$s</string>
     <string name="chat_context_usage">Выкарыстанне кантэксту</string>
     <string name="chat_collapse">Згарнуць</string>
     <string name="chat_expand">Разгарнуць</string>
@@ -308,7 +304,6 @@
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Не ўдалося ўжыць: %1$s</string>
-    <string name="chat_error_memory_full">Памяць чата поўная. Ачысціце чат, каб працягнуць.</string>
     <string name="chat_error_model_downloading">Мадэль спампоўваецца. Пачакайце.</string>
     <string name="chat_error_model_not_downloaded">AI-мадэль не спампавана. Спампуйце яе ў наладах.</string>
     <string name="chat_error_generate_failed">Не ўдалося стварыць адказ</string>

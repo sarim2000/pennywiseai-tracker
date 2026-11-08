@@ -255,16 +255,12 @@
     <string name="chat_dismiss">Descartar</string>
     <string name="chat_input_placeholder">Pergunte, ou diga-me o que você gastou…</string>
     <string name="chat_send">Mandar</string>
-    <string name="chat_memory_almost_full">Memória de chat quase cheia! Limpe o chat para continuar.</string>
-    <string name="chat_memory_warning">A memória de bate-papo está %1$d%% cheia. Considere limpar em breve.</string>
-    <string name="chat_memory_usage">A memória de bate-papo está %1$d%% cheia.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • Mensagem %1$d</item>
         <item quantity="other">Qwen 2.5 1.5B • Mensagens de %1$d</item>
     </plurals>
     <string name="chat_stats_tokens">Tokens %1$s</string>
     <string name="chat_stats_tokens_of_max">Tokens %1$s / %2$s</string>
-    <string name="chat_stats_system_tokens">Sistema: %1$s</string>
     <string name="chat_context_usage">Uso de contexto</string>
     <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Recolher</string>
@@ -295,7 +291,6 @@
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Não foi possível aplicar isso: %1$s</string>
-    <string name="chat_error_memory_full">A memória do chat está cheia. Por favor, limpe o chat para continuar.</string>
     <string name="chat_error_model_downloading">O modelo está sendo baixado. Por favor, aguarde.</string>
     <string name="chat_error_model_not_downloaded">O modelo AI não foi baixado. Vá para Configurações para download.</string>
     <string name="chat_error_generate_failed">Falha ao gerar resposta</string>

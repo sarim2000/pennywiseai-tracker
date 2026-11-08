@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
@@ -99,47 +100,20 @@ class ChatViewModel @Inject constructor(
             initialValue = false
         )
     
-    // Get all messages including system for accurate token count
-    private val allMessagesIncludingSystem = llmRepository.getAllMessagesIncludingSystem()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-    
-    // Chat statistics for developer mode
-    val chatStats = allMessagesIncludingSystem.combine(currentResponse) { allMsgs, current ->
-        // Calculate system prompt tokens separately
-        val systemPromptText = allMsgs.filter { it.isSystemPrompt }.joinToString(" ") { it.message }
-        val systemPromptTokens = if (systemPromptText.isNotEmpty()) {
-            TokenUtils.estimateTokens(systemPromptText)
-        } else {
-            0
-        }
-        
-        // Calculate total tokens
-        val allText = allMsgs.joinToString(" ") { it.message } + " " + current
-        val totalChars = allText.length
-        val estimatedTokens = TokenUtils.estimateTokens(allText)
-        val maxTokens = TokenUtils.CHAT_TOKEN_BUDGET
-        
-        // Count only visible messages for UI
-        val visibleCount = allMsgs.count { !it.isSystemPrompt }
-        
+    // Developer stats: what the model's window holds, as LiteRT-LM counts it.
+    val chatStats = combine(llmRepository.getAllMessages(), llmRepository.contextTokens) { visible, tokens ->
         ChatStats(
-            messageCount = visibleCount,
-            totalCharacters = totalChars,
-            estimatedTokens = estimatedTokens,
-            systemPromptTokens = systemPromptTokens,
-            maxTokens = maxTokens,
-            contextUsagePercent = TokenUtils.calculateContextUsagePercent(estimatedTokens, maxTokens)
+            messageCount = visible.size,
+            totalCharacters = visible.sumOf { it.message.length },
+            estimatedTokens = tokens,
+            contextUsagePercent = TokenUtils.calculateContextUsagePercent(tokens, TokenUtils.MODEL_CONTEXT_TOKENS)
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = ChatStats()
     )
-    
+
     init {
         // Load initial context message for display
         viewModelScope.launch {
@@ -148,6 +122,14 @@ class ChatViewModel @Inject constructor(
 
         // Resume an in-progress download, or (when idle) resolve + re-verify the model.
         checkAndResumeDownload()
+
+        // Load the model and prefill the chat now, not when the first message is sent. A failure
+        // here is left for that send to report.
+        viewModelScope.launch {
+            modelRepository.modelState.first { it == ModelState.READY }
+            runCatching { llmRepository.warmUp() }
+                .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it else android.util.Log.w(LlmRepository.TIMING, "Warm-up failed (${it.javaClass.simpleName})") }
+        }
 
         viewModelScope.launch {
             modelDownloader.progress.map { it.failure }.distinctUntilChanged().collect { failure ->
@@ -269,6 +251,8 @@ class ChatViewModel @Inject constructor(
             )
             _currentResponse.value = ""
             
+            val tap = System.nanoTime()
+            var firstShown = false
             try {
                 // Use streaming for better UX
                 llmRepository.sendMessageStream(message)
@@ -280,8 +264,13 @@ class ChatViewModel @Inject constructor(
                         )
                     }
                     .collect { partialResponse ->
+                        if (!firstShown) {
+                            firstShown = true
+                            android.util.Log.i(LlmRepository.TIMING, "first=${(System.nanoTime() - tap) / 1_000_000}ms")
+                        }
                         _currentResponse.value += partialResponse
                     }
+                android.util.Log.i(LlmRepository.TIMING, "reply=${(System.nanoTime() - tap) / 1_000_000}ms")
                 
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 _currentResponse.value = ""
@@ -309,12 +298,22 @@ class ChatViewModel @Inject constructor(
         }
     }
     
-    // The checks match LlmRepository's own (untranslated) exception messages.
-    private fun sendErrorText(error: Throwable, @androidx.annotation.StringRes fallback: Int): UiText = when {
-        error.message?.contains("memory is full") == true -> UiText.Res(R.string.chat_error_memory_full)
-        error.message?.contains("downloading") == true -> UiText.Res(R.string.chat_error_model_downloading)
-        error.message?.contains("not downloaded") == true -> UiText.Res(R.string.chat_error_model_not_downloaded)
-        else -> error.message?.let { UiText.Plain(it) } ?: UiText.Res(fallback)
+    // The checks match LlmRepository's own (untranslated) exception messages. Anything else
+    // is LiteRT-LM's raw text, which can quote the prompt: never shown, class logged only.
+    private fun sendErrorText(error: Throwable, @androidx.annotation.StringRes fallback: Int): UiText? {
+        val message = error.message.orEmpty()
+        return when {
+            // The reply was stopped on purpose: the chat was cleared, or the screen left.
+            error is kotlinx.coroutines.CancellationException -> null
+            LlmRepository.MESSAGE_TOO_LONG in message -> UiText.Res(R.string.chat_error_message_too_long)
+            LlmRepository.INTEGRITY_FAILED in message -> UiText.Res(R.string.chat_error_integrity_failed)
+            "downloading" in message -> UiText.Res(R.string.chat_error_model_downloading)
+            "not downloaded" in message -> UiText.Res(R.string.chat_error_model_not_downloaded)
+            else -> {
+                android.util.Log.w(LlmRepository.TIMING, "Chat send failed (${error.javaClass.simpleName})")
+                UiText.Res(fallback)
+            }
+        }
     }
 
     fun clearError() {
@@ -351,7 +350,6 @@ data class ChatStats(
     val messageCount: Int = 0,
     val totalCharacters: Int = 0,
     val estimatedTokens: Int = 0,
-    val systemPromptTokens: Int = 0,
-    val maxTokens: Int = TokenUtils.CHAT_TOKEN_BUDGET,
+    val maxTokens: Int = TokenUtils.MODEL_CONTEXT_TOKENS,
     val contextUsagePercent: Int = 0
 )

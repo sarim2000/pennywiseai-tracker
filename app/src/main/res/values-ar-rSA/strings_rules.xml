@@ -283,9 +283,6 @@
     <string name="chat_dismiss">تجاهل</string>
     <string name="chat_input_placeholder">اسأل أو أخبرني بما أنفقته…</string>
     <string name="chat_send">إرسال</string>
-    <string name="chat_memory_almost_full">ذاكرة الدردشة ممتلئة تقريبًا! امسح الدردشة للمتابعة.</string>
-    <string name="chat_memory_warning">ذاكرة الدردشة ممتلئة بنسبة %1$d%%. فكّر في مسحها قريبًا.</string>
-    <string name="chat_memory_usage">ذاكرة الدردشة ممتلئة بنسبة %1$d%%.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="zero">Qwen 2.5 1.5B • %1$d رسالة</item>
         <item quantity="one">Qwen 2.5 1.5B • رسالة %1$d</item>
@@ -296,7 +293,6 @@
     </plurals>
     <string name="chat_stats_tokens">%1$s رموز</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s رموز</string>
-    <string name="chat_stats_system_tokens">النظام: %1$s</string>
     <string name="chat_context_usage">استخدام السياق</string>
     <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">طي</string>
@@ -327,7 +323,6 @@
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">تعذر تطبيق ما يلي: %1$s</string>
-    <string name="chat_error_memory_full">ذاكرة الدردشة ممتلئة. يرجى مسح الدردشة للمتابعة.</string>
     <string name="chat_error_model_downloading">يتم تحميل الموديل. الرجاء الإنتظار.</string>
     <string name="chat_error_model_not_downloaded">لم يتم تنزيل نموذج الذاكرة. انتقل إلى الإعدادات للتنزيل.</string>
     <string name="chat_error_generate_failed">فشل في إنشاء استجابة</string>

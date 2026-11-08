@@ -34,6 +34,7 @@ class ChatHistoryReplayTest {
             every { hasActiveConversation() } returns false
             coEvery { createConversation(any(), capture(history), any()) } returns Result.success(Unit)
             every { sendMessageEvents(any()) } returns flowOf(LlmEvent.Text("ok"))
+            coEvery { tokenCount() } returns 900
         }
         val modelRepository = mockk<ModelRepository> {
             every { modelState } returns flowOf(ModelState.READY)

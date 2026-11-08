@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.model.ChatContext
+import com.pennywiseai.tracker.data.model.MonthSummary
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.service.LlmService
@@ -19,6 +19,8 @@ import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
+import com.pennywiseai.tracker.domain.service.isContextFull
+import com.pennywiseai.tracker.domain.service.TOOL_CALL_PARSE_FAILURE
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +31,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
 import java.util.UUID
 import javax.inject.Inject
@@ -61,6 +66,21 @@ class LlmRepository @Inject constructor(
     // No amount or merchant in it: told "Added ₹90 at Tea Stall", Qwen2.5 records that again.
     private var cardOutcome: String? = null
 
+    // One build of the live conversation at a time: the warm-up on open and a send can race.
+    private val conversationLock = Mutex()
+
+    // Saved messages a long chat dropped from the model's window, oldest first; the screen keeps
+    // showing them. Guarded by conversationLock.
+    private val droppedIds = mutableSetOf<String>()
+
+    // Saved messages replayed into the live conversation. A message saved before the warm-up
+    // read the chat would otherwise reach the model twice.
+    private var replayedIds = emptySet<String>()
+
+    private val _contextTokens = MutableStateFlow(0)
+    /** Tokens the model's window holds, measured by LiteRT-LM (developer stats). */
+    val contextTokens: StateFlow<Int> = _contextTokens.asStateFlow()
+
     /** The user changed the rows on the review card. */
     fun updateRows(change: (List<ReviewRow>) -> List<ReviewRow>) {
         val card = _pendingAction.value as? PendingChatAction.Add ?: return
@@ -86,35 +106,6 @@ class LlmRepository @Inject constructor(
 
     fun getAllMessagesIncludingSystem(): Flow<List<ChatMessage>> = chatDao.getAllMessagesIncludingSystem()
 
-    suspend fun sendMessage(userMessage: String): Result<String> {
-        val userChatMessage = ChatMessage(
-            message = userMessage,
-            isUser = true
-        )
-        chatDao.insertMessage(userChatMessage)
-
-        ensureConversation(pending = userChatMessage)
-
-        // Use synchronous collection for non-streaming path
-        val responseBuilder = StringBuilder()
-        try {
-            llmService.sendMessage(userMessage).collect { partial ->
-                responseBuilder.append(partial)
-            }
-        } catch (e: Exception) {
-            return Result.failure(e)
-        }
-
-        val response = responseBuilder.toString()
-        val aiChatMessage = ChatMessage(
-            message = response,
-            isUser = false
-        )
-        chatDao.insertMessage(aiChatMessage)
-
-        return Result.success(response)
-    }
-
     fun sendMessageStream(userMessage: String): Flow<String> = flow {
         val existingMessages = chatDao.getAllMessagesForContext()
         val isNewChat = existingMessages.isEmpty()
@@ -123,7 +114,7 @@ class LlmRepository @Inject constructor(
         // carries a stale date, figures and lists — and, when oversized, used to
         // block every new chat until something refreshed the cache (#959).
         if (isNewChat) {
-            val systemPrompt = buildSystemPrompt(aiContextRepository.getChatContext())
+            val systemPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
             userPreferencesRepository.updateSystemPrompt(systemPrompt)
 
             val systemMessage = ChatMessage(
@@ -133,12 +124,6 @@ class LlmRepository @Inject constructor(
             )
             chatDao.insertMessage(systemMessage)
             Log.d(TAG, "System prompt added to new chat")
-        }
-
-        // Estimate tokens from all messages
-        val currentMessages = chatDao.getAllMessagesForContext()
-        if (!TokenUtils.fitsChatBudget(currentMessages.map { it.message }, userMessage)) {
-            throw Exception("Chat memory is full. Please clear the chat to continue.")
         }
 
         // Save user message
@@ -155,11 +140,11 @@ class LlmRepository @Inject constructor(
             throw Exception("Model is currently downloading. Please wait for download to complete.")
         }
 
-        // Ensure engine is initialized and conversation is active
-        ensureConversation(pending = userChatMessage)
+        val prompt = cardOutcome?.let { "($it)\n$userMessage" } ?: userMessage
 
-        Log.d(TAG, "=== SENDING TO LLM ===")
-        Log.d(TAG, "Total messages in context: ${currentMessages.size}")
+        // Ensure engine is initialized and conversation is active, with room for this turn
+        ensureConversation(pending = userChatMessage, incoming = prompt)
+        cardOutcome = null
 
         // Stream response — LiteRT-LM conversation manages history internally.
         // Tool calls are handed to us (never auto-run, #170): a lookup is
@@ -167,11 +152,11 @@ class LlmRepository @Inject constructor(
         val responseBuilder = StringBuilder()
         val toolCalls = mutableListOf<LlmEvent.ToolCall>()
 
-        val prompt = cardOutcome?.let { "($it)\n$userMessage" } ?: userMessage
-        cardOutcome = null
         var unreadableToolCall = false
         var conversationBroken = false
         var shownUpTo = 0
+        var retried = false
+        while (true) try {
         llmService.sendMessageEvents(prompt)
             .catch { e ->
                 if (e.message?.contains(TOOL_CALL_PARSE_FAILURE, ignoreCase = true) != true) throw e
@@ -197,6 +182,21 @@ class LlmRepository @Inject constructor(
                     is LlmEvent.ToolCall -> toolCalls.add(event)
                 }
             }
+            break
+        } catch (e: Exception) {
+            // The history plus this message overflowed the model's window before it said
+            // anything: drop the older half of what it sees, once, and ask again.
+            if (retried || e is CancellationException || !e.isContextFull() ||
+                responseBuilder.isNotEmpty() || toolCalls.isNotEmpty()
+            ) throw e
+            retried = true
+            Log.w(TAG, "Context window full; retrying with the older turns dropped")
+            conversationLock.withLock {
+                val window = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt && it.id != userChatMessage.id && it.id !in droppedIds }
+                droppedIds += (window - dropOlderHalf(window).toSet()).map { it.id }
+            }
+            ensureConversation(pending = userChatMessage, incoming = prompt)
+        }
         // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
         val written = responseBuilder.toString()
         if (written.startsWith(TOOL_CALL_TAG)) {
@@ -237,7 +237,10 @@ class LlmRepository @Inject constructor(
             addLine(context.getString(R.string.chat_reply_nothing_changed))
         }
         // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
-        if (unreadableToolCall) addLine(context.getString(R.string.chat_reply_unreadable))
+        // Also when the model said nothing at all, rather than leaving an empty bubble.
+        if (unreadableToolCall || responseBuilder.isBlank()) addLine(context.getString(R.string.chat_reply_unreadable))
+
+        llmService.tokenCount()?.let { _contextTokens.value = it }
 
         // Save the complete AI response
         val finalResponse = responseBuilder.toString()
@@ -250,59 +253,90 @@ class LlmRepository @Inject constructor(
         Log.d(TAG, "AI response saved")
     }
 
-    /** [pending] is the message about to be sent: saved already, so kept out of the replayed history. */
-    private suspend fun ensureConversation(pending: ChatMessage) {
-        // Initialize engine if needed
+    /** Loads the model and prefills the chat when the screen opens, while the user is still typing. */
+    suspend fun warmUp() {
+        if (modelRepository.modelState.first() != ModelState.READY) return
+        ensureConversation(pending = null, incoming = "")
+    }
+
+    /**
+     * A live conversation with room for [incoming] and its reply, built from the saved chat if
+     * needed. [pending] is the message about to be sent: saved already, so kept out of the
+     * replayed history. When the chat outgrows the model's window, its oldest turns leave the
+     * window (not the screen) instead of the chat refusing to go on.
+     */
+    private suspend fun ensureConversation(pending: ChatMessage?, incoming: String) = conversationLock.withLock {
         if (!llmService.isInitialized()) {
             val modelFile = modelRepository.getModelFile()
             if (!modelFile.exists()) {
                 throw Exception("Model not downloaded. Please download from Settings.")
             }
 
+            val t0 = System.nanoTime()
             // Integrity gate: never load a model whose bytes don't match the
             // pinned hash (guards against an in-place-swapped or corrupted file).
             if (!modelRepository.verifyModelIntegrity()) {
                 modelRepository.deleteModel()
-                throw Exception("AI model failed its integrity check and was removed. Please re-download it from Settings.")
+                throw Exception(INTEGRITY_FAILED)
             }
+            val t1 = System.nanoTime()
 
             val initResult = llmService.initialize(modelFile.absolutePath)
             if (initResult.isFailure) {
                 throw initResult.exceptionOrNull() ?: Exception("Failed to initialize LLM")
             }
+            Log.i(TIMING, "hash=${ms(t0, t1)}ms engine=${ms(t1)}ms")
         }
 
-        // Create conversation if needed, replaying history from Room DB
-        if (!llmService.hasActiveConversation()) {
-            val allMessages = chatDao.getAllMessagesForContext()
-
-            // Always fresh: the row saved when the chat began carries that day's date and figures.
-            val systemPrompt = buildSystemPrompt(aiContextRepository.getChatContext())
-
-            // Build history (excluding system prompt, and the message being sent —
-            // replaying it too would put it in front of the model twice)
-            val history = allMessages
-                .filter { !it.isSystemPrompt && it.id != pending.id }
-                .map { it.message to it.isUser }
-
-            val result = llmService.createConversation(systemPrompt, history, withTools = true)
-            if (result.isFailure) {
-                throw result.exceptionOrNull() ?: Exception("Failed to create conversation")
+        var outgrown = false
+        if (llmService.hasActiveConversation()) {
+            val replayed = pending != null && pending.id in replayedIds
+            val used = llmService.tokenCount()
+            if (!replayed && used != null && TokenUtils.fitsWindow(used, incoming)) {
+                _contextTokens.value = used
+                return@withLock
             }
-            Log.d(TAG, "Conversation created with ${history.size} history messages")
+            outgrown = !replayed && used != null
+            llmService.closeConversation()
+        }
+
+        // Always fresh: the row saved when the chat began carries that day's date and figures.
+        val systemPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
+        val saved = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }
+        // A trailing message that got no reply isn't replayed: it's usually the one being sent,
+        // saved while the warm-up loaded the model, and replaying it would mean building twice.
+        var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
+        // The live conversation was this history and no longer fits: rebuilt whole, it wouldn't either.
+        if (outgrown) history = dropOlderHalf(history).also { kept -> droppedIds += (history - kept.toSet()).map { it.id } }
+        while (true) {
+            val t0 = System.nanoTime()
+            val result = llmService.createConversation(systemPrompt, history.map { it.message to it.isUser }, withTools = true)
+            val failure = result.exceptionOrNull()
+            // The preface is prefilled on creation, so a history longer than the window fails here.
+            if (failure != null && !failure.isContextFull()) throw failure
+            val used = if (failure == null) llmService.tokenCount() ?: 0 else -1
+            Log.i(TIMING, "conversation=${ms(t0)}ms history=${history.size} tokens=$used")
+            if (failure == null && TokenUtils.fitsWindow(used, incoming)) {
+                replayedIds = history.mapTo(mutableSetOf()) { it.id }
+                _contextTokens.value = used
+                return@withLock
+            }
+            // The system prompt and tools alone leave no room for this message.
+            if (history.isEmpty()) throw Exception(MESSAGE_TOO_LONG)
+            val kept = dropOlderHalf(history)
+            droppedIds += (history - kept.toSet()).map { it.id }
+            history = kept
         }
     }
 
-    suspend fun deleteAllMessages() {
+    // Under conversationLock: a warm-up mid-build would otherwise replay the cleared chat.
+    suspend fun deleteAllMessages() = conversationLock.withLock {
         llmService.closeConversation()
         chatDao.deleteAllMessages()
         cardOutcome = null
-    }
-
-    suspend fun deleteOldMessages(beforeTimestamp: Long) {
-        // Conversation needs to be recreated after history changes
-        llmService.closeConversation()
-        chatDao.deleteMessagesBefore(beforeTimestamp)
+        droppedIds.clear()
+        replayedIds = emptySet()
+        _contextTokens.value = 0
     }
 
     suspend fun getMessageCount(): Int = chatDao.getMessageCount()
@@ -396,7 +430,7 @@ class LlmRepository @Inject constructor(
             }
         }
         PennyWiseTools.MONTH_SUMMARY -> {
-            val m = aiContextRepository.getChatContext().monthSummary
+            val m = aiContextRepository.getMonthSummary()
             val currency = userPreferencesRepository.baseCurrency.first()
             context.getString(
                 R.string.chat_reply_month_summary,
@@ -456,8 +490,7 @@ class LlmRepository @Inject constructor(
      * prompt embedded recent transactions, which a 1.5B model tends to parrot
      * back into tool arguments.
      */
-    private suspend fun buildSystemPrompt(context: ChatContext): String {
-        val monthSummary = context.monthSummary
+    private suspend fun buildSystemPrompt(monthSummary: MonthSummary): String {
         val currency = userPreferencesRepository.baseCurrency.first()
         val categories = categoryRepository.getVisibleCategories().first()
         val ignored = ignoredAccountsStore.keys()
@@ -465,7 +498,7 @@ class LlmRepository @Inject constructor(
             .filter { IgnoredAccountsStore.keyFor(it.bankName, it.accountLast4) !in ignored }
             .map { it.alias ?: "${it.bankName} ${it.accountLast4}" }
         return composeSystemPrompt(
-            currentDate = context.currentDate.toString(),
+            currentDate = java.time.LocalDate.now().toString(),
             monthLine = "${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)} spent, " +
                 "${CurrencyFormatter.formatCurrency(monthSummary.totalIncome, currency, maskIfHidden = false)} income, ${monthSummary.transactionCount} transactions",
             expenseCategories = categories.filter { !it.isIncome }.map { it.name },
@@ -475,8 +508,7 @@ class LlmRepository @Inject constructor(
     }
 
     suspend fun updateSystemPrompt() {
-        val chatContext = aiContextRepository.getChatContext()
-        val newPrompt = buildSystemPrompt(chatContext)
+        val newPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
         userPreferencesRepository.updateSystemPrompt(newPrompt)
         // Close conversation so it gets recreated with updated prompt
         llmService.closeConversation()
@@ -484,8 +516,7 @@ class LlmRepository @Inject constructor(
     }
 
     suspend fun getFormattedContextForDisplay(): String {
-        val chatContext = aiContextRepository.getChatContext()
-        val monthSummary = chatContext.monthSummary
+        val monthSummary = aiContextRepository.getMonthSummary()
         val currency = userPreferencesRepository.baseCurrency.first()
 
         return context.getString(
@@ -498,7 +529,7 @@ class LlmRepository @Inject constructor(
     companion object {
         /**
          * The system prompt from already-gathered data. Each list is capped so the
-         * prompt stays a bounded slice of [TokenUtils.CHAT_TOKEN_BUDGET] however
+         * prompt stays a bounded slice of [TokenUtils.MODEL_CONTEXT_TOKENS] however
          * many categories or accounts the user has — a fresh chat must always fit
          * (#959). The tools still match any category or account the user names.
          */
@@ -528,6 +559,12 @@ class LlmRepository @Inject constructor(
             Leave account empty unless the user names a bank, card or cash in this message.
             """.trimIndent()
 
+        /** The newer half of [history], from a user turn so the model never starts mid-exchange. */
+        internal fun dropOlderHalf(history: List<ChatMessage>): List<ChatMessage> =
+            history.drop((history.size + 1) / 2).dropWhile { !it.isUser }
+
+        private fun ms(from: Long, to: Long = System.nanoTime()) = (to - from) / 1_000_000
+
         /** Names joined in order until [maxChars]; the rest are counted, not listed. */
         internal fun promptList(names: List<String>, maxChars: Int): String {
             var used = 0
@@ -552,9 +589,12 @@ class LlmRepository @Inject constructor(
         )
         private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
-        // LiteRT-LM has no error type for it, only this message (0.19.0).
-        private const val TOOL_CALL_PARSE_FAILURE = "Failed to parse tool calls"
         private const val TOOL_CALL_TAG = "<tool_call>"
+        // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.
+        internal const val MESSAGE_TOO_LONG = "Message too long for the model"
+        internal const val INTEGRITY_FAILED = "AI model failed its integrity check and was removed"
         private const val TAG = "LlmRepository"
+        // Timings only, for measuring the first reply: adb logcat -s ChatTiming
+        internal const val TIMING = "ChatTiming"
     }
 }

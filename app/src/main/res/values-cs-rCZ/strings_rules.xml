@@ -269,9 +269,6 @@
     <string name="chat_dismiss">Odmítnout</string>
     <string name="chat_input_placeholder">Ask, nebo mi řekněte, co jste utratili…</string>
     <string name="chat_send">Poslat</string>
-    <string name="chat_memory_almost_full">Paměť chatu je téměř plná! Chcete-li pokračovat, vymažte chat.</string>
-    <string name="chat_memory_warning">Paměť chatu je plná %1$d%%. Zvažte brzy.</string>
-    <string name="chat_memory_usage">Paměť chatu je %1$d%% plná.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1,5 B • %1$d zpráva</item>
         <item quantity="few">Qwen 2.5 1,5 B • %1$d zpráv</item>
@@ -280,7 +277,6 @@
     </plurals>
     <string name="chat_stats_tokens">%1$s tokeny</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s tokeny</string>
-    <string name="chat_stats_system_tokens">Systém: %1$s</string>
     <string name="chat_context_usage">Využití kontextu</string>
     <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Sbalit</string>
@@ -311,7 +307,6 @@
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Nelze použít: %1$s</string>
-    <string name="chat_error_memory_full">Paměť chatu je plná. Chcete-li pokračovat, vymažte chat.</string>
     <string name="chat_error_model_downloading">Model se stahuje. Počkejte prosím.</string>
     <string name="chat_error_model_not_downloaded">AI model nebyl stažen. Přejděte do Nastavení ke stažení.</string>
     <string name="chat_error_generate_failed">Nepodařilo se vygenerovat odpověď</string>

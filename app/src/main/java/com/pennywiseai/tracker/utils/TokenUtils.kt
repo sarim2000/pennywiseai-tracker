@@ -15,18 +15,10 @@ object TokenUtils {
     const val MODEL_CONTEXT_TOKENS = 4096
 
     /**
-     * Kept free for what the estimate can't see: the tool schemas LiteRT-LM adds
-     * to the system turn, chat-template tokens, and the reply itself.
+     * Kept free for the reply. The largest card (10 rows of tool-call JSON) takes ~700 tokens.
      */
-    private const val RESERVED_TOKENS = 1536
+    private const val REPLY_RESERVE_TOKENS = 1024
 
-    /**
-     * Estimated tokens (system prompt + history + next message) a chat may hold
-     * before it has to be cleared. Was a hard-coded 1200, which a long category
-     * or account list alone could exceed, blocking every new chat (#959).
-     */
-    const val CHAT_TOKEN_BUDGET = MODEL_CONTEXT_TOKENS - RESERVED_TOKENS
-    
     /**
      * Estimates the number of tokens in a given text.
      * This is a rough approximation based on character count.
@@ -39,18 +31,12 @@ object TokenUtils {
     }
     
     /**
-     * Estimates tokens for a list of messages.
-     * 
-     * @param messages List of message texts
-     * @return Total estimated token count
+     * Whether a conversation holding [usedTokens] (LiteRT-LM's count) has room for [incoming] and a
+     * reply. [incoming] counts a token per character: there is no tokenizer to ask, and chars/4
+     * undercounts Hindi more than 4 times. Too high only drops an old turn early.
      */
-    fun estimateTokensForMessages(messages: List<String>): Int {
-        return messages.fold(0) { acc, msg -> acc + estimateTokens(msg) }
-    }
-    
-    /** Whether a chat holding [context] (system prompt included) still has room for [nextMessage]. */
-    fun fitsChatBudget(context: List<String>, nextMessage: String): Boolean =
-        estimateTokens(context.joinToString("") + nextMessage) <= CHAT_TOKEN_BUDGET
+    fun fitsWindow(usedTokens: Int, incoming: String): Boolean =
+        usedTokens + incoming.length + REPLY_RESERVE_TOKENS <= MODEL_CONTEXT_TOKENS
 
     /**
      * Formats a number in a user-friendly way (e.g., 1234 -> "1.2k")

@@ -7,7 +7,6 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.model.ChatContext
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.service.PennyWiseTools
@@ -52,14 +51,7 @@ class ChatTurnTest {
         }
     }
     private val aiContext = mockk<AiContextRepository>(relaxed = true) {
-        coEvery { getChatContext() } returns ChatContext(
-            currentDate = LocalDate.of(2026, 11, 4),
-            monthSummary = mockk(relaxed = true),
-            recentTransactions = emptyList(),
-            activeSubscriptions = emptyList(),
-            topCategories = emptyList(),
-            quickStats = mockk(relaxed = true)
-        )
+        coEvery { getMonthSummary() } returns mockk(relaxed = true)
     }
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true) {
         every { baseCurrency } returns flowOf("INR")
@@ -227,6 +219,71 @@ class ChatTurnTest {
         assertEquals(1L, (repository.pendingAction.value as PendingChatAction.Delete).transaction.id)
     }
 
+    private fun savedChat(pairs: Int) = repeat(pairs) { i ->
+        saved += ChatMessage(message = "u$i", isUser = true, timestamp = i * 2L)
+        saved += ChatMessage(message = "a$i", isUser = false, timestamp = i * 2L + 1)
+    }
+
+    @Test
+    fun `a chat that outgrew the window drops its oldest turns from it, not the chat`() = runTest {
+        savedChat(4)
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returnsMany listOf(3500, 1500, 1600)
+        send("hello")
+        assertEquals(listOf(8, 4), histories.map { it.size })
+        assertEquals("u2" to true, histories[1].first())
+        assertEquals(10, saved.count { !it.isSystemPrompt }) // the screen keeps all of it, and the new turn
+    }
+
+    @Test
+    fun `a reply with nothing in it says so instead of leaving an empty bubble`() = runTest {
+        events = listOf(LlmEvent.Text("\n"))
+        assertEquals("UNREADABLE", send("tea 20"))
+    }
+
+    @Test
+    fun `a live conversation that filled up is rebuilt from the newer half straight away`() = runTest {
+        savedChat(4)
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        every { llmService.hasActiveConversation() } returns true
+        coEvery { llmService.tokenCount() } returnsMany listOf(3500, 1500, 1600)
+        send("hello")
+        assertEquals(listOf(4), histories.map { it.size })
+    }
+
+    @Test
+    fun `a history too long to prefill is halved, not reported`() = runTest {
+        savedChat(4)
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returnsMany listOf(
+            Result.failure(RuntimeException("Not enough space left in the context window for the input")),
+            Result.success(Unit)
+        )
+        coEvery { llmService.tokenCount() } returns 1500
+        send("hello")
+        assertEquals(listOf(8, 4), histories.map { it.size })
+    }
+
+    @Test
+    fun `a window that fills before any reply is retried once with fewer turns`() = runTest {
+        savedChat(4)
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returns 1000
+        var calls = 0
+        every { llmService.sendMessageEvents(any()) } answers {
+            if (calls++ == 0) flow { throw RuntimeException("Max number of tokens reached, the context window is full.") }
+            else flow { emit(LlmEvent.Text("ok")) }
+        }
+        assertEquals("ok", send("hello"))
+        assertEquals(listOf(8, 4), histories.map { it.size })
+    }
+
     @Test
     fun `a rebuilt conversation gets a fresh prompt, not the row saved when the chat began`() = runTest {
         saved += ChatMessage(message = "Today is 2020-01-01.", isUser = false, isSystemPrompt = true)
@@ -234,7 +291,7 @@ class ChatTurnTest {
         val prompt = slot<String>()
         coEvery { llmService.createConversation(capture(prompt), any(), any()) } returns Result.success(Unit)
         send("hello")
-        assertTrue(prompt.captured, prompt.captured.contains("Today is 2026-11-04."))
+        assertTrue(prompt.captured, prompt.captured.contains("Today is ${LocalDate.now()}."))
         verify { llmService.sendMessageEvents("hello") }
     }
 

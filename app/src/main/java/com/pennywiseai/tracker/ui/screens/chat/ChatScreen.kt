@@ -314,18 +314,6 @@ fun ChatScreen(
                             DeveloperInfoCard(chatStats = chatStats)
                         }
                         
-                        // Token limit warning
-                        AnimatedVisibility(
-                            visible = chatStats.contextUsagePercent >= 80,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            TokenLimitWarning(
-                                usagePercent = chatStats.contextUsagePercent,
-                                onClearChat = { viewModel.clearChat() }
-                            )
-                        }
-
                         // Clear chat button when there are messages
                         AnimatedVisibility(
                             visible = messages.isNotEmpty(),
@@ -541,80 +529,6 @@ fun ChatScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TokenLimitWarning(
-    usagePercent: Int,
-    onClearChat: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val backgroundColor = when {
-        usagePercent >= 95 -> MaterialTheme.colorScheme.errorContainer
-        usagePercent >= 90 -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
-    }
-
-    val contentColor = when {
-        usagePercent >= 95 -> MaterialTheme.colorScheme.onErrorContainer
-        usagePercent >= 90 -> MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.onSecondaryContainer
-    }
-    
-    val icon = when {
-        usagePercent >= 95 -> Icons.Default.Error
-        else -> Icons.Default.Warning
-    }
-    
-    val message = when {
-        usagePercent >= 95 -> stringResource(R.string.chat_memory_almost_full)
-        usagePercent >= 90 -> stringResource(R.string.chat_memory_warning, usagePercent)
-        else -> stringResource(R.string.chat_memory_usage, usagePercent)
-    }
-    
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = backgroundColor,
-        tonalElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor
-                )
-            }
-            if (usagePercent >= 90) {
-                TextButton(
-                    onClick = onClearChat,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = contentColor
-                    ),
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.chat_clear), fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
 @Composable
 fun DeveloperInfoCard(
     chatStats: ChatStats,
@@ -736,13 +650,6 @@ fun DeveloperInfoCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (chatStats.systemPromptTokens > 0) {
-                            Text(
-                                text = stringResource(R.string.chat_stats_system_tokens, TokenUtils.formatNumber(chatStats.systemPromptTokens)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
             }

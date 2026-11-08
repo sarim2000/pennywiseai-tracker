@@ -255,16 +255,12 @@
     <string name="chat_dismiss">Verwerfen</string>
     <string name="chat_input_placeholder">Fragen Sie etwas oder sagen Sie mir, was Sie ausgegeben haben…</string>
     <string name="chat_send">Senden</string>
-    <string name="chat_memory_almost_full">Chat-Speicher fast voll! Chat leeren um fortzufahren.</string>
-    <string name="chat_memory_warning">Chatspeicher ist %1$d%% voll. Überlegen Sie es bald.</string>
-    <string name="chat_memory_usage">Chatspeicher ist %1$d%% voll.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d Nachricht</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d Nachrichten</item>
     </plurals>
     <string name="chat_stats_tokens">%1$s Token</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s Token</string>
-    <string name="chat_stats_system_tokens">System: %1$s</string>
     <string name="chat_context_usage">Kontext-Nutzung</string>
     <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Einklappen</string>
@@ -295,7 +291,6 @@
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Konnte das nicht anwenden: %1$s</string>
-    <string name="chat_error_memory_full">Chat-Speicher ist voll. Bitte leere den Chat um fortzufahren.</string>
     <string name="chat_error_model_downloading">Modell wird heruntergeladen. Bitte warten.</string>
     <string name="chat_error_model_not_downloaded">KI-Modell nicht heruntergeladen. Gehen Sie zu Einstellungen zum Download.</string>
     <string name="chat_error_generate_failed">Fehler beim Generieren der Antwort</string>

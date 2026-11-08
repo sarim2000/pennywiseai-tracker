@@ -214,6 +214,16 @@
         <item quantity="other">%1$d days remaining</item>
     </plurals>
     <string name="budget_card_spent_of">Spent %1$s of %2$s</string>
+    <!-- Budget pace: spending compared with an even spend across the period -->
+    <string name="budget_card_on_pace">On pace</string>
+    <plurals name="budget_card_days_under_pace">
+        <item quantity="one">%1$d day under pace</item>
+        <item quantity="other">%1$d days under pace</item>
+    </plurals>
+    <plurals name="budget_card_days_over_pace">
+        <item quantity="one">%1$d day over pace</item>
+        <item quantity="other">%1$d days over pace</item>
+    </plurals>
     <string name="budget_cadence_weekly">Weekly</string>
     <string name="budget_cadence_monthly">Monthly</string>
     <string name="budget_cadence_one_time">One-time</string>

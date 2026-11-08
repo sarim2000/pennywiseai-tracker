@@ -192,6 +192,10 @@ object Dimensions {
          */
         val progressBarHeight = 8.dp
 
+        /** The "today" tick on a budget meter: stands a little proud of the track so it reads over the fill. */
+        val paceTickHeight = 14.dp
+        val paceTickWidth = 2.dp
+
         /** Goal progress ring on a card, and its stroke (#914). */
         val goalRing = 56.dp
         val goalRingStroke = 6.dp

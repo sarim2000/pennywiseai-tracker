@@ -114,11 +114,12 @@ fun GoalProgress.fraction(): Float = ratioOf(saved).coerceAtMost(1f)
 
 /**
  * The ring's centre label while its sweep animates toward [target] (a [ratioOf]):
- * read off the same [animated] ratio, and exactly [percent] once it lands, so the
- * float never shows 28% for 29%.
+ * read off the same [animated] ratio, and exactly [percent] once it lands (or once
+ * the ring is full, so it doesn't tick on past 100%), so the float never shows 28%
+ * for 29%.
  */
 fun ringPercent(animated: Float, target: Float, percent: Int): Int =
-    if (animated == target) percent else kotlin.math.floor(animated * 100f + 0.001f).toInt()
+    if (animated == target || animated >= 1f) percent else kotlin.math.floor(animated * 100f + 0.001f).toInt()
 
 /** Whole percent saved, floored so 99.6% never shows 100% before it's Reached. */
 fun GoalProgress.percent(): Int =

@@ -98,6 +98,7 @@ a mistake next to its neighbours.
 | `large` | 32dp | Glyph inside a tonal circle; prominent standalone glyph |
 | `list` / `avatar` | 40dp | Leading avatar / brand circle in a row (M3 standard) |
 | `avatarLarge` | 48dp | Profile headers, settings-row circles |
+| `hero` | 56dp | The merchant avatar heading a detail screen |
 | `emptyStateGlyph` / `emptyStateContainer` | 32 / 64dp | Empty-state icon + its circle |
 | `extraLarge` | 96dp | Whole-screen illustrative icon |
 

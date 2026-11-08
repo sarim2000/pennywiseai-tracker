@@ -610,10 +610,10 @@ private fun SwipeableSubscriptionItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Brand Icon
-                        SettledCheck(settled = settled, size = 48.dp) {
+                        SettledCheck(settled = settled, size = Dimensions.Icon.avatarLarge) {
                             BrandIcon(
                                 merchantName = subscription.merchantName,
-                                size = 48.dp,
+                                size = Dimensions.Icon.avatarLarge,
                                 showBackground = true
                             )
                         }

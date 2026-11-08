@@ -724,11 +724,11 @@ private fun TransactionReceipt(
                 } else {
                     Modifier
                 }
-                SettledCheck(settled = settled, size = 56.dp, modifier = heroIconModifier) {
+                SettledCheck(settled = settled, size = Dimensions.Icon.hero, modifier = heroIconModifier) {
                     BrandIcon(
                         merchantName = transaction.merchantName,
                         category = transaction.category,
-                        size = 56.dp,
+                        size = Dimensions.Icon.hero,
                         showBackground = true
                     )
                 }

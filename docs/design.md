@@ -313,7 +313,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   1. **Chrome moves, money settles.** Position/size/shape use spatial specs
      (`fast` < 48dp parts, `default` cards/sheets/panels, `slow` full screens);
      amounts, percents, arcs, bars, alpha and colour use effects specs. A number
-     never passes through a value it doesn't have.
+     never passes through a value it doesn't have. An amount's own drift and
+     size settle, and a programmatic scroll to a scroll boundary, are effects
+     too: an overshooting spring would jiggle the figure or hit the clamp.
   2. **One beat per change** — no staggering digits or sibling figures.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for
      content, a quarter of the bar for chrome), never full-width by default.

@@ -1108,13 +1108,14 @@ open class UserPreferencesRepository @Inject constructor(
      */
     val budgetCycleStartDay: Flow<Int> = context.dataStore.data
         .map { preferences ->
-            (preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] ?: 1).coerceIn(1, 31)
+            val raw = preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] ?: 1
+            if (raw == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) raw else raw.coerceIn(1, 31)
         }
 
     suspend fun getBudgetCycleStartDay(): Int = budgetCycleStartDay.first()
 
     suspend fun updateBudgetCycleStartDay(day: Int) {
-        val clamped = day.coerceIn(1, 31)
+        val clamped = if (day == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) day else day.coerceIn(1, 31)
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
         }

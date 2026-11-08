@@ -516,7 +516,11 @@ private fun PlanningPage(
             subtitle = stringResource(R.string.settings_budget_cycle_current, budgetCycleRange(budgetCycleStartDay)),
             onClick = { showBudgetCycleSheet = true },
             position = ListItemPosition.Top,
-            trailingText = ordinalSuffix(budgetCycleStartDay)
+            trailingText = if (BudgetCycle.isLastWorkingDay(budgetCycleStartDay)) {
+                stringResource(R.string.settings_budget_cycle_last_working_day_short)
+            } else {
+                ordinalSuffix(budgetCycleStartDay)
+            }
         )
         SettingsNavItem(
             icon = Icons.Default.AccountBalanceWallet,
@@ -570,7 +574,13 @@ private fun PlanningPage(
             title = stringResource(R.string.settings_budget_cycle_title),
             body = stringResource(R.string.settings_budget_cycle_dialog_body),
             onDismiss = { showBudgetCycleSheet = false },
-            choices = (BudgetCycle.MIN_START_DAY..BudgetCycle.MAX_START_DAY).map { day ->
+            choices = listOf(
+                SettingsChoice(
+                    label = stringResource(R.string.settings_budget_cycle_last_working_day),
+                    selected = BudgetCycle.isLastWorkingDay(budgetCycleStartDay),
+                    description = budgetCycleRange(BudgetCycle.LAST_WORKING_DAY),
+                ) { settingsViewModel.updateBudgetCycleStartDay(BudgetCycle.LAST_WORKING_DAY) }
+            ) + (BudgetCycle.MIN_START_DAY..BudgetCycle.MAX_START_DAY).map { day ->
                 SettingsChoice(
                     label = ordinalSuffix(day),
                     selected = day == budgetCycleStartDay,

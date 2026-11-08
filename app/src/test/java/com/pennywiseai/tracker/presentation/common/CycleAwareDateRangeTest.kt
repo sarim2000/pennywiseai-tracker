@@ -99,4 +99,28 @@ class CycleAwareDateRangeTest {
         assertEquals("Current FY", TimePeriod.CURRENT_FY.chipLabel(cycleStartDay = 11, customRangeLabel = null, label = "Current FY", today = today))
         assertEquals("Aug 1 - Aug 5", TimePeriod.CUSTOM.chipLabel(cycleStartDay = 11, customRangeLabel = "Aug 1 - Aug 5", label = "Custom Range", today = today))
     }
+
+    @Test
+    fun `last working day cycle tiles seamlessly with no gaps`() {
+        val originalLocale = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.US)
+            val today = LocalDate.of(2026, 10, 15)
+            val thisMonth = getCycleAwareDateRange(TimePeriod.THIS_MONTH, com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY, today)!!
+            val lastMonth = getCycleAwareDateRange(TimePeriod.LAST_MONTH, com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY, today)!!
+
+            assertEquals(
+                "Last working day cycle leaves a gap or overlap",
+                thisMonth.first.minusDays(1),
+                lastMonth.second
+            )
+            // Sep 30 is last working day of Sep; Oct 30 is last working day of Oct
+            assertEquals(LocalDate.of(2026, 9, 30), thisMonth.first)
+            assertEquals(LocalDate.of(2026, 10, 29), thisMonth.second)
+            assertEquals(LocalDate.of(2026, 8, 31), lastMonth.first)
+            assertEquals(LocalDate.of(2026, 9, 29), lastMonth.second)
+        } finally {
+            java.util.Locale.setDefault(originalLocale)
+        }
+    }
 }

@@ -9,8 +9,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,6 +45,8 @@ import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -355,10 +355,8 @@ fun AnalyticsScreen(
                     // Expandable chart type selector card
                     AnimatedVisibility(
                         visible = showChartTypeSelector,
-                        enter = fadeIn(motion.defaultEffectsSpec()) +
-                            expandVertically(motion.defaultEffectsSpec()),
-                        exit = fadeOut(motion.fastEffectsSpec()) +
-                            shrinkVertically(motion.fastEffectsSpec())
+                        enter = pwExpand(),
+                        exit = pwCollapse()
                     ) {
                         Card(
                             modifier = Modifier

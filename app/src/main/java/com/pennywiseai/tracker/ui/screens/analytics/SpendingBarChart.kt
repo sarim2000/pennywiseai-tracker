@@ -82,14 +82,18 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
     val valueLabelStyle = chartLabel.copy(color = valueLabelColor, textAlign = TextAlign.Center)
     val indicatorStyle = chartLabel.copy(color = indicatorColor, textAlign = TextAlign.End)
 
-    // One height per date bucket, so a data change retargets each bar from where
-    // it stands. Heights are data: effects specs settle without overshooting.
+    // One animated value per date bucket, so a data change retargets each bar from
+    // where it stands, and one animated axis top they're all drawn against: bar
+    // height = value / axis, so an unchanged bar never reads as another amount
+    // while the scale moves. Effects specs: data settles without overshooting.
     val motion = MaterialTheme.motionScheme
     val heights = remember { HashMap<LocalDateTime, Animatable<Float, AnimationVector1D>>() }
     val seeded = heights.isNotEmpty()
     val spec = if (seeded) motion.defaultEffectsSpec<Float>() else motion.slowEffectsSpec()
+    val axis = remember { Animatable(maxValue.toFloat()) }
+    LaunchedEffect(maxValue) { axis.animateTo(maxValue.toFloat(), spec) }
     chartData.forEach { bar ->
-        val target = if (maxValue > 0.0) (bar.value / maxValue).toFloat() else 0f
+        val target = bar.value.toFloat()
         // First paint grows from zero once; a crossfaded-in chart starts settled.
         val anim = heights.getOrPut(bar.key) { Animatable(if (seeded || growIn) 0f else target) }
         key(bar.key) {
@@ -104,7 +108,8 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
             .height(height.dp)
             .padding(vertical = Spacing.md)
     ) {
-        if (chartData.isEmpty() || maxValue <= 0.0) return@Canvas
+        val axisMax = axis.value.toDouble()
+        if (chartData.isEmpty() || maxValue <= 0.0 || axisMax <= 0.0) return@Canvas
 
         val yAxisWidth = 48.dp.toPx()
         val xLabelHeight = 40.dp.toPx()
@@ -137,7 +142,7 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
                 pathEffect = dashEffect,
                 strokeWidth = 1f
             )
-            val indicatorValue = maxValue * fraction
+            val indicatorValue = axisMax * fraction
             val indicatorText = CurrencyFormatter.formatAbbreviated(abs(indicatorValue), primaryCurrency)
             val measured = textMeasurer.measure(indicatorText, indicatorStyle)
             drawText(
@@ -164,9 +169,8 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
         val labelStep = if (barCount > maxLabels) ceil(barCount.toFloat() / maxLabels).toInt() else 1
 
         chartData.forEachIndexed { index, bar ->
-            val target = (bar.value / maxValue).toFloat()
-            val fraction = heights[bar.key]?.value ?: target
-            val barHeight = fraction * chartHeight
+            val shownValue = heights[bar.key]?.value ?: bar.value.toFloat()
+            val barHeight = (shownValue / axisMax).toFloat().coerceIn(0f, 1f) * chartHeight
             val x = startOffset + index * (barThickness + 8.dp.toPx())
             val barTop = chartBottom - barHeight
 
@@ -181,7 +185,7 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
             }
 
             // Draw value label above bar (clamped to avoid Y-axis and right-edge overlap)
-            if (bar.value > 0 && barHeight > 4.dp.toPx() && fraction >= target / 2f) {
+            if (bar.value > 0 && barHeight > 4.dp.toPx() && shownValue >= bar.value / 2) {
                 val valueText = formatCompactValue(bar.value, primaryCurrency)
                 val valueMeasured = textMeasurer.measure(valueText, valueLabelStyle)
                 val rawLabelX = x + barThickness / 2f - valueMeasured.size.width / 2f

@@ -78,7 +78,7 @@ fun BudgetCard(
     // Settled — or once the bar is full, where counting on to e.g. 244% would just
     // tick next to "over budget" — read pctUsed itself (fraction * 100 can also
     // land on 79.999 → "79%").
-    val pillPercent = (if (usedFraction == pctUsed / 100f || usedFraction >= 1f) pctUsed else usedFraction * 100f).toInt()
+    val pillPercent = (if (usedFraction == pctUsed / 100f || (usedFraction >= 1f && pctUsed >= 100f)) pctUsed else usedFraction * 100f).toInt()
 
     val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val statusColor: Color = when {

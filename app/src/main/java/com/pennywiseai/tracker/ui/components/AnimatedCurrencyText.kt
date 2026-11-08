@@ -1,8 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -23,14 +21,17 @@ fun AnimatedCurrencyText(
     color: Color = Color.Unspecified,
     fontWeight: FontWeight? = null,
 ) {
+    // Hiding/showing amounts is a privacy toggle, not a value change: the mask is
+    // drawn outside AnimatedContent so neither side lingers for an exit frame.
+    if (AmountPrivacy.MASK in text) {
+        Text(text = text, style = style, color = color, fontWeight = fontWeight, modifier = modifier)
+        return
+    }
     val motion = MaterialTheme.motionScheme
     AnimatedContent(
         targetState = text,
         transitionSpec = {
-            // Hiding/showing amounts is a privacy toggle, not a value change: swap instantly.
-            if (AmountPrivacy.MASK in initialState || AmountPrivacy.MASK in targetState) {
-                EnterTransition.None togetherWith ExitTransition.None using null
-            } else slideInVertically(
+            slideInVertically(
                 animationSpec = motion.defaultSpatialSpec(),
                 initialOffsetY = { it }
             ) togetherWith slideOutVertically(

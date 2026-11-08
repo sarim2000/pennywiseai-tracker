@@ -59,6 +59,12 @@ class KarnatakaBankParserTest {
                     type = TransactionType.EXPENSE,
                     merchant = "M. K. STORES"
                 )
+            ),
+            ParserTestCase(
+                name = "Upcoming AutoPay mandate notice is not a transaction",
+                message = "For the upcoming UPI AutoPay Mandate set for 01-11-2026 05:30:00 , your account will be debited with Rs.229.00 towards Google Play for the GOOGLE, UPI Ref No 850000000000 If mandate is paused then execution or debit for the same will not happen.- Karnataka Bank",
+                sender = "VA-KBLBNK-S",
+                shouldParse = false
             )
         )
         val handleCases = listOf("VA-KBLBNK-T" to true, "BG-KBLBNK-T" to true, "HDFCBK" to false)

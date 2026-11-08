@@ -126,6 +126,18 @@ class SliceParserTest {
 
             // --- Non-transaction / failure regressions ---
             ParserTestCase(
+                name = "Credit card repayment SMS is not income (#1101)",
+                message = "Repayment of Rs.2,418 received for the slice credit card. The amount has been credited to your card account - slice",
+                sender = "JK-SLCBNK-T",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Credit card repayment app notification is not income (#1101)",
+                message = "Repayment successful ✅ Payment of ₹2,418 received for the slice credit card",
+                sender = "SLICE",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "Non-transaction message (OTP)",
                 message = "Your OTP for slice transaction is 123456. Do not share.",
                 sender = "AD-SLCEIT-S",

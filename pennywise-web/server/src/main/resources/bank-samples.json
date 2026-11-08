@@ -968,6 +968,17 @@
       "reference": null,
       "balance": "2350000"
     },
+    "PhonePe Wallet": {
+      "sender": "JD-PHONPE-S",
+      "message": "You've paid Rs.120.00 via PhonePe wallet for LOADED FRIES REFUND CORNER. Not you? Call us on 022-00000000. Remaining balance: Rs.30.00. To top-up click https://phone.pe/PHONPE/ws",
+      "currency": "INR",
+      "amount": "120.00",
+      "type": "EXPENSE",
+      "merchant": "LOADED FRIES REFUND CORNER",
+      "accountLast4": null,
+      "reference": null,
+      "balance": "30.00"
+    },
     "Pluxee": {
       "sender": "AD-PLUXEE",
       "message": "Rs. 40.00 spent from Pluxee  Meal wallet, card no.xx1234 on 17-08-2026 16:03:14 at NEW SHAKTHI  . Avl bal Rs.24342.81. Not you call 18002161234",

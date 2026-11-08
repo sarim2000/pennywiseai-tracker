@@ -15,6 +15,7 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -85,6 +86,23 @@ fun DockNavAction(action: NavDockAction) {
     SideEffect { dock.set(owner, action) }
     DisposableEffect(dock, owner) {
         onDispose { dock.clear(owner) }
+    }
+}
+
+/**
+ * True while a tab's own bottom toolbar takes the nav bar's place (Transactions'
+ * bulk-select toolbar), so the two never stack. Provided in both nav styles.
+ */
+val LocalHideNavBar = staticCompositionLocalOf<MutableState<Boolean>?> { null }
+
+/** Hides the overlaid nav bar (and its docked action) while this composable is on screen. */
+@Composable
+fun HideNavBar() {
+    // ponytail: one flag, not a counter — only one screen hides the bar at a time.
+    val hidden = LocalHideNavBar.current ?: return
+    DisposableEffect(hidden) {
+        hidden.value = true
+        onDispose { hidden.value = false }
     }
 }
 

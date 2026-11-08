@@ -44,8 +44,9 @@ class BarFrameTest {
     }
 
     @Test
-    fun `an all-zero frame morphs`() {
-        assertTrue(frame(1 to 0.0).morphsInto(frame(1 to 500.0)))
+    fun `transitions to and from an all-zero frame crossfade`() {
+        assertFalse(frame(1 to 0.0).morphsInto(frame(1 to 500.0)))
+        assertFalse(frame(1 to 500.0).morphsInto(frame(1 to 0.0)))
     }
 
     @Test

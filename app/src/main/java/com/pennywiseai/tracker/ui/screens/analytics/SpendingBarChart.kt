@@ -238,7 +238,9 @@ internal data class BarFrame(
         val keys = bars.mapTo(HashSet()) { it.key }
         if (next.bars.none { it.key in keys }) return false
         val (a, b) = maxValue to next.maxValue
-        if (a <= 0.0 || b <= 0.0) return true
+        // Bars draw as value / axis: to or from an all-zero frame both run to 0
+        // together and the bars would read full height, so crossfade instead.
+        if (a <= 0.0 || b <= 0.0) return false
         return b / a in 0.5..2.0
     }
 

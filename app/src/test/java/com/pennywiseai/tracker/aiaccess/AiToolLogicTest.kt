@@ -176,4 +176,24 @@ class AiToolLogicTest {
         assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(ruleArgs(operator = "GREATER_THAN")) }
         assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(Json.parseToJsonElement("""{"name":"x"}""").jsonObject) }
     }
+
+    @Test
+    fun `rules shared with AI apps hide SMS text conditions`() {
+        val rule = com.pennywiseai.tracker.domain.model.rule.TransactionRule(
+            name = "r",
+            conditions = listOf(
+                com.pennywiseai.tracker.domain.model.rule.RuleCondition(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.SMS_TEXT,
+                    com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "sample message text"
+                ),
+                com.pennywiseai.tracker.domain.model.rule.RuleCondition(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.MERCHANT,
+                    com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "cafe"
+                )
+            ),
+            actions = emptyList()
+        )
+        val shared = AiToolLogic.shareableRules(listOf(rule)).single().conditions.map { it.value }
+        assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, "cafe"), shared)
+    }
 }

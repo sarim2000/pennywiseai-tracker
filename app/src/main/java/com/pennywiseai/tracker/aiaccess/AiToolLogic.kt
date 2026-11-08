@@ -28,6 +28,18 @@ import java.math.RoundingMode
  * accounts are masked to bank + last 4, and no SMS text ever leaves the phone.
  */
 object AiToolLogic {
+    /**
+     * Rules as AI apps may see them. A condition on the SMS text can quote a real message,
+     * and AI apps never get SMS text, so its value is hidden.
+     */
+    fun shareableRules(rules: List<TransactionRule>): List<TransactionRule> = rules.map { rule ->
+        rule.copy(conditions = rule.conditions.map { c ->
+            if (c.field == com.pennywiseai.tracker.domain.model.rule.TransactionField.SMS_TEXT) c.copy(value = HIDDEN_SMS_TEXT) else c
+        })
+    }
+
+    const val HIDDEN_SMS_TEXT = "(SMS text hidden)"
+
 
     const val MAX_ROWS = 200
 

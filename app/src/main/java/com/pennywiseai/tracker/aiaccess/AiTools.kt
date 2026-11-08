@@ -18,6 +18,8 @@ import com.pennywiseai.tracker.domain.usecase.ApplyRulesToPastTransactionsUseCas
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import kotlinx.serialization.json.JsonArray
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
@@ -51,6 +53,8 @@ class AiTools @Inject constructor(
     private val database: PennyWiseDatabase,
     private val writeAccess: AiWriteAccess,
 ) {
+    private val ruleLock = Mutex()
+
     suspend fun call(name: String, args: JsonObject): JsonObject {
         if (!entitlementGate.isProEntitled.value) {
             return error("AI access is part of PennyWise Pro, which isn't active on this phone. Renew Pro in PennyWise to continue.")
@@ -81,7 +85,7 @@ class AiTools @Inject constructor(
                 "list_accounts" -> AiToolLogic.accounts(balances.getAllLatestBalances().first())
                 "list_subscriptions" -> AiToolLogic.subscriptions(subscriptions.getActiveSubscriptions().first())
                 "list_categories" -> AiToolLogic.categories(categories.getVisibleCategories().first())
-                "list_rules" -> return text(RuleSharingCodec.encode(rules.getAllRules().first()), isError = false)
+                "list_rules" -> return text(RuleSharingCodec.encode(AiToolLogic.shareableRules(rules.getAllRules().first())), isError = false)
                 "categorize_merchants" -> categorizeMerchants(args["mappings"] as? JsonArray ?: return error("Give mappings as a list of {merchant, category}."))
                 "set_merchant_aliases" -> setAliases(args["aliases"] as? JsonArray ?: return error("Give aliases as a list of {merchant, alias}."))
                 "create_category" -> createCategory(
@@ -169,9 +173,12 @@ class AiTools @Inject constructor(
         } catch (e: IllegalArgumentException) {
             throw Refused(e.message ?: "That rule isn't valid.")
         }
-        val existing = rules.getAllRules().first()
-        if (existing.any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
-        rules.insertRule(rule)
+        // Calls run side by side: one at a time, or two of the same rule both pass the name check.
+        ruleLock.withLock {
+            val existing = rules.getAllRules().first()
+            if (existing.any { it.name.equals(rule.name, ignoreCase = true) }) throw Refused("A rule named \"${rule.name}\" already exists.")
+            rules.insertRule(rule)
+        }
         val applied = if (args["apply_to_past"]?.jsonPrimitive?.booleanOrNull == true) {
             applyRulesToPast.applyRuleToUncategorizedTransactions(rule)
         } else null

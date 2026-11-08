@@ -21,6 +21,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -58,9 +59,18 @@ class NavDockState {
     var action: NavDockAction? by mutableStateOf(null)
         private set
 
-    internal fun set(owner: Any, action: NavDockAction) {
+    /** The screen entering composition takes the dock. */
+    internal fun claim(owner: Any, action: NavDockAction) {
         this.owner = owner
         this.action = action
+    }
+
+    /**
+     * Updates from the current owner only: during a tab fade-through the outgoing
+     * screen is still composed, and its recompositions mustn't take the dock back.
+     */
+    internal fun set(owner: Any, action: NavDockAction) {
+        if (this.owner === owner) this.action = action
     }
 
     internal fun clear(owner: Any) {
@@ -83,10 +93,12 @@ val LocalNavDock = staticCompositionLocalOf<NavDockState?> { null }
 fun DockNavAction(action: NavDockAction) {
     val dock = LocalNavDock.current ?: return
     val owner = remember { Any() }
-    SideEffect { dock.set(owner, action) }
+    val latest by rememberUpdatedState(action)
     DisposableEffect(dock, owner) {
+        dock.claim(owner, latest)
         onDispose { dock.clear(owner) }
     }
+    SideEffect { dock.set(owner, action) }
 }
 
 /**

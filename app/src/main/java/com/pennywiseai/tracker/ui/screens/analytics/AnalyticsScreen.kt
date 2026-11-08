@@ -481,7 +481,7 @@ fun AnalyticsScreen(
                         transitionSpec = {
                             fadeIn(motion.defaultEffectsSpec()) togetherWith
                                 fadeOut(motion.fastEffectsSpec()) using
-                                SizeTransform(clip = false)
+                                SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
                         },
                         label = "category_view_transition"
                     ) { viewType ->
@@ -550,7 +550,7 @@ fun AnalyticsScreen(
                         transitionSpec = {
                             fadeIn(motion.defaultEffectsSpec()) togetherWith
                                 fadeOut(motion.fastEffectsSpec()) using
-                                SizeTransform(clip = false)
+                                SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
                         },
                         label = "tag_view_transition"
                     ) { viewType ->

@@ -17,6 +17,9 @@ import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
+import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
+import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +28,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_preferences",
@@ -81,6 +85,9 @@ open class UserPreferencesRepository @Inject constructor(
         val WEEKLY_SUMMARY_ENABLED = booleanPreferencesKey("weekly_summary_enabled")
         val WEEKLY_SUMMARY_LAST_WEEK = stringPreferencesKey("weekly_summary_last_week")
         val REVIEW_PROMPT_HANDLED_YEAR = stringPreferencesKey("review_prompt_handled_year")
+        val CONSCIENCE_ENABLED = booleanPreferencesKey("conscience_enabled")
+        val CONSCIENCE_LOG = stringSetPreferencesKey("conscience_log")
+        val CONSCIENCE_RETIRED_LINES = stringSetPreferencesKey("conscience_retired_lines")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -464,6 +471,49 @@ open class UserPreferencesRepository @Inject constructor(
     private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
         booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
     
+    val conscienceEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
+
+    suspend fun setConscienceEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
+    }
+
+    /** "Not this one": the line never comes back. */
+    suspend fun retireConscienceLine(lineKey: String) {
+        context.dataStore.edit {
+            it[PreferencesKeys.CONSCIENCE_RETIRED_LINES] = it[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty() + lineKey
+        }
+    }
+
+    /**
+     * Spends a slot and picks the comment in one edit: the SMS receiver and the
+     * notification listener can race, and only one may get the slot. The switch is
+     * re-read here, since it can change while the history is read. Null when the
+     * cadence says no or no candidate has a line left.
+     */
+    suspend fun tryClaimConscience(
+        candidates: List<ConscienceCandidate>,
+        contentLocale: String,
+        nowMillis: Long,
+        todayEpochDay: Long,
+        random: Random,
+    ): ConscienceChoice? {
+        var claimed: ConscienceChoice? = null
+        context.dataStore.edit { prefs ->
+            claimed = null
+            if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
+            val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
+            val choice = ConscienceCadence.choose(
+                candidates, log, prefs[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty(),
+                contentLocale, nowMillis, todayEpochDay, random
+            ) ?: return@edit
+            prefs[PreferencesKeys.CONSCIENCE_LOG] =
+                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
+            claimed = choice
+        }
+        return claimed
+    }
+
     suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT] = prompt

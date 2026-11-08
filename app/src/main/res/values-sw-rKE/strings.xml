@@ -8,10 +8,13 @@
     <string name="widget_description_category_pie">Matumizi ya mwezi huu kwa kategoria kama chati ya duara yenye ufunguo.</string>
     <string name="widget_name_add_transaction">Matumizi ya pesa taslimu</string>
     <string name="widget_name_summary">Muhtasari wa Matumizi</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Ongeza Muamala</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Ongeza</string>
     <string name="shortcut_add_transaction_long">Ongeza muamala</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Saidia maendeleo</string>
     <string name="support_subtitle">Imetengenezwa na msanidi mmoja — mchango mdogo unaiendeleza 🦉</string>
     <string name="support_dialog_body">PennyWise ni bure na ya chanzo huria, imetengenezwa na msanidi mmoja. Kila kitu tayari kimefunguliwa katika toleo hili. Ikiwa inakusaidia, mchango mdogo unaiendeleza 🦉</string>

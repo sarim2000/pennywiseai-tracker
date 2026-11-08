@@ -288,6 +288,7 @@
     <string name="chat_action_update">अपडेट करें</string>
     <string name="chat_action_change_merchant">व्यापारी → %1$s</string>
     <string name="chat_action_change_category">श्रेणी → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">यह लागू नहीं हो पाया: %1$s</string>
     <string name="chat_error_memory_full">चैट मेमोरी भर गई है। जारी रखने के लिए चैट साफ़ करें।</string>

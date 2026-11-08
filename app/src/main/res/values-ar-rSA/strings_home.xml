@@ -20,6 +20,7 @@
     <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
     <string name="home_section_accounts">الحسابات البنكية</string>
     <string name="home_section_subscriptions">الاشتراكات القادمة</string>
+    <string name="home_section_money_in_motion">نقود متحركة</string>
     <string name="home_section_activity">النشاط</string>
     <!-- Empty state -->
     <string name="home_empty_headline">لا توجد معاملات بعد</string>
@@ -36,7 +37,6 @@
     <string name="home_resync_rebuild_desc">يعيد قراءة معاملات SMS للاستفادة من إصلاحات قراءة الرسائل. تُلغى التعديلات على معاملات SMS. ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
-    <string name="home_menu_monthly_recap">موجز شهري</string>
     <string name="home_menu_settings">الإعدادات</string>
     <string name="home_menu_edit_home">تعديل الشاشة الرئيسية</string>
     <string name="home_menu_discord">انضم إلى ديسكورد للحصول على تعليقات</string>
@@ -165,8 +165,8 @@
     <string name="account_card_outstanding">المستحق</string>
     <string name="account_card_balance">الرصيد</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% أكثر مقابل الشهر الماضي</string>
-    <string name="balance_card_change_less">%1$d%% أقل مقابل الشهر الماضي</string>
+    <string name="balance_card_change_more_same_point">%1$d%% أكثر من الفترة نفسها الشهر الماضي</string>
+    <string name="balance_card_change_less_same_point">%1$d%% أقل من الفترة نفسها الشهر الماضي</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">الرصيد: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -183,7 +183,7 @@
     <string name="balance_card_accounts">الحسابات</string>
     <string name="balance_card_credit_cards">بطاقات الائتمان</string>
     <string name="balance_card_total">الإجمالي</string>
-    <string name="balance_card_approximate_note">* بعض الأرصدة لا يمكن تحويلها وهي مبينة بالعملة الأصلية (المبلغ الإجمالي تقريبي).</string>
+    <string name="balance_card_other_currency_note">* لا يشمل هذا المجموع الحسابات بعملات أخرى.</string>
     <string name="balance_card_spent_this_month">أنفق هذا الشهر</string>
     <string name="balance_card_change_currency">تغيير العملة</string>
     <string name="balance_card_summary_income">الدخل</string>
@@ -314,22 +314,28 @@
     <string name="notif_txn_channel_description">إشعارات للمعاملات الجديدة</string>
     <string name="notif_txn_unknown_merchant">غير معروف</string>
     <string name="notif_txn_unknown_bank">البنك</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠️ الرصيد من قبل %1$s - متوقعة %2$s، البنك يقول %3$s</string>
     <string name="notif_txn_action_more">المزيد…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s معاملة جديدة</string>
-    <string name="notif_txn_public_text">%1$s • يحتاج التوازن إلى مظهر</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">صرفت %1$s في %2$s</string>
-    <string name="notif_txn_title_received">استلمت %1$s من %2$s</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • الرصيد يحتاج مراجعة</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">صرفت %1$s</string>
+    <string name="notif_txn_title_received">استلمت %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <string name="notif_txn_title_other">%1$s · %2$s</string>
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">على ماذا صرفتها؟ · %1$s</string>
-    <string name="notif_txn_action_change">تغيير</string>
+    <string name="notif_suggestion_title_spent">هل أنفقت %1$s في %2$s؟</string>
+    <string name="notif_suggestion_title_received">هل استلمت %1$s من %2$s؟</string>
+    <string name="notif_suggestion_text">من %1$s. اضغط لإضافتها.</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">على ماذا صرفتها؟</string>
+    <string name="notif_txn_action_change">تغيير التصنيف</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">ليس مصروفاً</string>
+    <string name="notif_txn_action_not_income">ليس دخلاً</string>
+    <string name="notif_txn_excluded_spending">لن يُحسب كمصروف</string>
+    <string name="notif_txn_excluded_income">لن يُحسب كدخل</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">رصيدك أعلى بـ %1$s من المسجَّل</string>
+    <string name="notif_balance_lower">رصيدك أقل بـ %1$s من المسجَّل</string>
+    <string name="notif_balance_text">قد تكون هناك معاملة لم تُسجَّل. اضغط للمراجعة.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">حُفظت في %1$s</string>
     <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>
@@ -362,7 +368,17 @@
         <item quantity="many">%d بلا تصنيف</item>
         <item quantity="other">%d بلا تصنيف</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="zero">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="one">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="two">رتّبهما ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="few">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="many">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="other">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+    </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
+    <string name="notif_daily_action_sort_all">صنّفها</string>
     <string name="notif_daily_action_cash">+ نقداً</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -380,6 +396,10 @@
     <string name="pro_home_card_body">مع Pro تحصل على قواعد وأهداف وعمليات تصدير واستيراد كشوف حساب بلا حدود.</string>
     <string name="pro_home_card_action">اكتشف Pro</string>
     <string name="pro_home_card_dismiss">إخفاء</string>
+    <string name="home_payday_card_title">هل تبدأ الميزانية يوم الراتب؟</string>
+    <string name="home_payday_card_body">يبدو أن راتبك يصل في اليوم %1$d من الشهر. هل تريد أن يبدأ كل شهر في ميزانيتك من هذا اليوم؟ يمكنك تغييره من الإعدادات.</string>
+    <string name="home_payday_card_action">ابدأ من اليوم %1$d</string>
+    <string name="home_payday_card_dismiss">إخفاء</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">في الطريق إلى %1$s بحلول %2$s</string>
     <string name="forecast_over_usual">%1$s فوق المعتاد</string>

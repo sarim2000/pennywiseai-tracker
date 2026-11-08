@@ -14,11 +14,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,6 +90,7 @@ class TrackedAppsViewModel @Inject constructor(
     fun setTracked(packageName: String, tracked: Boolean) = store.setTracked(packageName, tracked)
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TrackedAppsDialog(
     viewModel: TrackedAppsViewModel,
@@ -113,7 +116,7 @@ fun TrackedAppsDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (!hasNotificationAccess) {
-                    TextButton(onClick = onEnableAccess) {
+                    TextButton(onClick = onEnableAccess, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.settings_tracked_apps_enable_access))
                     }
                 }
@@ -127,7 +130,7 @@ fun TrackedAppsDialog(
                 val list = apps
                 if (list == null) {
                     Box(Modifier.fillMaxWidth().padding(Spacing.md), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        LoadingIndicator()
                     }
                 } else {
                     val shown = list
@@ -151,7 +154,7 @@ fun TrackedAppsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_tracked_apps_done)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.settings_tracked_apps_done)) }
         }
     )
 }

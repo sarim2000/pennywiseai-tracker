@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,7 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
@@ -47,7 +46,7 @@ import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoanDetailScreen(
     onNavigateBack: () -> Unit = {},
@@ -75,14 +74,14 @@ fun LoanDetailScreen(
                 title = loan?.personName ?: stringResource(R.string.loan_detail_title_fallback),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
                     if (loan != null) {
                         var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.loan_detail_more))
                         }
                         DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -119,7 +118,7 @@ fun LoanDetailScreen(
             if (loan?.status == LoanStatus.ACTIVE) {
                 FloatingActionButton(
                     onClick = { viewModel.showRecordPayment() },
-                    containerColor = if (isSystemInDarkTheme()) loan_dark else loan_light
+                    containerColor = MaterialTheme.colorScheme.loan
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.loan_detail_record_payment))
                 }
@@ -131,18 +130,17 @@ fun LoanDetailScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
 
-        val isDark = isSystemInDarkTheme()
         val directionColor = if (loan.direction == LoanDirection.LENT) {
-            if (isDark) loan_dark else loan_light
+            MaterialTheme.colorScheme.loan
         } else {
-            if (isDark) income_dark else income_light
+            MaterialTheme.colorScheme.income
         }
-        val progressColor = if (isDark) income_dark else income_light
+        val progressColor = MaterialTheme.colorScheme.income
         val progress = if (loan.originalAmount > BigDecimal.ZERO) {
             (BigDecimal.ONE - loan.remainingAmount.divide(loan.originalAmount, 2, java.math.RoundingMode.HALF_UP))
                 .toFloat().coerceIn(0f, 1f)
@@ -285,12 +283,12 @@ fun LoanDetailScreen(
             title = { Text(stringResource(R.string.loan_detail_settle_title)) },
             text = { Text(stringResource(R.string.loan_detail_settle_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.settleLoan() }) {
+                TextButton(onClick = { viewModel.settleLoan() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.loan_detail_settle))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideSettleDialog() }) {
+                TextButton(onClick = { viewModel.hideSettleDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -329,13 +327,14 @@ fun LoanDetailScreen(
                     onClick = {
                         editAmount.toBigDecimalOrNull()?.let { viewModel.updateLoanAmount(it) }
                     },
-                    enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true
+                    enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.accounts_action_save))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideEditAmountDialog() }) {
+                TextButton(onClick = { viewModel.hideEditAmountDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -349,12 +348,12 @@ fun LoanDetailScreen(
             title = { Text(stringResource(R.string.loan_detail_delete_title)) },
             text = { Text(stringResource(R.string.loan_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteLoan() }) {
+                TextButton(onClick = { viewModel.deleteLoan() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.accounts_action_cancel))
                 }
             }
@@ -382,14 +381,14 @@ private fun LoanTransactionItem(
     loanDirection: LoanDirection,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    // Color reflects the actual money flow: red = money out, green = money in.
+    // Sign and colour follow the actual money flow: "+" in the income colour for
+    // money in, "-" in ink for money out (red is kept for problems).
     // Every type but INCOME is money out, as in the loan's own math (#876).
     val moneyIn = transaction.transactionType == TransactionType.INCOME
     val color = if (moneyIn) {
-        if (isDark) income_dark else income_light
+        MaterialTheme.colorScheme.income
     } else {
-        if (isDark) expense_dark else expense_light
+        MaterialTheme.colorScheme.onSurface
     }
     val sign = if (moneyIn) "+" else "-"
 
@@ -432,7 +431,7 @@ private fun LoanTransactionItem(
                 // This transaction's own note, not the loan's (#876).
                 transaction.description?.takeIf { it.isNotBlank() }?.let { note ->
                     Text(
-                        note,
+                        CurrencyFormatter.maskAmountsIn(note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
@@ -464,9 +463,8 @@ private fun RecordPaymentBottomSheet(
     onManualPayment: (BigDecimal) -> Unit
 ) {
     var manualAmount by remember { mutableStateOf("") }
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val loanColor = MaterialTheme.colorScheme.loan
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,

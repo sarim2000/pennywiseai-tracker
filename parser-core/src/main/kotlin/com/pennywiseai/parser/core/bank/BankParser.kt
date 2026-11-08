@@ -214,11 +214,13 @@ abstract class BankParser {
             return true
         }
 
-        // Skip auto-debit intimations ("INR X for <merchant> will be auto-debited
-        // ... by <date>"). These announce a future debit; the real debit arrives
-        // as its own SMS, so booking them doubled the spend.
+        // Skip future-debit intimations ("INR X for <merchant> will be auto-debited
+        // ... by <date>", "For the upcoming UPI AutoPay Mandate … your account will
+        // be debited with Rs.X"). These announce a future debit; the real debit
+        // arrives as its own SMS, so booking them doubled the spend.
         if (lowerMessage.contains("will be auto-debited") ||
-            lowerMessage.contains("will be auto debited")
+            lowerMessage.contains("will be auto debited") ||
+            lowerMessage.contains("will be debited")
         ) {
             return true
         }
@@ -607,11 +609,24 @@ abstract class BankParser {
      */
     protected open fun isValidMerchantName(name: String): Boolean {
         val commonWords =
-            setOf("USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE")
+            setOf(
+                "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE",
+                "BLOCK", "BLOCK UPI", "UPIBLOCK", "BLOCK ACT", "BLOCK CARD", "BLOCK A/C", "BLOCK ACCOUNT"
+            )
+
+        val upper = name.uppercase().trim()
+        val isBlockInstruction = upper in commonWords ||
+                upper.startsWith("BLOCK UPI") ||
+                upper.startsWith("BLOCK CARD") ||
+                upper.startsWith("BLOCK ACT") ||
+                upper.startsWith("BLOCK A/C") ||
+                upper.startsWith("BLOCK ACCOUNT") ||
+                upper.startsWith("TO BLOCK") ||
+                upper.startsWith("UPIBLOCK")
 
         return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
                 name.any { it.isLetter() } &&
-                name.uppercase() !in commonWords &&
+                !isBlockInstruction &&
                 !name.all { it.isDigit() } &&
                 !name.contains("@") // Not a UPI ID
     }

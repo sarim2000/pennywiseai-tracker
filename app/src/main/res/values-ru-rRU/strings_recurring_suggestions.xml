@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
+    <string name="subscriptions_suggested_section">Предложения</string>
+    <string name="subscriptions_suggested_hint">Платежи, которые повторяются в вашей истории. Не учитываются, пока вы не начнёте их отслеживать.</string>
+    <!-- %1$d: total number of suggestions -->
+    <string name="subscriptions_suggested_show_all">Показать все (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">Свернуть</string>
+    <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d платёж</item>
+        <item quantity="few">%1$d платежа</item>
+        <item quantity="many">%1$d платежей</item>
+        <item quantity="other">%1$d платежа</item>
+    </plurals>
+    <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_varies">Сумма меняется</string>
+    <string name="subscription_suggestion_review">Проверить</string>
+    <string name="subscription_suggestion_not_recurring">Не повторяется</string>
+    <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">Найден %1$d платёж</item>
+        <item quantity="few">Найдено %1$d платежа</item>
+        <item quantity="many">Найдено %1$d платежей</item>
+        <item quantity="other">Найдено %1$d платежа</item>
+    </plurals>
+    <!-- %1$s: currency code, e.g. "USD" -->
+    <string name="subscription_suggestion_sheet_amount">Сумма для отслеживания (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">Сумма этого платежа каждый раз разная. Её можно изменить позже.</string>
+    <!-- %1$s: date, e.g. "15 Nov 2026" -->
+    <string name="subscription_suggestion_sheet_next">Следующий платёж ожидается %1$s</string>
+    <string name="subscription_suggestion_sheet_track">Отслеживать</string>
+    <string name="subscription_suggestion_sheet_helper">Вы получите напоминание за день до каждого платежа.</string>
+    <!-- Snackbars. %1$s: merchant name -->
+    <string name="subscriptions_suggestion_tracked">%1$s теперь отслеживается</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s уже отслеживается</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s больше не будет предлагаться</string>
+    <!-- Home card linking to the suggestions -->
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d возможный регулярный платёж</item>
+        <item quantity="few">%1$d возможных регулярных платежа</item>
+        <item quantity="many">%1$d возможных регулярных платежей</item>
+        <item quantity="other">%1$d возможного регулярного платежа</item>
+    </plurals>
+    <!-- %1$s: one or two merchant names, comma-separated -->
+    <string name="home_recurring_card_body">%1$s. Проверьте, чтобы получать напоминание перед каждым платежом.</string>
+    <!-- %1$s: two merchant names, comma-separated; %2$d: how many more, shown as "+2" -->
+    <string name="home_recurring_card_body_more">%1$s +%2$d. Проверьте, чтобы получать напоминание перед каждым платежом.</string>
+    <string name="home_recurring_card_action">Проверить</string>
+    <string name="home_recurring_card_dismiss">Скрыть</string>
+</resources>

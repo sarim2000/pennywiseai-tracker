@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.database
 
-import androidx.room.Room
+import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -38,7 +38,9 @@ class RebuildDeleteTest {
             row(3, "ICICI PDF"),             // PDF import -> kept
             row(4, notification),            // bank-app notification -> kept
             row(5, "AD-KOTAKB", deleted = true), // user deleted it -> kept, so it isn't resurrected
-            row(6, "AD-KOTAKB", date = LocalDateTime.of(2025, 1, 1, 12, 0)) // older than the re-read window -> kept
+            row(6, "AD-KOTAKB", date = LocalDateTime.of(2025, 1, 1, 12, 0)), // older than the re-read window -> kept
+            // Booked from a taught template: only comes back if the user confirms it again -> kept
+            row(7, "AD-KOTAKB").copy(transactionHash = "taught_h7")
         ).forEach { dao.insertTransaction(it) }
 
         dao.deleteRebuildableSmsTransactions(
@@ -46,9 +48,7 @@ class RebuildDeleteTest {
             from = LocalDateTime.of(2026, 7, 1, 0, 0)
         )
 
-        val left = db.openHelper.readableDatabase.query("SELECT id FROM transactions ORDER BY id").use { c ->
-            buildList { while (c.moveToNext()) add(c.getLong(0)) }
-        }
-        assertEquals(listOf(2L, 3L, 4L, 5L, 6L), left)
+        val left = db.longs("SELECT id FROM transactions ORDER BY id")
+        assertEquals(listOf(2L, 3L, 4L, 5L, 6L, 7L), left)
     }
 }

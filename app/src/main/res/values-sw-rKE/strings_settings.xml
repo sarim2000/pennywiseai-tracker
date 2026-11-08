@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Ghairi</string>
     <string name="settings_action_ok">Sawa</string>
-    <string name="settings_action_done">Imekamilika</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">Pandisha hadi PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Inatumika · vipengele vyote vya ziada vimefunguliwa</string>
@@ -29,10 +28,13 @@
     <string name="settings_card_spend_as_expense_subtitle">Jumuisha matumizi ya kadi ya mkopo kwenye \"Matumizi mwezi huu\"</string>
     <string name="settings_default_currency_title">Sarafu Chaguomsingi</string>
     <string name="settings_default_currency_subtitle">Sarafu inayotumika kwa ubadilishaji</string>
+    <string name="settings_budget_convert_title">Badilisha bajeti zako?</string>
+    <string name="settings_budget_convert_message">Vikomo vya bajeti zako vilikuwa katika %1$s na sasa vinaonyeshwa katika %2$s. Vibadilishe kwa kiwango cha hivi karibuni kilichopo (%3$s), au baki na namba zilezile.</string>
+    <string name="settings_budget_convert_confirm">Badilisha</string>
+    <string name="settings_budget_convert_keep">Baki na namba</string>
     <string name="settings_main_account_title">Akaunti Kuu</string>
     <string name="settings_main_account_subtitle">Inaweka sarafu yako chaguomsingi</string>
     <string name="settings_main_account_not_set">Haijawekwa</string>
-    <string name="settings_currency_field_label">Sarafu</string>
     <string name="settings_number_format_title">Muundo wa Namba</string>
     <string name="settings_number_format_subtitle">Jinsi kiasi kikubwa kinavyopangwa</string>
     <string name="settings_number_format_auto">Otomatiki</string>
@@ -44,9 +46,7 @@
     <string name="settings_date_format_title">Muundo wa Tarehe</string>
     <string name="settings_date_format_subtitle">Jinsi tarehe zinavyoonyeshwa</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Bajeti</string>
     <string name="settings_budget_cycle_title">Siku ya Kuanza Mzunguko wa Bajeti</string>
-    <string name="settings_budget_cycle_subtitle">Husogeza mwanzo wa kila kipindi cha bajeti ya mwezi; k.m. 25 inamaanisha mzunguko wako ni tarehe 25 → 24</string>
     <string name="settings_budget_cycle_dialog_body">Chagua siku ambayo kila mzunguko wa bajeti ya mwezi unaanza. k.m. 25 inamaanisha mzunguko ni kuanzia tarehe 25 hadi tarehe 24 ya mwezi unaofuata.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Anwani</string>
@@ -56,6 +56,10 @@
     <string name="settings_security_section">Usalama</string>
     <string name="settings_app_lock_title">Kufunga App</string>
     <string name="settings_app_lock_subtitle">Linda data yako kwa alama ya kidole au uso</string>
+    <string name="settings_shake_to_hide_title">Tikisa ili kuficha kiasi</string>
+    <string name="settings_shake_to_hide_subtitle">Tikisa simu yako ili kuficha au kuonyesha kiasi kwenye kila skrini</string>
+    <string name="shake_to_hide_first_hidden">Kiasi kimefichwa. Tikisa tena ili kukionyesha.</string>
+    <string name="shake_to_hide_first_shown">Kiasi kinaonyeshwa. Tikisa tena ili kukificha.</string>
     <string name="settings_lock_timeout_title">Muda wa Kufunga</string>
     <string name="settings_lock_timeout_immediately_subtitle">Funga papo hapo</string>
     <plurals name="settings_lock_timeout_after_minutes">
@@ -241,6 +245,11 @@
     <string name="settings_report_issue_subtitle">Tuma ripoti za hitilafu kwenye GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <string name="settings_app_version">PennyWise toleo %1$s</string>
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Mwonekano</string>
     <string name="appearance_back">Rudi</string>

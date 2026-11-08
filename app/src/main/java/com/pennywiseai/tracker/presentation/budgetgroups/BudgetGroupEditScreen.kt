@@ -9,8 +9,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -45,7 +43,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -62,7 +60,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BudgetGroupEditScreen(
     viewModel: BudgetGroupEditViewModel = hiltViewModel(),
@@ -106,13 +104,13 @@ fun BudgetGroupEditScreen(
                 title = stringResource(if (isEditing) R.string.budget_edit_title_edit else R.string.budget_edit_title_new),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
                     }
                 },
                 actionContent = {
                     if (isEditing) {
-                        IconButton(onClick = { showDeleteDialog = true }) {
+                        IconButton(onClick = { showDeleteDialog = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.budgets_delete),
@@ -178,7 +176,7 @@ fun BudgetGroupEditScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -262,6 +260,8 @@ fun BudgetGroupEditScreen(
                             ).forEach { (period, label) ->
                                 FilterChip(
                                     selected = uiState.periodType == period,
+                                    shapes = FilterChipDefaults.shapes(),
+                                    colors = FilterChipDefaults.filterChipColors(),
                                     onClick = { viewModel.updatePeriodType(period) },
                                     label = { Text(stringResource(label)) }
                                 )
@@ -360,10 +360,7 @@ fun BudgetGroupEditScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .animateContentSize(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioLowBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                         )
                 ) {
                     Column(
@@ -515,10 +512,10 @@ fun BudgetGroupEditScreen(
                             viewModel.updateStartDate(LocalDate.ofEpochDay(millis / 86_400_000))
                         }
                         showStartDatePicker = false
-                    }) { Text(stringResource(R.string.budgets_action_ok)) }
+                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.budgets_action_ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showStartDatePicker = false }) {
+                    TextButton(onClick = { showStartDatePicker = false }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.budgets_action_cancel))
                     }
                 }
@@ -540,10 +537,10 @@ fun BudgetGroupEditScreen(
                             viewModel.updateEndDate(LocalDate.ofEpochDay(millis / 86_400_000))
                         }
                         showEndDatePicker = false
-                    }) { Text(stringResource(R.string.budgets_action_ok)) }
+                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.budgets_action_ok)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showEndDatePicker = false }) {
+                    TextButton(onClick = { showEndDatePicker = false }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.budgets_action_cancel))
                     }
                 }
@@ -565,13 +562,14 @@ fun BudgetGroupEditScreen(
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.error
-                        )
+                        ),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.budgets_action_delete))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
+                    TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.budgets_action_cancel))
                     }
                 }
@@ -813,7 +811,8 @@ private fun CategoryBudgetRow(
 
         IconButton(
             onClick = onRemove,
-            modifier = Modifier.size(Dimensions.Component.chipHeight)
+            modifier = Modifier.size(Dimensions.Component.chipHeight),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 Icons.Default.Close,
@@ -856,7 +855,7 @@ private fun WeekdayAnchorRow(
         Icon(
             imageVector = Icons.Default.CalendarMonth,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
@@ -876,7 +875,7 @@ private fun WeekdayAnchorRow(
                     singleLine = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                         .fillMaxWidth()
                 )
                 ExposedDropdownMenu(
@@ -914,7 +913,7 @@ private fun MonthAnchorRow(
         Icon(
             imageVector = Icons.Default.CalendarMonth,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {
@@ -935,14 +934,16 @@ private fun MonthAnchorRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedIconButton(
                 onClick = { onMonthDaySelected(monthStartDay - 1) },
-                enabled = monthStartDay > 1
+                enabled = monthStartDay > 1,
+                shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.budget_edit_decrease_day))
             }
             Spacer(modifier = Modifier.width(Spacing.xs))
             OutlinedIconButton(
                 onClick = { onMonthDaySelected(monthStartDay + 1) },
-                enabled = monthStartDay < 31
+                enabled = monthStartDay < 31,
+                shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.budget_edit_increase_day))
             }
@@ -971,7 +972,7 @@ private fun OneTimeDateRow(
         Icon(
             imageVector = Icons.Default.CalendarMonth,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(Spacing.sm))
         Column(modifier = Modifier.weight(1f)) {

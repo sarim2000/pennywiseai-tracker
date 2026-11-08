@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -19,17 +20,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -110,6 +114,10 @@ class QuickAddActivity : FragmentActivity() {
 
     private val unlocked = mutableStateOf(false)
 
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(newBase.withLatinDigits())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) unlocked.value = true else checkLock()
@@ -180,7 +188,7 @@ class QuickAddActivity : FragmentActivity() {
         val s = setup ?: return
         ModalBottomSheet(
             onDismissRequest = { finish() },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
         ) {
             Sheet(s)
         }
@@ -218,7 +226,7 @@ class QuickAddActivity : FragmentActivity() {
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { openFullForm(amountText, where, category, account) }) {
+                TextButton(onClick = { openFullForm(amountText, where, category, account) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.quick_add_more_details))
                 }
             }
@@ -252,6 +260,8 @@ class QuickAddActivity : FragmentActivity() {
                 setup.categories.forEach { c ->
                     FilterChip(
                         selected = category == c.name,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             category = c.name
                             // Typing is done once the category is picked; on a short phone the keyboard hides Save.
@@ -265,7 +275,8 @@ class QuickAddActivity : FragmentActivity() {
             Button(
                 onClick = { save(amount!!, category!!, where, account, setup.currency) },
                 enabled = amount != null && category != null,
-                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget)
+                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.add_save))
             }
@@ -322,7 +333,10 @@ class QuickAddActivity : FragmentActivity() {
             }.onFailure { Log.e(TAG, "Quick add failed", it) }.isSuccess
             // Apart from the save: a refresh that fails mustn't report a saved
             // expense as failed and have it entered twice.
-            if (saved) runCatching { WidgetRefresher.refreshTransactionWidgets(app) }.onFailure { Log.w(TAG, "Widget refresh failed", it) }
+            if (saved) runCatching {
+                WidgetRefresher.refreshTransactionWidgets(app)
+                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(app)
+            }.onFailure { Log.w(TAG, "Widget refresh failed", it) }
             val message = if (saved) {
                 app.getString(R.string.quick_add_saved, CurrencyFormatter.formatCurrency(amount, currency), CategoryMapping.label(app, category))
             } else {

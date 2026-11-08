@@ -112,6 +112,14 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
+The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,
+`floatingNavBottomGap` 12dp above the system bar) with a sliding selected
+indicator (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
+`primary` tint at `Alpha.selectedIndicator`). A tab's one primary action docks
+beside it as a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): the
+screen calls `DockNavAction(...)` when `LocalNavDock.current` is non-null and
+drops its own FAB, so the bar and the action never stack over content.
+
 ### Elevation (`Dimensions.Elevation`)
 
 The app is **flat**. Containers separate via tonal surfaces
@@ -181,6 +189,11 @@ Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
 `extraSmall`; pill shapes use `CircleShape`.
 
+Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
+merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
+`MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
+not containers or buttons.
+
 ---
 
 ## Components
@@ -245,7 +258,7 @@ height as headers without one.
 
 ### `PennyWiseEmptyState`
 
-Tonal icon circle → headline → one line of explanation → optional action.
+Tonal cookie-shaped icon badge → headline → one line of explanation → optional action.
 Spacing is deliberately **uneven** (icon→headline gap larger than
 headline→description) so the three read as one grouped unit. The description is
 width-capped so centred text doesn't wrap into an awkward shape.
@@ -254,6 +267,49 @@ width-capped so centred text doesn't wrap into an awkward shape.
 
 All screens use one of these for consistent system-bar and app-bar handling.
 App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
+
+### Choices and progress (Material 3 Expressive)
+
+- **One-of-N choice rows** → `ConnectedChoiceRow` (a connected `ToggleButton`
+  group). Don't use `SegmentedButton`; Expressive replaces it.
+- **Picking a value from a Settings row** → `SettingsChoiceSheet`, a bottom sheet
+  of radio rows that opens on the current choice and fits long lists (31 days,
+  every currency).
+- **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
+  spinners inside buttons or rows stay `CircularProgressIndicator`.
+- **Activity progress** (scan, import, export, download) →
+  `LinearWavyProgressIndicator`. **Data meters** (budget used, loan repaid)
+  stay flat `LinearProgressIndicator` — the wave signals *work happening*.
+- Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
+  specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
+  **Spatial** specs (offset, size, scale, rotation) are springs that
+  overshoot: `fast` for small parts, `default` for cards/panels, `slow` for
+  full-screen moves. **Effects** specs (alpha, colour) don't overshoot — also
+  use them for bounded data values (progress fractions, chart sweeps), where
+  a bounce past 100% reads as wrong. `tween` stays only inside
+  `infiniteRepeatable` loops or where a duration is load-bearing.
+- **Buttons morph on press.** Every Material button passes
+  `shapes = ButtonDefaults.shapes()` (icon buttons:
+  `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
+- **Tappable list rows morph too.** `GroupedRow` (with `onClick`) and
+  `ListItemCardV2` (with `onClick`) render as M3 `SegmentedListItem`s: same
+  resting corners, plus the native press/focus morph to `shapes.large`.
+  Static rows stay plain surfaces.
+- **Chips** use the `shapes =` overload (`FilterChipDefaults.shapes()`), which
+  morphs on press and selection. Pass `colors` explicitly; the overload
+  otherwise defaults to tonal colours.
+- **Single-choice menus** use `SelectableDropdownMenuItem` with
+  `MenuDefaults.itemShape(index, count)`, a check in `selectedLeadingIcon`
+  and `MenuDefaults.selectableItemColors(containerColor = Color.Transparent)`.
+  The transparent container matters: the classic `DropdownMenu` surface
+  differs from the item fill, and without it every row reads as a tile.
+  Action menus stay `DropdownMenuItem`. Include/exclude lists whose items are
+  all ticked by default keep checkbox rows (their icons identify them).
+- **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
+  for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
+  expanded app-bar title.
+- The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
+  (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 
 ---
 
@@ -264,8 +320,37 @@ Material You dynamic colour on Android 12+, a branded Rose Pine palette
 true black. Always use semantic roles — never hard-code a colour.
 
 Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
-`income`, `expense`, `credit`, `transfer`, `investment` — each resolves
-light/dark automatically.
+`income`, `expense`, `credit`, `transfer`, `investment`, `loan` — each resolves
+light/dark from the app's scheme. Always use these tokens, never pick a
+`*_dark` / `*_light` constant yourself. When something else must change with
+the theme, check `isAppInDarkTheme()`, not `isSystemInDarkTheme()`: Appearance
+can force Light or Dark regardless of the system.
+
+### What colour means
+
+Most transactions are spending, so the common case stays quiet and red keeps
+its meaning:
+
+- **Spending is ink** (`onSurface`, or the `on*` role of the container it sits
+  on). The sign ("-"), a label or an icon tells it apart, never colour alone.
+- **Income** uses `income`, with a "+".
+- **Credit, transfer, investment, loan** keep their own tokens.
+- **Red (`expense` / `error`) or `warning` only for a problem**: over budget,
+  overdue, a negative net or balance, low balance, limit exceeded, errors.
+- **Charts keep series colours** (the expense line, legend dots): series need
+  to be told apart.
+- **Identity colours** (categories, merchants) stay.
+
+**The accent (`primary`) marks what you can act on or what is in a state:**
+buttons and text actions, the FAB / docked nav action, the selected nav tab,
+chip, toggle or segment, switches and other M3 controls, focus and cursor,
+activity progress, and the one hero CTA on a screen. Structure stays neutral:
+static headings and labels use `onSurface`, decorative icons (info rows, card
+and dialog headers, empty states, banners) and secondary figures use
+`onSurfaceVariant`, at full opacity. Semantic roles (income, expense, error…),
+chart series and category/merchant identity colours keep their colour. If a
+tinted thing can't be tapped and isn't selected or in progress, it shouldn't be
+`primary`.
 
 ---
 

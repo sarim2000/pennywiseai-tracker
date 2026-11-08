@@ -467,6 +467,33 @@ class RuleEngineTest {
         assertFalse(matches("550"))
     }
 
+    @Test
+    fun `time conditions match whichever digits they were saved in`() {
+        val at0915 = transaction(dateTime = LocalDateTime.of(2026, 1, 5, 9, 15))
+        fun matches(field: TransactionField, op: ConditionOperator, value: String) = engine.evaluateRules(
+            at0915, null,
+            listOf(TransactionRule(
+                name = "r",
+                conditions = listOf(RuleCondition(field, op, value)),
+                actions = listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, "Investments"))
+            ))
+        ).second.isNotEmpty()
+
+        val default = java.util.Locale.getDefault()
+        try {
+            // An Arabic default locale must not leak into the field value.
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("ar-SA"))
+            assertTrue(matches(TransactionField.TRANSACTION_HOUR, ConditionOperator.EQUALS, "09"))
+            assertTrue(matches(TransactionField.TRANSACTION_HOUR, ConditionOperator.EQUALS, "٠٩"))
+            assertTrue(matches(TransactionField.TRANSACTION_DAY_OF_MONTH, ConditionOperator.EQUALS, "٠٥"))
+            assertTrue(matches(TransactionField.TRANSACTION_TIME, ConditionOperator.GREATER_THAN_OR_EQUAL, "09:00"))
+            assertTrue(matches(TransactionField.TRANSACTION_TIME, ConditionOperator.LESS_THAN, "٠٩:٣٠"))
+            assertFalse(matches(TransactionField.TRANSACTION_HOUR, ConditionOperator.EQUALS, "١٠"))
+        } finally {
+            java.util.Locale.setDefault(default)
+        }
+    }
+
     private fun transaction(
         bankName: String? = "HDFC Bank",
         accountNumber: String? = "12345678",

@@ -15,19 +15,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -49,7 +52,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.text.style.TextDirection
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.aiaccess.AiRelayClient
@@ -81,7 +85,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
     fun mmss(seconds: Long) = (seconds / 60).toInt() to (seconds % 60).toInt()
 
     PennyWiseScaffold(title = stringResource(R.string.ai_access_title), navigationIcon = {
-        IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, stringResource(R.string.ai_access_back)) }
+        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) { Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ai_access_back)) }
     }) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding).imePadding().padding(horizontal = Spacing.md),
@@ -91,7 +95,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
             item { Text(stringResource(R.string.ai_access_intro), style = MaterialTheme.typography.bodyMedium) }
             if (!isPro) {
                 item { Text(stringResource(R.string.ai_access_pro_only), style = MaterialTheme.typography.titleMedium) }
-                item { Button(onClick = { showUpgrade = true }) { Text(stringResource(R.string.ai_access_unlock)) } }
+                item { Button(onClick = { showUpgrade = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_unlock)) } }
                 return@LazyColumn
             }
             // The relay-address error shows under its field instead.
@@ -115,8 +119,8 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                                 listOf(15, 30, 60).forEach { m ->
                                     val label = stringResource(R.string.ai_access_session_minutes, m)
-                                    if (m == 30) Button(onClick = { viewModel.startSession(m) }) { Text(label) }
-                                    else OutlinedButton(onClick = { viewModel.startSession(m) }) { Text(label) }
+                                    if (m == 30) Button(onClick = { viewModel.startSession(m) }, shapes = ButtonDefaults.shapes()) { Text(label) }
+                                    else OutlinedButton(onClick = { viewModel.startSession(m) }, shapes = ButtonDefaults.shapes()) { Text(label) }
                                 }
                             }
                         } else {
@@ -126,8 +130,8 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                                FilledTonalButton(onClick = viewModel::extendSession) { Text(stringResource(R.string.ai_access_extend)) }
-                                OutlinedButton(onClick = viewModel::stopSession) { Text(stringResource(R.string.ai_access_stop)) }
+                                FilledTonalButton(onClick = viewModel::extendSession, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_extend)) }
+                                OutlinedButton(onClick = viewModel::stopSession, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_stop)) }
                             }
                         }
                     }
@@ -173,7 +177,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                             val (min, sec) = mmss(codeLeft)
                             Text(stringResource(R.string.ai_access_code_left, min, sec), style = MaterialTheme.typography.bodySmall)
                         }
-                        FilledTonalButton(onClick = viewModel::newPairingCode, enabled = !state.busy) {
+                        FilledTonalButton(onClick = viewModel::newPairingCode, enabled = !state.busy, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(if (code != null && codeLeft > 0) R.string.ai_access_new_code else R.string.ai_access_get_code))
                         }
                     }
@@ -195,7 +199,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.ai_access_connected_title), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { viewModel.refreshConnections() }) { Text(stringResource(R.string.ai_access_refresh)) }
+                    TextButton(onClick = { viewModel.refreshConnections() }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_refresh)) }
                 }
             }
             if (state.connections.isEmpty()) {
@@ -211,7 +215,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        TextButton(onClick = { viewModel.revoke(c.id) }, enabled = !state.busy) { Text(stringResource(R.string.ai_access_disconnect)) }
+                        TextButton(onClick = { viewModel.revoke(c.id) }, enabled = !state.busy, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_disconnect)) }
                     }
                 }
             }
@@ -221,7 +225,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
 
             // ── Use your own relay ──
             item {
-                TextButton(onClick = { showRelay = !showRelay }) {
+                TextButton(onClick = { showRelay = !showRelay }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.ai_access_relay_title))
                     Icon(if (showRelay) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
                 }
@@ -246,11 +250,11 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                         )
                         if (locked) Text(stringResource(R.string.ai_access_relay_busy), style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            FilledTonalButton(onClick = { viewModel.setRelayUrl(relayInput) }, enabled = !locked && relayInput.trim() != relayUrl) {
+                            FilledTonalButton(onClick = { viewModel.setRelayUrl(relayInput) }, enabled = !locked && relayInput.trim() != relayUrl, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.ai_access_relay_save))
                             }
                             if (relayUrl != AiRelayClient.DEFAULT_RELAY_URL) {
-                                TextButton(onClick = { viewModel.setRelayUrl(AiRelayClient.DEFAULT_RELAY_URL) }, enabled = !locked) {
+                                TextButton(onClick = { viewModel.setRelayUrl(AiRelayClient.DEFAULT_RELAY_URL) }, enabled = !locked, shapes = ButtonDefaults.shapes()) {
                                     Text(stringResource(R.string.ai_access_relay_reset))
                                 }
                             }
@@ -259,7 +263,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                 }
             }
             item {
-                TextButton(onClick = { confirmReset = true }, enabled = !state.busy) { Text(stringResource(R.string.ai_access_disconnect_all)) }
+                TextButton(onClick = { confirmReset = true }, enabled = !state.busy, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_disconnect_all)) }
             }
         }
     }
@@ -270,8 +274,8 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
             onDismissRequest = { confirmReset = false },
             title = { Text(stringResource(R.string.ai_access_disconnect_all_title)) },
             text = { Text(stringResource(R.string.ai_access_disconnect_all_body)) },
-            confirmButton = { TextButton(onClick = { confirmReset = false; viewModel.disconnectEverything() }) { Text(stringResource(R.string.ai_access_disconnect_all_confirm)) } },
-            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text(stringResource(android.R.string.cancel)) } }
+            confirmButton = { TextButton(onClick = { confirmReset = false; viewModel.disconnectEverything() }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.ai_access_disconnect_all_confirm)) } },
+            dismissButton = { TextButton(onClick = { confirmReset = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(android.R.string.cancel)) } }
         )
     }
 }
@@ -279,7 +283,13 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
 @Composable
 private fun CopyableAddress(address: String, copyLabel: String, onCopy: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(address, fontFamily = FontFamily.Monospace, modifier = Modifier.weight(1f))
-        IconButton(onClick = onCopy) { Icon(Icons.Default.ContentCopy, copyLabel) }
+        // URLs read left-to-right; under RTL a trailing "/" otherwise jumps to the front.
+        Text(
+            address,
+            fontFamily = FontFamily.Monospace,
+            style = LocalTextStyle.current.copy(textDirection = TextDirection.Ltr),
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onCopy, shapes = IconButtonDefaults.shapes()) { Icon(Icons.Default.ContentCopy, copyLabel) }
     }
 }

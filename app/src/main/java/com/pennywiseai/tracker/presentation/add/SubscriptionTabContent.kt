@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.domain.model.icon
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
@@ -119,28 +120,20 @@ fun SubscriptionTabContent(
             // incoming bank-debit SMS like today.
             val isIncome = uiState.direction ==
                 com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                SegmentedButton(
-                    selected = !isIncome,
-                    onClick = {
-                        viewModel.updateSubscriptionDirection(
-                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
-                        )
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    label = { Text(stringResource(R.string.add_sub_direction_expense)) }
-                )
-                SegmentedButton(
-                    selected = isIncome,
-                    onClick = {
-                        viewModel.updateSubscriptionDirection(
-                            com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME
-                        )
-                    },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    label = { Text(stringResource(R.string.add_sub_direction_income)) }
-                )
-            }
+            ConnectedChoiceRow(
+                options = com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.entries,
+                selected = uiState.direction,
+                onSelect = { viewModel.updateSubscriptionDirection(it) },
+                label = { direction ->
+                    stringResource(
+                        if (direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME) {
+                            R.string.add_sub_direction_income
+                        } else {
+                            R.string.add_sub_direction_expense
+                        }
+                    )
+                }
+            )
 
             // Info Card — copy adapts to the chosen direction.
             PennyWiseCardV2(
@@ -184,7 +177,7 @@ fun SubscriptionTabContent(
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = subFullShape,
                         colors = subFilledColors()
@@ -240,7 +233,7 @@ fun SubscriptionTabContent(
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = subFullShape,
                         colors = subFilledColors()
@@ -295,7 +288,7 @@ fun SubscriptionTabContent(
                             Text(
                                 text = uiState.nextPaymentDate.format(DateTimeFormatter.ofPattern("yyyy")),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = uiState.nextPaymentDate.format(AppDates.pattern("dd MMMM")),
@@ -340,7 +333,7 @@ fun SubscriptionTabContent(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         shape = subMiddleShape,
                         leadingIcon = { SelectedCategoryIcon(categories.find { it.name == uiState.category }) },
                         trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
@@ -424,7 +417,8 @@ fun SubscriptionTabContent(
                     if (uiState.selectedAccount != null) {
                         IconButton(
                             onClick = { viewModel.updateSubscriptionAccount(null) },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.Clear,
@@ -447,7 +441,10 @@ fun SubscriptionTabContent(
                 expanded = showAccountMenu,
                 onDismissRequest = { showAccountMenu = false }
             ) {
-                DropdownMenuItem(
+                SelectableDropdownMenuItem(
+                    selected = uiState.selectedAccount == null,
+                    shapes = MenuDefaults.itemShape(0, 1),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                     text = {
                         Column {
                             Text(stringResource(R.string.add_sub_no_account))
@@ -462,7 +459,8 @@ fun SubscriptionTabContent(
                         viewModel.updateSubscriptionAccount(null)
                         showAccountMenu = false
                     },
-                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                 )
                 HorizontalDivider()
                 val groupedAccounts = accounts.groupBy { it.getAccountType() }
@@ -479,15 +477,18 @@ fun SubscriptionTabContent(
                         onClick = {},
                         enabled = false
                     )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
+                    accountList.forEachIndexed { index, account ->
+                        SelectableDropdownMenuItem(
+                            selected = uiState.selectedAccount?.id == account.id,
+                            shapes = MenuDefaults.itemShape(index, accountList.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = {
                                 Column {
                                     Text(account.displayLabel)
                                     Text(
                                         CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },
@@ -501,11 +502,7 @@ fun SubscriptionTabContent(
                                     contentDescription = null
                                 )
                             },
-                            trailingIcon = {
-                                if (uiState.selectedAccount?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }
@@ -538,7 +535,8 @@ fun SubscriptionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -572,11 +570,12 @@ fun SubscriptionTabContent(
                             viewModel.updateSubscriptionNextPaymentDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)

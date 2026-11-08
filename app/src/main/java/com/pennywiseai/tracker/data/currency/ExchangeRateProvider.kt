@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.currency
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.android.*
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -10,6 +10,8 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -37,7 +39,7 @@ interface ExchangeRateProvider {
  */
 class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
 
-    private val client = HttpClient(Android) {
+    private val client = HttpClient(OkHttp) {
         // Bound every request so a hung socket can't stall callers indefinitely —
         // important because rate fetches are serialized on a shared mutex, so one
         // stuck request would otherwise block all currency conversions.
@@ -65,6 +67,7 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
             val rates = fetchAllExchangeRates(fromCurrency)
             rates?.get(toCurrency.uppercase())
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             println("Failed to fetch exchange rate from API: ${e.message}")
             null
         }
@@ -100,6 +103,9 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
                 }
             }
         } catch (e: Exception) {
+            // A replaced widget worker cancels us mid-request. That's not the API
+            // failing, and returning null would arm the 5-minute fetch cooldown.
+            currentCoroutineContext().ensureActive()
             println("Failed to fetch exchange rates from API: ${e.message}")
             null
         }
@@ -117,6 +123,7 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
                 "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB"
             )
         } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
             listOf(
                 "AED", "USD", "EUR", "GBP", "INR", "THB", "MYR", "SGD", "KWD", "KRW",
                 "CAD", "MXN", "AUD", "JPY", "CNY", "NPR", "ETB"

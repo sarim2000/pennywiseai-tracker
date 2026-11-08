@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Lê de novo as transações de SMS para aplicar correções de leitura. Edições em transações de SMS são desfeitas. Transações manuais, importadas, de empréstimo e agrupadas são mantidas.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Mais opções</string>
-    <string name="home_menu_monthly_recap">Resumo mensal</string>
     <string name="home_menu_settings">Configurações</string>
     <string name="home_menu_edit_home">Editar tela inicial</string>
     <string name="home_menu_discord">Junte-se ao Discord para feedback</string>
@@ -145,8 +144,8 @@
     <string name="account_card_outstanding">Pendentes</string>
     <string name="account_card_balance">Saldo</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% mais vs mês passado</string>
-    <string name="balance_card_change_less">%1$d%% menos vs o último mês</string>
+    <string name="balance_card_change_more_same_point">%1$d%% a mais que no mesmo período do mês passado</string>
+    <string name="balance_card_change_less_same_point">%1$d%% a menos que no mesmo período do mês passado</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Saldo: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -159,7 +158,6 @@
     <string name="balance_card_accounts">Organizações</string>
     <string name="balance_card_credit_cards">Cartões de crédito</string>
     <string name="balance_card_total">Total:</string>
-    <string name="balance_card_approximate_note">* Alguns saldos não puderam ser convertidos e são mostrados na moeda original (a soma total é aproximada).</string>
     <string name="balance_card_spent_this_month">Gasto este mês</string>
     <string name="balance_card_change_currency">Alterar moeda</string>
     <string name="balance_card_summary_income">Rendimento</string>
@@ -266,21 +264,25 @@
     <string name="notif_txn_channel_description">Notificações para novas transações</string>
     <string name="notif_txn_unknown_merchant">Desconhecido</string>
     <string name="notif_txn_unknown_bank">Banco</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠️ Saldo desligado por %1$s — esperado %2$s, o banco diz %3$s</string>
     <string name="notif_txn_action_more">Mais…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Nova transação</string>
-    <string name="notif_txn_public_text">%1$s • O saldo precisa de uma olhada</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">Gastou %1$s em %2$s</string>
-    <string name="notif_txn_title_received">Recebeu %1$s de %2$s</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • confira o saldo</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">Gastou %1$s</string>
+    <string name="notif_txn_title_received">Recebeu %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">Foi para quê? · %1$s</string>
-    <string name="notif_txn_action_change">Alterar</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">Foi para quê?</string>
+    <string name="notif_txn_action_change">Alterar categoria</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Não é despesa</string>
+    <string name="notif_txn_action_not_income">Não é receita</string>
+    <string name="notif_txn_excluded_spending">Não vai contar como gasto</string>
+    <string name="notif_txn_excluded_income">Não vai contar como receita</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Seu saldo está %1$s acima do registrado</string>
+    <string name="notif_balance_lower">Seu saldo está %1$s abaixo do registrado</string>
+    <string name="notif_balance_text">Pode estar faltando uma transação. Toque para revisar.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Salvo como %1$s</string>
     <string name="notif_txn_learned_text">Pagamentos aqui serão classificados automaticamente daqui para frente.</string>
@@ -301,7 +303,13 @@
         <item quantity="one">%d precisa de categoria</item>
         <item quantity="other">%d precisam de categoria</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">classifique-a para contar só os gastos reais</item>
+        <item quantity="other">classifique-as para contar só os gastos reais</item>
+    </plurals>
     <string name="notif_daily_action_sort">Classificar</string>
+    <string name="notif_daily_action_sort_all">Classificar</string>
     <string name="notif_daily_action_cash">+ Dinheiro</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -315,6 +323,10 @@
     <string name="pro_home_card_body">O Pro adiciona regras, metas, exportações e importações de extratos ilimitadas.</string>
     <string name="pro_home_card_action">Ver o Pro</string>
     <string name="pro_home_card_dismiss">Dispensar</string>
+    <string name="home_payday_card_title">Começar o orçamento no dia do pagamento?</string>
+    <string name="home_payday_card_body">Parece que seu salário cai no dia %1$d do mês. Começar cada mês do orçamento nesse dia? Você pode mudar isso nas Configurações.</string>
+    <string name="home_payday_card_action">Começar no dia %1$d</string>
+    <string name="home_payday_card_dismiss">Dispensar</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">No ritmo para %1$s até %2$s</string>
     <string name="forecast_over_usual">%1$s acima do normal</string>

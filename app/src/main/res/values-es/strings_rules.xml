@@ -231,6 +231,9 @@
     <string name="onboarding_continue">Continuar</string>
     <string name="onboarding_start_scanning">Empezar a escanear</string>
     <string name="onboarding_finish">Finalizar</string>
+    <string name="onboarding_bank_missing_title">¿No encontramos tu banco?</string>
+    <string name="onboarding_bank_missing_body">Solicita soporte para tu banco y lo añadiremos a PennyWise.</string>
+    <string name="onboarding_bank_missing_action">Solicitar mi banco</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">Descargando modelo...</string>
     <string name="chat_model_required_title">Se necesita el modelo de AI</string>
@@ -282,6 +285,7 @@
     <string name="chat_action_update">Actualizar</string>
     <string name="chat_action_change_merchant">comercio → %1$s</string>
     <string name="chat_action_change_category">categoría → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">No se pudo aplicar: %1$s</string>
     <string name="chat_error_memory_full">La memoria del chat está llena. Borra el chat para continuar.</string>

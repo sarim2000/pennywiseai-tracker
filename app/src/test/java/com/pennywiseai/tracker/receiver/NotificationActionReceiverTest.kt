@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.receiver
 
-import androidx.room.DatabaseConfiguration
-import androidx.room.InvalidationTracker
-import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -89,9 +86,7 @@ class NotificationActionReceiverTest {
         override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
         override fun webhookCursorDao(): WebhookCursorDao = error("unused")
         override fun goalDao(): com.pennywiseai.tracker.data.database.dao.GoalDao = error("unused")
-        override fun createOpenHelper(config: DatabaseConfiguration): SupportSQLiteOpenHelper = error("unused")
-        override fun createInvalidationTracker(): InvalidationTracker = error("unused")
-        override fun clearAllTables() {}
+        override suspend fun clearAllTables() {}
     }
 
     @Before
@@ -204,7 +199,8 @@ class NotificationActionReceiverTest {
         accountBalanceRepository = object : AccountBalanceRepository(
             accountBalanceDao,
             transactionDao,
-            TestDb()
+            TestDb(),
+            io.mockk.mockk(relaxed = true)
         ) {
             override suspend fun applyDeleteBalanceShift(transaction: TransactionEntity) {
                 val bank = transaction.bankName ?: return

@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.ui.components
 import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
 import com.pennywiseai.tracker.ui.theme.yellow_on_dark
 import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
-import androidx.compose.ui.graphics.luminance
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,8 +45,7 @@ fun ProHomeCard(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Follows the app's theme (which can override the system), not isSystemInDarkTheme().
-    val dark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val dark = isAppInDarkTheme()
     val container = if (dark) yellow_surface_dark else yellow_light
     val ink = if (dark) yellow_on_dark else yellow_on_light
     val accent = if (dark) yellow_accent_dark else yellow_dark
@@ -88,10 +88,11 @@ fun ProHomeCard(
                 onClick = onSeePro,
                 // yellow_dark on yellow_light is ~2.5:1 — too faint for a text label (AA 4.5:1).
                 colors = ButtonDefaults.textButtonColors(contentColor = if (dark) accent else ink),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Text(stringResource(R.string.pro_home_card_action))
             }
-            IconButton(onClick = onDismiss) {
+            IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.Default.Close,
                     contentDescription = stringResource(R.string.pro_home_card_dismiss),

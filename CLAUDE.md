@@ -20,7 +20,10 @@ complaint.
    `CurrencyFormatter.formatCurrency(amount, currencyCode)` (or the
    `formatBalance()` / `formatAmount()` entity extensions) — never the
    currency-less overload (it defaults to ₹ and is `@Deprecated(ERROR)`, so it
-   won't compile).
+   won't compile). It returns `••••` while the user hides amounts
+   (`AmountPrivacy`); anything that leaves the screen or is stored
+   (notifications, AI prompts/chat text, logs, widgets) passes
+   `maskIfHidden = false`.
 2. **Never sum amounts across currencies.** "₹500 + $10" is not 510 of anything.
    Total a possibly-mixed list with `Iterable.sumByCurrency({ it.currency },
    { it.amount })` (`utils/MoneyTotals.kt`) → `Map<currency, Money>`, and render
@@ -91,6 +94,7 @@ part of the gate — don't use them to verify.
 | Adding a bank parser | `docs/adding-bank-parsers.md` | New/changed parser in `parser-core` |
 | Parser tests | `docs/parser-test-standards.md` | Writing parser tests |
 | DB migrations | `docs/database-migrations.md` | Room schema changes |
+| Performance | `docs/performance.md` | Baseline Profiles, Macrobenchmark, startup or scroll timing |
 | Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (170 banks, 26 countries) |
 | AI access (MCP relay, dashboard) | `docs/ai-access.md`, `relay/README.md`, `docs/adr/0002-*` | Touching `aiaccess/`, the relay or the dashboard |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |

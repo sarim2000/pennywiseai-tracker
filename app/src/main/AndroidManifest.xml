@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- SMS Permissions for reading and receiving transaction messages -->
+    <!-- Shake to hide amounts: a short buzz confirms the shake. Install-time, no prompt. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
 
@@ -52,6 +54,7 @@
         android:theme="@style/Theme.Pennywisecompose">
 
         <!-- GPU acceleration for LiteRT-LM (optional) -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
 
         <activity
@@ -183,6 +186,11 @@
                 <action android:name="com.pennywiseai.tracker.ACTION_CONFIRM_TRANSACTION" />
             </intent-filter>
         </receiver>
+
+        <!-- "Bill due tomorrow" reminder actions: paid in cash / skip this time -->
+        <receiver
+            android:name=".receiver.BillReminderActionReceiver"
+            android:exported="false" />
 
         <!-- Notification listener for bank app notifications -->
         <service

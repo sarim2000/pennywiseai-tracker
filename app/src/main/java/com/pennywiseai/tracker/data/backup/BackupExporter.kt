@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -281,7 +282,13 @@ class BackupExporter @Inject constructor(
                     bankAccountMerges = if (privacy == ExportPrivacy.FULL) {
                         BankAccountMergeStore(context).mappings()
                     } else emptyMap(),
-                    upiId = if (privacy == ExportPrivacy.FULL) userPreferencesRepository.upiId.first() else null
+                    upiId = if (privacy == ExportPrivacy.FULL) userPreferencesRepository.upiId.first() else null,
+                    dismissedRecurringSuggestions = if (privacy == ExportPrivacy.FULL) {
+                        userPreferencesRepository.dismissedRecurringSuggestions.first().sorted()
+                    } else emptyList(),
+                    taughtTemplates = if (privacy == ExportPrivacy.FULL) {
+                        TaughtTemplatesStore(context).exported()
+                    } else emptyList()
                 )
             ),
             receipts = exportedReceipts

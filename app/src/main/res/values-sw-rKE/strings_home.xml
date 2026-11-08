@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Husoma upya miamala ya SMS ili kupata marekebisho ya usomaji. Mabadiliko kwenye miamala ya SMS yanarudishwa kama awali. Miamala uliyoweka mwenyewe, iliyoingizwa, ya mikopo na ya makundi inabaki.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Chaguo Zaidi</string>
-    <string name="home_menu_monthly_recap">Muhtasari wa mwezi</string>
     <string name="home_menu_settings">Mipangilio</string>
     <string name="home_menu_edit_home">Hariri skrini ya mwanzo</string>
     <string name="home_menu_discord">Jiunge na Discord kutoa maoni</string>
@@ -143,8 +142,8 @@
     <string name="account_card_outstanding">Deni</string>
     <string name="account_card_balance">Salio</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% zaidi ya mwezi uliopita</string>
-    <string name="balance_card_change_less">%1$d%% chini ya mwezi uliopita</string>
+    <string name="balance_card_change_more_same_point">%1$d%% zaidi ya wakati kama huu mwezi uliopita</string>
+    <string name="balance_card_change_less_same_point">%1$d%% chini ya wakati kama huu mwezi uliopita</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Salio: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -157,7 +156,6 @@
     <string name="balance_card_accounts">Akaunti</string>
     <string name="balance_card_credit_cards">Kadi za Mkopo</string>
     <string name="balance_card_total">Jumla</string>
-    <string name="balance_card_approximate_note">* Baadhi ya salio hazikuweza kubadilishwa na zimeonyeshwa kwa sarafu yake asili (jumla ni ya kukadiria).</string>
     <string name="balance_card_spent_this_month">Matumizi mwezi huu</string>
     <string name="balance_card_change_currency">Badilisha sarafu</string>
     <string name="balance_card_summary_income">Mapato</string>
@@ -261,20 +259,25 @@
     <string name="notif_txn_channel_description">Arifa za miamala mipya</string>
     <string name="notif_txn_unknown_merchant">Haijulikani</string>
     <string name="notif_txn_unknown_bank">Benki</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ Salio limetofautiana kwa %1$s — lilitarajiwa %2$s, benki inasema %3$s</string>
     <string name="notif_txn_action_more">Zaidi…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Muamala mpya</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • salio linahitaji kuangaliwa</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">Umetumia %1$s kwa %2$s</string>
-    <string name="notif_txn_title_received">Umepokea %1$s kutoka %2$s</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">Umetumia %1$s</string>
+    <string name="notif_txn_title_received">Umepokea %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">Hii ilikuwa ya nini? · %1$s</string>
-    <string name="notif_txn_action_change">Badilisha</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">Hii ilikuwa ya nini?</string>
+    <string name="notif_txn_action_change">Badilisha kategoria</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Si matumizi</string>
+    <string name="notif_txn_action_not_income">Si mapato</string>
+    <string name="notif_txn_excluded_spending">Haitahesabiwa kama matumizi</string>
+    <string name="notif_txn_excluded_income">Haitahesabiwa kama mapato</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Salio lako ni %1$s zaidi ya lililorekodiwa</string>
+    <string name="notif_balance_lower">Salio lako ni %1$s pungufu ya lililorekodiwa</string>
+    <string name="notif_balance_text">Huenda muamala umekosekana. Gusa ili kukagua.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Imehifadhiwa kama %1$s</string>
     <string name="notif_txn_learned_text">Malipo ya hapa yatapangwa yenyewe kuanzia sasa.</string>
@@ -295,7 +298,13 @@
         <item quantity="one">%d unahitaji kategoria</item>
         <item quantity="other">%d inahitaji kategoria</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">ipange ili matumizi halisi tu yahesabiwe</item>
+        <item quantity="other">zipange ili matumizi halisi tu yahesabiwe</item>
+    </plurals>
     <string name="notif_daily_action_sort">Panga</string>
+    <string name="notif_daily_action_sort_all">Panga</string>
     <string name="notif_daily_action_cash">+ Pesa taslimu</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -309,6 +318,10 @@
     <string name="pro_home_card_body">Pro inaongeza kanuni, malengo, uhamishaji wa data na uingizaji wa taarifa za benki bila kikomo.</string>
     <string name="pro_home_card_action">Ona Pro</string>
     <string name="pro_home_card_dismiss">Ondoa</string>
+    <string name="home_payday_card_title">Anza bajeti siku ya mshahara?</string>
+    <string name="home_payday_card_body">Inaonekana mshahara wako hufika tarehe %1$d ya mwezi. Ungependa kila mwezi wa bajeti uanze siku hiyo? Unaweza kubadilisha hili kwenye Mipangilio.</string>
+    <string name="home_payday_card_action">Anza tarehe %1$d</string>
+    <string name="home_payday_card_dismiss">Ondoa</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Unaelekea %1$s kufikia %2$s</string>
     <string name="forecast_over_usual">%1$s zaidi ya kawaida</string>

@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -150,7 +150,7 @@ fun ExportTransactionsDialog(
                                     Text(
                                         text = transactions.size.toString(),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                                 
@@ -173,7 +173,7 @@ fun ExportTransactionsDialog(
                                         Text(
                                             text = stringResource(R.string.txn_export_date_range_value, startDate, endDate),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }
@@ -198,6 +198,7 @@ fun ExportTransactionsDialog(
                                 TextButton(
                                     onClick = { showUpgradeSheet = true },
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                    shapes = ButtonDefaults.shapes(),
                                 ) {
                                     Text(
                                         text = stringResource(R.string.txn_export_unlock_all),
@@ -211,7 +212,7 @@ fun ExportTransactionsDialog(
                     }
 
                     is ExportState.Exporting -> {
-                        LinearProgressIndicator(
+                        LinearWavyProgressIndicator(
                             progress = { state.progress },
                             modifier = Modifier.fillMaxWidth(),
                         )
@@ -298,7 +299,8 @@ fun ExportTransactionsDialog(
                         is ExportState.Ready -> {
                             TextButton(
                                 onClick = onDismiss,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_cancel))
                             }
@@ -336,7 +338,8 @@ fun ExportTransactionsDialog(
                                         }
                                     }
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(
                                     if (willTruncate) stringResource(R.string.txn_export_action_export_first, csvLimit) else stringResource(R.string.txn_export_action_export)
@@ -351,7 +354,8 @@ fun ExportTransactionsDialog(
                         is ExportState.Success -> {
                             TextButton(
                                 onClick = onDismiss,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_done))
                             }
@@ -367,7 +371,8 @@ fun ExportTransactionsDialog(
                                     }
                                     context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.txn_export_share_chooser_title)))
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Share,
@@ -382,7 +387,8 @@ fun ExportTransactionsDialog(
                         is ExportState.Error -> {
                             TextButton(
                                 onClick = onDismiss,
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_close))
                             }
@@ -391,7 +397,8 @@ fun ExportTransactionsDialog(
                                 onClick = {
                                     exportState = ExportState.Ready
                                 },
-                                modifier = Modifier.weight(1f)
+                                modifier = Modifier.weight(1f),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.txn_export_action_retry))
                             }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -20,7 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,7 +41,6 @@ import com.pennywiseai.tracker.presentation.home.safeToSpendKey
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.formatBalance
@@ -174,7 +175,7 @@ fun SafeToSpendSheet(
     val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
         containerColor = MaterialTheme.colorScheme.surface,
         // M3 wraps the handle slot in a clickable whose hover/focus state layer draws a
         // grey square behind the pill. The same pill as plain content has none.
@@ -206,7 +207,7 @@ fun SafeToSpendSheet(
             SectionHeaderV2(
                 title = stringResource(R.string.safe_to_spend_accounts),
                 action = {
-                    TextButton(onClick = { choosing = !choosing }) {
+                    TextButton(onClick = { choosing = !choosing }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(if (choosing) R.string.safe_to_spend_done else R.string.safe_to_spend_choose_accounts))
                     }
                 }
@@ -265,7 +266,7 @@ fun SafeToSpendSheet(
                             Text(
                                 text = "-" + CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency),
                                 style = PennyWiseText.amountRow,
-                                color = MaterialTheme.colorScheme.expense
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }

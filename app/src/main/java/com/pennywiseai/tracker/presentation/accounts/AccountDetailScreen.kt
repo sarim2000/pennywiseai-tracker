@@ -11,7 +11,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -36,7 +35,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -75,7 +74,7 @@ fun AccountDetailScreen(
                 title = AccountBalanceEntity.accountLabel(uiState.bankName, uiState.accountLast4),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
@@ -221,7 +220,7 @@ private fun ExpandableBalanceChart(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ShowChart,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                         Text(
@@ -421,22 +420,22 @@ private fun SummaryStatistics(
                     label = stringResource(R.string.account_detail_income),
                     value = formatWithEstimatedDisplay(totalIncome, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.AutoMirrored.Filled.TrendingUp,
-                    color = if (!isSystemInDarkTheme()) income_light else income_dark
+                    color = MaterialTheme.colorScheme.income
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_expenses),
                     value = formatWithEstimatedDisplay(totalExpenses, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_net),
                     value = formatWithEstimatedDisplay(netBalance, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.Default.AccountBalanceWallet,
                     color = if (netBalance >= BigDecimal.ZERO) {
-                        if (!isSystemInDarkTheme()) income_light else income_dark
+                        MaterialTheme.colorScheme.income
                     } else {
-                        if (!isSystemInDarkTheme()) expense_light else expense_dark
+                        MaterialTheme.colorScheme.expense
                     }
                 )
             }
@@ -506,6 +505,7 @@ private fun DateRangeFilter(
         items(DateRange.values().toList()) { range ->
             FilterChip(
                 selected = selectedRange == range,
+                shapes = FilterChipDefaults.shapes(),
                 onClick = { onRangeSelected(range) },
                 label = { Text(stringResource(range.labelRes)) },
                 colors = FilterChipDefaults.filterChipColors(
@@ -524,11 +524,17 @@ private fun AccountTransactionItem(
     onClick: () -> Unit
 ) {
     val amountColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (!isSystemInDarkTheme()) income_light else income_dark
-        TransactionType.EXPENSE -> if (!isSystemInDarkTheme()) expense_light else expense_dark
-        TransactionType.CREDIT -> if (!isSystemInDarkTheme()) credit_light else credit_dark
-        TransactionType.TRANSFER -> if (!isSystemInDarkTheme()) transfer_light else transfer_dark
-        TransactionType.INVESTMENT -> if (!isSystemInDarkTheme()) investment_light else investment_dark
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
+    }
+    // Same sign convention as TransactionItem, so expense vs income reads without colour.
+    val amountPrefix = when (transaction.transactionType) {
+        TransactionType.INCOME -> "+"
+        TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "-"
+        TransactionType.TRANSFER -> ""
     }
     
     Card(
@@ -596,7 +602,7 @@ private fun AccountTransactionItem(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency),
+                    text = CurrencyFormatter.signed(amountPrefix, CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency)),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = amountColor

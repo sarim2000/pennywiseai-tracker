@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.data.webhook
 
-import androidx.room.Room
-import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
+import androidx.room3.Room
+import androidx.sqlite.execSQL
+import com.pennywiseai.tracker.data.database.longs
+import com.pennywiseai.tracker.data.database.pennyWiseMigrationHelper
+import com.pennywiseai.tracker.data.database.rows
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.repository.WebhookRepository
@@ -20,29 +22,23 @@ import java.time.LocalDateTime
 @RunWith(AndroidJUnit4::class)
 class WebhookDatabaseTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
-    @get:Rule val helper = MigrationTestHelper(instrumentation, PennyWiseDatabase::class.java,
-        emptyList(), FrameworkSQLiteOpenHelperFactory())
+    @get:Rule val helper = pennyWiseMigrationHelper(instrumentation, "webhook-migration-test")
 
-    @Test fun upgradeFrom62PreservesTransactionsAndValidatesSchema() {
+    @Test fun upgradeFrom62PreservesTransactionsAndValidatesSchema() = runBlocking {
         val name = "webhook-migration-test"
-        helper.createDatabase(name, 62).apply {
+        helper.createDatabase(62).apply {
             execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
                 transaction_hash, is_recurring, created_at, updated_at) VALUES
                 (1, '12.50', 'Test merchant', 'Food', 'EXPENSE', '2026-01-01T12:00:00',
                 'synthetic', 0, '2026-01-01T12:00:00', '2026-01-01T12:00:00')""")
             close()
         }
-        helper.runMigrationsAndValidate(name, 63, true, PennyWiseDatabase.MIGRATION_62_63).use { db ->
-            db.query("SELECT amount FROM transactions WHERE id = 1").use {
-                assertTrue(it.moveToFirst())
-                assertEquals("12.50", it.getString(0))
-            }
-            db.query("SELECT COUNT(*) FROM webhook_profiles").use {
-                assertTrue(it.moveToFirst())
-                assertEquals(0, it.getInt(0))
-            }
+        helper.runMigrationsAndValidate(63, listOf(PennyWiseDatabase.MIGRATION_62_63)).use { db ->
+            assertEquals(listOf(listOf("12.50")), db.rows("SELECT amount FROM transactions WHERE id = 1"))
+            assertEquals(listOf(listOf("0")), db.rows("SELECT COUNT(*) FROM webhook_profiles"))
         }
         instrumentation.targetContext.deleteDatabase(name)
+        Unit
     }
 
     @Test fun editPreservesLogsAndCursorsAndDeleteCascades() = runBlocking {
@@ -55,14 +51,10 @@ class WebhookDatabaseTest {
             db.webhookCursorDao().upsert(WebhookCursorEntity(profile.id, WebhookDataType.TRANSACTIONS, LocalDateTime.now()))
             db.webhookProfileDao().upsert(profile.copy(name = "Edited"))
             assertEquals(1, db.webhookCursorDao().forProfile(profile.id).size)
-            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM webhook_logs").use {
-                assertTrue(it.moveToFirst()); assertEquals(1, it.getInt(0))
-            }
+            assertEquals(listOf(1L), db.longs("SELECT COUNT(*) FROM webhook_logs"))
             db.webhookProfileDao().delete(profile.id)
             assertTrue(db.webhookCursorDao().forProfile(profile.id).isEmpty())
-            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM webhook_logs").use {
-                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
-            }
+            assertEquals(listOf(0L), db.longs("SELECT COUNT(*) FROM webhook_logs"))
         } finally { db.close() }
     }
 
@@ -125,9 +117,7 @@ class WebhookDatabaseTest {
             assertTrue(db.webhookCursorDao().forProfile(profile.id).isEmpty())
             assertNull(db.webhookProfileDao().byId(profile.id)?.lastSyncedAt)
             repository.recordDelivery(profile, listOf(WebhookTransactionPayload("txn_1", "upsert", updatedAt = now.toString())))
-            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM webhook_delivered_transactions").use {
-                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
-            }
+            assertEquals(listOf(0L), db.longs("SELECT COUNT(*) FROM webhook_delivered_transactions"))
         } finally { db.close() }
     }
 
@@ -164,9 +154,7 @@ class WebhookDatabaseTest {
                 .getWebhookChanges(now, now.plusHours(1), "INR", profile.id).single(), "INR").action)
             repository.recordDelivery(profile, listOf(webhookTransactionPayload(row)))
             db.webhookProfileDao().delete(profile.id)
-            db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM webhook_delivered_transactions").use {
-                assertTrue(it.moveToFirst()); assertEquals(0, it.getInt(0))
-            }
+            assertEquals(listOf(0L), db.longs("SELECT COUNT(*) FROM webhook_delivered_transactions"))
         } finally { db.close() }
     }
 

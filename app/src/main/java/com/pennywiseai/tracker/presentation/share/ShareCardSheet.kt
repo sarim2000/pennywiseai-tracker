@@ -5,6 +5,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -14,14 +16,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,10 +42,11 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.data.share.ShareCardExporter
 import com.pennywiseai.tracker.ui.components.ShareCard
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -54,16 +60,16 @@ import kotlinx.coroutines.launch
  * generate-and-fling from someone's financial data would be the wrong shape for this
  * app. Customisation is collapsed by default so the repeat path stays two taps.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ShareCardSheet(
     onDismiss: () -> Unit,
-    initialPeriod: SharePeriod? = null,
+    window: ShareWindow? = null,
     viewModel: ShareCardViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     val config by viewModel.config.collectAsStateWithLifecycle()
     val loadedData by viewModel.data.collectAsStateWithLifecycle()
@@ -71,12 +77,8 @@ fun ShareCardSheet(
     // let a previous profile's or period's numbers go out under the current label.
     val data = loadedData ?: ShareCardData()
 
-    // The monthly prompt opens on the finished month regardless of the saved period,
-    // but doesn't overwrite the user's saved choice. Reported even when there is no
-    // override: the ViewModel outlives the sheet, so a plain opening has to clear a
-    // previous viewing's override.
-    LaunchedEffect(initialPeriod) {
-        viewModel.setPeriodOverride(initialPeriod)
+    LaunchedEffect(window) {
+        viewModel.setWindow(window)
     }
 
     var showCustomise by remember { mutableStateOf(false) }
@@ -115,21 +117,23 @@ fun ShareCardSheet(
                     scope.launch {
                         val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
                         val uri = ShareCardExporter.writeCard(context, bitmap)
+                        val hero = config.effectiveHero(data.subscriptionCount, data.merchantCount)
                         context.startActivity(
                             ShareCardExporter.shareIntent(
-                                uri, config, data.transactionCount, data.subscriptionCount
+                                uri, ShareCardExporter.shareText(context, hero, data.countFor(hero))
                             )
                         )
                         onDismiss()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes(),
             ) {
                 Icon(Icons.Default.Share, contentDescription = null)
                 Text(stringResource(R.string.share_sheet_share), modifier = Modifier.padding(start = Spacing.sm))
             }
 
-            TextButton(onClick = { showCustomise = !showCustomise }) {
+            TextButton(onClick = { showCustomise = !showCustomise }, shapes = ButtonDefaults.shapes()) {
                 Text(if (showCustomise) stringResource(R.string.share_sheet_done) else stringResource(R.string.share_sheet_customise))
             }
 
@@ -148,29 +152,46 @@ fun ShareCardSheet(
                     )
                     // Selection reflects the hero actually drawn, not the stored one, so
                     // the chip can never disagree with the card above it.
-                    val effectiveHero = config.effectiveHero(data.subscriptionCount)
+                    val effectiveHero = config.effectiveHero(data.subscriptionCount, data.merchantCount)
                     val hasSubscriptions = data.subscriptionCount > 0
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         FilterChip(
                             selected = effectiveHero == ShareHero.TRANSACTIONS,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 viewModel.updateConfig { it.copy(hero = ShareHero.TRANSACTIONS) }
                             },
                             label = { Text(stringResource(R.string.share_sheet_transactions)) },
                         )
                         FilterChip(
-                            selected = effectiveHero == ShareHero.SUBSCRIPTIONS,
-                            // Disabled rather than silently ignored: tapping a chip and
-                            // seeing nothing happen reads as a bug, not as a choice the
-                            // data can't support.
-                            enabled = hasSubscriptions,
+                            selected = effectiveHero == ShareHero.MERCHANTS,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
+                            enabled = data.merchantCount > 0,
                             onClick = {
-                                viewModel.updateConfig { it.copy(hero = ShareHero.SUBSCRIPTIONS) }
+                                viewModel.updateConfig { it.copy(hero = ShareHero.MERCHANTS) }
                             },
-                            label = { Text(stringResource(R.string.share_sheet_subscriptions)) },
+                            label = { Text(stringResource(R.string.share_sheet_merchants)) },
                         )
+                        // Not offered for a review's period: it's today's count, not that period's.
+                        if (window == null) {
+                            FilterChip(
+                                selected = effectiveHero == ShareHero.SUBSCRIPTIONS,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                // Disabled rather than silently ignored: tapping a chip and
+                                // seeing nothing happen reads as a bug, not as a choice the
+                                // data can't support.
+                                enabled = hasSubscriptions,
+                                onClick = {
+                                    viewModel.updateConfig { it.copy(hero = ShareHero.SUBSCRIPTIONS) }
+                                },
+                                label = { Text(stringResource(R.string.share_sheet_subscriptions)) },
+                            )
+                        }
                     }
-                    if (!hasSubscriptions) {
+                    if (!hasSubscriptions && window == null) {
                         Text(
                             text = stringResource(R.string.share_sheet_no_subscriptions),
                             style = MaterialTheme.typography.bodySmall,
@@ -179,33 +200,42 @@ fun ShareCardSheet(
                         )
                     }
 
-                    Text(
-                        text = stringResource(R.string.share_sheet_period),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        FilterChip(
-                            selected = config.period == SharePeriod.THIS_MONTH,
-                            onClick = {
-                                viewModel.updateConfig { it.copy(period = SharePeriod.THIS_MONTH) }
-                            },
-                            label = { Text(stringResource(R.string.share_sheet_this_month)) },
+                    // A review chose the dates already.
+                    if (window == null) {
+                        Text(
+                            text = stringResource(R.string.share_sheet_period),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.xs),
                         )
-                        FilterChip(
-                            selected = config.period == SharePeriod.LAST_MONTH,
-                            onClick = {
-                                viewModel.updateConfig { it.copy(period = SharePeriod.LAST_MONTH) }
-                            },
-                            label = { Text(stringResource(R.string.share_sheet_last_month)) },
-                        )
-                        FilterChip(
-                            selected = config.period == SharePeriod.ALL_TIME,
-                            onClick = {
-                                viewModel.updateConfig { it.copy(period = SharePeriod.ALL_TIME) }
-                            },
-                            label = { Text(stringResource(R.string.share_sheet_all_time)) },
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            FilterChip(
+                                selected = config.period == SharePeriod.THIS_MONTH,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                onClick = {
+                                    viewModel.updateConfig { it.copy(period = SharePeriod.THIS_MONTH) }
+                                },
+                                label = { Text(stringResource(R.string.share_sheet_this_month)) },
+                            )
+                            FilterChip(
+                                selected = config.period == SharePeriod.LAST_MONTH,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                onClick = {
+                                    viewModel.updateConfig { it.copy(period = SharePeriod.LAST_MONTH) }
+                                },
+                                label = { Text(stringResource(R.string.share_sheet_last_month)) },
+                            )
+                            FilterChip(
+                                selected = config.period == SharePeriod.ALL_TIME,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                onClick = {
+                                    viewModel.updateConfig { it.copy(period = SharePeriod.ALL_TIME) }
+                                },
+                                label = { Text(stringResource(R.string.share_sheet_all_time)) },
+                            )
+                        }
                     }
                 }
             }

@@ -68,6 +68,7 @@ class RecurringTransactionWorker @AssistedInject constructor(
             if (created > 0) {
                 // New transactions landed — keep the home/transactions widgets fresh.
                 WidgetRefresher.refreshTransactionWidgets(applicationContext)
+                MoneyAlertWorker.enqueue(applicationContext)
             }
             Result.success()
         } catch (e: Exception) {

@@ -4,9 +4,10 @@ import org.gradle.api.tasks.PathSensitivity
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
@@ -21,8 +22,8 @@ android {
         applicationId = "com.pennywiseai.tracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 108
-        versionName = "2.24.0"
+        versionCode = 109
+        versionName = "2.25.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -147,8 +148,8 @@ android {
         generateLocaleConfig = true
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     packaging {
         resources {
@@ -178,15 +179,36 @@ android {
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        // M3 Expressive (motionScheme, button shapes, LoadingIndicator, emphasized
+        // type) is still @Experimental; the whole app is built on it.
+        optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
+    }
+}
+
+// A single profile for both flavors. Generation runs only when asked for
+// (docs/performance.md), never as part of assemble.
+baselineProfile {
+    mergeIntoMain = true
+}
+
+// The plugin's two profileable variants (benchmarkRelease measures, nonMinifiedRelease
+// generates) install beside any real build, and they alone carry the benchmark seed.
+// release has no isProfileable and no src/benchmarkSeed.
+val benchmarkBuildTypes = listOf("benchmarkRelease", "nonMinifiedRelease")
+android.sourceSets {
+    benchmarkBuildTypes.forEach { maybeCreate(it).kotlin.directories.add("src/benchmarkSeed/java") }
+}
+androidComponents.onVariants { variant ->
+    if (variant.buildType in benchmarkBuildTypes) {
+        variant.applicationId.set("com.pennywiseai.tracker.benchmark")
+        variant.sources.manifests.addStaticManifestFile("src/benchmarkSeed/AndroidManifest.xml")
     }
 }
 
 // Configure Room schema export
 ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
-    arg("room.incremental", "true")
-    arg("room.generateKotlin", "true")
 }
 
 // Copy changelog from fastlane to generated assets for What's New dialog
@@ -218,7 +240,9 @@ dependencies {
     // Local modules
     implementation(project(":parser-core"))
     implementation(project(":shared"))
+    baselineProfile(project(":baselineprofile"))
 
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -231,9 +255,6 @@ dependencies {
     // Material Icons Extended
     implementation(libs.androidx.compose.material.icons.extended)
     
-    // Color Picker for Compose
-    implementation(libs.colorpicker.compose)
-    
     // Splash Screen API
     implementation(libs.androidx.core.splashscreen)
     
@@ -242,22 +263,20 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     // Navigation
-    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     
     // Kotlin Serialization
     implementation(libs.kotlinx.serialization.json)
 
     // Ktor for HTTP requests
     implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     // AI access: WebSocket line to the relay (ADR 0002)
     implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
     implementation(libs.ktor.client.websockets)
-    
-    // Gson for backup/restore
-    implementation(libs.gson)
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -269,11 +288,11 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     
     // Room
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.sqlite.framework) // AndroidSQLiteDriver (system SQLite)
     ksp(libs.androidx.room.compiler)
     
     // WorkManager
@@ -289,21 +308,19 @@ dependencies {
 
     // LiteRT-LM >= 0.14 calls SendChannel.close$default as an interface static; only
     // coroutines >= 1.11.0 provides it (see the litertlm note in libs.versions.toml, #599).
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     // LiteRT-LM for on-device LLM inference
     implementation(libs.litertlm.android)
     
     // Google Play In-App Updates (only for standard flavor)
     "standardImplementation"(libs.app.update)
-    "standardImplementation"(libs.app.update.ktx)
     
     // Google Play In-App Reviews (only for standard flavor)
     "standardImplementation"(libs.review)
-    "standardImplementation"(libs.review.ktx)
     
     testImplementation(libs.mockk)
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
@@ -316,6 +333,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    debugImplementation(libs.leakcanary.android)
     
     // Coil for image loading
     implementation(libs.coil.compose)
@@ -324,13 +342,11 @@ dependencies {
 
     // Haze blur effects
     implementation(libs.haze)
+    implementation(libs.haze.blur)
 
     // Compose Charts
     implementation(libs.compose.charts)
 
-    // Markdown support
-    implementation(libs.markdown)
-    
     // OpenCSV for CSV export
     implementation(libs.opencsv)
 
@@ -346,6 +362,16 @@ dependencies {
 }
 
 android.sourceSets["androidTest"].assets.srcDir("$projectDir/schemas")
+// androidx.test asks for concurrent-futures 1.2.0, but AGP holds test classpaths to
+// the app's runtime version (1.1.0, via Glance), so no androidTest resolves without
+// this. Test-only: the app stays on 1.1.0.
+// ponytail: hard-coded versions, drop this once Glance moves the app to 1.2.0.
+configurations.matching { "AndroidTest" in it.name }.configureEach {
+    resolutionStrategy.force(
+        "androidx.concurrent:concurrent-futures:1.1.0",
+        "androidx.concurrent:concurrent-futures-ktx:1.1.0",
+    )
+}
 // StringPlaceholderParityTest reads res/ straight off disk, which Gradle can't
 // infer. Without this the test task stays UP-TO-DATE when only translations
 // change — i.e. for exactly the pull requests it exists to check.

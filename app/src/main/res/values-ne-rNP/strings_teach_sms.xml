@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">सिकाउनुहोस्</string>
+    <string name="teach_title">PennyWise लाई यो सन्देश सिकाउनुहोस्</string>
+    <string name="teach_field_amount">रकम</string>
+    <string name="teach_field_merchant">व्यापारी</string>
+    <string name="teach_field_account">खाता</string>
+    <string name="teach_hint_amount">सन्देशमा रकमलाई ट्याप गर्नुहोस्।</string>
+    <string name="teach_hint_merchant">व्यापारीको नाम शब्द-शब्द गरी ट्याप गर्नुहोस्। चिन्ह नलगाए, अर्को पटक यही नाम मात्र मिल्नेछ।</string>
+    <string name="teach_hint_account">खाता वा कार्डका अंकहरू ट्याप गर्नुहोस्। ऐच्छिक।</string>
+    <string name="teach_amount_placeholder">अहिलेसम्म रकम छैन</string>
+    <string name="teach_amount_source">यहाँबाट पढियो: “%1$s”</string>
+    <string name="teach_direction_out">खर्च</string>
+    <string name="teach_direction_in">आम्दानी</string>
+    <string name="teach_currency">मुद्रा</string>
+    <string name="teach_format_question">कुन रकम हो?</string>
+    <string name="teach_merchant_label">व्यापारी (ऐच्छिक)</string>
+    <string name="teach_account_value">खाता ••%1$s</string>
+    <string name="teach_account_none">खाता छैन</string>
+    <string name="teach_note">यो पठाउनेबाट आएका यस्तै सन्देशहरू थप्नुअघि तपाईँलाई सोधिनेछ।</string>
+    <string name="teach_save_expense">%1$s खर्च सेभ गर्नुहोस्</string>
+    <string name="teach_save_income">%1$s आम्दानी सेभ गर्नुहोस्</string>
+    <string name="teach_need_amount">पहिले रकम ट्याप गर्नुहोस्</string>
+    <string name="teach_need_currency">मुद्रा छान्नुहोस्</string>
+    <string name="teach_need_format">कुन रकम हो छान्नुहोस्</string>
+    <string name="teach_need_direction">खर्च वा आम्दानी छान्नुहोस्</string>
+    <string name="teach_cannot_learn">PennyWise ले यो सन्देश भरपर्दो रूपमा फेरि पढ्न सक्दैन। अरू शब्दहरू ट्याप गरेर हेर्नुहोस्, वा व्यापारीको नाम अझ थप्नुहोस्।</string>
+    <string name="teach_saved">थपियो। यस्तै सन्देशहरू थप्नुअघि सोधिनेछ।</string>
+    <string name="teach_added">थपियो।</string>
+    <string name="teach_settled">थपिएन: यो पहिल्यै छ, वा तपाईँको सेटिङले छोड्छ।</string>
+    <string name="teach_booking_failed">थप्न सकिएन। यो अझै नचिनिएका SMS मा छ।</string>
+    <string name="teach_format_changed">यो पठाउनेको नयाँ ढाँचा। यसलाई पनि सिकाउनुहोस्।</string>
+    <string name="teach_find_message">सन्देश खोज्नुहोस्</string>
+    <string name="teach_picker_title">हालका पैसासम्बन्धी सन्देशहरू</string>
+    <string name="teach_picker_body">तपाईँको इनबक्सबाट: पैसासँग मिल्दा तर तपाईँका कारोबारमा नभएका सन्देशहरू। केही पनि तपाईँको फोनबाट बाहिर जाँदैन।</string>
+    <string name="teach_picker_empty">अहिले सिकाउनुपर्ने केही छैन।</string>
+    <string name="teach_taught_count">सिकाइएका (%1$d)</string>
+    <string name="teach_taught_title">सिकाइएका सन्देशहरू</string>
+    <string name="teach_taught_body">PennyWise ले यी ढाँचा पढ्छ र थप्नुअघि तपाईँलाई सोध्छ। एउटा हटाउँदा त्यसले थपेका कारोबार रहिरहन्छन्।</string>
+    <string name="teach_delete_template">हटाउनुहोस्</string>
+    <string name="notif_taught_text">%1$s बाट। यसलाई थप्नुहोस्, वा हेर्न ट्याप गर्नुहोस्।</string>
+</resources>

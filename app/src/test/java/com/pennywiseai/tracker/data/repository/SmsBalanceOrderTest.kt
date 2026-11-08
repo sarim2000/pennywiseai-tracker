@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.BalanceRowAfter
@@ -68,18 +68,18 @@ class SmsBalanceOrderTest {
     } as AccountBalanceDao
 
     private val database = mockk<PennyWiseDatabase>()
-    private val repo = AccountBalanceRepository(dao, mockk(), database)
+    private val repo = AccountBalanceRepository(dao, mockk(), database, mockk(relaxed = true))
 
     @Before
     fun setUp() {
-        mockkStatic("androidx.room.RoomDatabaseKt")
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
             secondArg<suspend () -> Any?>().invoke()
         }
     }
 
     @After
-    fun tearDown() = unmockkStatic("androidx.room.RoomDatabaseKt")
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     private fun at(day: Int, h: Int, m: Int) = LocalDateTime.of(2026, 1, day, h, m)
 

@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.database.dao
 
-import androidx.room.*
+import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
@@ -42,6 +42,18 @@ interface BudgetDao {
 
     @Update
     suspend fun updateBudget(budget: BudgetEntity)
+
+    @Update
+    suspend fun updateBudgets(budgets: List<BudgetEntity>)
+
+    @Update
+    suspend fun updateBudgetCategories(categories: List<BudgetCategoryEntity>)
+
+    @Transaction
+    suspend fun updateBudgetsAndCategories(budgets: List<BudgetEntity>, categories: List<BudgetCategoryEntity>) {
+        updateBudgets(budgets)
+        updateBudgetCategories(categories)
+    }
 
     @Query("UPDATE budgets SET is_active = 0, updated_at = datetime('now') WHERE id = :budgetId")
     suspend fun deactivateBudget(budgetId: Long)

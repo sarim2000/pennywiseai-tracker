@@ -26,14 +26,16 @@ import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -41,7 +43,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,7 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
@@ -85,7 +88,7 @@ private sealed interface MoneySheetMode {
     data class Edit(val contribution: GoalContributionEntity) : MoneySheetMode
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun GoalDetailScreen(
     onNavigateBack: () -> Unit,
@@ -111,7 +114,7 @@ fun GoalDetailScreen(
     PennyWiseScaffold(
         title = progress?.goal?.name.orEmpty(),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
             }
         },
@@ -128,7 +131,7 @@ fun GoalDetailScreen(
         },
     ) { padding ->
         if (detail == null || progress == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
             return@PennyWiseScaffold
         }
         GoalDetailContent(
@@ -171,9 +174,10 @@ fun GoalDetailScreen(
                 Button(
                     onClick = { showDelete = false; viewModel.delete() },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_menu_delete)) }
             },
-            dismissButton = { TextButton(onClick = { showDelete = false }) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDelete = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         )
     }
 
@@ -192,7 +196,7 @@ private fun GoalOverflowMenu(
     val archived = progress.status == GoalStatus.ARCHIVED
     // Repeat fits a goal that has run its course: Reached, or Missed.
     val canRepeat = progress.status == GoalStatus.REACHED || progress.status == GoalStatus.MISSED
-    IconButton(onClick = { open = true }) {
+    IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
         Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.goal_more))
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -304,11 +308,11 @@ private fun GoalDetailContent(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = onAdd, modifier = Modifier.weight(1f)) {
+                Button(onClick = onAdd, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
                     Text(stringResource(R.string.goal_add_money))
                 }
-                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
                     Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
                     Text(stringResource(R.string.goal_take_out))
                 }
@@ -409,7 +413,7 @@ private fun MoneySheet(
     // An edited withdrawal can grow by what's saved plus what it already took out.
     val withdrawLimit = if (existing != null) saved + existing.amount.abs() else saved
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -474,7 +478,7 @@ private fun MoneySheet(
                 readOnly = true,
                 label = { Text(stringResource(R.string.goal_money_date)) },
                 trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }) {
+                    IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.goal_money_date))
                     }
                 },
@@ -492,7 +496,7 @@ private fun MoneySheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) {
+                    TextButton(onClick = onDelete, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.goal_contribution_delete), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -500,6 +504,7 @@ private fun MoneySheet(
                 Button(
                     onClick = { onSave(amount.toBigDecimalOrNull(), currency, date, note, manual.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }) },
                     enabled = !state.saving,
+                    shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_money_save)) }
             }
         }
@@ -513,9 +518,9 @@ private fun MoneySheet(
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { date = it.toUtcDate() }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.goal_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.goal_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) } },
         ) { DatePicker(state = pickerState) }
     }
 }

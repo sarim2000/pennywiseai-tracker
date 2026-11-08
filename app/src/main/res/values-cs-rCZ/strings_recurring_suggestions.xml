@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
+    <string name="subscriptions_suggested_section">Navrhované</string>
+    <string name="subscriptions_suggested_hint">Platby, které se ve vaší historii opakují. Nezapočítávají se, dokud je nezačnete sledovat.</string>
+    <!-- %1$d: total number of suggestions -->
+    <string name="subscriptions_suggested_show_all">Zobrazit vše (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">Zobrazit méně</string>
+    <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d platba</item>
+        <item quantity="few">%1$d platby</item>
+        <item quantity="many">%1$d platby</item>
+        <item quantity="other">%1$d plateb</item>
+    </plurals>
+    <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_varies">Částka se mění</string>
+    <string name="subscription_suggestion_review">Zkontrolovat</string>
+    <string name="subscription_suggestion_not_recurring">Neopakuje se</string>
+    <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">Nalezena %1$d platba</item>
+        <item quantity="few">Nalezeny %1$d platby</item>
+        <item quantity="many">Nalezeno %1$d platby</item>
+        <item quantity="other">Nalezeno %1$d plateb</item>
+    </plurals>
+    <!-- %1$s: currency code, e.g. "USD" -->
+    <string name="subscription_suggestion_sheet_amount">Sledovaná částka (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">Tato platba je pokaždé jiná. Částku můžete později upravit.</string>
+    <!-- %1$s: date, e.g. "15 Nov 2026" -->
+    <string name="subscription_suggestion_sheet_next">Další platba očekávána %1$s</string>
+    <string name="subscription_suggestion_sheet_track">Sledovat platbu</string>
+    <string name="subscription_suggestion_sheet_helper">Den před každou platbou dostanete připomenutí.</string>
+    <!-- Snackbars. %1$s: merchant name -->
+    <string name="subscriptions_suggestion_tracked">%1$s se nyní sleduje</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s se už sleduje</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s už nebude navrhováno</string>
+    <!-- Home card linking to the suggestions -->
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d možná opakovaná platba</item>
+        <item quantity="few">%1$d možné opakované platby</item>
+        <item quantity="many">%1$d možné opakované platby</item>
+        <item quantity="other">%1$d možných opakovaných plateb</item>
+    </plurals>
+    <!-- %1$s: one or two merchant names, comma-separated -->
+    <string name="home_recurring_card_body">%1$s. Zkontrolujte je a před každou platbou dostanete připomenutí.</string>
+    <!-- %1$s: two merchant names, comma-separated; %2$d: how many more, shown as "+2" -->
+    <string name="home_recurring_card_body_more">%1$s +%2$d. Zkontrolujte je a před každou platbou dostanete připomenutí.</string>
+    <string name="home_recurring_card_action">Zkontrolovat</string>
+    <string name="home_recurring_card_dismiss">Skrýt</string>
+</resources>

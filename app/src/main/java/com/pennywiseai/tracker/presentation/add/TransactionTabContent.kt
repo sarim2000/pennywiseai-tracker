@@ -33,12 +33,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -137,7 +138,8 @@ private fun AccountSelectorCard(
             if (account != null) {
                 IconButton(
                     onClick = onClear,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Clear,
@@ -202,7 +204,7 @@ fun TransactionTabContent(
                         onValueChange = {},
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         singleLine = true,
                         shape = fullShape,
                         colors = filledFieldColors()
@@ -300,6 +302,7 @@ fun TransactionTabContent(
                 TransactionType.values().forEach { type ->
                     FilterChip(
                         selected = uiState.transactionType == type,
+                        shapes = FilterChipDefaults.shapes(),
                         onClick = { viewModel.updateTransactionType(type) },
                         label = {
                             Text(stringResource(transactionTypeLabel(type)))
@@ -364,7 +367,7 @@ fun TransactionTabContent(
                             Text(
                                 text = uiState.date.format(DateTimeFormatter.ofPattern("yyyy")),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = uiState.date.format(AppDates.pattern("dd MMMM")),
@@ -490,7 +493,7 @@ fun TransactionTabContent(
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                             shape = bottomShape,
                             leadingIcon = { SelectedCategoryIcon(categories.find { it.name == uiState.category }) },
                             trailingIcon = {
@@ -545,7 +548,10 @@ fun TransactionTabContent(
                 // "No account" only makes sense outside a transfer — both transfer
                 // legs must reference a real account to move money.
                 if (!isTransfer) {
-                    DropdownMenuItem(
+                    SelectableDropdownMenuItem(
+                        selected = uiState.selectedAccount == null,
+                        shapes = MenuDefaults.itemShape(0, 1),
+                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                         text = {
                             Column {
                                 Text(stringResource(R.string.add_txn_no_account))
@@ -560,7 +566,8 @@ fun TransactionTabContent(
                             viewModel.updateSelectedAccount(null)
                             accountPickerTarget = null
                         },
-                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                     )
                     HorizontalDivider()
                 }
@@ -582,15 +589,18 @@ fun TransactionTabContent(
                         onClick = {},
                         enabled = false
                     )
-                    accountList.forEach { account ->
-                        DropdownMenuItem(
+                    accountList.forEachIndexed { index, account ->
+                        SelectableDropdownMenuItem(
+                            selected = selectedForTarget?.id == account.id,
+                            shapes = MenuDefaults.itemShape(index, accountList.size),
+                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                             text = {
                                 Column {
                                     Text(account.displayLabel)
                                     Text(
                                         CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             },
@@ -608,11 +618,7 @@ fun TransactionTabContent(
                                     contentDescription = null
                                 )
                             },
-                            trailingIcon = {
-                                if (selectedForTarget?.id == account.id) {
-                                    Icon(Icons.Default.Check, stringResource(R.string.add_selected), tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
+                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                         )
                     }
                 }
@@ -666,7 +672,8 @@ fun TransactionTabContent(
                     .navigationBarsPadding()
                     .padding(horizontal = Dimensions.Padding.content)
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(56.dp),
+                shapes = ButtonDefaults.shapes()
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -701,11 +708,12 @@ fun TransactionTabContent(
                             viewModel.updateTransactionDate(millis)
                         }
                         showDatePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -728,11 +736,12 @@ fun TransactionTabContent(
                     onClick = {
                         viewModel.updateTransactionTime(timePickerState.hour, timePickerState.minute)
                         showTimePicker = false
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.add_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.add_cancel)) }
+                TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         )
     }
@@ -786,7 +795,8 @@ fun ReceiptPickerSection(
                         .size(28.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
+                    ),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Close,
@@ -807,7 +817,8 @@ fun ReceiptPickerSection(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -819,7 +830,8 @@ fun ReceiptPickerSection(
                         cameraUri = uri
                         cameraLauncher.launch(uri)
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -849,26 +861,21 @@ private fun AddBudgetImpactSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = budgetImpactType == null,
-                onClick = { onImpactTypeChange(null) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_none), style = MaterialTheme.typography.labelSmall) }
-            )
-            SegmentedButton(
-                selected = budgetImpactType == BudgetImpactType.DEDUCT_SPENT,
-                onClick = { onImpactTypeChange(BudgetImpactType.DEDUCT_SPENT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_refund), style = MaterialTheme.typography.labelSmall) }
-            )
-            SegmentedButton(
-                selected = budgetImpactType == BudgetImpactType.ADD_TO_LIMIT,
-                onClick = { onImpactTypeChange(BudgetImpactType.ADD_TO_LIMIT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_extra), style = MaterialTheme.typography.labelSmall) }
-            )
-        }
+        ConnectedChoiceRow(
+            options = listOf(null, BudgetImpactType.DEDUCT_SPENT, BudgetImpactType.ADD_TO_LIMIT),
+            selected = budgetImpactType,
+            onSelect = onImpactTypeChange,
+            label = {
+                stringResource(
+                    when (it) {
+                        null -> R.string.txn_detail_budget_impact_none
+                        BudgetImpactType.DEDUCT_SPENT -> R.string.txn_detail_budget_impact_refund
+                        BudgetImpactType.ADD_TO_LIMIT -> R.string.txn_detail_budget_impact_extra
+                    }
+                )
+            },
+            textStyle = MaterialTheme.typography.labelSmall
+        )
 
         if (budgetImpactType != null) {
             var expanded by remember { mutableStateOf(false) }
@@ -884,7 +891,7 @@ private fun AddBudgetImpactSection(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
                 ExposedDropdownMenu(

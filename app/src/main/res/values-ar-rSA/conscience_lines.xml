@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Conscience lines in Jordanian colloquial Arabic. Written natively, not translated.
+    {category} is أكل / ترفيه / تسوق (all masculine), so ال{category}, لل{category},
+    بال{category} and يوم {category} read right with each. Never mark the user's gender:
+    reword the line so it doesn't need it.
+-->
+<resources>
+    <string name="conscience_content_locale">ar</string>
+
+    <!-- Words the placeholders take. They live here, not in strings_conscience.xml, so Crowdin can't change a word the lines are written around. All masculine with no article, so ال{category} and verb agreement work for each. -->
+    <string name="conscience_category_food">أكل</string>
+    <string name="conscience_category_entertainment">ترفيه</string>
+    <string name="conscience_category_shopping">تسوق</string>
+    <plurals name="conscience_hours">
+        <item quantity="zero">%1$s ساعة</item>
+        <item quantity="one">%1$s ساعة</item>
+        <item quantity="two">ساعتين</item>
+        <item quantity="few">%1$s ساعات</item>
+        <item quantity="many">%1$s ساعة</item>
+        <item quantity="other">%1$s ساعة</item>
+    </plurals>
+    <!-- %1$s is the whole number, e.g. 25 -->
+    <string name="conscience_percent">%1$s%%</string>
+
+    <!-- Repeat, Food & Dining. Fact: {count} food purchases within {hours}, this one included. -->
+    <string name="conscience_line_repeat_food_01">{count} محطات أكل بـ{hours}. هاي مش تصبيرة، هاي جولة سياحية 🗺️</string>
+    <string name="conscience_line_repeat_food_02">أكل كمان مرة. صاروا {count} خلال {hours}. أنا مش بعدّ… (بعدّ) 🤓</string>
+    <string name="conscience_line_repeat_food_03">{count} فواتير أكل خلال {hours}. صار مسلسل؟ 🍿</string>
+    <string name="conscience_line_repeat_food_04">هيك بدها كرت ولاء: {count} مرات أكل بـ{hours} 💳</string>
+    <string name="conscience_line_repeat_food_05">عاجل: رصد الأكل {count} مرات خلال {hours}. التفاصيل بعد الفاصل 📺</string>
+    <string name="conscience_line_repeat_food_06">{count} مشاوير أكل خلال {hours}. هاي رياضة، إذا بدك 🏃</string>
+
+    <!-- Repeat, entertainment or shopping. Fact: {count} {category} purchases within {hours}. -->
+    <string name="conscience_line_repeat_01">{count} جولات {category} بـ{hours}. هاد تسخين ولا احتراف؟ 😏</string>
+    <string name="conscience_line_repeat_02">صاروا {count} مرات {category} خلال {hours}. مين بعدّ؟ أنا. أنا بعدّ 🤓</string>
+    <string name="conscience_line_repeat_03">{count} مرات بـ{hours}؟ شكله ال{category} عايش أحلى أيامه 💅</string>
+    <string name="conscience_line_repeat_04">كمان وحدة! كمان وحدة! {count} مرات {category} بـ{hours} 👏</string>
+    <string name="conscience_line_repeat_05">{category}، {count} مرات بـ{hours}. سرعة قياسية 🏁</string>
+    <string name="conscience_line_repeat_06">{count} مرات {category} بـ{hours}. نقاط الولاء أكيد نازلة شتي 🌧️</string>
+
+    <!-- Late night, Food & Dining. Fact: a food purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_food_01">أكل هالساعة؟ ضو الثلاجة غيران 🌙</string>
+    <string name="conscience_line_late_night_food_02">أكل بنص الليل؟ ما رح أحكي إشي لنسختك تبعت الصبح 🤫</string>
+    <string name="conscience_line_late_night_food_03">انفتحت مرحلة «أكل نص الليل» 🔓</string>
+    <string name="conscience_line_late_night_food_04">القمر اتصل. بدّه لقمة كمان 🌝</string>
+    <string name="conscience_line_late_night_food_05">أكل بعد العتمة. الجزء الثاني اللي ما حدا استناه، والكل بحبه 🎬</string>
+    <string name="conscience_line_late_night_food_06">الوقت متأخر، الأكل حقيقي، وأنا عامل حالي نايم 😴</string>
+
+    <!-- Late night, entertainment or shopping. Fact: a {category} purchase just now, between 11 PM and 5 AM. -->
+    <string name="conscience_line_late_night_01">{category} هالساعة؟ وضع البومة: شغّال 🦉</string>
+    <string name="conscience_line_late_night_02">دوام ال{category} الليلي بلّش رسمياً 🌙</string>
+    <string name="conscience_line_late_night_03">{category} بنص الليل؟ الصبح في كم سؤال ☕</string>
+    <string name="conscience_line_late_night_04">الكل نايم إلا ال{category} 👀</string>
+    <string name="conscience_line_late_night_05">{category} تحت النجوم. رومانسي… على طريقة المحفظة ✨</string>
+    <string name="conscience_line_late_night_06">ششش، الوقت متأخر. {category} بس بالهمس 🤫</string>
+
+    <!-- Positive. Fact: last week's {category} came in {percent} under the usual week. Praise, not teasing. -->
+    <string name="conscience_line_positive_01">ال{category} الأسبوع الماضي كان أقل من العادة بـ{percent}. يا سلام 🌟</string>
+    <string name="conscience_line_positive_02">ال{category} نزل {percent} الأسبوع الماضي. تصفيق حار لو سمحتوا 👏</string>
+    <string name="conscience_line_positive_03">مفاجأة: مصروف ال{category} الأسبوع الماضي أقل من العادة بـ{percent} 😮</string>
+    <string name="conscience_line_positive_04">ال{category} الأسبوع الماضي نقص {percent}. شوي وبصير فخور 🥲</string>
+    <string name="conscience_line_positive_05">الأسبوع الماضي: ال{category} نازل {percent}. المحفظة بتسلّم وبتشكر 💌</string>
+    <string name="conscience_line_positive_06">الأسبوع الماضي ال{category} كان {percent} تحت المعدل. شو هالتغيير؟ 😎</string>
+    <string name="conscience_line_positive_07">احترامي. ال{category} كان أخف بـ{percent} الأسبوع الماضي 🏅</string>
+    <string name="conscience_line_positive_08">نجمة ذهبية ⭐ ال{category} الأسبوع الماضي كان أقل من الطبيعي بـ{percent}.</string>
+
+</resources>

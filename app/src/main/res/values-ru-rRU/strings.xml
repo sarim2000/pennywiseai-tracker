@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - учёт расходов</string>
     <string name="widget_name_budget">Обзор бюджета</string>
     <string name="widget_description_budget">Показывает прогресс месячного бюджета, сбережения и дневной лимит с одного взгляда.</string>
     <string name="widget_loading">Загрузка виджета…</string>
@@ -9,10 +8,13 @@
     <string name="widget_description_category_pie">Расходы за этот месяц по категориям — круговая диаграмма с легендой.</string>
     <string name="widget_name_add_transaction">Расход наличными</string>
     <string name="widget_name_summary">Сводка расходов</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Добавить транзакцию</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Добавить</string>
     <string name="shortcut_add_transaction_long">Добавить транзакцию</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Поддержать разработку</string>
     <string name="support_subtitle">Делает один разработчик — небольшой донат помогает продолжать 🦉</string>
     <string name="support_dialog_body">PennyWise — бесплатное приложение с открытым исходным кодом, которое делает один разработчик. В этой сборке уже всё разблокировано. Если оно вам полезно, небольшой донат помогает продолжать 🦉</string>

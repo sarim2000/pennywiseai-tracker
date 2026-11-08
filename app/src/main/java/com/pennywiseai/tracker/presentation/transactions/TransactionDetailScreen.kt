@@ -26,7 +26,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
@@ -39,7 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
@@ -77,6 +76,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
@@ -266,7 +266,7 @@ fun TransactionDetailScreen(
                         } else {
                             onNavigateBack()
                         }
-                    }) {
+                    }, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             if (isEditMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = if (isEditMode) stringResource(R.string.txn_detail_action_cancel) else stringResource(R.string.txn_detail_back)
@@ -275,14 +275,14 @@ fun TransactionDetailScreen(
                 },
                 actionContent = {
                     if (!isEditMode && transaction != null) {
-                        IconButton(onClick = { viewModel.enterEditMode() }) {
+                        IconButton(onClick = { viewModel.enterEditMode() }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = stringResource(R.string.txn_detail_action_edit)
                             )
                         }
                         Box {
-                            IconButton(onClick = { showActionsMenu = true }) {
+                            IconButton(onClick = { showActionsMenu = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     Icons.Default.MoreVert,
                                     contentDescription = stringResource(R.string.txn_detail_more_actions)
@@ -373,7 +373,8 @@ fun TransactionDetailScreen(
                     } else if (isEditMode) {
                         TextButton(
                             onClick = { viewModel.saveChanges() },
-                            enabled = !isSaving
+                            enabled = !isSaving,
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             if (isSaving) {
                                 CircularProgressIndicator(
@@ -448,7 +449,8 @@ fun TransactionDetailScreen(
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.deleteTransaction() },
-                    enabled = !isDeleting
+                    enabled = !isDeleting,
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
@@ -465,7 +467,7 @@ fun TransactionDetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -512,10 +514,10 @@ fun TransactionDetailScreen(
                 TextButton(onClick = {
                     showUnmarkLoanConfirm = false
                     viewModel.unlinkLoan()
-                }) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showUnmarkLoanConfirm = false }) { Text(stringResource(R.string.txn_detail_action_cancel)) }
+                TextButton(onClick = { showUnmarkLoanConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
             }
         )
     }
@@ -548,7 +550,8 @@ fun TransactionDetailScreen(
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = Color.Black.copy(alpha = 0.5f),
                         contentColor = Color.White
-                    )
+                    ),
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_detail_close))
                 }
@@ -647,13 +650,12 @@ private fun TransactionReceipt(
     towardGoals: @Composable () -> Unit = {},
     splitWith: @Composable () -> Unit = {}
 ) {
-    val isDark = isSystemInDarkTheme()
     val typeColor = when (transaction.transactionType) {
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
-        TransactionType.EXPENSE -> if (isDark) expense_dark else expense_light
-        TransactionType.CREDIT -> if (isDark) credit_dark else credit_light
-        TransactionType.TRANSFER -> if (isDark) transfer_dark else transfer_light
-        TransactionType.INVESTMENT -> if (isDark) investment_dark else investment_light
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
     }
     val sign = when (transaction.transactionType) {
         TransactionType.INCOME -> "+"
@@ -762,8 +764,7 @@ private fun TransactionReceipt(
                 )
 
                 // Loan chip
-                val isDarkTheme = isSystemInDarkTheme()
-                val loanColor = if (isDarkTheme) loan_dark else loan_light
+                val loanColor = MaterialTheme.colorScheme.loan
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 if (loan != null) {
                     Row(
@@ -797,7 +798,7 @@ private fun TransactionReceipt(
                         )
                         // Unmark-as-loan (#444): removes the loan link; deletes the
                         // loan too if no other transactions are linked.
-                        IconButton(onClick = onUnmarkLoanClick) {
+                        IconButton(onClick = onUnmarkLoanClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.Close,
                                 contentDescription = stringResource(R.string.txn_detail_unmark_loan),
@@ -944,7 +945,7 @@ private fun TransactionReceipt(
                 DetailInfoRow(
                     icon = Icons.Default.Description,
                     label = stringResource(R.string.txn_detail_label_description),
-                    value = it
+                    value = CurrencyFormatter.maskAmountsIn(it)
                 )
             }
 
@@ -1062,7 +1063,8 @@ private fun TransactionReceipt(
                 TextButton(
                     onClick = { showAdjustmentSheet = true },
                     enabled = !adding,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(
                         stringResource(
@@ -1312,7 +1314,7 @@ private fun ExpandableSmsSection(smsBody: String) {
                 exit = fadeOut() + slideOutVertically()
             ) {
                 Text(
-                    text = smsBody,
+                    text = CurrencyFormatter.maskAmountsIn(smsBody),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontFamily = FontFamily.Monospace
                     ),
@@ -1486,6 +1488,7 @@ private fun EditableTransactionHeader(
             TransactionType.values().forEach { type ->
                 FilterChip(
                     selected = transaction.transactionType == type,
+                    shapes = FilterChipDefaults.shapes(),
                     onClick = { viewModel.updateTransactionType(type) },
                     label = {
                         Text(
@@ -1592,7 +1595,8 @@ private fun EditableExtractedInfoCard(
         if (!showSplitEditor && transaction.transactionType in TransactionDetailViewModel.SPLITTABLE_TYPES) {
             OutlinedButton(
                 onClick = { viewModel.enableSplitMode() },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Icon(
                     Icons.AutoMirrored.Filled.CallSplit,
@@ -1667,30 +1671,19 @@ private fun EditableExtractedInfoCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(Spacing.xs))
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            SegmentedButton(
-                selected = !isEffectivelyBusiness,
-                onClick = {
-                    val newId = if (accountDefault == ProfileEntity.PERSONAL_ID) null else ProfileEntity.PERSONAL_ID
-                    viewModel.updateProfileId(newId)
-                },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-            ) {
-                Text(stringResource(R.string.txn_detail_personal))
+        ConnectedChoiceRow(
+            options = listOf(ProfileEntity.PERSONAL_ID, ProfileEntity.BUSINESS_ID),
+            selected = if (isEffectivelyBusiness) ProfileEntity.BUSINESS_ID else ProfileEntity.PERSONAL_ID,
+            onSelect = { profileId ->
+                // Picking the account's own default clears the override.
+                viewModel.updateProfileId(if (accountDefault == profileId) null else profileId)
+            },
+            label = { profileId ->
+                stringResource(
+                    if (profileId == ProfileEntity.BUSINESS_ID) R.string.txn_detail_business else R.string.txn_detail_personal
+                )
             }
-            SegmentedButton(
-                selected = isEffectivelyBusiness,
-                onClick = {
-                    val newId = if (accountDefault == ProfileEntity.BUSINESS_ID) null else ProfileEntity.BUSINESS_ID
-                    viewModel.updateProfileId(newId)
-                },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-            ) {
-                Text(stringResource(R.string.txn_detail_business))
-            }
-        }
+        )
 
         // Recurring
         Row(
@@ -1775,26 +1768,21 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = budgetImpactType == null,
-                onClick = { viewModel.updateBudgetImpactType(null) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_none), style = MaterialTheme.typography.labelSmall) }
-            )
-            SegmentedButton(
-                selected = budgetImpactType == BudgetImpactType.DEDUCT_SPENT,
-                onClick = { viewModel.updateBudgetImpactType(BudgetImpactType.DEDUCT_SPENT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_refund), style = MaterialTheme.typography.labelSmall) }
-            )
-            SegmentedButton(
-                selected = budgetImpactType == BudgetImpactType.ADD_TO_LIMIT,
-                onClick = { viewModel.updateBudgetImpactType(BudgetImpactType.ADD_TO_LIMIT) },
-                shape = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
-                label = { Text(stringResource(R.string.txn_detail_budget_impact_extra), style = MaterialTheme.typography.labelSmall) }
-            )
-        }
+        ConnectedChoiceRow(
+            options = listOf(null, BudgetImpactType.DEDUCT_SPENT, BudgetImpactType.ADD_TO_LIMIT),
+            selected = budgetImpactType,
+            onSelect = { viewModel.updateBudgetImpactType(it) },
+            label = {
+                stringResource(
+                    when (it) {
+                        null -> R.string.txn_detail_budget_impact_none
+                        BudgetImpactType.DEDUCT_SPENT -> R.string.txn_detail_budget_impact_refund
+                        BudgetImpactType.ADD_TO_LIMIT -> R.string.txn_detail_budget_impact_extra
+                    }
+                )
+            },
+            textStyle = MaterialTheme.typography.labelSmall
+        )
 
         if (budgetImpactType != null) {
             var expanded by remember { mutableStateOf(false) }
@@ -1810,7 +1798,7 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
                 ExposedDropdownMenu(
@@ -1867,7 +1855,7 @@ private fun CategoryDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             readOnly = true,
             shape = editFullShape,
             colors = editFilledColors()
@@ -1956,7 +1944,7 @@ private fun DateTimeField(
                     Text(
                         text = dateTime.format(DateTimeFormatter.ofPattern("yyyy")),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = dateTime.format(AppDates.pattern("dd MMMM")),
@@ -2050,12 +2038,12 @@ private fun DateTimeField(
                             .withDayOfMonth(newDate.dayOfMonth))
                     }
                     showDatePicker = false
-                }) {
+                }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -2081,12 +2069,12 @@ private fun DateTimeField(
                     onDateTimeChange(dateTime.withHour(timePickerState.hour)
                         .withMinute(timePickerState.minute))
                     showTimePicker = false
-                }) {
+                }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_ok))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
+                TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
             }
@@ -2119,7 +2107,7 @@ private fun CurrencyDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             readOnly = true,
             singleLine = true,
             shape = editFullShape,
@@ -2215,7 +2203,8 @@ private fun AccountNumberField(
                             onClick = {
                                 selectedAccount = ""
                                 onAccountNumberChange(null)
-                            }
+                            },
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.Clear,
@@ -2229,7 +2218,7 @@ private fun AccountNumberField(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
             singleLine = true,
             placeholder = { Text(placeholder) }
         )
@@ -2295,9 +2284,8 @@ private fun MarkAsLoanBottomSheet(
         parsedLoanAmount > BigDecimal.ZERO &&
         parsedLoanAmount <= transactionAmount
 
-    val isDark = isSystemInDarkTheme()
-    val loanColor = if (isDark) loan_dark else loan_light
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val loanColor = MaterialTheme.colorScheme.loan
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -2381,7 +2369,7 @@ private fun MarkAsLoanBottomSheet(
                 }
 
                 // Add new person option
-                TextButton(onClick = { isAddingNew = true; personName = "" }) {
+                TextButton(onClick = { isAddingNew = true; personName = "" }, shapes = ButtonDefaults.shapes()) {
                     Icon(
                         Icons.Default.PersonAdd,
                         contentDescription = null,
@@ -2402,7 +2390,7 @@ private fun MarkAsLoanBottomSheet(
                     colors = editFilledColors()
                 )
                 if (recentPersonNames.isNotEmpty()) {
-                    TextButton(onClick = { isAddingNew = false; personName = "" }) {
+                    TextButton(onClick = { isAddingNew = false; personName = "" }, shapes = ButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.People,
                             contentDescription = null,
@@ -2495,15 +2483,14 @@ private fun BalanceAdjustmentSheet(
     var pickedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     val shownCategory = pickedCategory ?: categories.balanceAdjustmentDefaultCategory(type)
     var expanded by remember { mutableStateOf(false) }
-    val isDark = isSystemInDarkTheme()
     val amountColor = when {
-        isIncome -> if (isDark) income_dark else income_light
-        else -> if (isDark) expense_dark else expense_light
+        isIncome -> MaterialTheme.colorScheme.income
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     ) {
         Column(
             modifier = Modifier
@@ -2553,7 +2540,7 @@ private fun BalanceAdjustmentSheet(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                     readOnly = true,
                     shape = editFullShape,
                     colors = editFilledColors()
@@ -2576,13 +2563,13 @@ private fun BalanceAdjustmentSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End)
             ) {
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
                 Button(onClick = {
                     viewModel.addBalanceAdjustment(merchant, pickedCategory)
                     onDismiss()
-                }) {
+                }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_adjustment_add))
                 }
             }
@@ -2633,7 +2620,7 @@ private fun GroupBottomSheet(
                     TextButton(onClick = {
                         onRemoveFromGroup()
                         onDismiss()
-                    }) {
+                    }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.txn_detail_group_remove), color = MaterialTheme.colorScheme.error)
                     }
                 }
@@ -2686,7 +2673,8 @@ private fun GroupBottomSheet(
                                     onCreateGroup(newGroupName.trim(), null)
                                 }
                             },
-                            enabled = newGroupName.isNotBlank()
+                            enabled = newGroupName.isNotBlank(),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.txn_detail_group_create))
                         }
@@ -2695,7 +2683,8 @@ private fun GroupBottomSheet(
             } else {
                 TextButton(
                     onClick = { showCreateField = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Add,

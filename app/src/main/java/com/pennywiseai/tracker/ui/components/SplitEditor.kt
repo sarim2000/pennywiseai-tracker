@@ -76,7 +76,8 @@ fun SplitEditor(
                     onClick = onRemoveSplits,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.split_editor_remove_all))
                 }
@@ -124,7 +125,8 @@ fun SplitEditor(
                     onSplitsChanged(splits + newSplit)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = availableCategories.size > splits.size
+                enabled = availableCategories.size > splits.size,
+                shapes = ButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                 Spacer(modifier = Modifier.width(Spacing.xs))
@@ -233,7 +235,7 @@ private fun SplitRow(
                 readOnly = true,
                 singleLine = true,
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -307,7 +309,8 @@ private fun SplitRow(
             IconButton(
                 onClick = onRemove,
                 enabled = canRemove,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(
                     Icons.Default.Close,

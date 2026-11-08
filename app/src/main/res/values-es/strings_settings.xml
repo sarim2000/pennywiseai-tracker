@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Cancelar</string>
     <string name="settings_action_ok">Aceptar</string>
-    <string name="settings_action_done">Listo</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">Pásate a PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Activo · todas las funciones avanzadas desbloqueadas</string>
@@ -29,10 +28,13 @@
     <string name="settings_card_spend_as_expense_subtitle">Incluye los gastos con tarjeta de crédito en \"Gastado este mes\"</string>
     <string name="settings_default_currency_title">Moneda predeterminada</string>
     <string name="settings_default_currency_subtitle">Moneda usada para las conversiones</string>
+    <string name="settings_budget_convert_title">¿Convertir tus presupuestos?</string>
+    <string name="settings_budget_convert_message">Los límites de tus presupuestos estaban en %1$s y ahora se muestran en %2$s. Conviértelos al último tipo disponible (%3$s) o conserva las mismas cifras.</string>
+    <string name="settings_budget_convert_confirm">Convertir</string>
+    <string name="settings_budget_convert_keep">Conservar cifras</string>
     <string name="settings_main_account_title">Cuenta principal</string>
     <string name="settings_main_account_subtitle">Define tu moneda predeterminada</string>
     <string name="settings_main_account_not_set">Sin definir</string>
-    <string name="settings_currency_field_label">Moneda</string>
     <string name="settings_number_format_title">Formato de números</string>
     <string name="settings_number_format_subtitle">Cómo se agrupan los montos grandes</string>
     <string name="settings_number_format_auto">Automático</string>
@@ -43,9 +45,7 @@
     <string name="settings_date_format_title">Formato de fecha</string>
     <string name="settings_date_format_subtitle">Cómo se muestran las fechas</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Presupuesto</string>
     <string name="settings_budget_cycle_title">Día de inicio del ciclo del presupuesto</string>
-    <string name="settings_budget_cycle_subtitle">Mueve el inicio de cada período mensual del presupuesto; p. ej., 25 significa que tu ciclo va del 25 al 24</string>
     <string name="settings_budget_cycle_dialog_body">Elige el día en que empieza cada ciclo mensual del presupuesto. P. ej., 25 significa que el ciclo va del 25 al 24 del mes siguiente.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Contactos</string>
@@ -55,6 +55,10 @@
     <string name="settings_security_section">Seguridad</string>
     <string name="settings_app_lock_title">Bloqueo de la app</string>
     <string name="settings_app_lock_subtitle">Protege tus datos con autenticación biométrica</string>
+    <string name="settings_shake_to_hide_title">Agitar para ocultar importes</string>
+    <string name="settings_shake_to_hide_subtitle">Agita el teléfono para ocultar o mostrar los importes en todas las pantallas</string>
+    <string name="shake_to_hide_first_hidden">Importes ocultos. Vuelve a agitar para mostrarlos.</string>
+    <string name="shake_to_hide_first_shown">Importes visibles. Vuelve a agitar para ocultarlos.</string>
     <string name="settings_lock_timeout_title">Tiempo de bloqueo</string>
     <string name="settings_lock_timeout_immediately_subtitle">Bloquear de inmediato</string>
     <plurals name="settings_lock_timeout_after_minutes">
@@ -238,6 +242,11 @@
     <string name="settings_report_issue_title">Reportar un problema</string>
     <string name="settings_report_issue_subtitle">Envía reportes de errores en GitHub</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Apariencia</string>
     <string name="appearance_back">Atrás</string>

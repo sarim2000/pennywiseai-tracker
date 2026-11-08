@@ -29,7 +29,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
@@ -46,7 +46,7 @@ import java.util.Date
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -58,8 +58,8 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
-    val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -130,7 +130,7 @@ fun ChatScreen(
                                     Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
@@ -143,15 +143,11 @@ fun ChatScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (isDownloading) {
-                                    LinearProgressIndicator(
+                                    LinearWavyProgressIndicator(
                                         progress = { downloadProgress / 100f },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(Spacing.sm)
-                                            .clip(RoundedCornerShape(Spacing.xs)),
-                                        drawStopIndicator = {}
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    OutlinedButton(onClick = { viewModel.cancelDownload() }) {
+                                    OutlinedButton(onClick = { viewModel.cancelDownload() }, shapes = ButtonDefaults.shapes()) {
                                         Icon(
                                             Icons.Default.Close,
                                             contentDescription = null,
@@ -161,7 +157,7 @@ fun ChatScreen(
                                         Text(stringResource(R.string.chat_cancel))
                                     }
                                 } else {
-                                    Button(onClick = { viewModel.startModelDownload() }) {
+                                    Button(onClick = { viewModel.startModelDownload() }, shapes = ButtonDefaults.shapes()) {
                                         Icon(
                                             Icons.Default.Download,
                                             contentDescription = null,
@@ -171,7 +167,7 @@ fun ChatScreen(
                                         Text(stringResource(R.string.chat_download_with_size, totalMB))
                                     }
                                 }
-                                TextButton(onClick = onNavigateToSettings) {
+                                TextButton(onClick = onNavigateToSettings, shapes = ButtonDefaults.shapes()) {
                                     Text(stringResource(R.string.chat_settings))
                                 }
                             }
@@ -230,18 +226,15 @@ fun ChatScreen(
                                     }
                                     OutlinedButton(
                                         onClick = { viewModel.cancelDownload() },
-                                        modifier = Modifier.padding(start = Spacing.sm)
+                                        modifier = Modifier.padding(start = Spacing.sm),
+                                        shapes = ButtonDefaults.shapes()
                                     ) {
                                         Text(stringResource(R.string.chat_cancel))
                                     }
                                 }
-                                LinearProgressIndicator(
+                                LinearWavyProgressIndicator(
                                     progress = { downloadProgress / 100f },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(Spacing.sm)
-                                        .clip(CircleShape),
-                                    drawStopIndicator = {}
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         } else {
@@ -267,7 +260,8 @@ fun ChatScreen(
                                 }
                                 Button(
                                     onClick = { viewModel.startModelDownload() },
-                                    modifier = Modifier.padding(start = Spacing.sm)
+                                    modifier = Modifier.padding(start = Spacing.sm),
+                                    shapes = ButtonDefaults.shapes()
                                 ) {
                                     Icon(
                                         Icons.Default.Download,
@@ -295,7 +289,7 @@ fun ChatScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.md)
                         ) {
-                            CircularProgressIndicator()
+                            LoadingIndicator()
                             Text(
                                 text = stringResource(R.string.chat_initializing_model),
                                 style = MaterialTheme.typography.bodyLarge
@@ -356,7 +350,8 @@ fun ChatScreen(
                                         onClick = { viewModel.clearChat() },
                                         colors = ButtonDefaults.textButtonColors(
                                             contentColor = MaterialTheme.colorScheme.error
-                                        )
+                                        ),
+                                        shapes = ButtonDefaults.shapes()
                                     ) {
                                         Icon(
                                             Icons.Default.Delete,
@@ -405,13 +400,24 @@ fun ChatScreen(
                             // A transaction the model proposed — the user confirms it (#170)
                             pendingAction?.let { action ->
                                 item {
-                                    PendingActionCard(
-                                        action = action,
-                                        currency = baseCurrency,
-                                        enabled = !isConfirming,
-                                        onConfirm = { viewModel.confirmPendingAction() },
-                                        onDismiss = { viewModel.dismissPendingAction() }
-                                    )
+                                    if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
+                                        AddReviewCard(
+                                            rows = action.rows,
+                                            categories = categories,
+                                            enabled = !isConfirming,
+                                            onToggle = viewModel::toggleRow,
+                                            onEdit = viewModel::editRow,
+                                            onConfirm = viewModel::confirmPendingAction,
+                                            onDismiss = viewModel::dismissPendingAction
+                                        )
+                                    } else {
+                                        PendingActionCard(
+                                            action = action,
+                                            enabled = !isConfirming,
+                                            onConfirm = { viewModel.confirmPendingAction() },
+                                            onDismiss = { viewModel.dismissPendingAction() }
+                                        )
+                                    }
                                 }
                             }
 
@@ -464,7 +470,7 @@ fun ChatScreen(
                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    IconButton(onClick = { viewModel.clearError() }) {
+                                    IconButton(onClick = { viewModel.clearError() }, shapes = IconButtonDefaults.shapes()) {
                                         Icon(
                                             Icons.Default.Close,
                                             contentDescription = stringResource(R.string.chat_dismiss),
@@ -508,8 +514,9 @@ fun ChatScreen(
                                         // Keep keyboard open by requesting focus
                                         focusRequester.requestFocus()
                                     },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
-                                    modifier = Modifier.size(48.dp)
+                                    enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming,
+                                    modifier = Modifier.size(48.dp),
+                                    shapes = IconButtonDefaults.shapes()
                                 ) {
                                     if (uiState.isLoading) {
                                         CircularProgressIndicator(
@@ -598,7 +605,8 @@ fun TokenLimitWarning(
                     onClick = onClearChat,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = contentColor
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.chat_clear), fontWeight = FontWeight.Bold)
                 }
@@ -833,7 +841,8 @@ fun ChatMessageItem(
             )
         ) {
             Text(
-                text = message.message,
+                // Amounts are baked into the stored text; mask them on screen only.
+                text = com.pennywiseai.tracker.utils.CurrencyFormatter.maskAmountsIn(message.message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (message.isUser)
                     MaterialTheme.colorScheme.onPrimaryContainer
@@ -889,7 +898,7 @@ private fun ChatEmptyState(
             Icons.Default.AutoAwesome,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(
@@ -928,29 +937,18 @@ private fun ChatEmptyState(
     }
 }
 
-/** Confirm card for an action the AI proposed (#170): add, delete or update. Nothing happens without the tap. */
+/** Confirm card for a delete or update the AI proposed (#170). Nothing happens without the tap. */
 @Composable
 private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
-    currency: String,
     enabled: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // A new draft is in the base currency; an existing row is shown in its own.
-    val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
     val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
-    val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
     val (title, headline, detail, button) = when (action) {
-        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
-            val d = action.draft
-            listOf(
-                stringResource(if (d.type == income) R.string.chat_action_add_income else R.string.chat_action_add_expense),
-                "${fmt(d.amount)} · ${d.merchant}",
-                stringResource(R.string.chat_action_add_detail, categoryLabel(d.category), d.accountLabel),
-                stringResource(R.string.chat_action_add)
-            )
-        }
+        // AddReviewCard shows these.
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> return
         is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
             val t = action.transaction
             listOf(
@@ -987,12 +985,13 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.chat_cancel)) }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
-                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors()
+                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
+                    shapes = ButtonDefaults.shapes()
                 ) { Text(button) }
             }
         }

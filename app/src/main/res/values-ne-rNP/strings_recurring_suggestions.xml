@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
+    <string name="subscriptions_suggested_section">सुझाव गरिएका</string>
+    <string name="subscriptions_suggested_hint">तपाईंको इतिहासमा दोहोरिने भुक्तानीहरू। ट्र्याक नगरेसम्म यिनलाई गनिँदैन।</string>
+    <!-- %1$d: total number of suggestions -->
+    <string name="subscriptions_suggested_show_all">सबै हेर्नुहोस् (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">कम हेर्नुहोस्</string>
+    <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d भुक्तानी</item>
+        <item quantity="other">%1$d भुक्तानी</item>
+    </plurals>
+    <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_varies">रकम फरक पर्छ</string>
+    <string name="subscription_suggestion_review">हेर्नुहोस्</string>
+    <string name="subscription_suggestion_not_recurring">दोहोरिने होइन</string>
+    <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">%1$d भुक्तानी भेटियो</item>
+        <item quantity="other">%1$d भुक्तानी भेटिए</item>
+    </plurals>
+    <!-- %1$s: currency code, e.g. "USD" -->
+    <string name="subscription_suggestion_sheet_amount">ट्र्याक गर्ने रकम (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">यो बिल हरेक पटक फरक हुन्छ। तपाईं पछि रकम सम्पादन गर्न सक्नुहुन्छ।</string>
+    <!-- %1$s: date, e.g. "15 Nov 2026" -->
+    <string name="subscription_suggestion_sheet_next">अर्को भुक्तानी %1$s मा अपेक्षित</string>
+    <string name="subscription_suggestion_sheet_track">बिल ट्र्याक गर्नुहोस्</string>
+    <string name="subscription_suggestion_sheet_helper">हरेक भुक्तानीको एक दिन अघि तपाईंलाई रिमाइन्डर आउनेछ।</string>
+    <!-- Snackbars. %1$s: merchant name -->
+    <string name="subscriptions_suggestion_tracked">%1$s अब ट्र्याक हुँदैछ</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s पहिले नै ट्र्याक भइरहेको छ</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s फेरि सुझाव गरिने छैन</string>
+    <!-- Home card linking to the suggestions -->
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d सम्भावित दोहोरिने बिल</item>
+        <item quantity="other">%1$d सम्भावित दोहोरिने बिलहरू</item>
+    </plurals>
+    <!-- %1$s: one or two merchant names, comma-separated -->
+    <string name="home_recurring_card_body">%1$s। हरेक भुक्तानी अघि रिमाइन्डर पाउन हेर्नुहोस्।</string>
+    <!-- %1$s: two merchant names, comma-separated; %2$d: how many more, shown as "+2" -->
+    <string name="home_recurring_card_body_more">%1$s +%2$d। हरेक भुक्तानी अघि रिमाइन्डर पाउन हेर्नुहोस्।</string>
+    <string name="home_recurring_card_action">हेर्नुहोस्</string>
+    <string name="home_recurring_card_dismiss">लुकाउनुहोस्</string>
+</resources>

@@ -38,13 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.statement.StatementBalanceCheck
 import com.pennywiseai.tracker.data.statement.StatementColumnMapping
 import com.pennywiseai.tracker.data.statement.StatementTableParser
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
@@ -134,7 +135,8 @@ fun ImportStatementScreen(
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceContainer,
                                 contentColor = MaterialTheme.colorScheme.onBackground
-                            )
+                            ),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -248,7 +250,7 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
         imageVector = Icons.Default.Description,
         contentDescription = null,
         modifier = Modifier.size(80.dp),
-        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+        tint = MaterialTheme.colorScheme.onSurfaceVariant
     )
 
     Spacer(modifier = Modifier.height(Spacing.md))
@@ -310,14 +312,12 @@ private fun IdleContent(onSelectPdf: () -> Unit, onSelectSpreadsheet: () -> Unit
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun LoadingContent() {
     Spacer(modifier = Modifier.height(Spacing.xxxl))
 
-    CircularProgressIndicator(
-        modifier = Modifier.size(48.dp),
-        strokeWidth = 4.dp
-    )
+    LoadingIndicator()
 
     Spacer(modifier = Modifier.height(Spacing.md))
 
@@ -373,12 +373,13 @@ private fun MappingContent(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = { onHeaderRow(mapping.headerRow - 1) }, enabled = mapping.headerRow > 0) {
+                IconButton(onClick = { onHeaderRow(mapping.headerRow - 1) }, enabled = mapping.headerRow > 0, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Default.KeyboardArrowUp, stringResource(R.string.import_statement_header_row_up))
                 }
                 IconButton(
                     onClick = { onHeaderRow(mapping.headerRow + 1) },
-                    enabled = mapping.headerRow < state.rows.lastIndex
+                    enabled = mapping.headerRow < state.rows.lastIndex,
+                    shapes = IconButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.KeyboardArrowDown, stringResource(R.string.import_statement_header_row_down))
                 }
@@ -407,26 +408,21 @@ private fun MappingContent(
             onMappingChange(mapping.copy(descriptionColumn = it))
         }
 
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = mapping.usesDebitCredit,
-                onClick = {
-                    if (!mapping.usesDebitCredit) {
-                        onMappingChange(mapping.copy(amountColumn = StatementColumnMapping.NONE, typeColumn = StatementColumnMapping.NONE, debitColumn = mapping.amountColumn.takeIf { it >= 0 } ?: 0))
-                    }
-                },
-                shape = SegmentedButtonDefaults.itemShape(0, 2)
-            ) { Text(stringResource(R.string.import_statement_amount_split)) }
-            SegmentedButton(
-                selected = !mapping.usesDebitCredit,
-                onClick = {
-                    if (mapping.usesDebitCredit) {
-                        onMappingChange(mapping.copy(amountColumn = mapping.debitColumn, debitColumn = StatementColumnMapping.NONE, creditColumn = StatementColumnMapping.NONE))
-                    }
-                },
-                shape = SegmentedButtonDefaults.itemShape(1, 2)
-            ) { Text(stringResource(R.string.import_statement_amount_single)) }
-        }
+        // Options are "uses debit/credit columns": true = split, false = single.
+        ConnectedChoiceRow(
+            options = listOf(true, false),
+            selected = mapping.usesDebitCredit,
+            onSelect = { split ->
+                if (split && !mapping.usesDebitCredit) {
+                    onMappingChange(mapping.copy(amountColumn = StatementColumnMapping.NONE, typeColumn = StatementColumnMapping.NONE, debitColumn = mapping.amountColumn.takeIf { it >= 0 } ?: 0))
+                } else if (!split && mapping.usesDebitCredit) {
+                    onMappingChange(mapping.copy(amountColumn = mapping.debitColumn, debitColumn = StatementColumnMapping.NONE, creditColumn = StatementColumnMapping.NONE))
+                }
+            },
+            label = { split ->
+                stringResource(if (split) R.string.import_statement_amount_split else R.string.import_statement_amount_single)
+            },
+        )
 
         if (mapping.usesDebitCredit) {
             ColumnPicker(stringResource(R.string.import_statement_col_debit), listOf(none) + columns, mapping.debitColumn) {
@@ -502,7 +498,7 @@ private fun TablePreview(rows: List<List<String>>, columnCount: Int, serialDateC
                 Text(
                     text = columnLetter(i),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.width(Dimensions.Component.tableCellWidth).padding(end = Spacing.sm)
                 )
             }
@@ -547,7 +543,7 @@ private fun <T> Picker(label: String, options: List<Pair<T, String>>, selected: 
             singleLine = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { (value, text) ->
@@ -667,7 +663,7 @@ private fun PreviewContent(
                     )
                 }
                 if (state.fromSpreadsheet) {
-                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = onEditMapping, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.import_statement_edit_mapping))
                     }
                 }
@@ -910,7 +906,7 @@ private fun BalanceCheckCard(check: StatementBalanceCheck, applied: Boolean, onA
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             else -> {
-                FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth()) {
+                FilledTonalButton(onClick = onApply, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.import_statement_balance_set, money(corrected)))
                 }
                 if (corrected.compareTo(check.statementBalance) != 0) {
@@ -1036,12 +1032,12 @@ private fun PdfPasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty()) {
+            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.import_statement_password_open))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.import_statement_password_cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.import_statement_password_cancel)) }
         }
     )
 }

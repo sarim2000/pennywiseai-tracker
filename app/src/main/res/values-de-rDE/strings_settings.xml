@@ -6,9 +6,7 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Abbrechen</string>
     <string name="settings_action_ok">Ok</string>
-    <string name="settings_action_done">Fertig</string>
     <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
     <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">Upgrade auf PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Aktiv · Alle Leistungsmerkmale entsperrt</string>
@@ -31,10 +29,13 @@
     <string name="settings_card_spend_as_expense_subtitle">Kreditkarten-Ausgaben in \"Diesen Monat vergeben\" einbeziehen</string>
     <string name="settings_default_currency_title">Standardwährung</string>
     <string name="settings_default_currency_subtitle">Währung für Konversionen</string>
+    <string name="settings_budget_convert_title">Budgets umrechnen?</string>
+    <string name="settings_budget_convert_message">Deine Budgetlimits waren in %1$s und werden jetzt in %2$s angezeigt. Rechne sie zum letzten verfügbaren Kurs (%3$s) um oder behalte die Zahlen bei.</string>
+    <string name="settings_budget_convert_confirm">Umrechnen</string>
+    <string name="settings_budget_convert_keep">Zahlen behalten</string>
     <string name="settings_main_account_title">Hauptkonto</string>
     <string name="settings_main_account_subtitle">Setzt deine Standardwährung</string>
     <string name="settings_main_account_not_set">Nicht gesetzt</string>
-    <string name="settings_currency_field_label">Währung</string>
     <string name="settings_number_format_title">Zahlenformat</string>
     <string name="settings_number_format_subtitle">Wie große Beträge gruppiert werden</string>
     <string name="settings_number_format_auto">Automatisch</string>
@@ -46,9 +47,7 @@
     <string name="settings_date_format_title">Datumsformat</string>
     <string name="settings_date_format_subtitle">Wie Daten angezeigt werden</string>
     <!-- Budget -->
-    <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Budgetzyklus-Starttag</string>
-    <string name="settings_budget_cycle_subtitle">Verschiebt den Beginn jeder monatlichen Budgetperiode; z. B. 25 bedeutet, dass dein Zyklus 25. → 24. läuft</string>
     <string name="settings_budget_cycle_dialog_body">Wählen Sie den Tag, an dem jeder monatliche Budgetzyklus beginnt, z. B. 25 bedeutet der Zyklus vom 25. bis zum 24. des nächsten Monats.</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">Kontakte</string>
@@ -58,6 +57,10 @@
     <string name="settings_security_section">Sicherheit</string>
     <string name="settings_app_lock_title">App-Sperre</string>
     <string name="settings_app_lock_subtitle">Schützen Sie Ihre Daten mit biometrischer Authentifizierung</string>
+    <string name="settings_shake_to_hide_title">Schütteln, um Beträge auszublenden</string>
+    <string name="settings_shake_to_hide_subtitle">Schüttle dein Handy, um Beträge auf allen Bildschirmen aus- oder einzublenden</string>
+    <string name="shake_to_hide_first_hidden">Beträge ausgeblendet. Erneut schütteln, um sie anzuzeigen.</string>
+    <string name="shake_to_hide_first_shown">Beträge angezeigt. Erneut schütteln, um sie auszublenden.</string>
     <string name="settings_lock_timeout_title">Sperr-Timeout</string>
     <string name="settings_lock_timeout_immediately_subtitle">Sofort sperren</string>
     <plurals name="settings_lock_timeout_after_minutes">
@@ -244,6 +247,11 @@
     <string name="settings_report_issue_subtitle">Fehlerberichte auf GitHub senden</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <string name="settings_app_version">PennyWise v%1$s</string>
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Erscheinungsbild</string>
     <string name="appearance_back">Zurück</string>

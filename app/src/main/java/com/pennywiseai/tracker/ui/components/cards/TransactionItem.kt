@@ -5,15 +5,16 @@ import com.pennywiseai.tracker.utils.AppDates
 import android.content.res.Resources
 import androidx.compose.ui.platform.LocalContext
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import android.view.HapticFeedbackConstants
@@ -26,6 +27,7 @@ import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
@@ -49,15 +51,16 @@ fun TransactionItem(
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
-    val isDark = isSystemInDarkTheme()
-    val amountColor = remember(transaction.transactionType, isDark) {
-        when (transaction.transactionType) {
-            TransactionType.INCOME -> if (!isDark) income_light else income_dark
-            TransactionType.EXPENSE -> if (!isDark) expense_light else expense_dark
-            TransactionType.CREDIT -> if (!isDark) credit_light else credit_dark
-            TransactionType.TRANSFER -> if (!isDark) transfer_light else transfer_dark
-            TransactionType.INVESTMENT -> if (!isDark) investment_light else investment_dark
-        }
+    val colorScheme = MaterialTheme.colorScheme
+    val amountColor = when (transaction.transactionType) {
+        TransactionType.INCOME -> colorScheme.income
+        TransactionType.EXPENSE -> containerColor
+            ?.let { colorScheme.contentColorFor(it) }
+            ?.takeIf { it.isSpecified }
+            ?: colorScheme.onSurface
+        TransactionType.CREDIT -> colorScheme.credit
+        TransactionType.TRANSFER -> colorScheme.transfer
+        TransactionType.INVESTMENT -> colorScheme.investment
     }
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
@@ -85,9 +88,9 @@ fun TransactionItem(
 
     val resources = LocalContext.current.resources
     val categoryText = categoryLabel(transaction.category)
-    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness) {
+    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
-            if (description != null) add(description)
+            if (description != null) add(CurrencyFormatter.maskAmountsIn(description))
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
                 !transaction.category.equals("Uncategorized", ignoreCase = true)

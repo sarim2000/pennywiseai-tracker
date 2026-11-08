@@ -20,6 +20,7 @@ object BankParserFactory {
         JuspayParser(),
         CashfreeParser(),  // Cashfree payment gateway (India) — grouped with other aggregators
         SliceParser(),
+        PhonePeWalletParser(),  // PhonePe wallet (India); wallet messages only
         SuryodayBankParser(),  // Suryoday Small Finance Bank (India) — SSFBNK
         CredParser(),
         LazyPayParser(),
@@ -171,6 +172,7 @@ object BankParserFactory {
         NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
         NDBBankParser(),  // National Development Bank / NDB (Sri Lanka)
         ComBankParser(),  // Commercial Bank of Ceylon / ComBank (Sri Lanka) (#848)
+        CityBankBangladeshParser(), // City Bank PLC (Bangladesh)
         BRACBankParser(),  // BRAC Bank (Bangladesh) (#943)
         BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)

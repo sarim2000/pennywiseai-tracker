@@ -62,7 +62,7 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -98,6 +98,7 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    currencyOnly: Boolean = false,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -116,8 +117,7 @@ fun TransactionsScreen(
     // the list + FAB reserve matching clearance regardless of the back arrow. (#635)
     reserveBottomBarSpace: Boolean = false,
     onTransactionClick: (Long) -> Unit = {},
-    onAddTransactionClick: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onAddTransactionClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -231,6 +231,7 @@ fun TransactionsScreen(
             initialTag,
             initialTransactionType
         )
+        if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
     }
 
     // Track if we've already processed these specific nav params
@@ -314,11 +315,30 @@ fun TransactionsScreen(
     // stack need matching bottom clearance (whether or not a back arrow shows).
     val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
 
+    // As a tab under the floating nav bar, Add docks beside the bar and Export
+    // moves to the top bar instead of a FAB stack.
+    val navDock = if (reserveBottomBarSpace) LocalNavDock.current else null
+    if (navDock != null) {
+        DockNavAction(
+            NavDockAction(
+                icon = Icons.Default.Add,
+                contentDescription = stringResource(R.string.txn_list_add_transaction),
+                onClick = onAddTransactionClick
+            )
+        )
+    }
+
     Scaffold(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        // With no FAB to lift it, clear the overlaid floating nav bar instead.
+        snackbarHost = {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = if (navDock != null) bottomBarClearance else 0.dp)
+            )
+        },
         topBar = {
             if (selectionMode) {
                 // Contextual top bar for bulk-edit (#369): close left, count as title,
@@ -329,7 +349,7 @@ fun TransactionsScreen(
                     title = stringResource(R.string.txn_list_selected_count, selectedIds.size),
                     hasBackButton = true,
                     navigationContent = {
-                        IconButton(onClick = { viewModel.clearSelection() }) {
+                        IconButton(onClick = { viewModel.clearSelection() }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_list_exit_selection))
                         }
                     },
@@ -340,24 +360,29 @@ fun TransactionsScreen(
                             // Link exactly two selected rows as a transfer — the
                             // manual counterpart to the auto-detected chip (#614),
                             // covering pairs the detector misses (fees, wide gaps).
+                            if (selectedIds.size < uiState.transactions.size) {
+                                IconButton(onClick = { viewModel.selectAllVisible() }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.txn_list_select_all))
+                                }
+                            }
                             if (selectedIds.size == 2) {
-                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }) {
+                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(
                                         Icons.Default.SwapHoriz,
                                         contentDescription = stringResource(R.string.txn_list_mark_as_transfer)
                                     )
                                 }
                             }
-                            IconButton(onClick = { showBulkCategorySheet = true }) {
+                            IconButton(onClick = { showBulkCategorySheet = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Default.Category, contentDescription = stringResource(R.string.txn_list_change_category))
                             }
-                            IconButton(onClick = { showBulkGroupSheet = true }) {
+                            IconButton(onClick = { showBulkGroupSheet = true }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     Icons.AutoMirrored.Filled.PlaylistAdd,
                                     contentDescription = stringResource(R.string.txn_list_add_to_group)
                                 )
                             }
-                            IconButton(onClick = { viewModel.bulkDelete() }) {
+                            IconButton(onClick = { viewModel.bulkDelete() }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(
                                     Icons.Default.Delete,
                                     contentDescription = stringResource(R.string.txn_list_delete_selected),
@@ -375,11 +400,21 @@ fun TransactionsScreen(
                     title = stringResource(R.string.txn_list_title),
                     hasBackButton = showBackButton,
                     navigationContent = {
-                        IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = stringResource(R.string.txn_list_back)
                             )
+                        }
+                    },
+                    actionContent = {
+                        if (navDock != null && uiState.transactions.isNotEmpty()) {
+                            IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
+                                Icon(
+                                    imageVector = Icons.Default.FileDownload,
+                                    contentDescription = stringResource(R.string.txn_list_export_csv)
+                                )
+                            }
                         }
                     },
                     hazeState = hazeState
@@ -387,7 +422,7 @@ fun TransactionsScreen(
             }
         },
         floatingActionButton = {
-            Column(
+            if (navDock == null) Column(
                 modifier = Modifier.padding(bottom = bottomBarClearance),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
@@ -572,7 +607,7 @@ fun TransactionsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
-                    stickyHeader {
+                    stickyHeader(contentType = "totals") {
                         Surface(
                             // Match the Scaffold's `background` so AMOLED-style
                             // themes (true-black bg + tinted surface) don't paint
@@ -606,7 +641,7 @@ fun TransactionsScreen(
 
                     // Show info banner when viewing budget transactions
                     if (categoriesFromBudget) {
-                        item {
+                        item(contentType = "budgetNotice") {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = MaterialTheme.shapes.small,
@@ -647,12 +682,13 @@ fun TransactionsScreen(
                             val headerContent: @Composable LazyItemScope.(Int) -> Unit = { _ ->
                                 TransactionDateHeader(title = stringResource(dateGroup.labelRes))
                             }
-                            stickyHeader(content = headerContent)
+                            stickyHeader(contentType = "dateHeader", content = headerContent)
                             
                             // Transactions in this group
                             itemsIndexed(
                                 items = transactions,
-                                key = { _, transaction -> transaction.id }
+                                key = { _, transaction -> transaction.id },
+                                contentType = { _, _ -> "transaction" }
                             ) { index, transaction ->
                                 val isSelected = transaction.id in selectedIds
                                 // Selected highlight via the Card's container colour — the prior
@@ -913,7 +949,8 @@ private fun BulkGroupPickerSheet(
                                     onCreateGroup(newGroupName.trim())
                                 }
                             },
-                            enabled = newGroupName.isNotBlank()
+                            enabled = newGroupName.isNotBlank(),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Check, contentDescription = stringResource(R.string.txn_list_group_create))
                         }
@@ -922,7 +959,8 @@ private fun BulkGroupPickerSheet(
             } else {
                 TextButton(
                     onClick = { showCreateField = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -945,21 +983,27 @@ private fun SwipeToEditCategory(
     content: @Composable () -> Unit
 ) {
     val view = LocalView.current
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                onRequestEdit(transaction)
-            }
-            // Never let the swipe complete — we use it purely as a gesture trigger
-            // and snap back to the resting state.
-            false
+    val scope = rememberCoroutineScope()
+    // Not rememberSaveable: a restored row must start at rest, or onDismiss re-fires.
+    val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+    val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
+    // M3 re-runs onDismiss whenever the lambda changes while dismissed, so keep it stable.
+    val currentTransaction by rememberUpdatedState(transaction)
+    val currentOnRequestEdit by rememberUpdatedState(onRequestEdit)
+    val onDismiss = remember {
+        { _: SwipeToDismissBoxValue ->
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            currentOnRequestEdit(currentTransaction)
+            scope.launch { dismissState.reset() }
+            Unit
         }
-    )
+    }
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true,
+        // The swipe is purely a gesture trigger: fire the edit, then animate back to rest.
+        onDismiss = onDismiss,
         backgroundContent = {
             val color by animateColorAsState(
                 when (dismissState.targetValue) {
@@ -1113,7 +1157,7 @@ private fun TransactionFilterHeader(
                 focusRequester = focusRequester,
                 trailingContent = {
                     Box {
-                        IconButton(onClick = onSortClick) {
+                        IconButton(onClick = onSortClick, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 imageVector = Icons.Rounded.MoreHoriz,
                                 contentDescription = stringResource(R.string.txn_list_more_options),
@@ -1126,28 +1170,19 @@ private fun TransactionFilterHeader(
                             onDismissRequest = onSortDismiss,
                             shape = MaterialTheme.shapes.large
                         ) {
-                            SortOption.values().forEach { option ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            RadioButton(
-                                                selected = sortOption == option,
-                                                onClick = null,
-                                                modifier = Modifier.size(Dimensions.Icon.medium)
-                                            )
-                                            Text(stringResource(option.labelRes))
-                                        }
-                                    },
+                            SortOption.entries.forEachIndexed { index, option ->
+                                SelectableDropdownMenuItem(
+                                    selected = sortOption == option,
+                                    text = { Text(stringResource(option.labelRes)) },
+                                    shapes = MenuDefaults.itemShape(index, SortOption.entries.size),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.Sort,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
+                                            contentDescription = null
                                         )
                                     },
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                     onClick = { onSortSelected(option) }
                                 )
                             }
@@ -1197,14 +1232,13 @@ private fun TransactionFilterHeader(
                             expanded = showPeriodMenu,
                             onDismissRequest = onPeriodDismiss
                         ) {
-                            timePeriods.forEach { period ->
-                                DropdownMenuItem(
+                            timePeriods.forEachIndexed { index, period ->
+                                SelectableDropdownMenuItem(
+                                    selected = selectedPeriod == period,
                                     text = { Text(period.label) },
-                                    leadingIcon = {
-                                        if (selectedPeriod == period) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        }
-                                    },
+                                    shapes = MenuDefaults.itemShape(index, timePeriods.size),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                     onClick = { onPeriodSelected(period) }
                                 )
                             }
@@ -1226,19 +1260,20 @@ private fun TransactionFilterHeader(
                             onDismissRequest = onTypeDismiss,
                             shape = MaterialTheme.shapes.large
                         ) {
-                            TransactionTypeFilter.entries.filter { it.inTransactionsList }.forEach { typeFilter ->
-                                DropdownMenuItem(
+                            val typeFilters = TransactionTypeFilter.entries.filter { it.inTransactionsList }
+                            typeFilters.forEachIndexed { index, typeFilter ->
+                                SelectableDropdownMenuItem(
+                                    selected = transactionTypeFilter == typeFilter,
                                     text = { Text(typeFilter.label) },
+                                    shapes = MenuDefaults.itemShape(index, typeFilters.size),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                     leadingIcon = {
-                                        if (transactionTypeFilter == typeFilter) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(
-                                                imageVector = typeFilter.filterIcon(),
-                                                contentDescription = null
-                                            )
-                                        }
+                                        Icon(
+                                            imageVector = typeFilter.filterIcon(),
+                                            contentDescription = null
+                                        )
                                     },
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                     onClick = { onTransactionTypeSelected(typeFilter) }
                                 )
                             }
@@ -1266,19 +1301,20 @@ private fun TransactionFilterHeader(
                             expanded = showMoreFiltersMenu,
                             onDismissRequest = onMoreFiltersDismiss
                         ) {
-                            DropdownMenuItem(
+                            SelectableDropdownMenuItem(
+                                selected = !hasCategoryFilter,
                                 text = { Text(stringResource(R.string.txn_list_all_categories)) },
-                                leadingIcon = {
-                                    if (!hasCategoryFilter) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    } else {
-                                        Icon(Icons.Default.Category, contentDescription = null)
-                                    }
-                                },
+                                shapes = MenuDefaults.itemShape(0, 1),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                 onClick = { onCategorySelected(null) }
                             )
                             // Tick/untick to include or exclude (#786); the menu stays
                             // open so several can be changed in one go.
+                            // Kept as checkbox rows, not CheckableDropdownMenuItem: every category
+                            // is ticked by default, and the expressive item swaps the category icon
+                            // for a check, leaving a wall of identical rows.
                             availableCategories.forEach { category ->
                                 DropdownMenuItem(
                                     text = { Text(categoryLabel(category), maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -1297,30 +1333,28 @@ private fun TransactionFilterHeader(
                             if (profiles.isNotEmpty()) {
                                 HorizontalDivider()
                             }
-                            DropdownMenuItem(
+                            SelectableDropdownMenuItem(
+                                selected = selectedProfileId == null,
                                 text = { Text(stringResource(R.string.txn_list_all_profiles)) },
-                                leadingIcon = {
-                                    if (selectedProfileId == null) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    } else {
-                                        Icon(Icons.Outlined.AccountBalance, contentDescription = null)
-                                    }
-                                },
+                                shapes = MenuDefaults.itemShape(0, profiles.size + 1),
+                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                leadingIcon = { Icon(Icons.Outlined.AccountBalance, contentDescription = null) },
+                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                 onClick = { onProfileSelected(null) }
                             )
-                            profiles.forEach { profile ->
-                                DropdownMenuItem(
+                            profiles.forEachIndexed { index, profile ->
+                                SelectableDropdownMenuItem(
+                                    selected = selectedProfileId == profile.id,
                                     text = { Text(profile.displayName(), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                                    shapes = MenuDefaults.itemShape(index + 1, profiles.size + 1),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                                     leadingIcon = {
-                                        if (selectedProfileId == profile.id) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(
-                                                profileIcon(profile),
-                                                contentDescription = null
-                                            )
-                                        }
+                                        Icon(
+                                            profileIcon(profile),
+                                            contentDescription = null
+                                        )
                                     },
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                     onClick = { onProfileSelected(profile.id) }
                                 )
                             }
@@ -1342,27 +1376,23 @@ private fun TransactionFilterHeader(
                                 expanded = showTagMenu,
                                 onDismissRequest = onTagDismiss
                             ) {
-                                DropdownMenuItem(
+                                SelectableDropdownMenuItem(
+                                    selected = tagFilter == null,
                                     text = { Text(stringResource(R.string.txn_list_all_tags)) },
-                                    leadingIcon = {
-                                        if (tagFilter == null) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(Icons.Default.Sell, contentDescription = null)
-                                        }
-                                    },
+                                    shapes = MenuDefaults.itemShape(0, availableTags.size + 1),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                    leadingIcon = { Icon(Icons.Default.Sell, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                     onClick = { onTagSelected(null) }
                                 )
-                                availableTags.forEach { tag ->
-                                    DropdownMenuItem(
+                                availableTags.forEachIndexed { index, tag ->
+                                    SelectableDropdownMenuItem(
+                                        selected = tagFilter?.equals(tag, ignoreCase = true) == true,
                                         text = { Text(tag, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                        leadingIcon = {
-                                            if (tagFilter?.equals(tag, ignoreCase = true) == true) {
-                                                Icon(Icons.Default.Check, contentDescription = null)
-                                            } else {
-                                                Icon(Icons.Default.Sell, contentDescription = null)
-                                            }
-                                        },
+                                        shapes = MenuDefaults.itemShape(index + 1, availableTags.size + 1),
+                                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                        leadingIcon = { Icon(Icons.Default.Sell, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                         onClick = { onTagSelected(tag) }
                                     )
                                 }
@@ -1387,27 +1417,23 @@ private fun TransactionFilterHeader(
                                 expanded = showAccountMenu,
                                 onDismissRequest = onAccountDismiss
                             ) {
-                                DropdownMenuItem(
+                                SelectableDropdownMenuItem(
+                                    selected = accountFilter == null,
                                     text = { Text(stringResource(R.string.txn_list_all_accounts)) },
-                                    leadingIcon = {
-                                        if (accountFilter == null) {
-                                            Icon(Icons.Default.Check, contentDescription = null)
-                                        } else {
-                                            Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
-                                        }
-                                    },
+                                    shapes = MenuDefaults.itemShape(0, accountOptions.size + 1),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                    leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) },
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                     onClick = { onAccountSelected(null) }
                                 )
-                                accountOptions.forEach { option ->
-                                    DropdownMenuItem(
+                                accountOptions.forEachIndexed { index, option ->
+                                    SelectableDropdownMenuItem(
+                                        selected = accountFilter == option.key,
                                         text = { Text(option.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                        leadingIcon = {
-                                            if (accountFilter == option.key) {
-                                                Icon(Icons.Default.Check, contentDescription = null)
-                                            } else {
-                                                Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null)
-                                            }
-                                        },
+                                        shapes = MenuDefaults.itemShape(index + 1, accountOptions.size + 1),
+                                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                        leadingIcon = { Icon(Icons.Outlined.AccountBalanceWallet, contentDescription = null) },
+                                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
                                         onClick = { onAccountSelected(option.key) }
                                     )
                                 }
@@ -1490,7 +1516,7 @@ private fun TransactionSearchBar(
                 }
             )
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
+                IconButton(onClick = { onQueryChange("") }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         imageVector = Icons.Default.Clear,
                         contentDescription = stringResource(R.string.txn_list_clear_search),

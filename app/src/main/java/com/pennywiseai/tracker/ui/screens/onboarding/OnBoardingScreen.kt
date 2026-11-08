@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.onboarding
 
 import android.Manifest
+import android.content.Intent
 import android.app.LocaleConfig
 import android.app.LocaleManager
 import android.os.Build
@@ -45,17 +46,23 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -81,11 +88,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 // TextFieldDefaults already imported above
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.screens.settings.BackgroundAccessChecklist
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -115,6 +124,7 @@ fun OnBoardingScreen(
                         OnBoardingStep.WELCOME -> viewModel.goToNextStep()
                         OnBoardingStep.PROFILE -> viewModel.goToNextStep()
                         OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
+                        OnBoardingStep.BACKGROUND_ACCESS -> viewModel.goToNextStep()
                         OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
                         OnBoardingStep.ACCOUNT_SETUP -> {
                             viewModel.completeOnboarding(onOnboardingComplete)
@@ -167,6 +177,7 @@ fun OnBoardingScreen(
                     uiState = uiState,
                     onPermissionResult = { viewModel.onSmsPermissionResult(it) }
                 )
+                OnBoardingStep.BACKGROUND_ACCESS -> BackgroundAccessStep()
                 OnBoardingStep.SMS_SCAN -> SmsScanStep(uiState = uiState)
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
@@ -325,7 +336,7 @@ private fun <T> OnboardingPicker(
             shape = MaterialTheme.shapes.large,
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -337,16 +348,17 @@ private fun <T> OnboardingPicker(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
-            options.forEach { option ->
-                DropdownMenuItem(
+            options.forEachIndexed { index, option ->
+                SelectableDropdownMenuItem(
+                    selected = option == selected,
                     text = { Text(label(option)) },
                     onClick = {
                         expanded = false
                         onSelect(option)
                     },
-                    leadingIcon = if (option == selected) {
-                        { Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-                    } else null
+                    shapes = MenuDefaults.itemShape(index, options.size),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                 )
             }
         }
@@ -605,7 +617,7 @@ private fun PermissionsStep(
             val incomeColor = MaterialTheme.colorScheme.income
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = incomeColor.copy(alpha = if (isSystemInDarkTheme()) 0.15f else 0.12f)
+                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
                 ),
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()
@@ -639,7 +651,8 @@ private fun PermissionsStep(
                     }
                     permissionLauncher.launch(permissions.toTypedArray())
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.onboarding_enable_permissions))
             }
@@ -648,16 +661,38 @@ private fun PermissionsStep(
 }
 
 @Composable
+private fun BackgroundAccessStep() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        Text(
+            text = stringResource(R.string.background_access_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        BackgroundAccessChecklist()
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
 private fun SmsScanStep(uiState: OnBoardingUiState) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         if (uiState.isScanning) {
-            CircularProgressIndicator(
+            LoadingIndicator(
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer)
             )
 
@@ -674,7 +709,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
 
             if (uiState.scanTotal > 0) {
                 val progress = uiState.scanProcessed.toFloat() / uiState.scanTotal.toFloat()
-                LinearProgressIndicator(
+                LinearWavyProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -700,7 +735,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                     )
                 }
             } else {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.onboarding_scan_preparing),
@@ -741,6 +776,8 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                MissingBankCard()
             }
         } else {
             // Not started yet
@@ -768,6 +805,41 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+/** Nothing parsed usually means an unsupported bank: point to the bank-support request. */
+@Composable
+private fun MissingBankCard() {
+    val context = LocalContext.current
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.md)) {
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            TextButton(
+                onClick = {
+                    // ponytail: no browser installed → ActivityNotFoundException is swallowed, nothing else to offer
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
+                },
+                modifier = Modifier.align(Alignment.End),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.onboarding_bank_missing_action))
+            }
         }
     }
 }
@@ -970,7 +1042,7 @@ private fun OnBoardingBottomBar(
     ) {
         // Back button
         if (canGoBack) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.onboarding_back)
@@ -987,7 +1059,7 @@ private fun OnBoardingBottomBar(
         ) {
             when (uiState.currentStep) {
                 OnBoardingStep.WELCOME -> {
-                    Button(onClick = onNext) {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.onboarding_get_started))
                     }
                 }
@@ -995,7 +1067,8 @@ private fun OnBoardingBottomBar(
                 OnBoardingStep.PROFILE -> {
                     Button(
                         onClick = onNext,
-                        enabled = uiState.userName.isNotBlank()
+                        enabled = uiState.userName.isNotBlank(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.onboarding_save_continue))
                     }
@@ -1003,31 +1076,37 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.PERMISSIONS -> {
                     if (!uiState.smsPermissionGranted) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     }
                     if (uiState.smsPermissionGranted) {
-                        Button(onClick = onNext) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     }
                 }
 
+                OnBoardingStep.BACKGROUND_ACCESS -> {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.onboarding_continue))
+                    }
+                }
+
                 OnBoardingStep.SMS_SCAN -> {
                     if (!uiState.isScanning && !uiState.scanCompleted) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
-                        Button(onClick = onStartScan) {
+                        Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_start_scanning))
                         }
                     } else if (uiState.isScanning) {
-                        TextButton(onClick = onSkip) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_skip))
                         }
                     } else if (uiState.scanCompleted) {
-                        Button(onClick = onNext) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
                     }
@@ -1035,18 +1114,19 @@ private fun OnBoardingBottomBar(
 
                 OnBoardingStep.ACCOUNT_SETUP -> {
                     if (uiState.accounts.isEmpty()) {
-                        Button(onClick = onNext) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_finish))
                         }
                     } else {
                         if (uiState.selectedAccountKey == null) {
-                            TextButton(onClick = onSkip) {
+                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.onboarding_skip))
                             }
                         }
                         Button(
                             onClick = onNext,
-                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty()
+                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             if (uiState.isCompleting) {
                                 CircularProgressIndicator(
@@ -1076,6 +1156,8 @@ private fun currencyLabel(code: String): String {
 // Onboarding-only geometry. These are intentionally larger than any in-app
 // token: full-screen illustrative moments, not list chrome.
 private val HERO_ICON_SIZE = 100.dp
+private const val BANK_REQUEST_URL =
+    "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md"
 private val PSEUDO_REGIONS = setOf("XA", "XB")
 private val HERO_ICON_SIZE_SMALL = 80.dp
 private val OPTION_TILE_SIZE = 72.dp

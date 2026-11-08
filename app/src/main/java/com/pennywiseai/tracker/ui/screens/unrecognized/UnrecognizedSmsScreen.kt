@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,7 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.navigation.AddTransaction
@@ -62,6 +61,16 @@ fun UnrecognizedSmsScreen(
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val showReported by viewModel.showReported.collectAsStateWithLifecycle()
+    val formatChanged by viewModel.formatChanged.collectAsStateWithLifecycle()
+    val taughtTemplates by viewModel.taughtTemplates.collectAsStateWithLifecycle()
+    val teach by viewModel.teach.collectAsStateWithLifecycle()
+    val inboxPicker by viewModel.inboxPicker.collectAsStateWithLifecycle()
+    var showTaughtTemplates by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.notices.collect { snackbarHostState.showSnackbar(context.getString(it)) }
+    }
     var selectedMessage by remember { mutableStateOf<UnrecognizedSmsEntity?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
@@ -85,6 +94,7 @@ fun UnrecognizedSmsScreen(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -92,7 +102,7 @@ fun UnrecognizedSmsScreen(
                 title = stringResource(R.string.unrecognized_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.unrecognized_back))
                     }
                 },
@@ -124,9 +134,9 @@ fun UnrecognizedSmsScreen(
                 }
                 AnimatedVisibility(
                     visible = visible.value,
-                    enter = fadeIn(tween(300)) + slideInVertically(
+                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                         initialOffsetY = { slideOffsetPx },
-                        animationSpec = tween(300)
+                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                     )
                 ) {
                     PennyWiseCardV2(
@@ -142,7 +152,7 @@ fun UnrecognizedSmsScreen(
                                 Icon(
                                     Icons.Default.Info,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = stringResource(R.string.unrecognized_header_title),
@@ -165,6 +175,8 @@ fun UnrecognizedSmsScreen(
                             ) {
                                 FilterChip(
                                     selected = showReported,
+                                    shapes = FilterChipDefaults.shapes(),
+                                    colors = FilterChipDefaults.filterChipColors(),
                                     onClick = { viewModel.toggleShowReported() },
                                     label = { Text(stringResource(R.string.unrecognized_show_reported)) },
                                     leadingIcon = if (showReported) {
@@ -193,6 +205,25 @@ fun UnrecognizedSmsScreen(
                                                 Text(pluralStringResource(R.plurals.unrecognized_reported_count, reportedCount, reportedCount))
                                             }
                                         }
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                if (viewModel.canReadInbox) {
+                                    TextButton(onClick = viewModel::openInboxPicker, shapes = ButtonDefaults.shapes()) {
+                                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                                        Spacer(modifier = Modifier.width(Spacing.xs))
+                                        Text(stringResource(R.string.teach_find_message))
+                                    }
+                                }
+                                if (taughtTemplates.isNotEmpty()) {
+                                    TextButton(onClick = { showTaughtTemplates = true }, shapes = ButtonDefaults.shapes()) {
+                                        Text(stringResource(R.string.teach_taught_count, taughtTemplates.size))
                                     }
                                 }
                             }
@@ -227,17 +258,21 @@ fun UnrecognizedSmsScreen(
                     }
                     AnimatedVisibility(
                         visible = visible.value,
-                        enter = fadeIn(tween(300)) + slideInVertically(
+                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                             initialOffsetY = { slideOffsetPx },
-                            animationSpec = tween(300)
+                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                         )
                     ) {
                         UnrecognizedSmsItem(
                             message = message,
                             suggestion = suggestions[message.id]?.transaction,
                             onAddSuggestion = {
-                                suggestions[message.id]?.let { onAddSuggestion(it.draft()) }
+                                suggestions[message.id]?.let {
+                                    if (it.taught) viewModel.addTaught(message) else onAddSuggestion(it.draft())
+                                }
                             },
+                            formatChanged = message.id in formatChanged,
+                            onTeach = { viewModel.teachWaiting(message) },
                             onReport = {
                                 viewModel.reportMessage(message)
                             },
@@ -250,6 +285,36 @@ fun UnrecognizedSmsScreen(
                 }
             }
         }
+    }
+
+    teach?.let { state ->
+        TeachMessageSheet(
+            state = state,
+            onTap = viewModel::onTeachTap,
+            onSelectField = viewModel::onTeachField,
+            onSelectType = viewModel::onTeachType,
+            onSelectCurrency = viewModel::onTeachCurrency,
+            onSelectFormat = viewModel::onTeachFormat,
+            onMerchantTyped = viewModel::onTeachMerchantTyped,
+            onSave = viewModel::saveTeach,
+            onDismiss = viewModel::dismissTeach
+        )
+    }
+
+    inboxPicker?.let { picker ->
+        InboxPickerSheet(
+            messages = picker.messages,
+            onPick = viewModel::teachFromInbox,
+            onDismiss = viewModel::closeInboxPicker
+        )
+    }
+
+    if (showTaughtTemplates && taughtTemplates.isNotEmpty()) {
+        TaughtTemplatesSheet(
+            templates = taughtTemplates,
+            onDelete = viewModel::deleteTemplate,
+            onDismiss = { showTaughtTemplates = false }
+        )
     }
 
     // Delete confirmation dialog
@@ -272,7 +337,8 @@ fun UnrecognizedSmsScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.unrecognized_delete))
                 }
@@ -282,7 +348,8 @@ fun UnrecognizedSmsScreen(
                     onClick = {
                         showDeleteConfirmation = false
                         selectedMessage = null
-                    }
+                    },
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.unrecognized_cancel))
                 }
@@ -296,6 +363,8 @@ private fun UnrecognizedSmsItem(
     message: UnrecognizedSmsEntity,
     suggestion: ParsedTransaction?,
     onAddSuggestion: (ParsedTransaction) -> Unit,
+    formatChanged: Boolean,
+    onTeach: () -> Unit,
     onReport: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
@@ -319,7 +388,7 @@ private fun UnrecognizedSmsItem(
                         text = displayName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = message.receivedAt.format(
@@ -344,7 +413,7 @@ private fun UnrecognizedSmsItem(
 
             // Message content (truncated)
             Text(
-                text = message.smsBody,
+                text = CurrencyFormatter.maskAmountsIn(message.smsBody),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
@@ -355,53 +424,47 @@ private fun UnrecognizedSmsItem(
                 SuggestionLine(tx, onAdd = { onAddSuggestion(tx) })
             }
 
+            if (formatChanged) {
+                Text(
+                    text = stringResource(R.string.teach_format_changed),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
             // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.unrecognized_delete),
+                        modifier = Modifier.size(Dimensions.Icon.inline)
+                    )
+                }
+
                 if (!message.reported) {
-                    TextButton(
-                        onClick = onDelete
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.unrecognized_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_delete))
-                    }
-
-                    Spacer(modifier = Modifier.width(Spacing.sm))
-
-                    FilledTonalButton(
-                        onClick = onReport
-                    ) {
+                    IconButton(onClick = onReport, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.BugReport,
                             contentDescription = stringResource(R.string.unrecognized_report),
-                            modifier = Modifier.size(Dimensions.Icon.small)
+                            modifier = Modifier.size(Dimensions.Icon.inline)
                         )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_report))
                     }
-                } else {
-                    TextButton(
-                        onClick = onDelete,
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.unrecognized_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.unrecognized_delete))
-                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                FilledTonalButton(onClick = onTeach, shapes = ButtonDefaults.shapes()) {
+                    Icon(
+                        Icons.Default.School,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.teach_action))
                 }
             }
         }
@@ -430,7 +493,7 @@ private fun SuggestionLine(tx: ParsedTransaction, onAdd: () -> Unit) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        TextButton(onClick = onAdd) {
+        TextButton(onClick = onAdd, shapes = ButtonDefaults.shapes()) {
             Text(stringResource(R.string.unrecognized_suggestion_add))
         }
     }

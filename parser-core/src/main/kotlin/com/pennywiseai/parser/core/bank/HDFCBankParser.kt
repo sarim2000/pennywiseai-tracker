@@ -340,6 +340,8 @@ class HDFCBankParser : BaseIndianBankParser() {
 
             // Standard expense keywords
             lowerMessage.contains("debited") -> TransactionType.EXPENSE
+            // Wallet spend: "Rs.50 Deducted From <wallet> On … Bal: Rs.…" (#1136)
+            lowerMessage.contains("deducted") -> TransactionType.EXPENSE
             lowerMessage.contains("withdrawn") && !lowerMessage.contains("block cc") -> TransactionType.EXPENSE
             lowerMessage.contains("spent") && !lowerMessage.contains("card") -> TransactionType.EXPENSE
             lowerMessage.contains("charged") -> TransactionType.EXPENSE

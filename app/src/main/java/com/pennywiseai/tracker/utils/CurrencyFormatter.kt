@@ -153,10 +153,21 @@ object CurrencyFormatter {
     private val EXPLICIT_SYMBOL_CURRENCIES = setOf("PKR", "LKR")
 
     /**
-     * Formats a BigDecimal amount as currency with the specified currency code
+     * Formats a BigDecimal amount as currency with the specified currency code.
+     *
+     * Returns [AmountPrivacy.MASK] while the user has amounts hidden. That's right
+     * for anything drawn on screen. Anything else must pass [maskIfHidden] = false,
+     * or it silently writes "••••" for users who hide amounts:
+     * - notifications (their lock-screen privacy is handled separately)
+     * - AI prompts and stored chat messages
+     * - text saved to the database (e.g. a balance adjustment's description)
+     * - exports, backups, webhook payloads and shared text or images
+     * - logs
+     * - widgets, which apply their own rule
      */
-    fun formatCurrency(amount: BigDecimal, currencyCode: String = "INR"): String =
-        ltr(formatCurrencyRaw(amount, currencyCode))
+    fun formatCurrency(amount: BigDecimal, currencyCode: String, maskIfHidden: Boolean = true): String =
+        if (maskIfHidden && AmountPrivacy.hidden) AmountPrivacy.MASK
+        else ltr(formatCurrencyRaw(amount, currencyCode))
 
     /**
      * [formatted] with a leading [signPrefix] ("-" / "+") that stays on the left in
@@ -221,8 +232,8 @@ object CurrencyFormatter {
     /**
      * Formats a Double amount as currency with the specified currency code
      */
-    fun formatCurrency(amount: Double, currencyCode: String = "INR"): String {
-        return formatCurrency(amount.toBigDecimal(), currencyCode)
+    fun formatCurrency(amount: Double, currencyCode: String, maskIfHidden: Boolean = true): String {
+        return formatCurrency(amount.toBigDecimal(), currencyCode, maskIfHidden)
     }
 
     /**
@@ -269,18 +280,40 @@ object CurrencyFormatter {
     fun formatByCurrency(
         totalsByCurrency: Map<String, Money>,
         signPrefix: String = "",
-        fallbackCurrency: String = "INR"
+        fallbackCurrency: String = "INR",
+        maskIfHidden: Boolean = true
     ): String {
+        // One mask, not one per currency: "•••• · ••••" would still say how many there are.
+        if (maskIfHidden && AmountPrivacy.hidden) return AmountPrivacy.MASK
         val nonZero = totalsByCurrency.values.filter { it.amount.signum() != 0 }
         if (nonZero.isEmpty()) {
             // Keep the symbol right for an all-cancelling single-currency set
             // (e.g. a $300 charge + $300 refund) instead of defaulting to ₹0.
             val currency = totalsByCurrency.keys.firstOrNull() ?: fallbackCurrency
-            return Money.zero(currency).format(signPrefix)
+            return Money.zero(currency).format(signPrefix, maskIfHidden = false)
         }
         return nonZero
             .sortedByDescending { it.amount.abs() }
-            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix) }
+            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix, maskIfHidden = false) }
+    }
+
+    /**
+     * [text] with every number in it masked, along with a currency symbol or code
+     * beside it ("$1,200", "JD 4", "1,200 JOD", "coffee 120"), while amounts are
+     * hidden. For free text that already has amounts baked in (chat messages,
+     * descriptions, the original SMS), which is stored unmasked. Free text can't tell
+     * an amount from any other number, so all of them go: a hidden screen showing
+     * "Nov ••••" beats one showing "got 50000 salary".
+     */
+    fun maskAmountsIn(text: String): String =
+        if (AmountPrivacy.hidden) numberInText.replace(text, AmountPrivacy.MASK) else text
+
+    private val numberInText: Regex by lazy {
+        val currency = (CURRENCY_SYMBOLS.keys + CURRENCY_SYMBOLS.values)
+            .distinct().sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
+        // Any script's digits; ends on a digit, so a full stop after it stays.
+        val number = """\p{Nd}(?:[\p{Nd},.\u066B\u066C]*\p{Nd})?"""
+        Regex("""\u2066?(?:(?<!\p{L})(?:$currency)\s?)?-?$number(?:\s?(?:$currency)(?!\p{L}))?\u2069?""")
     }
 
     /**
@@ -311,6 +344,7 @@ object CurrencyFormatter {
      * [numberFormatStyle] (AUTO = L/Cr for INR/NPR/PKR, K/M otherwise).
      */
     fun formatAbbreviated(value: Double, currencyCode: String): String {
+        if (AmountPrivacy.hidden) return AmountPrivacy.MASK
         val symbol = getCurrencySymbol(currencyCode)
         val absValue = kotlin.math.abs(value)
         val useIndianNotation = useIndianAbbreviation(currencyCode)
@@ -323,7 +357,7 @@ object CurrencyFormatter {
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000_000)}M"
             absValue >= 1_000 ->
                 "${symbol}${String.format(Locale.US, "%.1f", absValue / 1_000)}K"
-            absValue > 0 -> "${symbol}${absValue.toInt()}"
+            absValue > 0 -> "${symbol}${kotlin.math.round(absValue).toLong()}"
             else -> "${symbol}0"
         }
     }
@@ -332,8 +366,9 @@ object CurrencyFormatter {
      * Resolves the effective currency for an account. Manual accounts store the
      * currency the user chose — trust it. SMS-tracked accounts fall back to the bank
      * parser's currency (their stored value may be the INR default even for a non-INR
-     * bank). Shared by Account Detail, onboarding, and Settings so the rule stays
-     * consistent everywhere.
+     * bank). With no parser for the bank, the stored value is all we know: a USD
+     * account must not become INR. Shared by Account Detail, onboarding, and Settings
+     * so the rule stays consistent everywhere.
      */
     fun resolveAccountCurrency(
         sourceType: String?,
@@ -343,7 +378,7 @@ object CurrencyFormatter {
         return if (sourceType == "MANUAL") {
             storedCurrency
         } else {
-            getBankBaseCurrency(bankName)
+            bankName?.let { BankParserFactory.getParserByName(it)?.getCurrency() } ?: storedCurrency
         }
     }
 

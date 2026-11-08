@@ -189,6 +189,7 @@
     <string name="txn_list_undo">Undo</string>
     <string name="txn_list_selected_count">%1$d selected</string>
     <string name="txn_list_exit_selection">Exit selection</string>
+    <string name="txn_list_select_all">Select all</string>
     <string name="txn_list_mark_as_transfer">Mark as transfer</string>
     <string name="txn_list_change_category">Change category</string>
     <string name="txn_list_add_to_group">Add to group</string>
@@ -243,7 +244,7 @@
     </plurals>
     <string name="txn_list_bulk_transfer_need_two">Select exactly 2 transactions to mark as a transfer</string>
     <string name="txn_list_bulk_transfer_need_pair">Pick one outgoing (expense) and one incoming (income) transaction</string>
-    <string name="txn_list_bulk_marked_transfer">Marked as transfer</string>
+    <string name="txn_list_bulk_marked_transfer">Moved between your accounts, so it isn\'t counted as income or spending.</string>
     <plurals name="txn_list_bulk_deleted">
         <item quantity="one">%1$d deleted</item>
         <item quantity="other">%1$d deleted</item>
@@ -264,7 +265,6 @@
     <string name="add_field_reference">Reference number (Optional)</string>
     <string name="add_field_category">Category</string>
     <string name="add_clear">Clear</string>
-    <string name="add_selected">Selected</string>
     <string name="add_save">Save</string>
     <string name="add_ok">OK</string>
     <string name="add_cancel">Cancel</string>
@@ -405,11 +405,16 @@
     <string name="share_sheet_all_time">All time</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, summed up</string>
-    <string name="share_banner_subtitle">See what PennyWise tracked for you</string>
+    <string name="share_banner_subtitle">See what changed and where it went</string>
     <string name="share_banner_dismiss">Dismiss</string>
 
     <!-- Shared transaction components -->
     <string name="quick_category_title">Change category</string>
+    <string name="quick_category_not_expense">Not an expense</string>
+    <string name="quick_category_not_income">Not income</string>
+    <!-- Walking the recap's unsorted rows: "2 of 3" -->
+    <string name="quick_category_progress">%1$d of %2$d</string>
+    <string name="quick_category_save_failed">Couldn\'t save. Try again.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Cash spend</string>
     <string name="quick_add_more_details">More details</string>

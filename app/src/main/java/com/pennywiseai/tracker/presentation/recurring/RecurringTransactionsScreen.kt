@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
@@ -68,7 +68,7 @@ fun RecurringTransactionsScreen(
     PennyWiseScaffold(
         title = stringResource(R.string.recurring_title),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.recurring_back))
             }
         },
@@ -208,7 +208,7 @@ private fun RecurringItem(
             )
 
             Box {
-                IconButton(onClick = { showMenu = true }) {
+                IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.recurring_more_options))
                 }
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
@@ -251,12 +251,12 @@ private fun RecurringItem(
             title = { Text(stringResource(R.string.recurring_delete_title)) },
             text = { Text(stringResource(R.string.recurring_delete_message, template.merchantName)) },
             confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; onDelete() }) {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.recurring_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text(stringResource(R.string.recurring_cancel)) }
+                TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_cancel)) }
             }
         )
     }
@@ -331,6 +331,8 @@ private fun RecurringEditorDialog(
                     // Switching type picks that type's default category (#876).
                     FilterChip(
                         selected = state.transactionType == TransactionType.EXPENSE,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             if (state.transactionType != TransactionType.EXPENSE) {
                                 state = state.copy(transactionType = TransactionType.EXPENSE, category = categoryFor(TransactionType.EXPENSE))
@@ -340,6 +342,8 @@ private fun RecurringEditorDialog(
                     )
                     FilterChip(
                         selected = state.transactionType == TransactionType.INCOME,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = {
                             if (state.transactionType != TransactionType.INCOME) {
                                 state = state.copy(transactionType = TransactionType.INCOME, category = categoryFor(TransactionType.INCOME))
@@ -361,7 +365,7 @@ private fun RecurringEditorDialog(
                         label = { Text(stringResource(R.string.recurring_field_category)) },
                         leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoryExpanded) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = categoryExpanded,
@@ -389,7 +393,7 @@ private fun RecurringEditorDialog(
                         readOnly = true,
                         label = { Text(stringResource(R.string.recurring_field_frequency)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(freqExpanded) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = freqExpanded,
@@ -433,7 +437,7 @@ private fun RecurringEditorDialog(
                                 readOnly = true,
                                 label = { Text(stringResource(R.string.recurring_field_day_of_week)) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dowExpanded) },
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
                             ExposedDropdownMenu(
                                 expanded = dowExpanded,
@@ -476,10 +480,10 @@ private fun RecurringEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(enabled = state.isValid, onClick = { onSave(state) }) { Text(stringResource(R.string.recurring_save)) }
+            TextButton(enabled = state.isValid, onClick = { onSave(state) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_save)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.recurring_cancel)) }
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_cancel)) }
         }
     )
 }

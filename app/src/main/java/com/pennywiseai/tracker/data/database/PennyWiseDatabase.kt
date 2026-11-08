@@ -1,14 +1,18 @@
+@file:Suppress("PARAMETER_NAME_CHANGED_ON_OVERRIDE") // migrations keep Room 2's `db` name so their bodies stay unchanged
+
 package com.pennywiseai.tracker.data.database
 
-import androidx.room.AutoMigration
-import androidx.room.Database
-import androidx.room.DeleteColumn
-import androidx.room.DeleteTable
-import androidx.room.RoomDatabase
-import androidx.room.TypeConverters
-import androidx.room.migration.AutoMigrationSpec
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.room3.AutoMigration
+import androidx.room3.Database
+import androidx.room3.DeleteColumn
+import androidx.room3.DeleteTable
+import androidx.room3.RoomDatabase
+import androidx.room3.ColumnTypeConverters
+import androidx.room3.migration.AutoMigrationSpec
+import androidx.room3.migration.Migration
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.sqlite.execSQL
 import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
@@ -54,6 +58,7 @@ import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookLogEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookDeliveredTransactionEntity
@@ -68,6 +73,9 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
+import java.math.BigDecimal
+import java.util.UUID
 
 /**
  * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so
@@ -76,7 +84,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
  * that needs to record the version it was exported against. Bump this in lock-
  * step with any schema change.
  */
-const val SCHEMA_VERSION = 67
+const val SCHEMA_VERSION = 68
 
 /**
  * The PennyWise Room database.
@@ -148,9 +156,10 @@ const val SCHEMA_VERSION = 67
         // 66→67 adds the loan_shares table and transactions.lent_shares_total
         // for split bills (#346) — purely additive.
         AutoMigration(from = 66, to = 67)
+        // 67→68 adds transactions.transfer_pair_id and links existing pairs: manual.
     ]
 )
-@TypeConverters(Converters::class)
+@ColumnTypeConverters(Converters::class)
 abstract class PennyWiseDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun subscriptionDao(): SubscriptionDao
@@ -192,12 +201,16 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          */
         fun getInstance(context: android.content.Context): PennyWiseDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = androidx.room.Room.databaseBuilder(
+                val instance = androidx.room3.Room.databaseBuilder(
                     context.applicationContext,
                     PennyWiseDatabase::class.java,
                     DATABASE_NAME
                 )
                     .addMigrations(*ALL_MIGRATIONS)
+                    // System SQLite, the engine Room 2 used on this file. Keeps
+                    // migrations on the phone's own SQLite (docs/database-migrations.md)
+                    // rather than switching existing users' databases to a bundled build.
+                    .setDriver(AndroidSQLiteDriver())
                     .build()
                 INSTANCE = instance
                 instance
@@ -217,7 +230,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Example of how to write manual migrations when auto-migration isn't sufficient.
          */
         val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Example: Add a new column
                 // db.execSQL("ALTER TABLE transactions ADD COLUMN tags TEXT")
             }
@@ -228,20 +241,9 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Adds is_deleted column and unique constraint, handling existing duplicates.
          */
         val MIGRATION_13_14 = object : Migration(13, 14) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Check if sms_sender column already exists in transactions table
-                val cursor = db.query("PRAGMA table_info(transactions)")
-                var hasSenderColumn = false
-                while (cursor.moveToNext()) {
-                    val nameIndex = cursor.getColumnIndex("name")
-                    if (nameIndex == -1) continue
-                    val columnName = cursor.getString(nameIndex)
-                    if (columnName == "sms_sender") {
-                        hasSenderColumn = true
-                        break
-                    }
-                }
-                cursor.close()
+                val hasSenderColumn = db.hasColumn("transactions", "sms_sender")
                 
                 // Add sms_sender column to transactions table only if it doesn't exist
                 if (!hasSenderColumn) {
@@ -249,18 +251,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
                 }
                 
                 // Check if is_deleted column already exists in unrecognized_sms table
-                val cursor2 = db.query("PRAGMA table_info(unrecognized_sms)")
-                var hasIsDeletedColumn = false
-                while (cursor2.moveToNext()) {
-                    val nameIndex2 = cursor2.getColumnIndex("name")
-                    if (nameIndex2 == -1) continue
-                    val columnName = cursor2.getString(nameIndex2)
-                    if (columnName == "is_deleted") {
-                        hasIsDeletedColumn = true
-                        break
-                    }
-                }
-                cursor2.close()
+                val hasIsDeletedColumn = db.hasColumn("unrecognized_sms", "is_deleted")
                 
                 // Only proceed with unrecognized_sms migration if needed
                 if (!hasIsDeletedColumn) {
@@ -309,7 +300,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Handles direct upgrade from 12 to 14, combining migrations 12->13 and 13->14.
          */
         val MIGRATION_12_14 = object : Migration(12, 14) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Same as MIGRATION_13_14 since we need to handle both cases
                 MIGRATION_13_14.migrate(db)
             }
@@ -320,7 +311,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Adds sms_body column to subscriptions table.
          */
         val MIGRATION_14_15 = object : Migration(14, 15) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Add sms_body column to subscriptions table
                 db.execSQL("ALTER TABLE subscriptions ADD COLUMN sms_body TEXT")
             }
@@ -332,7 +323,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * This fixes the issue where v2.15.18 had non-nullable field but v2.15.19+ needs nullable.
          */
         val MIGRATION_20_21 = object : Migration(20, 21) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // SQLite doesn't support ALTER COLUMN, so we need to recreate the table
                 // Step 1: Create new subscriptions table with nullable next_payment_date
                 db.execSQL("""
@@ -372,7 +363,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Note: This migration is kept for users who might be on v21.
          */
         val MIGRATION_21_22 = object : Migration(21, 22) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Create transaction_rules table
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS transaction_rules (
@@ -420,7 +411,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * This is for users who were already on v22 before the rules feature was added.
          */
         val MIGRATION_22_23 = object : Migration(22, 23) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Drop table if exists to ensure clean state
                 db.execSQL("DROP TABLE IF EXISTS transaction_rules")
                 db.execSQL("DROP TABLE IF EXISTS rule_applications")
@@ -467,19 +458,19 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         }
 
         val MIGRATION_44_45 = object : Migration(44, 45) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `profile_id` INTEGER NOT NULL DEFAULT 1")
             }
         }
 
         val MIGRATION_45_46 = object : Migration(45, 46) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `transactions` ADD COLUMN `profile_id` INTEGER DEFAULT NULL")
             }
         }
 
         val MIGRATION_46_47 = object : Migration(46, 47) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `transactions` ADD COLUMN `loan_contribution` TEXT DEFAULT NULL")
             }
         }
@@ -501,7 +492,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * Existing rows default to EXPENSE + Monthly so behaviour is unchanged.
          */
         val MIGRATION_47_48 = object : Migration(47, 48) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `direction` TEXT NOT NULL DEFAULT 'EXPENSE'")
                 db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly'")
             }
@@ -514,7 +505,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * rows have no payment history yet.
          */
         val MIGRATION_48_49 = object : Migration(48, 49) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `subscriptions` ADD COLUMN `last_paid_at` TEXT DEFAULT NULL")
             }
         }
@@ -526,20 +517,20 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * format until the user sets one.
          */
         val MIGRATION_49_50 = object : Migration(49, 50) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `alias` TEXT DEFAULT NULL")
             }
         }
 
         val MIGRATION_50_51 = object : Migration(50, 51) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Per-transaction "exclude from analytics" flag (#451).
                 db.execSQL("ALTER TABLE `transactions` ADD COLUMN `excluded_from_analytics` INTEGER NOT NULL DEFAULT 0")
             }
         }
 
         val MIGRATION_51_52 = object : Migration(51, 52) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Type-aware budgets: a budget bucket can now track a transaction
                 // TYPE (match_type set) instead of a category name.
                 db.execSQL("ALTER TABLE `budget_categories` ADD COLUMN `match_type` TEXT DEFAULT NULL")
@@ -558,7 +549,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * BigDecimal columns (balance, credit_limit) are persisted in this DB.
          */
         val MIGRATION_52_53 = object : Migration(52, 53) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `lowBalanceThreshold` TEXT DEFAULT NULL")
             }
         }
@@ -575,7 +566,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * until the user opens the budget and explicitly picks a cadence.
          */
         val MIGRATION_53_54 = object : Migration(53, 54) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `budgets` ADD COLUMN `weekday_anchor` INTEGER DEFAULT NULL")
                 db.execSQL("ALTER TABLE `budgets` ADD COLUMN `month_anchor` INTEGER DEFAULT NULL")
             }
@@ -597,7 +588,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * for Weekly budgets that the snapshot couldn't represent.
          */
         val MIGRATION_54_55 = object : Migration(54, 55) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Clear — don't drop — the per-month snapshot tables. The
                 // tables remain in the schema because the backup format
                 // round-trips them as JSON; dropping them would cascade a
@@ -611,7 +602,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         }
 
         val MIGRATION_57_58 = object : Migration(57, 58) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Free-text tags with a many-to-many link to transactions.
                 // SQL mirrors Room's generated schema (schemas/.../58.json) so
                 // the migrated DB matches the compiled identity hash.
@@ -634,7 +625,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
          * NULL.
          */
         val MIGRATION_58_59 = object : Migration(58, 59) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `recurring_transactions` (" +
                         "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
@@ -660,56 +651,41 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         }
 
         val MIGRATION_38_39 = object : Migration(38, 39) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 // Add receipt_path to transactions if missing
-                if (!hasColumn(db, "transactions", "receipt_path")) {
+                if (!db.hasColumn("transactions", "receipt_path")) {
                     db.execSQL("ALTER TABLE `transactions` ADD COLUMN `receipt_path` TEXT DEFAULT NULL")
                 }
                 // Add statement_day to account_balances if missing (added in main's v38)
-                if (!hasColumn(db, "account_balances", "statement_day")) {
+                if (!db.hasColumn("account_balances", "statement_day")) {
                     db.execSQL("ALTER TABLE `account_balances` ADD COLUMN `statement_day` INTEGER DEFAULT NULL")
                 }
-            }
-
-            private fun hasColumn(db: SupportSQLiteDatabase, table: String, column: String): Boolean {
-                val cursor = db.query("PRAGMA table_info($table)")
-                try {
-                    while (cursor.moveToNext()) {
-                        val nameIndex = cursor.getColumnIndex("name")
-                        if (nameIndex != -1 && cursor.getString(nameIndex) == column) {
-                            return true
-                        }
-                    }
-                } finally {
-                    cursor.close()
-                }
-                return false
             }
         }
 
         // #736 — hide unused (esp. default) categories from the pickers.
         val MIGRATION_59_60 = object : Migration(59, 60) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `categories` ADD COLUMN `is_hidden` INTEGER NOT NULL DEFAULT 0")
             }
         }
 
         // #760: optional emoji per category.
         val MIGRATION_60_61 = object : Migration(60, 61) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `categories` ADD COLUMN `icon` TEXT")
             }
         }
 
         // #374: sub-categories — nullable parent pointer.
         val MIGRATION_61_62 = object : Migration(61, 62) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE `categories` ADD COLUMN `parent_id` INTEGER")
             }
         }
 
         val MIGRATION_62_63 = object : Migration(62, 63) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_profiles` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `url` TEXT NOT NULL, `enabled` INTEGER NOT NULL DEFAULT 1, `range_preset` TEXT NOT NULL, `custom_start` TEXT, `custom_end` TEXT, `data_types` TEXT NOT NULL DEFAULT 'SUMMARY,TRANSACTIONS,BUDGETS,ACCOUNTS,SUBSCRIPTIONS', `headers_json` TEXT NOT NULL DEFAULT '[]', `currency` TEXT NOT NULL DEFAULT 'INR', `last_error` TEXT, `consecutive_failures` INTEGER NOT NULL DEFAULT 0, `last_synced_at` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, PRIMARY KEY(`id`))")
                 db.execSQL("CREATE TABLE IF NOT EXISTS `webhook_logs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `profile_id` TEXT NOT NULL, `profile_name` TEXT NOT NULL, `sync_reason` TEXT NOT NULL, `status` TEXT NOT NULL, `message` TEXT NOT NULL, `http_status` INTEGER, `batch_count` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, FOREIGN KEY(`profile_id`) REFERENCES `webhook_profiles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_webhook_logs_profile_id` ON `webhook_logs` (`profile_id`)")
@@ -722,7 +698,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
         }
 
         val MIGRATION_63_64 = object : Migration(63, 64) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN from_bank_name TEXT DEFAULT NULL")
                 db.execSQL("ALTER TABLE transactions ADD COLUMN to_bank_name TEXT DEFAULT NULL")
                 // The owning row identifies a leg directly. For the other leg, only
@@ -747,9 +723,61 @@ abstract class PennyWiseDatabase : RoomDatabase() {
 
         /** Built-in categories remember their original name so they can be renamed (#823). */
         val MIGRATION_64_65 = object : Migration(64, 65) {
-            override fun migrate(db: SupportSQLiteDatabase) {
+            override suspend fun migrate(db: SQLiteConnection) {
                 db.execSQL("ALTER TABLE categories ADD COLUMN system_name TEXT DEFAULT NULL")
                 db.execSQL("UPDATE categories SET system_name = name WHERE is_system = 1")
+            }
+        }
+
+        /**
+         * Links the transfer pairs marked before this column existed, so they stop
+         * counting twice. Pairing happens in Kotlin, so the only SQL here is the
+         * plain SELECT and UPDATE that SQLite 3.18 runs. A row that can't be read is
+         * left unlinked: it must not fail the update for the whole database.
+         */
+        val MIGRATION_67_68 = object : Migration(67, 68) {
+            override suspend fun migrate(db: SQLiteConnection) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN transfer_pair_id TEXT DEFAULT NULL")
+                val converters = Converters()
+                val rows = db.prepare("""
+                    SELECT id, amount, currency, date_time, updated_at, bank_name, account_number,
+                           from_account, to_account, from_bank_name, to_bank_name, is_deleted
+                    FROM transactions
+                    WHERE transaction_type = 'TRANSFER' AND (from_account IS NOT NULL OR to_account IS NOT NULL)
+                """.trimIndent()).use { stmt ->
+                    fun text(column: Int) = if (stmt.isNull(column)) null else stmt.getText(column)
+                    buildList {
+                        while (stmt.step()) {
+                            val row = runCatching {
+                                TransactionEntity(
+                                    id = stmt.getLong(0),
+                                    amount = BigDecimal(stmt.getText(1)),
+                                    merchantName = "",
+                                    category = "",
+                                    transactionType = TransactionType.TRANSFER,
+                                    currency = stmt.getText(2),
+                                    dateTime = converters.toLocalDateTime(stmt.getText(3))!!,
+                                    updatedAt = converters.toLocalDateTime(stmt.getText(4))!!,
+                                    transactionHash = "",
+                                    bankName = text(5),
+                                    accountNumber = text(6),
+                                    fromAccount = text(7),
+                                    toAccount = text(8),
+                                    fromBankName = text(9),
+                                    toBankName = text(10),
+                                    isDeleted = stmt.getLong(11) != 0L
+                                )
+                            }
+                            row.getOrNull()?.let(::add)
+                        }
+                    }
+                }
+                findUnlinkedTransferPairs(rows).forEach { (source, destination) ->
+                    db.execSQL(
+                        "UPDATE transactions SET transfer_pair_id = ? WHERE id IN (?, ?)",
+                        arrayOf(UUID.randomUUID().toString(), source, destination)
+                    )
+                }
             }
         }
 
@@ -788,6 +816,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
             MIGRATION_62_63,
             MIGRATION_63_64,
             MIGRATION_64_65,
+            MIGRATION_67_68,
         )
     }
     
@@ -802,7 +831,7 @@ abstract class PennyWiseDatabase : RoomDatabase() {
     //     toColumnName = "vendor_name"
     // )
     // class Migration1To2 : AutoMigrationSpec {
-    //     override fun onPostMigrate(db: SupportSQLiteDatabase) {
+    //     override suspend fun onPostMigrate(db: SQLiteConnection) {
     //         // Perform additional operations after migration if needed
     //         // Example: Update default values, create indexes, etc.
     //     }
@@ -827,7 +856,7 @@ class Migration4To5 : AutoMigrationSpec
  * - Adds categories table with default categories
  */
 class Migration7To8 : AutoMigrationSpec {
-    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+    override suspend fun onPostMigrate(db: SQLiteConnection) {
         super.onPostMigrate(db)
         
         // Insert default categories
@@ -848,7 +877,7 @@ class Migration7To8 : AutoMigrationSpec {
  * - Migrates existing balance data from transactions table
  */
 class Migration10To11 : AutoMigrationSpec {
-    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+    override suspend fun onPostMigrate(db: SQLiteConnection) {
         super.onPostMigrate(db)
 
         // Migrate existing balance data from transactions table
@@ -875,7 +904,7 @@ class Migration10To11 : AutoMigrationSpec {
  * - Migrates existing accounts: isCreditCard=true → CREDIT, others → SAVINGS
  */
 class Migration27To28 : AutoMigrationSpec {
-    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+    override suspend fun onPostMigrate(db: SQLiteConnection) {
         super.onPostMigrate(db)
 
         // Update existing credit card accounts
@@ -902,7 +931,7 @@ class Migration34To35 : AutoMigrationSpec
 class Migration35To36 : AutoMigrationSpec
 
 class Migration43To44 : AutoMigrationSpec {
-    override fun onPostMigrate(db: SupportSQLiteDatabase) {
+    override suspend fun onPostMigrate(db: SQLiteConnection) {
         super.onPostMigrate(db)
         db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (1, 'Personal', '#4CAF50', 0)")
         db.execSQL("INSERT OR IGNORE INTO profiles (id, name, color_hex, sort_order) VALUES (2, 'Business', '#2196F3', 1)")

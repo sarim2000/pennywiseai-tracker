@@ -4,6 +4,7 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
+import com.pennywiseai.parser.core.test.SimpleTestCase
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
@@ -128,4 +129,87 @@ class ArabBankParserTest {
 
         return ParserTestUtils.runTestSuite(parser, cases, handleChecks, "Arab Bank Parser")
     }
+
+    // Debit-card purchase SMS uses the bank account identifier, not the card number.
+    // Synthetic account, merchant, amounts and date preserve the bank's SMS layout.
+    private val accountPurchaseMessage =
+        "JO\nYou have a purchase transaction on account 0123*456 from EXAMPLE SHOP CORPORATI " +
+            "amount JOD 7.125 on 15/06/2026 12:34 . Balance JOD 842.375 ."
+
+    private val accountPurchaseExpected = ExpectedTransaction(
+        amount = BigDecimal("7.125"),
+        currency = "JOD",
+        type = TransactionType.EXPENSE,
+        merchant = "EXAMPLE SHOP CORPORATI",
+        accountLast4 = "3456",
+        balance = BigDecimal("842.375"),
+        isFromCard = false,
+        // "purchase transaction on account" once saved "on" as the reference.
+        expectNullReference = true
+    )
+
+    @TestFactory
+    fun `arab bank debit-card purchases`(): List<DynamicTest> {
+        val cases = listOf(
+            ParserTestCase(
+                name = "Jordan debit-card purchase with country prefix and three decimal places",
+                message = accountPurchaseMessage,
+                sender = "ArabBank",
+                expected = accountPurchaseExpected
+            ),
+            ParserTestCase(
+                name = "Debit-card purchase without country prefix and with grouped amount",
+                message = accountPurchaseMessage.removePrefix("JO\n")
+                    .replace("7.125", "1,207.125")
+                    .replace("842.375", "2,842.375"),
+                sender = "ArabBank",
+                expected = accountPurchaseExpected.copy(
+                    amount = BigDecimal("1207.125"),
+                    balance = BigDecimal("2842.375")
+                )
+            ),
+            ParserTestCase(
+                name = "Debit-card purchase accepts mixed case and extra whitespace",
+                message = accountPurchaseMessage.replace("purchase transaction", "PURCHASE  Transaction")
+                    .replace("amount JOD", "AMOUNT   jod"),
+                sender = "ArabBank",
+                expected = accountPurchaseExpected
+            ),
+            ParserTestCase(
+                name = "Debit-card purchase without amount does not use balance as amount",
+                message = accountPurchaseMessage.replace("amount JOD 7.125", "amount JOD"),
+                sender = "ArabBank",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Declined debit-card purchase is rejected",
+                message = accountPurchaseMessage + " Transaction declined.",
+                sender = "ArabBank",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Debit-card purchase verification is rejected",
+                message = accountPurchaseMessage + " Your verification code is 123456.",
+                sender = "ArabBank",
+                shouldParse = false
+            )
+        )
+        return ParserTestUtils.runTestSuite(ArabBankParser(), cases)
+    }
+
+    @TestFactory
+    fun `factory resolves arab bank debit-card purchases`(): List<DynamicTest> =
+        ParserTestUtils.runFactoryTestSuite(
+            listOf(
+                SimpleTestCase(
+                    bankName = "Arab Bank",
+                    sender = "ArabBank",
+                    currency = "EGP", // Parser default; the transaction currency is JOD.
+                    message = accountPurchaseMessage,
+                    expected = accountPurchaseExpected,
+                    shouldHandle = true
+                )
+            ),
+            "Arab Bank debit-card purchase factory tests"
+        )
 }

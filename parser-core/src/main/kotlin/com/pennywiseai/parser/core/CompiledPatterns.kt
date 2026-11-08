@@ -15,9 +15,10 @@ object CompiledPatterns {
     object Reference {
         // The abbreviations carry a trailing dot in the wild ("UTR Ref. HDFC…",
         // "NEFT Ref No. IDFB…"). Without allowing it the "No" token itself was
-        // captured as the reference.
+        // captured as the reference. The capture must hold a digit, so prose like
+        // "a purchase transaction on account" doesn't save "on" as the reference.
         val GENERIC_REF = Regex(
-            """(?:Ref|Reference|Txn|Transaction)\.?(?:\s+No\.?)?[:\s]+([A-Z0-9]+)""",
+            """(?:Ref|Reference|Txn|Transaction)\.?(?:\s+No\.?)?[:\s]+([A-Z0-9]*\d[A-Z0-9]*)""",
             RegexOption.IGNORE_CASE
         )
         val UPI_REF = Regex("""UPI[:\s]+([0-9]+)""", RegexOption.IGNORE_CASE)

@@ -57,6 +57,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
 import java.math.RoundingMode
+import com.pennywiseai.tracker.utils.withLatinDigits
 import java.util.Locale
 
 /*
@@ -72,7 +73,9 @@ import java.util.Locale
  * widget text between the two. Older Androids have no per-app language, so
  * there the device's language is the app's.
  */
-fun Context.inAppLanguage(): Context {
+fun Context.inAppLanguage(): Context = appLanguageContext().withLatinDigits()
+
+private fun Context.appLanguageContext(): Context {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return this
     val appLocales = getSystemService(LocaleManager::class.java)?.applicationLocales
     if (appLocales == null || appLocales.isEmpty || resources.configuration.locales == appLocales) return this
@@ -248,9 +251,12 @@ const val HIDDEN_AMOUNT = "••••"
  * [HIDDEN_AMOUNT] while the eye is closed.
  */
 @Composable
-fun totalText(amount: BigDecimal, currency: String): String =
-    if (amountsHidden()) HIDDEN_AMOUNT
-    else widgetMoney(LocalContext.current, wholeUnits(amount), currency)
+fun totalText(amount: BigDecimal, currency: String): String = when {
+    // No snapshot yet: a dash, not a made-up "₹0".
+    currency.isEmpty() -> "—"
+    amountsHidden() -> HIDDEN_AMOUNT
+    else -> widgetMoney(LocalContext.current, wholeUnits(amount), currency)
+}
 
 /** [amount] as [totalText] shows it; decide "over" or "left" on this, not the exact figure. */
 fun wholeUnits(amount: BigDecimal): BigDecimal = amount.setScale(0, RoundingMode.HALF_UP)
@@ -272,7 +278,7 @@ fun exactText(amount: BigDecimal, currency: String): String =
  */
 fun widgetMoney(context: Context, amount: BigDecimal, currency: String): String {
     val symbol = CurrencyFormatter.getCurrencySymbol(currency)
-    var text = CurrencyFormatter.formatCurrency(amount.abs(), currency).trim('⁦', '⁩')
+    var text = CurrencyFormatter.formatCurrency(amount.abs(), currency, maskIfHidden = false).trim('⁦', '⁩')
     if (symbol.lastOrNull()?.isLetter() == true && text.startsWith(symbol) && text.length > symbol.length) {
         text = "$symbol ${text.removePrefix(symbol)}"
     }

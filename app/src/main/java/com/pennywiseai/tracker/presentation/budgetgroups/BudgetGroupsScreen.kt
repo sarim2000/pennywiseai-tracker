@@ -9,16 +9,12 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -50,7 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
@@ -76,7 +72,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun BudgetGroupsScreen(
     viewModel: BudgetGroupsViewModel = hiltViewModel(),
@@ -111,7 +107,7 @@ fun BudgetGroupsScreen(
                 title = stringResource(R.string.budgets_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
                     }
                 },
@@ -135,7 +131,7 @@ fun BudgetGroupsScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -213,7 +209,7 @@ private fun EmptyBudgetState(
                     imageVector = Icons.Default.AccountBalance,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Text(
@@ -231,7 +227,8 @@ private fun EmptyBudgetState(
 
                 Button(
                     onClick = onSmartDefaults,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(modifier = Modifier.width(Spacing.sm))
@@ -240,7 +237,8 @@ private fun EmptyBudgetState(
 
                 OutlinedButton(
                     onClick = onCreateNew,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.budgets_setup_custom))
                 }
@@ -305,9 +303,9 @@ private fun BudgetGroupsContent(
             }
             AnimatedVisibility(
                 visible = visible.value,
-                enter = fadeIn(tween(300)) + slideInVertically(
+                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                     initialOffsetY = { slideOffsetPx },
-                    animationSpec = tween(300)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
             ) {
                 MonthSelector(
@@ -331,9 +329,9 @@ private fun BudgetGroupsContent(
             }
             AnimatedVisibility(
                 visible = visible.value,
-                enter = fadeIn(tween(300)) + slideInVertically(
+                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                     initialOffsetY = { slideOffsetPx },
-                    animationSpec = tween(300)
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
             ) {
                 BudgetCard(
@@ -370,13 +368,14 @@ private fun BudgetGroupsContent(
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.budgets_action_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleteGroupId = null }) {
+                TextButton(onClick = { deleteGroupId = null }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.budgets_action_cancel))
                 }
             }
@@ -402,7 +401,8 @@ private fun MonthSelector(
     ) {
         FilledTonalIconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(36.dp),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
@@ -431,7 +431,8 @@ private fun MonthSelector(
         FilledTonalIconButton(
             onClick = onNext,
             enabled = !isCurrentMonth,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(36.dp),
+            shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -465,7 +466,7 @@ private fun BudgetCard(
     var animatedProgress by remember { mutableFloatStateOf(0f) }
     val animatedProgressState by animateFloatAsState(
         targetValue = animatedProgress,
-        animationSpec = tween(durationMillis = 800),
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
 
@@ -492,10 +493,7 @@ private fun BudgetCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 )
         ) {
             // Row 1: Budget name + percentage pill + action buttons
@@ -534,7 +532,8 @@ private fun BudgetCard(
                     }
                     IconButton(
                         onClick = onClick,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(32.dp),
+                        shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(
                             Icons.Default.Edit,
@@ -545,7 +544,8 @@ private fun BudgetCard(
                     }
                     IconButton(
                         onClick = onDelete,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(32.dp),
+                        shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(
                             Icons.Default.Delete,
@@ -558,7 +558,8 @@ private fun BudgetCard(
                         var showMenu by remember { mutableStateOf(false) }
                         IconButton(
                             onClick = { showMenu = true },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(32.dp),
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
@@ -748,7 +749,7 @@ private fun BudgetCard(
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
@@ -762,10 +763,7 @@ private fun BudgetCard(
             AnimatedVisibility(
                 visible = expanded,
                 enter = fadeIn() + expandVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    )
+                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
                 ),
                 exit = fadeOut() + shrinkVertically()
             ) {
@@ -919,7 +917,7 @@ private fun SpendingPaceChart(
                         color = SolidColor(spendingColor),
                         firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
                         secondGradientFillColor = Color.Transparent,
-                        strokeAnimationSpec = tween(1200),
+                        strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                         gradientAnimationDelay = 600,
                         drawStyle = DrawStyle.Stroke(width = 2.5.dp),
                         curvedEdges = true,
@@ -932,7 +930,7 @@ private fun SpendingPaceChart(
                         values = budgetPace,
                         color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
                         drawStyle = DrawStyle.Stroke(width = 1.5.dp),
-                        strokeAnimationSpec = tween(1200),
+                        strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                         curvedEdges = false,
                         dotProperties = DotProperties(enabled = false)
                     )

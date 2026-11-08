@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">रद्द गर्नुहोस्</string>
     <string name="settings_action_ok">ठीक छ</string>
-    <string name="settings_action_done">समाप्त</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
     <string name="settings_pro_subtitle_active">सक्रिय · सबै सुविधाहरू खुला</string>
@@ -29,10 +28,13 @@
     <string name="settings_card_spend_as_expense_subtitle">\"यो महिना खर्च\" मा क्रेडिट कार्ड खर्च समावेश गर्नुहोस्</string>
     <string name="settings_default_currency_title">पूर्वनिर्धारित मुद्रा</string>
     <string name="settings_default_currency_subtitle">रूपान्तरणको लागि प्रयोग हुने मुद्रा</string>
+    <string name="settings_budget_convert_title">तपाईंको बजेट रूपान्तरण गर्ने?</string>
+    <string name="settings_budget_convert_message">तपाईंको बजेट सीमा %1$s मा थिए र अहिले %2$s मा देखिन्छन्। तिनलाई पछिल्लो उपलब्ध दर (%3$s) मा रूपान्तरण गर्नुहोस्, वा उही सङ्ख्या राख्नुहोस्।</string>
+    <string name="settings_budget_convert_confirm">रूपान्तरण गर्नुहोस्</string>
+    <string name="settings_budget_convert_keep">सङ्ख्या राख्नुहोस्</string>
     <string name="settings_main_account_title">मुख्य खाता</string>
     <string name="settings_main_account_subtitle">तपाईंको पूर्वनिर्धारित मुद्रा सेट गर्छ</string>
     <string name="settings_main_account_not_set">सेट गरिएको छैन</string>
-    <string name="settings_currency_field_label">मुद्रा</string>
     <string name="settings_number_format_title">संख्या ढाँचा</string>
     <string name="settings_number_format_subtitle">ठूला रकमहरू कसरी समूह गरिन्छन्</string>
     <string name="settings_number_format_auto">स्वचालित</string>
@@ -44,9 +46,7 @@
     <string name="settings_date_format_title">मिति ढाँचा</string>
     <string name="settings_date_format_subtitle">मितिहरू कसरी देखाइन्छन्</string>
     <!-- Budget -->
-    <string name="settings_budget_section">बजेट</string>
     <string name="settings_budget_cycle_title">बजेट चक्र सुरु हुने दिन</string>
-    <string name="settings_budget_cycle_subtitle">हरेक मासिक बजेट अवधिको सुरुवात सार्छ; जस्तै 25 भनेको तपाईंको चक्र 25 गतेदेखि 24 गतेसम्म चल्छ</string>
     <string name="settings_budget_cycle_dialog_body">हरेक मासिक बजेट चक्र सुरु हुने दिन छान्नुहोस्। जस्तै 25 भनेको चक्र 25 गतेदेखि अर्को महिनाको 24 गतेसम्म चल्छ।</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">सम्पर्कहरू</string>
@@ -56,6 +56,10 @@
     <string name="settings_security_section">सुरक्षा</string>
     <string name="settings_app_lock_title">एप लक</string>
     <string name="settings_app_lock_subtitle">आफ्नो डेटा बायोमेट्रिक प्रमाणीकरणको प्रयोग गरेर सुरक्षित गर्नुहोस्</string>
+    <string name="settings_shake_to_hide_title">रकम लुकाउन हल्लाउनुहोस्</string>
+    <string name="settings_shake_to_hide_subtitle">सबै स्क्रिनमा रकम लुकाउन वा देखाउन फोन हल्लाउनुहोस्</string>
+    <string name="shake_to_hide_first_hidden">रकम लुकाइयो। देखाउन फेरि हल्लाउनुहोस्।</string>
+    <string name="shake_to_hide_first_shown">रकम देखाइयो। लुकाउन फेरि हल्लाउनुहोस्।</string>
     <string name="settings_lock_timeout_title">लक समय समाप्ति</string>
     <string name="settings_lock_timeout_immediately_subtitle">तुरुन्त लक गर्नुहोस्</string>
     <plurals name="settings_lock_timeout_after_minutes">
@@ -241,6 +245,11 @@
     <string name="settings_report_issue_title">समस्या रिपोर्ट गर्नुहोस्</string>
     <string name="settings_report_issue_subtitle">GitHub मा बग रिपोर्ट पठाउनुहोस्</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">रुपरेखा</string>
     <string name="appearance_back">पछाडि</string>

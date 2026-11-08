@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.data.database.entity
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.Index
-import androidx.room.PrimaryKey
+import androidx.room3.ColumnInfo
+import androidx.room3.Entity
+import androidx.room3.Index
+import androidx.room3.PrimaryKey
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
@@ -128,7 +128,11 @@ data class TransactionEntity(
     val groupId: Long? = null,
 
     @ColumnInfo(name = "profile_id", defaultValue = "NULL")
-    val profileId: Long? = null
+    val profileId: Long? = null,
+
+    // Shared by the debit and credit marked as one transfer; see utils/TransferPairs.kt.
+    @ColumnInfo(name = "transfer_pair_id", defaultValue = "NULL")
+    val transferPairId: String? = null
 )
 
 @Serializable

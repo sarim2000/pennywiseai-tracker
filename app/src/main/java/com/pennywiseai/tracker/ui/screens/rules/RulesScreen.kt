@@ -24,7 +24,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
@@ -39,7 +39,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.RulesViewModel
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun RulesScreen(
     onNavigateBack: () -> Unit,
@@ -87,7 +87,7 @@ fun RulesScreen(
                 title = stringResource(R.string.rules_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.rules_navigate_back)
@@ -96,7 +96,7 @@ fun RulesScreen(
                 },
                 actionContent = {
                     Box {
-                        IconButton(onClick = { showOverflowMenu = true }) {
+                        IconButton(onClick = { showOverflowMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.MoreVert,
                                 contentDescription = stringResource(R.string.rules_more_options)
@@ -164,7 +164,7 @@ fun RulesScreen(
                 title = { Text(stringResource(R.string.rules_title)) },
                 text = { Text(message.map { it.asString() }.joinToString(" ")) },
                 confirmButton = {
-                    TextButton(onClick = { viewModel.clearSharingMessage() }) {
+                    TextButton(onClick = { viewModel.clearSharingMessage() }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.rules_ok))
                     }
                 }
@@ -181,13 +181,14 @@ fun RulesScreen(
                         onClick = {
                             viewModel.resetToDefaults()
                             showResetDialog = false
-                        }
+                        },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.rules_reset))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }) {
+                    TextButton(onClick = { showResetDialog = false }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.rules_cancel))
                     }
                 }
@@ -200,7 +201,7 @@ fun RulesScreen(
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
         } else {
             val lazyListState = rememberLazyListState()
@@ -214,7 +215,7 @@ fun RulesScreen(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                    bottom = 0.dp
+                    bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance
                 ),
                 state = lazyListState,
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
@@ -432,12 +433,12 @@ private fun RuleCard(
                             Icons.Default.Info,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = it,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -463,7 +464,8 @@ private fun RuleCard(
                 if (rule.isActive) {
                     Box {
                         IconButton(
-                            onClick = { showActionsMenu = true }
+                            onClick = { showActionsMenu = true },
+                            shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
@@ -553,13 +555,14 @@ private fun RuleCard(
                     },
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
-                    )
+                    ),
+                    shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.rules_delete))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
+                TextButton(onClick = { showDeleteDialog = false }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.rules_cancel))
                 }
             }
@@ -567,6 +570,7 @@ private fun RuleCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun BatchApplyDialog(
     rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
@@ -604,7 +608,7 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(stringResource(R.string.rules_batch_scanning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -657,7 +661,7 @@ private fun BatchApplyDialog(
                                         Column(modifier = Modifier.padding(Spacing.sm)) {
                                             val orig = diff.original
                                             Text(
-                                                text = "${orig.merchantName} - ${orig.amount}",
+                                                text = "${orig.merchantName} - ${com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(orig.amount, orig.currency)}",
                                                 style = MaterialTheme.typography.bodySmall,
                                                 fontWeight = FontWeight.Medium
                                             )
@@ -737,7 +741,7 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Text(
                                 text = pluralStringResource(R.plurals.rules_batch_processing, progress.second, progress.first, progress.second),
                                 style = MaterialTheme.typography.bodySmall
@@ -812,10 +816,10 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                         if (dryRunResult.totalMatched > 0) {
-                            TextButton(onClick = onApplyToUncategorized) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
-                            TextButton(onClick = onApplyToAll) { Text(stringResource(R.string.rules_batch_apply_all)) }
+                            TextButton(onClick = onApplyToUncategorized, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_uncategorized)) }
+                            TextButton(onClick = onApplyToAll, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_batch_apply_all)) }
                         }
                     }
                 }
@@ -826,8 +830,8 @@ private fun BatchApplyDialog(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_cancel)) }
-                        OutlinedButton(onClick = onPreview) {
+                        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
+                        OutlinedButton(onClick = onPreview, shapes = ButtonDefaults.shapes()) {
                             Icon(Icons.Default.Preview, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.rules_batch_preview))
@@ -837,7 +841,7 @@ private fun BatchApplyDialog(
 
                 // Done — close button
                 result != null -> {
-                    TextButton(onClick = onDismiss) { Text(stringResource(R.string.rules_close)) }
+                    TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_close)) }
                 }
             }
         }

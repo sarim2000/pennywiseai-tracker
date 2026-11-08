@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,7 +24,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -41,7 +40,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TransactionGroupDetailScreen(
     onNavigateBack: () -> Unit = {},
@@ -70,14 +69,14 @@ fun TransactionGroupDetailScreen(
                 title = group?.name ?: stringResource(R.string.group_detail_title_fallback),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.group_back))
                     }
                 },
                 actionContent = {
                     if (group != null) {
                         var showMenu by remember { mutableStateOf(false) }
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.group_detail_more))
                         }
                         DropdownMenu(
@@ -124,14 +123,13 @@ fun TransactionGroupDetailScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
 
-        val isDark = isSystemInDarkTheme()
-        val accentColor = if (isDark) income_dark else income_light
-        val expenseColor = if (isDark) expense_dark else expense_light
+        val accentColor = MaterialTheme.colorScheme.income
+        val expenseColor = MaterialTheme.colorScheme.onSurface
         val lazyListState = rememberLazyListState()
 
         LazyColumn(
@@ -329,12 +327,12 @@ fun TransactionGroupDetailScreen(
             title = { Text(stringResource(R.string.group_detail_delete_title)) },
             text = { Text(stringResource(R.string.group_detail_delete_message)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.deleteGroup() }) {
+                TextButton(onClick = { viewModel.deleteGroup() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.group_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { viewModel.hideDeleteDialog() }) {
+                TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.group_cancel))
                 }
             }
@@ -348,10 +346,9 @@ private fun GroupTransactionItem(
     onRemove: () -> Unit,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
     val color = when (transaction.transactionType) {
-        TransactionType.EXPENSE, TransactionType.CREDIT -> if (isDark) expense_dark else expense_light
-        TransactionType.INCOME -> if (isDark) income_dark else income_light
+        TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+        TransactionType.INCOME -> MaterialTheme.colorScheme.income
         else -> MaterialTheme.colorScheme.onSurface
     }
     val sign = when (transaction.transactionType) {
@@ -374,7 +371,7 @@ private fun GroupTransactionItem(
             val description = transaction.description?.takeIf { it.isNotBlank() }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    description ?: transaction.merchantName,
+                    description?.let(CurrencyFormatter::maskAmountsIn) ?: transaction.merchantName,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface
@@ -399,7 +396,7 @@ private fun GroupTransactionItem(
                 color = color
             )
             Spacer(modifier = Modifier.width(Spacing.xs))
-            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+            IconButton(onClick = onRemove, modifier = Modifier.size(32.dp), shapes = IconButtonDefaults.shapes()) {
                 Icon(
                     Icons.Default.RemoveCircleOutline,
                     contentDescription = stringResource(R.string.group_detail_remove_from_group),
@@ -420,7 +417,7 @@ private fun AddTransactionToGroupSheet(
     onAdd: (Long) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -475,11 +472,9 @@ private fun AddTransactionToGroupSheet(
                     contentPadding = PaddingValues(bottom = Spacing.md)
                 ) {
                     items(ungroupedTransactions, key = { it.id }) { txn ->
-                        val isDark = isSystemInDarkTheme()
                         val color = when (txn.transactionType) {
-                            TransactionType.EXPENSE, TransactionType.CREDIT ->
-                                if (isDark) expense_dark else expense_light
-                            TransactionType.INCOME -> if (isDark) income_dark else income_light
+                            TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
+                            TransactionType.INCOME -> MaterialTheme.colorScheme.income
                             else -> MaterialTheme.colorScheme.onSurface
                         }
                         val sign = when (txn.transactionType) {
@@ -503,7 +498,7 @@ private fun AddTransactionToGroupSheet(
                                 val txnDescription = txn.description?.takeIf { it.isNotBlank() }
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        txnDescription ?: txn.merchantName,
+                                        txnDescription?.let(CurrencyFormatter::maskAmountsIn) ?: txn.merchantName,
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -588,13 +583,14 @@ private fun EditGroupDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.group_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.group_cancel))
             }
         }

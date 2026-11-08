@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
+    <string name="subscriptions_suggested_section">مقترحة</string>
+    <string name="subscriptions_suggested_hint">دفعات تتكرر في سجلك. لا تُحتسب حتى تبدأ بتتبعها.</string>
+    <!-- %1$d: total number of suggestions -->
+    <string name="subscriptions_suggested_show_all">عرض الكل (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">عرض أقل</string>
+    <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="zero">%1$d دفعة</item>
+        <item quantity="one">%1$d دفعة</item>
+        <item quantity="two">%1$d دفعتان</item>
+        <item quantity="few">%1$d دفعات</item>
+        <item quantity="many">%1$d دفعة</item>
+        <item quantity="other">%1$d دفعة</item>
+    </plurals>
+    <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_varies">المبلغ متغير</string>
+    <string name="subscription_suggestion_review">مراجعة</string>
+    <string name="subscription_suggestion_not_recurring">غير متكررة</string>
+    <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="zero">تم العثور على %1$d دفعة</item>
+        <item quantity="one">تم العثور على %1$d دفعة</item>
+        <item quantity="two">تم العثور على %1$d دفعتين</item>
+        <item quantity="few">تم العثور على %1$d دفعات</item>
+        <item quantity="many">تم العثور على %1$d دفعة</item>
+        <item quantity="other">تم العثور على %1$d دفعة</item>
+    </plurals>
+    <!-- %1$s: currency code, e.g. "USD" -->
+    <string name="subscription_suggestion_sheet_amount">المبلغ المراد تتبعه (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">يتغير مبلغ هذه الفاتورة في كل مرة. يمكنك تعديله لاحقًا.</string>
+    <!-- %1$s: date, e.g. "15 Nov 2026" -->
+    <string name="subscription_suggestion_sheet_next">الدفعة التالية متوقعة في %1$s</string>
+    <string name="subscription_suggestion_sheet_track">تتبع الفاتورة</string>
+    <string name="subscription_suggestion_sheet_helper">ستتلقى تذكيرًا قبل يوم من كل دفعة.</string>
+    <!-- Snackbars. %1$s: merchant name -->
+    <string name="subscriptions_suggestion_tracked">بدأ تتبع %1$s</string>
+    <string name="subscriptions_suggestion_already_tracked">يتم تتبع %1$s بالفعل</string>
+    <string name="subscriptions_suggestion_dismissed">لن يُقترح %1$s مرة أخرى</string>
+    <!-- Home card linking to the suggestions -->
+    <plurals name="home_recurring_card_title">
+        <item quantity="zero">%1$d فاتورة متكررة محتملة</item>
+        <item quantity="one">%1$d فاتورة متكررة محتملة</item>
+        <item quantity="two">%1$d فاتورتان متكررتان محتملتان</item>
+        <item quantity="few">%1$d فواتير متكررة محتملة</item>
+        <item quantity="many">%1$d فاتورة متكررة محتملة</item>
+        <item quantity="other">%1$d فاتورة متكررة محتملة</item>
+    </plurals>
+    <!-- %1$s: one or two merchant names, comma-separated -->
+    <string name="home_recurring_card_body">%1$s. راجعها لتتلقى تذكيرًا قبل كل دفعة.</string>
+    <!-- %1$s: two merchant names, comma-separated; %2$d: how many more, shown as "+2" -->
+    <string name="home_recurring_card_body_more">%1$s +%2$d. راجعها لتتلقى تذكيرًا قبل كل دفعة.</string>
+    <string name="home_recurring_card_action">مراجعة</string>
+    <string name="home_recurring_card_dismiss">إخفاء</string>
+</resources>

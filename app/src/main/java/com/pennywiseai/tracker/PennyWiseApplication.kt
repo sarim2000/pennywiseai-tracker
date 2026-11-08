@@ -5,6 +5,9 @@ import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration as ResConfiguration
 import android.os.Bundle
+import android.os.StrictMode
+import androidx.compose.material3.ComposeMaterial3Flags
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
@@ -12,12 +15,14 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.webhook.WebhookSyncScheduler
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -69,15 +74,30 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             .setWorkerFactory(workerFactory)
             .build()
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate() {
+        // Log-only, so main-thread I/O and leaks show in logcat without crashing a debug build.
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().detectNetwork().penaltyLog().build()
+            )
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectActivityLeaks().penaltyLog().build()
+            )
+        }
+        // Opt into M3's fixed Snackbar layout (multi-line text aligns vertically); must precede any composition.
+        ComposeMaterial3Flags.isSnackbarStylingFixEnabled = true
         super.onCreate()
         // Create CategoryMapping's snapshot-state map before any composition exists.
         // Left to its first use, it could be created after a composition's snapshot
         // was taken, and reading it inside that snapshot crashed with "Reading a
         // state that was created after the snapshot was taken" (Play vitals, 2.22.0).
         CategoryMapping.userStyles
+        // Same for the hide-amounts switch, which every money format reads.
+        AmountPrivacy.hidden
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
+        com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
 
         // Re-arm the daily folder backup on process start when the user has it enabled,
         // so scheduled work survives reboots / app updates that clear WorkManager state.
@@ -92,11 +112,17 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // off still creates anything that came due while it was down.
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
         com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
+        // "Bill due tomorrow" reminders, each morning at 9.
+        com.pennywiseai.tracker.worker.BillReminderWorker.enqueuePeriodic(this)
         // The evening recap is opt-in: scheduled only while its switch is on.
         applicationScope.launch {
             com.pennywiseai.tracker.worker.DailySummaryWorker.sync(
                 this@PennyWiseApplication,
                 userPreferencesRepository.dailySummaryEnabled.first()
+            )
+            com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(
+                this@PennyWiseApplication,
+                userPreferencesRepository.weeklySummaryEnabled.first()
             )
         }
         applicationScope.launch { webhookSyncScheduler.observeSchedule() }
@@ -118,6 +144,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             userPreferencesRepository.numberFormatStyle.collectLatest { style ->
                 CurrencyFormatter.numberFormatStyle = style
             }
+        }
+        applicationScope.launch {
+            userPreferencesRepository.isAmountHiddenEverywhere
+                // Unreadable: keep amounts hidden, and don't hold the splash forever.
+                .catch { emit(true) }
+                .collectLatest { hidden ->
+                    AmountPrivacy.hidden = hidden
+                    AmountPrivacy.loaded = true
+                }
         }
         applicationScope.launch {
             userPreferencesRepository.dateFormatStyle.collectLatest { style ->
@@ -177,6 +212,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     // when the device or per-app language changes.
     override fun onConfigurationChanged(newConfig: ResConfiguration) {
         super.onConfigurationChanged(newConfig)
+        com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
         val locales = newConfig.locales
         if (lastLocales != null && locales != lastLocales) {
             com.pennywiseai.tracker.widget.WidgetLanguageChanges.value++
@@ -216,8 +252,13 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // App went to background
                 isInForeground = false
                 isAppInForeground = false
-                // Note: We don't need to do anything here
-                // The lock state will be checked when app returns to foreground
+                // Ends the unlock and starts the lock timeout. A rotation stops
+                // the only activity too, but the user never left.
+                if (!activity.isChangingConfigurations) {
+                    appLockRepository.onAppBackgrounded()?.let { leftAt ->
+                        applicationScope.launch { appLockRepository.recordLeftAt(leftAt) }
+                    }
+                }
             }
         }
 

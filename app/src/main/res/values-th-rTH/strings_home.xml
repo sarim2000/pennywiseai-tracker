@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">อ่านธุรกรรมจาก SMS ใหม่เพื่อใช้การแก้ไขตัวแยกข้อมูลล่าสุด สิ่งที่คุณแก้ไขในธุรกรรมจาก SMS จะถูกรีเซ็ต ส่วนธุรกรรมที่เพิ่มเอง นำเข้า เงินกู้ และที่จัดกลุ่มไว้จะยังอยู่</string>
     <!-- More options sheet -->
     <string name="home_menu_title">ตัวเลือกเพิ่มเติม</string>
-    <string name="home_menu_monthly_recap">สรุปรายเดือน</string>
     <string name="home_menu_settings">การตั้งค่า</string>
     <string name="home_menu_edit_home">แก้ไขหน้าแรก</string>
     <string name="home_menu_discord">เข้าร่วม Discord เพื่อส่งความคิดเห็น</string>
@@ -138,8 +137,8 @@
     <string name="account_card_outstanding">ยอดคงค้าง</string>
     <string name="account_card_balance">ยอดคงเหลือ</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">มากกว่าเดือนที่แล้ว %1$d%%</string>
-    <string name="balance_card_change_less">น้อยกว่าเดือนที่แล้ว %1$d%%</string>
+    <string name="balance_card_change_more_same_point">มากกว่าช่วงเดียวกันของเดือนที่แล้ว %1$d%%</string>
+    <string name="balance_card_change_less_same_point">น้อยกว่าช่วงเดียวกันของเดือนที่แล้ว %1$d%%</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">ยอดคงเหลือ: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -151,7 +150,6 @@
     <string name="balance_card_accounts">บัญชี</string>
     <string name="balance_card_credit_cards">บัตรเครดิต</string>
     <string name="balance_card_total">รวม</string>
-    <string name="balance_card_approximate_note">* ยอดเงินบางรายการแปลงสกุลไม่ได้ จึงแสดงเป็นสกุลเงินเดิม (ยอดรวมเป็นค่าโดยประมาณ)</string>
     <string name="balance_card_spent_this_month">ใช้ไปเดือนนี้</string>
     <string name="balance_card_change_currency">เปลี่ยนสกุลเงิน</string>
     <string name="balance_card_summary_income">รายได้</string>
@@ -249,20 +247,25 @@
     <string name="notif_txn_channel_description">แจ้งเตือนเมื่อมีธุรกรรมใหม่</string>
     <string name="notif_txn_unknown_merchant">ไม่ทราบ</string>
     <string name="notif_txn_unknown_bank">ธนาคาร</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ ยอดเงินคลาดเคลื่อน %1$s — ควรเป็น %2$s แต่ธนาคารแจ้ง %3$s</string>
     <string name="notif_txn_action_more">เพิ่มเติม…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s ธุรกรรมใหม่</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • ยอดเงินต้องตรวจสอบ</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">จ่าย %1$s ที่ %2$s</string>
-    <string name="notif_txn_title_received">ได้รับ %1$s จาก %2$s</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">จ่าย %1$s</string>
+    <string name="notif_txn_title_received">ได้รับ %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">รายการนี้จ่ายค่าอะไร? · %1$s</string>
-    <string name="notif_txn_action_change">เปลี่ยน</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">รายการนี้จ่ายค่าอะไร?</string>
+    <string name="notif_txn_action_change">เปลี่ยนหมวดหมู่</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">ไม่ใช่รายจ่าย</string>
+    <string name="notif_txn_action_not_income">ไม่ใช่รายรับ</string>
+    <string name="notif_txn_excluded_spending">จะไม่นับเป็นรายจ่าย</string>
+    <string name="notif_txn_excluded_income">จะไม่นับเป็นรายรับ</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">ยอดเงินของคุณสูงกว่าที่บันทึกไว้ %1$s</string>
+    <string name="notif_balance_lower">ยอดเงินของคุณต่ำกว่าที่บันทึกไว้ %1$s</string>
+    <string name="notif_balance_text">อาจมีธุรกรรมที่ขาดหายไป แตะเพื่อตรวจสอบ</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">บันทึกเป็น %1$s แล้ว</string>
     <string name="notif_txn_learned_text">ต่อจากนี้รายการจ่ายที่นี่จะถูกจัดหมวดหมู่ให้อัตโนมัติ</string>
@@ -280,7 +283,12 @@
     <plurals name="notif_daily_uncategorized">
         <item quantity="other">%d รายการยังไม่มีหมวดหมู่</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="other">จัดหมวดหมู่เพื่อให้นับเฉพาะรายจ่ายจริง</item>
+    </plurals>
     <string name="notif_daily_action_sort">จัดหมวดหมู่</string>
+    <string name="notif_daily_action_sort_all">จัดหมวดหมู่</string>
     <string name="notif_daily_action_cash">+ เงินสด</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -293,6 +301,10 @@
     <string name="pro_home_card_body">Pro เพิ่มกฎ เป้าหมาย การส่งออก และการนำเข้า Statement ได้ไม่จำกัด</string>
     <string name="pro_home_card_action">ดู Pro</string>
     <string name="pro_home_card_dismiss">ปิด</string>
+    <string name="home_payday_card_title">เริ่มงบประมาณในวันเงินเดือนออกไหม</string>
+    <string name="home_payday_card_body">ดูเหมือนเงินเดือนของคุณจะเข้าวันที่ %1$d ของเดือน ต้องการให้แต่ละเดือนของงบประมาณเริ่มวันนั้นไหม คุณเปลี่ยนได้ในการตั้งค่า</string>
+    <string name="home_payday_card_action">เริ่มวันที่ %1$d</string>
+    <string name="home_payday_card_dismiss">ปิด</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">มีแนวโน้มอยู่ที่ %1$s ภายใน %2$s</string>
     <string name="forecast_over_usual">มากกว่าปกติ %1$s</string>

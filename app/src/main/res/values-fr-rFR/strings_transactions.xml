@@ -257,7 +257,6 @@
     <string name="add_field_reference">Numéro de référence (facultatif)</string>
     <string name="add_field_category">Catégorie</string>
     <string name="add_clear">Nettoyer</string>
-    <string name="add_selected">Sélectionné</string>
     <string name="add_save">Enregistrer</string>
     <string name="add_ok">Ok</string>
     <string name="add_cancel">Abandonner</string>
@@ -399,6 +398,11 @@
     <string name="share_banner_dismiss">Refuser</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">Changer de catégorie</string>
+    <string name="quick_category_not_expense">Pas une dépense</string>
+    <string name="quick_category_not_income">Pas un revenu</string>
+    <!-- Walking the recap's unsorted rows: "2 of 3" -->
+    <string name="quick_category_progress">%1$d sur %2$d</string>
+    <string name="quick_category_save_failed">Échec de l\'enregistrement. Réessayez.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
     <string name="quick_add_title">Dépense en espèces</string>
     <string name="quick_add_more_details">Plus de détails</string>

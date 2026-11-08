@@ -232,6 +232,9 @@
     <string name="onboarding_continue">जारी रखें</string>
     <string name="onboarding_start_scanning">स्कैन शुरू करें</string>
     <string name="onboarding_finish">पूरा करें</string>
+    <string name="onboarding_bank_missing_title">आपका बैंक नहीं मिला?</string>
+    <string name="onboarding_bank_missing_body">अपने बैंक के समर्थन का अनुरोध करें, हम इसे PennyWise में जोड़ देंगे।</string>
+    <string name="onboarding_bank_missing_action">अपने बैंक का अनुरोध करें</string>
     <!-- ══ Chat (PennyWise AI) ══ -->
     <string name="chat_downloading_model">मॉडल डाउनलोड हो रहा है...</string>
     <string name="chat_model_required_title">AI मॉडल ज़रूरी है</string>
@@ -285,6 +288,7 @@
     <string name="chat_action_update">अपडेट करें</string>
     <string name="chat_action_change_merchant">व्यापारी → %1$s</string>
     <string name="chat_action_change_category">श्रेणी → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">यह लागू नहीं हो पाया: %1$s</string>
     <string name="chat_error_memory_full">चैट मेमोरी भर गई है। जारी रखने के लिए चैट साफ़ करें।</string>

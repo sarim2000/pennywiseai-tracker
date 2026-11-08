@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
+    <string name="subscriptions_suggested_section">Suggestions</string>
+    <string name="subscriptions_suggested_hint">Paiements qui se répètent dans votre historique. Non comptés tant que vous ne les suivez pas.</string>
+    <!-- %1$d: total number of suggestions -->
+    <string name="subscriptions_suggested_show_all">Tout afficher (%1$d)</string>
+    <string name="subscriptions_suggested_show_less">Afficher moins</string>
+    <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <plurals name="subscription_suggestion_payments">
+        <item quantity="one">%1$d paiement</item>
+        <item quantity="other">%1$d paiements</item>
+    </plurals>
+    <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_varies">Montant variable</string>
+    <string name="subscription_suggestion_review">Vérifier</string>
+    <string name="subscription_suggestion_not_recurring">Pas récurrent</string>
+    <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <plurals name="subscription_suggestion_sheet_found">
+        <item quantity="one">%1$d paiement trouvé</item>
+        <item quantity="other">%1$d paiements trouvés</item>
+    </plurals>
+    <!-- %1$s: currency code, e.g. "USD" -->
+    <string name="subscription_suggestion_sheet_amount">Montant à suivre (%1$s)</string>
+    <string name="subscription_suggestion_sheet_variable_hint">Cette facture change à chaque fois. Vous pourrez modifier le montant plus tard.</string>
+    <!-- %1$s: date, e.g. "15 Nov 2026" -->
+    <string name="subscription_suggestion_sheet_next">Prochain paiement prévu le %1$s</string>
+    <string name="subscription_suggestion_sheet_track">Suivre la facture</string>
+    <string name="subscription_suggestion_sheet_helper">Vous recevrez un rappel la veille de chaque paiement.</string>
+    <!-- Snackbars. %1$s: merchant name -->
+    <string name="subscriptions_suggestion_tracked">%1$s est maintenant suivi</string>
+    <string name="subscriptions_suggestion_already_tracked">%1$s est déjà suivi</string>
+    <string name="subscriptions_suggestion_dismissed">%1$s ne sera plus suggéré</string>
+    <!-- Home card linking to the suggestions -->
+    <plurals name="home_recurring_card_title">
+        <item quantity="one">%1$d facture récurrente possible</item>
+        <item quantity="other">%1$d factures récurrentes possibles</item>
+    </plurals>
+    <!-- %1$s: one or two merchant names, comma-separated -->
+    <string name="home_recurring_card_body">%1$s. Vérifiez pour recevoir un rappel avant chaque paiement.</string>
+    <!-- %1$s: two merchant names, comma-separated; %2$d: how many more, shown as "+2" -->
+    <string name="home_recurring_card_body_more">%1$s +%2$d. Vérifiez pour recevoir un rappel avant chaque paiement.</string>
+    <string name="home_recurring_card_action">Vérifier</string>
+    <string name="home_recurring_card_dismiss">Cacher</string>
+</resources>

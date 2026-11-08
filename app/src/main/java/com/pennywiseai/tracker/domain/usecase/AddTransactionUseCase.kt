@@ -6,14 +6,16 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import androidx.room.withTransaction
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import java.math.BigDecimal
 import java.security.MessageDigest
 import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.inject.Inject
 
 class AddTransactionUseCase @Inject constructor(
@@ -38,7 +40,7 @@ class AddTransactionUseCase @Inject constructor(
         receiptPath: String? = null,
         budgetCategory: String? = null,
         budgetImpactType: BudgetImpactType? = null
-    ) {
+    ): Long {
         // Generate a unique hash for manual transactions
         val transactionHash = generateManualTransactionHash(
             amount = amount,
@@ -76,7 +78,7 @@ class AddTransactionUseCase @Inject constructor(
         // persisted-but-untagged transaction the user might re-save as a duplicate.
         // Room's withTransaction is reentrant, so insertTransactionWithBalance and
         // setTagsForTransaction (which each open their own) join this outer one.
-        database.withTransaction {
+        return database.withTransaction {
             // For manual/cash accounts the helper pins the opening anchor from the
             // PRE-insert snapshot before inserting, so the recompute includes this
             // new transaction. No-op balance side for SMS / no-account adds.
@@ -113,9 +115,33 @@ class AddTransactionUseCase @Inject constructor(
 
                 subscriptionRepository.insertSubscription(subscription)
             }
+            transactionId
         }
     }
-    
+
+    /**
+     * The rows of a chat review card, all or none: a failure rolls every row back, so trying
+     * again can't repeat one. A row the database refuses fails the lot rather than vanishing.
+     */
+    suspend fun executeAll(drafts: List<TransactionDraft>) = database.withTransaction {
+        val time = LocalTime.now()
+        drafts.forEachIndexed { index, draft ->
+            val id = execute(
+                amount = draft.amount,
+                merchant = draft.merchant,
+                category = draft.category,
+                type = draft.type,
+                // Identical rows need their own hash. The nanos give them one and can't change the day.
+                date = draft.date.atTime(time.withNano(index)),
+                notes = "Added from chat: \"${draft.sourceText}\"",
+                bankName = draft.bankName,
+                accountLast4 = draft.accountLast4,
+                currency = draft.currency
+            )
+            check(id != -1L) { "A transaction with the same details already exists" }
+        }
+    }
+
     /**
      * Manual account-to-account TRANSFER (#622). Records a single TRANSFER
      * transaction — its `fromAccount`/`toAccount` last4s drive the two-leg

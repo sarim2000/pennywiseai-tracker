@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">पार्सर के सुधार लागू करने के लिए SMS लेन-देन दोबारा पढ़ता है। SMS लेन-देन में किए बदलाव रीसेट हो जाएंगे। मैनुअल, आयात किए गए, उधार और ग्रुप वाले लेन-देन बने रहेंगे।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">अधिक विकल्प</string>
-    <string name="home_menu_monthly_recap">महीने का सारांश</string>
     <string name="home_menu_settings">सेटिंग्स</string>
     <string name="home_menu_edit_home">होम स्क्रीन बदलें</string>
     <string name="home_menu_discord">फ़ीडबैक के लिए Discord से जुड़ें</string>
@@ -142,8 +141,8 @@
     <string name="account_card_outstanding">बकाया</string>
     <string name="account_card_balance">बाकी राशि</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">पिछले महीने से %1$d%% ज़्यादा</string>
-    <string name="balance_card_change_less">पिछले महीने से %1$d%% कम</string>
+    <string name="balance_card_change_more_same_point">पिछले महीने के इसी समय से %1$d%% ज़्यादा</string>
+    <string name="balance_card_change_less_same_point">पिछले महीने के इसी समय से %1$d%% कम</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">बैलेंस: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -156,7 +155,6 @@
     <string name="balance_card_accounts">खाते</string>
     <string name="balance_card_credit_cards">क्रेडिट कार्ड</string>
     <string name="balance_card_total">कुल</string>
-    <string name="balance_card_approximate_note">* कुछ बैलेंस बदले नहीं जा सके और अपनी मूल मुद्रा में दिखाए गए हैं (कुल जोड़ अनुमानित है)।</string>
     <string name="balance_card_spent_this_month">इस महीने खर्च</string>
     <string name="balance_card_change_currency">मुद्रा बदलें</string>
     <string name="balance_card_summary_income">आय</string>
@@ -260,20 +258,25 @@
     <string name="notif_txn_channel_description">नए लेन-देन के नोटिफ़िकेशन</string>
     <string name="notif_txn_unknown_merchant">अज्ञात</string>
     <string name="notif_txn_unknown_bank">बैंक</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ बैलेंस में %1$s का फ़र्क — होना था %2$s, बैंक बता रहा है %3$s</string>
     <string name="notif_txn_action_more">और…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s नया लेन-देन</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • बैलेंस जाँच लें</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">%2$s पर %1$s खर्च हुए</string>
-    <string name="notif_txn_title_received">%2$s से %1$s मिले</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">%1$s खर्च हुए</string>
+    <string name="notif_txn_title_received">%1$s मिले</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">यह किस लिए था? · %1$s</string>
-    <string name="notif_txn_action_change">बदलें</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">यह किस लिए था?</string>
+    <string name="notif_txn_action_change">श्रेणी बदलें</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">खर्च नहीं</string>
+    <string name="notif_txn_action_not_income">आय नहीं</string>
+    <string name="notif_txn_excluded_spending">खर्च में नहीं गिना जाएगा</string>
+    <string name="notif_txn_excluded_income">आय में नहीं गिना जाएगा</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">आपका बैलेंस दर्ज रकम से %1$s ज़्यादा है</string>
+    <string name="notif_balance_lower">आपका बैलेंस दर्ज रकम से %1$s कम है</string>
+    <string name="notif_balance_text">शायद कोई लेन-देन छूट गया है। देखने के लिए टैप करें।</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">%1$s में सहेजा गया</string>
     <string name="notif_txn_learned_text">अब से यहाँ के भुगतान अपने-आप इसी श्रेणी में जाएँगे।</string>
@@ -294,7 +297,13 @@
         <item quantity="one">%d को श्रेणी चाहिए</item>
         <item quantity="other">%d को श्रेणी चाहिए</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">इसे श्रेणी दें ताकि सिर्फ़ असली खर्च गिना जाए</item>
+        <item quantity="other">इन्हें श्रेणी दें ताकि सिर्फ़ असली खर्च गिना जाए</item>
+    </plurals>
     <string name="notif_daily_action_sort">श्रेणी दें</string>
+    <string name="notif_daily_action_sort_all">श्रेणी दें</string>
     <string name="notif_daily_action_cash">+ कैश</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -308,6 +317,10 @@
     <string name="pro_home_card_body">Pro में मिलते हैं अनलिमिटेड नियम, लक्ष्य, निर्यात और स्टेटमेंट आयात।</string>
     <string name="pro_home_card_action">Pro देखें</string>
     <string name="pro_home_card_dismiss">हटाएं</string>
+    <string name="home_payday_card_title">वेतन वाले दिन से बजट शुरू करें?</string>
+    <string name="home_payday_card_body">लगता है आपका वेतन महीने की %1$d तारीख को आता है। क्या हर बजट महीना उसी दिन से शुरू करें? आप इसे सेटिंग्स में बदल सकते हैं।</string>
+    <string name="home_payday_card_action">%1$d तारीख से शुरू करें</string>
+    <string name="home_payday_card_dismiss">हटाएं</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">%2$s तक %1$s होने की राह पर</string>
     <string name="forecast_over_usual">आम से %1$s ज़्यादा</string>

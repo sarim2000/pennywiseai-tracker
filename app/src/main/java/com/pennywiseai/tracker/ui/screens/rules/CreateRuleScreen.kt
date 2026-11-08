@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -294,7 +295,7 @@ fun CreateRuleScreen(
                 title = stringResource(if (isEditing) R.string.rules_edit_title else R.string.rules_create_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Close, contentDescription = stringResource(R.string.rules_close))
                     }
                 },
@@ -327,7 +328,8 @@ fun CreateRuleScreen(
                                  conditions.isNotEmpty() &&
                                  conditions.all { it.validate() } &&
                                  actions.isNotEmpty() &&
-                                 actions.all { it.validate() }
+                                 actions.all { it.validate() },
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.rules_save))
                     }
@@ -416,7 +418,7 @@ fun CreateRuleScreen(
                             Icon(
                                 Icons.Default.FilterList,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = stringResource(R.string.rules_when),
@@ -431,7 +433,8 @@ fun CreateRuleScreen(
                                     operator = ConditionOperator.LESS_THAN,
                                     value = ""
                                 )).toMutableList()
-                            }
+                            },
+                            shapes = ButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(modifier = Modifier.width(Spacing.xs))
@@ -478,7 +481,8 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 conditions = conditions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                            shapes = IconButtonDefaults.shapes()
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
@@ -524,7 +528,7 @@ fun CreateRuleScreen(
                             Icon(
                                 Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
                                 text = stringResource(R.string.rules_then),
@@ -542,7 +546,8 @@ fun CreateRuleScreen(
                                         actionType = ActionType.SET,
                                         value = ""
                                     )
-                                }
+                                },
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                                 Spacer(modifier = Modifier.width(Spacing.xs))
@@ -579,7 +584,8 @@ fun CreateRuleScreen(
                                             onClick = {
                                                 actions = actions.toMutableList().apply { removeAt(index) }
                                             },
-                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+                                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                                            shapes = IconButtonDefaults.shapes()
                                         ) {
                                             Icon(
                                                 Icons.Default.Delete,
@@ -761,10 +767,10 @@ fun CreateRuleScreen(
                 TextButton(onClick = {
                     actions = listOf(pendingBlockAction!!)
                     pendingBlockAction = null
-                }) { Text(stringResource(R.string.rules_block_confirm_action)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_block_confirm_action)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingBlockAction = null }) { Text(stringResource(R.string.rules_cancel)) }
+                TextButton(onClick = { pendingBlockAction = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
             }
         )
     }
@@ -804,7 +810,7 @@ private fun ConditionFieldSelector(
             readOnly = true,
             label = { Text(stringResource(R.string.rules_field_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fieldDropdownExpanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
         )
         ExposedDropdownMenu(
             expanded = fieldDropdownExpanded,
@@ -843,6 +849,8 @@ private fun ConditionFieldSelector(
         operators.forEach { (op, label) ->
             FilterChip(
                 selected = condition.operator == op,
+                shapes = FilterChipDefaults.shapes(),
+                colors = FilterChipDefaults.filterChipColors(),
                 onClick = { onConditionChange(condition.copy(operator = op)) },
                 label = { Text(stringResource(label)) }
             )
@@ -866,6 +874,8 @@ private fun ConditionFieldSelector(
                 RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                     FilterChip(
                         selected = condition.value.equals(type, ignoreCase = true),
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
                         onClick = { onConditionChange(condition.copy(value = type)) },
                         label = {
                             Text(stringResource(displayLabel), style = MaterialTheme.typography.bodySmall)
@@ -889,6 +899,8 @@ private fun ConditionFieldSelector(
                     days.forEach { (value, label) ->
                         FilterChip(
                             selected = value in selectedDays,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 val newSet = if (value in selectedDays) selectedDays - value else selectedDays + value
                                 onConditionChange(condition.copy(value = newSet.sorted().joinToString(",")))
@@ -900,6 +912,8 @@ private fun ConditionFieldSelector(
                     days.forEach { (value, label) ->
                         FilterChip(
                             selected = condition.value == value,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = { onConditionChange(condition.copy(value = value)) },
                             label = { Text(stringResource(label), style = MaterialTheme.typography.bodySmall) }
                         )
@@ -936,7 +950,7 @@ private fun ConditionFieldSelector(
                 label = { Text(stringResource(R.string.rules_time_label)) },
                 placeholder = { Text(stringResource(R.string.rules_time_placeholder)) },
                 trailingIcon = {
-                    IconButton(onClick = { showTimePicker = true }) {
+                    IconButton(onClick = { showTimePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.AccessTime, contentDescription = stringResource(R.string.rules_pick_time))
                     }
                 },
@@ -952,10 +966,10 @@ private fun ConditionFieldSelector(
                             val formatted = String.format("%02d:%02d", timePickerState.hour, timePickerState.minute)
                             onConditionChange(condition.copy(value = formatted))
                             showTimePicker = false
-                        }) { Text(stringResource(R.string.rules_ok)) }
+                        }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_ok)) }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.rules_cancel)) }
+                        TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.rules_cancel)) }
                     },
                     text = { TimePicker(state = timePickerState) }
                 )
@@ -1013,7 +1027,7 @@ private fun ConditionFieldSelector(
                         readOnly = true,
                         label = { Text(stringResource(R.string.rules_field_account)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                        modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     )
                     ExposedDropdownMenu(
                         expanded = accountDropdownExpanded,
@@ -1096,31 +1110,23 @@ private fun ConditionFieldSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LogicalOperatorToggle(
     selected: LogicalOperator,
     onSelect: (LogicalOperator) -> Unit
 ) {
-    val options = listOf(LogicalOperator.AND, LogicalOperator.OR)
-    SingleChoiceSegmentedButtonRow {
-        options.forEachIndexed { index, op ->
-            SegmentedButton(
-                selected = selected == op,
-                onClick = { onSelect(op) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
-                label = {
-                    Text(
-                        text = stringResource(
-                            if (op == LogicalOperator.AND) R.string.rules_logical_and else R.string.rules_logical_or
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+    ConnectedChoiceRow(
+        options = listOf(LogicalOperator.AND, LogicalOperator.OR),
+        selected = selected,
+        onSelect = onSelect,
+        label = { op ->
+            stringResource(
+                if (op == LogicalOperator.AND) R.string.rules_logical_and else R.string.rules_logical_or
             )
-        }
-    }
+        },
+        fillMaxWidth = false,
+        textStyle = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+    )
 }
 
 @StringRes
@@ -1157,7 +1163,7 @@ private fun ActionEditor(
                 readOnly = true,
                 label = { Text(stringResource(R.string.rules_action_type_label)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionTypeDropdownExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
             )
             ExposedDropdownMenu(
                 expanded = actionTypeDropdownExpanded,
@@ -1236,7 +1242,7 @@ private fun ActionEditor(
                     readOnly = true,
                     label = { Text(stringResource(R.string.rules_action)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
                 ExposedDropdownMenu(
                     expanded = actionFieldDropdownExpanded,
@@ -1283,6 +1289,8 @@ private fun ActionEditor(
                         commonCategories.forEach { category ->
                             FilterChip(
                                 selected = action.value == category,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = category)) },
                                 label = { Text(categoryLabel(category), style = MaterialTheme.typography.bodySmall) }
                             )
@@ -1314,6 +1322,8 @@ private fun ActionEditor(
                         RULE_TRANSACTION_TYPE_OPTIONS.forEach { (type, displayLabel) ->
                             FilterChip(
                                 selected = action.value.equals(type, ignoreCase = true),
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
                                 onClick = { onActionChange(action.copy(value = type)) },
                                 label = {
                                     Text(

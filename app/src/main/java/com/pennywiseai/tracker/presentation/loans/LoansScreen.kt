@@ -5,7 +5,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,7 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
@@ -38,7 +37,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun LoansScreen(
     onNavigateBack: () -> Unit = {},
@@ -60,7 +59,7 @@ fun LoansScreen(
                 title = stringResource(R.string.loans_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
@@ -75,7 +74,7 @@ fun LoansScreen(
                 modifier = Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                LoadingIndicator()
             }
             return@Scaffold
         }
@@ -108,10 +107,10 @@ fun LoansScreen(
                     TextButton(onClick = {
                         viewModel.settleUp(person)
                         settleUpPerson = null
-                    }) { Text(stringResource(R.string.loans_settle_up)) }
+                    }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.loans_settle_up)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { settleUpPerson = null }) { Text(stringResource(R.string.accounts_action_cancel)) }
+                    TextButton(onClick = { settleUpPerson = null }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.accounts_action_cancel)) }
                 }
             )
         }
@@ -161,7 +160,7 @@ fun LoansScreen(
             if (settledPeople.isNotEmpty()) {
                 item {
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    TextButton(onClick = { viewModel.toggleShowSettled() }) {
+                    TextButton(onClick = { viewModel.toggleShowSettled() }, shapes = ButtonDefaults.shapes()) {
                         Icon(
                             if (uiState.showSettledLoans) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                             contentDescription = null,
@@ -202,7 +201,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.personItems(
             if (person.hasActive) {
                 item(key = "settle-${person.name}") {
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                        FilledTonalButton(onClick = { onSettleUp(person) }) {
+                        FilledTonalButton(onClick = { onSettleUp(person) }, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.loans_settle_up))
                         }
                     }
@@ -218,9 +217,8 @@ private fun LoanPersonRow(
     expanded: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    val owedColor = if (isDark) loan_dark else loan_light
-    val oweColor = if (isDark) income_dark else income_light
+    val owedColor = MaterialTheme.colorScheme.loan
+    val oweColor = MaterialTheme.colorScheme.income
     // Tint the avatar by the first open balance's direction; grey once all settled.
     val accent = person.net.values.firstOrNull()?.let { if (it.isOwedToYou) owedColor else oweColor }
         ?: MaterialTheme.colorScheme.onSurfaceVariant
@@ -284,9 +282,8 @@ private fun LoanSummaryCard(
     totalBorrowed: BigDecimal,
     currency: String
 ) {
-    val isDark = isSystemInDarkTheme()
-    val lentColor = if (isDark) loan_dark else loan_light
-    val borrowedColor = if (isDark) income_dark else income_light
+    val lentColor = MaterialTheme.colorScheme.loan
+    val borrowedColor = MaterialTheme.colorScheme.income
 
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -321,13 +318,12 @@ fun LoanListItem(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
     val directionColor = if (loan.direction == LoanDirection.LENT) {
-        if (isDark) loan_dark else loan_light
+        MaterialTheme.colorScheme.loan
     } else {
-        if (isDark) income_dark else income_light
+        MaterialTheme.colorScheme.income
     }
-    val progressColor = if (isDark) income_dark else income_light
+    val progressColor = MaterialTheme.colorScheme.income
     val progress = if (loan.originalAmount > BigDecimal.ZERO) {
         (BigDecimal.ONE - loan.remainingAmount.divide(loan.originalAmount, 2, java.math.RoundingMode.HALF_UP))
             .toFloat().coerceIn(0f, 1f)

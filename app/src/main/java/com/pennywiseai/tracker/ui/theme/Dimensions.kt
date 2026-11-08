@@ -66,6 +66,9 @@ object Dimensions {
 
         /** Placeholder / skeleton content shown behind an empty state. */
         const val ghost = 0.12f
+
+        /** A primary tint marking the selected tab in the floating nav bar. */
+        const val selectedIndicator = 0.18f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────
@@ -124,6 +127,28 @@ object Dimensions {
     // ── Component metrics ─────────────────────────────────────────────────
     object Component {
         val bottomBarHeight = 80.dp
+
+        /** The year review's month bars. */
+        val reviewBarHeight = 72.dp
+
+        /** Widest a current value may get at the end of a settings row. */
+        val rowValueMaxWidth = 96.dp
+
+        /** Height of the floating nav pill, and the side of the action docked beside it. */
+        val floatingNavHeight = 64.dp
+
+        /** The selected-tab indicator inside the floating nav pill. */
+        val floatingNavIndicatorHeight = 48.dp
+        val floatingNavIndicatorWidth = 64.dp
+
+        /** Gap between the floating nav pill and the system navigation bar. */
+        val floatingNavBottomGap = 12.dp
+
+        /** Corner of the squircle action docked beside the floating nav pill. */
+        val dockedActionCornerRadius = 20.dp
+        /** Corner while the docked action is held — the M3 Expressive press morph. */
+        val dockedActionPressedCornerRadius = 12.dp
+
         val buttonHeight = 48.dp
 
         /** Accessibility floor for anything tappable. */

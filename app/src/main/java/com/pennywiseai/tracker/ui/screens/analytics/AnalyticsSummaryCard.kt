@@ -6,7 +6,6 @@ import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,7 +48,7 @@ fun AnalyticsSummaryCard(
 
     val loadAlpha by animateFloatAsState(
         targetValue = if (visible && !isLoading) 1f else if (isLoading) 0.5f else 0f,
-        animationSpec = tween(500),
+        animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "summary_alpha"
     )
 

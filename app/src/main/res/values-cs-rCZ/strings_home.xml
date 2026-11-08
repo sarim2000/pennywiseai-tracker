@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Další možnosti</string>
-    <string name="home_menu_monthly_recap">Měsíční repatriace</string>
     <string name="home_menu_settings">Nastavení</string>
     <string name="home_menu_edit_home">Upravit domácí obrazovku</string>
     <string name="home_menu_discord">Připojte se k Discordu pro zpětnou vazbu</string>
@@ -155,8 +154,8 @@
     <string name="account_card_outstanding">Nevyřízené</string>
     <string name="account_card_balance">Zůstatek</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">%1$d%% více oproti minulý měsíc</string>
-    <string name="balance_card_change_less">%1$d%% méně oproti minulý měsíc</string>
+    <string name="balance_card_change_more_same_point">O %1$d%% více než ve stejnou dobu minulý měsíc</string>
+    <string name="balance_card_change_less_same_point">O %1$d%% méně než ve stejnou dobu minulý měsíc</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Zůstatek: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -171,7 +170,6 @@
     <string name="balance_card_accounts">Účty</string>
     <string name="balance_card_credit_cards">Kreditní karty</string>
     <string name="balance_card_total">Celkem</string>
-    <string name="balance_card_approximate_note">* Některé zůstatky nelze převést a jsou zobrazeny v původní měně (součet je přibližný).</string>
     <string name="balance_card_spent_this_month">Tento měsíc utraceno</string>
     <string name="balance_card_change_currency">Změnit měnu</string>
     <string name="balance_card_summary_income">Příjmy</string>
@@ -290,21 +288,25 @@
     <string name="notif_txn_channel_description">Oznámení o nových transakcích</string>
     <string name="notif_txn_unknown_merchant">Neznámý</string>
     <string name="notif_txn_unknown_bank">Bankovní</string>
-    <!-- Category • bank name -->
-    <string name="notif_txn_category_bank">%1$s • %2$s</string>
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠️ Zůstatek %1$s — očekávaný %2$s, banka říká %3$s</string>
     <string name="notif_txn_action_more">Více…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Nová transakce</string>
-    <string name="notif_txn_public_text">%1$s • zůstatek potřebuje vzhled</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">Utraceno %1$s · %2$s</string>
-    <string name="notif_txn_title_received">Přijato %1$s od %2$s</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
+    <string name="notif_txn_public_text">%1$s • zkontrolujte zůstatek</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">Utraceno %1$s</string>
+    <string name="notif_txn_title_received">Přijato %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">Za co to bylo? · %1$s</string>
-    <string name="notif_txn_action_change">Změnit</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">Za co to bylo?</string>
+    <string name="notif_txn_action_change">Změnit kategorii</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Není výdaj</string>
+    <string name="notif_txn_action_not_income">Není příjem</string>
+    <string name="notif_txn_excluded_spending">Nebude se počítat do výdajů</string>
+    <string name="notif_txn_excluded_income">Nebude se počítat do příjmů</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Zůstatek je o %1$s vyšší, než je zaznamenáno</string>
+    <string name="notif_balance_lower">Zůstatek je o %1$s nižší, než je zaznamenáno</string>
+    <string name="notif_balance_text">Možná chybí nějaká transakce. Klepnutím zkontrolujte.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Uloženo jako %1$s</string>
     <string name="notif_txn_learned_text">Platby tady se od teď budou třídit automaticky.</string>
@@ -331,7 +333,15 @@
         <item quantity="many">%d potřebuje kategorii</item>
         <item quantity="other">%d potřebuje kategorii</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">roztřiďte ji, ať se počítají jen skutečné výdaje</item>
+        <item quantity="few">roztřiďte je, ať se počítají jen skutečné výdaje</item>
+        <item quantity="many">roztřiďte je, ať se počítají jen skutečné výdaje</item>
+        <item quantity="other">roztřiďte je, ať se počítají jen skutečné výdaje</item>
+    </plurals>
     <string name="notif_daily_action_sort">Roztřídit</string>
+    <string name="notif_daily_action_sort_all">Roztřídit</string>
     <string name="notif_daily_action_cash">+ Hotovost</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -347,6 +357,10 @@
     <string name="pro_home_card_body">Pro přidává neomezená pravidla, cíle, exporty a importy výpisů.</string>
     <string name="pro_home_card_action">Zobrazit Pro</string>
     <string name="pro_home_card_dismiss">Zavřít</string>
+    <string name="home_payday_card_title">Začínat rozpočet ve výplatní den?</string>
+    <string name="home_payday_card_body">Zdá se, že výplata vám chodí %1$d. dne v měsíci. Začínat každý rozpočtový měsíc tímto dnem? Můžete to změnit v Nastavení.</string>
+    <string name="home_payday_card_action">Začínat %1$d. dne</string>
+    <string name="home_payday_card_dismiss">Zavřít</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Směřujete k %1$s do %2$s</string>
     <string name="forecast_over_usual">%1$s nad obvyklou úrovní</string>

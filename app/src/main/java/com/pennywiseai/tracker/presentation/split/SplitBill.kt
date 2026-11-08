@@ -31,21 +31,21 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +72,7 @@ import com.pennywiseai.tracker.domain.loan.SplitError
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.UpiRequest
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -121,7 +122,7 @@ fun SplitSection(
 
     fun request(person: SplitPerson, id: String) {
         val owed = owedFor(person)
-        val amount = CurrencyFormatter.formatCurrency(owed, currency)
+        val amount = CurrencyFormatter.formatCurrency(owed, currency, maskIfHidden = false) // sent to the other person
         val uri = UpiRequest.payUri(id, payeeName, owed, transaction.merchantName)
         val text = context.getString(R.string.split_request_text, amount, id, transaction.merchantName) + "\n" + uri
         val title = context.getString(R.string.split_request, amount)
@@ -140,7 +141,7 @@ fun SplitSection(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = viewModel::openSheet) { Text(stringResource(R.string.split_menu_edit)) }
+            TextButton(onClick = viewModel::openSheet, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_menu_edit)) }
         }
         val rows = people.size + 1
         GroupedList {
@@ -155,7 +156,7 @@ fun SplitSection(
                         subtitle = if (settled) stringResource(R.string.split_settled) else null,
                     )
                     if (transaction.isInr() && !settled) {
-                        FilledTonalButton(onClick = { upiId?.let { request(person, it) } ?: run { askUpiFor = person } }) {
+                        FilledTonalButton(onClick = { upiId?.let { request(person, it) } ?: run { askUpiFor = person } }, shapes = ButtonDefaults.shapes()) {
                             Icon(Icons.Default.QrCode2, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                             Spacer(Modifier.width(Spacing.xs))
                             Text(stringResource(R.string.split_request, CurrencyFormatter.formatCurrency(owed, currency)))
@@ -219,9 +220,9 @@ fun UpiIdDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Bool
             TextButton(onClick = {
                 if (allowClear && value.isBlank()) { onSave(""); return@TextButton }
                 invalid = !onSave(value)
-            }) { Text(stringResource(R.string.split_upi_save)) }
+            }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_upi_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.txn_detail_action_cancel)) } },
+        dismissButton = { TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) } },
     )
 }
 
@@ -251,7 +252,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
         uri?.let { contactName(context, it) }?.let { viewModel.addPerson(it) }
     }
 
-    ModalBottomSheet(onDismissRequest = viewModel::closeSheet, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = viewModel::closeSheet, sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -272,17 +273,14 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
             )
             Text(stringResource(R.string.split_sheet_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                SplitMode.entries.forEachIndexed { i, mode ->
-                    SegmentedButton(
-                        selected = f.mode == mode,
-                        onClick = { viewModel.setMode(mode) },
-                        shape = SegmentedButtonDefaults.itemShape(i, SplitMode.entries.size),
-                    ) {
-                        Text(stringResource(if (mode == SplitMode.EQUAL) R.string.split_mode_equal else R.string.split_mode_custom))
-                    }
-                }
-            }
+            ConnectedChoiceRow(
+                options = SplitMode.entries,
+                selected = f.mode,
+                onSelect = { viewModel.setMode(it) },
+                label = { mode ->
+                    stringResource(if (mode == SplitMode.EQUAL) R.string.split_mode_equal else R.string.split_mode_custom)
+                },
+            )
 
             // Everyone's part: read-only rows when equal, an amount field each when custom.
             if (f.mode == SplitMode.EQUAL) {
@@ -352,7 +350,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { add() }),
                     trailingIcon = {
-                        IconButton(onClick = ::add, enabled = name.isNotBlank()) {
+                        IconButton(onClick = ::add, enabled = name.isNotBlank(), shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.split_add_person))
                         }
                     },
@@ -366,7 +364,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                         }
                     }
                 }
-                TextButton(onClick = { runCatching { pickContact.launch(null) } }) {
+                TextButton(onClick = { runCatching { pickContact.launch(null) } }, shapes = ButtonDefaults.shapes()) {
                     Icon(Icons.Default.Contacts, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                     Spacer(Modifier.width(Spacing.xs))
                     Text(stringResource(R.string.split_pick_contact))
@@ -392,13 +390,13 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
 
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                 if (saved.isNotEmpty()) {
-                    TextButton(onClick = { confirmRemove = true }, enabled = !f.saving) {
+                    TextButton(onClick = { confirmRemove = true }, enabled = !f.saving, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.split_remove), color = MaterialTheme.colorScheme.error)
                     }
                 }
                 Box(Modifier.weight(1f))
-                OutlinedButton(onClick = viewModel::closeSheet) { Text(stringResource(R.string.txn_detail_action_cancel)) }
-                Button(onClick = viewModel::save, enabled = !f.saving && preview.error == null) { Text(stringResource(R.string.split_save)) }
+                OutlinedButton(onClick = viewModel::closeSheet, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
+                Button(onClick = viewModel::save, enabled = !f.saving && preview.error == null, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_save)) }
             }
         }
     }
@@ -412,16 +410,16 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                 TextButton(onClick = {
                     confirmRemove = false
                     viewModel.removeSplit()
-                }) { Text(stringResource(R.string.split_remove_confirm), color = MaterialTheme.colorScheme.error) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_remove_confirm), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text(stringResource(R.string.txn_detail_action_cancel)) } },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) } },
         )
     }
 }
 
 @Composable
 private fun RemoveButton(name: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick) {
+    IconButton(onClick = onClick, shapes = IconButtonDefaults.shapes()) {
         Icon(
             Icons.Default.Close,
             contentDescription = stringResource(R.string.split_remove_person, name),

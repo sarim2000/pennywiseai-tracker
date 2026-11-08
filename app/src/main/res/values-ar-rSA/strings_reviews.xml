@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Review screen -->
+    <string name="review_title">المراجعات</string>
+    <string name="review_back">رجوع</string>
+    <string name="review_share">مشاركة</string>
+    <string name="review_kind_week">أسبوع</string>
+    <string name="review_kind_month">شهر</string>
+    <string name="review_kind_year">سنة</string>
+    <string name="review_older">الفترة السابقة</string>
+    <string name="review_newer">الفترة التالية</string>
+    <string name="review_empty">لا توجد معاملات مسجّلة في هذه الفترة.</string>
+    <string name="review_spent">المصروف</string>
+    <string name="review_income">الدخل المسجّل</string>
+    <string name="review_transactions">المعاملات</string>
+    <string name="review_by_month">حسب الشهر</string>
+    <string name="review_categories_changed">أكثر ما تغيّر</string>
+    <string name="review_categories_top">أعلى الفئات</string>
+    <!-- %1$d = year -->
+    <string name="review_year_so_far">%1$d حتى الآن</string>
+    <!-- %1$d = percent, %2$s = what it is compared with -->
+    <string name="review_change_less">أقل بنسبة %1$d%% من %2$s</string>
+    <string name="review_change_more">أكثر بنسبة %1$d%% من %2$s</string>
+    <!-- %1$s = what it is compared with -->
+    <string name="review_change_same">مماثل تقريبًا لـ%1$s</string>
+    <string name="review_target_week">الأسبوع السابق</string>
+    <string name="review_target_cycle">الدورة السابقة</string>
+    <!-- %1$d = year -->
+    <string name="review_target_same_span">الفترة نفسها من %1$d</string>
+    <string name="review_coverage">مبني على المعاملات المسجّلة، ولا يشمل الكاش الذي لم تضفه.</string>
+    <!-- %1$s, %2$s = first and last recorded dates -->
+    <string name="review_coverage_span">مبني على المعاملات المسجّلة من %1$s إلى %2$s، ولا يشمل الكاش الذي لم تضفه.</string>
+    <!-- Home -->
+    <string name="home_menu_share_card">بطاقة مشاركة</string>
+    <!-- %1$s = year -->
+    <string name="review_banner_year_title">حصاد %1$s</string>
+    <string name="review_banner_year_subtitle">أين ذهب مصروف عامك، بحسب ما سجّلته</string>
+    <!-- Share card -->
+    <plurals name="share_card_caption_merchants">
+        <item quantity="zero">جهة دفعت لها</item>
+        <item quantity="one">جهة دفعت لها</item>
+        <item quantity="two">جهتان دفعت لهما</item>
+        <item quantity="few">جهات دفعت لها</item>
+        <item quantity="many">جهة دفعت لها</item>
+        <item quantity="other">جهة دفعت لها</item>
+    </plurals>
+    <string name="share_sheet_merchants">الجهات</string>
+    <!-- The message sent with the image, in the sharer's voice. %1$d = count -->
+    <plurals name="share_text_transactions">
+        <item quantity="zero">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
+        <item quantity="one">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
+        <item quantity="two">تتبّع لي PennyWise معاملتين من رسائل البنك.</item>
+        <item quantity="few">تتبّع لي PennyWise %1$d معاملات من رسائل البنك.</item>
+        <item quantity="many">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
+        <item quantity="other">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
+    </plurals>
+    <plurals name="share_text_subscriptions">
+        <item quantity="zero">وجد PennyWise %1$d اشتراك نسيت أنني أدفع له.</item>
+        <item quantity="one">وجد PennyWise %1$d اشتراك نسيت أنني أدفع له.</item>
+        <item quantity="two">وجد PennyWise اشتراكين نسيت أنني أدفع لهما.</item>
+        <item quantity="few">وجد PennyWise %1$d اشتراكات نسيت أنني أدفع لها.</item>
+        <item quantity="many">وجد PennyWise %1$d اشتراكًا نسيت أنني أدفع له.</item>
+        <item quantity="other">وجد PennyWise %1$d اشتراك نسيت أنني أدفع له.</item>
+    </plurals>
+    <plurals name="share_text_merchants">
+        <item quantity="zero">تابع PennyWise الجهات التي دفعت لها.</item>
+        <item quantity="one">تابع PennyWise %1$d جهة دفعت لها.</item>
+        <item quantity="two">تابع PennyWise الجهتين اللتين دفعت لهما.</item>
+        <item quantity="few">تابع PennyWise %1$d جهات دفعت لها.</item>
+        <item quantity="many">تابع PennyWise %1$d جهة دفعت لها.</item>
+        <item quantity="other">تابع PennyWise %1$d جهة دفعت لها.</item>
+    </plurals>
+    <!-- %1$s = the app's website -->
+    <string name="share_text_suffix">يقرأ رسائل البنك على هاتفك، ولا يُرفع منها شيء. https://%1$s</string>
+    <!-- Weekly recap -->
+    <string name="settings_weekly_summary_title">الملخص الأسبوعي</string>
+    <string name="settings_weekly_summary_subtitle">مصروف الأسبوع الماضي مقارنة بالأسبوع الذي قبله</string>
+    <string name="settings_weekly_summary_needs_permission">اسمح بإشعارات PennyWise ليصلك الملخص الأسبوعي.</string>
+    <string name="notif_weekly_channel_name">الملخص الأسبوعي</string>
+    <string name="notif_weekly_channel_description">ملخص قصير لمصروف الأسبوع الماضي</string>
+    <!-- %1$s = amount -->
+    <string name="notif_weekly_title">صرفت الأسبوع الماضي %1$s</string>
+</resources>

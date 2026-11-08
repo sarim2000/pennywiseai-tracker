@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.database.dao
 
-import androidx.room.*
+import androidx.room3.*
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import kotlinx.coroutines.flow.Flow
@@ -17,12 +17,18 @@ interface TransactionSplitDao {
     @Query("SELECT * FROM transaction_splits WHERE transaction_id = :transactionId ORDER BY id ASC")
     suspend fun getSplitsForTransactionSync(transactionId: Long): List<TransactionSplitEntity>
 
-    @Query("SELECT * FROM transaction_splits WHERE transaction_id IN (:transactionIds)")
-    suspend fun getSplitsForTransactions(transactionIds: List<Long>): List<TransactionSplitEntity>
-
-    /** Observed form of [getSplitsForTransactions], so a filter built on split categories re-runs when a split is edited. */
-    @Query("SELECT * FROM transaction_splits WHERE transaction_id IN (:transactionIds)")
-    fun observeSplitsForTransactions(transactionIds: List<Long>): Flow<List<TransactionSplitEntity>>
+    /**
+     * Splits of every non-deleted transaction, observed so a filter built on split
+     * categories re-runs when a split is edited. Joins rather than taking an id list:
+     * `IN (:ids)` binds one variable per id, and SQLite before 3.32 (Android 11 and
+     * older) throws "too many SQL variables" past 999.
+     */
+    @Query("""
+        SELECT s.* FROM transaction_splits s
+        INNER JOIN transactions t ON t.id = s.transaction_id
+        WHERE t.is_deleted = 0
+    """)
+    fun observeSplitsForActiveTransactions(): Flow<List<TransactionSplitEntity>>
 
     @Transaction
     @Query("SELECT * FROM transactions WHERE id = :transactionId AND is_deleted = 0")

@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">Наноў чытае SMS-транзакцыі, каб улічыць выпраўленні ў распазнаванні. Праўкі SMS-транзакцый будуць скінуты. Ручныя, імпартаваныя, пазыковыя і згрупаваныя транзакцыі захоўваюцца.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Іншыя параметры</string>
-    <string name="home_menu_monthly_recap">Вынікі месяца</string>
     <string name="home_menu_settings">Налады</string>
     <string name="home_menu_edit_home">Змяніць галоўны экран</string>
     <string name="home_menu_discord">Далучыцца да Discord для водгукаў</string>
@@ -153,8 +152,8 @@
     <string name="account_card_outstanding">Запазычанасць</string>
     <string name="account_card_balance">Баланс</string>
     <!-- Balance / spending card -->
-    <string name="balance_card_change_more">На %1$d%% больш, чым у мінулым месяцы</string>
-    <string name="balance_card_change_less">На %1$d%% менш, чым у мінулым месяцы</string>
+    <string name="balance_card_change_more_same_point">На %1$d%% больш, чым у гэты ж час мінулага месяца</string>
+    <string name="balance_card_change_less_same_point">На %1$d%% менш, чым у гэты ж час мінулага месяца</string>
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">Баланс: %1$s</string>
     <plurals name="balance_card_account_count">
@@ -169,7 +168,6 @@
     <string name="balance_card_accounts">Рахункі</string>
     <string name="balance_card_credit_cards">Крэдытныя карткі</string>
     <string name="balance_card_total">Усяго</string>
-    <string name="balance_card_approximate_note">* Некаторыя балансы не ўдалося канвертаваць, і яны паказаны ў зыходнай валюце (агульная сума прыблізная).</string>
     <string name="balance_card_spent_this_month">Выдаткавана ў гэтым месяцы</string>
     <string name="balance_card_change_currency">Змяніць валюту</string>
     <string name="balance_card_summary_income">Даходы</string>
@@ -285,20 +283,25 @@
     <string name="notif_txn_channel_description">Апавяшчэнні пра новыя транзакцыі</string>
     <string name="notif_txn_unknown_merchant">Невядома</string>
     <string name="notif_txn_unknown_bank">Банк</string>
-    <!-- Category • bank name -->
-    <!-- %1$s off-by amount, %2$s expected balance, %3$s balance reported by the bank -->
-    <string name="notif_txn_balance_discrepancy">⚠ Баланс разыходзіцца на %1$s — чакалася %2$s, банк паказвае %3$s</string>
     <string name="notif_txn_action_more">Яшчэ…</string>
-    <!-- Lock-screen version; %1$s is an emoji for the transaction type -->
-    <string name="notif_txn_public_title">%1$s Новая транзакцыя</string>
+    <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • праверце баланс</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">Выдаткавана %1$s · %2$s</string>
-    <string name="notif_txn_title_received">Атрымана %1$s ад %2$s</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">Выдаткавана %1$s</string>
+    <string name="notif_txn_title_received">Атрымана %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">На што гэта было? · %1$s</string>
-    <string name="notif_txn_action_change">Змяніць</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">На што гэта было?</string>
+    <string name="notif_txn_action_change">Змяніць катэгорыю</string>
+    <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
+    <string name="notif_txn_action_not_expense">Не выдатак</string>
+    <string name="notif_txn_action_not_income">Не даход</string>
+    <string name="notif_txn_excluded_spending">Не будзе ўлічана ў выдатках</string>
+    <string name="notif_txn_excluded_income">Не будзе ўлічана ў даходах</string>
+    <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
+    <string name="notif_balance_higher">Баланс на %1$s большы, чым запісана</string>
+    <string name="notif_balance_lower">Баланс на %1$s меншы, чым запісана</string>
+    <string name="notif_balance_text">Магчыма, нейкая транзакцыя прапушчана. Націсніце, каб праверыць.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Захавана як %1$s</string>
     <string name="notif_txn_learned_text">Цяпер плацяжы сюды будуць сартавацца аўтаматычна.</string>
@@ -325,7 +328,15 @@
         <item quantity="many">%d без катэгорыі</item>
         <item quantity="other">%d без катэгорыі</item>
     </plurals>
+    <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
+    <plurals name="notif_daily_sort_why">
+        <item quantity="one">разбярыце яе, каб улічваліся толькі сапраўдныя выдаткі</item>
+        <item quantity="few">разбярыце іх, каб улічваліся толькі сапраўдныя выдаткі</item>
+        <item quantity="many">разбярыце іх, каб улічваліся толькі сапраўдныя выдаткі</item>
+        <item quantity="other">разбярыце іх, каб улічваліся толькі сапраўдныя выдаткі</item>
+    </plurals>
     <string name="notif_daily_action_sort">Разабраць</string>
+    <string name="notif_daily_action_sort_all">Разабраць</string>
     <string name="notif_daily_action_cash">+ Наяўныя</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
@@ -341,6 +352,10 @@
     <string name="pro_home_card_body">Pro дае неабмежаваныя правілы, мэты, экспарт і імпарт выпісак.</string>
     <string name="pro_home_card_action">Пра Pro</string>
     <string name="pro_home_card_dismiss">Закрыць</string>
+    <string name="home_payday_card_title">Пачынаць бюджэт у дзень зарплаты?</string>
+    <string name="home_payday_card_body">Здаецца, зарплата прыходзіць %1$d-га чысла. Пачынаць кожны бюджэтны месяц з гэтага дня? Гэта можна змяніць у Наладах.</string>
+    <string name="home_payday_card_action">Пачынаць %1$d-га</string>
+    <string name="home_payday_card_dismiss">Закрыць</string>
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Прагноз: %1$s да %2$s</string>
     <string name="forecast_over_usual">На %1$s больш, чым звычайна</string>

@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.data.repository
 
-import androidx.room.DatabaseConfiguration
-import androidx.room.InvalidationTracker
-import androidx.sqlite.db.SupportSQLiteOpenHelper
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -55,10 +52,7 @@ class AccountBalanceRepositoryAccountTypeTest {
         override fun webhookCursorDao(): WebhookCursorDao = error("unused")
         override fun goalDao(): com.pennywiseai.tracker.data.database.dao.GoalDao = error("unused")
         override fun webhookDeliveredTransactionDao(): WebhookDeliveredTransactionDao = error("unused")
-        override fun clearAllTables() = Unit
-        @Suppress("DEPRECATION")
-        override fun createOpenHelper(config: DatabaseConfiguration): SupportSQLiteOpenHelper = error("unused")
-        override fun createInvalidationTracker(): InvalidationTracker = error("unused")
+        override suspend fun clearAllTables() = Unit
     }
 
     @Before
@@ -116,7 +110,8 @@ class AccountBalanceRepositoryAccountTypeTest {
         repository = AccountBalanceRepository(
             accountBalanceDao = accountBalanceDao,
             transactionDao = transactionDao,
-            database = TestDb()
+            database = TestDb(),
+            userPreferencesRepository = io.mockk.mockk(relaxed = true)
         )
     }
 

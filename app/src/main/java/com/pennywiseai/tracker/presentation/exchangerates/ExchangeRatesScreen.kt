@@ -25,7 +25,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
@@ -35,7 +35,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExchangeRatesScreen(
     viewModel: ExchangeRatesViewModel = hiltViewModel(),
@@ -59,14 +59,15 @@ fun ExchangeRatesScreen(
                 title = stringResource(R.string.exchange_rates_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
                     }
                 },
                 actionContent = {
                     IconButton(
                         onClick = { viewModel.refreshRates() },
-                        enabled = !uiState.isRefreshing
+                        enabled = !uiState.isRefreshing,
+                        shapes = IconButtonDefaults.shapes()
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
                     }
@@ -83,7 +84,7 @@ fun ExchangeRatesScreen(
                         .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
             }
 
@@ -143,7 +144,7 @@ fun ExchangeRatesScreen(
                     // Refreshing indicator
                     if (uiState.isRefreshing) {
                         item {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
                             Spacer(modifier = Modifier.height(Spacing.sm))
                         }
                     }
@@ -173,7 +174,8 @@ fun ExchangeRatesScreen(
                             Spacer(modifier = Modifier.height(Spacing.md))
                             OutlinedButton(
                                 onClick = { viewModel.clearAllCustomRates() },
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth(),
+                                shapes = ButtonDefaults.shapes()
                             ) {
                                 Text(stringResource(R.string.exchange_rates_reset_all))
                             }
@@ -312,7 +314,8 @@ private fun EditRateDialog(
                 if (rate.isCustomRate) {
                     TextButton(
                         onClick = onResetToAuto,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.exchange_rates_reset))
                     }
@@ -327,13 +330,14 @@ private fun EditRateDialog(
                         onSetCustomRate(newRate)
                     }
                 },
-                enabled = !isError && rateText.isNotBlank()
+                enabled = !isError && rateText.isNotBlank(),
+                shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.exchange_rates_set_custom))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_cancel))
             }
         }

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Naučit</string>
+    <string name="teach_title">Naučte PennyWise tuto zprávu</string>
+    <string name="teach_field_amount">Částka</string>
+    <string name="teach_field_merchant">Obchodník</string>
+    <string name="teach_field_account">Účet</string>
+    <string name="teach_hint_amount">Klepněte na částku ve zprávě.</string>
+    <string name="teach_hint_merchant">Klepejte na jméno obchodníka slovo po slovu. Bez označení bude příště odpovídat jen přesně toto jméno.</string>
+    <string name="teach_hint_account">Klepněte na číslice účtu nebo karty. Volitelné.</string>
+    <string name="teach_amount_placeholder">Zatím žádná částka</string>
+    <string name="teach_amount_source">Načteno z: „%1$s“</string>
+    <string name="teach_direction_out">Výdaj</string>
+    <string name="teach_direction_in">Příjem</string>
+    <string name="teach_currency">Měna</string>
+    <string name="teach_format_question">Která částka to je?</string>
+    <string name="teach_merchant_label">Obchodník (volitelné)</string>
+    <string name="teach_account_value">Účet ••%1$s</string>
+    <string name="teach_account_none">Žádný účet</string>
+    <string name="teach_note">U podobných zpráv od tohoto odesílatele se vás aplikace zeptá, než je přidá.</string>
+    <string name="teach_save_expense">Uložit výdaj %1$s</string>
+    <string name="teach_save_income">Uložit příjem %1$s</string>
+    <string name="teach_need_amount">Nejprve klepněte na částku</string>
+    <string name="teach_need_currency">Vyberte měnu</string>
+    <string name="teach_need_format">Vyberte, která částka to je</string>
+    <string name="teach_need_direction">Vyberte výdaj nebo příjem</string>
+    <string name="teach_cannot_learn">PennyWise tuto zprávu nedokáže spolehlivě znovu přečíst. Zkuste klepnout na jiná slova nebo přidejte víc z názvu obchodníka.</string>
+    <string name="teach_saved">Přidáno. U podobných zpráv se aplikace zeptá, než je přidá.</string>
+    <string name="teach_added">Přidáno.</string>
+    <string name="teach_settled">Nepřidáno: už tam je, nebo ji vaše nastavení přeskakuje.</string>
+    <string name="teach_booking_failed">Přidání se nezdařilo. Zpráva zůstává v Nerozpoznané SMS.</string>
+    <string name="teach_format_changed">Nový formát od tohoto odesílatele. Naučte ho také.</string>
+    <string name="teach_find_message">Najít zprávu</string>
+    <string name="teach_picker_title">Poslední zprávy o penězích</string>
+    <string name="teach_picker_body">Z vaší schránky: zprávy, které vypadají jako o penězích, ale nejsou ve vašich transakcích. Nic neopouští váš telefon.</string>
+    <string name="teach_picker_empty">Teď není co učit.</string>
+    <string name="teach_taught_count">Naučené (%1$d)</string>
+    <string name="teach_taught_title">Naučené zprávy</string>
+    <string name="teach_taught_body">PennyWise tyto vzory čte a před přidáním se vás zeptá. Odebráním vzoru zůstanou transakce, které přidal.</string>
+    <string name="teach_delete_template">Odebrat</string>
+    <string name="notif_taught_text">Od %1$s. Přidejte ji, nebo klepnutím zkontrolujte.</string>
+</resources>

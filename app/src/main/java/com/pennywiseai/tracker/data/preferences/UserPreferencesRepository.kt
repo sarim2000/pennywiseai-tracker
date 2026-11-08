@@ -10,11 +10,16 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
+import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
+import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +28,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.random.Random
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "user_preferences",
@@ -74,6 +80,14 @@ open class UserPreferencesRepository @Inject constructor(
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
+        val BACKGROUND_OEM_STEP_CONFIRMED_ON = stringPreferencesKey("background_oem_step_confirmed_on")
+        val BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
+        val WEEKLY_SUMMARY_ENABLED = booleanPreferencesKey("weekly_summary_enabled")
+        val WEEKLY_SUMMARY_LAST_WEEK = stringPreferencesKey("weekly_summary_last_week")
+        val REVIEW_PROMPT_HANDLED_YEAR = stringPreferencesKey("review_prompt_handled_year")
+        val CONSCIENCE_ENABLED = booleanPreferencesKey("conscience_enabled")
+        val CONSCIENCE_LOG = stringSetPreferencesKey("conscience_log")
+        val CONSCIENCE_RETIRED_LINES = stringSetPreferencesKey("conscience_retired_lines")
         val SYSTEM_PROMPT = stringPreferencesKey("system_prompt")
         val HAS_SHOWN_SCAN_TUTORIAL = booleanPreferencesKey("has_shown_scan_tutorial")
         val ACTIVE_DOWNLOAD_ID = longPreferencesKey("active_download_id")
@@ -94,6 +108,18 @@ open class UserPreferencesRepository @Inject constructor(
         val SHARE_PROMPT_HANDLED_MONTH = stringPreferencesKey("share_prompt_handled_month")
         // Device-local on purpose: kept out of the backup's PreferencesSnapshot (#945).
         val PRO_HOME_CARD_HANDLED = booleanPreferencesKey("pro_home_card_handled")
+        val PAYDAY_SUGGESTION_HANDLED = booleanPreferencesKey("payday_suggestion_handled")
+        // Recurring-bill suggestions the user marked "Not recurring", as
+        // RecurringSuggestions.keyFor keys. Backed up (AppPreferences).
+        val DISMISSED_RECURRING_SUGGESTIONS = stringSetPreferencesKey("dismissed_recurring_suggestions")
+        // The Home "possible recurring bills" card: the suggestions it showed when
+        // last dismissed, and when. It comes back only for a new suggestion, and
+        // not within 30 days. Device-local.
+        val RECURRING_HOME_CARD_SEEN = stringSetPreferencesKey("recurring_home_card_seen")
+        val RECURRING_HOME_CARD_DISMISSED_AT = longPreferencesKey("recurring_home_card_dismissed_at")
+        // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
+        // offered, to cap how often it's offered. Device-local.
+        val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -147,6 +173,8 @@ open class UserPreferencesRepository @Inject constructor(
 
         // Balance Visibility
         val BALANCE_HIDDEN = booleanPreferencesKey("balance_hidden")
+        val SHAKE_TO_HIDE_AMOUNTS = booleanPreferencesKey("shake_to_hide_amounts")
+        val SHAKE_TO_HIDE_HINT_SHOWN = booleanPreferencesKey("shake_to_hide_hint_shown")
 
         // Selected Profile
         val SELECTED_PROFILE_ID = longPreferencesKey("selected_profile_id")
@@ -368,7 +396,124 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] = enabled
         }
     }
+
+    /**
+     * The device the user said the manufacturer step is done on: the setting lives
+     * on that phone, so a phone transfer must not carry the answer over. Not in backups.
+     */
+    val backgroundOemStepConfirmedOn: Flow<String?> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] }
+
+    suspend fun setBackgroundOemStepConfirmedOn(device: String?) {
+        context.dataStore.edit { preferences ->
+            if (device != null) {
+                preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] = device
+            } else {
+                preferences.remove(PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON)
+            }
+        }
+    }
+
+    /** Budget notifications (MoneyAlertWorker); an opt-in from Settings → Notifications. */
+    val budgetAlertsEnabled: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] ?: false }
+
+    suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Atomically records that this budget's [tier] alert is due for [window].
+     * True at most once, across concurrent checks: see [MoneyAlertRules.nextBudgetLatch].
+     * Stays on this device, outside backups: a restore can only cost one more true alert.
+     */
+    // ponytail: a deleted budget leaves its short key behind; sweep if budgets ever churn.
+    suspend fun claimBudgetAlert(budgetId: Long, window: String, tier: BudgetAlertTier): Boolean {
+        val key = stringPreferencesKey("budget_alert_$budgetId")
+        var claimed = false
+        context.dataStore.edit { preferences ->
+            MoneyAlertRules.nextBudgetLatch(preferences[key], window, tier)?.let {
+                preferences[key] = it
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** True once per dip of this account under its threshold; [isLow] false rearms it. */
+    suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
+        val key = lowBalanceToldKey(bankName, accountLast4)
+        var claimed = false
+        context.dataStore.edit { preferences ->
+            if (!isLow) {
+                preferences.remove(key)
+            } else if (preferences[key] != true) {
+                preferences[key] = true
+                claimed = true
+            }
+        }
+        return claimed
+    }
+
+    /** A rename is the same account in the same dip, so what it was told goes with it. */
+    suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String) {
+        val oldKey = lowBalanceToldKey(oldBankName, accountLast4)
+        context.dataStore.edit { preferences ->
+            if (preferences[oldKey] == true) {
+                preferences.remove(oldKey)
+                preferences[lowBalanceToldKey(newBankName, accountLast4)] = true
+            }
+        }
+    }
+
+    private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
+        booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
     
+    val conscienceEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
+
+    suspend fun setConscienceEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
+    }
+
+    /** "Not this one": the line never comes back. */
+    suspend fun retireConscienceLine(lineKey: String) {
+        context.dataStore.edit {
+            it[PreferencesKeys.CONSCIENCE_RETIRED_LINES] = it[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty() + lineKey
+        }
+    }
+
+    /**
+     * Spends a slot and picks the comment in one edit: the SMS receiver and the
+     * notification listener can race, and only one may get the slot. The switch is
+     * re-read here, since it can change while the history is read. Null when the
+     * cadence says no or no candidate has a line left.
+     */
+    suspend fun tryClaimConscience(
+        candidates: List<ConscienceCandidate>,
+        contentLocale: String,
+        nowMillis: Long,
+        todayEpochDay: Long,
+        random: Random,
+    ): ConscienceChoice? {
+        var claimed: ConscienceChoice? = null
+        context.dataStore.edit { prefs ->
+            claimed = null
+            if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
+            val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
+            val choice = ConscienceCadence.choose(
+                candidates, log, prefs[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty(),
+                contentLocale, nowMillis, todayEpochDay, random
+            ) ?: return@edit
+            prefs[PreferencesKeys.CONSCIENCE_LOG] =
+                ConscienceCadence.encode(ConscienceCadence.record(log, choice, nowMillis, todayEpochDay))
+            claimed = choice
+        }
+        return claimed
+    }
+
     suspend fun updateSystemPrompt(prompt: String) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT] = prompt
@@ -516,6 +661,31 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    /** The year ("2026") whose January review banner was opened or dismissed. */
+    val reviewPromptHandledYear: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] }
+
+    /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
+    suspend fun markReviewPromptHandledYear(year: String) {
+        context.dataStore.edit { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] = year }
+    }
+
+    /** The opt-in weekly recap (WeeklySummaryWorker). */
+    val weeklySummaryEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] ?: false }
+
+    suspend fun setWeeklySummaryEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] = enabled }
+    }
+
+    /** The first day of the last week the weekly recap has dealt with. */
+    val weeklySummaryLastWeek: Flow<String?> = context.dataStore.data
+        .map { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] }
+
+    suspend fun setWeeklySummaryLastWeek(weekStart: String) {
+        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] = weekStart }
+    }
+
     /** Whether the one-time Home Pro card (#945) has been tapped or dismissed. */
     val proHomeCardHandled: Flow<Boolean> = context.dataStore.data
         .map { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] ?: false }
@@ -523,6 +693,81 @@ open class UserPreferencesRepository @Inject constructor(
     /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
     suspend fun markProHomeCardHandled() {
         context.dataStore.edit { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] = true }
+    }
+
+    /** Whether the one-time "start budgets on payday?" Home card was accepted or dismissed. */
+    val paydaySuggestionHandled: Flow<Boolean> = context.dataStore.data
+        .map { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] ?: false }
+
+    /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
+    suspend fun markPaydaySuggestionHandled() {
+        context.dataStore.edit { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] = true }
+    }
+
+    /** Recurring-bill suggestions marked "Not recurring"; they never come back. */
+    val dismissedRecurringSuggestions: Flow<Set<String>> = context.dataStore.data
+        .map { it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet() }
+
+    suspend fun addDismissedRecurringSuggestions(keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        context.dataStore.edit {
+            it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
+                (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) + keys
+        }
+    }
+
+    suspend fun removeDismissedRecurringSuggestion(key: String) {
+        context.dataStore.edit {
+            it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
+                (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) - key
+        }
+    }
+
+    /** Suggestion keys the Home card showed when it was last dismissed. */
+    val recurringHomeCardSeen: Flow<Set<String>> = context.dataStore.data
+        .map { it[PreferencesKeys.RECURRING_HOME_CARD_SEEN] ?: emptySet() }
+
+    /** When the Home card was last dismissed (epoch millis), or null. */
+    val recurringHomeCardDismissedAt: Flow<Long?> = context.dataStore.data
+        .map { it[PreferencesKeys.RECURRING_HOME_CARD_DISMISSED_AT] }
+
+    suspend fun dismissRecurringHomeCard(shownKeys: Collection<String>, nowMillis: Long) {
+        context.dataStore.edit {
+            it[PreferencesKeys.RECURRING_HOME_CARD_SEEN] =
+                (it[PreferencesKeys.RECURRING_HOME_CARD_SEEN] ?: emptySet()) + shownKeys
+            it[PreferencesKeys.RECURRING_HOME_CARD_DISMISSED_AT] = nowMillis
+        }
+    }
+
+    /**
+     * Records a "Track as … bill" offer for [key] on [today] if the caps allow
+     * it: one per merchant per [perMerchantDays], one a day overall. Returns
+     * whether the offer may be shown. Entries older than [perMerchantDays] are
+     * dropped as it goes.
+     */
+    suspend fun tryRecordRecurringOffer(key: String, today: LocalDate, perMerchantDays: Long): Boolean {
+        var allowed = false
+        context.dataStore.edit { prefs ->
+            val day = today.toEpochDay()
+            val log = (prefs[PreferencesKeys.RECURRING_OFFER_LOG] ?: emptySet())
+                .mapNotNull { entry ->
+                    val at = entry.lastIndexOf('|')
+                    entry.substring(at + 1).toLongOrNull()?.let { entry.substring(0, at) to it }
+                }
+                .filter { (_, offeredOn) -> day - offeredOn < perMerchantDays }
+            allowed = log.none { (k, _) -> k == key } && log.none { (_, offeredOn) -> offeredOn == day }
+            val kept = log.map { (k, offeredOn) -> "$k|$offeredOn" }.toSet()
+            prefs[PreferencesKeys.RECURRING_OFFER_LOG] = if (allowed) kept + "$key|$day" else kept
+        }
+        return allowed
+    }
+
+    /** Undoes [tryRecordRecurringOffer] for an offer that was never shown. */
+    suspend fun releaseRecurringOffer(key: String, today: LocalDate) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferencesKeys.RECURRING_OFFER_LOG] =
+                (prefs[PreferencesKeys.RECURRING_OFFER_LOG] ?: emptySet()) - "$key|${today.toEpochDay()}"
+        }
     }
 
     suspend fun setShareCardConfig(config: ShareCardConfig) {
@@ -919,12 +1164,56 @@ open class UserPreferencesRepository @Inject constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true // hidden until the user reveals it
         }
 
+    /**
+     * Whether every screen masks amounts, not just Home. Only a saved choice counts:
+     * until the user taps the eye, Home stays hidden ([isBalanceHidden]) and the rest
+     * of the app shows its numbers, so a fresh install doesn't look empty.
+     */
+    val isAmountHiddenEverywhere: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false }
+
     suspend fun setBalanceHidden(hidden: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
         WidgetRefresher.refreshTransactionWidgets(context)
+    }
+
+    /**
+     * Flips the saved hide choice in one read-modify-write, so the eye and a shake
+     * can't race. Returns the new value. [hiddenWhenUnset] is what the caller sees
+     * before any choice: Home's eye sees hidden ([isBalanceHidden]), a shake sees
+     * the rest of the app shown ([isAmountHiddenEverywhere]), so it hides.
+     */
+    suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean = true): Boolean {
+        var hidden = true
+        context.dataStore.edit { preferences ->
+            hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
+            preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
+        }
+        WidgetRefresher.refreshTransactionWidgets(context)
+        return hidden
+    }
+
+    /** Shake the phone to hide / show amounts. Off by default: a jolt in a pocket shouldn't reveal them. */
+    val shakeToHideAmounts: Flow<Boolean> = context.dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SHAKE_TO_HIDE_AMOUNTS] ?: false }
+
+    suspend fun setShakeToHideAmounts(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SHAKE_TO_HIDE_AMOUNTS] = enabled
+        }
+    }
+
+    /** True only the first time it's called: the first shake explains the gesture. */
+    suspend fun claimShakeToHideHint(): Boolean {
+        var first = false
+        context.dataStore.edit { preferences ->
+            first = preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] != true
+            preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] = true
+        }
+        return first
     }
 
     // Replace UPI VPAs with matching contact names at display time.

@@ -36,7 +36,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,10 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.expense_dark
-import com.pennywiseai.tracker.ui.theme.expense_light
-import com.pennywiseai.tracker.ui.theme.income_dark
-import com.pennywiseai.tracker.ui.theme.income_light
+import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -92,7 +90,7 @@ fun MarkAsPaidSheet(
     onConfirm: (LocalDate) -> Unit,
     onLinkExisting: (TransactionEntity) -> Unit = {},
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     val scope = rememberCoroutineScope()
 
     val today = remember { LocalDate.now() }
@@ -101,9 +99,9 @@ fun MarkAsPaidSheet(
 
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) income_dark else income_light
+        MaterialTheme.colorScheme.income
     } else {
-        if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+        MaterialTheme.colorScheme.onSurface
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -319,10 +317,10 @@ fun MarkAsPaidSheet(
                             .atZone(ZoneOffset.UTC).toLocalDate()
                     }
                     showDatePicker = false
-                }) { Text(stringResource(R.string.subscriptions_action_ok)) }
+                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_ok)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.subscriptions_action_cancel)) }
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_action_cancel)) }
             },
         ) {
             DatePicker(state = datePickerState)
@@ -331,8 +329,8 @@ fun MarkAsPaidSheet(
 }
 
 /**
- * One suggested-payment card. Compact row: amount on the left (in expense
- * tint to mirror the transactions list), merchant + relative date on the
+ * One suggested-payment card. Compact row: amount on the left (in ink, like
+ * a spend in the transactions list), merchant + relative date on the
  * right. Tap = link this transaction as the cycle's payment.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -341,7 +339,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = if (androidx.compose.foundation.isSystemInDarkTheme()) expense_dark else expense_light
+    val amountColor = MaterialTheme.colorScheme.onSurface
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),
@@ -427,7 +425,7 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
     val content = if (isAccent) {
         MaterialTheme.colorScheme.onSecondaryContainer
     } else {
-        MaterialTheme.colorScheme.primary
+        MaterialTheme.colorScheme.onSurfaceVariant
     }
     androidx.compose.material3.Surface(
         color = container,
@@ -464,6 +462,7 @@ private fun DateChips(
     ) {
         FilterChip(
             selected = isToday,
+            shapes = FilterChipDefaults.shapes(),
             onClick = { onSelect(today) },
             label = { Text(stringResource(R.string.mark_paid_today)) },
             colors = FilterChipDefaults.filterChipColors(
@@ -473,6 +472,7 @@ private fun DateChips(
         )
         FilterChip(
             selected = isYesterday,
+            shapes = FilterChipDefaults.shapes(),
             onClick = { onSelect(yesterday) },
             label = { Text(stringResource(R.string.mark_paid_yesterday)) },
             colors = FilterChipDefaults.filterChipColors(
@@ -482,6 +482,7 @@ private fun DateChips(
         )
         FilterChip(
             selected = isCustom,
+            shapes = FilterChipDefaults.shapes(),
             onClick = onPickDate,
             label = {
                 Text(

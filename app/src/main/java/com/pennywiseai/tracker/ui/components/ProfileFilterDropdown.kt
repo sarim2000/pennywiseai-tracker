@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.annotation.StringRes
+import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
@@ -9,9 +10,9 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -30,32 +31,34 @@ fun ProfileFilterDropdown(
         onDismissRequest = onDismiss
     ) {
         // "All" option
-        DropdownMenuItem(
+        SelectableDropdownMenuItem(
+            selected = selectedProfileId == null,
             text = { Text(stringResource(R.string.profile_filter_all_accounts)) },
             onClick = {
                 onProfileSelected(null)
                 onDismiss()
             },
+            shapes = MenuDefaults.itemShape(0, profiles.size + 1),
+            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
             leadingIcon = {
                 Icon(imageVector = Icons.Outlined.AccountBalance, contentDescription = null)
             },
-            trailingIcon = if (selectedProfileId == null) {
-                { Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-            } else null
+            selectedLeadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) }
         )
-        profiles.forEach { profile ->
-            DropdownMenuItem(
+        profiles.forEachIndexed { index, profile ->
+            SelectableDropdownMenuItem(
+                selected = selectedProfileId == profile.id,
                 text = { Text(profile.displayName()) },
                 onClick = {
                     onProfileSelected(profile.id)
                     onDismiss()
                 },
+                shapes = MenuDefaults.itemShape(index + 1, profiles.size + 1),
+                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
                 leadingIcon = {
                     Icon(imageVector = profileIcon(profile), contentDescription = null)
                 },
-                trailingIcon = if (selectedProfileId == profile.id) {
-                    { Icon(imageVector = Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) }
-                } else null
+                selectedLeadingIcon = { Icon(imageVector = Icons.Filled.Check, contentDescription = null) }
             )
         }
     }

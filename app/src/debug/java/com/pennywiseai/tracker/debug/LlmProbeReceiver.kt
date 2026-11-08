@@ -17,13 +17,18 @@ import com.google.ai.edge.litertlm.Tool
 import com.google.ai.edge.litertlm.ToolParam
 import com.google.ai.edge.litertlm.ToolSet
 import com.google.ai.edge.litertlm.tool
+import com.google.ai.edge.litertlm.ExperimentalApi
 import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.data.service.LlmServiceImpl
+import com.pennywiseai.tracker.data.service.QwenChatTemplate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
 
 /**
@@ -31,14 +36,22 @@ import java.io.File
  * android.permission.DUMP, which adb shell holds and third-party apps can't:
  *   adb shell am broadcast -n <pkg>/com.pennywiseai.tracker.debug.LlmProbeReceiver \
  *       -a LLM_PROBE --es system "<system prompt>" --es text "<user text>" \
- *       [--ef temp 0.1] [--es model /abs/path.litertlm] [--es mode text|tools|json] [--es schema '<json schema>']
+ *       [--ef temp 0.1] [--es model /abs/path.litertlm] [--es mode text|tools|json|chat] [--es schema '<json schema>']
+ *       [--esa history "user turn","model turn",...] [--ez builtinTemplate true]
+ *       [--es backend gpu] [--ei seed 1] [--ez freshEngine true]
  * mode=tools registers PennyTools (addTransaction / spendingByCategory) with
  * automaticToolCalling=false and records the model's tool calls; mode=json uses
- * constrained decoding (ResponseFormat.json) with the given schema.
+ * constrained decoding (ResponseFormat.json) with the given schema. mode=chat
+ * builds the Chat screen's own conversation (LlmServiceImpl's config and tools,
+ * the alternating user/model `history` replayed), records the rendered preface
+ * and streams the reply the way the app does. Every mode uses the app's Qwen
+ * chat template; builtinTemplate=true uses the model file's own instead.
  * Logs "LlmProbe: RESULT …" with timings only. The reply is written to the
  * app's private cache (llm_probe_reply.txt — read it with `run-as <pkg> cat
  * cache/llm_probe_reply.txt`), never to logcat, so prompt contents stay off
  * the shared log. One probe at a time; a second broadcast waits for the first.
+ * mode=chat also writes its tool calls as JSON to cache/llm_probe_calls.json, and takes the
+ * chat's sampling with the given seed. scripts/chat-eval/phone.py drives this over a case file.
  */
 /** Tools the probe offers the model. Nothing here touches app data. */
 @Suppress("unused")
@@ -57,12 +70,22 @@ class PennyTools : ToolSet {
     fun spendingByCategory(@ToolParam(description = "Category name") category: String): String = "1234 INR"
 }
 
+/** LiteRT's numbers are a Number type org.json would drop. */
+private fun json(value: Any?): Any = when (value) {
+    is Map<*, *> -> JSONObject().also { o -> value.forEach { (k, v) -> o.put(k.toString(), json(v)) } }
+    is List<*> -> JSONArray().also { a -> value.forEach { a.put(json(it)) } }
+    is Number -> value.toDouble()
+    null -> JSONObject.NULL
+    else -> value
+}
+
 class LlmProbeReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "LlmProbe"
         private val lock = Mutex()
         private var engine: Engine? = null
         private var enginePath: String? = null
+        private var engineBackend: String? = null
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -71,20 +94,27 @@ class LlmProbeReceiver : BroadcastReceiver() {
         val temp = intent.getFloatExtra("temp", 0.1f).toDouble()
         val mode = intent.getStringExtra("mode") ?: "text"
         val schema = intent.getStringExtra("schema")
+        val history = intent.getStringArrayExtra("history").orEmpty().mapIndexed { i, turn -> turn to (i % 2 == 0) }
+        val template = if (intent.getBooleanExtra("builtinTemplate", false)) null else QwenChatTemplate.TEMPLATE
         // Optional: absolute path of another .litertlm to probe (e.g. a smaller model).
         val modelPath = intent.getStringExtra("model")
             ?: File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME).absolutePath
+        val backendName = intent.getStringExtra("backend") ?: "cpu"
+        val seed = if (intent.hasExtra("seed")) intent.getIntExtra("seed", 0) else null
+        val freshEngine = intent.getBooleanExtra("freshEngine", false)
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 lock.withLock {
                     // Clear the previous reply first so a failure can't be read as this probe's result.
                     File(context.cacheDir, "llm_probe_reply.txt").delete()
+                    File(context.cacheDir, "llm_probe_calls.json").delete()
                     val t0 = System.currentTimeMillis()
-                    val eng = engine?.takeIf { enginePath == modelPath } ?: run {
+                    val eng = engine?.takeIf { enginePath == modelPath && engineBackend == backendName && !freshEngine } ?: run {
                         engine?.close(); engine = null; enginePath = null
-                        Engine(EngineConfig(modelPath = modelPath, backend = Backend.CPU(), cacheDir = context.cacheDir.path))
-                            .also { it.initialize(); engine = it; enginePath = modelPath }
+                        val backend = if (backendName == "gpu") Backend.GPU() else Backend.CPU()
+                        Engine(EngineConfig(modelPath = modelPath, backend = backend, cacheDir = context.cacheDir.path))
+                            .also { it.initialize(); engine = it; enginePath = modelPath; engineBackend = backendName }
                     }
                     val tLoad = System.currentTimeMillis()
                     val sampler = SamplerConfig(topK = 1, topP = 1.0, temperature = temp)
@@ -94,7 +124,8 @@ class LlmProbeReceiver : BroadcastReceiver() {
                                 systemInstruction = Contents.of(system),
                                 tools = listOf(tool(PennyTools())),
                                 automaticToolCalling = false,
-                                samplerConfig = sampler
+                                samplerConfig = sampler,
+                                chatTemplate = template
                             )
                         ).use { conv ->
                             // Two turns in ONE conversation, to see whether the tool-schema
@@ -113,14 +144,34 @@ class LlmProbeReceiver : BroadcastReceiver() {
                             ConversationConfig(
                                 systemInstruction = Contents.of(system),
                                 samplerConfig = sampler,
-                                enableResponseFormat = true
+                                enableResponseFormat = true,
+                                chatTemplate = template
                             )
                         ).use { conv ->
                             val msg = conv.sendMessage(text, responseFormat = ResponseFormat.json(schema ?: "{\"type\":\"object\"}"))
                             msg.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
                         }
+                        "chat" -> eng.createConversation(
+                            LlmServiceImpl.chatConversationConfig(system, history, withTools = true)
+                                .let { if (template == null) it.copy(chatTemplate = null) else it }
+                                .let { if (seed == null) it else it.copy(samplerConfig = it.samplerConfig?.copy(seed = seed)) }
+                        ).use { conv ->
+                            @OptIn(ExperimentalApi::class)
+                            val preface = conv.renderPrefaceIntoString()
+                            val calls = mutableListOf<String>()
+                            val jsonCalls = JSONArray()
+                            val txt = conv.sendMessageAsync(text).toList().joinToString("") { m ->
+                                m.toolCalls.forEach {
+                                    calls += "${it.name}(${it.arguments})"
+                                    jsonCalls.put(JSONObject().put("name", it.name).put("args", json(it.arguments)))
+                                }
+                                m.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
+                            }
+                            File(context.cacheDir, "llm_probe_calls.json").writeText(jsonCalls.toString())
+                            "PREFACE=\n$preface\nTOOL_CALLS=[${calls.joinToString("; ")}] TEXT=$txt"
+                        }
                         else -> eng.createConversation(
-                            ConversationConfig(systemInstruction = Contents.of(system), samplerConfig = sampler)
+                            ConversationConfig(systemInstruction = Contents.of(system), samplerConfig = sampler, chatTemplate = template)
                         ).use { conv ->
                             conv.sendMessageAsync(text).toList()
                                 .joinToString("") { m -> m.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text } }
@@ -134,6 +185,7 @@ class LlmProbeReceiver : BroadcastReceiver() {
                 // Never let a failed probe be read as the previous reply.
                 File(context.cacheDir, "llm_probe_reply.txt").delete()
                 Log.e(TAG, "FAILED: ${e.javaClass.simpleName}: ${e.message}")
+                File(context.cacheDir, "llm_probe_error.txt").writeText("${e.javaClass.simpleName}: ${e.message}")
             } finally {
                 pending.finish()
             }

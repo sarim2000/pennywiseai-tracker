@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.utils.AppDates
 import android.content.Context
 import android.content.res.Resources
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -26,13 +25,15 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,7 +56,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -93,7 +94,7 @@ fun GoalRing(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val animated by animateFloatAsState(progress.fraction(), tween(Dimensions.Animation.long), label = "goalRing")
+    val animated by animateFloatAsState(progress.fraction(), MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalRing")
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val color = progress.color()
     val description = stringResource(R.string.goals_ring_description, progress.percent())
@@ -313,7 +314,7 @@ fun GoalsSection(
             topSpacing = Spacing.none,
             action = if (active.isNotEmpty()) {
                 {
-                    TextButton(onClick = create) {
+                    TextButton(onClick = create, shapes = ButtonDefaults.shapes()) {
                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
                         Spacer(Modifier.width(Spacing.xs))
                         Text(stringResource(R.string.goals_new))
@@ -347,7 +348,7 @@ fun GoalsSection(
     if (showArchived && archived.isNotEmpty()) {
         ModalBottomSheet(
             onDismissRequest = { showArchived = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
         ) {
             // Scrolls, so a long archive stays reachable.
             Column(
@@ -373,7 +374,7 @@ fun GoalsSection(
                                     CurrencyFormatter.formatCurrency(goal.goal.targetAmount, goal.goal.currency),
                                 ),
                             )
-                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }) {
+                            TextButton(onClick = { viewModel.unarchive(goal.goal.id) }, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.goals_unarchive))
                             }
                         }
@@ -408,7 +409,7 @@ private fun GoalsEmptyCard(onCreate: () -> Unit) {
             }
         }
         Spacer(Modifier.size(Spacing.md))
-        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
+        Button(onClick = onCreate, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
             Text(stringResource(R.string.goals_empty_action))
         }
     }

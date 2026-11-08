@@ -93,6 +93,12 @@ class ICICIBankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
+                name = "Prepaid card OTP is not a transaction",
+                message = "123456 is One-Time Password for INR 478.00 transaction towards SAMPLE MERCHANT using ICICI Bank INR Prepaid Card XX1234. OTPs are SECRET. DO NOT disclose",
+                sender = "AX-ICICIT-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "Credit card bill payment",
                 message = "Payment of Rs 26,266.00 has been received on your ICICI Bank Credit Card XX9006 through Bharat Bill Payment System on 06-DEC-25.",
                 sender = "AD-ICICIT-S",

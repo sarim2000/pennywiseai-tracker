@@ -63,8 +63,7 @@ fun BudgetCard(
     val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
 
     // One animated fraction drives both the bar and the % pill, so the pill
-    // never reads 80% while the bar is still at 40%. Unclamped: past 100% the
-    // bar stays full while the pill keeps counting to the real figure.
+    // never reads 80% while the bar is still at 40%.
     var targetFraction by remember { mutableFloatStateOf(0f) }
     val usedFraction by animateFloatAsState(
         targetValue = targetFraction,
@@ -73,11 +72,13 @@ fun BudgetCard(
     )
 
     LaunchedEffect(pctUsed) {
-        targetFraction = pctUsed / 100f
+        targetFraction = (pctUsed / 100f).coerceAtMost(1f)
     }
-    val barFraction = usedFraction.coerceIn(0f, 1f)
-    // Settled, read pctUsed itself: fraction * 100 can land on 79.999 → "79%".
-    val pillPercent = (if (usedFraction == pctUsed / 100f) pctUsed else usedFraction * 100f).toInt()
+    val barFraction = usedFraction.coerceAtLeast(0f)
+    // Settled — or once the bar is full, where counting on to e.g. 244% would just
+    // tick next to "over budget" — read pctUsed itself (fraction * 100 can also
+    // land on 79.999 → "79%").
+    val pillPercent = (if (usedFraction == pctUsed / 100f || usedFraction >= 1f) pctUsed else usedFraction * 100f).toInt()
 
     val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val statusColor: Color = when {

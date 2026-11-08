@@ -2,14 +2,8 @@ package com.pennywiseai.tracker.ui.components
 
 import android.os.Build
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -170,8 +164,8 @@ private fun LargerTopAppBar(
         navigationIcon = {
             BlurredAnimatedVisibility(
                 visible = hasBackButton && !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+                enter = pwFadeIn(),
+                exit = pwFadeOut()
             ) {
                 navigationContent()
             }
@@ -179,8 +173,8 @@ private fun LargerTopAppBar(
         actions = {
             BlurredAnimatedVisibility(
                 visible = !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+                enter = pwFadeIn(),
+                exit = pwFadeOut()
             ) {
                 // Lay multiple actions (e.g. Edit + overflow) out horizontally. The
                 // visibility wrapper renders into a Box, not a RowScope, so without
@@ -234,8 +228,8 @@ private fun TitleForLargeTopAppBar(
     ) {
         BlurredAnimatedVisibility(
             visible = !isHomeScreen,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut()
+            enter = pwFadeIn(),
+            exit = pwFadeOut()
         ) {
             Text(
                 text = title,
@@ -270,8 +264,8 @@ private fun RegularTopAppBar(
 ) {
     BlurredAnimatedVisibility(
         visible = collapsedFraction > 0.01f,
-        enter = fadeIn(),
-        exit = fadeOut()
+        enter = pwFadeIn(),
+        exit = pwFadeOut()
     ) {
         val barColors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
@@ -280,8 +274,8 @@ private fun RegularTopAppBar(
         val navigationIcon: @Composable () -> Unit = {
             BlurredAnimatedVisibility(
                 visible = hasBackButton,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+                enter = pwFadeIn(),
+                exit = pwFadeOut()
             ) {
                 navigationContent()
             }

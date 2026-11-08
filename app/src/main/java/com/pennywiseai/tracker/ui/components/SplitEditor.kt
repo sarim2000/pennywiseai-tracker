@@ -52,7 +52,7 @@ fun SplitEditor(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = Spacing.md, vertical = Spacing.xs)
-            .animateContentSize(),
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(

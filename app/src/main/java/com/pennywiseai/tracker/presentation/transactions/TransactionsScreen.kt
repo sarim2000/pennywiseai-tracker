@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -997,6 +999,7 @@ private fun SwipeToEditCategory(
                         MaterialTheme.colorScheme.secondaryContainer
                     else -> Color.Transparent
                 },
+                animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "swipe_edit_background"
             )
             Box(
@@ -1198,8 +1201,8 @@ private fun TransactionFilterHeader(
 
         AnimatedVisibility(
             visible = !collapsed,
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+            enter = pwExpand(),
+            exit = pwCollapse()
         ) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),

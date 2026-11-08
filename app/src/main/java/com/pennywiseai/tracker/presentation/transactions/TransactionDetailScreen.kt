@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -1338,8 +1340,8 @@ private fun ExpandableSmsSection(smsBody: String) {
 
             AnimatedVisibility(
                 visible = expanded,
-                enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Text(
                     text = CurrencyFormatter.maskAmountsIn(smsBody),

@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandHorizontally
@@ -85,8 +87,8 @@ fun PennyWiseBottomNavigation(
         // NORMAL style NavigationBar
         BlurredAnimatedVisibility(
             visible = visible && navBarStyle == NavBarStyle.NORMAL,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+            enter = navBarEnter(),
+            exit = navBarExit(),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -150,8 +152,8 @@ fun PennyWiseBottomNavigation(
         // primary action (if it docked one) as a squircle beside it.
         BlurredAnimatedVisibility(
             visible = visible && navBarStyle == NavBarStyle.FLOATING,
-            enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-            exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+            enter = navBarEnter(),
+            exit = navBarExit(),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             val dockAction = dock?.action
@@ -191,11 +193,11 @@ fun PennyWiseBottomNavigation(
                     )
                     AnimatedVisibility(
                         visible = dockAction != null,
-                        enter = fadeIn() + expandHorizontally(
+                        enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()) + expandHorizontally(
                             animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                             expandFrom = Alignment.Start
                         ),
-                        exit = fadeOut() + shrinkHorizontally(
+                        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) + shrinkHorizontally(
                             animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
                             shrinkTowards = Alignment.Start
                         )
@@ -316,4 +318,18 @@ private fun FloatingNavPill(
             }
         }
     }
+}
+
+// Nav show/hide is chrome: a quick fade with a short slide (a quarter of the bar), not a
+// full-height bouncy move.
+@Composable
+private fun navBarEnter(): EnterTransition {
+    val motion = MaterialTheme.motionScheme
+    return fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastSpatialSpec()) { it / 4 }
+}
+
+@Composable
+private fun navBarExit(): ExitTransition {
+    val motion = MaterialTheme.motionScheme
+    return fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 }

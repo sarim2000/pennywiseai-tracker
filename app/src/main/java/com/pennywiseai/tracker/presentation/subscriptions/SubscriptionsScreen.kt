@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.platform.LocalContext
@@ -9,8 +11,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -32,7 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -96,13 +97,12 @@ fun SubscriptionsScreen(
 
     // Staggered entrance animation state — only animates on first composition
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+    val animationsEnabled = rememberAnimationsEnabled()
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
-            delay(600) // slightly after the last possible stagger
+            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
             hasAnimated = true
         }
     }
@@ -210,17 +210,7 @@ fun SubscriptionsScreen(
         ) {
             // Total Monthly Subscriptions Summary (0ms delay)
             item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(0); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                    )
-                ) {
+                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                     TotalSubscriptionsSummary(
                         totalAmount = uiState.totalMonthlyAmount,
                         totalByCurrency = uiState.totalByCurrency,
@@ -279,18 +269,7 @@ fun SubscriptionsScreen(
                     items = uiState.activeSubscriptions,
                     key = { _, item -> item.id }
                 ) { index, subscription ->
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay((index + 1) * 50L); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        modifier = Modifier.animateItem(),
-                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                        )
-                    ) {
+                    StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
                         SwipeableSubscriptionItem(
                             subscription = subscription,
                             accounts = accounts,
@@ -416,7 +395,7 @@ private fun EndedSubscriptionsSection(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(visible = expanded, enter = pwExpand(), exit = pwCollapse()) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 endedSubscriptions.forEach { sub ->
                     EndedSubscriptionItem(
@@ -579,6 +558,7 @@ private fun SwipeableSubscriptionItem(
                     SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
                     else -> Color.Transparent
                 },
+                animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "background color"
             )
             Box(

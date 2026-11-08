@@ -1,11 +1,11 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -83,12 +83,8 @@ fun ExpandableCard(
 
             AnimatedVisibility(
                 visible = expanded,
-                enter = expandVertically(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                ),
-                exit = shrinkVertically(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                )
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Column(
                     modifier = Modifier.padding(top = Spacing.sm)

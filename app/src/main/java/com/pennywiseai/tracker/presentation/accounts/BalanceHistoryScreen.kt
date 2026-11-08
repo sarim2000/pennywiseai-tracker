@@ -218,7 +218,7 @@ private fun BalanceHistoryItem(
     PennyWiseCardV2(
         modifier = modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
         colors = CardDefaults.cardColors(
             containerColor = if (isLatest) {
                 MaterialTheme.colorScheme.surfaceContainerHighest

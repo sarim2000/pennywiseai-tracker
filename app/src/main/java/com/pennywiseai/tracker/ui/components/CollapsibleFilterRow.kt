@@ -1,12 +1,12 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.animations.chevronRotation
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -32,10 +31,7 @@ fun CollapsibleFilterRow(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val rotationAngle by animateFloatAsState(
-        targetValue = if (isExpanded) 180f else 0f,
-        label = "filter_rotation"
-    )
+    val rotationAngle = chevronRotation(isExpanded)
     
     Column(modifier = modifier) {
         // Toggle button
@@ -83,8 +79,8 @@ fun CollapsibleFilterRow(
         // Expandable content
         AnimatedVisibility(
             visible = isExpanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
+            enter = pwExpand(),
+            exit = pwCollapse()
         ) {
             Box(
                 modifier = Modifier

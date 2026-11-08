@@ -2,7 +2,12 @@ package com.pennywiseai.tracker.ui.screens.analytics
 
 import com.pennywiseai.tracker.utils.AppDates
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,6 +29,7 @@ import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -37,7 +43,31 @@ fun SpendingBarChart(
 ) {
     if (data.isEmpty()) return
 
-    val sortedData = remember(data) { data.sortedBy { it.timestamp } }
+    val frame = remember(data, primaryCurrency) { BarFrame.from(data, primaryCurrency) }
+    val epochs = remember { BarEpochs() }
+    val shown = remember(frame) { epochs.advance(frame) }
+
+    // Same epoch = the bars retarget in place; a new epoch (other currency, bucket
+    // size or a far-off scale) crossfades the whole chart instead of morphing
+    // bars between figures that don't share an axis.
+    val motion = MaterialTheme.motionScheme
+    AnimatedContent(
+        targetState = shown,
+        modifier = modifier,
+        transitionSpec = {
+            fadeIn(motion.defaultEffectsSpec()) togetherWith
+                fadeOut(motion.defaultEffectsSpec()) using null
+        },
+        contentKey = { it.epoch },
+        label = "bar_chart_scale"
+    ) { BarChartCanvas(frame = it.frame, growIn = it.epoch == 0, height = height) }
+}
+
+@Composable
+private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
+    val primaryCurrency = frame.currency
+    val chartData = frame.bars
+    val maxValue = frame.maxValue
     val themeColors = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
 
@@ -52,39 +82,24 @@ fun SpendingBarChart(
     val valueLabelStyle = chartLabel.copy(color = valueLabelColor, textAlign = TextAlign.Center)
     val indicatorStyle = chartLabel.copy(color = indicatorColor, textAlign = TextAlign.End)
 
-    val chartData = remember(sortedData) {
-        val isYearly = sortedData.size > 1 && sortedData.all { it.timestamp.dayOfYear == 1 }
-        val isMonthly = !isYearly && sortedData.all { it.timestamp.dayOfMonth == 1 }
-        val spansMultipleYears = if (sortedData.isNotEmpty()) {
-            sortedData.first().timestamp.year != sortedData.last().timestamp.year
-        } else false
-
-        sortedData.map { point ->
-            val label = when {
-                isYearly -> point.timestamp.format(DateTimeFormatter.ofPattern("yyyy"))
-                isMonthly && spansMultipleYears -> point.timestamp.format(AppDates.pattern("MMM yy"))
-                isMonthly -> point.timestamp.format(AppDates.pattern("MMM"))
-                else -> point.timestamp.format(AppDates.pattern("dd MMM"))
-            }
-            BarData(label = label, value = point.balance.toDouble())
+    // One height per date bucket, so a data change retargets each bar from where
+    // it stands. Heights are data: effects specs settle without overshooting.
+    val motion = MaterialTheme.motionScheme
+    val heights = remember { HashMap<LocalDateTime, Animatable<Float, AnimationVector1D>>() }
+    val seeded = heights.isNotEmpty()
+    val spec = if (seeded) motion.defaultEffectsSpec<Float>() else motion.slowEffectsSpec()
+    chartData.forEach { bar ->
+        val target = if (maxValue > 0.0) (bar.value / maxValue).toFloat() else 0f
+        // First paint grows from zero once; a crossfaded-in chart starts settled.
+        val anim = heights.getOrPut(bar.key) { Animatable(if (seeded || growIn) 0f else target) }
+        key(bar.key) {
+            LaunchedEffect(target) { anim.animateTo(target, spec) }
         }
     }
-
-    val maxValue = remember(chartData) {
-        (chartData.map { it.value }.maxOrNull() ?: 0.0) * 1.2
-    }
-
-    val animationProgress = remember { Animatable(0f) }
-    // Bar heights are data: an effects spec settles without overshooting the value.
-    val motion = MaterialTheme.motionScheme
-    LaunchedEffect(chartData) {
-        animationProgress.snapTo(0f)
-        animationProgress.animateTo(1f, animationSpec = motion.slowEffectsSpec())
-    }
-    val progress = animationProgress.value
+    SideEffect { heights.keys.retainAll(chartData.mapTo(HashSet()) { it.key }) }
 
     Canvas(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .height(height.dp)
             .padding(vertical = Spacing.md)
@@ -149,7 +164,9 @@ fun SpendingBarChart(
         val labelStep = if (barCount > maxLabels) ceil(barCount.toFloat() / maxLabels).toInt() else 1
 
         chartData.forEachIndexed { index, bar ->
-            val barHeight = ((bar.value / maxValue) * chartHeight * progress).toFloat()
+            val target = (bar.value / maxValue).toFloat()
+            val fraction = heights[bar.key]?.value ?: target
+            val barHeight = fraction * chartHeight
             val x = startOffset + index * (barThickness + 8.dp.toPx())
             val barTop = chartBottom - barHeight
 
@@ -164,7 +181,7 @@ fun SpendingBarChart(
             }
 
             // Draw value label above bar (clamped to avoid Y-axis and right-edge overlap)
-            if (bar.value > 0 && barHeight > 4.dp.toPx() && progress > 0.5f) {
+            if (bar.value > 0 && barHeight > 4.dp.toPx() && fraction >= target / 2f) {
                 val valueText = formatCompactValue(bar.value, primaryCurrency)
                 val valueMeasured = textMeasurer.measure(valueText, valueLabelStyle)
                 val rawLabelX = x + barThickness / 2f - valueMeasured.size.width / 2f
@@ -196,10 +213,74 @@ fun SpendingBarChart(
     }
 }
 
-private data class BarData(
-    val label: String,
-    val value: Double
-)
+internal enum class BarGranularity { DAY, MONTH, YEAR }
+
+internal data class Bar(val key: LocalDateTime, val label: String, val value: Double)
+
+internal data class BarFrame(
+    val currency: String,
+    val granularity: BarGranularity,
+    val bars: List<Bar>
+) {
+    val maxValue: Double get() = (bars.maxOfOrNull { it.value } ?: 0.0) * 1.2
+
+    /**
+     * Whether [next] can be shown by retargeting these bars: same currency and
+     * bucket size, at least one bucket in common, and an axis within 2x. Anything
+     * else crossfades — bars never morph between two currencies' figures.
+     */
+    fun morphsInto(next: BarFrame): Boolean {
+        if (currency != next.currency || granularity != next.granularity) return false
+        val keys = bars.mapTo(HashSet()) { it.key }
+        if (next.bars.none { it.key in keys }) return false
+        val (a, b) = maxValue to next.maxValue
+        if (a <= 0.0 || b <= 0.0) return true
+        return b / a in 0.5..2.0
+    }
+
+    companion object {
+        fun from(data: List<BalancePoint>, currency: String): BarFrame {
+            val sorted = data.sortedBy { it.timestamp }
+            val isYearly = sorted.size > 1 && sorted.all { it.timestamp.dayOfYear == 1 }
+            val isMonthly = !isYearly && sorted.all { it.timestamp.dayOfMonth == 1 }
+            val spansMultipleYears = sorted.isNotEmpty() &&
+                sorted.first().timestamp.year != sorted.last().timestamp.year
+            val bars = sorted.map { point ->
+                val label = when {
+                    isYearly -> point.timestamp.format(DateTimeFormatter.ofPattern("yyyy"))
+                    isMonthly && spansMultipleYears -> point.timestamp.format(AppDates.pattern("MMM yy"))
+                    isMonthly -> point.timestamp.format(AppDates.pattern("MMM"))
+                    else -> point.timestamp.format(AppDates.pattern("dd MMM"))
+                }
+                Bar(key = point.timestamp, label = label, value = point.balance.toDouble())
+            }
+            val granularity = when {
+                isYearly -> BarGranularity.YEAR
+                isMonthly -> BarGranularity.MONTH
+                else -> BarGranularity.DAY
+            }
+            return BarFrame(currency, granularity, bars)
+        }
+    }
+}
+
+internal data class EpochFrame(val epoch: Int, val frame: BarFrame)
+
+/** Bumps the epoch whenever a frame can't morph from the previous one. */
+internal class BarEpochs {
+    private var last: EpochFrame? = null
+
+    fun advance(frame: BarFrame): EpochFrame {
+        val prev = last
+        val next = when {
+            prev == null -> EpochFrame(0, frame)
+            prev.frame.morphsInto(frame) -> EpochFrame(prev.epoch, frame)
+            else -> EpochFrame(prev.epoch + 1, frame)
+        }
+        last = next
+        return next
+    }
+}
 
 private fun formatCompactValue(value: Double, currencyCode: String): String {
     if (com.pennywiseai.tracker.utils.AmountPrivacy.hidden) return com.pennywiseai.tracker.utils.AmountPrivacy.MASK

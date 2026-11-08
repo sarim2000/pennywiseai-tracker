@@ -9,8 +9,8 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -180,6 +180,9 @@ fun AnalyticsScreen(
             )
         }
     ) { paddingValues ->
+    // Data swaps here fade on effects specs: no full-width slides, no overshoot.
+    val motion = MaterialTheme.motionScheme
+
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -350,7 +353,13 @@ fun AnalyticsScreen(
                     )
 
                     // Expandable chart type selector card
-                    AnimatedVisibility(visible = showChartTypeSelector) {
+                    AnimatedVisibility(
+                        visible = showChartTypeSelector,
+                        enter = fadeIn(motion.defaultEffectsSpec()) +
+                            expandVertically(motion.defaultEffectsSpec()),
+                        exit = fadeOut(motion.fastEffectsSpec()) +
+                            shrinkVertically(motion.fastEffectsSpec())
+                    ) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -416,6 +425,7 @@ fun AnalyticsScreen(
                     // Chart display with crossfade transition
                     Crossfade(
                         targetState = chartType,
+                        animationSpec = motion.defaultEffectsSpec(),
                         label = "chart_transition"
                     ) { type ->
                         when (type) {
@@ -467,15 +477,9 @@ fun AnalyticsScreen(
                     AnimatedContent(
                         targetState = categoryViewType,
                         transitionSpec = {
-                            if (targetState == CategoryViewType.CHART) {
-                                (slideInHorizontally { -it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            } else {
-                                (slideInHorizontally { it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { -it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            }
+                            fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                fadeOut(motion.fastEffectsSpec()) using
+                                SizeTransform(clip = false)
                         },
                         label = "category_view_transition"
                     ) { viewType ->
@@ -542,15 +546,9 @@ fun AnalyticsScreen(
                     AnimatedContent(
                         targetState = tagViewType,
                         transitionSpec = {
-                            if (targetState == CategoryViewType.CHART) {
-                                (slideInHorizontally { -it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            } else {
-                                (slideInHorizontally { it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { -it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            }
+                            fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                fadeOut(motion.fastEffectsSpec()) using
+                                SizeTransform(clip = false)
                         },
                         label = "tag_view_transition"
                     ) { viewType ->

@@ -122,13 +122,15 @@ fun GoalRing(
     val fromRatio = addedFrom?.let(progress::ratioOf)
     val settleSpec = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
     val currentTarget by rememberUpdatedState(target)
+    val currentSaved by rememberUpdatedState(progress.saved)
     val currentOnSettled by rememberUpdatedState(onAddedSettled)
     LaunchedEffect(addedFrom) {
-        if (fromRatio == null) return@LaunchedEffect
+        val from = addedFrom ?: return@LaunchedEffect
         emphasis.snapTo(1f)
         // The save and the new total can arrive in either order: wait for the
         // total to pass the old one and the sweep to reach it, then settle once.
-        snapshotFlow { currentTarget > fromRatio && animated == currentTarget }.first { it }
+        // Compares money, not the 4-dp ratio: a small Add can leave the ratio unchanged.
+        snapshotFlow { currentSaved > from && animated == currentTarget }.first { it }
         emphasis.animateTo(0f, settleSpec)
         currentOnSettled()
     }

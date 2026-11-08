@@ -178,7 +178,7 @@ internal fun DockedActionButton(
         }
         AnimatedContent(
             targetState = face,
-            transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) },
+            transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) using null },
             contentAlignment = Alignment.Center,
             label = "dockedActionFace"
         ) { state ->

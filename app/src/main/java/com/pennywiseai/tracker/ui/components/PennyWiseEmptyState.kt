@@ -72,7 +72,7 @@ fun PennyWiseEmptyState(
         var entered by rememberSaveable { mutableStateOf(false) }
         val settle = remember { Animatable(if (entered) 1f else 0f) }
         val fade = remember { Animatable(if (entered) 1f else 0f) }
-        val spatial = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+        val spatial = MaterialTheme.motionScheme.defaultSpatialSpec<Float>()
         val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
         LaunchedEffect(Unit) {
             if (entered) return@LaunchedEffect
@@ -84,10 +84,9 @@ fun PennyWiseEmptyState(
             modifier = Modifier
                 .size(Dimensions.Icon.emptyStateContainer)
                 .graphicsLayer {
+                    // No scale-in (design.md motion rule 4): it fades while the shape
+                    // settles, clamped so the spring's overshoot stays between the shapes.
                     alpha = fade.value
-                    // The spring may overshoot the scale; the shape stays between its two ends.
-                    scaleX = EMPTY_BADGE_START_SCALE + (1f - EMPTY_BADGE_START_SCALE) * settle.value
-                    scaleY = scaleX
                     shape = MorphShape(morph, settle.value.coerceIn(0f, 1f))
                     clip = true
                 }
@@ -146,6 +145,3 @@ fun PennyWiseEmptyState(
 }
 
 private val DESCRIPTION_MAX_WIDTH = 280.dp
-
-/** The badge grows from this fraction of its size as it settles. */
-private const val EMPTY_BADGE_START_SCALE = 0.85f

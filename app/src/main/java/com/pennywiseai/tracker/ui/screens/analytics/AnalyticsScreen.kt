@@ -428,14 +428,18 @@ fun AnalyticsScreen(
                         animationSpec = motion.defaultEffectsSpec(),
                         label = "chart_transition"
                     ) { type ->
+                        // The trend's own currency, set with the data in one state: the
+                        // picker's selectedCurrency flips first, which labelled the old
+                        // figures with the new symbol for a frame.
+                        val trendCurrency = uiState.currency.ifEmpty { selectedCurrency }
                         when (type) {
                             ChartType.LINE -> BalanceChart(
-                                primaryCurrency = selectedCurrency,
+                                primaryCurrency = trendCurrency,
                                 balanceHistory = uiState.spendingTrend,
                                 height = 220
                             )
                             ChartType.BAR -> SpendingBarChart(
-                                primaryCurrency = selectedCurrency,
+                                primaryCurrency = trendCurrency,
                                 data = uiState.spendingTrend,
                                 height = 220
                             )

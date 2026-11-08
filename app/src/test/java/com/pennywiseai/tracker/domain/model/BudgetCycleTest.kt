@@ -275,4 +275,21 @@ class BudgetCycleTest {
         // Oct 31 is after last working day -> started in Oct 2026
         assertEquals(YearMonth.of(2026, 10), BudgetCycle.currentCycleStartYearMonth(LocalDate.of(2026, 10, 31), BudgetCycle.LAST_WORKING_DAY, us))
     }
+
+    @Test
+    fun `the SIM country decides the weekend, not the language`() {
+        val english = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.US)
+            // Oct 31 2026 is a Saturday. Saudi Arabia rests Friday and Saturday, so it rolls back to Thursday.
+            BudgetCycle.weekendCountry = "sa"
+            assertEquals(LocalDate.of(2026, 10, 29), BudgetCycle.lastWorkingDayOfMonth(YearMonth.of(2026, 10)))
+            // No SIM country: the device locale (US) rests Saturday and Sunday.
+            BudgetCycle.weekendCountry = null
+            assertEquals(LocalDate.of(2026, 10, 30), BudgetCycle.lastWorkingDayOfMonth(YearMonth.of(2026, 10)))
+        } finally {
+            BudgetCycle.weekendCountry = null
+            Locale.setDefault(english)
+        }
+    }
 }

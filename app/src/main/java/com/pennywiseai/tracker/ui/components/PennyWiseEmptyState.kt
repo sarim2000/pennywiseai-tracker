@@ -11,12 +11,21 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialShapes
-import androidx.compose.material3.toShape
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.graphics.shapes.Morph
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -56,13 +65,33 @@ fun PennyWiseEmptyState(
             .padding(Dimensions.Padding.empty),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // One-shot entrance: the badge fades in while its circle settles into the
+        // cookie, once per placement, never looping. With animations off the
+        // system's zero duration scale lands it on the first frame.
+        val morph = remember { Morph(MaterialShapes.Circle, MaterialShapes.Cookie9Sided) }
+        var entered by rememberSaveable { mutableStateOf(false) }
+        val settle = remember { Animatable(if (entered) 1f else 0f) }
+        val fade = remember { Animatable(if (entered) 1f else 0f) }
+        val spatial = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+        val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+        LaunchedEffect(Unit) {
+            if (entered) return@LaunchedEffect
+            entered = true
+            launch { fade.animateTo(1f, effects) }
+            settle.animateTo(1f, spatial)
+        }
         Box(
             modifier = Modifier
                 .size(Dimensions.Icon.emptyStateContainer)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = MaterialShapes.Cookie9Sided.toShape()
-                ),
+                .graphicsLayer {
+                    alpha = fade.value
+                    // The spring may overshoot the scale; the shape stays between its two ends.
+                    scaleX = EMPTY_BADGE_START_SCALE + (1f - EMPTY_BADGE_START_SCALE) * settle.value
+                    scaleY = scaleX
+                    shape = MorphShape(morph, settle.value.coerceIn(0f, 1f))
+                    clip = true
+                }
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -117,3 +146,6 @@ fun PennyWiseEmptyState(
 }
 
 private val DESCRIPTION_MAX_WIDTH = 280.dp
+
+/** The badge grows from this fraction of its size as it settles. */
+private const val EMPTY_BADGE_START_SCALE = 0.85f

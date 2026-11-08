@@ -6,7 +6,6 @@
     <string name="ai_access_settings_subtitle_pro">Pro · AI-приложения читают ваши данные, пока вы это разрешаете</string>
     <string name="ai_access_title">Доступ для AI</string>
     <string name="ai_access_back">Назад</string>
-    <string name="ai_access_intro">Спрашивайте Claude, ChatGPT или другое AI-приложение о своих расходах или откройте панель на компьютере. Они видят ваши транзакции, балансы и подписки только во время AI-сессии. Изменить они ничего не могут.</string>
     <string name="ai_access_pro_only">Доступ для AI — функция Pro.</string>
     <string name="ai_access_unlock">Открыть с Pro</string>
     <string name="ai_access_session_title">AI-сессия</string>
@@ -34,7 +33,6 @@
     <string name="ai_access_connected_on">Подключено %s</string>
     <string name="ai_access_disconnect">Отключить</string>
     <string name="ai_access_disconnected">Отключено.</string>
-    <string name="ai_access_privacy">Ваши данные остаются на телефоне. Во время AI-сессии вопросы AI-приложения идут через ретранслятор на ваш телефон, а ответы возвращаются тем же путем. Ретранслятор их не хранит и не записывает в журнал. Поставщик AI-приложения (например, Anthropic или OpenAI) видит ответы, которые получает.\n\nПодключенные приложения могут искать по всей вашей истории во всех профилях, включая имена получателей переводов. Текст SMS, полные номера счетов и номера операций они не получают никогда.</string>
     <string name="ai_access_relay_title">Свой ретранслятор</string>
     <string name="ai_access_relay_body">Для полного контроля разверните открытый ретранслятор (relay/ в GitHub-репозитории PennyWise) в своем аккаунте Cloudflare и введите его адрес. При смене ретранслятора отключаются все AI-приложения.</string>
     <string name="ai_access_relay_label">Адрес ретранслятора</string>

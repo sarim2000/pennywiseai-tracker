@@ -6,7 +6,6 @@
     <string name="ai_access_settings_subtitle_pro">Pro · ให้แอป AI อ่านข้อมูลของคุณได้เฉพาะตอนที่คุณอนุญาต</string>
     <string name="ai_access_title">การเข้าถึงของ AI</string>
     <string name="ai_access_back">กลับ</string>
-    <string name="ai_access_intro">ถาม Claude, ChatGPT หรือแอป AI อื่นๆ เรื่องการใช้จ่ายของคุณ หรือเปิดแดชบอร์ดบนคอมพิวเตอร์ก็ได้ แอปเหล่านี้อ่านธุรกรรม ยอดคงเหลือ และการสมัครสมาชิกของคุณได้เฉพาะตอนที่เปิดเซสชัน AI อยู่เท่านั้น และแก้ไขอะไรไม่ได้เลย</string>
     <string name="ai_access_pro_only">การเข้าถึงของ AI เป็นฟีเจอร์ Pro</string>
     <string name="ai_access_unlock">ปลดล็อกด้วย Pro</string>
     <string name="ai_access_session_title">เซสชัน AI</string>
@@ -34,7 +33,6 @@
     <string name="ai_access_connected_on">เชื่อมต่อเมื่อ %s</string>
     <string name="ai_access_disconnect">ยกเลิกการเชื่อมต่อ</string>
     <string name="ai_access_disconnected">ยกเลิกการเชื่อมต่อแล้ว</string>
-    <string name="ai_access_privacy">ข้อมูลของคุณอยู่บนโทรศัพท์ของคุณเท่านั้น ระหว่างเซสชัน AI คำถามจากแอป AI จะส่งผ่านรีเลย์มายังโทรศัพท์ของคุณ และคำตอบก็ส่งกลับไปทางเดิม รีเลย์ไม่เก็บหรือบันทึกข้อมูลเหล่านี้เลย ผู้ให้บริการของแอป AI (เช่น Anthropic หรือ OpenAI) จะเห็นคำตอบที่ได้รับ\n\nแอปที่เชื่อมต่อแล้วค้นหาประวัติทั้งหมดของคุณได้ในทุกโปรไฟล์ รวมถึงชื่อผู้รับเงินในการโอน แต่จะไม่ได้รับข้อความ SMS, เลขบัญชีเต็ม หรือเลขอ้างอิงเลย</string>
     <string name="ai_access_relay_title">ใช้รีเลย์ของคุณเอง</string>
     <string name="ai_access_relay_body">ถ้าอยากควบคุมเองทั้งหมด ให้ดีพลอยรีเลย์โอเพนซอร์ส (relay/ ในรีโพ GitHub ของ PennyWise) ไปยังบัญชี Cloudflare ของคุณเอง แล้วใส่ที่อยู่ของมัน การเปลี่ยนรีเลย์จะตัดการเชื่อมต่อแอป AI ทุกแอป</string>
     <string name="ai_access_relay_label">ที่อยู่รีเลย์</string>

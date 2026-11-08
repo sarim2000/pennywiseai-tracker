@@ -6,7 +6,6 @@
     <string name="ai_access_settings_subtitle_pro">Pro · Deixe apps de AI lerem seus dados enquanto você permitir</string>
     <string name="ai_access_title">Acesso por AI</string>
     <string name="ai_access_back">Voltar</string>
-    <string name="ai_access_intro">Pergunte ao Claude, ao ChatGPT ou a outro app de AI sobre seus gastos, ou abra o painel em um computador. Eles só podem ler suas transações, saldos e assinaturas enquanto uma sessão de AI estiver ativa. Eles não podem alterar nada.</string>
     <string name="ai_access_pro_only">O acesso por AI é um recurso Pro.</string>
     <string name="ai_access_unlock">Desbloquear com Pro</string>
     <string name="ai_access_session_title">Sessão de AI</string>
@@ -32,7 +31,6 @@
     <string name="ai_access_connected_on">Conectado %s</string>
     <string name="ai_access_disconnect">Desconectar</string>
     <string name="ai_access_disconnected">Desconectado.</string>
-    <string name="ai_access_privacy">Seus dados ficam no seu celular. Durante uma sessão de AI, as perguntas do app de AI passam pelo relay até o seu celular e as respostas voltam pelo mesmo caminho. O relay nunca armazena nem registra esses dados. O provedor do app de AI (por exemplo, Anthropic ou OpenAI) vê as respostas que recebe.\n\nApps conectados podem pesquisar todo o seu histórico em todos os perfis, incluindo nomes de favorecidos em transferências. Eles nunca recebem o texto dos SMS, números de conta completos nem números de referência.</string>
     <string name="ai_access_relay_title">Usar seu próprio relay</string>
     <string name="ai_access_relay_body">Para ter controle total, publique o relay de código aberto (relay/ no repositório do PennyWise no GitHub) na sua própria conta da Cloudflare e informe o endereço dele. Trocar de relay desconecta todos os apps de AI.</string>
     <string name="ai_access_relay_label">Endereço do relay</string>

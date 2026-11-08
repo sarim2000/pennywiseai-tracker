@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -57,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -105,7 +108,11 @@ fun GoalDetailScreen(
     var showUpgrade by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state) { if (state is GoalDetailState.Gone) onNavigateBack() }
-    LaunchedEffect(sheet.done) { if (sheet.done) { mode = null; viewModel.resetSheet() } }
+    // Set only by the user's own Add money; the ring clears it once the new portion settles.
+    var addedFrom by remember { mutableStateOf<BigDecimal?>(null) }
+    LaunchedEffect(sheet.done) {
+        if (sheet.done) { sheet.addedFrom?.let { addedFrom = it }; mode = null; viewModel.resetSheet() }
+    }
 
     val detail = (state as? GoalDetailState.Loaded)?.detail
     val progress = detail?.progress
@@ -139,6 +146,8 @@ fun GoalDetailScreen(
             padding = padding,
             onAdd = { open(MoneySheetMode.Add) },
             onTakeOut = { open(MoneySheetMode.TakeOut) },
+            addedFrom = addedFrom,
+            onAddedSettled = { addedFrom = null },
             merchants = merchants,
             // A row taken from a transaction opens it; the rest open the edit sheet.
             onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
@@ -231,6 +240,8 @@ private fun GoalDetailContent(
     padding: PaddingValues,
     onAdd: () -> Unit,
     onTakeOut: () -> Unit,
+    addedFrom: BigDecimal?,
+    onAddedSettled: () -> Unit,
     merchants: Map<Long, String>,
     onContribution: (GoalContributionEntity) -> Unit,
 ) {
@@ -250,9 +261,15 @@ private fun GoalDetailContent(
         item {
             PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    GoalRing(progress, Dimensions.Component.goalRingLarge, Dimensions.Component.goalRingLargeStroke) {
+                    GoalRing(
+                        progress,
+                        Dimensions.Component.goalRingLarge,
+                        Dimensions.Component.goalRingLargeStroke,
+                        addedFrom = addedFrom,
+                        onAddedSettled = onAddedSettled,
+                    ) { percent ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(stringResource(R.string.budgets_percent, progress.percent()), style = MaterialTheme.typography.headlineMedium)
+                            Text(stringResource(R.string.budgets_percent, percent), style = MaterialTheme.typography.headlineMedium)
                             Text(
                                 CurrencyFormatter.formatCurrency(progress.saved, currency),
                                 style = PennyWiseText.amountSmall,

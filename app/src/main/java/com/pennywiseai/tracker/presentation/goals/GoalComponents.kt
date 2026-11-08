@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.utils.AppDates
 
 import android.content.Context
 import android.content.res.Resources
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -38,6 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.util.lerp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -77,6 +82,7 @@ import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
+import kotlinx.coroutines.flow.first
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -85,16 +91,48 @@ internal val goalDateFormat: DateTimeFormatter get() = AppDates.dateFormatter()
 @Composable
 internal fun GoalProgress.color(): Color = goal.color.toColorOr(MaterialTheme.colorScheme.primary)
 
-/** Circular progress in the goal's colour over a neutral track; [content] sits in the middle. */
+/**
+ * Circular progress in the goal's colour over a neutral track. [content] sits in
+ * the middle and gets the whole percent read off the animated sweep, so the
+ * number and the arc move together.
+ *
+ * [addedFrom] is what was saved just before the user's own Add money, in the
+ * goal's currency. The portion it adds draws as its own segment (split off by a
+ * gap, the older part dimmed) and then settles into the ring, after which
+ * [onAddedSettled] fires. Leave it null for loads, refreshes and withdrawals:
+ * those just move the ring.
+ */
 @Composable
 fun GoalRing(
     progress: GoalProgress,
     size: Dp,
     stroke: Dp,
     modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
+    addedFrom: BigDecimal? = null,
+    onAddedSettled: () -> Unit = {},
+    content: @Composable (percent: Int) -> Unit,
 ) {
-    val animated by animateFloatAsState(progress.fraction(), MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalRing")
+    // Effects specs throughout: a progress arc never bounces past its value.
+    val target = progress.ratioOf(progress.saved)
+    val animated by animateFloatAsState(target, MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalRing")
+    val percent = ringPercent(animated, target, progress.percent())
+
+    // 1 while the added segment stands apart, easing to 0 as it joins the ring.
+    val emphasis = remember { Animatable(0f) }
+    val fromRatio = addedFrom?.let(progress::ratioOf)
+    val settleSpec = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+    val currentTarget by rememberUpdatedState(target)
+    val currentOnSettled by rememberUpdatedState(onAddedSettled)
+    LaunchedEffect(addedFrom) {
+        if (fromRatio == null) return@LaunchedEffect
+        emphasis.snapTo(1f)
+        // The save and the new total can arrive in either order: wait for the
+        // total to pass the old one and the sweep to reach it, then settle once.
+        snapshotFlow { currentTarget > fromRatio && animated == currentTarget }.first { it }
+        emphasis.animateTo(0f, settleSpec)
+        currentOnSettled()
+    }
+
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val color = progress.color()
     val description = stringResource(R.string.goals_ring_description, progress.percent())
@@ -107,12 +145,23 @@ fun GoalRing(
             val inset = width / 2
             val arcSize = androidx.compose.ui.geometry.Size(this.size.width - width, this.size.height - width)
             val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
+            fun arc(c: Color, from: Float, sweep: Float) =
+                drawArc(c, -90f + from, sweep, false, topLeft, arcSize, style = Stroke(width, cap = StrokeCap.Round))
             drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(width))
-            if (animated > 0f) {
-                drawArc(color, -90f, 360f * animated, false, topLeft, arcSize, style = Stroke(width, cap = StrokeCap.Round))
+            val end = animated.coerceAtMost(1f)
+            val start = fromRatio?.coerceAtMost(1f)
+            val e = emphasis.value
+            if (start == null || e == 0f || end <= start) {
+                if (end > 0f) arc(color, 0f, 360f * end)
+            } else {
+                if (start > 0f) arc(color.copy(alpha = lerp(1f, Dimensions.Alpha.medium, e)), 0f, 360f * start)
+                // Round caps reach half the stroke past each end, so the gap clears both before it shows.
+                val gap = if (start > 0f) e * Math.toDegrees(((width + Spacing.xs.toPx()) / (arcSize.width / 2)).toDouble()).toFloat() else 0f
+                val sweep = 360f * (end - start) - gap
+                if (sweep > 0f) arc(color, 360f * start + gap, sweep)
             }
         }
-        content()
+        content(percent)
     }
 }
 
@@ -243,9 +292,9 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
         onClick = onClick,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            GoalRing(progress, Dimensions.Component.goalRing, Dimensions.Component.goalRingStroke) {
+            GoalRing(progress, Dimensions.Component.goalRing, Dimensions.Component.goalRingStroke) { percent ->
                 Text(
-                    text = stringResource(R.string.budgets_percent, progress.percent()),
+                    text = stringResource(R.string.budgets_percent, percent),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,

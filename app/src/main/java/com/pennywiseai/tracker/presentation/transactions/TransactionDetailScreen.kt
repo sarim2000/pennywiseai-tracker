@@ -598,6 +598,11 @@ private fun TransactionDetailContent(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    // Bring the avatar back into view so the user actually sees the check.
+    val scrollSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    LaunchedEffect(settled) {
+        if (settled) scrollState.animateScrollTo(0, scrollSpec)
+    }
 
     Column(
         modifier = modifier

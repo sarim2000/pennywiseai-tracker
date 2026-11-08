@@ -2,6 +2,10 @@ package com.pennywiseai.tracker.aiaccess
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.rules.RuleSharingCodec
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -24,6 +28,18 @@ import java.math.RoundingMode
  * accounts are masked to bank + last 4, and no SMS text ever leaves the phone.
  */
 object AiToolLogic {
+    /**
+     * Rules as AI apps may see them. A condition on the SMS text can quote a real message,
+     * and AI apps never get SMS text, so its value is hidden.
+     */
+    fun shareableRules(rules: List<TransactionRule>): List<TransactionRule> = rules.map { rule ->
+        rule.copy(conditions = rule.conditions.map { c ->
+            if (c.field == com.pennywiseai.tracker.domain.model.rule.TransactionField.SMS_TEXT) c.copy(value = HIDDEN_SMS_TEXT) else c
+        })
+    }
+
+    const val HIDDEN_SMS_TEXT = "(SMS text hidden)"
+
 
     const val MAX_ROWS = 200
 
@@ -36,6 +52,7 @@ object AiToolLogic {
         account: String? = null,
         offset: Int = 0,
         sort: String? = null,
+        aliases: Map<String, String> = emptyMap(),
     ): JsonObject {
         val q = query?.trim()?.lowercase().orEmpty()
         val base = all.filter { (type == null || it.transactionType.name == type) && (q.isEmpty() || it.merchantName.lowercase().contains(q)) }
@@ -63,6 +80,7 @@ object AiToolLogic {
                     add(buildJsonObject {
                         put("date", t.dateTime.toString())
                         put("merchant", t.merchantName)
+                        aliases[t.merchantName]?.let { put("alias", it) }
                         put("category", t.category)
                         put("type", t.transactionType.name)
                         put("amount", money(t.amount, t.currency))
@@ -80,7 +98,7 @@ object AiToolLogic {
      * ([forTotals]), and refunds (INCOME + DEDUCT_SPENT) come off spending instead of counting
      * as income, per currency and floored at zero, like Analytics.
      */
-    fun spendingSummary(all: List<TransactionEntity>, groupBy: String, type: String, account: String? = null): JsonObject {
+    fun spendingSummary(all: List<TransactionEntity>, groupBy: String, type: String, account: String? = null, limit: Int? = null): JsonObject {
         val income = type == "INCOME"
         val inAccount = all.filter { account == null || accountOf(it) == account }.forTotals()
         val counted = if (income) {
@@ -105,8 +123,10 @@ object AiToolLogic {
         return buildJsonObject {
             put("type", if (income) "INCOME" else "EXPENSE")
             put("grand_total", totals(counted, refunds))
+            // Groups come most-transactions first (amounts in different currencies can't be ranked together).
+            put("total_groups", groups.size)
             putJsonArray("groups") {
-                groups.forEach { (k, txns) ->
+                groups.take(limit?.coerceAtLeast(1) ?: groups.size).forEach { (k, txns) ->
                     add(buildJsonObject {
                         put("group", k.first)
                         k.second?.let { put("sub", it) }
@@ -161,6 +181,33 @@ object AiToolLogic {
                 add(money(net.coerceAtLeast(BigDecimal.ZERO), currency))
             }
         }
+    }
+
+    fun categories(all: List<CategoryEntity>): JsonObject = buildJsonObject {
+        putJsonArray("categories") {
+            all.forEach { c -> add(buildJsonObject { put("name", c.name); put("kind", if (c.isIncome) "income" else "expense") }) }
+        }
+    }
+
+    /**
+     * A rule from `create_rule` arguments, checked exactly like an imported rules file. BLOCK
+     * is refused: it silently drops future SMS, too much for an AI app to set up.
+     */
+    fun ruleFrom(args: JsonObject): TransactionRule {
+        val shared = buildJsonObject {
+            putJsonArray("rules") {
+                add(buildJsonObject { listOf("name", "description", "priority", "conditions", "actions").forEach { k -> args[k]?.let { put(k, it) } } })
+            }
+        }
+        val rule = try {
+            RuleSharingCodec.decode(shared.toString()).rules.single()
+        } catch (e: IllegalArgumentException) {
+            throw IllegalArgumentException(
+                "That rule isn't valid. It needs a name, at least one condition and one action, and each condition's operator and value must suit its field.", e
+            )
+        }
+        require(rule.actions.none { it.actionType == ActionType.BLOCK }) { "AI apps can't create rules that block transactions." }
+        return rule
     }
 
     private fun money(m: Money) = money(m.amount, m.currency)

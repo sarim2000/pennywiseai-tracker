@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.aiaccess.AiRelayClient
 import com.pennywiseai.tracker.aiaccess.AiSessionService
 import com.pennywiseai.tracker.aiaccess.AiSessionState
+import com.pennywiseai.tracker.aiaccess.AiWriteAccess
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,11 +35,15 @@ class AiAccessViewModel @Inject constructor(
     private val relay: AiRelayClient,
     sessionState: AiSessionState,
     entitlementGate: EntitlementGate,
+    private val writeAccess: AiWriteAccess,
 ) : ViewModel() {
 
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
     val session = sessionState.session
     val relayUrl: StateFlow<String> = relay.relayUrl
+    val allowChanges: StateFlow<Boolean> = writeAccess.allowed
+
+    fun setAllowChanges(allowed: Boolean) = writeAccess.set(allowed)
 
     private val _state = MutableStateFlow(AiAccessUiState())
     val state: StateFlow<AiAccessUiState> = _state.asStateFlow()

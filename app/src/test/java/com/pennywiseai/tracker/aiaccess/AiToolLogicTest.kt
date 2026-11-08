@@ -4,12 +4,14 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -134,5 +136,64 @@ class AiToolLogicTest {
         val shopping = spend["groups"]!!.jsonArray.map { it.jsonObject }.single { it["group"]!!.jsonPrimitive.content == "Shopping" }
         assertEquals(mapOf("INR" to "60.00"), shopping.totals("totals"))
         assertEquals(mapOf("INR" to "85000.00"), AiToolLogic.spendingSummary(all, groupBy = "category", type = "INCOME").totals())
+    }
+
+    @Test
+    fun `summary limit keeps the busiest groups and reports the full count`() {
+        val result = AiToolLogic.spendingSummary(
+            listOf(txn("Swiggy", "1", day = 1), txn("Swiggy", "2", day = 2), txn("Zomato", "3"), txn("Uber", "4", category = "Travel")),
+            groupBy = "merchant",
+            type = "EXPENSE",
+            limit = 1,
+        )
+        assertEquals(3, result["total_groups"]!!.jsonPrimitive.content.toInt())
+        assertEquals(listOf("Swiggy"), result["groups"]!!.jsonArray.map { it.jsonObject["group"]!!.jsonPrimitive.content })
+    }
+
+    @Test
+    fun `search shows a merchant's alias`() {
+        val row = AiToolLogic.searchTransactions(listOf(txn("AMAZON PAY IN", "10")), null, null, null, 10, aliases = mapOf("AMAZON PAY IN" to "Amazon"))
+            .getValue("transactions").jsonArray.single().jsonObject
+        assertEquals("Amazon", row["alias"]!!.jsonPrimitive.content)
+    }
+
+    private fun ruleArgs(actionType: String = "SET", operator: String = "CONTAINS") = Json.parseToJsonElement(
+        """{"name":"Rent","conditions":[{"field":"MERCHANT","operator":"$operator","value":"Landlord"}],
+           "actions":[{"field":"CATEGORY","actionType":"$actionType","value":"Housing"}],"apply_to_past":true}"""
+    ).jsonObject
+
+    @Test
+    fun `create_rule accepts a valid rule`() {
+        val rule = AiToolLogic.ruleFrom(ruleArgs())
+        assertEquals("Rent", rule.name)
+        assertEquals("Housing", rule.actions.single().value)
+        assertFalse(rule.isSystemTemplate)
+    }
+
+    @Test
+    fun `create_rule refuses BLOCK and operators that can't fire`() {
+        assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(ruleArgs(actionType = "BLOCK")) }
+        assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(ruleArgs(operator = "GREATER_THAN")) }
+        assertThrows(IllegalArgumentException::class.java) { AiToolLogic.ruleFrom(Json.parseToJsonElement("""{"name":"x"}""").jsonObject) }
+    }
+
+    @Test
+    fun `rules shared with AI apps hide SMS text conditions`() {
+        val rule = com.pennywiseai.tracker.domain.model.rule.TransactionRule(
+            name = "r",
+            conditions = listOf(
+                com.pennywiseai.tracker.domain.model.rule.RuleCondition(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.SMS_TEXT,
+                    com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "sample message text"
+                ),
+                com.pennywiseai.tracker.domain.model.rule.RuleCondition(
+                    com.pennywiseai.tracker.domain.model.rule.TransactionField.MERCHANT,
+                    com.pennywiseai.tracker.domain.model.rule.ConditionOperator.CONTAINS, "cafe"
+                )
+            ),
+            actions = emptyList()
+        )
+        val shared = AiToolLogic.shareableRules(listOf(rule)).single().conditions.map { it.value }
+        assertEquals(listOf(AiToolLogic.HIDDEN_SMS_TEXT, "cafe"), shared)
     }
 }

@@ -278,7 +278,7 @@ it by `Dimensions.Component.bottomBarHeight`.
   `homeAppBarExpandedHeight` tokens — no dp literals.
 - Titles use `titleLarge` collapsed and `headlineMediumEmphasized` expanded
   (one of the emphasized hero moments below).
-- **Subtitle** (optional, on both components): one short line of context the
+- **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the
   screen would otherwise lose on scroll — e.g. Transactions shows the active
   period, because its period chip hides when the list scrolls. It shows in
   both bar states and makes the expanded bar one step taller. Don't repeat the

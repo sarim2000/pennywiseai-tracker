@@ -318,7 +318,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for
      content, a quarter of the bar for chrome), never full-width by default.
   4. **No bounce on data; no scale-in on icons or content** (Material reads
-     scale as elevation) — fade them.
+     scale as elevation) — fade them. The one exception is the one-shot Pro
+     purchase celebration in `UpgradeSheet`, which springs its icon in on
+     `fastSpatialSpec()`. Empty states and success checks don't scale.
   5. **Stagger once**, on a screen's first entrance (`StaggeredEntrance` with a
      saveable `hasAnimated`); scrolling lists and returning to a tab don't.
   6. **"Remove animations" means content is just there.** Compose zeroes

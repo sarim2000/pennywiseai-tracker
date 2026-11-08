@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI – sledování výdajů</string>
     <string name="widget_name_budget">Přehled rozpočtu</string>
     <string name="widget_description_budget">Ukazuje průběh měsíčního rozpočtu, úspory a denní limit na první pohled.</string>
     <string name="widget_loading">Načítání widgetu…</string>
@@ -9,10 +8,13 @@
     <string name="widget_description_category_pie">Výdaje tohoto měsíce podle kategorií jako koláčový graf s legendou.</string>
     <string name="widget_name_add_transaction">Platba hotově</string>
     <string name="widget_name_summary">Souhrn výdajů</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Přidat transakci</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Přidat</string>
     <string name="shortcut_add_transaction_long">Přidat transakci</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Podpořit vývoj</string>
     <string name="support_subtitle">Vyvíjí jeden vývojář – malé spropitné pomáhá 🦉</string>
     <string name="support_dialog_body">PennyWise je zdarma a open source a vyvíjí ho jeden vývojář. V této verzi je už vše odemčené. Pokud vám aplikace pomáhá, malé spropitné ji udrží v chodu 🦉</string>

@@ -63,6 +63,20 @@ class UnrecognizedSmsRepository @Inject constructor(
         return existing.id
     }
 
+    suspend fun find(sender: String, body: String): UnrecognizedSmsEntity? = dao.findBySenderAndBody(sender, body)
+
+    /**
+     * This message is dealt with: hide it, and leave a hidden row (even if it never had one,
+     * as when picked from the inbox) so the next scan doesn't offer it again.
+     */
+    suspend fun settle(sender: String, body: String, receivedAt: LocalDateTime) {
+        val id = dao.findBySenderAndBody(sender, body)?.id
+            ?: dao.insert(UnrecognizedSmsEntity(sender = sender, smsBody = body, receivedAt = receivedAt)).takeIf { it > 0 }
+            ?: return
+        dao.softDeleteById(id)
+        SmsBroadcastReceiver.cancelSuggestion(context, id)
+    }
+
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
         dao.insertAll(smsList)
     }
@@ -101,7 +115,8 @@ class UnrecognizedSmsRepository @Inject constructor(
         SmsBroadcastReceiver.cancelSuggestion(context, id)
     }
     
-    private companion object {
+    companion object {
+        /** Identical text this close together is one SMS delivered or stamped twice, not a second payment. */
         val REDELIVERY_WINDOW: Duration = Duration.ofMinutes(2)
     }
 

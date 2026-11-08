@@ -61,6 +61,76 @@ class PriorbankParserTest {
                     accountLast4 = "6666",
                     balance = BigDecimal("250.70")
                 )
+            ),
+
+            // English format (#1047)
+            ParserTestCase(
+                name = "English - card payment",
+                message = """Card 4***1234 31-10-26 10:39:14. Payment 5.00 BYN. BLR PT TSENTR TORGOVLI I U. Balance: 120.50 BYN Tel. 7299090""",
+                sender = "Priorbank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5.00"),
+                    currency = "BYN",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "PT TSENTR TORGOVLI I U",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("120.50")
+                )
+            ),
+            ParserTestCase(
+                name = "English - money transfer out",
+                message = """Card 4***1234 31-10-26 10:38:12. Money transfer 70.00 BYN. BLR P2P SDBO NO FEE. Balance: 50.50 BYN Tel. 7299090""",
+                sender = "Priorbank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("70.00"),
+                    currency = "BYN",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "P2P SDBO NO FEE",
+                    accountLast4 = "1234",
+                    balance = BigDecimal("50.50")
+                )
+            ),
+            ParserTestCase(
+                name = "English - transfer received",
+                message = """Card 4***1234 31-10-26 10:38:12. The transfer received to the card 70.00 BYN. BLR . Balance: 190.50 BYN. Tel. 7299090""",
+                sender = "Priorbank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("70.00"),
+                    currency = "BYN",
+                    type = com.pennywiseai.parser.core.TransactionType.INCOME,
+                    merchant = null,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("190.50")
+                )
+            ),
+            ParserTestCase(
+                name = "English - foreign-currency payment keeps its currency",
+                message = """Card 4***1234 01-11-26 09:15:02. Payment 12.99 USD. USA SAMPLE STREAMING. Balance: 80.00 USD Tel. 7299090""",
+                sender = "Priorbank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.99"),
+                    currency = "USD",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    accountLast4 = "1234",
+                    balance = BigDecimal("80.00")
+                )
+            ),
+            ParserTestCase(
+                name = "English - balance left blank still parses",
+                message = """Card ******** 31-10-26 10:39:14. Payment 5.00 BYN. BLR SHOP. Balance:  BYN Tel. 7299090""",
+                sender = "Priorbank",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5.00"),
+                    currency = "BYN",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "SHOP"
+                )
+            ),
+            ParserTestCase(
+                name = "OTP is ignored",
+                message = """Kod 123456 dlya podtverzhdeniya operatsii. Priorbank""",
+                sender = "Priorbank",
+                shouldParse = false
             )
         )
 

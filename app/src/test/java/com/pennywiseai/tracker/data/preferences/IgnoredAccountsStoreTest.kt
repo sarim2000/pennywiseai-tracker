@@ -1,10 +1,17 @@
 package com.pennywiseai.tracker.data.preferences
 
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.CardEntity
+import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.Companion.isIgnored
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.Companion.keyFor
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.Companion.withLinkedCards
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 /** #826: the gate that keeps a relative's account out of the app. */
 class IgnoredAccountsStoreTest {
@@ -67,5 +74,32 @@ class IgnoredAccountsStoreTest {
     @Test
     fun `nothing is ignored when the set is empty`() {
         assertFalse(isIgnored(emptySet(), "HDFC Bank", "4321"))
+    }
+
+    private fun debitCard(digits: String, account: String?) = CardEntity(
+        cardLast4 = digits, cardType = CardType.DEBIT, bankName = "HDFC Bank", accountLast4 = account,
+    )
+
+    private fun account(digits: String) = AccountBalanceEntity(
+        bankName = "HDFC Bank", accountLast4 = digits, balance = BigDecimal.ONE, timestamp = LocalDateTime.MIN,
+    )
+
+    @Test
+    fun `a card linked to an ignored account joins the set`() {
+        val keys = withLinkedCards(ignored, listOf(debitCard("8811", "4321")), emptyList())
+        assertTrue(isIgnored(keys, "HDFC Bank", "8811"))
+    }
+
+    @Test
+    fun `a card on a tracked account stays out of the set`() {
+        val keys = withLinkedCards(ignored, listOf(debitCard("8811", "9999"), debitCard("8812", null)), emptyList())
+        assertEquals(ignored, keys)
+    }
+
+    @Test
+    fun `a card whose digits match a tracked account stays out of the set`() {
+        // Adding it would hide the real account, whose rows carry the same digits.
+        val keys = withLinkedCards(ignored, listOf(debitCard("9999", "4321")), listOf(account("9999")))
+        assertFalse(isIgnored(keys, "HDFC Bank", "9999"))
     }
 }

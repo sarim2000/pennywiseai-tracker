@@ -4,6 +4,7 @@ import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.toEntity
+import com.pennywiseai.tracker.utils.ledgerType
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -79,7 +80,7 @@ internal class StatementImportProcessor(
         )
         val byReference = nearby.groupBy { StatementTransactionEnricher.normalizedReference(it.reference) }
         // Money in vs out, as [StatementTransactionEnricher.isPossibleAmountDateMatch] compares it.
-        fun amountKey(t: TransactionEntity) = t.amount.stripTrailingZeros() to (t.transactionType == TransactionType.INCOME)
+        fun amountKey(t: TransactionEntity) = t.amount.stripTrailingZeros() to (t.ledgerType() == TransactionType.INCOME)
         val byAmount = nearby.groupBy(::amountKey)
 
         /** Unclaimed same-amount transactions on [from]..[to] that could be row [index], earliest first. */

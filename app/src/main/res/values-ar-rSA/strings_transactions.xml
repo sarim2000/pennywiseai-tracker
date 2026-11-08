@@ -266,7 +266,7 @@
     </plurals>
     <string name="txn_list_bulk_transfer_need_two">حدد بالضبط 2 من المعاملات لتمييزها كتحويل</string>
     <string name="txn_list_bulk_transfer_need_pair">اختر معاملة واحدة صادرة (نفقات) و معاملة واحدة واردة (دخل)</string>
-    <string name="txn_list_bulk_marked_transfer">وضع علامة كنقل</string>
+    <string name="txn_list_bulk_marked_transfer">نُقل بين حساباتك، فلا يُحسب دخلًا ولا نفقات.</string>
     <plurals name="txn_list_bulk_deleted">
         <item quantity="zero">تم حذف %1$d</item>
         <item quantity="one">تم حذف %1$d</item>
@@ -414,7 +414,7 @@
     <string name="recurring_field_note">ملاحظة (اختياري)</string>
     <string name="recurring_field_active">نشط</string>
     <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">تعقب النصوص المصرفية. 0 كتابة.</string>
+    <string name="share_card_caption_transactions">من رسائل البنك. 0 إدخال يدوي.</string>
     <plurals name="share_card_caption_subscriptions">
         <item quantity="zero">الاشتراكات التي نسيتها</item>
         <item quantity="one">لقد نسيت الاشتراك</item>
@@ -423,23 +423,23 @@
         <item quantity="many">الاشتراكات التي نسيتها</item>
         <item quantity="other">الاشتراكات التي نسيتها</item>
     </plurals>
-    <string name="share_card_period_all_time">كل شيء</string>
-    <string name="share_card_tagline">اقرأ من الرسائل القصيرة للبنك. لم يترك أي شيء هاتفي.</string>
-    <string name="share_sheet_no_amounts">ولم تُدرج أية مبالغ.</string>
+    <string name="share_card_period_all_time">كل الوقت</string>
+    <string name="share_card_tagline">من رسائل بنكي القصيرة، ولم يغادر شيء هاتفي.</string>
+    <string name="share_sheet_no_amounts">لا تتضمن البطاقة أي مبالغ.</string>
     <string name="share_sheet_share">مشاركة</string>
     <string name="share_sheet_done">تم</string>
     <string name="share_sheet_customise">تخصيص</string>
     <string name="share_sheet_show">عرض</string>
-    <string name="share_sheet_transactions">الخط الزمني</string>
+    <string name="share_sheet_transactions">المعاملات</string>
     <string name="share_sheet_subscriptions">الاشتراكات</string>
-    <string name="share_sheet_no_subscriptions">لم يتم الكشف عن اشتراكات حتى الآن — PennyWise تجد هذه اشتراكات من مدفوعات متكررة في الرسائل القصيرة الخاصة بك.</string>
+    <string name="share_sheet_no_subscriptions">لم نجد اشتراكات بعد. يكتشفها PennyWise من الدفعات المتكررة في رسائلك.</string>
     <string name="share_sheet_period">الفترة</string>
     <string name="share_sheet_this_month">هذا الشهر</string>
     <string name="share_sheet_last_month">الشهر الماضي</string>
     <string name="share_sheet_all_time">كل الوقت</string>
     <!-- %1$s = month name -->
-    <string name="share_banner_title">%1$s، ملخص</string>
-    <string name="share_banner_subtitle">شاهد ما تعقبه PennyWise لك</string>
+    <string name="share_banner_title">ملخص %1$s</string>
+    <string name="share_banner_subtitle">راجع ما تغيّر وأين ذهب مصروفك</string>
     <string name="share_banner_dismiss">تجاهل</string>
     <!-- Shared transaction components -->
     <string name="quick_category_title">تغيير الفئة</string>

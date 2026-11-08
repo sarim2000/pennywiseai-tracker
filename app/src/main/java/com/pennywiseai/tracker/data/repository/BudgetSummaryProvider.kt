@@ -1,0 +1,463 @@
+package com.pennywiseai.tracker.data.repository
+
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.utils.forTotals
+import java.math.BigDecimal
+import java.math.RoundingMode
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.temporal.ChronoUnit
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+
+/**
+ * A month's budgets exactly as the Budgets screen shows them, in the currency it
+ * shows them in: the base currency normally, the display currency when unified.
+ * The screen and the budget alerts both read this, so an alert can't disagree
+ * with the card it opens.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@Singleton
+class BudgetSummaryProvider @Inject constructor(
+    private val budgetGroupRepository: BudgetGroupRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val currencyConversionService: CurrencyConversionService
+) {
+    fun summary(yearMonth: YearMonth): Flow<BudgetOverallSummary> =
+        combine(
+            userPreferencesRepository.baseCurrency,
+            userPreferencesRepository.unifiedCurrencyMode,
+            userPreferencesRepository.displayCurrency
+        ) { baseCurrency, unifiedMode, displayCurrency ->
+            Triple(baseCurrency, unifiedMode, displayCurrency)
+        }.flatMapLatest { (baseCurrency, unifiedMode, displayCurrency) ->
+            if (unifiedMode) {
+                budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
+                    .map { raw -> convertRawToSummary(raw, displayCurrency, baseCurrency) }
+            } else {
+                budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency)
+            }
+        }
+
+    /**
+     * Build a per-budget [BudgetGroupSpending] in the unified-currency path
+     * from the repo's [BudgetGroupSpendingRaw]. The repo gives us a per-
+     * (budget, window) spend map; the viewmodel applies currency
+     * conversion to the displayed window's transactions and the
+     * `previousWindows` (per-week sub-list) entries.
+     */
+    private suspend fun convertRawToSummary(
+        raw: BudgetGroupSpendingRaw,
+        displayCurrency: String,
+        baseCurrency: String
+    ): BudgetOverallSummary {
+        val today = raw.today
+        val isCurrentMonth = raw.isCurrentMonth
+
+        // Index the per-window spend by (budgetId, windowStart) for quick
+        // lookup in the per-budget build.
+        val windowSpendByBudget: Map<Long, List<WindowSpending>> =
+            raw.windowedSpend.groupBy { it.budgetId }
+
+        // Build per-budget summaries. For each budget:
+        //  - pick the displayed window (resolveBudgetWindow for current
+        //    month; most recent window in the list for historical months);
+        //  - build the previousWindows list (Weekly only, historical only)
+        //    with the per-window spend;
+        //  - run the per-window transactions through the same aggregation
+        //    used by the single-currency path, but with currency conversion.
+        val groupSpendings = raw.budgetsWithCategories.map { group ->
+            // The per-budget current window. Falls back to a 1-day
+            // "today" window if the repo didn't supply one (defensive
+            // only — every active budget has a window from the repo).
+            val perBudgetWindow = raw.currentWindows[group.budget.id]
+                ?: com.pennywiseai.tracker.data.repository.BudgetWindow(
+                    start = today, end = today, days = 1
+                )
+            buildUnifiedGroupSpending(
+                group = group,
+                today = today,
+                isCurrentMonth = isCurrentMonth,
+                windowedSpend = windowSpendByBudget[group.budget.id].orEmpty(),
+                currentWindow = perBudgetWindow,
+                displayCurrency = displayCurrency,
+                baseCurrency = baseCurrency
+            )
+        }
+
+        val minStart = groupSpendings.minOfOrNull { it.windowStart } ?: today
+        val maxEnd = groupSpendings.maxOfOrNull { it.windowEnd } ?: today
+        val pageWindowDays = if (groupSpendings.isNotEmpty()) {
+            java.time.temporal.ChronoUnit.DAYS.between(minStart, maxEnd).toInt() + 1
+        } else 1
+        val pageWindow = com.pennywiseai.tracker.data.repository.BudgetWindow(
+            start = minStart,
+            end = maxEnd,
+            days = pageWindowDays
+        )
+
+        // Compute totalIncome from raw.allTransactions bounded by the page window
+        val totalIncome = raw.allTransactions
+            .forTotals()
+            .fold(BigDecimal.ZERO) { acc, txWithSplits ->
+                val tx = txWithSplits.transaction
+                val d = tx.dateTime.toLocalDate()
+                val inWindow = !d.isBefore(minStart) && !d.isAfter(maxEnd)
+
+                if (inWindow && tx.transactionType == TransactionType.INCOME &&
+                    !(tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT && tx.budgetCategory != null)
+                ) currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    ?.let { acc + it } ?: acc
+                else acc
+            }
+
+        val limitGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+        val targetGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.TARGET }
+        val expectedGroups = groupSpendings.filter { it.group.budget.groupType == BudgetGroupType.EXPECTED }
+
+        val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+        val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+        val totalTargetGoal = targetGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+        val totalTargetActual = targetGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+        val totalExpectedBudget = expectedGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+        val totalExpectedActual = expectedGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+
+        val netSavings = totalIncome - totalLimitSpent
+        val savingsRate = if (totalIncome > BigDecimal.ZERO) {
+            (netSavings.toFloat() / totalIncome.toFloat() * 100f)
+        } else 0f
+
+        val limitRemaining = totalLimitBudget - totalLimitSpent
+        val daysRemaining = (java.time.temporal.ChronoUnit.DAYS.between(today, maxEnd).toInt() + 1)
+            .coerceIn(0, pageWindowDays)
+        val dailyAllowance = if (daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
+            limitRemaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
+        } else BigDecimal.ZERO
+
+        return BudgetOverallSummary(
+            groups = groupSpendings,
+            totalIncome = totalIncome,
+            totalLimitBudget = totalLimitBudget,
+            totalLimitSpent = totalLimitSpent,
+            totalTargetGoal = totalTargetGoal,
+            totalTargetActual = totalTargetActual,
+            totalExpectedBudget = totalExpectedBudget,
+            totalExpectedActual = totalExpectedActual,
+            netSavings = netSavings,
+            savingsRate = savingsRate,
+            dailyAllowance = dailyAllowance,
+            daysRemaining = daysRemaining,
+            currency = displayCurrency,
+            pageWindow = pageWindow
+        )
+    }
+
+    /**
+     * Build one [BudgetGroupSpending] in the unified-currency path. We
+     * don't have raw transactions for each window — the repo returned
+     * the per-window totals — so we synthesise a "single-currency-equivalent"
+     * by treating [windowedSpend] as the source of truth for each window's
+     * spend. The displayed window's [WindowSpending.spent] is the
+     * `totalActual` for the budget; the previousWindows list carries the
+     * per-week breakdown.
+     */
+    /**
+     * Fallback: when the repo's windowedSpend list doesn't contain a
+     * window that matches the displayed window's exact bounds (e.g. a
+     * Monthly budget with monthStartDay=25 — the displayed window is
+     * the full 30-day cycle but the repo clips to calendar months), sum
+     * the spend of every windowed entry whose [start, end] range
+     * overlaps the displayed window. Each per-month window's spend is
+     * already in the page's currency, so no further conversion needed.
+     */
+    private suspend fun getBudgetWindowFilteredSpend(
+        group: com.pennywiseai.tracker.data.database.entity.BudgetWithCategories,
+        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+        displayCurrency: String,
+        baseCurrency: String
+    ): BigDecimal {
+        if (group.categories.isEmpty()) {
+            return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
+                val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
+                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
+                // Skip unconvertible amounts rather than counting them at face value (#670).
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    ?.let { acc + it } ?: acc
+            }
+        }
+        val (categoryAmounts, _, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
+            transactions = transactions,
+            convertSplit = { fromCurrency, amount ->
+                currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
+            },
+            convertIncome = { tx ->
+                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+            }
+        )
+        val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+        val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        return catTotal + typeTotal
+    }
+
+    private fun getTransactionsForOverlappingWindows(
+        budgetId: Long,
+        windowedSpend: List<WindowSpending>,
+        displayedWindow: com.pennywiseai.tracker.data.repository.BudgetWindow
+    ): List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>? {
+        val txs = mutableListOf<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>()
+        var any = false
+        for (ws in windowedSpend) {
+            if (ws.budgetId != budgetId) continue
+            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
+            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
+            if (overlapStart.isAfter(overlapEnd)) continue
+            txs.addAll(ws.transactions)
+            any = true
+        }
+        return if (any) txs.distinctBy { it.transaction.id } else null
+    }
+
+    private suspend fun buildUnifiedGroupSpending(
+        group: BudgetWithCategories,
+        today: LocalDate,
+        isCurrentMonth: Boolean,
+        windowedSpend: List<WindowSpending>,
+        // The per-budget current window resolved by the repo from
+        // resolveBudgetWindow (for current month) or windowsForMonth.last
+        // (for historical). Replaces the old hard-coded `resolveBudgetWindow(budget, today, 1)`
+        // which always used the global start-day pref as a fallback
+        // instead of the budget's own monthStartDay anchor.
+        currentWindow: com.pennywiseai.tracker.data.repository.BudgetWindow,
+        displayCurrency: String,
+        baseCurrency: String
+    ): BudgetGroupSpending {
+        val budget = group.budget
+        val displayedWindow = currentWindow
+        // The windowedSpend list from the repo is keyed by the budget's
+        // own cycle's per-week windows (for Weekly) or the single cycle
+        // (for Monthly) or the literal range (for One-time). The
+        // displayed window may not match any of those keys — e.g. a
+        // Monthly budget with monthStartDay=25 has displayed window
+        // (Sep 25, Oct 24) but windowedSpend keys are (Sep 1, Sep 30)
+        // clipped per month. Match by containment: pick the window whose
+        // [start, end] range fully contains displayedWindow.
+        val matchedWindow = windowedSpend.firstOrNull { ws ->
+            !ws.window.start.isAfter(displayedWindow.start) &&
+                !ws.window.end.isBefore(displayedWindow.end)
+        } ?: windowedSpend.firstOrNull { ws ->
+            // Fallback: pick the window with the largest overlap.
+            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
+            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
+            !overlapStart.isAfter(overlapEnd)
+        }
+        val txsInDisplay = matchedWindow?.transactions
+            ?: getTransactionsForOverlappingWindows(group.budget.id, windowedSpend, displayedWindow)
+            ?: emptyList()
+        val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
+
+        // previousWindows: Weekly historical only. The displayed window
+        // is the budget's own current window; older per-week windows
+        // (in the same month) become the sub-list.
+        val previous = if (budget.periodType == BudgetPeriodType.WEEKLY) {
+            windowedSpend
+                .filter { !it.window.overlaps(currentWindow) }
+                .map { 
+                    PastWindowSpending(
+                        window = it.window, 
+                        spent = getBudgetWindowFilteredSpend(group, it.transactions, displayCurrency, baseCurrency),
+                        capDate = it.window.end,
+                        isLive = false
+                    )
+                }
+        } else emptyList()
+
+        val daysElapsed: Int
+        val daysRemaining: Int
+        if (isCurrentMonth) {
+            daysElapsed = (ChronoUnit.DAYS.between(displayedWindow.start, today).toInt() + 1)
+                .coerceIn(1, displayedWindow.days)
+            daysRemaining = (ChronoUnit.DAYS.between(today, displayedWindow.end).toInt() + 1)
+                .coerceIn(0, displayedWindow.days)
+        } else {
+            daysElapsed = displayedWindow.days
+            daysRemaining = 0
+        }
+
+        val categorySpending = if (group.categories.isEmpty()) emptyList() else {
+            val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
+                transactions = txsInDisplay,
+                convertSplit = { fromCurrency, amount ->
+                    currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
+                },
+                convertIncome = { tx ->
+                    currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                }
+            )
+            val days = displayedWindow.days.coerceAtLeast(1)
+            group.categories.map { cat ->
+                val actual = if (cat.matchType != null) {
+                    typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+                } else {
+                    categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                }
+                val boost = if (cat.matchType != null) BigDecimal.ZERO
+                    else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                val convertedBudget = currencyConversionService.convertAmountOrNull(
+                    cat.budgetAmount, baseCurrency, displayCurrency
+                ) ?: BigDecimal.ZERO
+                val effectiveBudget = convertedBudget + boost
+                val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
+                    (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+                val dailySpend = if (actual > BigDecimal.ZERO) {
+                    actual.divide(BigDecimal(days), 0, RoundingMode.HALF_UP)
+                } else BigDecimal.ZERO
+
+                com.pennywiseai.tracker.data.repository.BudgetCategorySpending(
+                    categoryName = cat.categoryName,
+                    budgetAmount = effectiveBudget,
+                    actualAmount = actual,
+                    percentageUsed = pctUsed,
+                    dailySpend = dailySpend
+                )
+            }.filter { it.actualAmount > BigDecimal.ZERO }.sortedByDescending { it.actualAmount }
+        }
+
+        val convertedTotalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
+            currencyConversionService.convertAmountOrNull(
+                group.budget.limitAmount, baseCurrency, displayCurrency
+            ) ?: BigDecimal.ZERO
+        } else {
+            categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+        }
+
+        val remaining = convertedTotalBudget - convertedTotalActual
+        val pctUsed = if (convertedTotalBudget > BigDecimal.ZERO) {
+            (convertedTotalActual.toFloat() / convertedTotalBudget.toFloat() * 100f).coerceAtLeast(0f)
+        } else 0f
+        val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
+            remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
+        } else BigDecimal.ZERO
+
+        suspend fun buildGroupPace(
+            categoryNames: Set<String>?,
+            matchTypes: Set<String>,
+            groupBudget: BigDecimal
+        ): Pair<List<Double>, List<Double>> {
+            if (daysElapsed < 1) return emptyList<Double>() to emptyList()
+            val effectiveDays = daysElapsed
+            val dailyAmounts = DoubleArray(displayedWindow.days)
+            
+            for (rawWithSplits in txsInDisplay) {
+                val txWithSplits = rawWithSplits.forTotals() ?: continue
+                val tx = txWithSplits.transaction
+                if (tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME ||
+                    tx.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER
+                ) continue
+                val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
+                    .coerceIn(0, displayedWindow.days - 1)
+                
+                // Skip the whole txn if its currency has no rate — face value would
+                // corrupt the pace chart (#670). Splits share the currency, so if the
+                // total is unconvertible the per-category amounts are too.
+                val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
+
+                if (tx.transactionType.name in matchTypes) {
+                    dailyAmounts[dayIndex] += convertedAmount
+                } else if (tx.transactionType !in com.pennywiseai.tracker.data.repository.BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
+                    if (categoryNames == null) {
+                        dailyAmounts[dayIndex] += convertedAmount
+                    } else {
+                        for ((cat, amount) in txWithSplits.getAmountByCategory()) {
+                            val catName = cat.ifEmpty { "Others" }
+                            if (catName in categoryNames) {
+                                currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
+                                    ?.let { dailyAmounts[dayIndex] += it.toDouble() }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Subtract Refund (DEDUCT_SPENT) income on the day it occurred.
+            for (txWithSplits in txsInDisplay) {
+                val tx = txWithSplits.transaction
+                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) continue
+                if (tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT) continue
+                
+                val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
+                    .coerceIn(0, displayedWindow.days - 1)
+                    
+                val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
+
+                if (categoryNames == null) {
+                    dailyAmounts[dayIndex] -= convertedAmount
+                } else {
+                    for ((cat, amount) in txWithSplits.getAmountByCategory()) {
+                        val catName = cat.ifEmpty { "Others" }
+                        if (catName in categoryNames) {
+                            currencyConversionService.convertAmountOrNull(amount, tx.currency, displayCurrency)
+                                ?.let { dailyAmounts[dayIndex] -= it.toDouble() }
+                        }
+                    }
+                }
+            }
+            
+            val cumulative = mutableListOf<Double>()
+            var runningTotal = 0.0
+            for (i in 0 until effectiveDays) {
+                runningTotal += dailyAmounts[i]
+                cumulative.add(runningTotal)
+            }
+            val pace = mutableListOf<Double>()
+            if (groupBudget > BigDecimal.ZERO && displayedWindow.days > 0) {
+                val dailyPace = groupBudget.toDouble() / displayedWindow.days
+                for (i in 0 until effectiveDays) {
+                    pace.add(dailyPace * (i + 1))
+                }
+            }
+            return cumulative to pace
+        }
+
+        val catNames = if (group.categories.isEmpty()) null else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+        val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
+        val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, convertedTotalBudget)
+
+        return BudgetGroupSpending(
+            group = group,
+            categorySpending = categorySpending,
+            totalBudget = convertedTotalBudget,
+            totalActual = convertedTotalActual,
+            remaining = remaining,
+            percentageUsed = pctUsed,
+            dailyAllowance = dailyAllowance,
+            daysRemaining = daysRemaining,
+            daysElapsed = daysElapsed,
+            isTrackingAllExpenses = group.categories.isEmpty(),
+            dailyCumulativeSpending = cumSpending,
+            dailyBudgetPace = budgetPace,
+            windowStart = displayedWindow.start,
+            windowEnd = displayedWindow.end,
+            windowDays = displayedWindow.days,
+            // The unified path only renders the current month, so the
+            // displayed window is always live — cap is today.
+            displayedCapDate = today,
+            displayedIsLive = isCurrentMonth,
+            periodType = budget.periodType,
+            previousWindows = previous
+        )
+    }
+}

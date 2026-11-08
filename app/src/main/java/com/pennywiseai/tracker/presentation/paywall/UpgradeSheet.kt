@@ -438,7 +438,7 @@ private fun IncludesBlock() {
             text = stringResource(R.string.upgrade_includes),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary,
+            color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(vertical = Spacing.xs),
         )
         Spacer(Modifier.height(Spacing.xs))
@@ -450,7 +450,7 @@ private fun IncludesBlock() {
                 Icon(
                     imageVector = Icons.Outlined.Check,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(Dimensions.Icon.small),
                 )
                 Spacer(Modifier.width(Spacing.sm))
@@ -606,7 +606,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
                         Icon(
                             imageVector = Icons.Outlined.Check,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(Dimensions.Icon.small),
                         )
                         Spacer(Modifier.width(Spacing.sm))

@@ -98,6 +98,7 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    currencyOnly: Boolean = false,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -116,8 +117,7 @@ fun TransactionsScreen(
     // the list + FAB reserve matching clearance regardless of the back arrow. (#635)
     reserveBottomBarSpace: Boolean = false,
     onTransactionClick: (Long) -> Unit = {},
-    onAddTransactionClick: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onAddTransactionClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -231,6 +231,7 @@ fun TransactionsScreen(
             initialTag,
             initialTransactionType
         )
+        if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
     }
 
     // Track if we've already processed these specific nav params
@@ -359,6 +360,11 @@ fun TransactionsScreen(
                             // Link exactly two selected rows as a transfer — the
                             // manual counterpart to the auto-detected chip (#614),
                             // covering pairs the detector misses (fees, wide gaps).
+                            if (selectedIds.size < uiState.transactions.size) {
+                                IconButton(onClick = { viewModel.selectAllVisible() }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.txn_list_select_all))
+                                }
+                            }
                             if (selectedIds.size == 2) {
                                 IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
                                     Icon(
@@ -601,7 +607,7 @@ fun TransactionsScreen(
                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     flingBehavior = rememberOverscrollFlingBehavior { listState }
                 ) {
-                    stickyHeader {
+                    stickyHeader(contentType = "totals") {
                         Surface(
                             // Match the Scaffold's `background` so AMOLED-style
                             // themes (true-black bg + tinted surface) don't paint
@@ -635,7 +641,7 @@ fun TransactionsScreen(
 
                     // Show info banner when viewing budget transactions
                     if (categoriesFromBudget) {
-                        item {
+                        item(contentType = "budgetNotice") {
                             Surface(
                                 color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = MaterialTheme.shapes.small,
@@ -676,12 +682,13 @@ fun TransactionsScreen(
                             val headerContent: @Composable LazyItemScope.(Int) -> Unit = { _ ->
                                 TransactionDateHeader(title = stringResource(dateGroup.labelRes))
                             }
-                            stickyHeader(content = headerContent)
+                            stickyHeader(contentType = "dateHeader", content = headerContent)
                             
                             // Transactions in this group
                             itemsIndexed(
                                 items = transactions,
-                                key = { _, transaction -> transaction.id }
+                                key = { _, transaction -> transaction.id },
+                                contentType = { _, _ -> "transaction" }
                             ) { index, transaction ->
                                 val isSelected = transaction.id in selectedIds
                                 // Selected highlight via the Card's container colour — the prior

@@ -70,6 +70,17 @@ object BudgetCycle {
     )
 
     /**
+     * The SIM or network country, set at app start. The weekend is where the user is,
+     * not their language: a phone in English in Riyadh still rests on Friday and Saturday.
+     */
+    @Volatile
+    var weekendCountry: String? = null
+
+    /** The locale whose country decides the weekend: [weekendCountry], else the device's. */
+    fun weekendLocale(): Locale =
+        weekendCountry?.takeIf { it.isNotBlank() }?.let { Locale("", it.uppercase()) } ?: Locale.getDefault()
+
+    /**
      * Checks if the given start day represents the dynamic "last working day of the month".
      */
     fun isLastWorkingDay(value: Int): Boolean = value == LAST_WORKING_DAY
@@ -77,7 +88,7 @@ object BudgetCycle {
     /**
      * Checks if [dayOfWeek] is considered a weekend in the given [locale].
      */
-    fun isWeekend(dayOfWeek: DayOfWeek, locale: Locale = Locale.getDefault()): Boolean {
+    fun isWeekend(dayOfWeek: DayOfWeek, locale: Locale = weekendLocale()): Boolean {
         val country = locale.country.uppercase()
         return when {
             country in FRIDAY_SATURDAY_WEEKEND_COUNTRIES -> {
@@ -104,7 +115,7 @@ object BudgetCycle {
      * Returns the last working day of [ym] according to [locale]'s weekend schedule.
      * If the month ends on a weekend, rolls back to the preceding working day.
      */
-    fun lastWorkingDayOfMonth(ym: YearMonth, locale: Locale = Locale.getDefault()): LocalDate {
+    fun lastWorkingDayOfMonth(ym: YearMonth, locale: Locale = weekendLocale()): LocalDate {
         var date = ym.atEndOfMonth()
         while (isWeekend(date.dayOfWeek, locale)) {
             date = date.minusDays(1)
@@ -118,7 +129,7 @@ object BudgetCycle {
     fun cycleStartForMonth(
         ym: YearMonth,
         startDay: Int,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = weekendLocale()
     ): LocalDate {
         val safeStart = clampStartDay(startDay)
         return if (safeStart == LAST_WORKING_DAY) {
@@ -139,7 +150,7 @@ object BudgetCycle {
     fun currentCycle(
         today: LocalDate,
         startDay: Int,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = weekendLocale()
     ): Pair<LocalDate, LocalDate> {
         val safeStart = clampStartDay(startDay)
         val ym = YearMonth.from(today)
@@ -161,7 +172,7 @@ object BudgetCycle {
     fun previousCycle(
         cycle: Pair<LocalDate, LocalDate>,
         startDay: Int,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = weekendLocale()
     ): Pair<LocalDate, LocalDate> {
         val safeStart = clampStartDay(startDay)
         val ym = YearMonth.from(cycle.first)
@@ -177,7 +188,7 @@ object BudgetCycle {
     fun nextCycle(
         cycle: Pair<LocalDate, LocalDate>,
         startDay: Int,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = weekendLocale()
     ): Pair<LocalDate, LocalDate> {
         val safeStart = clampStartDay(startDay)
         val nextStart = nextCycleStart(cycle.first, safeStart, locale)
@@ -196,7 +207,7 @@ object BudgetCycle {
     fun nextCycleStart(
         reference: LocalDate,
         startDay: Int,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = weekendLocale()
     ): LocalDate {
         val safeStart = clampStartDay(startDay)
         val ym = YearMonth.from(reference)
@@ -217,7 +228,7 @@ object BudgetCycle {
     fun currentCycleStartYearMonth(
         today: LocalDate,
         startDay: Int,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = weekendLocale()
     ): YearMonth {
         val safeStart = clampStartDay(startDay)
         val ym = YearMonth.from(today)

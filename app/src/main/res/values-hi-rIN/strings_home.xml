@@ -36,7 +36,6 @@
     <string name="home_resync_rebuild_desc">पार्सर के सुधार लागू करने के लिए SMS लेन-देन दोबारा पढ़ता है। SMS लेन-देन में किए बदलाव रीसेट हो जाएंगे। मैनुअल, आयात किए गए, उधार और ग्रुप वाले लेन-देन बने रहेंगे।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">अधिक विकल्प</string>
-    <string name="home_menu_monthly_recap">महीने का सारांश</string>
     <string name="home_menu_settings">सेटिंग्स</string>
     <string name="home_menu_edit_home">होम स्क्रीन बदलें</string>
     <string name="home_menu_discord">फ़ीडबैक के लिए Discord से जुड़ें</string>
@@ -262,13 +261,13 @@
     <string name="notif_txn_action_more">और…</string>
     <!-- Lock-screen title of the balance alert; %1$s is the bank name. No figures. -->
     <string name="notif_txn_public_text">%1$s • बैलेंस जाँच लें</string>
-    <!-- %1$s amount with currency, %2$s merchant -->
-    <string name="notif_txn_title_spent">%2$s पर %1$s खर्च हुए</string>
-    <string name="notif_txn_title_received">%2$s से %1$s मिले</string>
+    <!-- Alert title, the amount alone; the merchant is the line below. %1$s amount with currency -->
+    <string name="notif_txn_title_spent">%1$s खर्च हुए</string>
+    <string name="notif_txn_title_received">%1$s मिले</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <!-- Shown when the app couldn't tell the category; %1$s is the bank name -->
-    <string name="notif_txn_ask_category">यह किस लिए था? · %1$s</string>
-    <string name="notif_txn_action_change">बदलें</string>
+    <!-- Shown when the app couldn't tell the category -->
+    <string name="notif_txn_ask_category">यह किस लिए था?</string>
+    <string name="notif_txn_action_change">श्रेणी बदलें</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
     <string name="notif_txn_action_not_expense">खर्च नहीं</string>
     <string name="notif_txn_action_not_income">आय नहीं</string>

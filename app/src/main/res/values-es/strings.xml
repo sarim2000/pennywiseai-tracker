@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - Control de gastos</string>
     <string name="widget_name_budget">Resumen del presupuesto</string>
     <string name="widget_description_budget">Muestra de un vistazo el avance de tu presupuesto mensual, tus ahorros y lo que puedes gastar al día.</string>
     <string name="widget_loading">Cargando widget…</string>
@@ -9,10 +8,13 @@
     <string name="widget_description_category_pie">Los gastos de este mes por categoría en un gráfico circular con leyenda.</string>
     <string name="widget_name_add_transaction">Gasto en efectivo</string>
     <string name="widget_name_summary">Resumen de gastos</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Agregar transacción</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Agregar</string>
     <string name="shortcut_add_transaction_long">Agregar transacción</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Apoya el desarrollo</string>
     <string name="support_subtitle">Hecha por un solo desarrollador: una pequeña propina la mantiene viva 🦉</string>
     <string name="support_dialog_body">PennyWise es gratis y de código abierto, hecha por un solo desarrollador. En esta versión ya está todo desbloqueado. Si te resulta útil, una propina la mantiene viva 🦉</string>

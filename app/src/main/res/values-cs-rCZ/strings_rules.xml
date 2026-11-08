@@ -308,6 +308,7 @@
     <string name="chat_action_update">Aktualizovat</string>
     <string name="chat_action_change_merchant">obchodník → %1$s</string>
     <string name="chat_action_change_category">kategorie → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Nelze použít: %1$s</string>
     <string name="chat_error_memory_full">Paměť chatu je plná. Chcete-li pokračovat, vymažte chat.</string>

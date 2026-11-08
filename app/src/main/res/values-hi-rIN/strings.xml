@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">PennyWise AI - खर्च ट्रैकर</string>
     <string name="widget_name_budget">बजट का हाल</string>
     <string name="widget_description_budget">आपके मासिक बजट की प्रगति, बचत और रोज़ का खर्च एक नज़र में दिखाता है।</string>
     <string name="widget_loading">विजेट लोड हो रहा है…</string>
@@ -9,10 +8,13 @@
     <string name="widget_description_category_pie">इस महीने का श्रेणी के हिसाब से खर्च, लेजेंड के साथ पाई चार्ट में।</string>
     <string name="widget_name_add_transaction">कैश खर्च</string>
     <string name="widget_name_summary">खर्च का सारांश</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">लेन-देन जोड़ें</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">जोड़ें</string>
     <string name="shortcut_add_transaction_long">लेन-देन जोड़ें</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">डेवलपमेंट में मदद करें</string>
     <string name="support_subtitle">एक अकेले डेवलपर ने बनाया है — छोटी-सी टिप से काम चलता रहता है 🦉</string>
     <string name="support_dialog_body">PennyWise मुफ़्त और ओपन सोर्स है, जिसे एक अकेले डेवलपर ने बनाया है। इस बिल्ड में सब कुछ पहले से अनलॉक है। अगर यह आपके काम आता है, तो एक टिप से यह चलता रहेगा 🦉</string>

@@ -58,8 +58,8 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
-    val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -130,7 +130,7 @@ fun ChatScreen(
                                     Icons.Default.CloudDownload,
                                     contentDescription = null,
                                     modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
@@ -400,13 +400,24 @@ fun ChatScreen(
                             // A transaction the model proposed — the user confirms it (#170)
                             pendingAction?.let { action ->
                                 item {
-                                    PendingActionCard(
-                                        action = action,
-                                        currency = baseCurrency,
-                                        enabled = !isConfirming,
-                                        onConfirm = { viewModel.confirmPendingAction() },
-                                        onDismiss = { viewModel.dismissPendingAction() }
-                                    )
+                                    if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
+                                        AddReviewCard(
+                                            rows = action.rows,
+                                            categories = categories,
+                                            enabled = !isConfirming,
+                                            onToggle = viewModel::toggleRow,
+                                            onEdit = viewModel::editRow,
+                                            onConfirm = viewModel::confirmPendingAction,
+                                            onDismiss = viewModel::dismissPendingAction
+                                        )
+                                    } else {
+                                        PendingActionCard(
+                                            action = action,
+                                            enabled = !isConfirming,
+                                            onConfirm = { viewModel.confirmPendingAction() },
+                                            onDismiss = { viewModel.dismissPendingAction() }
+                                        )
+                                    }
                                 }
                             }
 
@@ -503,7 +514,7 @@ fun ChatScreen(
                                         // Keep keyboard open by requesting focus
                                         focusRequester.requestFocus()
                                     },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
+                                    enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming,
                                     modifier = Modifier.size(48.dp),
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
@@ -887,7 +898,7 @@ private fun ChatEmptyState(
             Icons.Default.AutoAwesome,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Text(
@@ -926,29 +937,18 @@ private fun ChatEmptyState(
     }
 }
 
-/** Confirm card for an action the AI proposed (#170): add, delete or update. Nothing happens without the tap. */
+/** Confirm card for a delete or update the AI proposed (#170). Nothing happens without the tap. */
 @Composable
 private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
-    currency: String,
     enabled: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // A new draft is in the base currency; an existing row is shown in its own.
-    val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
     val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
-    val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
     val (title, headline, detail, button) = when (action) {
-        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
-            val d = action.draft
-            listOf(
-                stringResource(if (d.type == income) R.string.chat_action_add_income else R.string.chat_action_add_expense),
-                "${fmt(d.amount)} · ${d.merchant}",
-                stringResource(R.string.chat_action_add_detail, categoryLabel(d.category), d.accountLabel),
-                stringResource(R.string.chat_action_add)
-            )
-        }
+        // AddReviewCard shows these.
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> return
         is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
             val t = action.transaction
             listOf(

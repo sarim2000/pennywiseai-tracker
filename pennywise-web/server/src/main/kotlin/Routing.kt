@@ -18,6 +18,7 @@ import com.example.ui.BankViews.respondBankPage
 import com.example.ui.BankViews.respondBanksIndex
 import com.example.ui.BankViews.respondCountryPage
 import com.example.ui.ProViews.respondProPage
+import com.example.ui.TermsViews.respondTermsPage
 import com.example.ui.GuideViews.respondGuideHub
 import com.example.ui.GuideViews.respondGuidePage
 
@@ -34,7 +35,7 @@ fun Application.configureRouting() {
             BankOfIndiaParser(), IndianBankParser(), IndianOverseasBankParser(), CentralBankOfIndiaParser(),
             CityUnionBankParser(), KarnatakaBankParser(), PNBBankParser(), UnionBankParser(), JKBankParser(),
             AirtelPaymentsBankParser(), IPPBParser(), JioPaymentsBankParser(), JioPayParser(), JupiterBankParser(),
-            HSBCBankParser(), SliceParser(), LazyPayParser(), AMEXBankParser(), OneCardParser(), SouthIndianBankParser(),
+            HSBCBankParser(), SliceParser(), PhonePeWalletParser(), LazyPayParser(), AMEXBankParser(), OneCardParser(), SouthIndianBankParser(),
             UtkarshBankParser(), DBSBankParser(), JuspayParser(),
             // Pluxee (#685) — the web tester advertises a Pluxee sample, so the
             // /htmx/parse registry must be able to parse it too.
@@ -71,6 +72,7 @@ fun Application.configureRouting() {
         // Serve HTMX page at root
         get("/") { call.respondParsePage() }
         get("/pro") { call.respondProPage() }
+        get("/terms") { call.respondTermsPage() }
         get("/guide") { call.respondGuideHub() }
         get("/guide/{slug}") {
             if (!call.respondGuidePage(call.parameters["slug"].orEmpty())) call.respond(HttpStatusCode.NotFound, "Unknown guide")

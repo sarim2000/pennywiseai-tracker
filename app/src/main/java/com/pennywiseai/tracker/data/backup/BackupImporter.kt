@@ -11,8 +11,11 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.billing.license.LicenseManager
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
@@ -52,6 +55,13 @@ class BackupImporter @Inject constructor(
                 ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
                 ImportStrategy.MERGE -> mergeData(backup)
                 ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
+            }
+            // A backup from before transfer_pair_id can hold pairs marked back then.
+            if (result is ImportResult.Success) {
+                val dao = database.transactionDao()
+                findUnlinkedTransferPairs(dao.getUnlinkedTransfers()).forEach { (source, destination) ->
+                    dao.linkTransferPair(UUID.randomUUID().toString(), listOf(source, destination))
+                }
             }
             // Receipt photos (#839), after the DB commit: write only the files
             // a transaction now in the DB points at, so a merge restores the
@@ -1016,6 +1026,7 @@ class BackupImporter @Inject constructor(
         // Additive, like ignored accounts: a restore never brings back a suggestion
         // dismissed on this device.
         userPreferencesRepository.addDismissedRecurringSuggestions(preferences.app.dismissedRecurringSuggestions)
+        TaughtTemplatesStore(context).restore(preferences.app.taughtTemplates)
 
         // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
         preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->

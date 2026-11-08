@@ -40,6 +40,13 @@ data class Transactions(
 @Serializable
 data object Settings : NavKey
 
+/** A page of the Settings hub. */
+@Serializable
+enum class SettingsSection { TRACKING, ACCOUNTS, PLANNING, CURRENCY, FORMATS, NOTIFICATIONS, SECURITY, DATA, AI, DEVELOPER }
+
+@Serializable
+data class SettingsPage(val section: SettingsSection) : NavKey
+
 @Serializable
 data object Categories : NavKey
 
@@ -150,14 +157,31 @@ data object Webhooks : NavKey
 data object AiAccess : NavKey
 
 @Serializable
+data object BackgroundAccess : NavKey
+
+@Serializable
+data object LearnedCategories : NavKey
+
+@Serializable
 data class TransactionsWithFilter(
     val category: String,
     val period: String? = null,
-    val currency: String? = null
+    val currency: String? = null,
+    val startDate: Long? = null,
+    val endDate: Long? = null,
+    /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
+    val currencyOnly: Boolean = false
 ) : NavKey
 
-// Screens inside MainScreen's tab stacks (Home, Settings, Categories, Faq,
-// UnrecognizedSms and ImportStatement are reused there too).
+/**
+ * The week, cycle and year reviews; [kind] is a ReviewKind name, the tab it opens on.
+ * [weekStart] pins the Week tab to a date, for the recap that reported that week.
+ */
+@Serializable
+data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
+
+// Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq,
+// UnrecognizedSms and ImportStatement live only there).
 @Serializable
 data object Subscriptions : NavKey
 

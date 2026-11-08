@@ -79,6 +79,7 @@ class BillReminderActionReceiver : BroadcastReceiver() {
                             .execute(subscriptionId, reminderDueDate = dueDate)
                         if (result is MarkSubscriptionPaidUseCase.Result.Created) {
                             WidgetRefresher.refreshTransactionWidgets(context)
+                            com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                         }
                     }
                     ACTION_SKIP -> {

@@ -13,6 +13,7 @@ import androidx.core.os.BundleCompat
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.manager.ConscienceManager
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -32,12 +33,14 @@ import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.bidiIsolate
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
@@ -61,7 +64,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun learnedSendersStore(): LearnedSendersStore
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
+        fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
         fun userPreferencesRepository(): com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+        fun conscienceManager(): ConscienceManager
     }
 
     companion object {
@@ -253,8 +258,11 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 alerts.size == 1 && active.none { it.id == GROUP_SUMMARY_ID } -> Unit
                 else -> {
                     val title = context.resources.getQuantityString(R.plurals.notif_txn_group_title, alerts.size, alerts.size)
-                    val lines = alerts.values.sortedByDescending { it.`when` }
-                        .mapNotNull { it.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) }
+                    // An alert's title is just the amount; its text says where.
+                    val lines = alerts.values.sortedByDescending { it.`when` }.mapNotNull { alert ->
+                        val amount = alert.extras.getCharSequence(android.app.Notification.EXTRA_TITLE) ?: return@mapNotNull null
+                        listOfNotNull(amount, alert.extras.getCharSequence(android.app.Notification.EXTRA_TEXT)).joinToString(" · ")
+                    }
                     notificationManager.notify(
                         GROUP_SUMMARY_ID,
                         NotificationCompat.Builder(context, CHANNEL_ID)
@@ -319,7 +327,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 ?.takeIf { it.extras.getBoolean(EXTRA_BILL_ACTION) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
-                .setContentTitle(context.getString(R.string.notif_txn_learned_title, CategoryMapping.label(context, learned.category)))
+                .setContentTitle(context.getString(R.string.notif_txn_learned_title, context.bidiIsolate(CategoryMapping.label(context, learned.category))))
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setContentIntent(openTransactionIntent(context, learned.transactionId))
@@ -416,14 +424,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 val text = if (priceUpdated) {
                     context.getString(
                         R.string.recurring_alert_price_updated,
-                        tracked.merchantName,
+                        context.bidiIsolate(tracked.merchantName),
                         CurrencyFormatter.formatCurrency(tracked.amount, tracked.currency, maskIfHidden = false),
                         next
                     )
                 } else {
                     context.getString(
                         R.string.recurring_alert_tracking,
-                        tracked.merchantName,
+                        context.bidiIsolate(tracked.merchantName),
                         context.getString(cycleLabel(tracked.billingCycle)),
                         next
                     )
@@ -450,7 +458,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          * lock screen: private, with a public version that carries no figures.
          */
         internal fun showBalanceDiscrepancyNotification(context: Context, transaction: TransactionEntity, discrepancy: BalanceDiscrepancy) {
-            val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
+            val bankName = context.bidiIsolate(transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank))
             val difference = CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency, maskIfHidden = false)
             val title = context.getString(
                 if (discrepancy.delta.signum() > 0) R.string.notif_balance_higher else R.string.notif_balance_lower,
@@ -503,7 +511,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 if (transaction.transactionType == TransactionType.INCOME) R.string.notif_txn_excluded_income
                 else R.string.notif_txn_excluded_spending
             )
-            val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
+            val merchant = context.bidiIsolate(transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) })
             ensureChannel(context).notify(
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
@@ -569,6 +577,28 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 SmsBroadcastReceiverEntryPoint::class.java
             )
             val learned = entryPoint.learnedSendersStore()
+            val booker = entryPoint.taughtMessageBooker()
+            fun row() = UnrecognizedSmsEntity(
+                sender = sender,
+                smsBody = body,
+                receivedAt = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
+                )
+            )
+            // The user taught this shape (#279). That's their word over any parser's silence,
+            // though it still only offers: nothing is booked until they tap Add.
+            booker.read(sender, body, timestamp)?.let { taught ->
+                if (booker.isIgnored(taught)) return
+                val sms = row()
+                val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
+                showSuggestionNotification(context, Suggestion(sms.copy(id = id), taught, null, taught = true))
+                return
+            }
+            // A taught sender's new format waits in the list with a note, rather than vanishing.
+            if (booker.formatChanged(sender, body, timestamp)) {
+                entryPoint.unrecognizedSmsRepository().insertOrRevive(row())
+                return
+            }
             // A parser that turned this SMS down (an OTP, a promo) knows the sender better than we do.
             val isLearned = learned.isLearned(sender)
             if (!fromTrackedApp && (!isLearned || BankParserFactory.getParsers(sender).isNotEmpty())) return
@@ -577,13 +607,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)?.let {
                 if (entryPoint.ignoredAccountsStore().isIgnored(it.bankName, it.accountLast4)) return
             }
-            val sms = UnrecognizedSmsEntity(
-                sender = sender,
-                smsBody = body,
-                receivedAt = java.time.LocalDateTime.ofInstant(
-                    java.time.Instant.ofEpochMilli(timestamp), java.time.ZoneId.systemDefault()
-                )
-            )
+            val sms = row()
             // Already offered (the same SMS delivered twice): -1, no second alert.
             val id = entryPoint.unrecognizedSmsRepository().insertOrRevive(sms).takeIf { it > 0 } ?: return
             if (isLearned) showSuggestionNotification(context, Suggestion(sms.copy(id = id), transaction, learnedAccount))
@@ -593,13 +617,20 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val draft = suggestion.draft()
             val tx = suggestion.transaction
             val amount = CurrencyFormatter.formatCurrency(tx.amount, tx.currency, maskIfHidden = false)
-            val merchant = tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant)
+            val merchant = context.bidiIsolate(tx.merchant ?: context.getString(R.string.notif_txn_unknown_merchant))
             val title = if (tx.type == com.pennywiseai.parser.core.TransactionType.INCOME) {
                 context.getString(R.string.notif_suggestion_title_received, amount, merchant)
             } else {
                 context.getString(R.string.notif_suggestion_title_spent, amount, merchant)
             }
-            val intent = Intent(context, MainActivity::class.java).apply {
+            // A taught message is reviewed in its own list, and booked from there or by Add below.
+            val intent = if (suggestion.taught) {
+                Intent(context, MainActivity::class.java).apply {
+                    action = ACTION_ADD_SUGGESTION
+                    putExtra(MainActivity.EXTRA_OPEN_UNRECOGNIZED, true)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            } else Intent(context, MainActivity::class.java).apply {
                 action = ACTION_ADD_SUGGESTION
                 putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
                 putExtra(MainActivity.EXTRA_ADD_AMOUNT, draft.amount)
@@ -619,7 +650,12 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_launcher_foreground)
                     .setContentTitle(title)
-                    .setContentText(context.getString(R.string.notif_suggestion_text, BankNotificationConfig.displayName(context, suggestion.sms.sender)))
+                    .setContentText(
+                        context.getString(
+                            if (suggestion.taught) R.string.notif_taught_text else R.string.notif_suggestion_text,
+                            context.bidiIsolate(BankNotificationConfig.displayName(context, suggestion.sms.sender))
+                        )
+                    )
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setContentIntent(
                         PendingIntent.getActivity(
@@ -630,6 +666,15 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                         )
                     )
                     .setAutoCancel(true)
+                    .apply {
+                        if (suggestion.taught) {
+                            addAction(
+                                0,
+                                context.getString(R.string.unrecognized_suggestion_add),
+                                NotificationActionReceiver.addTaughtIntent(context, notificationId, suggestion.sms.id)
+                            )
+                        }
+                    }
                     .build()
             )
         }
@@ -693,6 +738,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         body: String,
         timestamp: Long
     ) {
+        var conscience: Job? = null
         try {
             // Use the shared processor to parse and save the transaction
             val result = processor.processAndSaveTransaction(sender, body, timestamp)
@@ -709,6 +755,10 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             )
             val repository = entryPoint.transactionRepository()
             val saved = repository.getTransactionById(result.transactionId) ?: return
+            // Beside the alert, not ahead of it: its history reads mustn't hold the alert up.
+            conscience = receiverScope.launch {
+                entryPoint.conscienceManager().onLiveTransaction(saved.id, timestamp)
+            }
             // The same bill as last month (or week, or year)? Offer to track it.
             // Capped (one offer per merchant per 90 days, one a day): a missed offer
             // isn't lost, the Subscriptions screen lists it under "Suggested".
@@ -731,7 +781,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val priceLine = result.priceChange?.let { change ->
                 context.getString(
                     if (saved.amount > change.previousAmount) R.string.recurring_alert_price_up else R.string.recurring_alert_price_down,
-                    change.subscriptionName,
+                    context.bidiIsolate(change.subscriptionName),
                     CurrencyFormatter.formatCurrency(change.previousAmount, saved.currency, maskIfHidden = false),
                     CurrencyFormatter.formatCurrency(saved.amount, saved.currency, maskIfHidden = false)
                 )
@@ -750,6 +800,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 ?: cancelBalanceDiscrepancyNotification(context, saved)
         } catch (e: Exception) {
             Log.e(TAG, "Error processing SMS", e)
+        } finally {
+            // goAsync() has to stay open until this is done too.
+            conscience?.join()
         }
     }
 
@@ -777,28 +830,29 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val pendingIntent = openTransactionIntent(context, transactionId)
 
             val amount = CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)
-            val merchant = transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) }
-            val bankName = transaction.bankName ?: context.getString(R.string.notif_txn_unknown_bank)
+            val merchant = context.bidiIsolate(transaction.merchantName.ifBlank { context.getString(R.string.notif_txn_unknown_merchant) })
+            // The amount gets the title to itself and the merchant the line below,
+            // so a long name never cuts the amount off (or the amount the name).
             val title = when (transaction.transactionType) {
-                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount, merchant)
-                TransactionType.EXPENSE, TransactionType.CREDIT ->
-                    context.getString(R.string.notif_txn_title_spent, amount, merchant)
-                else -> context.getString(R.string.notif_txn_title_other, amount, merchant)
+                TransactionType.INCOME -> context.getString(R.string.notif_txn_title_received, amount)
+                TransactionType.EXPENSE, TransactionType.CREDIT -> context.getString(R.string.notif_txn_title_spent, amount)
+                else -> amount
             }
             // From the table: a process started for this SMS may not have mirrored CategoryMapping.userStyles yet.
             val categories = categoryRepository.getAllCategories().first()
             // Unsorted: ask, with one-tap answers. Sorted: the category sits in the header.
             val uncategorized = transaction.category == BuiltinCategoryNames.current("Others")
-            val summaryLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category, bankName) else bankName
-            val content = listOfNotNull(summaryLine, priceLine).joinToString("\n")
+            // No bank: the user knows which account they paid from. The question
+            // and a price change wait for the expanded view, beside the buttons they explain.
+            val askLine = if (uncategorized) context.getString(R.string.notif_txn_ask_category) else null
+            val expanded = listOfNotNull(merchant, askLine, priceLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle(title)
-                .setContentText(content)
+                .setContentText(merchant)
                 .setSubText(if (uncategorized) null else CategoryMapping.label(context, transaction.category, categories))
-                // A price change adds a second line.
-                .apply { if (priceLine != null) setStyle(NotificationCompat.BigTextStyle().bigText(content)) }
+                .setStyle(NotificationCompat.BigTextStyle().bigText(expanded))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)

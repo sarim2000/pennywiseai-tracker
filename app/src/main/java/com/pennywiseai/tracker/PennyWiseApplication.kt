@@ -5,6 +5,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.res.Configuration as ResConfiguration
 import android.os.Bundle
+import android.os.StrictMode
 import androidx.compose.material3.ComposeMaterial3Flags
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.glance.appwidget.updateAll
@@ -75,6 +76,15 @@ class PennyWiseApplication : Application(), Configuration.Provider {
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate() {
+        // Log-only, so main-thread I/O and leaks show in logcat without crashing a debug build.
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder().detectDiskReads().detectDiskWrites().detectNetwork().penaltyLog().build()
+            )
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder().detectLeakedClosableObjects().detectActivityLeaks().penaltyLog().build()
+            )
+        }
         // Opt into M3's fixed Snackbar layout (multi-line text aligns vertically); must precede any composition.
         ComposeMaterial3Flags.isSnackbarStylingFixEnabled = true
         super.onCreate()
@@ -85,6 +95,11 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         CategoryMapping.userStyles
         // Same for the hide-amounts switch, which every money format reads.
         AmountPrivacy.hidden
+        // The weekend a last-working-day budget cycle rolls back over follows the SIM country.
+        getSystemService(android.telephony.TelephonyManager::class.java)?.let { telephony ->
+            com.pennywiseai.tracker.domain.model.BudgetCycle.weekendCountry =
+                telephony.simCountryIso?.takeIf { it.isNotBlank() } ?: telephony.networkCountryIso
+        }
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
         lastLocales = resources.configuration.locales
         com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
@@ -109,6 +124,10 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             com.pennywiseai.tracker.worker.DailySummaryWorker.sync(
                 this@PennyWiseApplication,
                 userPreferencesRepository.dailySummaryEnabled.first()
+            )
+            com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(
+                this@PennyWiseApplication,
+                userPreferencesRepository.weeklySummaryEnabled.first()
             )
         }
         applicationScope.launch { webhookSyncScheduler.observeSchedule() }

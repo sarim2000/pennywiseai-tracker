@@ -69,12 +69,9 @@ fun ShareCard(
     data: ShareCardData,
     modifier: Modifier = Modifier,
 ) {
-    val hero = config.effectiveHero(data.subscriptionCount)
+    val hero = config.effectiveHero(data.subscriptionCount, data.merchantCount)
 
-    val value = when (hero) {
-        ShareHero.TRANSACTIONS -> data.transactionCount
-        ShareHero.SUBSCRIPTIONS -> data.subscriptionCount
-    }
+    val value = data.countFor(hero)
     val caption = when (hero) {
         // "bank texts" carries the product. Without it the card says "15 — tracked" to
         // someone who has never heard of PennyWise, and the only line explaining what was
@@ -83,6 +80,8 @@ fun ShareCard(
         ShareHero.TRANSACTIONS -> stringResource(R.string.share_card_caption_transactions)
         ShareHero.SUBSCRIPTIONS ->
             pluralStringResource(R.plurals.share_card_caption_subscriptions, value)
+        ShareHero.MERCHANTS ->
+            pluralStringResource(R.plurals.share_card_caption_merchants, value)
     }
 
     Column(
@@ -140,8 +139,13 @@ fun ShareCard(
             text = value.toString(),
             style = TextStyle(
                 // Deliberately enormous: at thumbnail scale this is the only element
-                // guaranteed to read, so it carries the whole card.
-                fontSize = 140.sp,
+                // guaranteed to read, so it carries the whole card. A year runs to
+                // four or five digits, which at the full size would wrap off the card.
+                fontSize = when (value.toString().length) {
+                    in 0..3 -> 140.sp
+                    4 -> 104.sp
+                    else -> 84.sp
+                },
                 lineHeight = 132.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = (-8).sp,
@@ -235,6 +239,7 @@ private val previewData = ShareCardData(
     transactionCount = 312,
     topCategories = listOf("Food & Dining", "Shopping", "Transport"),
     subscriptionCount = 4,
+    merchantCount = 86,
     periodLabel = "JULY 2026",
 )
 

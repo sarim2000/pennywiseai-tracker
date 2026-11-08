@@ -6,7 +6,6 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">रद्द करें</string>
     <string name="settings_action_ok">ठीक है</string>
-    <string name="settings_action_done">समाप्त</string>
     <!-- PennyWise Pro -->
     <string name="settings_pro_title_upgrade">PennyWise Pro में अपग्रेड करें</string>
     <string name="settings_pro_subtitle_active">एक्टिव · सभी पावर फ़ीचर्स अनलॉक</string>
@@ -29,10 +28,13 @@
     <string name="settings_card_spend_as_expense_subtitle">\"इस महीने खर्च\" में क्रेडिट कार्ड का खर्च भी शामिल करें</string>
     <string name="settings_default_currency_title">डिफ़ॉल्ट मुद्रा</string>
     <string name="settings_default_currency_subtitle">कन्वर्ज़न के लिए इस्तेमाल होने वाली मुद्रा</string>
+    <string name="settings_budget_convert_title">अपने बजट बदलें?</string>
+    <string name="settings_budget_convert_message">आपकी बजट सीमाएँ %1$s में थीं और अब %2$s में दिखती हैं। उन्हें नवीनतम उपलब्ध दर (%3$s) पर बदलें, या वही संख्याएँ रखें।</string>
+    <string name="settings_budget_convert_confirm">बदलें</string>
+    <string name="settings_budget_convert_keep">संख्याएँ रखें</string>
     <string name="settings_main_account_title">मुख्य खाता</string>
     <string name="settings_main_account_subtitle">आपकी डिफ़ॉल्ट मुद्रा तय करता है</string>
     <string name="settings_main_account_not_set">सेट नहीं है</string>
-    <string name="settings_currency_field_label">मुद्रा</string>
     <string name="settings_number_format_title">नंबर फ़ॉर्मेट</string>
     <string name="settings_number_format_subtitle">बड़ी राशियों को कैसे ग्रुप किया जाए</string>
     <string name="settings_number_format_auto">ऑटो</string>
@@ -44,9 +46,7 @@
     <string name="settings_date_format_title">तारीख फ़ॉर्मेट</string>
     <string name="settings_date_format_subtitle">तारीखें कैसे दिखें</string>
     <!-- Budget -->
-    <string name="settings_budget_section">बजट</string>
     <string name="settings_budget_cycle_title">बजट साइकिल शुरू होने का दिन</string>
-    <string name="settings_budget_cycle_subtitle">हर मासिक बजट अवधि की शुरुआत बदलता है; जैसे 25 चुनने पर आपकी साइकिल 25 → 24 तारीख तक चलेगी</string>
     <string name="settings_budget_cycle_dialog_body">वह दिन चुनें जब हर मासिक बजट साइकिल शुरू हो। जैसे 25 चुनने पर साइकिल 25 तारीख से अगले महीने की 24 तारीख तक चलेगी।</string>
     <!-- Contacts -->
     <string name="settings_contacts_section">संपर्क</string>
@@ -245,6 +245,11 @@
     <string name="settings_report_issue_title">समस्या रिपोर्ट करें</string>
     <string name="settings_report_issue_subtitle">GitHub पर बग रिपोर्ट भेजें</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
+    <!-- Settings hub: section headers -->
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <!-- Settings pages: groups and rows -->
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">दिखावट</string>
     <string name="appearance_back">वापस</string>

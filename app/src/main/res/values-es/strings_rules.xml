@@ -285,6 +285,7 @@
     <string name="chat_action_update">Actualizar</string>
     <string name="chat_action_change_merchant">comercio → %1$s</string>
     <string name="chat_action_change_category">categoría → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">No se pudo aplicar: %1$s</string>
     <string name="chat_error_memory_full">La memoria del chat está llena. Borra el chat para continuar.</string>

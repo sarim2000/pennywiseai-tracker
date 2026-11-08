@@ -214,11 +214,13 @@ abstract class BankParser {
             return true
         }
 
-        // Skip auto-debit intimations ("INR X for <merchant> will be auto-debited
-        // ... by <date>"). These announce a future debit; the real debit arrives
-        // as its own SMS, so booking them doubled the spend.
+        // Skip future-debit intimations ("INR X for <merchant> will be auto-debited
+        // ... by <date>", "For the upcoming UPI AutoPay Mandate … your account will
+        // be debited with Rs.X"). These announce a future debit; the real debit
+        // arrives as its own SMS, so booking them doubled the spend.
         if (lowerMessage.contains("will be auto-debited") ||
-            lowerMessage.contains("will be auto debited")
+            lowerMessage.contains("will be auto debited") ||
+            lowerMessage.contains("will be debited")
         ) {
             return true
         }

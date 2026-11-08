@@ -110,7 +110,8 @@ class AccountBalanceRepositoryAccountTypeTest {
         repository = AccountBalanceRepository(
             accountBalanceDao = accountBalanceDao,
             transactionDao = transactionDao,
-            database = TestDb()
+            database = TestDb(),
+            userPreferencesRepository = io.mockk.mockk(relaxed = true)
         )
     }
 

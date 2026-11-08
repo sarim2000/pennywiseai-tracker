@@ -93,7 +93,8 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import androidx.compose.foundation.isSystemInDarkTheme
+import com.pennywiseai.tracker.ui.screens.settings.BackgroundAccessChecklist
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -123,6 +124,7 @@ fun OnBoardingScreen(
                         OnBoardingStep.WELCOME -> viewModel.goToNextStep()
                         OnBoardingStep.PROFILE -> viewModel.goToNextStep()
                         OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
+                        OnBoardingStep.BACKGROUND_ACCESS -> viewModel.goToNextStep()
                         OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
                         OnBoardingStep.ACCOUNT_SETUP -> {
                             viewModel.completeOnboarding(onOnboardingComplete)
@@ -175,6 +177,7 @@ fun OnBoardingScreen(
                     uiState = uiState,
                     onPermissionResult = { viewModel.onSmsPermissionResult(it) }
                 )
+                OnBoardingStep.BACKGROUND_ACCESS -> BackgroundAccessStep()
                 OnBoardingStep.SMS_SCAN -> SmsScanStep(uiState = uiState)
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
@@ -614,7 +617,7 @@ private fun PermissionsStep(
             val incomeColor = MaterialTheme.colorScheme.income
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = incomeColor.copy(alpha = if (isSystemInDarkTheme()) 0.15f else 0.12f)
+                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
                 ),
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()
@@ -654,6 +657,25 @@ private fun PermissionsStep(
                 Text(stringResource(R.string.onboarding_enable_permissions))
             }
         }
+    }
+}
+
+@Composable
+private fun BackgroundAccessStep() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        Text(
+            text = stringResource(R.string.background_access_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        BackgroundAccessChecklist()
     }
 }
 
@@ -1062,6 +1084,12 @@ private fun OnBoardingBottomBar(
                         Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
+                    }
+                }
+
+                OnBoardingStep.BACKGROUND_ACCESS -> {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.onboarding_continue))
                     }
                 }
 

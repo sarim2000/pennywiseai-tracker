@@ -40,6 +40,8 @@ import com.pennywiseai.tracker.navigation.AccountDetail
 import com.pennywiseai.tracker.navigation.AddAccount
 import com.pennywiseai.tracker.navigation.AddTransaction
 import com.pennywiseai.tracker.navigation.AiAccess
+import com.pennywiseai.tracker.navigation.BackgroundAccess
+import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.Analytics
 import com.pennywiseai.tracker.navigation.Appearance
 import com.pennywiseai.tracker.navigation.BalanceHistory
@@ -57,6 +59,8 @@ import com.pennywiseai.tracker.navigation.ManageAccounts
 import com.pennywiseai.tracker.navigation.RecurringTransactions
 import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.Settings
+import com.pennywiseai.tracker.navigation.SettingsPage
+import com.pennywiseai.tracker.navigation.SettingsSection
 import com.pennywiseai.tracker.navigation.Subscriptions
 import com.pennywiseai.tracker.navigation.TransactionDetail
 import com.pennywiseai.tracker.navigation.TransactionGroupDetail
@@ -85,6 +89,7 @@ import com.pennywiseai.tracker.ui.components.WhatsNewDialog
 import com.pennywiseai.tracker.ui.screens.settings.AppearanceScreen
 import com.pennywiseai.tracker.ui.screens.settings.FAQScreen
 import com.pennywiseai.tracker.ui.screens.settings.SettingsScreen
+import com.pennywiseai.tracker.ui.screens.settings.SettingsSectionScreen
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -182,6 +187,13 @@ fun MainScreen(
         }
     }
 
+    // What a Settings row opens lives either in this tab's graph or above the tabs.
+    fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
+        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, LearnedCategories,
+        is BudgetGroups -> openRoot(key)
+        else -> open(tab, key)
+    }
+
     fun selectTab(tab: BottomNavItem) {
         currentTabRoute = tab.route
     }
@@ -271,6 +283,9 @@ fun MainScreen(
                     onNavigateToTransactionsWithSearch = {
                         open(tab, Transactions(focusSearch = true))
                     },
+                    onNavigateToReview = { kind ->
+                        openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
+                    },
                     onNavigateToSubscriptions = {
                         open(tab, Subscriptions)
                     },
@@ -336,9 +351,6 @@ fun MainScreen(
                     },
                     onAddTransactionClick = {
                         openRoot(AddTransaction())
-                    },
-                    onNavigateToSettings = {
-                        open(tab, Settings)
                     }
                 )
         }
@@ -390,7 +402,7 @@ fun MainScreen(
                     com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
                         modifier = Modifier.imePadding(),
                         onNavigateToSettings = {
-                            open(tab, Settings)
+                            open(tab, SettingsPage(SettingsSection.AI))
                         }
                     )
                 }
@@ -398,52 +410,16 @@ fun MainScreen(
 
         entry<Settings> { key ->
                 SettingsScreen(
-                    themeViewModel = themeViewModel,
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    },
-                    onNavigateToCategories = {
-                        open(tab, Categories)
-                    },
-                    onNavigateToUnrecognizedSms = {
-                        open(tab, UnrecognizedSms)
-                    },
-                    onNavigateToManageAccounts = {
-                        open(tab, ManageAccounts)
-                    },
-                    onNavigateToFaq = {
-                        open(tab, Faq)
-                    },
-                    onNavigateToRules = {
-                        openRoot(Rules)
-                    },
-                    onNavigateToBudgets = {
-                        openRoot(BudgetGroups())
-                    },
-                    onNavigateToLoans = {
-                        openRoot(Loans)
-                    },
-                    onNavigateToRecurring = {
-                        openRoot(RecurringTransactions)
-                    },
-                    onNavigateToExchangeRates = {
-                        openRoot(ExchangeRates)
-                    },
-                    onNavigateToAppearance = {
-                        open(tab, Appearance)
-                    },
-                    onNavigateToImportStatement = {
-                        open(tab, ImportStatement)
-                    },
-                    onNavigateToTransactionGroups = {
-                        openRoot(TransactionGroups)
-                    },
-                    onNavigateToWebhooks = {
-                        openRoot(Webhooks)
-                    },
-                    onNavigateToAiAccess = {
-                        openRoot(AiAccess)
-                    }
+                    onNavigateBack = { backFrom(tab, key) },
+                    onNavigate = { openFromSettings(tab, it) }
+                )
+        }
+
+        entry<SettingsPage> { key ->
+                SettingsSectionScreen(
+                    section = key.section,
+                    onNavigateBack = { backFrom(tab, key) },
+                    onNavigate = { openFromSettings(tab, it) }
                 )
         }
 

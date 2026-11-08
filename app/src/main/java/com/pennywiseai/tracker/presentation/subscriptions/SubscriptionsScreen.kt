@@ -13,7 +13,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -41,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.domain.model.getAccountType
@@ -503,8 +503,8 @@ private fun TotalSubscriptionsSummary(
     paidThisCycleCount: Int = 0,
     currency: String? = null
 ) {
-    val amountColor = if (!isSystemInDarkTheme()) expense_light else expense_dark
-
+    // Ink for the card it sits on: the total is spending, not a problem.
+    val amountColor = MaterialTheme.colorScheme.onSecondaryContainer
 
     // Subtitle shape:
     //   no paid yet  → "5 active subscriptions"
@@ -556,6 +556,10 @@ private fun SwipeableSubscriptionItem(
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    // Spending is ink; a recurring income gets its colour and a "+" so it reads apart without colour.
+    val isIncome = subscription.direction == SubscriptionDirection.INCOME
+    val amountColor = if (isIncome) MaterialTheme.colorScheme.income else MaterialTheme.colorScheme.onSurface
+    val amountPrefix = if (isIncome) "+" else ""
     
     // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
     val threshold = SwipeToDismissBoxDefaults.positionalThreshold
@@ -649,7 +653,7 @@ private fun SwipeableSubscriptionItem(
                                         imageVector = Icons.AutoMirrored.Filled.Chat,
                                         contentDescription = stringResource(R.string.subscriptions_sms_available),
                                         modifier = Modifier.size(Dimensions.Icon.small),
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
 
@@ -749,10 +753,10 @@ private fun SwipeableSubscriptionItem(
                         if (convertedAmount != null && displayCurrency != null) {
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency),
+                                    text = CurrencyFormatter.signed(amountPrefix, CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)),
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                    color = amountColor
                                 )
                                 Text(
                                     text = "(${subscription.formatAmount()})",
@@ -762,10 +766,10 @@ private fun SwipeableSubscriptionItem(
                             }
                         } else {
                             Text(
-                                text = subscription.formatAmount(),
+                                text = CurrencyFormatter.signed(amountPrefix, subscription.formatAmount()),
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (!isSystemInDarkTheme()) expense_light else expense_dark
+                                color = amountColor
                             )
                         }
 
@@ -858,7 +862,7 @@ private fun SwipeableSubscriptionItem(
                                 Icon(
                                     Icons.AutoMirrored.Filled.Chat,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(Dimensions.Icon.medium)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
@@ -1069,7 +1073,7 @@ private fun EditSubscriptionDialog(
                                         Text(
                                             CurrencyFormatter.formatCurrency(account.balance, account.currency),
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.primary
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 },

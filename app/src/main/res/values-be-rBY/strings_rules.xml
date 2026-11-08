@@ -305,6 +305,7 @@
     <string name="chat_action_update">Абнавіць</string>
     <string name="chat_action_change_merchant">прадавец → %1$s</string>
     <string name="chat_action_change_category">катэгорыя → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Не ўдалося ўжыць: %1$s</string>
     <string name="chat_error_memory_full">Памяць чата поўная. Ачысціце чат, каб працягнуць.</string>

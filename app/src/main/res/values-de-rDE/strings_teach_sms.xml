@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">Beibringen</string>
+    <string name="teach_title">PennyWise diese Nachricht beibringen</string>
+    <string name="teach_field_amount">Betrag</string>
+    <string name="teach_field_merchant">Händler</string>
+    <string name="teach_field_account">Konto</string>
+    <string name="teach_hint_amount">Tippe in der Nachricht auf den Betrag.</string>
+    <string name="teach_hint_merchant">Tippe den Händlernamen Wort für Wort an. Ohne Markierung passt beim nächsten Mal nur genau dieser Name.</string>
+    <string name="teach_hint_account">Tippe auf die Konto- oder Kartenziffern. Optional.</string>
+    <string name="teach_amount_placeholder">Noch kein Betrag</string>
+    <string name="teach_amount_source">Gelesen aus: „%1$s“</string>
+    <string name="teach_direction_out">Ausgabe</string>
+    <string name="teach_direction_in">Einnahme</string>
+    <string name="teach_currency">Währung</string>
+    <string name="teach_format_question">Welcher Betrag ist es?</string>
+    <string name="teach_merchant_label">Händler (optional)</string>
+    <string name="teach_account_value">Konto ••%1$s</string>
+    <string name="teach_account_none">Kein Konto</string>
+    <string name="teach_note">Bei ähnlichen Nachrichten dieses Absenders wirst du gefragt, bevor sie hinzugefügt werden.</string>
+    <string name="teach_save_expense">%1$s Ausgabe speichern</string>
+    <string name="teach_save_income">%1$s Einnahme speichern</string>
+    <string name="teach_need_amount">Tippe zuerst auf den Betrag</string>
+    <string name="teach_need_currency">Wähle die Währung</string>
+    <string name="teach_need_format">Wähle, welcher Betrag es ist</string>
+    <string name="teach_need_direction">Wähle Ausgabe oder Einnahme</string>
+    <string name="teach_cannot_learn">PennyWise kann diese Nachricht nicht zuverlässig wieder lesen. Tippe auf andere Wörter oder nimm mehr vom Namen des Händlers dazu.</string>
+    <string name="teach_saved">Hinzugefügt. Bei ähnlichen Nachrichten wirst du vorher gefragt.</string>
+    <string name="teach_added">Hinzugefügt.</string>
+    <string name="teach_settled">Nicht hinzugefügt: Sie ist schon vorhanden oder deine Einstellungen überspringen sie.</string>
+    <string name="teach_booking_failed">Konnte nicht hinzugefügt werden. Sie steht weiterhin unter Unbekannte SMS.</string>
+    <string name="teach_format_changed">Neues Format von diesem Absender. Bring es auch bei.</string>
+    <string name="teach_find_message">Nachricht suchen</string>
+    <string name="teach_picker_title">Letzte Geldnachrichten</string>
+    <string name="teach_picker_body">Aus deinem Posteingang: Nachrichten, die nach Geld aussehen, aber nicht in deinen Transaktionen sind. Nichts verlässt dein Handy.</string>
+    <string name="teach_picker_empty">Gerade gibt es nichts beizubringen.</string>
+    <string name="teach_taught_count">Beigebracht (%1$d)</string>
+    <string name="teach_taught_title">Beigebrachte Nachrichten</string>
+    <string name="teach_taught_body">PennyWise liest diese Muster und fragt dich vor dem Hinzufügen. Wenn du eines entfernst, bleiben die Transaktionen erhalten, die es hinzugefügt hat.</string>
+    <string name="teach_delete_template">Entfernen</string>
+    <string name="notif_taught_text">Von %1$s. Füge sie hinzu oder tippe zum Prüfen.</string>
+</resources>

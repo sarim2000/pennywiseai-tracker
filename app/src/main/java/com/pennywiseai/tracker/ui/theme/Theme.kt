@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -12,8 +13,10 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -87,34 +90,45 @@ internal val DarkColorScheme = darkColorScheme(
     scrim = md_theme_dark_scrim,
 )
 
+/**
+ * Whether this scheme is a dark one, read from the scheme itself rather than the
+ * system setting. Holds for light, dark, AMOLED, branded and dynamic schemes.
+ */
+val ColorScheme.isDark: Boolean
+    get() = background.luminance() < 0.5f
+
+/**
+ * Whether the app is drawing in dark mode. Use this, not `isSystemInDarkTheme()`:
+ * Settings → Appearance can force Light or Dark regardless of the system.
+ */
+@Composable
+@ReadOnlyComposable
+fun isAppInDarkTheme(): Boolean = MaterialTheme.colorScheme.isDark
+
 // Custom color extensions
 val ColorScheme.success: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) success_dark else success_light
+    get() = if (isDark) success_dark else success_light
 
 val ColorScheme.warning: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) warning_dark else warning_light
+    get() = if (isDark) warning_dark else warning_light
 
 val ColorScheme.income: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) income_dark else income_light
+    get() = if (isDark) income_dark else income_light
 
 val ColorScheme.expense: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) expense_dark else expense_light
+    get() = if (isDark) expense_dark else expense_light
 
 val ColorScheme.credit: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) credit_dark else credit_light
+    get() = if (isDark) credit_dark else credit_light
 
 val ColorScheme.transfer: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) transfer_dark else transfer_light
+    get() = if (isDark) transfer_dark else transfer_light
 
 val ColorScheme.investment: Color
-    @Composable
-    get() = if (isSystemInDarkTheme()) investment_dark else investment_light
+    get() = if (isDark) investment_dark else investment_light
+
+val ColorScheme.loan: Color
+    get() = if (isDark) loan_dark else loan_light
 
 @Composable
 fun PennyWiseTheme(
@@ -146,18 +160,7 @@ fun PennyWiseTheme(
 
     // Apply AMOLED black if enabled in dark mode
     if (darkTheme && isAmoledMode) {
-        colorScheme = colorScheme.copy(
-            background = amoled_background,
-            surface = amoled_surface,
-            surfaceVariant = amoled_surfaceVariant,
-            surfaceBright = amoled_surfaceBright,
-            surfaceDim = amoled_surfaceDim,
-            surfaceContainerLowest = amoled_surfaceContainerLowest,
-            surfaceContainerLow = amoled_surfaceContainerLow,
-            surfaceContainer = amoled_surfaceContainer,
-            surfaceContainerHigh = amoled_surfaceContainerHigh,
-            surfaceContainerHighest = amoled_surfaceContainerHighest,
-        )
+        colorScheme = colorScheme.withAmoledSurfaces()
     }
 
     val view = LocalView.current
@@ -191,6 +194,19 @@ fun PennyWiseTheme(
         )
     }
 }
+
+internal fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
+    background = amoled_background,
+    surface = amoled_surface,
+    surfaceVariant = amoled_surfaceVariant,
+    surfaceBright = amoled_surfaceBright,
+    surfaceDim = amoled_surfaceDim,
+    surfaceContainerLowest = amoled_surfaceContainerLowest,
+    surfaceContainerLow = amoled_surfaceContainerLow,
+    surfaceContainer = amoled_surfaceContainer,
+    surfaceContainerHigh = amoled_surfaceContainerHigh,
+    surfaceContainerHighest = amoled_surfaceContainerHighest,
+)
 
 private fun relativeLuminance(color: Color): Double {
     fun linearize(c: Float): Double {

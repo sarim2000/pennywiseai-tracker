@@ -7,10 +7,8 @@
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">Cancel</string>
     <string name="settings_action_ok">OK</string>
-    <string name="settings_action_done">Done</string>
 
     <!-- PennyWise Pro -->
-    <string name="settings_pro_section">PennyWise Pro</string>
     <string name="settings_pro_title_active">PennyWise Pro</string>
     <string name="settings_pro_title_upgrade">Upgrade to PennyWise Pro</string>
     <string name="settings_pro_subtitle_active">Active · all power features unlocked</string>
@@ -35,10 +33,13 @@
     <string name="settings_card_spend_as_expense_subtitle">Include credit-card spend in \"Spent this month\"</string>
     <string name="settings_default_currency_title">Default Currency</string>
     <string name="settings_default_currency_subtitle">Currency used for conversions</string>
+    <string name="settings_budget_convert_title">Convert your budgets?</string>
+    <string name="settings_budget_convert_message">Your budget limits were in %1$s and now read as %2$s. Convert them at the latest available rate (%3$s), or keep the same numbers.</string>
+    <string name="settings_budget_convert_confirm">Convert</string>
+    <string name="settings_budget_convert_keep">Keep numbers</string>
     <string name="settings_main_account_title">Main Account</string>
     <string name="settings_main_account_subtitle">Sets your default currency</string>
     <string name="settings_main_account_not_set">Not set</string>
-    <string name="settings_currency_field_label">Currency</string>
     <string name="settings_number_format_title">Number Format</string>
     <string name="settings_number_format_subtitle">How large amounts are grouped</string>
     <string name="settings_number_format_auto">Auto</string>
@@ -51,13 +52,10 @@
     <string name="settings_date_format_subtitle">How dates are shown</string>
 
     <!-- Budget -->
-    <string name="settings_budget_section">Budget</string>
     <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>
-    <string name="settings_budget_cycle_subtitle">Shifts the start of each monthly budget period; e.g. 25 means your cycle runs 25th → 24th</string>
     <string name="settings_budget_cycle_dialog_body">Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.</string>
     <string name="settings_budget_cycle_last_working_day">Last working day of the month</string>
     <string name="settings_budget_cycle_last_working_day_short">Last working day</string>
-    <string name="settings_budget_cycle_last_working_day_subtitle">Anchors to the last working day of each month, adjusting for weekends</string>
 
     <!-- Contacts -->
     <string name="settings_contacts_section">Contacts</string>
@@ -279,6 +277,53 @@
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <string name="settings_app_version">PennyWise v%1$s</string>
 
+    <!-- Settings hub: section headers -->
+    <string name="settings_hub_money">Your money</string>
+    <string name="settings_hub_privacy_data">Privacy &amp; data</string>
+    <string name="settings_hub_advanced">Advanced</string>
+
+    <!-- Settings hub: what each page holds. Keep to one line. -->
+    <string name="settings_tracking_title">Automatic tracking</string>
+    <string name="settings_tracking_summary">SMS and bank app notifications</string>
+    <string name="settings_accounts_categories_title">Accounts &amp; categories</string>
+    <string name="settings_accounts_categories_summary">Smart rules, card spending, contacts</string>
+    <string name="settings_planning_title">Planning</string>
+    <string name="settings_planning_summary">Budgets, subscriptions, recurring, loans</string>
+    <string name="settings_currency_summary">Default currency, conversion, rates</string>
+    <string name="settings_formats_title">Language &amp; formats</string>
+    <string name="settings_formats_summary">Language, numbers, dates</string>
+    <string name="settings_notifications_summary">Daily summary, alert types</string>
+    <string name="settings_security_summary">App lock, hiding amounts</string>
+    <string name="settings_data_summary">Backup, restore, import, delete</string>
+    <string name="settings_ai_summary">On-device chat, connecting AI apps</string>
+    <string name="settings_developer_summary">Webhooks, technical details</string>
+
+    <!-- Settings pages: the short explanation at the top of each page -->
+    <string name="settings_tracking_intro">PennyWise reads bank messages and notifications right on this phone to add transactions for you.</string>
+    <string name="settings_accounts_categories_intro">Choose which accounts are tracked and how transactions get sorted.</string>
+    <string name="settings_planning_intro">Set limits and see what\'s coming up. The budget cycle also sets the period Home and Analytics show.</string>
+    <string name="settings_currency_intro">Every transaction keeps its original currency. Your default currency is used for totals and conversions, and Unified mode shows everything in one currency.</string>
+    <string name="settings_formats_intro">Choose how text, amounts and dates appear across the app.</string>
+    <string name="settings_notifications_intro">Choose what PennyWise tells you about. Each alert type can also be silenced on its own in system settings.</string>
+    <string name="settings_security_intro">Keep your finances private when someone else has your phone.</string>
+    <string name="settings_data_intro">Your data lives only on this phone, so back it up before you switch or reset your device.</string>
+    <string name="settings_ai_intro">AI chat runs entirely on your phone. Connected AI apps can read your data only while you allow it.</string>
+    <string name="settings_developer_intro">Tools for technical users. Webhooks send the data you select to a server you choose.</string>
+
+    <!-- Settings pages: groups and rows -->
+    <string name="settings_language_subtitle_device">Follows your phone\'s language</string>
+    <string name="settings_group_sms">SMS</string>
+    <string name="settings_group_app_notifications">App notifications</string>
+    <string name="settings_group_backup">Backup</string>
+    <string name="settings_group_auto_backup">Automatic backup</string>
+    <string name="settings_group_import">Import</string>
+    <string name="settings_group_danger">Danger zone</string>
+    <!-- %1$s = date range of the current budget cycle, e.g. Nov 15 – Dec 14 -->
+    <string name="settings_budget_cycle_current">Current cycle: %1$s</string>
+    <string name="settings_subscriptions_subtitle">Bills and plans that renew on their own</string>
+    <string name="settings_notification_types_title">Alert types</string>
+    <string name="settings_notification_types_subtitle">Turn each kind of alert on or off in system settings</string>
+
     <!-- ══ Appearance screen ══ -->
     <string name="appearance_title">Appearance</string>
     <string name="appearance_back">Back</string>
@@ -484,4 +529,9 @@
     <string name="faq_still_need_help_section">Still Need Help?</string>
     <string name="faq_report_issue_title">Report an Issue</string>
     <string name="faq_report_issue_subtitle">Submit bug reports, bank requests, or feature improvements on GitHub</string>
+    <string name="learned_categories_title">Learned categories</string>
+    <string name="learned_categories_subtitle">Categories PennyWise remembers from your edits</string>
+    <string name="learned_categories_intro">When you change a transaction\'s category, PennyWise remembers it for that merchant and uses it for new transactions. Remove one to stop that. Past transactions keep their category.</string>
+    <string name="learned_categories_empty">Nothing learned yet. Categories you pick for a merchant show up here.</string>
+    <string name="learned_categories_remove">Remove learned category for %1$s</string>
 </resources>

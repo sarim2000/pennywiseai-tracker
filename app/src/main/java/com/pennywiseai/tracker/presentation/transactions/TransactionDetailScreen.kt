@@ -136,10 +136,10 @@ private val editMiddleShape = RoundedCornerShape(4.dp)
 private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
 private val editFullShape = RoundedCornerShape(16.dp)
 
-@OptIn(ExperimentalMaterial3Api::class)
 /** How long the saved-transaction check holds before the avatar returns. */
 private const val SETTLED_HOLD_MS = 900L
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionDetailScreen(
     transactionId: Long,

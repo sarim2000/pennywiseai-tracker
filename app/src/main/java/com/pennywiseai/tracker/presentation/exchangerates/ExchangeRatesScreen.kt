@@ -156,7 +156,8 @@ fun ExchangeRatesScreen(
                     ) { rate ->
                         ExchangeRateCard(
                             rate = rate,
-                            onClick = { editingRate = rate }
+                            onClick = { editingRate = rate },
+                            modifier = Modifier.animateItem()
                         )
                     }
 
@@ -208,10 +209,11 @@ fun ExchangeRatesScreen(
 @Composable
 private fun ExchangeRateCard(
     rate: ExchangeRateEntity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
@@ -302,7 +304,7 @@ private fun EditRateDialog(
                     } else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,

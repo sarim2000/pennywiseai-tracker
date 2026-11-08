@@ -206,7 +206,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                 item { Text(stringResource(if (state.loadingConnections) R.string.ai_access_loading else R.string.ai_access_none_connected)) }
             }
             items(state.connections, key = { it.id }) { c ->
-                Card(Modifier.fillMaxWidth()) {
+                Card(Modifier.fillMaxWidth().animateItem()) {
                     Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(c.clientName, style = MaterialTheme.typography.bodyLarge)

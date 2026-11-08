@@ -180,7 +180,7 @@ fun AnalyticsSummaryCard(
                             modifier = Modifier
                                 .background(
                                     color = CategoryMapping.colorFor(topCategory).copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = MaterialTheme.shapes.small
                                 )
                                 .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                             verticalAlignment = Alignment.CenterVertically,

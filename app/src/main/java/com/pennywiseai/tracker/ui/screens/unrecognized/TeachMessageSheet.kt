@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +31,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -424,7 +424,7 @@ fun InboxPickerSheet(
             )
             when {
                 messages == null -> Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                    LoadingIndicator()
                 }
                 messages.isEmpty() -> Text(
                     stringResource(R.string.teach_picker_empty),
@@ -506,7 +506,7 @@ fun TaughtTemplatesSheet(
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.animateItem().fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier.padding(start = Dimensions.Padding.content, top = Spacing.sm, bottom = Spacing.sm),

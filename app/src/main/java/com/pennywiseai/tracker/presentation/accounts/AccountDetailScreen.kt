@@ -168,7 +168,8 @@ fun AccountDetailScreen(
                     AccountTransactionItem(
                         transaction = transaction,
                         primaryCurrency = uiState.primaryCurrency,
-                        onClick = { onTransactionClick(transaction.id) }
+                        onClick = { onTransactionClick(transaction.id) },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -521,7 +522,8 @@ private fun DateRangeFilter(
 private fun AccountTransactionItem(
     transaction: TransactionEntity,
     primaryCurrency: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val amountColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
@@ -538,7 +540,7 @@ private fun AccountTransactionItem(
     }
     
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(

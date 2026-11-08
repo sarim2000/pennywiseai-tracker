@@ -79,7 +79,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                     }
                     if (state.logs.isEmpty()) item { Text(stringResource(R.string.webhooks_history_empty)) }
                     items(state.logs, key = { it.id }) { log ->
-                        Card(Modifier.fillMaxWidth()) {
+                        Card(Modifier.fillMaxWidth().animateItem()) {
                             Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                                 Text(stringResource(if (log.status == WebhookLogStatus.SUCCESS) R.string.webhooks_history_delivered else R.string.webhooks_history_failed),
                                     color = if (log.status == WebhookLogStatus.SUCCESS) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
@@ -112,7 +112,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                     }
                     if (state.profiles.isEmpty()) item { Text(stringResource(R.string.webhooks_empty)) }
                     items(state.profiles, key = { it.id }) { profile ->
-                        WebhookProfileCard(profile, !state.busy,
+                        WebhookProfileCard(profile, !state.busy, Modifier.animateItem(),
                             onEdit = { viewModel.edit(profile) },
                             onEnabled = { viewModel.setEnabled(profile.id, it) },
                             onTest = { viewModel.sendTest(profile.id) },
@@ -135,11 +135,11 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
 
 @Composable
 private fun WebhookProfileCard(
-    profile: WebhookProfileEntity, enabled: Boolean, onEdit: () -> Unit,
+    profile: WebhookProfileEntity, enabled: Boolean, modifier: Modifier, onEdit: () -> Unit,
     onEnabled: (Boolean) -> Unit, onTest: () -> Unit, onSync: () -> Unit,
     onHistory: () -> Unit, onDelete: () -> Unit
 ) {
-    Card(Modifier.fillMaxWidth()) {
+    Card(modifier.fillMaxWidth()) {
         Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

@@ -84,7 +84,7 @@ fun LearnedCategoriesScreen(
                 )
             }
             itemsIndexed(list, key = { _, m -> m.merchantName }) { index, mapping ->
-                GroupedRow(position = ListItemPosition.from(index, list.size)) {
+                GroupedRow(position = ListItemPosition.from(index, list.size), modifier = Modifier.animateItem()) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(mapping.merchantName, style = MaterialTheme.typography.bodyLarge)
                         Text(

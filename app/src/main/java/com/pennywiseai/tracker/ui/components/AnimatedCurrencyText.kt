@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -11,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import com.pennywiseai.tracker.utils.AmountPrivacy
 
 @Composable
 fun AnimatedCurrencyText(
@@ -24,7 +27,10 @@ fun AnimatedCurrencyText(
     AnimatedContent(
         targetState = text,
         transitionSpec = {
-            slideInVertically(
+            // Hiding/showing amounts is a privacy toggle, not a value change: swap instantly.
+            if (AmountPrivacy.MASK in initialState || AmountPrivacy.MASK in targetState) {
+                EnterTransition.None togetherWith ExitTransition.None using null
+            } else slideInVertically(
                 animationSpec = motion.defaultSpatialSpec(),
                 initialOffsetY = { it }
             ) togetherWith slideOutVertically(

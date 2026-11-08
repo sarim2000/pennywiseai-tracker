@@ -4,8 +4,6 @@ import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.animation.core.EaseInOutCubic
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -98,7 +96,7 @@ fun BalanceChart(
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
                 secondGradientFillColor = Color.Transparent,
-                strokeAnimationSpec = tween(1500, easing = EaseInOutCubic),
+                strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                 gradientAnimationDelay = 750,
                 drawStyle = DrawStyle.Stroke(width = 2.dp),
                 curvedEdges = true,

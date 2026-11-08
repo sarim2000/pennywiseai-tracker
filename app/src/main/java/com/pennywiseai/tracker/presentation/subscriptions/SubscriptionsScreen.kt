@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
@@ -286,6 +285,7 @@ fun SubscriptionsScreen(
                     }
                     AnimatedVisibility(
                         visible = visible.value,
+                        modifier = Modifier.animateItem(),
                         enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                             initialOffsetY = { slideOffsetPx },
                             animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
@@ -882,7 +882,7 @@ private fun SwipeableSubscriptionItem(
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = CurrencyFormatter.maskAmountsIn(subscription.smsBody),

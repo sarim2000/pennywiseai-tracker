@@ -45,8 +45,8 @@ fun BulkActionsToolbar(
     AnimatedVisibility(
         visible = visible,
         modifier = modifier.fillMaxWidth(),
-        enter = slideInVertically(motion.defaultSpatialSpec()) { it } + fadeIn(motion.defaultEffectsSpec()),
-        exit = slideOutVertically(motion.fastSpatialSpec()) { it } + fadeOut(motion.fastEffectsSpec()),
+        enter = slideInVertically(motion.defaultSpatialSpec()) { it / 4 } + fadeIn(motion.defaultEffectsSpec()),
+        exit = slideOutVertically(motion.fastSpatialSpec()) { it / 4 } + fadeOut(motion.fastEffectsSpec()),
     ) {
         Box(
             modifier = Modifier

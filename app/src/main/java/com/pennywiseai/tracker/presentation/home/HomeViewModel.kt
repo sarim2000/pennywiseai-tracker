@@ -1247,6 +1247,8 @@ class HomeViewModel @Inject constructor(
 
         // Update UI to show scanning
         scanWorkId = workRequest.id
+        // A rebuild deletes and recreates SMS rows, so its saved count isn't "new".
+        scanReportsNew = !forceResync
         scanResultJob?.cancel()
         _uiState.value = _uiState.value.copy(isScanning = true, scanNewCount = null)
 
@@ -1272,7 +1274,7 @@ class HomeViewModel @Inject constructor(
                 when (currentWork.state) {
                     WorkInfo.State.SUCCEEDED -> {
                         // "+N" only for the scan the user started here.
-                        val justFinished = _uiState.value.isScanning && currentWork.id == scanWorkId
+                        val justFinished = _uiState.value.isScanning && currentWork.id == scanWorkId && scanReportsNew
                         _uiState.value = _uiState.value.copy(isScanning = false)
                         // The final count rides on outputData; progress is already cleared.
                         if (justFinished) showScanResult(currentWork.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, 0))
@@ -1292,6 +1294,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private var scanWorkId: java.util.UUID? = null
+    private var scanReportsNew = true
     private var scanResultJob: kotlinx.coroutines.Job? = null
 
     /**

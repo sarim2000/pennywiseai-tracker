@@ -117,6 +117,9 @@ class GoalFormsTest {
         assertEquals(120, ringPercent(animated = 1.2f, target = 1.2f, percent = 120))
         // Past a full ring the label doesn't keep counting: it shows the real figure.
         assertEquals(120, ringPercent(animated = 1.05f, target = 1.2f, percent = 120))
+        // Coming down from over 100% it reads off the sweep, not the new figure.
+        assertEquals(100, ringPercent(animated = 1.0f, target = 0.5f, percent = 50))
+        assertEquals(80, ringPercent(animated = 0.8f, target = 0.5f, percent = 50))
     }
 
     private fun share(

@@ -27,7 +27,7 @@
     <string name="permission_title">Enable Automatic Transaction Detection</string>
     <string name="permission_description">PennyWise can automatically detect and categorize your bank transactions from SMS messages, saving you time and effort.</string>
     <string name="permission_privacy_title">Private by design</string>
-    <string name="permission_privacy_points">• Android’s prompt says “send and view SMS”. PennyWise never sends a message.\n• Only bank SMS become transactions. Messages from people are skipped and never saved.\n• No account, no sign-up. Your data stays on your phone.\n• Open source, so anyone can check. Turn access off anytime in Settings.</string>
+    <string name="permission_privacy_points">• Android’s prompt says “send and view SMS”. PennyWise never sends a message.\n• Only bank SMS become transactions. Messages from people are skipped.\n• No account, no sign-up. Your data stays on your phone.\n• Open source, so anyone can check. Turn access off anytime in Settings.</string>
     <string name="permission_notification_title">Enable Bank Notification Access</string>
     <string name="permission_notification_description">Allow PennyWise to read transaction notifications from supported banking apps. This helps capture purchases when SMS is delayed or unavailable.</string>
     <string name="permission_notification_enabled">Notification access enabled</string>

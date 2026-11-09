@@ -202,7 +202,9 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
             }
 
             // Draw x-axis label — only every Nth label to avoid overlap
-            if (index % labelStep == 0 || index == barCount - 1) {
+            // The last date always shows; a stepped label too close to it gives way.
+            val last = barCount - 1
+            if (index == last || (index % labelStep == 0 && last - index >= labelStep)) {
                 val labelMeasured = textMeasurer.measure(bar.label, labelStyle)
                 val labelX = x + barThickness / 2f - labelMeasured.size.width / 2f
                 val labelY = chartBottom + 8.dp.toPx()

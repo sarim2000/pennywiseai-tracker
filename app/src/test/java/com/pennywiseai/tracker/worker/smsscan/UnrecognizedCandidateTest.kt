@@ -1,10 +1,10 @@
-package com.pennywiseai.tracker.worker
+package com.pennywiseai.tracker.worker.smsscan
 
 import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.parser.core.TeachSelection
 import com.pennywiseai.parser.core.TransactionType
-import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker.Companion.isUnrecognizedCandidate
-import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker.Companion.taughtSenderKeeps
+import com.pennywiseai.tracker.worker.smsscan.SmsScanClassifier.Companion.isUnrecognizedCandidate
+import com.pennywiseai.tracker.worker.smsscan.SmsScanClassifier.Companion.taughtSenderKeeps
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

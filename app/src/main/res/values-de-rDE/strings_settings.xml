@@ -283,8 +283,8 @@
     <string name="appearance_cover_selected">Ausgewählt</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Schriftarten</string>
+    <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->
     <string name="appearance_font_google_sans_flex_subtitle">Nur lateinische Schrift</string>
-    <string name="appearance_font_system">System</string>
     <string name="appearance_font_system_subtitle">Alle Sprachen</string>
     <string name="appearance_font_sn_pro_subtitle">Abgerundet</string>
     <!-- ══ Webhooks screen ══ -->

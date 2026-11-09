@@ -424,14 +424,17 @@ class LlmRepository @Inject constructor(
         val period = SpendingComparison.period(userMessage, call.arguments["period"])
         val asked = (call.arguments["category"] as? String)?.trim().orEmpty()
         val known = if (asked.isEmpty()) null else matchCategory(asked, categoryRepository.getAllCategories().first())
-        val wanted = if (known == null && SpendingComparison.meansAllSpending(asked)) "" else asked
-        // A name no transaction carries either is unknown, not a category with nothing spent.
-        val category = known ?: wanted.ifEmpty { null }
+        val category = known ?: asked.ifEmpty { null }
         if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
         else aiContextRepository.compareSpending(period, category).let { result ->
-            if (category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()) {
-                context.getString(R.string.chat_reply_unknown_category, wanted)
-            } else comparisonText(result, category)
+            // A name neither the list nor any transaction carries: "all" from the model means all
+            // spending; anything else is unknown, not a category with nothing spent.
+            val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
+            when {
+                unknown && SpendingComparison.meansAllSpending(asked) -> comparisonText(aiContextRepository.compareSpending(period, null), null)
+                unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
+                else -> comparisonText(result, category)
+            }
         }
     } else when (call.name) {
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {

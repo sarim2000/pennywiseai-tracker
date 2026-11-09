@@ -122,6 +122,16 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a category only transactions carry is that category, even when it reads like "all"`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("100"), BigDecimal.ZERO, null)))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "General")))
+        send("compare general with last month")
+        coVerify(exactly = 0) { aiContext.compareSpending(any(), null) }
+    }
+
+    @Test
     fun `every add of a turn lands on one review card`() = runTest {
         events = listOf(add(120.0, 300.0))
         val reply = send("coffee 120 and lunch 300")

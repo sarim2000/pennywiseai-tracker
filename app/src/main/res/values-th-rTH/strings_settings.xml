@@ -274,7 +274,7 @@
     <string name="appearance_fonts_section">แบบอักษร</string>
     <string name="appearance_font_default">ค่าเริ่มต้น</string>
     <string name="appearance_font_default_subtitle">ระบบ</string>
-    <string name="appearance_font_sn_pro_subtitle">โมโนทันสมัย</string>
+    <string name="appearance_font_sn_pro_subtitle">โค้งมน</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Webhook</string>
     <string name="webhooks_title_add">เพิ่ม Webhook</string>

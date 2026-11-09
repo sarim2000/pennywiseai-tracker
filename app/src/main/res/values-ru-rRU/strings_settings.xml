@@ -304,7 +304,7 @@
     <string name="appearance_fonts_section">Шрифты</string>
     <string name="appearance_font_default">По умолчанию</string>
     <string name="appearance_font_default_subtitle">Система</string>
-    <string name="appearance_font_sn_pro_subtitle">Современное моно</string>
+    <string name="appearance_font_sn_pro_subtitle">Скруглённый</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Вебхуки</string>
     <string name="webhooks_title_add">Добавить вебхук</string>

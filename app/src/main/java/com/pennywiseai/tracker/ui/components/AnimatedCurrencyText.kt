@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,11 +26,21 @@ fun AnimatedCurrencyText(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     fontWeight: FontWeight? = null,
+    maxLines: Int = Int.MAX_VALUE,
+    autoSize: TextAutoSize? = null,
 ) {
     // Hiding/showing amounts is a privacy toggle, not a value change: the mask is
     // drawn outside AnimatedContent so neither side lingers for an exit frame.
     if (AmountPrivacy.MASK in text) {
-        Text(text = text, style = style, color = color, fontWeight = fontWeight, modifier = modifier)
+        Text(
+            text = text,
+            style = style,
+            color = color,
+            fontWeight = fontWeight,
+            maxLines = maxLines,
+            autoSize = autoSize,
+            modifier = modifier,
+        )
         return
     }
     // Money settles: a quick effects cross-fade with a few dp of drift, no overshoot.
@@ -52,6 +63,8 @@ fun AnimatedCurrencyText(
             style = style,
             color = color,
             fontWeight = fontWeight,
+            maxLines = maxLines,
+            autoSize = autoSize,
         )
     }
 }

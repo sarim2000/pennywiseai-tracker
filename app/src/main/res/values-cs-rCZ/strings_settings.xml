@@ -304,7 +304,7 @@
     <string name="appearance_fonts_section">Písma</string>
     <string name="appearance_font_default">Výchozí</string>
     <string name="appearance_font_default_subtitle">Systém</string>
-    <string name="appearance_font_sn_pro_subtitle">Moderní Mono</string>
+    <string name="appearance_font_sn_pro_subtitle">Zaoblené</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Webhooky</string>
     <string name="webhooks_title_add">Přidat webhook</string>

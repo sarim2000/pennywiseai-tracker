@@ -283,7 +283,7 @@
     <string name="appearance_fonts_section">फन्टहरू</string>
     <string name="appearance_font_default">पूर्वनिर्धारित</string>
     <string name="appearance_font_default_subtitle">प्रणाली</string>
-    <string name="appearance_font_sn_pro_subtitle">आधुनिक मोनो</string>
+    <string name="appearance_font_sn_pro_subtitle">गोलाकार</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">वेबहुक</string>
     <string name="webhooks_title_add">वेबहुक थप्नुहोस्</string>

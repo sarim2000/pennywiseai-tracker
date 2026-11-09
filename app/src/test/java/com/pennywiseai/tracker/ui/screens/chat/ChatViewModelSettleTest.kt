@@ -91,7 +91,7 @@ class ChatViewModelSettleTest {
     )
 
     @Test
-    fun `a saved Add holds its check, then hands over to its line`() {
+    fun `a saved Add writes its line, then holds its check for a beat`() {
         val viewModel = viewModel()
         var checkShownWhenLineJoined: Boolean? = null
         coEvery { llm.completePendingAction(any()) } coAnswers {
@@ -102,8 +102,9 @@ class ChatViewModelSettleTest {
 
         viewModel.confirmPendingAction()
 
+        // The line is written before the beat, while the settled card is still drawn.
         assertTrue(viewModel.uiState.value.cardSaved)
-        coVerify(exactly = 0) { llm.completePendingAction(any()) }
+        coVerify(exactly = 1) { llm.completePendingAction(any()) }
         main.scheduler.advanceUntilIdle()
         assertEquals(true, checkShownWhenLineJoined)
         assertFalse(viewModel.uiState.value.cardSaved)

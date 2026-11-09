@@ -220,9 +220,10 @@ class ChatViewModel @Inject constructor(
                         if (drafts.isNotEmpty()) withContext(NonCancellable) {
                             addTransactionUseCase.executeAll(drafts)
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
-                            // Saved: the card shows its check for a beat, then gives way to its line.
-                            _uiState.value = _uiState.value.copy(cardSaved = true)
-                            delay(SETTLED_HOLD_MILLIS)
+                            // Saved: the card stays drawn with its check for a beat. Its line is
+                            // written first, so dying in that beat can't leave a saved transaction
+                            // with no acknowledgement in the chat (and a retry that doubles it).
+                            _uiState.value = _uiState.value.copy(settledCard = action)
                             llmRepository.completePendingAction(
                                 drafts.joinToString("\n") { draft ->
                                     context.getString(
@@ -232,13 +233,14 @@ class ChatViewModel @Inject constructor(
                                     )
                                 }
                             )
+                            delay(SETTLED_HOLD_MILLIS)
                         }
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_apply_failed, listOf(e.message.orEmpty())))
             } finally {
-                _uiState.value = _uiState.value.copy(cardSaved = false)
+                _uiState.value = _uiState.value.copy(settledCard = null)
                 _isConfirming.value = false
             }
         }
@@ -355,9 +357,11 @@ class ChatViewModel @Inject constructor(
 data class ChatUiState(
     val isLoading: Boolean = false,
     val error: UiText? = null,
-    /** An Add card's rows were just saved: it holds its check until its line replaces it. */
-    val cardSaved: Boolean = false
-)
+    /** An Add card whose rows were just saved: still drawn, with its check, for a beat. */
+    val settledCard: com.pennywiseai.tracker.data.model.PendingChatAction.Add? = null
+) {
+    val cardSaved: Boolean get() = settledCard != null
+}
 
 data class ChatStats(
     val messageCount: Int = 0,

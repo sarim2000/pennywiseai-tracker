@@ -28,6 +28,9 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +53,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
-import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -137,10 +139,12 @@ fun PeriodReviewScreen(
                     LoadingIndicator()
                 }
             } else {
-                // The first figures to arrive enter once, as one group: the cards' amounts
-                // don't stagger, and later periods (or a return here) just appear.
+                // The first figures to arrive fade in once, as one group, replacing the
+                // loading indicator: no travel (amounts settle on effects specs) and no
+                // stagger; later periods, or a return here, just appear.
                 LaunchedEffect(Unit) { hasAnimated = true }
-                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
+                val shown = remember { MutableTransitionState(hasAnimated) }.apply { targetState = true }
+                AnimatedVisibility(visibleState = shown, enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec())) {
                     ReviewContent(loaded, onOpenCategory)
                 }
             }

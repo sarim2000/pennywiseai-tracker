@@ -400,7 +400,8 @@ fun ChatScreen(
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
-                            pendingAction?.let { action ->
+                            // A saved card stays drawn (settled) for a beat after it's done.
+                            (pendingAction ?: uiState.settledCard)?.let { action ->
                                 item(key = PENDING_KEY) {
                                     if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
                                         AddReviewCard(

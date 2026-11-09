@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.utils.AppDates
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -80,15 +82,20 @@ fun BudgetCard(
     // land on 79.999 → "79%").
     val pillPercent = (if (usedFraction == pctUsed / 100f || (usedFraction >= 1f && pctUsed >= 100f)) pctUsed else usedFraction * 100f).toInt()
 
+    // The 70/90% thresholds read the percent the pill is showing, so the colour
+    // turns as the bar crosses them rather than before the bar gets there.
     val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val statusColor: Color = when {
-        pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val (statusTarget, onStatusTarget) = budgetStatusColors(pillPercent.toFloat())
+    val colorSpec = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
+    val statusColor by animateColorAsState(statusTarget, colorSpec, label = "budgetStatusColor")
+    val onStatusColor by animateColorAsState(onStatusTarget, colorSpec, label = "budgetOnStatusColor")
     // The bar wears the budget's own color while it's healthy; the pill and
     // hero text stay semantic so a red budget at 36% doesn't read as danger.
-    val barColor = if (pctUsed >= 70f) statusColor else budgetColor
+    val barColor by animateColorAsState(
+        if (pillPercent >= BUDGET_WARN_PERCENT) statusTarget else budgetColor,
+        colorSpec,
+        label = "budgetBarColor"
+    )
 
     PennyWiseCardV2(
         modifier = modifier,
@@ -122,8 +129,9 @@ fun BudgetCard(
             if (groupSpending.totalBudget > BigDecimal.ZERO) {
                 Text(
                     text = stringResource(R.string.budget_card_percent, pillPercent),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    // Tabular figures: the counting percent doesn't jitter in width.
+                    style = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = "tnum"),
+                    color = onStatusColor,
                     modifier = Modifier
                         .background(
                             color = statusColor,
@@ -345,6 +353,23 @@ fun CadencePill(periodType: BudgetPeriodType) {
             .background(color = bg, shape = RoundedCornerShape(50))
             .padding(horizontal = 8.dp, vertical = 2.dp)
     )
+}
+
+private const val BUDGET_WARN_PERCENT = 70
+private const val BUDGET_DANGER_PERCENT = 90
+
+/**
+ * A budget's status colour at [percent] used — primary, tertiary from 70%, error
+ * from 90% — paired with the colour to draw on it, so pill text keeps its contrast.
+ */
+@Composable
+@ReadOnlyComposable
+fun budgetStatusColors(percent: Float): Pair<Color, Color> = with(MaterialTheme.colorScheme) {
+    when {
+        percent >= BUDGET_DANGER_PERCENT -> error to onError
+        percent >= BUDGET_WARN_PERCENT -> tertiary to onTertiary
+        else -> primary to onPrimary
+    }
 }
 
 /** A whisper of the budget's color over the card surface (#763). */

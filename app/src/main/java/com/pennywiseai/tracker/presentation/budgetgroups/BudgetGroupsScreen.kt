@@ -50,6 +50,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -451,11 +452,7 @@ private fun BudgetCard(
     }
 
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val statusColor: Color = when {
-        pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val (statusColor, onStatusColor) = budgetStatusColors(pctUsed)
     // The bar wears the budget's own color while it's healthy; the pill and
     // hero text stay semantic so a red budget at 36% doesn't read as danger.
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
@@ -497,7 +494,7 @@ private fun BudgetCard(
                         Text(
                             text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = onStatusColor,
                             modifier = Modifier
                                 .background(
                                     color = statusColor,

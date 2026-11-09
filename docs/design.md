@@ -317,6 +317,10 @@ it by `Dimensions.Component.bottomBarHeight`.
      never passes through a value it doesn't have. An amount's own drift and
      size settle, and a programmatic scroll to a scroll boundary, are effects
      too: an overshooting spring would jiggle the figure or hit the clamp.
+     Status colour that follows a counting value (the budget pill and bar
+     turning tertiary at 70%, error at 90%) reads the value on screen, not the
+     target, and crossfades on `fastEffectsSpec`; text on it uses the matching
+     `on*` role.
   2. **One beat per change** — no staggering digits or sibling figures.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for
      content, a quarter of the bar for chrome), never full-width by default.

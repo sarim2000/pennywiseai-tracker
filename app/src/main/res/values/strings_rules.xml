@@ -274,13 +274,7 @@
     <string name="chat_thinking_checking">Checking your transactions…</string>
     <string name="chat_thinking_crunching">Crunching the numbers…</string>
     <string name="chat_thinking_one_moment">One moment…</string>
-    <string name="chat_empty_title">Add a spend or ask about it</string>
-    <string name="chat_empty_body">Try one of these prompts</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">coffee 120 at Starbucks</string>
-    <string name="chat_example_prompt_salary">got 50000 salary today</string>
-    <string name="chat_example_prompt_groceries">How much on groceries this month?</string>
-    <string name="chat_example_prompt_spent">How much have I spent this month?</string>
 
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">Add income?</string>
@@ -325,6 +319,12 @@
     <string name="chat_reply_category_spend">%1$s on %2$s this month across %3$d transactions.</string>
     <string name="chat_reply_nothing_spent">Nothing spent on %1$s this month.</string>
     <string name="chat_reply_unknown_category">I don\'t have a category called %1$s.</string>
+    <string name="chat_quick_month_spend">Spending this month</string>
+    <string name="chat_quick_top_categories">Top categories</string>
+    <string name="chat_quick_compare_month">Compare with last month</string>
+    <string name="chat_reply_month_spend">Spent %1$s:</string>
+    <string name="chat_reply_top_categories">Top categories, %1$s:</string>
+    <string name="chat_reply_quick_nothing">Nothing spent in %1$s.</string>
     <string name="chat_reply_compare_title">Spending, %1$s vs %2$s:</string>
     <string name="chat_reply_compare_title_category">%1$s, %2$s vs %3$s:</string>
     <string name="chat_reply_compare_row">%1$s vs %2$s</string>

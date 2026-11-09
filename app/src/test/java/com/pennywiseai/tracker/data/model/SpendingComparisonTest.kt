@@ -101,6 +101,27 @@ class SpendingComparisonTest {
     }
 
     @Test
+    fun `a forgiven loan balance counts as spent, per currency`() {
+        // ₹1,000 dinner with ₹400 lent, then forgiven: spent is the full ₹1,000, as on Home (#938).
+        val r = SpendingComparison.compare(
+            windows,
+            current = listOf(tx("1000", lent = "400")),
+            previous = listOf(tx("500")),
+            currentLoss = mapOf("INR" to BigDecimal("400"), "USD" to BigDecimal("5"))
+        )
+        assertEquals(mapOf("INR" to Triple("1000", "500", 100), "USD" to Triple("5", "0", null)), rows(r))
+    }
+
+    @Test
+    fun `a forgiven loan alone makes a window comparable`() {
+        val r = SpendingComparison.compare(
+            windows, current = emptyList(), previous = listOf(tx("500")),
+            currentLoss = mapOf("INR" to BigDecimal("400"))
+        )
+        assertEquals(mapOf("INR" to Triple("400", "500", -20)), rows(r))
+    }
+
+    @Test
     fun `income, transfers and what doesn't count toward totals are left out`() {
         val r = SpendingComparison.compare(
             windows,
@@ -224,6 +245,48 @@ class SpendingComparisonTest {
         ).forEach { assertTrue(it, SpendingComparison.namesThePreviousPeriod(it)) }
         listOf("how much did I spend on food this month?", "my last coffee", "كم صرفت هذا الشهر؟")
             .forEach { assertTrue(it, !SpendingComparison.namesThePreviousPeriod(it)) }
+    }
+
+    @Test
+    fun `top categories rank within each currency and take split shares`() {
+        val top = SpendingComparison.topCategories(
+            listOf(
+                tx("250", category = "Shopping"),
+                tx("500", splits = listOf("Food & Dining" to "100", "Travel" to "400")),
+                tx("200", category = "Food & Dining"),
+                tx("9", currency = "USD", category = "Travel"),
+                tx("1000", type = TransactionType.INCOME, category = "Salary"),
+                tx("5000", category = "Rent", excluded = true)
+            ),
+            limit = 2
+        )
+        // INR: Travel 400 (a split share), Food 300 (split 100 + 200); Shopping is past the limit. USD apart.
+        assertEquals(listOf("INR", "USD"), top.keys.toList())
+        assertEquals(listOf("Travel" to BigDecimal("400"), "Food & Dining" to BigDecimal("300")), top.getValue("INR"))
+        assertEquals(listOf("Travel" to BigDecimal("9")), top.getValue("USD"))
+    }
+
+    @Test
+    fun `month spend is per currency and leaves income out`() {
+        val spent = SpendingComparison.spend(listOf(tx("120"), tx("30", type = TransactionType.CREDIT), tx("7", currency = "USD"), tx("900", type = TransactionType.INCOME)))
+        assertEquals(mapOf("INR" to BigDecimal("150"), "USD" to BigDecimal("7")), spent)
+
+    }
+
+    @Test
+    fun `top categories take refunds off the category they give back to`() {
+        val top = SpendingComparison.topCategories(
+            listOf(
+                tx("1000", category = "Shopping"),
+                tx("900", type = TransactionType.INCOME, refundTo = "Shopping"),
+                tx("300", category = "Travel"),
+                tx("300", type = TransactionType.INCOME, refundTo = "Travel"),
+                tx("5", currency = "USD", category = "Travel"),
+                tx("5", currency = "USD", type = TransactionType.INCOME, refundTo = "Travel")
+            )
+        )
+        // Shopping nets to 100; Travel and the whole USD list are refunded in full and drop off.
+        assertEquals(mapOf("INR" to listOf("Shopping" to BigDecimal("100"))), top)
     }
 
     @Test

@@ -41,7 +41,7 @@ class SpendingComparisonTest {
         )
     }
 
-    private fun rows(r: Result) = (r as Result.Rows).rows.associate { it.currency to Triple(it.current.toPlainString(), it.previous.toPlainString(), it.changePercent) }
+    private fun rows(r: Result) = (r as Result.Rows).rows.associate { it.currency to Triple(it.current.toPlainString(), it.previous.toPlainString(), it.changePercent?.toInt()) }
 
     @Test
     fun `month so far against the same days of last month`() {
@@ -132,9 +132,11 @@ class SpendingComparisonTest {
 
     @Test
     fun `change rounds half up and needs something before`() {
-        assertEquals(34, SpendingComparison.change(BigDecimal("133.5"), BigDecimal("100")))
-        assertEquals(-33, SpendingComparison.change(BigDecimal("66.6"), BigDecimal("100")))
-        assertEquals(0, SpendingComparison.change(BigDecimal("100"), BigDecimal("100.00")))
+        assertEquals(BigDecimal("34"), SpendingComparison.change(BigDecimal("133.5"), BigDecimal("100")))
+        assertEquals(BigDecimal("-33"), SpendingComparison.change(BigDecimal("66.6"), BigDecimal("100")))
+        assertEquals(0, SpendingComparison.change(BigDecimal("100"), BigDecimal("100.00"))!!.signum())
+        // A tiny previous total: a huge rise, never an overflow into "less".
+        assertEquals(BigDecimal("2999999900"), SpendingComparison.change(BigDecimal("300000"), BigDecimal("0.01")))
         assertNull(SpendingComparison.change(BigDecimal("100"), BigDecimal.ZERO))
     }
 
@@ -144,6 +146,8 @@ class SpendingComparisonTest {
         assertEquals(Period.MONTH, SpendingComparison.period("compare with last month", "week"))
         assertEquals(Period.WEEK, SpendingComparison.period("قارن صرفي هذا الأسبوع بالأسبوع الماضي", "month"))
         assertEquals(Period.MONTH, SpendingComparison.period("كم صرفت هالشهر مقارنة بالشهر الماضي", null))
+        assertEquals(Period.WEEK, SpendingComparison.period("صرفت أكثر هالأسبوع؟", "month"))
+        assertEquals(Period.WEEK, SpendingComparison.period("قارن صرفي للأسبوع الماضي", "month"))
         assertEquals(Period.WEEK, SpendingComparison.period("is hafte pichle hafte se zyada kharcha hua?", "month"))
         assertEquals(Period.MONTH, SpendingComparison.period("इस महीने बनाम पिछले महीने", "week"))
         assertEquals(Period.MONTH, SpendingComparison.period("am I spending more?", null))
@@ -157,5 +161,33 @@ class SpendingComparisonTest {
         assertNull(SpendingComparison.period("this year vs 2025", "month"))
         assertNull(SpendingComparison.period("قارن سبتمبر مع أغسطس", "month"))
         assertNull(SpendingComparison.period("am I spending more?", "quarter"))
+        assertNull(SpendingComparison.period("मई के मुकाबले इस महीने", "month"))
+        assertNull(SpendingComparison.period("قارن صرفي هذا العام بالعام الماضي", "month"))
+        assertNull(SpendingComparison.period("2025 vs 2024", "month"))
+        assertNull(SpendingComparison.period("compare this month with the same month in 2025", "month"))
+        assertNull(SpendingComparison.period("قارن صرفي هالشهر وهالأسبوع", null))
+    }
+
+    @Test
+    fun `words inside other words and amounts don't count`() {
+        // "साल" (year) sits inside "मसालों" (spices).
+        assertEquals(Period.MONTH, SpendingComparison.period("इस महीने मसालों पर खर्च पिछले महीने से बढ़ा?", null))
+        assertEquals(Period.MONTH, SpendingComparison.period("compare my 2000 rupee rent this month with last month", null))
+        // "بشكل عام" is "in general", not "year"; "مشهور" holds "شهر".
+        assertEquals(Period.WEEK, SpendingComparison.period("بشكل عام هل صرفت أكثر هذا الأسبوع؟", null))
+        assertEquals(Period.WEEK, SpendingComparison.period("مطعم مشهور، صرفي هالأسبوع أكثر؟", null))
+    }
+
+    @Test
+    fun `naming last month or week turns a this-month lookup into a comparison`() {
+        assertTrue(SpendingComparison.asksAboutIncome("how much income did I receive last month?"))
+        assertTrue(SpendingComparison.asksAboutIncome("كم راتبي الشهر الماضي"))
+        assertTrue(!SpendingComparison.asksAboutIncome("how much did I spend last month?"))
+        listOf(
+            "how much did I spend on food last month?", "pichle mahine ke mukable shopping pe kitna kharch hua?",
+            "कितना खर्च हुआ पिछले हफ्ते", "كم صرفت الشهر الماضي؟", "صرفت كم الأسبوع اللي فات", "pichle month shopping pe kitna kharch hua?"
+        ).forEach { assertTrue(it, SpendingComparison.namesThePreviousPeriod(it)) }
+        listOf("how much did I spend on food this month?", "my last coffee", "كم صرفت هذا الشهر؟")
+            .forEach { assertTrue(it, !SpendingComparison.namesThePreviousPeriod(it)) }
     }
 }

@@ -328,8 +328,8 @@
     <string name="chat_reply_compare_title">Spending, %1$s vs %2$s:</string>
     <string name="chat_reply_compare_title_category">%1$s, %2$s vs %3$s:</string>
     <string name="chat_reply_compare_row">%1$s vs %2$s</string>
-    <string name="chat_reply_compare_more">%1$d%% more</string>
-    <string name="chat_reply_compare_less">%1$d%% less</string>
+    <string name="chat_reply_compare_more">%1$s%% more</string>
+    <string name="chat_reply_compare_less">%1$s%% less</string>
     <string name="chat_reply_compare_same">no change</string>
     <string name="chat_reply_compare_nothing">Nothing spent in %1$s or %2$s.</string>
     <string name="chat_reply_compare_nothing_category">Nothing spent on %1$s in %2$s or %3$s.</string>

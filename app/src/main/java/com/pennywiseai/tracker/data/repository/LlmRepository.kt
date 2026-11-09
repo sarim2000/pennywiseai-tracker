@@ -213,7 +213,7 @@ class LlmRepository @Inject constructor(
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
         // A comparison is the code's figures alone: prose beside it could carry the model's own arithmetic.
-        if (toolCalls.any { it.name == PennyWiseTools.COMPARE_SPENDING }) responseBuilder.clear()
+        if (toolCalls.any { it.isComparison(userMessage) }) responseBuilder.clear()
         val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
         var addsProposed = false
         var skippedCards = 0
@@ -408,7 +408,21 @@ class LlmRepository @Inject constructor(
         }.joinToString("\n")
     }
 
-    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = when (call.name) {
+    /**
+     * A compareSpending call, or a this-month lookup for a message that names last month or week:
+     * those lookups can't answer it, and the small model reaches for them in Hinglish.
+     */
+    private fun LlmEvent.ToolCall.isComparison(userMessage: String) = name == PennyWiseTools.COMPARE_SPENDING ||
+        (name in MONTH_LOOKUPS && SpendingComparison.namesThePreviousPeriod(userMessage) &&
+            !(name == PennyWiseTools.MONTH_SUMMARY && SpendingComparison.asksAboutIncome(userMessage)))
+
+    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = if (call.isComparison(userMessage)) {
+        val period = SpendingComparison.period(userMessage, call.arguments["period"])
+        val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
+        val category = if (wanted.isEmpty()) null else matchCategory(wanted, categoryRepository.getAllCategories().first()) ?: wanted
+        if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
+        else comparisonText(aiContextRepository.compareSpending(period, category), category)
+    } else when (call.name) {
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
             val match = findTransaction(call.arguments, userMessage)
             val target = match?.transaction
@@ -449,13 +463,6 @@ class LlmRepository @Inject constructor(
                 CurrencyFormatter.formatCurrency(m.totalIncome, currency, maskIfHidden = false),
                 m.transactionCount
             )
-        }
-        PennyWiseTools.COMPARE_SPENDING -> {
-            val period = SpendingComparison.period(userMessage, call.arguments["period"])
-            val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
-            val category = if (wanted.isEmpty()) null else matchCategory(wanted, categoryRepository.getAllCategories().first()) ?: wanted
-            if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
-            else comparisonText(aiContextRepository.compareSpending(period, category), category)
         }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
@@ -512,9 +519,9 @@ class LlmRepository @Inject constructor(
             rows.forEach { row ->
                 val pair = context.getString(R.string.chat_reply_compare_row, money(row.current, row.currency), money(row.previous, row.currency))
                 val change = row.changePercent?.let {
-                    when {
-                        it > 0 -> context.getString(R.string.chat_reply_compare_more, it)
-                        it < 0 -> context.getString(R.string.chat_reply_compare_less, -it)
+                    when (it.signum()) {
+                        1 -> context.getString(R.string.chat_reply_compare_more, it.toPlainString())
+                        -1 -> context.getString(R.string.chat_reply_compare_less, it.negate().toPlainString())
                         else -> context.getString(R.string.chat_reply_compare_same)
                     }
                 }
@@ -639,6 +646,7 @@ class LlmRepository @Inject constructor(
             RegexOption.IGNORE_CASE
         )
         private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+        private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.

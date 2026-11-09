@@ -301,8 +301,7 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and figures.
         val systemPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
-        val quickLabels = QuickAction.entries.mapTo(mutableSetOf()) { context.getString(it.label) }
-        val saved = withoutQuickAnswers(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }, quickLabels)
+        val saved = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt && !it.id.startsWith(QUICK_ID) }
         // A trailing message that got no reply isn't replayed: it's usually the one being sent,
         // saved while the warm-up loaded the model, and replaying it would mean building twice.
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
@@ -501,8 +500,8 @@ class LlmRepository @Inject constructor(
 
     /**
      * M8: a one-tap question answered by code alone, before the model has loaded or without it.
-     * Saved for the screen but never shown to the model (see [withoutQuickAnswers]). Per currency,
-     * never converted, like the comparison.
+     * Saved for the screen but never shown to the model (see [QUICK_ID]). Per currency, never
+     * converted, like the comparison.
      */
     suspend fun answerQuickAction(action: QuickAction) {
         val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
@@ -529,8 +528,8 @@ class LlmRepository @Inject constructor(
         val at = System.currentTimeMillis()
         // The DAO orders by timestamp alone: the reply must sort after its question.
         chatDao.insertMessages(listOf(
-            ChatMessage(message = context.getString(action.label), isUser = true, timestamp = at),
-            ChatMessage(message = answer, isUser = false, timestamp = at + 1)
+            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = context.getString(action.label), isUser = true, timestamp = at),
+            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
         ))
     }
 
@@ -656,22 +655,12 @@ class LlmRepository @Inject constructor(
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */
         /**
-         * The chat without its quick-action questions and their replies. Replayed, they made Qwen2.5
-         * copy their figures as the answer to the next question ("what about last week?" got this
-         * month's) on S23. A follow-up is answered from its own words instead: "last month" already
-         * routes to the comparison. ponytail: matched by label in today's language; a pair saved in
-         * another language, or a user typing the label word for word, is replayed or dropped.
+         * Marks a quick-action question and reply. They stay out of the model's window: replayed,
+         * they made Qwen2.5 copy their figures as the answer to the next question ("what about last
+         * week?" got this month's) on S23. A follow-up is answered from its own words instead:
+         * "last month" already routes to the comparison.
          */
-        internal fun withoutQuickAnswers(history: List<ChatMessage>, labels: Set<String>): List<ChatMessage> {
-            val skip = mutableSetOf<Int>()
-            history.forEachIndexed { i, m ->
-                if (m.isUser && m.message in labels) {
-                    skip += i
-                    if (history.getOrNull(i + 1)?.isUser == false) skip += i + 1
-                }
-            }
-            return history.filterIndexed { i, _ -> i !in skip }
-        }
+        internal const val QUICK_ID = "quick-"
 
         internal fun dropOlderHalf(history: List<ChatMessage>): List<ChatMessage> =
             history.drop((history.size + 1) / 2).dropWhile { !it.isUser }

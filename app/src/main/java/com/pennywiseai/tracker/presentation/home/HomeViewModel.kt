@@ -1801,9 +1801,14 @@ class HomeViewModel @Inject constructor(
 
         // Route through the shared aggregator so Refund (DEDUCT_SPENT) and
         // Extra budget (ADD_TO_LIMIT) take effect on the home carousel the same
-        // way they do on the Budgets screen and the widget.
-        val (categoryAmounts, categoryLimitBoosts) = aggregateBudgetCategorySpending(
-            transactions = analyticsTransactions,
+        // way they do on the Budgets screen and the widget. Per budget, over its
+        // own current window: allTransactions spans every budget's windows this
+        // month, so a weekly budget would otherwise count earlier weeks too.
+        suspend fun spendIn(window: com.pennywiseai.tracker.data.repository.BudgetWindow?) = aggregateBudgetCategorySpending(
+            transactions = if (window == null) analyticsTransactions else analyticsTransactions.filter {
+                val d = it.transaction.dateTime.toLocalDate()
+                !d.isBefore(window.start) && !d.isAfter(window.end)
+            },
             convertSplit = { fromCurrency, amount ->
                 currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
             },
@@ -1815,6 +1820,7 @@ class HomeViewModel @Inject constructor(
         val groupSpendingList = raw.budgetsWithCategories.map { group ->
             val isTrackingAll = group.categories.isEmpty()
             val window = raw.currentWindows[group.budget.id]
+            val (categoryAmounts, categoryLimitBoosts) = spendIn(window)
             val daysRemaining = daysRemainingFor(group.budget)
             val daysElapsed = daysElapsedFor(group.budget)
             val catSpending = group.categories.map { cat ->
@@ -1875,7 +1881,8 @@ class HomeViewModel @Inject constructor(
                 // without it the window defaults to today..today with 0 days.
                 windowStart = window?.start ?: LocalDate.now(),
                 windowEnd = window?.end ?: LocalDate.now(),
-                windowDays = window?.days ?: 0
+                windowDays = window?.days ?: 0,
+                periodType = group.budget.periodType
             )
         }
 

@@ -205,6 +205,7 @@ private fun SwipeableCategoryItem(
                         SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
                         else -> Color.Transparent
                     },
+                    animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                     label = "background color"
                 )
                 Box(

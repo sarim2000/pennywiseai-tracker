@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.domain.model.icon
@@ -250,8 +252,8 @@ private fun ExpandableBalanceChart(
             
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(Spacing.md))

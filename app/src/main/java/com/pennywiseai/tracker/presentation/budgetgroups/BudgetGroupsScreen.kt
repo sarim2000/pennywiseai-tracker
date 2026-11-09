@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
 
 import java.time.format.TextStyle
@@ -9,11 +11,6 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -39,7 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -269,12 +267,11 @@ private fun BudgetGroupsContent(
     var deleteGroupName by remember { mutableStateOf("") }
 
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+    val animationsEnabled = rememberAnimationsEnabled()
 
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
-            delay(350)
+            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
             hasAnimated = true
         }
     }
@@ -297,17 +294,7 @@ private fun BudgetGroupsContent(
 
         // Month Selector
         item {
-            val visible = remember { mutableStateOf(hasAnimated) }
-            LaunchedEffect(Unit) {
-                if (!hasAnimated) { delay(0); visible.value = true }
-            }
-            AnimatedVisibility(
-                visible = visible.value,
-                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                    initialOffsetY = { slideOffsetPx },
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                )
-            ) {
+            StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -323,18 +310,7 @@ private fun BudgetGroupsContent(
             items = summary.groups,
             key = { _, group -> group.group.budget.id }
         ) { index, groupSpending ->
-            val visible = remember { mutableStateOf(hasAnimated) }
-            LaunchedEffect(Unit) {
-                if (!hasAnimated) { delay((index + 1) * 50L); visible.value = true }
-            }
-            AnimatedVisibility(
-                visible = visible.value,
-                modifier = Modifier.animateItem(),
-                enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                    initialOffsetY = { slideOffsetPx },
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                )
-            ) {
+            StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
                 BudgetCard(
                     groupSpending = groupSpending,
                     currency = uiState.currency,
@@ -762,10 +738,8 @@ private fun BudgetCard(
             // Expandable category list + pace chart
             AnimatedVisibility(
                 visible = expanded,
-                enter = fadeIn() + expandVertically(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                ),
-                exit = fadeOut() + shrinkVertically()
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),

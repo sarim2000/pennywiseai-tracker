@@ -14,10 +14,6 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -36,13 +32,15 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntSize
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 
 @Composable
 fun BlurredAnimatedVisibility(
     visible: Boolean,
     modifier: Modifier = Modifier,
-    enter: EnterTransition = fadeIn() + scaleIn(),
-    exit: ExitTransition = fadeOut() + scaleOut(),
+    enter: EnterTransition = pwFadeIn(),
+    exit: ExitTransition = pwFadeOut(),
     content: @Composable AnimatedVisibilityScope.() -> Unit,
 ) {
     val transition = updateTransition(

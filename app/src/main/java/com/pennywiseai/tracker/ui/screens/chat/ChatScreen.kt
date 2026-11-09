@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -308,8 +310,8 @@ fun ChatScreen(
                         // Developer info card
                         AnimatedVisibility(
                             visible = isDeveloperMode && messages.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = pwExpand(),
+                            exit = pwCollapse()
                         ) {
                             DeveloperInfoCard(chatStats = chatStats)
                         }
@@ -317,8 +319,8 @@ fun ChatScreen(
                         // Clear chat button when there are messages
                         AnimatedVisibility(
                             visible = messages.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = pwExpand(),
+                            exit = pwCollapse()
                         ) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -435,8 +437,8 @@ fun ChatScreen(
                         // Error message
                         AnimatedVisibility(
                             visible = uiState.error != null,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = pwExpand(),
+                            exit = pwCollapse()
                         ) {
                             PennyWiseCardV2(
                                 modifier = Modifier
@@ -601,8 +603,8 @@ fun DeveloperInfoCard(
             
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Column(
                     modifier = Modifier
@@ -743,7 +745,7 @@ fun ChatMessageItem(
         PennyWiseCardV2(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .animateContentSize(),
+                .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
             colors = CardDefaults.cardColors(
                 containerColor = if (message.isUser)
                     MaterialTheme.colorScheme.primaryContainer

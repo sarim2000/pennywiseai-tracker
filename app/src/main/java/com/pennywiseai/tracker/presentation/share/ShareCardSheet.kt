@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.share
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -137,7 +139,7 @@ fun ShareCardSheet(
                 Text(if (showCustomise) stringResource(R.string.share_sheet_done) else stringResource(R.string.share_sheet_customise))
             }
 
-            AnimatedVisibility(visible = showCustomise) {
+            AnimatedVisibility(visible = showCustomise, enter = pwExpand(), exit = pwCollapse()) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs),

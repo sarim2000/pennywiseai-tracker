@@ -19,9 +19,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,21 +53,27 @@ class NavDockAction(
 /** Holds the action of whichever tab is on screen; the floating nav bar draws it. */
 @Stable
 class NavDockState {
-    private var owner: Any? = null
+    // ponytail: a stack, newest claim on top. During a tab fade-through both tabs are
+    // composed; the outgoing one keeps its slot underneath until it leaves, so it can
+    // neither overwrite the incoming action nor leave the dock empty on a fast return.
+    private val claims = mutableStateListOf<Pair<Any, NavDockAction>>()
 
-    var action: NavDockAction? by mutableStateOf(null)
-        private set
+    val action: NavDockAction? get() = claims.lastOrNull()?.second
 
+    /** The screen entering composition goes on top. */
+    internal fun claim(owner: Any, action: NavDockAction) {
+        claims.removeAll { it.first === owner }
+        claims += owner to action
+    }
+
+    /** Refreshes [owner]'s action in place, without changing who is on top. */
     internal fun set(owner: Any, action: NavDockAction) {
-        this.owner = owner
-        this.action = action
+        val i = claims.indexOfFirst { it.first === owner }
+        if (i >= 0) claims[i] = owner to action
     }
 
     internal fun clear(owner: Any) {
-        if (this.owner === owner) {
-            this.owner = null
-            action = null
-        }
+        claims.removeAll { it.first === owner }
     }
 }
 
@@ -83,10 +89,12 @@ val LocalNavDock = staticCompositionLocalOf<NavDockState?> { null }
 fun DockNavAction(action: NavDockAction) {
     val dock = LocalNavDock.current ?: return
     val owner = remember { Any() }
-    SideEffect { dock.set(owner, action) }
+    val latest by rememberUpdatedState(action)
     DisposableEffect(dock, owner) {
+        dock.claim(owner, latest)
         onDispose { dock.clear(owner) }
     }
+    SideEffect { dock.set(owner, action) }
 }
 
 /**

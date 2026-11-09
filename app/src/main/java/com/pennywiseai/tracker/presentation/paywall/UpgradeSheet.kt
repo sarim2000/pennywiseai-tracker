@@ -529,9 +529,11 @@ private fun CelebrationContent(onContinue: () -> Unit) {
     // Copy fades in a beat after the icon pops, so the two read as a sequence.
     var animateIn by remember { mutableStateOf(false) }
     var showContent by remember { mutableStateOf(false) }
+    val animationsEnabled = com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled()
     LaunchedEffect(Unit) {
         animateIn = true
-        kotlinx.coroutines.delay(200L)
+        // The stagger is choreography, not a spec: skip it with animations off.
+        if (animationsEnabled) kotlinx.coroutines.delay(200L)
         showContent = true
     }
 

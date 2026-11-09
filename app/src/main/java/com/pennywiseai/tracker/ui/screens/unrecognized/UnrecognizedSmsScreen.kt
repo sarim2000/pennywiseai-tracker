@@ -28,7 +28,8 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,12 +82,11 @@ fun UnrecognizedSmsScreen(
 
     // Staggered entrance animation state — only animates on first composition
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+    val animationsEnabled = rememberAnimationsEnabled()
 
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
-            delay(600)
+            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
             hasAnimated = true
         }
     }
@@ -128,17 +128,7 @@ fun UnrecognizedSmsScreen(
         ) {
             // Header card with info (0ms delay)
             item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(0); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                    )
-                ) {
+                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                     PennyWiseCardV2(
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -252,18 +242,7 @@ fun UnrecognizedSmsScreen(
                     items = unrecognizedMessages,
                     key = { _, message -> message.id }
                 ) { index, message ->
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay((index + 1) * 50L); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        modifier = Modifier.animateItem(),
-                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                        )
-                    ) {
+                    StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
                         UnrecognizedSmsItem(
                             message = message,
                             suggestion = suggestions[message.id]?.transaction,

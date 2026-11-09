@@ -14,9 +14,8 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -63,7 +62,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -122,8 +120,9 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-/** Distance each card travels on the first-composition entrance animation. */
-private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
+/** Entrance stagger step, and the most steps it takes — later sections share the last beat. */
+private const val ENTRANCE_STAGGER_MS = 50L
+private const val ENTRANCE_STAGGER_MAX_STEPS = 6
 
 /** Diameter of one avatar in the overlapping subscription stack. */
 private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
@@ -227,14 +226,13 @@ fun HomeScreen(
     // Each item's effect checks its own `visible`, not hasAnimated: an item composed
     // just before hasAnimated flips would otherwise skip its reveal and stay hidden.
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slideOffsetPx = with(density) { ENTRANCE_SLIDE_DISTANCE.roundToPx() }
-    val motion = MaterialTheme.motionScheme
+    val animationsEnabled = rememberAnimationsEnabled()
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
-            delay(350) // slightly after the last stagger (300ms)
+            // Slightly after the last stagger; no wait when animations are off.
+            if (animationsEnabled) delay(ENTRANCE_STAGGER_MS * (ENTRANCE_STAGGER_MAX_STEPS + 1))
             hasAnimated = true
         }
     }
@@ -488,17 +486,7 @@ fun HomeScreen(
         ) {
             // 1. Balance Card (0ms delay)
             item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!visible.value) { delay(0); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = motion.defaultSpatialSpec()
-                    )
-                ) {
+                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                     if (!uiState.isBalanceReady) {
                         BalanceCardSkeleton(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
@@ -618,23 +606,13 @@ fun HomeScreen(
                 }
             }
             for ((index, section) in visibleSections.withIndex()) {
-                val delayMs = 50L * (index + 1)
+                val delayMs = ENTRANCE_STAGGER_MS * (index + 1).coerceAtMost(ENTRANCE_STAGGER_MAX_STEPS)
                 when (section) {
                     HomeSection.SAFE_TO_SPEND -> {
                         // Only once there's a spendable account with a balance.
                         safeToSpend?.let { state ->
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     SafeToSpendCard(
                                         state = state,
                                         isBalanceHidden = uiState.isBalanceHidden,
@@ -650,17 +628,7 @@ fun HomeScreen(
                         // 2. Budget Carousel
                         uiState.budgetSummary?.let { summary ->
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -693,17 +661,7 @@ fun HomeScreen(
                         // 2.25. Goals (#914) — only when there's a non-archived goal.
                         if (goals.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -735,17 +693,7 @@ fun HomeScreen(
                         // 2.5. Loans Summary — only when active loans exist
                         uiState.loanSummary?.let { summary ->
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -785,17 +733,7 @@ fun HomeScreen(
                         // to have recent activity.
                         if (groupSummaries.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -832,17 +770,7 @@ fun HomeScreen(
                     HomeSection.RECENT_TRANSACTIONS -> {
                         // 3. Recent Transactions Section
                         item(key = section.name) {
-                            val visible = remember { mutableStateOf(hasAnimated) }
-                            LaunchedEffect(Unit) {
-                                if (!visible.value) { delay(delayMs); visible.value = true }
-                            }
-                            AnimatedVisibility(
-                                visible = visible.value,
-                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                    initialOffsetY = { slideOffsetPx },
-                                    animationSpec = motion.defaultSpatialSpec()
-                                )
-                            ) {
+                            StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                 Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                                     SectionHeaderV2(
                                         title = stringResource(R.string.home_section_recent_transactions),
@@ -893,17 +821,7 @@ fun HomeScreen(
                             }
                         } else if (uiState.recentItems.isEmpty()) {
                             item(key = "${section.name}_body") {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     PennyWiseEmptyState(
                                         icon = Icons.Default.Sync,
                                         headline = stringResource(R.string.home_empty_headline),
@@ -925,17 +843,7 @@ fun HomeScreen(
                             }
                         } else {
                             item(key = "${section.name}_body") {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
@@ -971,17 +879,7 @@ fun HomeScreen(
                         // 4. Account Carousel
                         if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -1020,17 +918,7 @@ fun HomeScreen(
                         // 5. Upcoming Subscriptions Alert
                         if (uiState.upcomingSubscriptions.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -1071,17 +959,7 @@ fun HomeScreen(
                         // Reference detail, so a late, hideable section rather than a fixed
                         // card above the decision cards. Hides itself on dormant months.
                     item(key = section.name) {
-                        val visible = remember { mutableStateOf(hasAnimated) }
-                        LaunchedEffect(Unit) {
-                            if (!visible.value) { delay(delayMs); visible.value = true }
-                        }
-                        AnimatedVisibility(
-                            visible = visible.value,
-                            enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                initialOffsetY = { slideOffsetPx },
-                                animationSpec = motion.defaultSpatialSpec()
-                            )
-                        ) {
+                        StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                             CashFlowCard(
                                 currency = uiState.selectedCurrency,
                                 // When card spend counts as expense (#705) it's already in
@@ -1100,17 +978,7 @@ fun HomeScreen(
                     HomeSection.ACTIVITY -> {
                         // 6. Heatmap Widget
                         item(key = section.name) {
-                            val visible = remember { mutableStateOf(hasAnimated) }
-                            LaunchedEffect(Unit) {
-                                if (!visible.value) { delay(delayMs); visible.value = true }
-                            }
-                            AnimatedVisibility(
-                                visible = visible.value,
-                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                    initialOffsetY = { slideOffsetPx },
-                                    animationSpec = motion.defaultSpatialSpec()
-                                )
-                            ) {
+                            StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                 ) {

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -658,7 +660,7 @@ private fun CurrencyPage(
             onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) },
             position = ListItemPosition.Middle
         )
-        AnimatedVisibility(visible = unifiedCurrencyMode) {
+        AnimatedVisibility(visible = unifiedCurrencyMode, enter = pwExpand(), exit = pwCollapse()) {
             SettingsNavItem(
                 icon = Icons.Default.AttachMoney,
                 iconBgColor = teal_light,
@@ -1024,7 +1026,7 @@ private fun SecurityPage(
             enabled = appLockUiState.canUseBiometric || appLockUiState.isLockEnabled,
             position = ListItemPosition.Top
         )
-        AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
+        AnimatedVisibility(visible = appLockUiState.isLockEnabled, enter = pwExpand(), exit = pwCollapse()) {
             SettingsNavItem(
                 icon = Icons.Default.Timer,
                 iconBgColor = pink_light,
@@ -1581,8 +1583,8 @@ private fun AiChatSettingsItem(
         // Progress details during download
         AnimatedVisibility(
             visible = downloadState == DownloadState.DOWNLOADING,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = pwExpand(),
+            exit = pwCollapse()
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),

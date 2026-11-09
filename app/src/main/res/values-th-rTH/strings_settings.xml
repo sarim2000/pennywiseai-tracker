@@ -272,6 +272,7 @@
     <string name="appearance_cover_selected">ที่เลือก</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">แบบอักษร</string>
+    <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->
     <string name="appearance_font_google_sans_flex_subtitle">อักษรละตินเท่านั้น</string>
     <string name="appearance_font_system">ระบบ</string>
     <string name="appearance_font_system_subtitle">ทุกภาษา</string>

@@ -277,6 +277,7 @@
     <string name="appearance_cover_selected">Seleccionado</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fuentes</string>
+    <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->
     <string name="appearance_font_google_sans_flex_subtitle">Solo alfabeto latino</string>
     <string name="appearance_font_system">Sistema</string>
     <string name="appearance_font_system_subtitle">Todos los idiomas</string>

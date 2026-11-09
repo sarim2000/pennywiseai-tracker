@@ -175,6 +175,26 @@ reprints them. A PR may remove a violation but must not add one.
    back-edges into `:app`. It depends on other modules with `implementation`, and
    uses `api` only for a contract that is actually public.
 
+### Enforced by `ArchitectureTest`
+
+`app/src/test/.../architecture/ArchitectureTest.kt` (Konsist) checks the
+`import` lines of the production sources in every flavor. It runs with the unit
+tests, so `./init.sh app` and CI fail on a new violation:
+
+| Files | Must not import |
+|---|---|
+| `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
+| `data` | `presentation`, `ui.screens` |
+| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile` |
+| ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
+| `ui.theme` | `presentation`, `ui.screens`, `worker`, `data`, `domain` |
+
+Files that already broke a rule are in that rule's allowlist. An allowlist only
+shrinks. Don't add to it: move the code to the right layer. When you fix a file,
+delete its entry. The test also fails on an entry whose file no longer violates,
+so a fixed import can't come back. A fully qualified name in code isn't checked,
+so don't use one to get around a rule.
+
 ## Data Flow Example
 ```
 User opens app

@@ -363,7 +363,7 @@
     <string name="appearance_fonts_section">Fonts</string>
     <string name="appearance_font_default">Default</string>
     <string name="appearance_font_default_subtitle">System</string>
-    <string name="appearance_font_sn_pro_subtitle">Modern Mono</string>
+    <string name="appearance_font_sn_pro_subtitle">Rounded</string>
 
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Webhooks</string>

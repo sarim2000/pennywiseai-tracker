@@ -1,13 +1,9 @@
 package com.pennywiseai.tracker.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.material3.MaterialTheme
@@ -34,13 +30,16 @@ import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.encodeToSavedState
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.MainScreen
+import com.pennywiseai.tracker.ui.animations.LocalNavEntrance
+import com.pennywiseai.tracker.ui.animations.pwPop
+import com.pennywiseai.tracker.ui.animations.pwPredictivePop
+import com.pennywiseai.tracker.ui.animations.pwPush
 import kotlinx.serialization.serializer
 
 /** navigate(key) { launchSingleTop = true }: the same kind of screen on top is replaced, not stacked. */
@@ -69,12 +68,26 @@ fun NavBackStack<NavKey>.replaceLast(key: NavKey, match: (NavKey) -> Boolean) {
     set(i, key)
 }
 
-/** Per-entry saveable state and ViewModelStore, so ViewModels stay scoped to their entry. */
+/**
+ * Per-entry saveable state and ViewModelStore, so ViewModels stay scoped to their entry,
+ * and [LocalNavEntrance] for whether the entry came in on a transition.
+ */
 @Composable
 fun rememberEntryDecorators(): List<NavEntryDecorator<NavKey>> = listOf(
     rememberSaveableStateHolderNavEntryDecorator(),
-    rememberViewModelStoreNavEntryDecorator()
+    rememberViewModelStoreNavEntryDecorator(),
+    navEntranceDecorator
 )
+
+// An entry's first frame is mid-transition (PreEnter) unless it's the host's first screen.
+// A nested host's first screen inherits its parent's answer: Home arriving inside MainScreen
+// on the root host's transition (onboarding → Home) is still entering on that transition.
+private val navEntranceDecorator = NavEntryDecorator<NavKey> { entry ->
+    val transition = LocalNavAnimatedContentScope.current.transition
+    val inherited = LocalNavEntrance.current
+    val entering = remember { inherited || transition.currentState != transition.targetState }
+    CompositionLocalProvider(LocalNavEntrance provides entering) { entry.Content() }
+}
 
 /**
  * Hands each key's properties to its entry's ViewModels as SavedStateHandle
@@ -104,17 +117,6 @@ private fun RouteArgs(key: NavKey, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalViewModelStoreOwner provides owner, content = content)
 }
 
-// M3 Expressive motion: spatial spring for the slide, effects spring for the
-// fade, both from the theme's MotionScheme.
-private fun enterSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-    fadeIn(m.defaultEffectsSpec()) + slideInVertically(m.defaultSpatialSpec()) { it / 4 } togetherWith
-        fadeOut(m.fastEffectsSpec())
-}
-private fun popSlide(m: MotionScheme): AnimatedContentTransitionScope<Scene<NavKey>>.() -> ContentTransform = {
-    fadeIn(m.defaultEffectsSpec()) togetherWith
-        fadeOut(m.fastEffectsSpec()) + slideOutVertically(m.fastSpatialSpec()) { it / 4 }
-}
-
 /** Home and Transaction detail cross-fade both ways (shared-element transaction rows). */
 private fun fadeOnly(m: MotionScheme): Map<String, Any> {
     fun fade() = fadeIn(m.defaultEffectsSpec()) togetherWith fadeOut(m.fastEffectsSpec())
@@ -130,8 +132,6 @@ fun PennyWiseNavHost(
     onEditComplete: () -> Unit = {}
 ) {
     val motion = MaterialTheme.motionScheme
-    val enterSlide = remember(motion) { enterSlide(motion) }
-    val popSlide = remember(motion) { popSlide(motion) }
     val fadeOnly = remember(motion) { fadeOnly(motion) }
     SharedTransitionLayout {
     CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
@@ -139,9 +139,9 @@ fun PennyWiseNavHost(
         backStack = backStack,
         modifier = modifier.background(MaterialTheme.colorScheme.background),
         entryDecorators = rememberEntryDecorators(),
-        transitionSpec = enterSlide,
-        popTransitionSpec = popSlide,
-        predictivePopTransitionSpec = { popSlide(this) },
+        transitionSpec = { pwPush(motion) },
+        popTransitionSpec = { pwPop(motion) },
+        predictivePopTransitionSpec = { pwPredictivePop() },
         entryProvider = withRouteArgs(entryProvider {
         // At once: a fade-in shows the screen it's locking through it.
         entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {

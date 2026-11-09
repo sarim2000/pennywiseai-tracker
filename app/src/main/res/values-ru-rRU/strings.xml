@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">Из-за разных форматов SMS банка или прежнего распознавания могли появиться дубли счетов с тремя и четырьмя цифрами. Если %1$s и %2$s — один и тот же счет, объединить их? Транзакции перейдут на счет с четырьмя цифрами, его история баланса сохранится, а будущие SMS будут автоматически относиться к нему.</string>
     <string name="duplicate_accounts_merge">Объединить и запомнить</string>
     <string name="duplicate_accounts_keep">Оставить раздельно</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

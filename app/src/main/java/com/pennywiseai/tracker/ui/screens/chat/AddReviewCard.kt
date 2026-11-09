@@ -84,13 +84,14 @@ internal fun AddReviewCard(
     onToggle: (Int) -> Unit,
     onEdit: (Int, TransactionDraft) -> Unit,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var editing by rememberSaveable { mutableStateOf<Int?>(null) }
     val selected = rows.count { it.selected }
     val fg = MaterialTheme.colorScheme.onTertiaryContainer
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

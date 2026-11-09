@@ -191,8 +191,8 @@ fun ChatScreen(
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                             flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
-                            items(messages) { message ->
-                                ChatMessageItem(message = message)
+                            items(messages, key = { it.id }) { message ->
+                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null))
                             }
                         }
                     }
@@ -374,7 +374,7 @@ fun ChatScreen(
                         ) {
                             // Example prompts when no messages
                             if (messages.isEmpty() && currentResponse.isEmpty() && !uiState.isLoading) {
-                                item {
+                                item(key = EMPTY_KEY) {
                                     ChatEmptyState(
                                         onPromptClick = { prompt ->
                                             viewModel.sendMessage(prompt)
@@ -383,13 +383,15 @@ fun ChatScreen(
                                 }
                             }
 
-                            items(messages) { message ->
-                                ChatMessageItem(message = message)
+                            // Saved rows slide and fade out, but land without a fade: each new
+                            // one was already on screen — typed, streamed, or the confirmed card.
+                            items(messages, key = { it.id }) { message ->
+                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null))
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
                             pendingAction?.let { action ->
-                                item {
+                                item(key = PENDING_KEY) {
                                     if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
                                         AddReviewCard(
                                             rows = action.rows,
@@ -398,38 +400,42 @@ fun ChatScreen(
                                             onToggle = viewModel::toggleRow,
                                             onEdit = viewModel::editRow,
                                             onConfirm = viewModel::confirmPendingAction,
-                                            onDismiss = viewModel::dismissPendingAction
+                                            onDismiss = viewModel::dismissPendingAction,
+                                            modifier = Modifier.animateItem()
                                         )
                                     } else {
                                         PendingActionCard(
                                             action = action,
                                             enabled = !isConfirming,
                                             onConfirm = { viewModel.confirmPendingAction() },
-                                            onDismiss = { viewModel.dismissPendingAction() }
+                                            onDismiss = { viewModel.dismissPendingAction() },
+                                            modifier = Modifier.animateItem()
                                         )
                                     }
                                 }
                             }
 
-                            // Show streaming response if available
-                            if (currentResponse.isNotEmpty()) {
-                                item {
-                                    ChatMessageItem(
-                                        message = com.pennywiseai.tracker.data.database.entity.ChatMessage(
-                                            message = currentResponse,
-                                            isUser = false,
-                                            timestamp = System.currentTimeMillis()
-                                        ),
-                                        isStreaming = true
-                                    )
-                                }
-                            } else if (uiState.isLoading) {
-                                // Show typing indicator while waiting for response
-                                item {
-                                    // One status line per request, picked when the wait starts,
-                                    // so a tool call's silent few seconds don't look like a hang.
-                                    val status = remember(uiState.isLoading) { THINKING_LINES.random() }
-                                    TypingIndicator(status = stringResource(status))
+                            // The reply on its way — typing dots, then the streamed text — in one
+                            // keyed slot, so the swap happens in place and the saved reply lands
+                            // where it was.
+                            if (currentResponse.isNotEmpty() || uiState.isLoading) {
+                                item(key = REPLY_KEY) {
+                                    if (currentResponse.isNotEmpty()) {
+                                        ChatMessageItem(
+                                            message = com.pennywiseai.tracker.data.database.entity.ChatMessage(
+                                                message = currentResponse,
+                                                isUser = false,
+                                                timestamp = System.currentTimeMillis()
+                                            ),
+                                            modifier = Modifier.animateItem(),
+                                            isStreaming = true
+                                        )
+                                    } else {
+                                        // One status line per request, picked when the wait starts,
+                                        // so a tool call's silent few seconds don't look like a hang.
+                                        val status = remember(uiState.isLoading) { THINKING_LINES.random() }
+                                        TypingIndicator(status = stringResource(status), modifier = Modifier.animateItem())
+                                    }
                                 }
                             }
                         }
@@ -662,6 +668,11 @@ fun DeveloperInfoCard(
     }
 }
 
+// Keys for the list's non-message rows; message rows key on their saved id.
+private const val EMPTY_KEY = "chat-empty"
+private const val PENDING_KEY = "chat-pending-card"
+private const val REPLY_KEY = "chat-reply"
+
 private val THINKING_LINES = listOf(
     R.string.chat_thinking_reading,
     R.string.chat_thinking_working,
@@ -734,12 +745,13 @@ fun TypingIndicator(
 @Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
+    modifier: Modifier = Modifier,
     isStreaming: Boolean = false
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
         PennyWiseCardV2(
@@ -856,7 +868,8 @@ private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
     enabled: Boolean,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
     val (title, headline, detail, button) = when (action) {
@@ -887,7 +900,7 @@ private fun PendingActionCard(
     }
     val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
         )

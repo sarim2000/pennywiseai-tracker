@@ -334,7 +334,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   insert, remove and filter instead of jumping. It needs a stable, unique
   key, and must sit on the item root (e.g. the `AnimatedVisibility`, not the
   card inside it). `AnimatedCurrencyText` swaps instantly when either side is
-  the privacy mask — hiding amounts isn't a value change.
+  the privacy mask — hiding amounts isn't a value change. Chat message rows
+  pass `animateItem(fadeInSpec = null)`: a new row was already on screen
+  (typed, streamed or the confirmed card), so it lands without a second
+  fade; the typing/streaming reply shares one keyed slot.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.

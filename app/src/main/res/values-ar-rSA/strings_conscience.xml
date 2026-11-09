@@ -4,13 +4,11 @@
     <string name="conscience_title">الضمير</string>
     <string name="conscience_settings_subtitle">تعليقات مشاكسة بلا صوت على الأكل والترفيه والتسوق.</string>
     <string name="conscience_needs_permission">اسمح بإشعارات PennyWise حتى يقدر ضميرك يحكي.</string>
-
     <!-- The notification -->
     <string name="conscience_notification_title">ضميرك</string>
     <string name="conscience_lock_screen_text">بسس. كلمتين ع السريع 👀</string>
     <string name="conscience_action_dislike">🙅 مش هاي</string>
     <string name="conscience_confirm_dislike">وصلت. هاي تقاعدت للأبد 🫡</string>
-
     <!-- Android's notification channel, listed in system settings -->
     <string name="conscience_channel_name">الضمير</string>
     <string name="conscience_channel_description">تعليقات مشاكسة من وقت لوقت على الأكل والترفيه والتسوق. بلا صوت.</string>

@@ -6,7 +6,6 @@
     <string name="ai_access_settings_subtitle_pro">Pro · Ruhusu app za AI zisome data yako unapoziruhusu</string>
     <string name="ai_access_title">Ufikiaji wa AI</string>
     <string name="ai_access_back">Rudi</string>
-    <string name="ai_access_intro">Uliza Claude, ChatGPT au app nyingine ya AI kuhusu matumizi yako, au fungua dashibodi kwenye kompyuta. Zinaweza kusoma miamala, salio na usajili wako tu wakati kipindi cha AI kimewashwa. Haziwezi kubadilisha chochote.</string>
     <string name="ai_access_pro_only">Ufikiaji wa AI ni kipengele cha Pro.</string>
     <string name="ai_access_unlock">Fungua kwa Pro</string>
     <string name="ai_access_session_title">Kipindi cha AI</string>
@@ -34,7 +33,6 @@
     <string name="ai_access_connected_on">Iliunganishwa %s</string>
     <string name="ai_access_disconnect">Tenganisha</string>
     <string name="ai_access_disconnected">Imetenganishwa.</string>
-    <string name="ai_access_privacy">Data yako inabaki kwenye simu yako. Wakati wa kipindi cha AI, maswali ya app ya AI yanapita kupitia relay hadi kwenye simu yako na majibu yanarudi kwa njia hiyo hiyo. Relay haiyahifadhi wala kuyarekodi kamwe. Mtoa huduma wa app ya AI (kwa mfano Anthropic au OpenAI) anaona majibu anayopokea.\n\nApp zilizounganishwa zinaweza kutafuta historia yako yote katika wasifu wote, pamoja na majina ya wapokeaji kwenye uhamisho. Hazipati kamwe maandishi ya SMS, namba kamili za akaunti wala namba za kumbukumbu.</string>
     <string name="ai_access_relay_title">Tumia relay yako mwenyewe</string>
     <string name="ai_access_relay_body">Kwa udhibiti kamili, weka relay ya chanzo huria (relay/ kwenye hazina ya GitHub ya PennyWise) kwenye akaunti yako ya Cloudflare kisha uweke anwani yake. Kubadilisha relay kunatenganisha kila app ya AI.</string>
     <string name="ai_access_relay_label">Anwani ya relay</string>

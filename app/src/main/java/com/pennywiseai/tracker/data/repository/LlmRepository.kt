@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.model.TransactionFinder
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReviewRow
+import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import com.pennywiseai.tracker.domain.service.isContextFull
@@ -211,6 +212,8 @@ class LlmRepository @Inject constructor(
         }
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
+        // A comparison is the code's figures alone: prose beside it could carry the model's own arithmetic.
+        if (toolCalls.any { it.name == PennyWiseTools.COMPARE_SPENDING }) responseBuilder.clear()
         val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
         var addsProposed = false
         var skippedCards = 0
@@ -447,6 +450,13 @@ class LlmRepository @Inject constructor(
                 m.transactionCount
             )
         }
+        PennyWiseTools.COMPARE_SPENDING -> {
+            val period = SpendingComparison.period(userMessage, call.arguments["period"])
+            val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
+            val category = if (wanted.isEmpty()) null else matchCategory(wanted, categoryRepository.getAllCategories().first()) ?: wanted
+            if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
+            else comparisonText(aiContextRepository.compareSpending(period, category), category)
+        }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
             // Hidden categories still hold transactions, and a row can name a category that no
@@ -479,6 +489,38 @@ class LlmRepository @Inject constructor(
         val now = java.time.LocalDateTime.now()
         val recent = transactionRepository.getTransactionsBetweenDates(now.minusDays(30), now).first()
         return TransactionFinder.findWithFallback(recent, words, amount, daysAgo, dayStated = dayStated)
+    }
+
+    /** A comparison as chat lines: a dated header, then one line per currency. Also for M8's one-tap question. */
+    fun comparisonText(result: SpendingComparison.Result, category: String?): String {
+        val range = { w: SpendingComparison.Window ->
+            val (a, b) = w.start.format(DAY_MONTH) to w.end.format(DAY_MONTH)
+            if (a == b) a else "$a–$b"
+        }
+        if (result is SpendingComparison.Result.NoData) return context.getString(R.string.chat_reply_compare_no_data, range(result.missing))
+        val rows = (result as SpendingComparison.Result.Rows).rows
+        val now = range(result.current)
+        val before = range(result.previous)
+        if (rows.isEmpty()) return if (category == null) context.getString(R.string.chat_reply_compare_nothing, now, before)
+            else context.getString(R.string.chat_reply_compare_nothing_category, category, now, before)
+        val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
+        return buildList {
+            add(
+                if (category == null) context.getString(R.string.chat_reply_compare_title, now, before)
+                else context.getString(R.string.chat_reply_compare_title_category, category, now, before)
+            )
+            rows.forEach { row ->
+                val pair = context.getString(R.string.chat_reply_compare_row, money(row.current, row.currency), money(row.previous, row.currency))
+                val change = row.changePercent?.let {
+                    when {
+                        it > 0 -> context.getString(R.string.chat_reply_compare_more, it)
+                        it < 0 -> context.getString(R.string.chat_reply_compare_less, -it)
+                        else -> context.getString(R.string.chat_reply_compare_same)
+                    }
+                }
+                add(if (change == null) pair else "$pair ($change)")
+            }
+        }.joinToString("\n")
     }
 
     /** An existing row is shown in ITS currency, never relabelled with the base one. */
@@ -552,6 +594,7 @@ class LlmRepository @Inject constructor(
             This month so far: $monthLine.
 
             When the user tells you about money they spent, paid, bought or received, call addTransactions. Use EXPENSE unless they clearly received money.
+            When the user asks to compare spending with last month or last week, call compareSpending.
             When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
             If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransactions for those.
             Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.

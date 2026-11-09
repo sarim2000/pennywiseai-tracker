@@ -104,6 +104,11 @@ class AiContextRepositoryTest {
 
         repository = AiContextRepository(
             transactionDao = transactionDao,
+            // Unused by these tests: only compareSpending reads splits.
+            transactionSplitDao = Proxy.newProxyInstance(
+                com.pennywiseai.tracker.data.database.dao.TransactionSplitDao::class.java.classLoader,
+                arrayOf(com.pennywiseai.tracker.data.database.dao.TransactionSplitDao::class.java)
+            ) { _, _, _ -> error("unused") } as com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
             userPreferencesRepository = userPreferencesRepository,
             currencyConversionService = currencyConversionService
         )

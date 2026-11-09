@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker.smsscan
 
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
@@ -21,6 +22,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicInteger
 
 class SmsScanPipelineTest {
@@ -239,6 +242,34 @@ class SmsScanPipelineTest {
         // The feed buffer, the result buffer, one held by each parser and the one being saved.
         val bound = SmsScanPipeline.PARSE_CHANNEL_CAPACITY + SmsScanPipeline.RESULT_CHANNEL_CAPACITY + parsers + 2
         assertTrue("sent $sent messages past a blocked saver (bound $bound)", sent <= bound)
+    }
+
+    @Test
+    fun `a rebuild hands its start time and the saved account types to the balance write`() = scanTest {
+        val startedAt = LocalDateTime.of(2026, 10, 1, 9, 0)
+        val typedBefore = AccountBalanceEntity(
+            bankName = "HDFC Bank",
+            accountLast4 = "1234",
+            balance = BigDecimal("100.00"),
+            timestamp = startedAt,
+            accountType = "SAVINGS",
+        )
+        val rebuild = ScanHarness(
+            ScanRunContext(
+                merchantCategories = emptyMap(),
+                categoryIsIncome = emptyMap(),
+                rulesByType = emptyMap(),
+                accountsBeforeRebuild = mapOf(("HDFC Bank" to "1234") to typedBefore),
+                rebuildStartedAt = startedAt,
+            )
+        )
+
+        rebuild.scan(listOf(hdfcDebit(1)))
+
+        coVerify(exactly = 1) {
+            rebuild.balances.insertSmsTransactionBalance("HDFC Bank", "1234", any(), startedAt, any())
+        }
+        assertEquals("SAVINGS", rebuild.builtBalances.single().accountType)
     }
 
     @Test

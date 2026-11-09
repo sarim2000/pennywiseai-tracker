@@ -113,6 +113,15 @@ class SpendingComparisonTest {
     }
 
     @Test
+    fun `a forgiven loan alone makes a window comparable`() {
+        val r = SpendingComparison.compare(
+            windows, current = emptyList(), previous = listOf(tx("500")),
+            currentLoss = mapOf("INR" to BigDecimal("400"))
+        )
+        assertEquals(mapOf("INR" to Triple("400", "500", -20)), rows(r))
+    }
+
+    @Test
     fun `income, transfers and what doesn't count toward totals are left out`() {
         val r = SpendingComparison.compare(
             windows,

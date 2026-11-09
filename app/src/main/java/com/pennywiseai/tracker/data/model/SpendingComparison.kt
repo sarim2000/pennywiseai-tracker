@@ -62,8 +62,9 @@ object SpendingComparison {
         previousLoss: Map<String, BigDecimal> = emptyMap()
     ): Result {
         val (cw, pw) = windows
-        if (previous.isEmpty()) return Result.NoData(cw, pw, pw)
-        if (current.isEmpty()) return Result.NoData(cw, pw, cw)
+        // A loan forgiven in a window is activity there too, even with no transactions.
+        if (previous.isEmpty() && previousLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, pw)
+        if (current.isEmpty() && currentLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, cw)
         val now = spend(current, category).plusAmounts(currentLoss)
         val before = spend(previous, category).plusAmounts(previousLoss)
         val rows = (now.keys + before.keys).sorted().map { currency ->

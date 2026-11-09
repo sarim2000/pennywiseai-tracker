@@ -2,7 +2,7 @@
 
 Material 3 (Expressive), with a small set of app-specific tokens and components
 layered on top. This document describes what is **actually implemented** — if
-the code and this file disagree, the code in `app/src/main/java/com/pennywiseai/tracker/ui/theme/`
+the code and this file disagree, the code in `core/designsystem/src/main/java/com/pennywiseai/tracker/ui/theme/`
 is the source of truth and this file is the bug.
 
 ## The one rule
@@ -165,7 +165,7 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   the user taps a font, so an absent key means "never chose" and follows
   `AppFont.DEFAULT` (Google Sans Flex); a stored `SYSTEM` or `SN_PRO` is an
   explicit choice and is kept. The font is not part of backups.
-- **One variable file.** `res/font/google_sans_flex.ttf` is the upstream v5.000
+- **One variable file.** `core/designsystem/src/main/res/font/google_sans_flex.ttf` is the upstream v5.000
   variable font instanced with fontTools to the `wght` (100–900) and `ROND`
   (0–100) axes, with `slnt` 0, `opsz` 18 and `wdth` 100 pinned: about 300 KB
   instead of 3.9 MB. Its OFL notice ships in `assets/licenses/fonts-OFL.txt`

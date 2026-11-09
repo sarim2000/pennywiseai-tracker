@@ -115,9 +115,8 @@ app/
 │   │   │                        #   permission, paywall, share, statement,
 │   │   │                        #   exchangerates, common; also a navigation/
 │   │   │                        #   subpackage for feature routes)
-│   ├── ui/                      # App shell (MainScreen) + shared components, theme
+│   ├── ui/                      # App shell (MainScreen) + shared components
 │   │   ├── components/          # Reusable Compose components
-│   │   ├── theme/               # Design system tokens
 │   │   └── viewmodel/           # App-wide ViewModels (main, theme, spotlight)
 │   ├── navigation/              # Navigation graph
 │   ├── domain/                  # Business logic
@@ -140,6 +139,8 @@ app/
 │   ├── billing/                 # Play Billing + FreeTierLimits
 │   ├── backup/ core/ initializer/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
+core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
+│                                #   appearance enums (same packages as before the move)
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
 shared/                          # KMP code shared with iOS
 iosApp/                          # Swift iOS app
@@ -189,6 +190,28 @@ reprints them. A PR may remove a violation but must not add one.
    back-edges into `:app`. It depends on other modules with `implementation`, and
    uses `api` only for a contract that is actually public.
 
+### `:core:designsystem`
+
+Holds `PennyWiseTheme`, the `ui.theme` tokens, the 17 fonts, `LocalBlurEffects` and
+the appearance enums (`AccentColor`, `AppFont`, `ThemeStyle`). `:app` depends on it,
+and it depends on no project module, so the compiler keeps the theme free of
+`data`, `domain` and feature code.
+
+- **Packages are unchanged**, so no caller's imports changed. The enums keep
+  `data.preferences` because moving them to `ui.theme` would make
+  `UserPreferencesRepository` import a `ui` package. They are stored by name, so
+  entries can't be renamed. If a `:core:datastore` is ever extracted, move them
+  down rather than making it depend on this module.
+- **No string resources here.** Crowdin and `StringPlaceholderParityTest` cover only
+  `app/src/main/res`.
+- **`ui/components` stays in `:app`.** About 14 of its files are generic, but `:app`
+  is the only module that renders Compose. The rest of the package needs
+  `R.string`, money formatting, Haze, Coil or feature types, so moving the generic
+  ones would split `ui.components` across two modules and serve no caller. Move what
+  a second Compose module needs in the PR that adds it.
+- **No convention plugin yet.** One library module doesn't justify `build-logic`, so
+  its build file repeats `:app`'s SDK and JVM settings. Revisit when a second one lands.
+
 ### Enforced by `ArchitectureTest`
 
 `app/src/test/.../architecture/ArchitectureTest.kt` (Konsist) checks the
@@ -201,7 +224,8 @@ tests, so `./init.sh app` and CI fail on a new violation:
 | `data` | `presentation` |
 | `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
-| `ui.theme` | `presentation`, `worker`, `data`, `domain` |
+
+`ui.theme` needs no rule: `:core:designsystem` can't see `:app`'s code.
 
 Two more rules check where files live rather than what they import: no file in
 any source set may be in the retired `ui.screens` package (by path or by

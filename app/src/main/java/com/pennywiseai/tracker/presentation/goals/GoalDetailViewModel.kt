@@ -27,8 +27,17 @@ sealed interface GoalDetailState {
     data object Gone : GoalDetailState
 }
 
-/** State of the open Add money / Take out / edit sheet. [done] closes it. */
-data class MoneySheetState(val saving: Boolean = false, val error: MoneyError? = null, val done: Boolean = false)
+/**
+ * State of the open Add money / Take out / edit sheet. [done] closes it. After
+ * the user's own Add money, [addedFrom] is what was saved before it (goal
+ * currency), so the ring can show the new portion; null for everything else.
+ */
+data class MoneySheetState(
+    val saving: Boolean = false,
+    val error: MoneyError? = null,
+    val done: Boolean = false,
+    val addedFrom: BigDecimal? = null,
+)
 
 @HiltViewModel
 class GoalDetailViewModel @Inject constructor(
@@ -73,6 +82,7 @@ class GoalDetailViewModel @Inject constructor(
         if (_sheet.value.saving) return
         if (amount == null || amount.signum() <= 0) { _sheet.value = MoneySheetState(error = MoneyError.AMOUNT_INVALID); return }
         _sheet.value = MoneySheetState(saving = true)
+        val before = saved
         viewModelScope.launch {
             val foreign = !currency.equals(goal.currency, ignoreCase = true)
             // ponytail: latest rate, not the rate on [date] — the service keeps no history.
@@ -89,7 +99,8 @@ class GoalDetailViewModel @Inject constructor(
                 if (isWithdrawal) goalRepository.addWithdrawal(goalId, converted, date, note, original, originalCurrency)
                 else goalRepository.addContribution(goalId, converted, date, note, original, originalCurrency)
             }
-            _sheet.value = if (result.isSuccess) MoneySheetState(done = true) else MoneySheetState(error = MoneyError.FAILED)
+            _sheet.value = if (result.isSuccess) MoneySheetState(done = true, addedFrom = before.takeUnless { isWithdrawal })
+            else MoneySheetState(error = MoneyError.FAILED)
         }
     }
 

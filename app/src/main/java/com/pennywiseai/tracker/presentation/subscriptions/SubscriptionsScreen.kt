@@ -54,6 +54,8 @@ import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.AmountPrivacy
@@ -132,6 +134,14 @@ fun SubscriptionsScreen(
             snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
             viewModel.clearMarkPaidMessage()
         }
+    }
+
+    // "Payment settled": the user's own mark-paid / link gets the row's check + haptic.
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(uiState.settledSubscriptionId) {
+        val id = uiState.settledSubscriptionId ?: return@LaunchedEffect
+        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        try { delay(SETTLED_HOLD_MILLIS) } finally { viewModel.clearSettled(id) }
     }
 
     // "Not recurring" on a suggestion, undoable.
@@ -274,6 +284,7 @@ fun SubscriptionsScreen(
                             subscription = subscription,
                             accounts = accounts,
                             isPaidThisCycle = subscription.id in uiState.paidThisCycleIds,
+                            settled = subscription.id == uiState.settledSubscriptionId,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             onTap = { markPaidTarget = subscription },
@@ -523,6 +534,7 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     isPaidThisCycle: Boolean = false,
+    settled: Boolean = false,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onTap: () -> Unit = {},
@@ -598,11 +610,13 @@ private fun SwipeableSubscriptionItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Brand Icon
-                        BrandIcon(
-                            merchantName = subscription.merchantName,
-                            size = 48.dp,
-                            showBackground = true
-                        )
+                        SettledCheck(settled = settled, size = Dimensions.Icon.avatarLarge) {
+                            BrandIcon(
+                                merchantName = subscription.merchantName,
+                                size = Dimensions.Icon.avatarLarge,
+                                showBackground = true
+                            )
+                        }
                         
                         // Content
                         Column(

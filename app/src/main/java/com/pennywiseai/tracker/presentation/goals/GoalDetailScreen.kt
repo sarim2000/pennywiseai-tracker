@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,8 @@ import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonGroup
+import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
@@ -57,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -105,7 +110,11 @@ fun GoalDetailScreen(
     var showUpgrade by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state) { if (state is GoalDetailState.Gone) onNavigateBack() }
-    LaunchedEffect(sheet.done) { if (sheet.done) { mode = null; viewModel.resetSheet() } }
+    // Set only by the user's own Add money; the ring clears it once the new portion settles.
+    var addedFrom by remember { mutableStateOf<BigDecimal?>(null) }
+    LaunchedEffect(sheet.done) {
+        if (sheet.done) { sheet.addedFrom?.let { addedFrom = it }; mode = null; viewModel.resetSheet() }
+    }
 
     val detail = (state as? GoalDetailState.Loaded)?.detail
     val progress = detail?.progress
@@ -139,6 +148,8 @@ fun GoalDetailScreen(
             padding = padding,
             onAdd = { open(MoneySheetMode.Add) },
             onTakeOut = { open(MoneySheetMode.TakeOut) },
+            addedFrom = addedFrom,
+            onAddedSettled = { addedFrom = null },
             merchants = merchants,
             // A row taken from a transaction opens it; the rest open the edit sheet.
             onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
@@ -231,6 +242,8 @@ private fun GoalDetailContent(
     padding: PaddingValues,
     onAdd: () -> Unit,
     onTakeOut: () -> Unit,
+    addedFrom: BigDecimal?,
+    onAddedSettled: () -> Unit,
     merchants: Map<Long, String>,
     onContribution: (GoalContributionEntity) -> Unit,
 ) {
@@ -250,9 +263,15 @@ private fun GoalDetailContent(
         item {
             PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    GoalRing(progress, Dimensions.Component.goalRingLarge, Dimensions.Component.goalRingLargeStroke) {
+                    GoalRing(
+                        progress,
+                        Dimensions.Component.goalRingLarge,
+                        Dimensions.Component.goalRingLargeStroke,
+                        addedFrom = addedFrom,
+                        onAddedSettled = onAddedSettled,
+                    ) { percent ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(stringResource(R.string.budgets_percent, progress.percent()), style = MaterialTheme.typography.headlineMedium)
+                            Text(stringResource(R.string.budgets_percent, percent), style = MaterialTheme.typography.headlineMedium)
                             Text(
                                 CurrencyFormatter.formatCurrency(progress.saved, currency),
                                 style = PennyWiseText.amountSmall,
@@ -306,18 +325,7 @@ private fun GoalDetailContent(
                 }
             }
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Button(onClick = onAdd, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                    Text(stringResource(R.string.goal_add_money))
-                }
-                OutlinedButton(onClick = onTakeOut, enabled = progress.saved.signum() > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                    Text(stringResource(R.string.goal_take_out))
-                }
-            }
-        }
+        item { MoneyButtons(canTakeOut = progress.saved.signum() > 0, onAdd = onAdd, onTakeOut = onTakeOut) }
         item { SectionHeaderV2(title = stringResource(R.string.goal_detail_history)) }
         val rows = detail.contributions
         val hasAlreadySaved = goal.alreadySaved.signum() > 0
@@ -351,6 +359,58 @@ private fun GoalDetailContent(
                 }
             }
         }
+    }
+}
+
+/**
+ * Add money / Take out as an M3 Expressive button group: the pressed button
+ * widens and its neighbour yields (spatial spring). Each button keeps half the
+ * row at rest and wraps its label rather than clipping at large font scales.
+ */
+@Composable
+private fun MoneyButtons(canTakeOut: Boolean, onAdd: () -> Unit, onTakeOut: () -> Unit) {
+    val addLabel = stringResource(R.string.goal_add_money)
+    val takeOutLabel = stringResource(R.string.goal_take_out)
+    ButtonGroup(
+        overflowIndicator = { ButtonGroupDefaults.OverflowIndicator(it) },
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        customItem(
+            buttonGroupContent = {
+                val interaction = remember { MutableInteractionSource() }
+                Button(
+                    onClick = onAdd,
+                    modifier = Modifier.weight(1f).animateWidth(interaction).heightIn(min = Dimensions.Component.minTouchTarget),
+                    interactionSource = interaction,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
+                    Text(addLabel, textAlign = TextAlign.Center)
+                }
+            },
+            menuContent = { state ->
+                DropdownMenuItem(text = { Text(addLabel) }, onClick = { state.dismiss(); onAdd() })
+            },
+        )
+        customItem(
+            buttonGroupContent = {
+                val interaction = remember { MutableInteractionSource() }
+                OutlinedButton(
+                    onClick = onTakeOut,
+                    enabled = canTakeOut,
+                    modifier = Modifier.weight(1f).animateWidth(interaction).heightIn(min = Dimensions.Component.minTouchTarget),
+                    interactionSource = interaction,
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
+                    Text(takeOutLabel, textAlign = TextAlign.Center)
+                }
+            },
+            menuContent = { state ->
+                DropdownMenuItem(text = { Text(takeOutLabel) }, enabled = canTakeOut, onClick = { state.dismiss(); onTakeOut() })
+            },
+        )
     }
 }
 

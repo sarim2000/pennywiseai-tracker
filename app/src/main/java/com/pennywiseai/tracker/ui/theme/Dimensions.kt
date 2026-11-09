@@ -99,6 +99,9 @@ object Dimensions {
         /** Larger avatar — profile headers, prominent settings rows. */
         val avatarLarge = 48.dp
 
+        /** The merchant avatar heading a detail screen (transaction detail). */
+        val hero = 56.dp
+
         /** The glyph inside an empty-state circle. */
         val emptyStateGlyph = 32.dp
 

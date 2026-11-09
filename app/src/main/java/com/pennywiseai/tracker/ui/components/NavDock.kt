@@ -1,6 +1,10 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -13,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.MutableState
@@ -29,9 +34,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 
 /**
@@ -46,6 +56,11 @@ class NavDockAction(
     val onLongClick: (() -> Unit)? = null,
     val onLongClickLabel: String? = null,
     val loading: Boolean = false,
+    /**
+     * Set briefly after the action's own work lands ("+N" new items): the button
+     * shows it in the icon's place, then the owner clears it. Null shows the icon.
+     */
+    val resultCount: Int? = null,
     /** Reports the button's window bounds, for the spotlight tutorial. */
     val onPositioned: ((Rect) -> Unit)? = null,
 )
@@ -152,16 +167,55 @@ internal fun DockedActionButton(
         contentAlignment = Alignment.Center
     ) {
         // M3 Expressive: the shape-morphing loading indicator takes the
-        // icon's place while the action runs (Home's SMS scan).
-        if (action.loading) {
-            LoadingIndicator(color = MaterialTheme.colorScheme.onPrimary)
-        } else {
-            Icon(
-                imageVector = action.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.size(Dimensions.Icon.medium)
-            )
+        // icon's place while the action runs (Home's SMS scan), settles into
+        // its result for a beat, then gives the icon back. A count is a value,
+        // so the swap is an effects fade with no bounce.
+        val effects = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+        val face = when {
+            action.loading -> DockFace.Loading
+            action.resultCount != null -> DockFace.Result(action.resultCount)
+            else -> DockFace.Idle
+        }
+        AnimatedContent(
+            targetState = face,
+            transitionSpec = { fadeIn(effects) togetherWith fadeOut(effects) using null },
+            contentAlignment = Alignment.Center,
+            label = "dockedActionFace"
+        ) { state ->
+            when (state) {
+                DockFace.Loading -> LoadingIndicator(color = MaterialTheme.colorScheme.onPrimary)
+                is DockFace.Result -> {
+                    val announce = pluralStringResource(R.plurals.dock_result_description, state.count, state.count)
+                    Text(
+                        text = if (state.count > DOCK_RESULT_MAX) stringResource(R.string.dock_result_many, DOCK_RESULT_MAX)
+                        else stringResource(R.string.dock_result_new, state.count),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier.semantics {
+                            contentDescription = announce
+                            liveRegion = LiveRegionMode.Polite
+                        }
+                    )
+                }
+                DockFace.Idle -> Icon(
+                    imageVector = action.icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
         }
     }
 }
+
+/** What the docked button shows in its middle. */
+private sealed interface DockFace {
+    data object Loading : DockFace
+    data class Result(val count: Int) : DockFace
+    data object Idle : DockFace
+}
+
+/** Past this a result reads "99+", which still fits the button at 200% font scale. */
+private const val DOCK_RESULT_MAX = 99

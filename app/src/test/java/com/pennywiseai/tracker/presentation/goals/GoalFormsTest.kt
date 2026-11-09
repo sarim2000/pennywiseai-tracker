@@ -97,6 +97,31 @@ class GoalFormsTest {
         assertEquals(GoalPill.MissedBy(bd("1200")), missed)
     }
 
+    @Test
+    fun `the ring ratio is uncapped so the label can pass 100 while the sweep stays full`() {
+        val goal = GoalEntity(id = 1, targetAmount = bd("1000"), dueDate = today.plusMonths(6), createdAt = today.atStartOfDay())
+        val over = GoalRules.progress(goal, listOf(GoalContributionEntity(goalId = 1, amount = bd("1200"))), today)
+        assertEquals(1.2f, over.ratioOf(over.saved), 0.0001f)
+        assertEquals(1f, over.fraction(), 0f)
+        assertEquals(0.29f, over.ratioOf(bd("290")), 0.0001f)
+        assertEquals(0f, GoalRules.progress(goal.copy(targetAmount = BigDecimal.ZERO), emptyList(), today).ratioOf(bd("5")), 0f)
+    }
+
+    @Test
+    fun `the ring label follows the animated sweep and lands exactly on the percent`() {
+        // At rest it's the floored percent, never the float's 28.999...
+        assertEquals(29, ringPercent(animated = 0.29f, target = 0.29f, percent = 29))
+        // Mid-sweep it's read off the same value the arc draws.
+        assertEquals(29, ringPercent(animated = 0.29f, target = 0.5f, percent = 50))
+        assertEquals(41, ringPercent(animated = 0.4159f, target = 0.5f, percent = 50))
+        assertEquals(120, ringPercent(animated = 1.2f, target = 1.2f, percent = 120))
+        // Past a full ring the label doesn't keep counting: it shows the real figure.
+        assertEquals(120, ringPercent(animated = 1.05f, target = 1.2f, percent = 120))
+        // Coming down from over 100% it reads off the sweep, not the new figure.
+        assertEquals(100, ringPercent(animated = 1.0f, target = 0.5f, percent = 50))
+        assertEquals(80, ringPercent(animated = 0.8f, target = 0.5f, percent = 50))
+    }
+
     private fun share(
         share: String?, left: String = "500", txn: String = "INR", goal: String = "INR",
         manual: String? = null, rate: BigDecimal? = bd("80"),

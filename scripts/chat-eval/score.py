@@ -29,7 +29,7 @@ INCOME = re.compile(r"\b(received|got|salary|refund|refunded|cashback|credited|s
 INCOME_ONLY = {"salary", "income"}
 EASTERN = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹०१२३४५६७८९", "012345678901234567890123456789")
 FAMILY = {"add_transaction": "add", "add_transactions": "add", "delete_transaction": "delete",
-          "update_transaction": "update", "month_summary": "summary", "spending_by_category": "category"}
+          "update_transaction": "update", "month_summary": "summary", "spending_by_category": "category", "compare_spending": "compare"}
 ACCOUNT_WORDS = re.compile(r"hdfc|card|cash|wallet|account|upi|1234", re.I)
 
 

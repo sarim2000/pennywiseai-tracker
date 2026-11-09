@@ -325,6 +325,16 @@
     <string name="chat_reply_category_spend">%1$s on %2$s this month across %3$d transactions.</string>
     <string name="chat_reply_nothing_spent">Nothing spent on %1$s this month.</string>
     <string name="chat_reply_unknown_category">I don\'t have a category called %1$s.</string>
+    <string name="chat_reply_compare_title">Spending, %1$s vs %2$s:</string>
+    <string name="chat_reply_compare_title_category">%1$s, %2$s vs %3$s:</string>
+    <string name="chat_reply_compare_row">%1$s vs %2$s</string>
+    <string name="chat_reply_compare_more">%1$s%% more</string>
+    <string name="chat_reply_compare_less">%1$s%% less</string>
+    <string name="chat_reply_compare_same">no change</string>
+    <string name="chat_reply_compare_nothing">Nothing spent in %1$s or %2$s.</string>
+    <string name="chat_reply_compare_nothing_category">Nothing spent on %1$s in %2$s or %3$s.</string>
+    <string name="chat_reply_compare_no_data">No transactions are recorded for %1$s, so there\'s nothing to compare with.</string>
+    <string name="chat_reply_compare_unsupported">I can compare this month with last month, or this week with last week.</string>
     <string name="chat_reply_nothing_changed">(Nothing was changed — I can only add, update or delete through a confirmation card. Try: \"change the tea to Groceries\" or \"delete the tea from today\".)</string>
     <string name="chat_reply_add_many">Here\'s what I found — review it below.</string>
     <string name="chat_reply_too_many">I can review up to %1$d at a time. Send the rest in another message.</string>

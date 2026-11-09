@@ -151,7 +151,7 @@ fun AnalyticsSummaryCard(
                             } else {
                                 CurrencyFormatter.formatCurrency(BigDecimal.ZERO, currency)
                             },
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleLarge.money(),
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -226,7 +226,7 @@ private fun ForecastSection(forecast: SpendForecast) {
     )
     Text(
         text = CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
-        style = MaterialTheme.typography.titleLarge,
+        style = MaterialTheme.typography.titleLarge.money(),
         fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurface
     )

@@ -211,6 +211,9 @@ the jobs the plain roles don't cover:
 - **Money:** `heroAmount`, `amountHeadline`, `amountLarge`, `amountMedium`,
   `amountRow`, `amountSmall`. All carry `tnum` (**tabular figures**) so a
   column of amounts lines up instead of shimmering as digits change width.
+  An amount never takes a bare `display*`/`headline*`/`title*` role (rounded,
+  proportional digits); when no money style matches the size, use
+  `role.money()` (body family + `tnum` at that role's size).
 - **Counting figures are tabular.** Any amount or percent that changes in place
   (a settling total, a goal ring counting up) uses a money style or, on a plain
   role, `style.tabular()` — proportional digits jitter sideways every frame.

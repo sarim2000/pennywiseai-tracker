@@ -48,7 +48,9 @@ import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDate
 import java.time.YearMonth
@@ -133,7 +135,7 @@ fun BudgetHistoryScreen(
                             ),
                             style = MaterialTheme.typography.titleLarge.copy(
                                 fontWeight = FontWeight.Bold
-                            )
+                            ).money()
                         )
                         val longFormatter = AppDates.dateFormatter()
                         Text(
@@ -243,9 +245,7 @@ private fun HistoryRow(
             }
             Text(
                 text = CurrencyFormatter.formatCurrency(window.spent, currency),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
+                style = PennyWiseText.amountMedium
             )
             if (window.isLive && isCurrentPeriod) {
                 LiveBadge()

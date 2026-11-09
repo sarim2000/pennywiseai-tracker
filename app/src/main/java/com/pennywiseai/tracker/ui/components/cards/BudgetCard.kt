@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
@@ -221,7 +222,7 @@ fun BudgetCard(
                 },
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
-                ),
+                ).money(),
                 color = statusColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

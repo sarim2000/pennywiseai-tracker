@@ -207,7 +207,7 @@ fun LoanDetailScreen(
                         // Amount
                         Text(
                             text = CurrencyFormatter.formatCurrency(loan.remainingAmount, loan.currency),
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineMedium.money(),
                             fontWeight = FontWeight.Bold,
                             color = if (loan.status == LoanStatus.SETTLED)
                                 MaterialTheme.colorScheme.onSurfaceVariant else directionColor

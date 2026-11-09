@@ -2551,7 +2551,7 @@ private fun BalanceAdjustmentSheet(
                 Text(
                     text = (if (isIncome) "+" else "-") +
                         CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.money(),
                     fontWeight = FontWeight.SemiBold,
                     color = amountColor
                 )

@@ -20,6 +20,17 @@ private const val TABULAR = "tnum"
 fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TABULAR)
 
 /**
+ * Any role drawn as money — square body-family figures with `tnum`, at the
+ * role's own size and weight. For an amount sized like a role none of the
+ * named [PennyWiseText] money styles match (e.g. `titleLarge`); prefer those
+ * when one fits. Never put an amount in a bare heading role: with Google Sans
+ * Flex those are rounded and their digits proportional.
+ */
+@Composable @ReadOnlyComposable
+fun TextStyle.money(): TextStyle =
+    copy(fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontFeatureSettings = TABULAR)
+
+/**
  * Named styles for the handful of jobs the plain Material roles don't cover on
  * their own — chiefly money.
  *

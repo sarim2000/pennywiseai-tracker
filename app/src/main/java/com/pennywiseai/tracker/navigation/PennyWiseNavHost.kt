@@ -80,9 +80,12 @@ fun rememberEntryDecorators(): List<NavEntryDecorator<NavKey>> = listOf(
 )
 
 // An entry's first frame is mid-transition (PreEnter) unless it's the host's first screen.
+// A nested host's first screen inherits its parent's answer: Home arriving inside MainScreen
+// on the root host's transition (onboarding → Home) is still entering on that transition.
 private val navEntranceDecorator = NavEntryDecorator<NavKey> { entry ->
     val transition = LocalNavAnimatedContentScope.current.transition
-    val entering = remember { transition.currentState != transition.targetState }
+    val inherited = LocalNavEntrance.current
+    val entering = remember { inherited || transition.currentState != transition.targetState }
     CompositionLocalProvider(LocalNavEntrance provides entering) { entry.Content() }
 }
 

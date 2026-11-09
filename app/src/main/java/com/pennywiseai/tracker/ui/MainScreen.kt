@@ -594,7 +594,9 @@ fun MainScreen(
             if (!themeState.isLoading) {
                 PennyWiseBottomNavigation(
                     selectedRoute = lastTabRoute[0],
-                    onTabSelected = ::onTabClick,
+                    // The bar can still be tapped while it fades out under a pushed screen;
+                    // ignore that, or the tap would switch tabs and strand the push.
+                    onTabSelected = { if (onTabScreen) onTabClick(it) },
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.

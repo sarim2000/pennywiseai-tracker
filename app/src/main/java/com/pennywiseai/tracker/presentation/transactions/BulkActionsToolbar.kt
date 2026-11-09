@@ -7,6 +7,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -52,6 +53,9 @@ fun BulkActionsToolbar(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                // The filtered route has no keyboard padding of its own; an inset already
+                // consumed by the tab route adds nothing here.
+                .imePadding()
                 .padding(bottom = FloatingToolbarDefaults.ScreenOffset),
             contentAlignment = Alignment.Center
         ) {

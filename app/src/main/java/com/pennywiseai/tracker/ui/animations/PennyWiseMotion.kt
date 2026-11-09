@@ -16,11 +16,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
 
@@ -70,16 +73,49 @@ fun pwCollapse(): ExitTransition {
 /**
  * False when the user set "Remove animations" (animator duration scale 0). Compose already
  * zeroes animation durations then; this is for skipping `delay`-based choreography too.
+ * Re-read on every resume, so toggling it in Settings applies on return. Key `delay`
+ * effects on this value, so a pending delay is dropped when it turns off.
  */
 @Composable
-fun rememberAnimationsEnabled(): Boolean =
-    // ponytail: read once per composition entry; a toggle mid-screen applies on next visit.
-    remember { ValueAnimator.areAnimatorsEnabled() }
+fun rememberAnimationsEnabled(): Boolean {
+    var enabled by remember { mutableStateOf(ValueAnimator.areAnimatorsEnabled()) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { enabled = ValueAnimator.areAnimatorsEnabled() }
+    return enabled
+}
+
+/** First-entrance stagger: the step between items, and the most steps it takes. */
+private const val STAGGER_STEP_MS = 50L
+private const val STAGGER_MAX_STEPS = 6
+
+/**
+ * Delay for the [index]th staggered item (0-based; a header at delay 0 comes before it).
+ * Items past [STAGGER_MAX_STEPS] share the last beat, so a long list doesn't trickle in.
+ */
+fun staggerDelayMs(index: Int): Long = STAGGER_STEP_MS * (index + 1).coerceAtMost(STAGGER_MAX_STEPS)
+
+/**
+ * A screen's saveable "entrance already ran" flag, for [StaggeredEntrance]'s `skip`. Flips
+ * just after the last [staggerDelayMs] beat — at once with animations off — and stays
+ * flipped across recomposition, scrolling and returning to the screen.
+ */
+@Composable
+fun rememberEntranceDone(): Boolean {
+    var done by rememberSaveable { mutableStateOf(false) }
+    val animationsEnabled = rememberAnimationsEnabled()
+    LaunchedEffect(animationsEnabled) {
+        if (!done) {
+            if (animationsEnabled) delay(STAGGER_STEP_MS * (STAGGER_MAX_STEPS + 1))
+            done = true
+        }
+    }
+    return done
+}
 
 /**
  * One item of a first-entrance stagger. Shows immediately when [skip] (the screen already
- * ran its entrance) or animations are off; otherwise reveals with [pwEnter] after [delayMs].
- * Each item tracks its own `visible` so one composed just before [skip] flips still reveals.
+ * ran its entrance) or animations are off; otherwise reveals with [pwEnter] after [delayMs]
+ * (use [staggerDelayMs]). Each item tracks its own `visible` so one composed just before
+ * [skip] flips still reveals.
  */
 @Composable
 fun StaggeredEntrance(
@@ -90,9 +126,9 @@ fun StaggeredEntrance(
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
     var visible by remember { mutableStateOf(skip || !animationsEnabled) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(animationsEnabled) {
         if (!visible) {
-            delay(delayMs)
+            if (animationsEnabled) delay(delayMs)
             visible = true
         }
     }

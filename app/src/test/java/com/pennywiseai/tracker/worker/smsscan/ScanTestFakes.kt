@@ -124,9 +124,18 @@ internal class ListSmsSource(private val messages: List<ScannedSms>) : SmsMessag
  * class using this must call `unmockkStatic(ROOM_COMPAT)` in its @After. Use one per test:
  * a second harness resets the static mock under the first.
  */
-internal class ScanHarness {
+internal class ScanHarness(
+    scanContext: ScanRunContext = ScanRunContext(
+        merchantCategories = emptyMap(),
+        categoryIsIncome = emptyMap(),
+        rulesByType = emptyMap(),
+        accountsBeforeRebuild = emptyMap(),
+        rebuildStartedAt = null,
+    ),
+) {
     val store = FakeTransactionStore()
     val balanceTimes: MutableList<LocalDateTime> = CopyOnWriteArrayList()
+    val builtBalances: MutableList<AccountBalanceEntity> = CopyOnWriteArrayList()
     val filedUnrecognized: MutableList<List<UnrecognizedSmsEntity>> = CopyOnWriteArrayList()
     val widgetRefreshes = AtomicInteger(0)
 
@@ -167,7 +176,7 @@ internal class ScanHarness {
 
         coEvery { balances.insertSmsTransactionBalance(any(), any(), any(), any(), any()) } answers {
             balanceTimes += thirdArg<LocalDateTime>()
-            arg<(BigDecimal?) -> AccountBalanceEntity>(4).invoke(null)
+            arg<(BigDecimal?) -> AccountBalanceEntity>(4).invoke(null).also { builtBalances += it }
         }
         coEvery { unrecognized.insertAll(any()) } answers { filedUnrecognized += firstArg<List<UnrecognizedSmsEntity>>() }
     }
@@ -184,13 +193,7 @@ internal class ScanHarness {
         ignoredAccountsStore = ignored,
         database = database,
         bankAccountMerges = merges,
-        scanContext = ScanRunContext(
-            merchantCategories = emptyMap(),
-            categoryIsIncome = emptyMap(),
-            rulesByType = emptyMap(),
-            accountsBeforeRebuild = emptyMap(),
-            rebuildStartedAt = null,
-        ),
+        scanContext = scanContext,
     )
 
     val classifier = SmsScanClassifier(

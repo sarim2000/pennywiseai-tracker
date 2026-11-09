@@ -508,43 +508,6 @@ class HomeViewModel @Inject constructor(
         return filterAccountsByProfile(allBalances, hiddenAccounts, _uiState.value.selectedProfileId)
     }
 
-    /**
-     * Net daily expense map for the sparkline: EXPENSE adds, Refund (INCOME +
-     * DEDUCT_SPENT) subtracts. Loan-linked transactions are excluded. Amounts are
-     * converted into [selectedCurrency] when [isUnified] is true and the txn's
-     * native currency differs; otherwise only txns already in [selectedCurrency]
-     * are considered. The caller is responsible for clamping the cumulative at
-     * zero so refunds don't make the running total go negative.
-     */
-    private suspend fun buildDailyNetExpense(
-        transactions: List<TransactionEntity>,
-        isUnified: Boolean,
-        selectedCurrency: String
-    ): Map<LocalDate, BigDecimal> {
-        val daily = mutableMapOf<LocalDate, BigDecimal>()
-        for (raw in transactions) {
-            val tx = raw.forTotals() ?: continue  // keep the trend line consistent with the income/spend figures (#451)
-            if (!isUnified && tx.currency != selectedCurrency) continue
-
-            val sign = when {
-                tx.transactionType == TransactionType.EXPENSE -> BigDecimal.ONE
-                tx.transactionType == TransactionType.INCOME &&
-                    tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT -> BigDecimal.ONE.negate()
-                else -> continue
-            }
-
-            val amount = if (isUnified && tx.currency != selectedCurrency) {
-                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, selectedCurrency)
-                    ?: continue // never-rated pair — skip, don't face-value (#670)
-            } else {
-                tx.amount
-            }
-            val day = tx.dateTime.toLocalDate()
-            daily[day] = (daily[day] ?: BigDecimal.ZERO) + amount.multiply(sign)
-        }
-        return daily
-    }
-
     private fun loadUnifiedModePreferences() {
         viewModelScope.launch {
             combine(
@@ -850,52 +813,19 @@ class HomeViewModel @Inject constructor(
                     val selectedCurrency = _uiState.value.selectedCurrency
                     val isUnified = _uiState.value.isUnifiedMode
 
-                    // Split into current cycle and previous cycle
-                    val currentMonthTxs = allTransactions.filter { it.dateTime.toLocalDate() >= firstOfMonth }
-                    val lastMonthTxs = allTransactions.filter {
-                        val d = it.dateTime.toLocalDate()
-                        d >= lastMonthStart && d < firstOfMonth
-                    }
-
-                    // Net daily expense (EXPENSE adds, Refund subtracts) for both
-                    // months, then cumulative below clamps at zero so refunds pull the
-                    // sparkline endpoint in lockstep with the displayed "Spent" stat.
-                    val dailySums = buildDailyNetExpense(currentMonthTxs, isUnified, selectedCurrency)
-                    val lastMonthDailySums = buildDailyNetExpense(lastMonthTxs, isUnified, selectedCurrency)
-
-                    // Carry the running total forward unclamped (so a refund dated
-                    // before the first expense still counts) and only clamp the value
-                    // we display, so the chart endpoint matches the month-level floor
-                    // applied to "Spent this cycle" in computeBreakdownByCurrency.
-                    val cumulativeList = mutableListOf<BigDecimal>()
-                    var runningNet = BigDecimal.ZERO
-                    var day = firstOfMonth
-                    while (!day.isAfter(now)) {
-                        runningNet += (dailySums[day] ?: BigDecimal.ZERO)
-                        cumulativeList.add(runningNet.coerceAtLeast(BigDecimal.ZERO))
-                        day = day.plusDays(1)
-                    }
-
-                    // Match the "same period" comparison the legacy code used: walk the
-                    // previous cycle for as many days as today's day-of-cycle, so an
-                    // Oct-5 vs Sep-25..Oct-4 chart isn't accidentally drawn over the
-                    // full previous cycle.
-                    val daysToInclude = ChronoUnit.DAYS.between(firstOfMonth, now).toInt() + 1
-                    val lastMonthCumulative = mutableListOf<BigDecimal>()
-                    var lastRunningNet = BigDecimal.ZERO
-                    var lastDay = lastMonthStart
-                    var dayCount = 0
-                    while (dayCount < daysToInclude && lastDay < firstOfMonth) {
-                        lastRunningNet += (lastMonthDailySums[lastDay] ?: BigDecimal.ZERO)
-                        lastMonthCumulative.add(lastRunningNet.coerceAtLeast(BigDecimal.ZERO))
-                        lastDay = lastDay.plusDays(1)
-                        dayCount++
-                    }
-
+                    val trend = spendTrend(
+                        allTransactions,
+                        cycleStart = firstOfMonth,
+                        previousCycleStart = lastMonthStart,
+                        today = now,
+                        currency = selectedCurrency,
+                        isUnified = isUnified,
+                        convert = convert
+                    )
                     _uiState.value = _uiState.value.copy(
-                        spendingHistory = cumulativeList,
-                        balanceHistory = cumulativeList,
-                        lastMonthSpendingHistory = lastMonthCumulative
+                        spendingHistory = trend.thisCycle,
+                        balanceHistory = trend.thisCycle,
+                        lastMonthSpendingHistory = trend.lastCycleSamePoint
                     )
                 }
         }

@@ -51,6 +51,7 @@ composeCharts = "1.0.0"
 billingKtx = "9.1.0"
 leakcanary = "3.0-alpha-9"
 spotless = "8.11.0"
+dependencyAnalysis = "3.20.2"
 
 [libraries]
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
@@ -133,3 +134,4 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }

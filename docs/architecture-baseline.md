@@ -9,7 +9,10 @@ Paths and package names below are as recorded. Since then, `ui/screens/<feature>
 has moved to `presentation/<feature>/`, `ui/screens/AppLockScreen.kt` and
 `PermissionScreen.kt` to `presentation/applock/` and `presentation/permission/`, and
 the feature ViewModels `AppLock`, `Permission`, `Rules` and `BackgroundAccess` from
-`ui/viewmodel/` to the same feature packages (refactor PR 05).
+`ui/viewmodel/` to the same feature packages (refactor PR 05). `ui/theme/`, the
+fonts and the three appearance enums moved to `:core:designsystem` (refactor PR 17),
+which removes the `ui.theme` → `data` back-edge from `:app`. `ui/components` stayed
+in `:app`; [architecture.md](architecture.md#coredesignsystem) says why.
 
 Re-check the package graph with:
 
@@ -188,7 +191,7 @@ whose last emulator measurement was inconclusive.
 
 Audited with the [Dependency Analysis Gradle Plugin](https://github.com/autonomousapps/dependency-analysis-gradle-plugin)
 3.20.2 and a grep of each declared library's packages across every source set. The
-plugin is applied to the root, `:app`, `:parser-core` and `:shared`, and only
+plugin is applied to the root, `:app`, `:core:designsystem`, `:parser-core` and `:shared`, and only
 reports. Nothing depends on its tasks and every issue is set to `warn`, so it can't
 fail a build. Re-run it with:
 
@@ -257,6 +260,10 @@ matches nothing for `billing|play|gms`, before and after.
   `lifecycle-common`, Dagger, `ktor-http` and others. Adding them now would only
   pin versions that the BOM and the declared libraries already set. The advice
   matters per module, so apply it to each feature module as it is extracted.
+- **`:core:designsystem`'s Compose artifacts.** The plugin asks it to declare
+  `runtime`, `ui-text`, `ui-graphics`, `ui-unit` and `foundation`. They arrive
+  through `api(material3)`, whose own public signatures use them, at versions the
+  BOM sets, so declaring them would pin nothing new.
 
 ### Other findings
 

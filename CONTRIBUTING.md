@@ -92,7 +92,7 @@ cd pennywiseai-tracker
 
 ### Project Structure
 
-PennyWise is a multi-module project (`settings.gradle.kts` includes `:app`, `:parser-core`, `:shared`, and `:iosApp`; the tree below also shows non-module directories):
+PennyWise is a multi-module project (`settings.gradle.kts` includes `:app`, `:core:designsystem`, `:parser-core`, `:shared`, and `:iosApp`; the tree below also shows non-module directories):
 
 ```
 app/                  # Android app (Compose UI, Room, Hilt)
@@ -100,10 +100,11 @@ app/                  # Android app (Compose UI, Room, Hilt)
     ├── data/             # Database, repositories, managers
     ├── domain/           # Use cases and services
     ├── presentation/     # Feature screens + ViewModels
-    ├── ui/               # Shared UI components, theme, remaining screens
+    ├── ui/               # Shared UI components, app shell
     ├── navigation/       # Navigation graph
     ├── widget/ worker/ receiver/   # Widgets, WorkManager jobs, SMS receiver
     └── billing/ backup/ core/ utils/
+core/designsystem/    # Theme, design tokens and fonts
 parser-core/          # Kotlin Multiplatform bank parsers (shared with iOS)
 shared/               # Shared Kotlin code for the iOS app
 iosApp/               # Swift iOS app

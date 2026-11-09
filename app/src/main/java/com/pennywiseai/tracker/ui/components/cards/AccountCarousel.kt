@@ -37,6 +37,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.formatBalance
@@ -225,7 +226,7 @@ private fun AccountCarouselCard(
                     // (shows "$400", not "MZN400") instead of forcing the display label.
                     // Home's eye, not a per-card one: hidden by default like the rest of Home.
                     text = if (isAmountHidden) AmountPrivacy.MASK else account.formatBalance(),
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleLarge.money(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,

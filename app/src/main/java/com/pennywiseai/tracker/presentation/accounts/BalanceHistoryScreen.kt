@@ -424,7 +424,7 @@ private fun BalanceHistoryItem(
                     )
                     Text(
                         text = CurrencyFormatter.formatCurrency(balance.balance, accountPrimaryCurrency),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleLarge.money(),
                         fontWeight = FontWeight.Bold,
                         color = if (isLatest) {
                             MaterialTheme.colorScheme.primary

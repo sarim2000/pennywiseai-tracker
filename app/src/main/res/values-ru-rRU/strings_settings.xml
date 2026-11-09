@@ -302,8 +302,9 @@
     <string name="appearance_cover_selected">Выбрано</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Шрифты</string>
-    <string name="appearance_font_default">По умолчанию</string>
-    <string name="appearance_font_default_subtitle">Система</string>
+    <string name="appearance_font_google_sans_flex_subtitle">Только латиница</string>
+    <string name="appearance_font_system">Системный</string>
+    <string name="appearance_font_system_subtitle">Все языки</string>
     <string name="appearance_font_sn_pro_subtitle">Скруглённый</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Вебхуки</string>

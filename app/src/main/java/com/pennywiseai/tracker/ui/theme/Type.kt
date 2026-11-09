@@ -6,6 +6,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.R
@@ -30,6 +31,43 @@ val SNProFontFamily = FontFamily(
 )
 
 /**
+ * Every weight the Google Sans Flex families declare: all nine, so any
+ * `FontWeight` in the app — the scale, its +100 `*Emphasized` step, the
+ * `PennyWiseText` money weights — resolves to its own instance. Compose picks
+ * the *closest declared* Font, so a missing 700 would quietly render an
+ * emphasized style at 600, identical to its base.
+ */
+private val GoogleSansFlexWeights: List<FontWeight> = (100..900 step 100).map { FontWeight(it) }
+
+/** ROND (roundness) for the heading family: fully rounded terminals. */
+internal const val GOOGLE_SANS_FLEX_HEADING_ROUNDNESS = 100f
+
+/**
+ * Google Sans Flex — Material 3 Expressive's typeface — from one variable font
+ * (`res/font/google_sans_flex.ttf`, instanced down to its `wght` and `ROND`
+ * axes). Each Font pins both axes; they are never animated. Latin only: text in
+ * other scripts falls back per glyph to the system font.
+ */
+private fun googleSansFlex(roundness: Float) = FontFamily(
+    GoogleSansFlexWeights.map { weight ->
+        Font(
+            R.font.google_sans_flex,
+            weight,
+            variationSettings = FontVariation.Settings(
+                FontVariation.weight(weight.weight),
+                FontVariation.Setting("ROND", roundness),
+            ),
+        )
+    }
+)
+
+/** Body, label and money text: square terminals (ROND 0), crisp at small sizes and in figures. */
+val GoogleSansFlexFamily = googleSansFlex(roundness = 0f)
+
+/** Display, headline and title roles: the rounded, expressive cut. */
+val GoogleSansFlexHeadingFamily = googleSansFlex(roundness = GOOGLE_SANS_FLEX_HEADING_ROUNDNESS)
+
+/**
  * The type scale.
  *
  * Two deliberate departures from stock Material 3, both aimed at making
@@ -46,6 +84,10 @@ val SNProFontFamily = FontFamily(
  *    group into one number instead of drifting apart; 11–12sp labels keep
  *    Material's generous tracking, which is what makes small text legible.
  *
+ * Display, headline and title roles take [headingFamily]; body and label
+ * roles take the body family. They differ only for Google Sans Flex (rounded
+ * headings, square body); SYSTEM and SN Pro pass one family for both.
+ *
  * Roles, so screens pick the same style for the same job:
  * | Role | Use |
  * |---|---|
@@ -60,65 +102,65 @@ val SNProFontFamily = FontFamily(
  * | `labelLarge` | Buttons, prominent inline actions |
  * | `labelMedium`/`Small` | Chips, badges, axis ticks, overlines |
  */
-private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
+private fun baseTypography(fontFamily: FontFamily, headingFamily: FontFamily): Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 57.sp,
         lineHeight = 64.sp,
         letterSpacing = (-1).sp
     ),
     displayMedium = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 45.sp,
         lineHeight = 52.sp,
         letterSpacing = (-0.5).sp
     ),
     displaySmall = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 36.sp,
         lineHeight = 44.sp,
         letterSpacing = (-0.25).sp
     ),
     headlineLarge = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
         letterSpacing = (-0.25).sp
     ),
     headlineMedium = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 36.sp,
         letterSpacing = (-0.2).sp
     ),
     headlineSmall = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
         letterSpacing = (-0.15).sp
     ),
     titleLarge = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
         letterSpacing = (-0.1).sp
     ),
     titleMedium = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = fontFamily,
+        fontFamily = headingFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
@@ -176,13 +218,19 @@ private fun baseTypography(fontFamily: FontFamily): Typography = Typography(
  *
  * Material's stock emphasized styles carry their own font family, so they'd
  * ignore the user's font choice. Derive them from our scale instead: same
- * size and tracking, one weight step heavier. Reserve them for hero moments
- * (the Home balance, a screen's large title) — emphasis everywhere is emphasis
- * nowhere.
+ * size, tracking and family, one weight step heavier. Reserve them for hero
+ * moments (the Home balance, a screen's large title) — emphasis everywhere is
+ * emphasis nowhere.
+ *
+ * @param headingFamily the family for display, headline and title roles;
+ *   defaults to [fontFamily].
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
-fun getTypography(fontFamily: FontFamily = FontFamily.Default): Typography {
-    val b = baseTypography(fontFamily)
+fun getTypography(
+    fontFamily: FontFamily = FontFamily.Default,
+    headingFamily: FontFamily = fontFamily,
+): Typography {
+    val b = baseTypography(fontFamily, headingFamily)
     // 400 → 500, 600 → 700: Material's own emphasized step.
     fun TextStyle.emphasized() =
         copy(fontWeight = FontWeight(((fontWeight ?: FontWeight.Normal).weight + 100).coerceAtMost(900)))

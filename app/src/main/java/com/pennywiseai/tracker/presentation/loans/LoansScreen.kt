@@ -294,7 +294,7 @@ private fun LoanSummaryCard(
                 Text(stringResource(R.string.loans_owed_to_you), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     CurrencyFormatter.formatCurrency(totalLent, currency),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = PennyWiseText.amountMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = lentColor
                 )
@@ -303,7 +303,7 @@ private fun LoanSummaryCard(
                 Text(stringResource(R.string.loans_you_owe), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
                     CurrencyFormatter.formatCurrency(totalBorrowed, currency),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = PennyWiseText.amountMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = borrowedColor
                 )

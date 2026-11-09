@@ -301,7 +301,7 @@ private fun CurrentBalanceCard(
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = CurrencyFormatter.formatCurrency(creditLimit, primaryCurrency),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.money(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -360,7 +360,7 @@ private fun CurrentBalanceCard(
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
                     text = CurrencyFormatter.formatCurrency(balance, primaryCurrency),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.money(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )

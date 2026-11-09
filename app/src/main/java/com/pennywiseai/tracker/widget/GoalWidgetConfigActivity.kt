@@ -47,7 +47,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -93,7 +93,7 @@ class GoalWidgetConfigActivity : FragmentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            PennyWiseTheme {
+            PennyWiseUserTheme {
                 PennyWiseScaffold(
                     title = stringResource(R.string.widget_goal_config_title),
                     navigationIcon = {

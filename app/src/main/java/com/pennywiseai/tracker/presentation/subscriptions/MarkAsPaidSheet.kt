@@ -57,6 +57,7 @@ import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -174,12 +175,12 @@ fun MarkAsPaidSheet(
             }
             Spacer(Modifier.height(Spacing.lg))
 
-            // Hero amount — typography carries the moment. headlineLarge
-            // matches the rest of the app's big-number convention
-            // (SummaryCardV2 uses the same size).
+            // Hero amount — typography carries the moment. amountHeadline
+            // (headlineLarge size) matches the rest of the app's big-number
+            // convention (SummaryCardV2 uses the same size).
             Text(
                 text = CurrencyFormatter.formatCurrency(subscription.amount, subscription.currency),
-                style = MaterialTheme.typography.headlineLarge,
+                style = PennyWiseText.amountHeadline,
                 fontWeight = FontWeight.Bold,
                 color = amountColor,
                 modifier = Modifier.fillMaxWidth(),
@@ -356,7 +357,7 @@ private fun CandidateCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = PennyWiseText.amountMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = amountColor,
                 )

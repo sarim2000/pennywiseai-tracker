@@ -198,7 +198,7 @@ fun TransactionGroupDetailScreen(
                                     )
                                     Text(
                                         CurrencyFormatter.formatByCurrency(uiState.expenseByCurrency),
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = PennyWiseText.amountMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = expenseColor
                                     )
@@ -213,7 +213,7 @@ fun TransactionGroupDetailScreen(
                                     )
                                     Text(
                                         CurrencyFormatter.formatByCurrency(uiState.investedByCurrency),
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = PennyWiseText.amountMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.investment
                                     )
@@ -228,7 +228,7 @@ fun TransactionGroupDetailScreen(
                                     )
                                     Text(
                                         CurrencyFormatter.formatByCurrency(uiState.incomeByCurrency),
-                                        style = MaterialTheme.typography.titleMedium,
+                                        style = PennyWiseText.amountMedium,
                                         fontWeight = FontWeight.SemiBold,
                                         color = accentColor
                                     )

@@ -620,7 +620,7 @@ private fun BudgetCard(
                         },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
-                        ),
+                        ).money(),
                         color = statusColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -712,7 +712,7 @@ private fun BudgetCard(
                     text = stringResource(R.string.budgets_spent, CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
-                    ),
+                    ).money(),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))

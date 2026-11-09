@@ -6,6 +6,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 
 private const val TABULAR = "tnum"
@@ -19,6 +20,17 @@ private const val TABULAR = "tnum"
 fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TABULAR)
 
 /**
+ * Any role drawn as money — square body-family figures with `tnum`, at the
+ * role's own size and weight. For an amount sized like a role none of the
+ * named [PennyWiseText] money styles match (e.g. `titleLarge`); prefer those
+ * when one fits. Never put an amount in a bare heading role: with Google Sans
+ * Flex those are rounded and their digits proportional.
+ */
+@Composable @ReadOnlyComposable
+fun TextStyle.money(): TextStyle =
+    copy(fontFamily = MaterialTheme.typography.bodyLarge.fontFamily, fontFeatureSettings = TABULAR)
+
+/**
  * Named styles for the handful of jobs the plain Material roles don't cover on
  * their own — chiefly money.
  *
@@ -29,14 +41,23 @@ fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TABULAR)
  *
  * These are derived from the theme typography rather than declared from
  * scratch, so they follow the user's font choice and any future scale change.
+ *
+ * Money styles also take the *body* family even when sized from a heading
+ * role: with Google Sans Flex that keeps figures square (ROND 0) while the
+ * words around them are rounded. For SYSTEM and SN Pro the two are the same.
  */
 object PennyWiseText {
+
+    private val moneyFamily: FontFamily?
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.typography.bodyLarge.fontFamily
 
     /** The one big number on a screen — Home's month spent, transaction detail,
      *  a Period Review card. */
     val heroAmount: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.displaySmallEmphasized.copy(
+            fontFamily = moneyFamily,
             fontFeatureSettings = TABULAR
         )
 
@@ -45,6 +66,7 @@ object PennyWiseText {
     val amountHeadline: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.headlineLarge.copy(
+            fontFamily = moneyFamily,
             fontWeight = FontWeight.Bold,
             fontFeatureSettings = TABULAR
         )
@@ -53,6 +75,7 @@ object PennyWiseText {
     val amountLarge: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.headlineSmall.copy(
+            fontFamily = moneyFamily,
             fontWeight = FontWeight.Bold,
             fontFeatureSettings = TABULAR
         )
@@ -61,6 +84,7 @@ object PennyWiseText {
     val amountMedium: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.titleMedium.copy(
+            fontFamily = moneyFamily,
             fontWeight = FontWeight.Bold,
             fontFeatureSettings = TABULAR
         )

@@ -188,6 +188,8 @@ class SpendingComparisonTest {
         assertNull(SpendingComparison.period("compare this month with 2025-10", "month"))
         assertNull(SpendingComparison.period("compare this month with 10/2025", "month"))
         assertNull(SpendingComparison.period("compare spending since 15/10", "month"))
+        assertNull(SpendingComparison.period("compare spending since 15/10.", "month"))
+        assertNull(SpendingComparison.period("compare this month with 15.10.2025", "month"))
         assertNull(SpendingComparison.period("compare this month with 2025", "month"))
         assertNull(SpendingComparison.period("قارن هالشهر مع 2025", "month"))
         // Amounts aren't dates.

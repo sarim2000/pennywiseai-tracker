@@ -154,11 +154,11 @@ object SpendingComparison {
         "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than|with)|في|عام|سنة|مع|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
         RegexOption.IGNORE_CASE
     )
-    // A written date names its own month: "2025-10", "10/2025", "15/10". A real month and day only, and
-    // no "." separator, so "2000.50" stays an amount.
+    // A written date names its own month: "2025-10", "10/2025", "15/10", "15.10.2025". A real month and
+    // day only, and "." only in a full day.month.year, so "2000.50" stays an amount.
     private const val MM = "(?:0?[1-9]|1[0-2])"
     private val NUMERIC_DATE = Regex(
-        "(?<![\\d.,])(?:(?:19|20)\\d\\d[-/]$MM|$MM[-/](?:19|20)\\d\\d|(?:0?[1-9]|[12]\\d|3[01])/$MM(?:/\\d{2,4})?)(?![\\d.,])"
+        "(?<![\\d.,])(?:(?:19|20)\\d\\d[-/]$MM|$MM[-/](?:19|20)\\d\\d|(?:0?[1-9]|[12]\\d|3[01])/$MM(?:/\\d{2,4})?|(?:0?[1-9]|[12]\\d|3[01])\\.$MM\\.(?:19|20)\\d\\d)(?![\\d]|[.,]\\d)"
     )
 
     // What a small model writes for "no category": the comparison of all spending.

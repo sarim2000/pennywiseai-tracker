@@ -26,8 +26,8 @@
     <!-- ══ SMS permission screen ══ -->
     <string name="permission_title">Enable Automatic Transaction Detection</string>
     <string name="permission_description">PennyWise can automatically detect and categorize your bank transactions from SMS messages, saving you time and effort.</string>
-    <string name="permission_privacy_title">Your Privacy Matters</string>
-    <string name="permission_privacy_points">• Only transaction messages are processed\n• All data stays on your device\n• No personal messages are read\n• You can revoke access anytime in Settings</string>
+    <string name="permission_privacy_title">Private by design</string>
+    <string name="permission_privacy_points">• Android’s prompt says “send and view SMS”. PennyWise never sends a message.\n• Only bank SMS become transactions. Messages from people are skipped and never saved.\n• No account, no sign-up. Your data stays on your phone.\n• Open source, so anyone can check. Turn access off anytime in Settings.</string>
     <string name="permission_notification_title">Enable Bank Notification Access</string>
     <string name="permission_notification_description">Allow PennyWise to read transaction notifications from supported banking apps. This helps capture purchases when SMS is delayed or unavailable.</string>
     <string name="permission_notification_enabled">Notification access enabled</string>
@@ -194,7 +194,7 @@
     <string name="onboarding_setup_heading">What you\'ll set up:</string>
     <string name="onboarding_setup_steps">1. Your profile\n2. SMS permissions for auto-detection\n3. Initial transaction scan\n4. Your main bank account</string>
     <string name="onboarding_name_title">What should we call you?</string>
-    <string name="onboarding_name_label">Your name</string>
+    <string name="onboarding_name_label">Your name (optional)</string>
     <string name="onboarding_currency_title">Your currency</string>
     <string name="onboarding_language_device">Device language</string>
     <string name="onboarding_currency_hint">Used for totals and budgets. You can change it in Settings.</string>
@@ -204,9 +204,10 @@
     <string name="onboarding_background_color_title">Pick a background color</string>
     <string name="onboarding_selected_cd">Selected</string>
     <string name="onboarding_permission_title">Enable Automatic Detection</string>
-    <string name="onboarding_permission_body">PennyWise can automatically detect and categorize your bank transactions from SMS messages.</string>
-    <string name="onboarding_permission_granted">Permissions granted! Tap Continue to proceed.</string>
-    <string name="onboarding_enable_permissions">Enable Permissions</string>
+    <string name="onboarding_permission_body">PennyWise reads the SMS your bank already sends and turns them into tracked expenses, automatically.</string>
+    <string name="onboarding_permission_granted">SMS access allowed. Tap Continue.</string>
+    <string name="onboarding_enable_permissions">Allow SMS access</string>
+    <string name="onboarding_notifications_reason">Next, allow notifications so PennyWise can tell you the moment a new spend is tracked.</string>
     <string name="onboarding_scan_in_progress">Scanning your messages...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">%1$d / %2$d message processed</item>

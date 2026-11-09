@@ -92,7 +92,7 @@ class ChatViewModelSettleTest {
 
     @Test
     fun `a saved Add writes its line, then holds its check for a beat`() {
-        val viewModel = viewModel()
+        val viewModel = viewModel().apply { animationsEnabled = { true } }
         var checkShownWhenLineJoined: Boolean? = null
         coEvery { llm.completePendingAction(any()) } coAnswers {
             checkShownWhenLineJoined = viewModel.uiState.value.cardSaved
@@ -107,6 +107,19 @@ class ChatViewModelSettleTest {
         coVerify(exactly = 1) { llm.completePendingAction(any()) }
         main.scheduler.advanceUntilIdle()
         assertEquals(true, checkShownWhenLineJoined)
+        assertFalse(viewModel.uiState.value.cardSaved)
+        assertFalse(viewModel.isConfirming.value)
+    }
+
+    @Test
+    fun `with animations removed a saved Add lets go of the card at once`() {
+        val viewModel = viewModel().apply { animationsEnabled = { false } }
+        coEvery { llm.completePendingAction(any()) } coAnswers { pending.value = null }
+        pending.value = PendingChatAction.Add(listOf(ReviewRow(id = 0, draft = draft)))
+
+        viewModel.confirmPendingAction()
+
+        coVerify(exactly = 1) { llm.completePendingAction(any()) }
         assertFalse(viewModel.uiState.value.cardSaved)
         assertFalse(viewModel.isConfirming.value)
     }

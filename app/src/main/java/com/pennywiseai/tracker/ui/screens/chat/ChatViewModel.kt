@@ -233,7 +233,8 @@ class ChatViewModel @Inject constructor(
                                     )
                                 }
                             )
-                            delay(SETTLED_HOLD_MILLIS)
+                            // "Remove animations": no beat to hold the check for.
+                            if (animationsEnabled()) delay(SETTLED_HOLD_MILLIS)
                         }
                     }
                 }
@@ -348,6 +349,9 @@ class ChatViewModel @Inject constructor(
     }
 
     fun cancelDownload() = modelDownloader.cancel()
+
+    // False under "Remove animations"; a seam for tests, where the Android stub always says false.
+    internal var animationsEnabled: () -> Boolean = { android.animation.ValueAnimator.areAnimatorsEnabled() }
 
     private companion object {
         const val BYTES_PER_MB = 1024L * 1024L

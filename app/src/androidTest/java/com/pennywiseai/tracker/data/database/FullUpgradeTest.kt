@@ -42,7 +42,7 @@ class FullUpgradeTest {
         }
 
         val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
-            .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
             .setDriver(AndroidSQLiteDriver())
             .build()
         try {
@@ -86,7 +86,7 @@ class FullUpgradeTest {
         }
 
         val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
-            .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
             .setDriver(AndroidSQLiteDriver())
             .build()
         try {

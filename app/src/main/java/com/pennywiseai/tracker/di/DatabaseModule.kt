@@ -8,6 +8,7 @@ import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.sqlite.execSQL
 import com.pennywiseai.tracker.data.database.execSQL
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.PennyWiseMigrations
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
@@ -64,9 +65,9 @@ object DatabaseModule {
             PennyWiseDatabase::class.java,
             PennyWiseDatabase.DATABASE_NAME
         )
-            // Single source of truth lives in PennyWiseDatabase.ALL_MIGRATIONS
+            // Single source of truth lives in PennyWiseMigrations.ALL_MIGRATIONS
             // so the BroadcastReceiver fallback builder stays in sync.
-            .addMigrations(*PennyWiseDatabase.ALL_MIGRATIONS)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
             // System SQLite, same engine Room 2 used: see PennyWiseDatabase.getInstance.
             .setDriver(AndroidSQLiteDriver())
 

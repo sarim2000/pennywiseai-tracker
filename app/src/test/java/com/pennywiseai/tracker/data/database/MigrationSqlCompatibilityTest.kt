@@ -23,7 +23,7 @@ class MigrationSqlCompatibilityTest {
         val db = mockk<SQLiteConnection>(relaxed = true)
         every { db.prepare(any()) } answers { statements += firstArg<String>(); mockk(relaxed = true) }
 
-        runBlocking { PennyWiseDatabase.ALL_MIGRATIONS.forEach { it.migrate(db) } }
+        runBlocking { PennyWiseMigrations.ALL_MIGRATIONS.forEach { it.migrate(db) } }
 
         assertTrue("no migration SQL captured", statements.size > 50)
         val offending = statements.filter {

@@ -9,6 +9,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.PennyWiseMigrations
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
 import kotlinx.coroutines.runBlocking
@@ -33,7 +34,7 @@ class WebhookDatabaseTest {
                 'synthetic', 0, '2026-01-01T12:00:00', '2026-01-01T12:00:00')""")
             close()
         }
-        helper.runMigrationsAndValidate(63, listOf(PennyWiseDatabase.MIGRATION_62_63)).use { db ->
+        helper.runMigrationsAndValidate(63, listOf(PennyWiseMigrations.MIGRATION_62_63)).use { db ->
             assertEquals(listOf(listOf("12.50")), db.rows("SELECT amount FROM transactions WHERE id = 1"))
             assertEquals(listOf(listOf("0")), db.rows("SELECT COUNT(*) FROM webhook_profiles"))
         }

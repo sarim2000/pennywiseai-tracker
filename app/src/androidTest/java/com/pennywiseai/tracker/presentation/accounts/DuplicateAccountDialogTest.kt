@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.rows
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.PennyWiseMigrations
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.runBlocking
@@ -221,7 +222,7 @@ class DuplicateAccountDialogTest {
                 }
                 close()
             }
-            helper.runMigrationsAndValidate(64, listOf(PennyWiseDatabase.MIGRATION_63_64)).use { db ->
+            helper.runMigrationsAndValidate(64, listOf(PennyWiseMigrations.MIGRATION_63_64)).use { db ->
                 assertEquals(listOf(listOf("Source Bank", "Example Bank"), listOf("Source Bank", null)),
                     db.rows("SELECT from_bank_name, to_bank_name FROM transactions ORDER BY id"))
             }

@@ -81,6 +81,7 @@ import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.components.LocalHideNavBar
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
@@ -232,6 +233,8 @@ fun MainScreen(
     val dockForTabs = navDock.takeIf {
         themeState.isLoading || themeState.navBarStyle == NavBarStyle.FLOATING
     }
+    // Set by a tab drawing its own bottom toolbar (Transactions' bulk select).
+    val hideNavBar = remember { mutableStateOf(false) }
 
     // Hiding the tab you're on (or the one under Settings) sends you Home, once,
     // on the next tab you land on. Other ways into a hidden tab's screen (e.g.
@@ -514,6 +517,7 @@ fun MainScreen(
     CompositionLocalProvider(
         LocalMerchantDisplay provides merchantDisplay,
         LocalNavDock provides dockForTabs,
+        LocalHideNavBar provides hideNavBar,
     ) {
         Box(
             modifier = Modifier
@@ -550,7 +554,7 @@ fun MainScreen(
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.
-                    visible = !WindowInsets.isImeVisible,
+                    visible = !WindowInsets.isImeVisible && !hideNavBar.value,
                     hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,

@@ -9,6 +9,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material3.*
@@ -17,9 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
@@ -77,19 +78,18 @@ fun AnalyticsSummaryCard(
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(2.dp))
-                    val formattedTotal = CurrencyFormatter.formatCurrency(totalAmount, currency)
-                    val isLongAmount = formattedTotal.length > 14
-                    Text(
-                        text = formattedTotal,
-                        style = if (isLongAmount) {
-                            MaterialTheme.typography.headlineMedium
-                        } else {
-                            MaterialTheme.typography.headlineLarge
-                        },
-                        fontWeight = FontWeight.Bold,
+                    // Settles on a period change, and shrinks to fit rather than
+                    // clipping: a clipped total reads as a smaller, wrong figure.
+                    val totalStyle = PennyWiseText.amountHeadline
+                    AnimatedCurrencyText(
+                        text = CurrencyFormatter.formatCurrency(totalAmount, currency),
+                        style = totalStyle,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
-                        overflow = TextOverflow.Clip
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = PennyWiseText.autoSizeFloor,
+                            maxFontSize = totalStyle.fontSize
+                        )
                     )
                 }
 

@@ -81,6 +81,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -271,7 +272,7 @@ private fun GoalDetailContent(
                         onAddedSettled = onAddedSettled,
                     ) { percent ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(stringResource(R.string.budgets_percent, percent), style = MaterialTheme.typography.headlineMedium)
+                            Text(stringResource(R.string.budgets_percent, percent), style = MaterialTheme.typography.headlineMedium.tabular())
                             Text(
                                 CurrencyFormatter.formatCurrency(progress.saved, currency),
                                 style = PennyWiseText.amountSmall,

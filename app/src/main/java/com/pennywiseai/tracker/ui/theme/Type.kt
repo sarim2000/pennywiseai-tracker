@@ -49,7 +49,7 @@ val SNProFontFamily = FontFamily(
  * Roles, so screens pick the same style for the same job:
  * | Role | Use |
  * |---|---|
- * | `displaySmall`+ | Hero balance on the Home balance card |
+ * | `displaySmall`+ | The one hero figure on a screen (`PennyWiseText.heroAmount`) |
  * | `headlineMedium`/`Small` | Screen-level totals, dialog titles |
  * | `titleLarge` | Screen title in a top app bar |
  * | `titleMedium` | Card heading |

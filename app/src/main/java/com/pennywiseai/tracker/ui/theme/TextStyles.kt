@@ -8,6 +8,16 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
+private const val TABULAR = "tnum"
+
+/**
+ * Tabular figures on any role, for a number that counts in place on a style
+ * that isn't one of the money styles below (they already carry it) — e.g. a
+ * goal ring's animated percent. Proportional digits would make it jitter
+ * sideways on every frame.
+ */
+fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = TABULAR)
+
 /**
  * Named styles for the handful of jobs the plain Material roles don't cover on
  * their own — chiefly money.
@@ -22,12 +32,20 @@ import androidx.compose.ui.text.font.FontWeight
  */
 object PennyWiseText {
 
-    private const val TABULAR = "tnum"
-
-    /** The one big number on a screen — Home balance, account balance. */
+    /** The one big number on a screen — Home's month spent, transaction detail,
+     *  a Period Review card. */
     val heroAmount: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.displaySmallEmphasized.copy(
+            fontFeatureSettings = TABULAR
+        )
+
+    /** A screen's headline total — the Analytics period total. One line: pair
+     *  with `TextAutoSize` rather than letting a long amount wrap or clip. */
+    val amountHeadline: TextStyle
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.typography.headlineLarge.copy(
+            fontWeight = FontWeight.Bold,
             fontFeatureSettings = TABULAR
         )
 

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
@@ -215,9 +216,16 @@ private fun CurrencyReviewCard(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // The recap's headline: the same hero figure as Home's month spent, one
+        // line, shrinking for a long amount rather than wrapping mid-number.
         Text(
             text = CurrencyFormatter.formatCurrency(review.spent, review.currency),
-            style = PennyWiseText.amountLarge,
+            style = PennyWiseText.heroAmount,
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = PennyWiseText.autoSizeFloor,
+                maxFontSize = PennyWiseText.heroAmount.fontSize,
+            ),
         )
         comparisonText(review, range)?.let {
             Text(

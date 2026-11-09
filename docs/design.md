@@ -154,7 +154,8 @@ at making hierarchy readable in a dense, number-heavy UI:
 
 | Role | Use |
 |---|---|
-| `displaySmall`+ | Hero balance on the Home balance card |
+| `displaySmall`+ | The one hero figure on a screen (`PennyWiseText.heroAmount`) |
+| `headlineLarge` | The Analytics period total (`PennyWiseText.amountHeadline`) |
 | `headlineMedium` / `Small` | Screen-level totals, dialog titles |
 | `titleLarge` | Screen title in a top app bar |
 | `titleMedium` | Card heading |
@@ -170,9 +171,17 @@ at making hierarchy readable in a dense, number-heavy UI:
 Derived from the theme typography (so they follow the user's font choice), for
 the jobs the plain roles don't cover:
 
-- **Money:** `heroAmount`, `amountLarge`, `amountMedium`, `amountRow`,
-  `amountSmall`. All carry `tnum` (**tabular figures**) so a column of amounts
-  lines up instead of shimmering as digits change width.
+- **Money:** `heroAmount`, `amountHeadline`, `amountLarge`, `amountMedium`,
+  `amountRow`, `amountSmall`. All carry `tnum` (**tabular figures**) so a
+  column of amounts lines up instead of shimmering as digits change width.
+- **Counting figures are tabular.** Any amount or percent that changes in place
+  (a settling total, a goal ring counting up) uses a money style or, on a plain
+  role, `style.tabular()` — proportional digits jitter sideways every frame.
+- **Shrink a long figure; don't size it by string length.** The Analytics
+  total, the transaction-detail amount and the Period Review headline pass
+  `maxLines = 1` and `TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, style.fontSize)`,
+  so a long amount shrinks to fit instead of wrapping mid-number or clipping
+  into a smaller, wrong-looking figure.
 - **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
 - **Structure:** `sectionHeader`, `fieldLabel`.
 - **Charts:** `chartLabel` — one style for every axis tick, value label and
@@ -354,8 +363,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   all ticked by default keep checkbox rows (their icons identify them).
 - **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
   for hero moments only: the Home hero amount — this month's spending in the
-  expanded `BalanceCard` (`PennyWiseText.heroAmount`) — and the expanded
-  app-bar title.
+  expanded `BalanceCard` — the transaction-detail amount, the Period Review
+  headline (each currency card's spend; all three are
+  `PennyWiseText.heroAmount`), and the expanded app-bar title. Counting
+  figures — amounts and percents — are tabular (see Typography).
 - The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
   (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 

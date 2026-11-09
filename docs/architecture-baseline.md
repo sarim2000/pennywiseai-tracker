@@ -5,6 +5,12 @@ recorded in November 2026 at commit `74248cd5`. Later refactor PRs compare again
 these numbers. They should remove the cycles and back-edges listed here without
 adding new ones, and should not slow the build without saying why.
 
+Paths and package names below are as recorded. Since then, `ui/screens/<feature>/`
+has moved to `presentation/<feature>/`, `ui/screens/AppLockScreen.kt` and
+`PermissionScreen.kt` to `presentation/applock/` and `presentation/permission/`, and
+the feature ViewModels `AppLock`, `Permission`, `Rules` and `BackgroundAccess` from
+`ui/viewmodel/` to the same feature packages (refactor PR 05).
+
 Re-check the package graph with:
 
 ```bash

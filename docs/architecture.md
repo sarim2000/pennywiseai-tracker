@@ -96,17 +96,18 @@ message to every candidate parser by content — see
 ```
 app/
 ├── src/main/java/com/pennywiseai/tracker/
-│   ├── presentation/            # Feature screens + ViewModels (home, accounts,
-│   │   │                        #   add, transactions, budgetgroups, categories,
-│   │   │                        #   subscriptions, loans, groups, paywall, share,
-│   │   │                        #   statement, exchangerates, common; also a
-│   │   │                        #   navigation/ subpackage for feature routes)
-│   ├── ui/                      # Shared components, theme, ViewModels
+│   ├── presentation/            # One package per feature: screens + ViewModels
+│   │   │                        #   (home, accounts, add, transactions, analytics,
+│   │   │                        #   chat, budgetgroups, categories, subscriptions,
+│   │   │                        #   loans, groups, rules, settings (+ aiaccess/,
+│   │   │                        #   webhooks/), onboarding, unrecognized, applock,
+│   │   │                        #   permission, paywall, share, statement,
+│   │   │                        #   exchangerates, common; also a navigation/
+│   │   │                        #   subpackage for feature routes)
+│   ├── ui/                      # App shell (MainScreen) + shared components, theme
 │   │   ├── components/          # Reusable Compose components
 │   │   ├── theme/               # Design system tokens
-│   │   ├── viewmodel/           # App-level ViewModels (theme, app lock, ...)
-│   │   └── screens/             # analytics, chat, onboarding, rules,
-│   │                            #   settings, unrecognized
+│   │   └── viewmodel/           # App-wide ViewModels (main, theme, spotlight)
 │   ├── navigation/              # Navigation graph
 │   ├── domain/                  # Business logic
 │   │   ├── model/
@@ -143,8 +144,9 @@ reprints them. A PR may remove a violation but must not add one.
 
 | Package (`com.pennywiseai.tracker.…`) | Owns | Must not import |
 |---|---|---|
-| `presentation/<feature>`, `ui/screens/<feature>` | A feature's screens, ViewModel and UI state, kept together | Another feature's screens or internal components |
-| `ui/components`, `ui/theme`, `ui/icons`, `ui/animations`, `ui/effects` | Components and design tokens used by more than one feature | `presentation`, `ui/screens`, `worker` |
+| `presentation/<feature>` | A feature's screens, ViewModel and UI state, kept together | Another feature's screens or internal components |
+| `ui/components`, `ui/theme`, `ui/icons`, `ui/animations`, `ui/effects` | Components and design tokens used by more than one feature | `presentation`, `worker` |
+| `ui/viewmodel`, `ui` root (`MainScreen`) | App-wide ViewModels (main, theme, spotlight) and the app shell | (a feature's ViewModel goes in its `presentation/<feature>`) |
 | `domain` | Use cases, business rules, models, service interfaces | `presentation`, `ui`, Compose, Activities or other Android UI |
 | `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui` |
 | `utils`, `core` | Small helpers used across layers: money, currency, dates | `presentation`, `ui`, Android entry points |
@@ -184,10 +186,15 @@ tests, so `./init.sh app` and CI fail on a new violation:
 | Files | Must not import |
 |---|---|
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
-| `data` | `presentation`, `ui.screens` |
+| `data` | `presentation` |
 | `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
-| `ui.theme` | `presentation`, `ui.screens`, `worker`, `data`, `domain` |
+| `ui.theme` | `presentation`, `worker`, `data`, `domain` |
+
+Two more rules check where files live rather than what they import: no file in
+any source set may be in the retired `ui.screens` package (by path or by
+`package` line), and `ui.viewmodel` may hold only `MainViewModel`,
+`ThemeViewModel` and `SpotlightViewModel`.
 
 Files that already broke a rule are in that rule's allowlist. An allowlist only
 shrinks. Don't add to it: move the code to the right layer. When you fix a file,

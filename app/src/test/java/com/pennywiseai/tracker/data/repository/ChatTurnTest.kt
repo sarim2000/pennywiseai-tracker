@@ -115,6 +115,10 @@ class ChatTurnTest {
         // A category the user has, with nothing spent, is still zero.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
         assertEquals("NOTHING", send("قارن الطعام بالشهر الماضي"))
+        // "all" from the model means all spending.
+        every { context.getString(R.string.chat_reply_compare_nothing, any(), any()) } returns "NOTHING_AT_ALL"
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "All")))
+        assertEquals("NOTHING_AT_ALL", send("compare with last month"))
     }
 
     @Test

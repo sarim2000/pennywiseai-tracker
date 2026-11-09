@@ -190,6 +190,11 @@ class SpendingComparisonTest {
         assertNull(SpendingComparison.period("compare spending since 15/10", "month"))
         assertNull(SpendingComparison.period("compare this month with 2025", "month"))
         assertNull(SpendingComparison.period("قارن هالشهر مع 2025", "month"))
+        // Amounts aren't dates.
+        assertEquals(Period.MONTH, SpendingComparison.period("compare my 2000.50 rent this month with last month", null))
+        assertEquals(Period.MONTH, SpendingComparison.period("compare rent this month with last month: it rose from 1500 to 2000", null))
+        assertEquals(Period.MONTH, SpendingComparison.period("compare this month's 50/50 split bills with last month", null))
+        assertEquals(Period.MONTH, SpendingComparison.period("rent is 12/month, compare with last month", null))
         // A count of one, or both of the two compared, is the supported comparison.
         assertEquals(Period.MONTH, SpendingComparison.period("is 1 mahine ka kharcha pichle mahine se compare karo", null))
         assertEquals(Period.MONTH, SpendingComparison.period("compare this month with last month; both months had rent", null))

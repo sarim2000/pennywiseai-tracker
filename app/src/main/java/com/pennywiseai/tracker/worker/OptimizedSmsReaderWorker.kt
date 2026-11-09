@@ -13,9 +13,7 @@ import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
 import android.os.Trace
-import android.provider.Telephony
 import android.util.Log
-import androidx.core.net.toUri
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
 import com.pennywiseai.parser.core.ParsedTransaction
@@ -42,6 +40,9 @@ import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.worker.smsscan.DeviceSmsMessageSource
+import com.pennywiseai.tracker.worker.smsscan.ScannedSms
+import com.pennywiseai.tracker.worker.smsscan.SmsMessageSource
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.*
@@ -62,7 +63,7 @@ import kotlin.system.measureTimeMillis
  *
  * Architecture:
  * ┌────────────────────────────────────────────────────────────────────┐
- * │  readSmsMessages()  ──►  [feed]                                   │
+ * │  SmsMessageSource   ──►  [feed]                                   │
  * │                               │                                   │
  * │              ┌────────────────┘  (N coroutines, Dispatchers.Default)│
  * │              ▼                                                    │
@@ -172,14 +173,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         ): Boolean = MessageTemplates.matchAny(templates, body, sender, timestamp) != null ||
             (timestamp > recentSince && MessageTemplates.looksLikeMoney(sender, body))
 
-        private val SMS_PROJECTION = arrayOf(
-            Telephony.Sms._ID,
-            Telephony.Sms.ADDRESS,
-            Telephony.Sms.DATE,
-            Telephony.Sms.BODY,
-            Telephony.Sms.TYPE
-        )
-
         fun buildProgressNotification(context: Context, processed: Int, total: Int): android.app.Notification {
             val channelId = "sms_scan_channel"
             // SDK_INT is always >= 26 for this project; NotificationChannel is always available
@@ -250,28 +243,18 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private fun Long.toLocalDateTime(): LocalDateTime =
         LocalDateTime.ofInstant(Instant.ofEpochMilli(this), systemZone)
 
-    // ─── Data classes ─────────────────────────────────────────────────────────
-
-    private data class SmsMessage(
-        val id: Long,
-        val sender: String,
-        val timestamp: Long,
-        val body: String,
-        val type: Int
-    )
-
     /**
      * Sealed result from the parse stage — each outcome is a distinct type,
      * impossible states are unrepresentable.
      */
     private sealed class ParseResult {
-        abstract val sms: SmsMessage
+        abstract val sms: ScannedSms
 
         /** Promo/gov/unknown sender — discard silently. */
-        data class Discard(override val sms: SmsMessage) : ParseResult()
+        data class Discard(override val sms: ScannedSms) : ParseResult()
 
         /** Unknown -T/-S sender — save to unrecognized table for review. */
-        data class StoreUnrecognized(override val sms: SmsMessage) : ParseResult()
+        data class StoreUnrecognized(override val sms: ScannedSms) : ParseResult()
 
         /**
          * Subscription mandate or balance update.
@@ -279,13 +262,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
          * invoked in the sequential save coroutine.
          */
         class SpecialNotification(
-            override val sms: SmsMessage,
+            override val sms: ScannedSms,
             val onSave: suspend () -> Unit
         ) : ParseResult()
 
         /** Normal debit/credit — ready to be written to the transactions table. */
         data class Transaction(
-            override val sms: SmsMessage,
+            override val sms: ScannedSms,
             val parsed: ParsedTransaction
         ) : ParseResult()
     }
@@ -445,9 +428,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Log.i(TAG, "Caches: ${merchantMappingCache.size} merchant mappings, ${ruleCache.values.map { it.size }.sum()} rules")
 
             // Fast COUNT queries — avoids loading all messages before the pipeline
-            val smsCount = countSmsMessages(scanStartTime)
-            val rcsCount = countRcsMessages(scanStartTime / 1000)
-            val total = smsCount + rcsCount
+            val source = DeviceSmsMessageSource(applicationContext)
+            val total = source.count(scanStartTime)
             val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
             Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
 
@@ -455,7 +437,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             reportProgress(stats)
 
             val totalTime = measureTimeMillis {
-                streamPipeline(scanStartTime, needsFullScan, now, stats, parserConcurrency)
+                streamPipeline(source, scanStartTime, needsFullScan, now, stats, parserConcurrency)
             }
 
             Log.i(TAG, buildSummary(stats, totalTime))
@@ -492,20 +474,20 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     // ─── Pipeline ─────────────────────────────────────────────────────────────
 
     private suspend fun streamPipeline(
+        source: SmsMessageSource,
         scanStartTime: Long,
         needsFullScan: Boolean,
         now: Long,
         stats: ProcessingStats,
         parserConcurrency: Int
     ) = coroutineScope {
-        val feed    = Channel<SmsMessage>(PARSE_CHANNEL_CAPACITY)
+        val feed    = Channel<ScannedSms>(PARSE_CHANNEL_CAPACITY)
         val results = Channel<ParseResult>(RESULT_CHANNEL_CAPACITY)
 
         // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel)
         launch(Dispatchers.IO) {
             try {
-                streamSmsToChannel(feed, scanStartTime)
-                streamRcsToChannel(feed, scanStartTime / 1000)
+                source.streamTo(feed, scanStartTime)
             } finally {
                 feed.close()
             }
@@ -555,7 +537,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
         val saver = launch(Dispatchers.IO) {
             Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
-            val unrecognizedBatch = ArrayList<SmsMessage>(UNRECOGNIZED_BATCH_SIZE)
+            val unrecognizedBatch = ArrayList<ScannedSms>(UNRECOGNIZED_BATCH_SIZE)
             var widgetNeedsUpdate = false
             var lastReportTime = 0L
 
@@ -640,7 +622,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Stage 2: Parse (plain fun — no suspend overhead on the hot path) ─────
 
-    private fun parseSms(sms: SmsMessage): ParseResult {
+    private fun parseSms(sms: ScannedSms): ParseResult {
         val upper = sms.sender.uppercase()
 
         if (upper.endsWith("-P") || upper.endsWith("-G"))
@@ -666,13 +648,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         return ParseResult.Transaction(sms, parsed)
     }
 
-    private fun keptForTaughtSender(sms: SmsMessage): Boolean {
+    private fun keptForTaughtSender(sms: ScannedSms): Boolean {
         val templates = taughtTemplates[LearnedSendersStore.normalize(sms.sender)] ?: return false
         return taughtSenderKeeps(templates, sms.sender, sms.body, sms.timestamp, thirtyDaysAgoMillis)
     }
 
     /** The user taught this shape (#279), so it's offered for confirming whatever else would have dropped it. */
-    private fun matchesTaughtTemplate(sms: SmsMessage): Boolean {
+    private fun matchesTaughtTemplate(sms: ScannedSms): Boolean {
         val templates = taughtTemplates[LearnedSendersStore.normalize(sms.sender)] ?: return false
         return MessageTemplates.matchAny(templates, sms.body, sms.sender, sms.timestamp) != null
     }
@@ -686,7 +668,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
      */
     private fun checkSubscriptionOrBalance(
         parser: BankParser,
-        sms: SmsMessage,
+        sms: ScannedSms,
         isRecent: Boolean
     ): ParseResult? = when (parser) {
 
@@ -785,7 +767,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     private suspend fun saveBalanceNotification(
         info: BaseIndianBankParser.BaseBalanceUpdateInfo,
         currency: String,
-        sms: SmsMessage
+        sms: ScannedSms
     ) = BankAccountMergeStore.mutationMutex.withLock {
         val suffix = info.accountLast4?.let { bankAccountMerges.resolveSuffix(info.bankName, currency, it) }
         // Balance-only notifications bypass saveTransaction, so apply the same account gates here.
@@ -804,7 +786,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     private suspend fun saveTransaction(
         parsedInput: ParsedTransaction,
-        sms: SmsMessage,
+        sms: ScannedSms,
         stats: ProcessingStats,
         balanceUpdates: SendChannel<DeferredBalanceUpdate>
     ): SaveOutcome = try {
@@ -1116,8 +1098,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────
 
-    private suspend fun flushUnrecognizedBatch(batch: ArrayList<SmsMessage>) {
-        fun SmsMessage.toRow() = UnrecognizedSmsEntity(
+    private suspend fun flushUnrecognizedBatch(batch: ArrayList<ScannedSms>) {
+        fun ScannedSms.toRow() = UnrecognizedSmsEntity(
             sender     = sender,
             smsBody    = body,
             receivedAt = timestamp.toLocalDateTime()
@@ -1265,7 +1247,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         } catch (_: Exception) {}
     }
 
-    // ─── SMS / RCS reading (streaming) ─────────────────────────────────────────
+    // ─── Scan window ───────────────────────────────────────────────────────────
 
     /** Computes scan params without reading any message bodies. */
     private suspend fun computeScanParams(forceResync: Boolean): Pair<Long, Boolean> {
@@ -1283,210 +1265,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         )
         return params.scanStartTime to params.needsFullScan
     }
-
-    /** Fast COUNT-only query — reads zero message bodies. */
-    private suspend fun countSmsMessages(scanStartTime: Long): Int {
-        var count = 0
-        try {
-            applicationContext.contentResolver.query(
-                Telephony.Sms.CONTENT_URI,
-                arrayOf("COUNT(*)"),
-                "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
-                arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
-                null
-            )?.use { c ->
-                if (c.moveToFirst()) count = c.getInt(0)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error counting SMS", e)
-        }
-        return count
-    }
-
-    /** Robust query for RCS messages. */
-    private suspend fun countRcsMessages(scanStartSeconds: Long): Int {
-        try {
-            applicationContext.contentResolver.query(
-                "content://mms".toUri(),
-                arrayOf("COUNT(*)"),
-                "date >= ? AND tr_id LIKE 'proto:%'",
-                arrayOf(scanStartSeconds.toString()),
-                null
-            )?.use { c ->
-                if (c.moveToFirst()) {
-                    return c.getInt(0)
-                }
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.w(TAG, "Fast RCS count failed, falling back to cursor iteration: ${e.message}")
-        }
-
-        var count = 0
-        try {
-            applicationContext.contentResolver.query(
-                "content://mms".toUri(),
-                arrayOf("tr_id"),
-                "date >= ?",
-                arrayOf(scanStartSeconds.toString()),
-                null
-            )?.use { c ->
-                val trIdIdx = c.getColumnIndex("tr_id")
-                if (trIdIdx >= 0) {
-                    while (c.moveToNext()) {
-                        val trId = c.getString(trIdIdx)
-                        if (trId != null && trId.startsWith("proto:")) {
-                            count++
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e(TAG, "Error counting RCS via fallback scan", e)
-        }
-        return count
-    }
-
-    /** Streams SMS cursor rows directly into the feed channel — no intermediate list. */
-    private suspend fun streamSmsToChannel(
-        feed: SendChannel<SmsMessage>,
-        scanStartTime: Long
-    ) {
-        var count = 0
-        try {
-            applicationContext.contentResolver.query(
-                Telephony.Sms.CONTENT_URI,
-                SMS_PROJECTION,
-                "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
-                arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
-                "${Telephony.Sms.DATE} ASC"
-            )?.use { c ->
-                val idIdx      = c.getColumnIndexOrThrow(Telephony.Sms._ID)
-                val addressIdx = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-                val dateIdx    = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
-                val bodyIdx    = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
-                val typeIdx    = c.getColumnIndexOrThrow(Telephony.Sms.TYPE)
-                while (c.moveToNext()) {
-                    feed.send(SmsMessage(
-                        id        = c.getLong(idIdx),
-                        sender    = c.getString(addressIdx) ?: "",
-                        timestamp = c.getLong(dateIdx),
-                        body      = c.getString(bodyIdx) ?: "",
-                        type      = c.getInt(typeIdx)
-                    ))
-                    count++
-                }
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e(TAG, "Error streaming SMS", e)
-        }
-        Log.i(TAG, "Streamed $count SMS messages to pipeline")
-    }
-
-    /** Streams RCS messages into the feed channel. */
-    private suspend fun streamRcsToChannel(
-        feed: SendChannel<SmsMessage>,
-        scanStartSeconds: Long
-    ) {
-        var count = 0
-        try {
-            applicationContext.contentResolver.query(
-                "content://mms".toUri(),
-                arrayOf("_id", "thread_id", "date", "tr_id", "m_id"),
-                "date >= ?",
-                arrayOf(scanStartSeconds.toString()),
-                // Oldest first like the SMS feed, so a balance row seldom lands
-                // before rows already saved and has to move them (#982).
-                "date ASC"
-            )?.use { c ->
-                while (c.moveToNext()) {
-                    val messageId = c.getLong(c.getColumnIndexOrThrow("_id"))
-                    val date      = c.getLong(c.getColumnIndexOrThrow("date"))
-                    val trId      = c.getColumnIndex("tr_id").takeIf { it >= 0 }
-                        ?.let { c.getString(it) } ?: continue
-                    if (!trId.startsWith("proto:")) continue
-
-                    val sender = extractRcsSender(trId) ?: continue
-                    var text = getRcsMessageText(messageId) ?: continue
-                    if (text.trim().startsWith("{")) text = extractTextFromRcsJson(text) ?: continue
-
-                    feed.send(SmsMessage(messageId, sender, date * 1000, text, Telephony.Sms.MESSAGE_TYPE_INBOX))
-                    count++
-                }
-            }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e(TAG, "Error streaming RCS", e)
-        }
-        Log.i(TAG, "Streamed $count RCS messages to pipeline")
-    }
-
-    // ─── RCS helpers ──────────────────────────────────────────────────────────
-
-    private fun extractRcsSender(trId: String): String? = try {
-        val decoded = String(android.util.Base64.decode(trId.removePrefix("proto:"), android.util.Base64.DEFAULT))
-        Regex("""([a-z_]+)_[a-z0-9]+_agent@rbm\.goog""").find(decoded)?.let { m ->
-            return m.groupValues[1].split("_")
-                .joinToString(" ") { if (it.isNotEmpty()) it.substring(0, 1).uppercase() + it.substring(1) else it }
-        }
-        Regex("""[\x12\x1a][\x00-\x20]([A-Za-z][A-Za-z\s]+)""").find(decoded)?.let { m ->
-            val name = m.groupValues[1].trim()
-            if (name.length in 4..49) return name
-        }
-        null
-    } catch (_: Exception) { null }
-
-    private fun getRcsMessageText(messageId: Long): String? = try {
-        applicationContext.contentResolver.query(
-            "content://mms/part".toUri(), null, "mid = ?", arrayOf(messageId.toString()), null
-        )?.use { c ->
-            while (c.moveToNext()) {
-                val ct = c.getColumnIndex("ct").takeIf { it >= 0 }?.let { c.getString(it) } ?: continue
-                if (!ct.startsWith("text/") && ct != "application/smil") continue
-                c.getColumnIndex("text").takeIf { it >= 0 }?.let { idx ->
-                    c.getString(idx)?.takeIf { it.isNotEmpty() }?.let { return it }
-                }
-                val partId = c.getLong(c.getColumnIndexOrThrow("_id"))
-                try {
-                    applicationContext.contentResolver
-                        .openInputStream("content://mms/part/$partId".toUri())
-                        ?.bufferedReader()?.use { it.readText() }
-                        ?.takeIf { it.isNotEmpty() }?.let { return it }
-                } catch (_: Exception) {}
-            }
-            null
-        }
-    } catch (_: Exception) { null }
-
-    private fun extractTextFromRcsJson(json: String): String? = try {
-        val obj = org.json.JSONObject(json)
-        obj.optString("text").takeIf { it.isNotEmpty() }
-            ?: obj.optJSONObject("message")?.optString("text")?.takeIf { it.isNotEmpty() }
-            ?: run {
-                val texts    = mutableListOf<String>()
-                val skipKeys = setOf("media", "suggestions", "postback", "urlAction")
-                val textKeys = listOf("text", "message", "body", "title", "description", "content", "caption")
-                fun extract(any: Any?, depth: Int = 0) {
-                    if (depth > 10) return
-                    when (any) {
-                        is org.json.JSONObject -> {
-                            textKeys.forEach { k ->
-                                any.optString(k).takeIf { it.isNotEmpty() && !it.startsWith("{") }
-                                    ?.let { texts.add(it) }
-                            }
-                            any.keys().forEach { k ->
-                                if (k !in skipKeys) try { extract(any.get(k), depth + 1) } catch (_: Exception) {}
-                            }
-                        }
-                        is org.json.JSONArray -> for (i in 0 until any.length()) extract(any.get(i), depth + 1)
-                    }
-                }
-                extract(obj)
-                texts.distinct().joinToString(" | ").takeIf { it.isNotEmpty() }
-            }
-    } catch (_: Exception) { json }
 
     // ─── Logging ──────────────────────────────────────────────────────────────
 

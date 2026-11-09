@@ -71,10 +71,13 @@ object SpendingComparison {
         return Result.Rows(cw, pw, rows)
     }
 
+    /** What counts as spending, as in the month summary: credit too. */
+    private fun spending(rows: List<TransactionWithSplits>) = rows.forTotals()
+        .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
+
     /** Same rules as the month summary (what counts toward totals, credit as spending); a category gets its split share. */
-    private fun spend(rows: List<TransactionWithSplits>, category: String?): Map<String, BigDecimal> =
-        rows.forTotals()
-            .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
+    fun spend(rows: List<TransactionWithSplits>, category: String? = null): Map<String, BigDecimal> =
+        spending(rows)
             .mapNotNull { row ->
                 val amount = if (category == null) row.transaction.amount
                     else row.getAmountByCategory().entries.filter { it.key.equals(category, ignoreCase = true) }
@@ -83,6 +86,19 @@ object SpendingComparison {
             }
             .sumByCurrency({ it.first }, { it.second })
             .mapValues { it.value.amount }
+
+    /** Each currency's biggest categories, largest first, split shares included. Never ranked across currencies. */
+    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5): Map<String, List<Pair<String, BigDecimal>>> =
+        spending(rows)
+            .flatMap { row -> row.getAmountByCategory().map { (category, amount) -> Triple(row.transaction.currency, category, amount) } }
+            .groupBy { it.first }
+            .toSortedMap()
+            .mapValues { (_, items) ->
+                items.groupBy({ it.second }, { it.third })
+                    .map { (category, amounts) -> category to amounts.fold(BigDecimal.ZERO, BigDecimal::add) }
+                    .sortedByDescending { it.second }
+                    .take(limit)
+            }
 
     /** Whole percent, kept as BigDecimal: a tiny previous total can't overflow into a flipped sign. */
     internal fun change(current: BigDecimal, previous: BigDecimal): BigDecimal? =

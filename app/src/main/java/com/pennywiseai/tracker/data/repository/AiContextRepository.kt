@@ -84,6 +84,12 @@ class AiContextRepository @Inject constructor(
         return SpendingComparison.compare(windows, current, previous, category)
     }
 
+    /** This month so far, every non-deleted transaction with its splits: for M8's one-tap questions. */
+    suspend fun monthSoFar(): Pair<SpendingComparison.Window, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>> {
+        val window = SpendingComparison.windows(SpendingComparison.Period.MONTH, java.time.LocalDateTime.now(), java.time.DayOfWeek.MONDAY).first
+        return window to transactionSplitDao.getTransactionsWithSplitsAllCurrencies(window.start, window.end).first()
+    }
+
     private suspend fun getTopCategories(currentDate: LocalDate, baseCurrency: String, limit: Int = 5): List<CategorySpending> {
         val yearMonth = YearMonth.from(currentDate)
         val startOfMonth = yearMonth.atDay(1)

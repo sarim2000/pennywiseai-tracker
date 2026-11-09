@@ -6,6 +6,8 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -372,17 +374,6 @@ fun ChatScreen(
                             flingBehavior = rememberOverscrollFlingBehavior { listState },
                             reverseLayout = false
                         ) {
-                            // Example prompts when no messages
-                            if (messages.isEmpty() && currentResponse.isEmpty() && !uiState.isLoading) {
-                                item {
-                                    ChatEmptyState(
-                                        onPromptClick = { prompt ->
-                                            viewModel.sendMessage(prompt)
-                                        }
-                                    )
-                                }
-                            }
-
                             items(messages) { message ->
                                 ChatMessageItem(message = message)
                             }
@@ -477,6 +468,23 @@ fun ChatScreen(
                             color = MaterialTheme.colorScheme.surface,
                             tonalElevation = 3.dp
                         ) {
+                          Column {
+                            // M8: one-tap questions the app answers itself, no model involved.
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, top = Spacing.sm),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                com.pennywiseai.tracker.data.repository.QuickAction.entries.forEach { action ->
+                                    SuggestionChip(
+                                        onClick = { viewModel.runQuickAction(action) },
+                                        label = { Text(stringResource(action.label)) },
+                                        enabled = !uiState.isLoading && !isConfirming
+                                    )
+                                }
+                            }
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -521,6 +529,7 @@ fun ChatScreen(
                                     }
                                 }
                             }
+                          }
                         }
                         // The bottom nav hides while the keyboard is up, so its
                         // clearance would just leave a gap above the keyboard.
@@ -782,68 +791,6 @@ fun ChatMessageItem(
                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     else
                         MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ChatEmptyState(
-    onPromptClick: (String) -> Unit
-) {
-    val examplePrompts = listOf(
-        stringResource(R.string.chat_example_prompt_coffee),
-        stringResource(R.string.chat_example_prompt_salary),
-        stringResource(R.string.chat_example_prompt_groceries),
-        stringResource(R.string.chat_example_prompt_spent)
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.lg),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
-        Icon(
-            Icons.Default.AutoAwesome,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Text(
-            text = stringResource(R.string.chat_empty_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Text(
-            text = stringResource(R.string.chat_empty_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(Spacing.sm))
-
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            examplePrompts.forEach { prompt ->
-                SuggestionChip(
-                    onClick = { onPromptClick(prompt) },
-                    label = { Text(prompt) },
-                    icon = {
-                        Icon(
-                            Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                    }
                 )
             }
         }

@@ -283,13 +283,7 @@
     <string name="chat_thinking_checking">Правяраю вашы транзакцыі…</string>
     <string name="chat_thinking_crunching">Лічу…</string>
     <string name="chat_thinking_one_moment">Хвілінку…</string>
-    <string name="chat_empty_title">Дадайце выдатак або спытайце пра яго</string>
-    <string name="chat_empty_body">Паспрабуйце адзін з гэтых запытаў</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">кава 120 у Starbucks</string>
-    <string name="chat_example_prompt_salary">сёння атрымаў заробак 50000</string>
-    <string name="chat_example_prompt_groceries">Колькі пайшло на прадукты ў гэтым месяцы?</string>
-    <string name="chat_example_prompt_spent">Колькі я выдаткаваў у гэтым месяцы?</string>
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">Дадаць даход?</string>
     <string name="chat_action_add_expense">Дадаць выдатак?</string>

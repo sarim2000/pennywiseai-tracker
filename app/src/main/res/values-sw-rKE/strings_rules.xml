@@ -267,13 +267,7 @@
     <string name="chat_thinking_checking">Ninaangalia miamala yako…</string>
     <string name="chat_thinking_crunching">Ninapiga hesabu…</string>
     <string name="chat_thinking_one_moment">Subiri kidogo…</string>
-    <string name="chat_empty_title">Ongeza matumizi au uliza kuyahusu</string>
-    <string name="chat_empty_body">Jaribu moja ya maswali haya</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">kahawa 120 kwenye Starbucks</string>
-    <string name="chat_example_prompt_salary">nimepata mshahara 50000 leo</string>
-    <string name="chat_example_prompt_groceries">Nimetumia kiasi gani kwa vyakula mwezi huu?</string>
-    <string name="chat_example_prompt_spent">Nimetumia kiasi gani mwezi huu?</string>
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">Ongeza mapato?</string>
     <string name="chat_action_add_expense">Ongeza matumizi?</string>

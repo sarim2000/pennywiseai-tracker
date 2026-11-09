@@ -288,6 +288,23 @@ class ChatViewModel @Inject constructor(
         }
     }
     
+    /** M8: answered by code, so it works before the model loads. Shares the send's job: clearing stops it too. */
+    fun runQuickAction(action: com.pennywiseai.tracker.data.repository.QuickAction) {
+        if (_uiState.value.isLoading || _isConfirming.value) return
+        llmRepository.clearPendingAction()
+        // Claimed before launching, so a second tap or a send can't start alongside it.
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        sendJob = viewModelScope.launch {
+            try {
+                llmRepository.answerQuickAction(action)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = sendErrorText(e, R.string.chat_error_send_failed))
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
+        }
+    }
+
     fun clearChat() {
         if (_isConfirming.value) return
         // Same thread as the send's own code, so it can't propose a card after this line.

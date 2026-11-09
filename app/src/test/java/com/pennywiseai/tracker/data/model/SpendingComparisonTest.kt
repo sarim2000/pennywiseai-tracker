@@ -190,4 +190,29 @@ class SpendingComparisonTest {
         listOf("how much did I spend on food this month?", "my last coffee", "كم صرفت هذا الشهر؟")
             .forEach { assertTrue(it, !SpendingComparison.namesThePreviousPeriod(it)) }
     }
+
+    @Test
+    fun `top categories rank within each currency and take split shares`() {
+        val top = SpendingComparison.topCategories(
+            listOf(
+                tx("250", category = "Shopping"),
+                tx("500", splits = listOf("Food & Dining" to "100", "Travel" to "400")),
+                tx("200", category = "Food & Dining"),
+                tx("9", currency = "USD", category = "Travel"),
+                tx("1000", type = TransactionType.INCOME, category = "Salary"),
+                tx("5000", category = "Rent", excluded = true)
+            ),
+            limit = 2
+        )
+        // INR: Travel 400 (a split share), Food 300 (split 100 + 200); Shopping is past the limit. USD apart.
+        assertEquals(listOf("INR", "USD"), top.keys.toList())
+        assertEquals(listOf("Travel" to BigDecimal("400"), "Food & Dining" to BigDecimal("300")), top.getValue("INR"))
+        assertEquals(listOf("Travel" to BigDecimal("9")), top.getValue("USD"))
+    }
+
+    @Test
+    fun `month spend is per currency and leaves income out`() {
+        val spent = SpendingComparison.spend(listOf(tx("120"), tx("30", type = TransactionType.CREDIT), tx("7", currency = "USD"), tx("900", type = TransactionType.INCOME)))
+        assertEquals(mapOf("INR" to BigDecimal("150"), "USD" to BigDecimal("7")), spent)
+    }
 }

@@ -79,6 +79,14 @@ class ChatPromptBudgetTest {
         assertEquals(emptyList<ChatMessage>(), LlmRepository.dropOlderHalf(chat.take(1)))
     }
 
+    @Test
+    fun `quick-action questions and their replies stay out of the model's window`() {
+        val chat = listOf("Top categories" to true, "Food: ₹10" to false, "coffee 50" to true, "Added" to false, "Top categories" to true)
+            .map { (text, user) -> ChatMessage(message = text, isUser = user) }
+        // The trailing question has no reply yet; it goes too, and nothing typed is lost.
+        assertEquals(listOf("coffee 50", "Added"), LlmRepository.withoutQuickAnswers(chat, setOf("Top categories")).map { it.message })
+    }
+
     private companion object {
         // The tool schemas LiteRT-LM adds to the system turn, roughly.
         const val TOOLS_TOKENS = 700

@@ -31,13 +31,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -50,6 +50,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -63,7 +64,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
-import kotlinx.coroutines.delay
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
@@ -266,15 +266,7 @@ private fun BudgetGroupsContent(
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
 
-    var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val animationsEnabled = rememberAnimationsEnabled()
-
-    LaunchedEffect(Unit) {
-        if (!hasAnimated) {
-            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
-            hasAnimated = true
-        }
-    }
+    val hasAnimated = rememberEntranceDone()
 
     val lazyListState = rememberLazyListState()
     LazyColumn(
@@ -310,7 +302,7 @@ private fun BudgetGroupsContent(
             items = summary.groups,
             key = { _, group -> group.group.budget.id }
         ) { index, groupSpending ->
-            StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
+            StaggeredEntrance(delayMs = staggerDelayMs(index), skip = hasAnimated, modifier = Modifier.animateItem()) {
                 BudgetCard(
                     groupSpending = groupSpending,
                     currency = uiState.currency,
@@ -451,11 +443,7 @@ private fun BudgetCard(
     }
 
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val statusColor: Color = when {
-        pctUsed >= 90f -> MaterialTheme.colorScheme.error
-        pctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
-    }
+    val (statusColor, onStatusColor) = budgetStatusColors(pctUsed)
     // The bar wears the budget's own color while it's healthy; the pill and
     // hero text stay semantic so a red budget at 36% doesn't read as danger.
     val barColor = if (pctUsed >= 70f) statusColor else budgetColor
@@ -497,7 +485,7 @@ private fun BudgetCard(
                         Text(
                             text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimary,
+                            color = onStatusColor,
                             modifier = Modifier
                                 .background(
                                     color = statusColor,
@@ -632,7 +620,7 @@ private fun BudgetCard(
                         },
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold
-                        ),
+                        ).money(),
                         color = statusColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -724,7 +712,7 @@ private fun BudgetCard(
                     text = stringResource(R.string.budgets_spent, CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)),
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
-                    ),
+                    ).money(),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))

@@ -55,6 +55,7 @@ class AddReviewCardTest {
                     rows = rows,
                     categories = categories,
                     enabled = true,
+                    saved = false,
                     onToggle = { id -> rows = rows.map { if (it.id == id) it.copy(selected = !it.selected) else it } },
                     onEdit = { id, d -> rows = rows.map { if (it.id == id) it.copy(draft = d, check = null, selected = true) else it } },
                     onConfirm = confirmed,

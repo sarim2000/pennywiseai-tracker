@@ -283,9 +283,10 @@
     <string name="appearance_cover_selected">Selecionado</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fontes</string>
-    <string name="appearance_font_default">Padrão</string>
-    <string name="appearance_font_default_subtitle">SISTEMA</string>
-    <string name="appearance_font_sn_pro_subtitle">Mono Moderno</string>
+    <string name="appearance_font_google_sans_flex_subtitle">Apenas alfabeto latino</string>
+    <string name="appearance_font_system">Sistema</string>
+    <string name="appearance_font_system_subtitle">Todos os idiomas</string>
+    <string name="appearance_font_sn_pro_subtitle">Arredondada</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title_add">Adicionar webhook</string>
     <string name="webhooks_title_edit">Editar webhook</string>

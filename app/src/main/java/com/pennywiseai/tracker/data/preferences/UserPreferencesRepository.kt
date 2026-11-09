@@ -249,9 +249,10 @@ open class UserPreferencesRepository @Inject constructor(
                     try { AccentColor.valueOf(it) } catch (_: Exception) { AccentColor.SURFACE }
                 } ?: AccentColor.SURFACE,
                 isAmoledMode = preferences[PreferencesKeys.IS_AMOLED_MODE] ?: false,
+                // Absent until the user picks a font, so "never chose" follows the default.
                 appFont = preferences[PreferencesKeys.APP_FONT]?.let {
-                    try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.SYSTEM }
-                } ?: AppFont.SYSTEM,
+                    try { AppFont.valueOf(it) } catch (_: Exception) { AppFont.DEFAULT }
+                } ?: AppFont.DEFAULT,
                 hasSkippedSmsPermission = preferences[PreferencesKeys.HAS_SKIPPED_SMS_PERMISSION] ?: false,
                 isDeveloperModeEnabled = preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false,
                 hasShownScanTutorial = preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] ?: false,
@@ -1445,7 +1446,7 @@ data class UserPreferences(
     val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
     val accentColor: AccentColor = AccentColor.SURFACE,
     val isAmoledMode: Boolean = false,
-    val appFont: AppFont = AppFont.SYSTEM,
+    val appFont: AppFont = AppFont.DEFAULT,
     val hasSkippedSmsPermission: Boolean = false,
     val isDeveloperModeEnabled: Boolean = false,
     val hasShownScanTutorial: Boolean = false,

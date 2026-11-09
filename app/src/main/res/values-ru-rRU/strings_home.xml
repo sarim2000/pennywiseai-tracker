@@ -215,6 +215,7 @@
         <item quantity="other">Осталось %1$d дня</item>
     </plurals>
     <string name="budget_card_spent_of">Потрачено %1$s из %2$s</string>
+    <!-- Budget pace: spending compared with an even spend across the period -->
     <string name="budget_cadence_weekly">Еженедельно</string>
     <string name="budget_cadence_monthly">Ежемесячно</string>
     <string name="budget_cadence_one_time">Одноразовое</string>

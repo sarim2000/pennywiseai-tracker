@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">बैंक SMS को ढाँचामा फरक वा पहिलेको पार्सिङले गर्दा तीन र चार अङ्कका दोहोरिएका खाता बनेका हुन सक्छन्। यदि %1$s र %2$s एउटै खाता हुन् भने, गाभ्ने? लेनदेनहरू चार अङ्कको खातामा सर्नेछन्, यसको बालान्स इतिहास राखिनेछ, र आउँदा SMS ले स्वतः यही खाता प्रयोग गर्नेछन्।</string>
     <string name="duplicate_accounts_merge">गाभ्नुहोस् र सम्झनुहोस्</string>
     <string name="duplicate_accounts_keep">छुट्टै राख्नुहोस्</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

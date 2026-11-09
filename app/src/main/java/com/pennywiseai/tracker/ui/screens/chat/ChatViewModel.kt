@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -218,6 +220,10 @@ class ChatViewModel @Inject constructor(
                         if (drafts.isNotEmpty()) withContext(NonCancellable) {
                             addTransactionUseCase.executeAll(drafts)
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
+                            // Saved: the card stays drawn with its check for a beat. Its line is
+                            // written first, so dying in that beat can't leave a saved transaction
+                            // with no acknowledgement in the chat (and a retry that doubles it).
+                            _uiState.value = _uiState.value.copy(settledCard = action, adds = _uiState.value.adds + 1)
                             llmRepository.completePendingAction(
                                 drafts.joinToString("\n") { draft ->
                                     context.getString(
@@ -227,12 +233,15 @@ class ChatViewModel @Inject constructor(
                                     )
                                 }
                             )
+                            // "Remove animations": no beat to hold the check for.
+                            if (animationsEnabled()) delay(SETTLED_HOLD_MILLIS)
                         }
                     }
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_apply_failed, listOf(e.message.orEmpty())))
             } finally {
+                _uiState.value = _uiState.value.copy(settledCard = null)
                 _isConfirming.value = false
             }
         }
@@ -358,6 +367,9 @@ class ChatViewModel @Inject constructor(
 
     fun cancelDownload() = modelDownloader.cancel()
 
+    // False under "Remove animations"; a seam for tests, where the Android stub always says false.
+    internal var animationsEnabled: () -> Boolean = { android.animation.ValueAnimator.areAnimatorsEnabled() }
+
     private companion object {
         const val BYTES_PER_MB = 1024L * 1024L
     }
@@ -365,8 +377,14 @@ class ChatViewModel @Inject constructor(
 
 data class ChatUiState(
     val isLoading: Boolean = false,
-    val error: UiText? = null
-)
+    val error: UiText? = null,
+    /** An Add card whose rows were just saved: still drawn, with its check, for a beat. */
+    val settledCard: com.pennywiseai.tracker.data.model.PendingChatAction.Add? = null,
+    /** Adds saved so far; the Confirm haptic keys on it, since [settledCard] may never reach a frame. */
+    val adds: Int = 0
+) {
+    val cardSaved: Boolean get() = settledCard != null
+}
 
 data class ChatStats(
     val messageCount: Int = 0,

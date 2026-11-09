@@ -283,9 +283,10 @@
     <string name="appearance_cover_selected">Ausgewählt</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Schriftarten</string>
-    <string name="appearance_font_default">Standard</string>
-    <string name="appearance_font_default_subtitle">Systemschrift</string>
-    <string name="appearance_font_sn_pro_subtitle">Moderne Mono</string>
+    <string name="appearance_font_google_sans_flex_subtitle">Nur lateinische Schrift</string>
+    <string name="appearance_font_system">System</string>
+    <string name="appearance_font_system_subtitle">Alle Sprachen</string>
+    <string name="appearance_font_sn_pro_subtitle">Abgerundet</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title_add">Webhook hinzufügen</string>
     <string name="webhooks_title_edit">Webhook bearbeiten</string>

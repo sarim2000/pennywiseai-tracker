@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">Tofauti za miundo ya SMS za benki au usomaji wa awali huenda zimeunda akaunti zilizojirudia zenye tarakimu tatu na nne. Ikiwa %1$s na %2$s ni akaunti moja, ziunganishwe? Miamala itahamia kwenye akaunti ya tarakimu nne, historia ya salio lake itahifadhiwa, na SMS zijazo zitaitumia moja kwa moja.</string>
     <string name="duplicate_accounts_merge">Unganisha na ukumbuke</string>
     <string name="duplicate_accounts_keep">Ziache tofauti</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

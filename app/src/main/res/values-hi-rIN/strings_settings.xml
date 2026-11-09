@@ -281,9 +281,10 @@
     <string name="appearance_cover_selected">चयनित</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">फ़ॉन्ट्स</string>
-    <string name="appearance_font_default">डिफ़ॉल्ट</string>
-    <string name="appearance_font_default_subtitle">सिस्टम</string>
-    <string name="appearance_font_sn_pro_subtitle">मॉडर्न मोनो</string>
+    <string name="appearance_font_google_sans_flex_subtitle">केवल लैटिन</string>
+    <string name="appearance_font_system">सिस्टम</string>
+    <string name="appearance_font_system_subtitle">सभी भाषाएँ</string>
+    <string name="appearance_font_sn_pro_subtitle">गोलाकार</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">वेबहुक</string>
     <string name="webhooks_title_add">वेबहुक जोड़ें</string>

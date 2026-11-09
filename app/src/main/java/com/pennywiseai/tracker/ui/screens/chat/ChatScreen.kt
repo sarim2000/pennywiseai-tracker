@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.screens.chat
 
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -30,6 +31,8 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,6 +87,15 @@ fun ChatScreen(
                 )
             }
         }
+    }
+
+    // "Receipt settled": only an Add that was saved gets the check + Confirm haptic.
+    // Keyed on the count, so the haptic lands even when no hold keeps the check up;
+    // only for Adds made since this screen came up, not ones from an earlier visit.
+    val haptics = LocalHapticFeedback.current
+    val addsAtEntry = remember { uiState.adds }
+    LaunchedEffect(uiState.adds) {
+        if (uiState.adds > addsAtEntry) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
     // Scroll behaviors for TopAppBar
@@ -193,8 +205,8 @@ fun ChatScreen(
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                             flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
-                            items(messages) { message ->
-                                ChatMessageItem(message = message)
+                            items(messages, key = { it.id }) { message ->
+                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
                             }
                         }
                     }
@@ -374,53 +386,63 @@ fun ChatScreen(
                             flingBehavior = rememberOverscrollFlingBehavior { listState },
                             reverseLayout = false
                         ) {
-                            items(messages) { message ->
-                                ChatMessageItem(message = message)
+                            // Rows only slide (placement), never fade: every row swaps in place —
+                            // the streamed reply for its saved message, the card for its "Added"
+                            // line — and a fading row would draw over or under its replacement.
+                            // On device a fade-in on the card also stuck at alpha 0, hiding it.
+                            items(messages, key = { it.id }) { message ->
+                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
-                            pendingAction?.let { action ->
-                                item {
+                            // A saved card stays drawn (settled) for a beat after it's done.
+                            (pendingAction ?: uiState.settledCard)?.let { action ->
+                                item(key = PENDING_KEY) {
                                     if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
                                         AddReviewCard(
                                             rows = action.rows,
                                             categories = categories,
                                             enabled = !isConfirming,
+                                            saved = uiState.cardSaved,
                                             onToggle = viewModel::toggleRow,
                                             onEdit = viewModel::editRow,
                                             onConfirm = viewModel::confirmPendingAction,
-                                            onDismiss = viewModel::dismissPendingAction
+                                            onDismiss = viewModel::dismissPendingAction,
+                                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
                                         )
                                     } else {
                                         PendingActionCard(
                                             action = action,
                                             enabled = !isConfirming,
                                             onConfirm = { viewModel.confirmPendingAction() },
-                                            onDismiss = { viewModel.dismissPendingAction() }
+                                            onDismiss = { viewModel.dismissPendingAction() },
+                                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
                                         )
                                     }
                                 }
                             }
 
-                            // Show streaming response if available
-                            if (currentResponse.isNotEmpty()) {
-                                item {
-                                    ChatMessageItem(
-                                        message = com.pennywiseai.tracker.data.database.entity.ChatMessage(
-                                            message = currentResponse,
-                                            isUser = false,
-                                            timestamp = System.currentTimeMillis()
-                                        ),
-                                        isStreaming = true
-                                    )
-                                }
-                            } else if (uiState.isLoading) {
-                                // Show typing indicator while waiting for response
-                                item {
-                                    // One status line per request, picked when the wait starts,
-                                    // so a tool call's silent few seconds don't look like a hang.
-                                    val status = remember(uiState.isLoading) { THINKING_LINES.random() }
-                                    TypingIndicator(status = stringResource(status))
+                            // The reply on its way — typing dots, then the streamed text — in one
+                            // keyed slot, so the swap happens in place and the saved reply lands
+                            // where it was.
+                            if (currentResponse.isNotEmpty() || uiState.isLoading) {
+                                item(key = REPLY_KEY) {
+                                    if (currentResponse.isNotEmpty()) {
+                                        ChatMessageItem(
+                                            message = com.pennywiseai.tracker.data.database.entity.ChatMessage(
+                                                message = currentResponse,
+                                                isUser = false,
+                                                timestamp = System.currentTimeMillis()
+                                            ),
+                                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                                            isStreaming = true
+                                        )
+                                    } else {
+                                        // One status line per request, picked when the wait starts,
+                                        // so a tool call's silent few seconds don't look like a hang.
+                                        val status = remember(uiState.isLoading) { THINKING_LINES.random() }
+                                        TypingIndicator(status = stringResource(status), modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+                                    }
                                 }
                             }
                         }
@@ -671,6 +693,10 @@ fun DeveloperInfoCard(
     }
 }
 
+// Keys for the list's non-message rows; message rows key on their saved id.
+private const val PENDING_KEY = "chat-pending-card"
+private const val REPLY_KEY = "chat-reply"
+
 private val THINKING_LINES = listOf(
     R.string.chat_thinking_reading,
     R.string.chat_thinking_working,
@@ -698,34 +724,29 @@ fun TypingIndicator(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Three animated dots
-                val infiniteTransition = rememberInfiniteTransition(label = "typing")
-                
-                for (i in 0..2) {
-                    val alpha by infiniteTransition.animateFloat(
-                        initialValue = 0.3f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = keyframes {
-                                durationMillis = 1200
-                                0.3f at 0
-                                1f at 400
-                                0.3f at 800
-                            },
-                            repeatMode = RepeatMode.Restart,
-                            initialStartOffset = StartOffset(i * 200)
-                        ),
-                        label = "dot_alpha_$i"
-                    )
-                    
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
-                                shape = RoundedCornerShape(50)
-                            )
-                    )
+                // Three pulsing dots; with animations removed they hold still — no loop at all.
+                if (rememberAnimationsEnabled()) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+                    for (i in 0..2) {
+                        val alpha by infiniteTransition.animateFloat(
+                            initialValue = 0.3f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = keyframes {
+                                    durationMillis = 1200
+                                    0.3f at 0
+                                    1f at 400
+                                    0.3f at 800
+                                },
+                                repeatMode = RepeatMode.Restart,
+                                initialStartOffset = StartOffset(i * 200)
+                            ),
+                            label = "dot_alpha_$i"
+                        )
+                        TypingDot(alpha)
+                    }
+                } else {
+                    repeat(3) { TypingDot(alpha = 1f) }
                 }
                 if (status != null) {
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -741,14 +762,27 @@ fun TypingIndicator(
 }
 
 @Composable
+private fun TypingDot(alpha: Float) {
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .background(
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
+                shape = RoundedCornerShape(50)
+            )
+    )
+}
+
+@Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
+    modifier: Modifier = Modifier,
     isStreaming: Boolean = false
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
         PennyWiseCardV2(
@@ -803,7 +837,8 @@ private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
     enabled: Boolean,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
     val (title, headline, detail, button) = when (action) {
@@ -834,7 +869,7 @@ private fun PendingActionCard(
     }
     val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
         )

@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -169,7 +170,7 @@ fun SplitEditor(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = CurrencyFormatter.formatCurrency(splitsTotal, currency),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PennyWiseText.amountMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (isBalanced) {
                             MaterialTheme.colorScheme.primary

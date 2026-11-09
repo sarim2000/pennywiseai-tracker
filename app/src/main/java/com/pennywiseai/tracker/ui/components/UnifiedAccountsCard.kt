@@ -68,7 +68,7 @@ fun UnifiedAccountsCard(
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
                         text = CurrencyFormatter.formatCurrency(totalBalance, selectedCurrency),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PennyWiseText.amountMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -105,7 +105,7 @@ fun UnifiedAccountsCard(
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
                         text = CurrencyFormatter.formatCurrency(totalAvailableCredit, selectedCurrency),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = PennyWiseText.amountMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.secondary
                     )

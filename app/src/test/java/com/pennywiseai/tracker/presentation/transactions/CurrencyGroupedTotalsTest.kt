@@ -61,4 +61,31 @@ class CurrencyGroupedTotalsTest {
         assertSame("0", usd.expenses)
         assertSame("100.25", usd.income)
     }
+
+    @Test
+    fun excludedAndFullyLoanLinkedRowsAreLeftOut() {
+        val totals = calculateCurrencyGroupedTotals(
+            listOf(tx("7"), tx("100").copy(excludedFromAnalytics = true), tx("200").copy(loanId = 1))
+        )
+        assertSame("7", totals.totalsByCurrency.getValue("USD").expenses)
+        assertEquals(1, totals.totalsByCurrency.getValue("USD").transactionCount)
+        assertEquals(1, totals.transactionCount)
+    }
+
+    @Test
+    fun creditTransferAndInvestmentKeepTheirOwnBuckets() {
+        val usd = calculateCurrencyGroupedTotals(
+            listOf(tx("1", TransactionType.CREDIT), tx("2", TransactionType.TRANSFER), tx("3", TransactionType.INVESTMENT))
+        ).totalsByCurrency.getValue("USD")
+        assertSame("1", usd.credit)
+        assertSame("2", usd.transfer)
+        assertSame("3", usd.investment)
+        assertSame("0", usd.expenses)
+    }
+
+    @Test
+    fun availableCurrenciesPutRupeesFirstThenAlphabetical() {
+        val totals = calculateCurrencyGroupedTotals(listOf(tx("1"), tx("1", currency = "INR"), tx("1", currency = "AED")))
+        assertEquals(listOf("INR", "AED", "USD"), totals.availableCurrencies)
+    }
 }

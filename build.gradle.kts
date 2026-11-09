@@ -36,11 +36,11 @@ spotless {
     isEnforceCheck = false
 
     kotlin {
-        target("app/src/**/*.kt", "parser-core/src/**/*.kt", "shared/src/**/*.kt")
+        target("app/src/**/*.kt", "core/*/src/**/*.kt", "parser-core/src/**/*.kt", "shared/src/**/*.kt")
         ktlint(libs.versions.ktlint.get())
     }
     kotlinGradle {
-        target("*.gradle.kts", "*/*.gradle.kts")
+        target("*.gradle.kts", "*/*.gradle.kts", "core/*/*.gradle.kts")
         // A separate Gradle build with its own conventions.
         targetExclude("pennywise-web/**")
         ktlint(libs.versions.ktlint.get())

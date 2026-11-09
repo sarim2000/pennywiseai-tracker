@@ -246,6 +246,7 @@ dependencies {
     // Local modules
     implementation(project(":parser-core"))
     implementation(project(":shared"))
+    implementation(project(":core:designsystem"))
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.profileinstaller)

@@ -2,7 +2,6 @@ package com.pennywiseai.tracker.ui.effects
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.graphics.Color
@@ -15,13 +14,6 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.blur.HazeBlurStyle
 import dev.chrisbanes.haze.blur.HazeColorEffect
 import dev.chrisbanes.haze.blur.hazeBlur
-
-/**
- * CompositionLocal providing whether blur effects are enabled.
- * Defaults to true. Set to false on devices that don't support blur
- * or when the user disables blur effects in preferences.
- */
-val LocalBlurEffects = staticCompositionLocalOf { true }
 
 /**
  * The app's frosted-glass blur over the [state]'s sources: no noise, transparent background, and

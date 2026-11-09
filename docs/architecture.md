@@ -135,6 +135,7 @@ app/
 │   ├── di/                      # Hilt modules (DatabaseModule, etc.)
 │   ├── receiver/                # SMS / notification entry points
 │   ├── worker/                  # WorkManager jobs (SMS scan retry, scheduled backups)
+│   │   └── smsscan/             # The SMS scan's stages: source, classifier, pipeline, writer, cleanup
 │   ├── widget/                  # Home-screen widgets
 │   ├── billing/                 # Play Billing + FreeTierLimits
 │   ├── backup/ core/ initializer/ utils/

@@ -29,10 +29,15 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -81,6 +86,7 @@ fun PeriodReviewScreen(
     val selection by viewModel.selection.collectAsStateWithLifecycle()
     val review by viewModel.review.collectAsStateWithLifecycle()
     var shareWindow by remember { mutableStateOf<ShareWindow?>(null) }
+    var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val loaded = review
     val shareLabel = loaded?.let { shareLabel(it) }
 
@@ -129,33 +135,18 @@ fun PeriodReviewScreen(
                 onOlder = viewModel::older,
                 onNewer = viewModel::newer,
             )
-            when {
-                loaded == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            if (loaded == null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     LoadingIndicator()
                 }
-                loaded.currencies.isEmpty() -> Text(
-                    text = stringResource(R.string.review_empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = Dimensions.Padding.empty),
-                )
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(bottom = Spacing.Layout.scrollBottomPadding),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                ) {
-                    items(loaded.currencies, key = { it.currency }) { currency ->
-                        CurrencyReviewCard(
-                            review = currency,
-                            range = loaded.range,
-                            onOpenCategory = { name ->
-                                onOpenCategory(name, currency.currency, loaded.range.start, loaded.range.end)
-                            },
-                        )
-                    }
-                    item { CoverageNote(loaded) }
+            } else {
+                // The first figures to arrive fade in once, as one group, replacing the
+                // loading indicator: no travel (amounts settle on effects specs) and no
+                // stagger; later periods, or a return here, just appear.
+                LaunchedEffect(Unit) { hasAnimated = true }
+                val shown = remember { MutableTransitionState(hasAnimated) }.apply { targetState = true }
+                AnimatedVisibility(visibleState = shown, enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec())) {
+                    ReviewContent(loaded, onOpenCategory)
                 }
             }
         }
@@ -163,6 +154,40 @@ fun PeriodReviewScreen(
 
     shareWindow?.let { window ->
         ShareCardSheet(window = window, onDismiss = { shareWindow = null })
+    }
+}
+
+@Composable
+private fun ReviewContent(
+    loaded: PeriodReview,
+    onOpenCategory: (category: String, currency: String, start: LocalDate, end: LocalDate) -> Unit,
+) {
+    if (loaded.currencies.isEmpty()) {
+        Text(
+            text = stringResource(R.string.review_empty),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Dimensions.Padding.empty),
+        )
+    } else {
+        LazyColumn(
+            contentPadding = PaddingValues(bottom = Spacing.Layout.scrollBottomPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            items(loaded.currencies, key = { it.currency }) { currency ->
+                CurrencyReviewCard(
+                    review = currency,
+                    range = loaded.range,
+                    onOpenCategory = { name ->
+                        onOpenCategory(name, currency.currency, loaded.range.start, loaded.range.end)
+                    },
+                )
+            }
+            item { CoverageNote(loaded) }
+        }
     }
 }
 

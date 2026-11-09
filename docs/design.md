@@ -355,7 +355,25 @@ it by `Dimensions.Component.bottomBarHeight`.
   insert, remove and filter instead of jumping. It needs a stable, unique
   key, and must sit on the item root (e.g. the `AnimatedVisibility`, not the
   card inside it). `AnimatedCurrencyText` swaps instantly when either side is
-  the privacy mask — hiding amounts isn't a value change.
+  the privacy mask — hiding amounts isn't a value change. Chat rows pass
+  `animateItem(fadeInSpec = null, fadeOutSpec = null)`: every chat row swaps
+  in place (the streamed reply for its saved message, the Add card for its
+  "Added …" line), so a fade would draw one over or under the other; they
+  only slide. The typing/streaming reply shares one keyed slot.
+- **"Receipt settled"** (`SettledCheck`): only after the user's own save is
+  written — never on load, import or a failed save — the item's avatar gives
+  way to a check (fade + cookie→circle morph, no scale), with
+  `HapticFeedbackType.Confirm`, held `SETTLED_HOLD_MILLIS`. Transaction detail
+  Save and Subscriptions mark-paid swap the avatar; the chat's Add card swaps
+  its Cancel/Add buttons for the check. Its "Added …" line is written first
+  (a process death in the beat must not lose the acknowledgement); the card
+  stays drawn, settled, under it for the beat, then goes. With "Remove
+  animations" every settle skips the beat and the check (the chat's would
+  hold Send), but the haptic still lands.
+- **A screen of sibling money figures enters as one group.** Period Review
+  fades its loaded content in once on first visit — fade only, no travel,
+  saveable flag — instead of staggering its cards (rules 1, 2 and 5); later
+  periods, and coming back, just appear.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.

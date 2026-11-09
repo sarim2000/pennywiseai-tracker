@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.animation.ValueAnimator
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
@@ -231,6 +232,8 @@ fun TransactionDetailScreen(
     LaunchedEffect(settleRequests) {
         if (settleRequests > 0) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            // With "Remove animations" the check is choreography too: haptic only.
+            if (!ValueAnimator.areAnimatorsEnabled()) return@LaunchedEffect
             settled = true
             try { delay(SETTLED_HOLD_MILLIS) } finally { settled = false }
         }

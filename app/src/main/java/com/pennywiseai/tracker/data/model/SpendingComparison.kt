@@ -130,6 +130,19 @@ object SpendingComparison {
         "जनवरी", "फ़रवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर",
         "दिसंबर", "साल", "वर्ष", "saal\\b"
     )
+    // A span or an offset: "the last 3 months", "two weeks ago", "the month before last". Only this
+    // period and the one before it are compared; answering these with that would show the wrong dates.
+    // Plurals and duals alone mean more than one period. ponytail: Arabic "أشهر" is also "most
+    // famous", so "أشهر مطعم" is refused too; the user rephrases.
+    private val SPAN = Regex(
+        "\\b(?:weeks|months|fortnights?)\\b|\\bbefore\\s+last\\b" +
+            "|(?<![\\p{L}\\p{M}])[وفبلكه]{0,2}(?:ال)?(?:شهرين|أسبوعين|اسبوعين|أشهر|اشهر|شهور|أسابيع|اسابيع)" +
+            "|قبل\\s+(?:الماضي|الفائت|السابق|اللي فات|الي فات)" +
+            "|(?<![\\p{L}\\d])(?:\\d+|do|teen|char|दो|तीन|चार|पांच|पाँच)\\s+(?:हफ्त|हफ़्त|सप्ताह|महीन|माह|haft|mahin)" +
+            "|महीनों|हफ्तों|हफ़्तों|\\bmahinon\\b",
+        RegexOption.IGNORE_CASE
+    )
+
     // Two different years ("2025 vs 2024"), or one after a word that makes it a date ("in 2025").
     // A lone number is more likely an amount ("my 2000 rent").
     private val YEAR_NUMBER = Regex("(?<![\\d.,])(?:19|20)\\d\\d(?![\\d.,])")
@@ -166,7 +179,8 @@ object SpendingComparison {
         val month = MONTH.containsMatchIn(userMessage)
         val years = YEAR_NUMBER.findAll(userMessage).map { it.value }.toSet().size
         return when {
-            (week && month) || years > 1 || YEAR_IN_CONTEXT.containsMatchIn(userMessage) || UNSUPPORTED.containsMatchIn(userMessage) -> null
+            (week && month) || years > 1 || YEAR_IN_CONTEXT.containsMatchIn(userMessage) || UNSUPPORTED.containsMatchIn(userMessage) ||
+                SPAN.containsMatchIn(userMessage) -> null
             week -> Period.WEEK
             month -> Period.MONTH
             modelPick == null || modelPick.toString().isBlank() -> Period.MONTH

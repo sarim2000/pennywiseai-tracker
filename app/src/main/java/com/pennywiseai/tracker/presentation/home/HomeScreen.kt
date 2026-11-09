@@ -1,9 +1,6 @@
 package com.pennywiseai.tracker.presentation.home
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
@@ -21,8 +18,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -33,20 +28,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -64,13 +50,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
@@ -83,7 +66,6 @@ import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
@@ -95,8 +77,6 @@ import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
-import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
@@ -1091,48 +1071,10 @@ fun HomeScreen(
 
         // Full Resync Confirmation Dialog
         if (showFullResyncDialog) {
-            AlertDialog(
-                onDismissRequest = { showFullResyncDialog = false },
-                icon = {
-                    Icon(
-                        imageVector = Icons.Default.Sync,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                title = {
-                    Text(stringResource(R.string.home_resync_title))
-                },
-                text = {
-                    // Two ways to re-read: the gentle one first, since a full rebuild
-                    // resets edits to SMS transactions.
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        ResyncOption(
-                            title = stringResource(R.string.home_resync_scan_again),
-                            description = stringResource(R.string.home_resync_scan_again_desc),
-                            onClick = {
-                                showFullResyncDialog = false
-                                viewModel.scanSmsMessages(rescanAll = true)
-                            }
-                        )
-                        ResyncOption(
-                            title = stringResource(R.string.home_resync_rebuild),
-                            description = stringResource(R.string.home_resync_rebuild_desc),
-                            onClick = {
-                                showFullResyncDialog = false
-                                viewModel.scanSmsMessages(forceResync = true)
-                            }
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = { showFullResyncDialog = false },
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Text(stringResource(R.string.home_cancel))
-                    }
-                }
+            FullResyncDialog(
+                onDismiss = { showFullResyncDialog = false },
+                onScanAgain = { viewModel.scanSmsMessages(rescanAll = true) },
+                onRebuild = { viewModel.scanSmsMessages(forceResync = true) }
             )
         }
 
@@ -1166,142 +1108,15 @@ fun HomeScreen(
 
     // Avatar menu bottom sheet
     if (showMenuSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showMenuSheet = false },
+        HomeMenuSheet(
             sheetState = sheetState,
-            containerColor = MaterialTheme.colorScheme.surface,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
-            ) {
-                // Title
-                Text(
-                    text = stringResource(R.string.home_menu_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(bottom = Spacing.sm)
-                        .fillMaxWidth()
-                )
-
-                // Reviews (Top) — week, cycle and year, whatever the Home banner is offering.
-                MenuListItem(
-                    headline = stringResource(R.string.review_title),
-                    icon = { Icon(Icons.Default.Insights, contentDescription = null) },
-                    position = ListItemPosition.Top,
-                    onClick = {
-                        showMenuSheet = false
-                        onNavigateToReview(ReviewKind.MONTH)
-                    }
-                )
-
-                // Share card (Middle) — the growth loop lives here rather than buried
-                // in the Subscriptions screen, where nobody would find it.
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_share_card),
-                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        showShareSheet = true
-                    }
-                )
-
-                // Settings (Middle)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_settings),
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        onNavigateToSettings()
-                    }
-                )
-
-                // Edit home screen (Middle) — reorder / hide Home sections (#770)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_edit_home),
-                    icon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        showEditWidgetsSheet = true
-                    }
-                )
-
-                // Read messages again (Middle) — the full resync otherwise
-                // hides behind a long-press on Sync.
-                MenuListItem(
-                    headline = stringResource(R.string.home_resync_title),
-                    icon = { Icon(Icons.Default.Sync, contentDescription = null) },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        showFullResyncDialog = true
-                    }
-                )
-
-                // Join Discord (Middle)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_discord),
-                    icon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_discord),
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                    },
-                    position = ListItemPosition.Middle,
-                    onClick = {
-                        showMenuSheet = false
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL))
-                        context.startActivity(intent)
-                    }
-                )
-
-                // Rate on Play Store (Bottom)
-                MenuListItem(
-                    headline = stringResource(R.string.home_menu_rate),
-                    icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                    position = ListItemPosition.Bottom,
-                    onClick = {
-                        showMenuSheet = false
-                        try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
-                            context.startActivity(intent)
-                        } catch (_: android.content.ActivityNotFoundException) {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
-                            context.startActivity(intent)
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Version footer
-                val versionName = remember {
-                    try {
-                        context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                    } catch (_: Exception) {
-                        null
-                    }
-                }
-                versionName?.let {
-                    Text(
-                        text = stringResource(R.string.home_version, it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-        }
+            onDismiss = { showMenuSheet = false },
+            onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
+            onOpenShareCard = { showShareSheet = true },
+            onOpenSettings = onNavigateToSettings,
+            onEditHome = { showEditWidgetsSheet = true },
+            onReadMessagesAgain = { showFullResyncDialog = true }
+        )
     }
     }
 
@@ -1315,66 +1130,12 @@ fun HomeScreen(
 
     // Edit home screen sheet (#770). Every change persists immediately — no Save.
     if (showEditWidgetsSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showEditWidgetsSheet = false },
-            sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
-            containerColor = MaterialTheme.colorScheme.surface,
-            dragHandle = { BottomSheetDefaults.DragHandle() }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = Spacing.xl),
-                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
-            ) {
-                Text(
-                    text = stringResource(R.string.home_edit_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Text(
-                    text = stringResource(R.string.home_edit_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .padding(bottom = Spacing.sm)
-                        .fillMaxWidth()
-                )
-                homeSectionLayout.forEachIndexed { i, (section, isVisible) ->
-                    GroupedRow(
-                        position = ListItemPosition.from(i, homeSectionLayout.size),
-                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        val sectionLabel = stringResource(section.titleRes())
-                        Text(
-                            text = sectionLabel,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (isVisible) MaterialTheme.colorScheme.onSurface
-                            else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(
-                            enabled = i > 0,
-                            onClick = { viewModel.moveHomeSection(section, -1) },
-                            shapes = IconButtonDefaults.shapes()
-                        ) { Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.home_edit_move_up, sectionLabel)) }
-                        IconButton(
-                            enabled = i < homeSectionLayout.lastIndex,
-                            onClick = { viewModel.moveHomeSection(section, +1) },
-                            shapes = IconButtonDefaults.shapes()
-                        ) { Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.home_edit_move_down, sectionLabel)) }
-                        Switch(
-                            checked = isVisible,
-                            onCheckedChange = { on -> viewModel.setHomeSectionVisible(section, on) }
-                        )
-                    }
-                }
-            }
-        }
+        EditHomeSectionsSheet(
+            homeSectionLayout = homeSectionLayout,
+            onDismiss = { showEditWidgetsSheet = false },
+            onMoveSection = viewModel::moveHomeSection,
+            onSetSectionVisible = viewModel::setHomeSectionVisible
+        )
     }
 
     // Pro upgrade sheet — triggered from the subtle ✨ chip in the top bar
@@ -1382,152 +1143,6 @@ fun HomeScreen(
     if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BreakdownDialog(
-    currentMonthIncome: BigDecimal,
-    currentMonthExpenses: BigDecimal,
-    currentMonthTotal: BigDecimal,
-    lastMonthIncome: BigDecimal,
-    lastMonthExpenses: BigDecimal,
-    lastMonthTotal: BigDecimal,
-    currency: String,
-    onDismiss: () -> Unit
-) {
-    val now = LocalDate.now()
-    val monthName = { m: java.time.Month -> m.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale()) }
-    val currentPeriod = stringResource(R.string.home_breakdown_period, monthName(now.month), now.dayOfMonth)
-    val lastMonth = now.minusMonths(1)
-    val lastPeriod = stringResource(R.string.home_breakdown_period, monthName(lastMonth.month), now.dayOfMonth)
-    
-    Dialog(onDismissRequest = onDismiss) {
-        PennyWiseCardV2(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            contentPadding = Dimensions.Padding.dialog
-        ) {
-            // Period blocks are the unit of meaning here, so the gap *between*
-            // blocks (lg) is larger than the gap between a block's own rows
-            // (sm). The previous uniform 16dp made the period label float
-            // equidistant from both periods' figures.
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Spacing.lg)
-            ) {
-                Text(
-                    text = stringResource(R.string.home_breakdown_title),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-
-                BreakdownPeriod(
-                    period = currentPeriod,
-                    income = currentMonthIncome,
-                    expenses = currentMonthExpenses,
-                    net = currentMonthTotal,
-                    currency = currency
-                )
-
-                BreakdownPeriod(
-                    period = lastPeriod,
-                    income = lastMonthIncome,
-                    expenses = lastMonthExpenses,
-                    net = lastMonthTotal,
-                    currency = currency
-                )
-
-                PennyWiseCardV2(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    contentPadding = Spacing.smd
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_breakdown_formula),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                TextButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.align(Alignment.End),
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.home_close))
-                }
-            }
-        }
-    }
-}
-
-/** One period's income / expenses / net block inside [BreakdownDialog]. */
-@Composable
-private fun BreakdownPeriod(
-    period: String,
-    income: BigDecimal,
-    expenses: BigDecimal,
-    net: BigDecimal,
-    currency: String
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(
-            text = period,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        BreakdownRow(label = stringResource(R.string.home_breakdown_income), amount = income, isIncome = true, currency = currency)
-        BreakdownRow(label = stringResource(R.string.home_breakdown_expenses), amount = expenses, isIncome = false, currency = currency)
-        HorizontalDivider()
-        BreakdownRow(
-            label = stringResource(R.string.home_breakdown_net_worth),
-            amount = net,
-            isIncome = net >= BigDecimal.ZERO,
-            isBold = true,
-            isNet = true,
-            currency = currency
-        )
-    }
-}
-
-@Composable
-private fun BreakdownRow(
-    label: String,
-    amount: BigDecimal,
-    isIncome: Boolean,
-    isBold: Boolean = false,
-    isNet: Boolean = false,
-    currency: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
-        )
-        Text(
-            text = CurrencyFormatter.signed(if (isIncome) "+" else "-", CurrencyFormatter.formatCurrency(amount.abs(), currency)),
-            style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
-                fontWeight = FontWeight.Normal
-            ),
-            // Spending is ink; red is kept for a negative net.
-            color = when {
-                isIncome -> MaterialTheme.colorScheme.income
-                isNet -> MaterialTheme.colorScheme.expense
-                else -> MaterialTheme.colorScheme.onSurface
-            }
         )
     }
 }
@@ -1747,74 +1362,6 @@ private fun ActiveLoansSummaryCard(
                 style = MaterialTheme.typography.labelLarge,
                 color = loanColor,
                 fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
-
-/**
- * A row in the "More options" bottom sheet. Uses the shared grouped-list
- * primitives so it matches the rows in Settings exactly — this sheet is the
- * shortcut *into* Settings, so the two looking different was jarring.
- */
-@Composable
-private fun MenuListItem(
-    headline: String,
-    icon: @Composable () -> Unit,
-    position: ListItemPosition,
-    onClick: () -> Unit,
-) {
-    GroupedRow(
-        position = position,
-        onClick = onClick,
-        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
-    ) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.secondary
-        ) { icon() }
-        Text(
-            text = headline,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@StringRes
-private fun HomeSection.titleRes(): Int = when (this) {
-    HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
-    HomeSection.BUDGETS -> R.string.home_section_budgets
-    HomeSection.GOALS -> R.string.home_section_goals
-    HomeSection.LOANS -> R.string.home_section_loans
-    HomeSection.GROUPS -> R.string.home_section_groups
-    HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
-    HomeSection.ACCOUNTS -> R.string.home_section_accounts
-    HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
-    HomeSection.MONEY_IN_MOTION -> R.string.home_section_money_in_motion
-    HomeSection.ACTIVITY -> R.string.home_section_activity
-}
-
-/** One choice in the "Read messages again" dialog: a tappable title + what it does. */
-@Composable
-private fun ResyncOption(title: String, description: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.medium,
-        // The dialog itself is surfaceContainerHigh, so a step up keeps each
-        // option reading as a tappable card.
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            Text(
-                description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

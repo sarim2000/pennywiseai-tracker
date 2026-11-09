@@ -122,6 +122,7 @@ class ChatViewModelSettleTest {
         coVerify(exactly = 1) { llm.completePendingAction(any()) }
         assertFalse(viewModel.uiState.value.cardSaved)
         assertFalse(viewModel.isConfirming.value)
+        assertEquals(1, viewModel.uiState.value.adds)
     }
 
     @Test

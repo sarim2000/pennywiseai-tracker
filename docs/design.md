@@ -346,7 +346,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   Save and Subscriptions mark-paid swap the avatar; the chat's Add card swaps
   its Cancel/Add buttons for the check. Its "Added …" line is written first
   (a process death in the beat must not lose the acknowledgement); the card
-  stays drawn, settled, under it for the beat, then goes.
+  stays drawn, settled, under it for the beat, then goes. With "Remove
+  animations" every settle skips the beat and the check (the chat's would
+  hold Send), but the haptic still lands.
 - **A screen of sibling money figures enters as one group.** Period Review
   fades its loaded content in once on first visit — fade only, no travel,
   saveable flag — instead of staggering its cards (rules 1, 2 and 5); later

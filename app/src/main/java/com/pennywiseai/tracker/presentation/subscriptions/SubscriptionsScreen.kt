@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import android.animation.ValueAnimator
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
@@ -141,7 +142,7 @@ fun SubscriptionsScreen(
     LaunchedEffect(uiState.settledSubscriptionId) {
         val id = uiState.settledSubscriptionId ?: return@LaunchedEffect
         haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-        try { delay(SETTLED_HOLD_MILLIS) } finally { viewModel.clearSettled(id) }
+        try { if (ValueAnimator.areAnimatorsEnabled()) delay(SETTLED_HOLD_MILLIS) } finally { viewModel.clearSettled(id) }
     }
 
     // "Not recurring" on a suggestion, undoable.

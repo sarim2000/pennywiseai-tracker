@@ -223,7 +223,7 @@ class ChatViewModel @Inject constructor(
                             // Saved: the card stays drawn with its check for a beat. Its line is
                             // written first, so dying in that beat can't leave a saved transaction
                             // with no acknowledgement in the chat (and a retry that doubles it).
-                            _uiState.value = _uiState.value.copy(settledCard = action)
+                            _uiState.value = _uiState.value.copy(settledCard = action, adds = _uiState.value.adds + 1)
                             llmRepository.completePendingAction(
                                 drafts.joinToString("\n") { draft ->
                                     context.getString(
@@ -362,7 +362,9 @@ data class ChatUiState(
     val isLoading: Boolean = false,
     val error: UiText? = null,
     /** An Add card whose rows were just saved: still drawn, with its check, for a beat. */
-    val settledCard: com.pennywiseai.tracker.data.model.PendingChatAction.Add? = null
+    val settledCard: com.pennywiseai.tracker.data.model.PendingChatAction.Add? = null,
+    /** Adds saved so far; the Confirm haptic keys on it, since [settledCard] may never reach a frame. */
+    val adds: Int = 0
 ) {
     val cardSaved: Boolean get() = settledCard != null
 }

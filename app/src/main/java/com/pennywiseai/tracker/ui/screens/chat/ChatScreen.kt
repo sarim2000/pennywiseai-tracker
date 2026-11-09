@@ -87,9 +87,12 @@ fun ChatScreen(
     }
 
     // "Receipt settled": only an Add that was saved gets the check + Confirm haptic.
+    // Keyed on the count, so the haptic lands even when no hold keeps the check up;
+    // only for Adds made since this screen came up, not ones from an earlier visit.
     val haptics = LocalHapticFeedback.current
-    LaunchedEffect(uiState.cardSaved) {
-        if (uiState.cardSaved) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+    val addsAtEntry = remember { uiState.adds }
+    LaunchedEffect(uiState.adds) {
+        if (uiState.adds > addsAtEntry) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
     // Scroll behaviors for TopAppBar

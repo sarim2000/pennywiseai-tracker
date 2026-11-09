@@ -130,3 +130,36 @@ jobs:
         name: app-test-results
         path: app/build/test-results/
         retention-days: 7
+
+  format-check:
+    name: Format Check (advisory)
+    # A push to main has nothing past origin/main to check.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Advisory while the codebase is brought in line: a failure is reported
+    # here but never fails the workflow. Fix locally with ./gradlew spotlessApply.
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        # Spotless checks only files changed since origin/main, which needs
+        # main's history to find the merge base.
+        fetch-depth: 0
+
+    - uses: actions/setup-java@v6
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - uses: android-actions/setup-android@v4
+      with:
+        # The action's default list includes the retired 'tools' package, which
+        # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
+        packages: platform-tools
+
+    - uses: gradle/actions/setup-gradle@v5
+
+    - name: Check formatting of changed files
+      run: ./gradlew spotlessCheck --continue

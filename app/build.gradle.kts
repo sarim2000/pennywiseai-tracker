@@ -250,7 +250,6 @@ dependencies {
 
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -280,9 +279,9 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    // AI access: WebSocket line to the relay (ADR 0002)
+    // AI access: WebSocket line to the relay (ADR 0002). The WebSockets plugin ships
+    // in ktor-client-core; ktor-client-websockets is an empty artifact.
     implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
-    implementation(libs.ktor.client.websockets)
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)

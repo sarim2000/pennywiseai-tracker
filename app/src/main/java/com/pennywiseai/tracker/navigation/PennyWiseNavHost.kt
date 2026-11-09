@@ -145,7 +145,7 @@ fun PennyWiseNavHost(
         entryProvider = withRouteArgs(entryProvider {
         // At once: a fade-in shows the screen it's locking through it.
         entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {
-            com.pennywiseai.tracker.ui.screens.AppLockScreen(
+            com.pennywiseai.tracker.presentation.applock.AppLockScreen(
                 onUnlocked = {
                     // Back to the screen it covered. Pops AppLock itself, so a repeat
                     // call (a second success mid-transition) doesn't pop that screen too.
@@ -159,7 +159,7 @@ fun PennyWiseNavHost(
             )
         }
         entry<OnBoarding> {
-            com.pennywiseai.tracker.ui.screens.onboarding.OnBoardingScreen(
+            com.pennywiseai.tracker.presentation.onboarding.OnBoardingScreen(
                 onOnboardingComplete = {
                     backStack.replaceLast(Home) { it == OnBoarding }
                 }
@@ -174,25 +174,25 @@ fun PennyWiseNavHost(
         }
 
         entry<BackgroundAccess> { key ->
-            com.pennywiseai.tracker.ui.screens.settings.BackgroundAccessScreen(
+            com.pennywiseai.tracker.presentation.settings.BackgroundAccessScreen(
                 onNavigateBack = { backStack.pop(key) }
             )
         }
 
         entry<LearnedCategories> { key ->
-            com.pennywiseai.tracker.ui.screens.settings.LearnedCategoriesScreen(
+            com.pennywiseai.tracker.presentation.settings.LearnedCategoriesScreen(
                 onNavigateBack = { backStack.pop(key) }
             )
         }
 
         entry<AiAccess> { key ->
-            com.pennywiseai.tracker.ui.screens.settings.aiaccess.AiAccessScreen(
+            com.pennywiseai.tracker.presentation.settings.aiaccess.AiAccessScreen(
                 onNavigateBack = { backStack.pop(key) }
             )
         }
 
         entry<Webhooks> { key ->
-            com.pennywiseai.tracker.ui.screens.settings.webhooks.WebhooksScreen(
+            com.pennywiseai.tracker.presentation.settings.webhooks.WebhooksScreen(
                 onNavigateBack = { backStack.pop(key) }
             )
         }
@@ -230,7 +230,7 @@ fun PennyWiseNavHost(
         }
 
         entry<Rules> { key ->
-            com.pennywiseai.tracker.ui.screens.rules.RulesScreen(
+            com.pennywiseai.tracker.presentation.rules.RulesScreen(
                 onNavigateBack = {
                     backStack.pop(key)
                 },
@@ -247,7 +247,7 @@ fun PennyWiseNavHost(
         }
 
         entry<CreateRule> { createRule ->
-            val rulesViewModel: com.pennywiseai.tracker.ui.viewmodel.RulesViewModel = hiltViewModel()
+            val rulesViewModel: com.pennywiseai.tracker.presentation.rules.RulesViewModel = hiltViewModel()
 
             // Collect rules from the flow to find the rule being edited or duplicated.
             val rules by rulesViewModel.rules.collectAsStateWithLifecycle()
@@ -273,7 +273,7 @@ fun PennyWiseNavHost(
             }
             val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
 
-            com.pennywiseai.tracker.ui.screens.rules.CreateRuleScreen(
+            com.pennywiseai.tracker.presentation.rules.CreateRuleScreen(
                 onNavigateBack = {
                     backStack.pop(createRule)
                 },

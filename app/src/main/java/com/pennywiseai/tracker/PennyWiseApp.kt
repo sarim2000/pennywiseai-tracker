@@ -36,7 +36,7 @@ import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.navigation.navigate
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
-import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
+import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.widget.WidgetRefresher
 
@@ -285,7 +285,7 @@ internal fun coverForLock(
 private fun <T : Any> NavigateWhenUnlocked(
     request: T?,
     onboarded: Boolean,
-    lock: com.pennywiseai.tracker.ui.viewmodel.AppLockUiState,
+    lock: com.pennywiseai.tracker.presentation.applock.AppLockUiState,
     currentRoute: NavKey?,
     refreshLock: () -> Unit,
     showLockScreen: () -> Unit,

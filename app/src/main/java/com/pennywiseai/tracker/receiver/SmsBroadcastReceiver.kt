@@ -24,7 +24,7 @@ import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
-import com.pennywiseai.tracker.ui.screens.unrecognized.Suggestion
+import com.pennywiseai.tracker.presentation.unrecognized.Suggestion
 import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.repository.TransactionRepository

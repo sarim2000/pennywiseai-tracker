@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.architecture
 
 import com.lemonappdev.konsist.api.Konsist
+import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,6 +19,11 @@ import org.junit.Test
  *
  * Only `import` lines are checked. A fully qualified name written in code
  * isn't caught, so don't use one to get around a rule.
+ *
+ * The last two rules check where files live instead: the retired `ui.screens`
+ * package stays empty in every source set, and `ui.viewmodel` keeps only the
+ * app-wide ViewModels. A feature's screens and ViewModels live in
+ * `presentation/<feature>`.
  */
 class ArchitectureTest {
 
@@ -45,10 +51,10 @@ class ArchitectureTest {
     ).check()
 
     @Test
-    fun `data does not import presentation or feature screens`() = Rule(
+    fun `data does not import presentation`() = Rule(
         name = "data",
         appliesTo = { it.isInPackage("$APP.data") },
-        forbidden = listOf("$APP.presentation", "$APP.ui.screens"),
+        forbidden = listOf("$APP.presentation"),
         allowlist = setOf(
             // presentation.accounts.AccountType
             "app/src/main/java/com/pennywiseai/tracker/data/repository/AccountBalanceRepository.kt",
@@ -96,7 +102,6 @@ class ArchitectureTest {
         appliesTo = { it.isInPackage("$APP.ui.theme") },
         forbidden = listOf(
             "$APP.presentation",
-            "$APP.ui.screens",
             "$APP.worker",
             "$APP.data",
             "$APP.domain",
@@ -106,6 +111,39 @@ class ArchitectureTest {
             "app/src/main/java/com/pennywiseai/tracker/ui/theme/Theme.kt",
         ),
     ).check()
+
+    @Test
+    fun `no Kotlin file lives in the retired ui screens package`() {
+        // Checks the package line as well as the path: Kotlin doesn't require the
+        // two to match, and a rebase can carry a file into presentation/ with its
+        // old ui.screens package line.
+        val retired = (productionFiles + testFiles).filter { file ->
+            file.isInPackage("$APP.ui.screens") || "/com/pennywiseai/tracker/ui/screens/" in file.repoPath
+        }
+        assertTrue(
+            "ui.screens is retired. Move these files to presentation/<feature> and fix their package line:\n" +
+                retired.joinToString("\n") { "  ${it.repoPath}" },
+            retired.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `ui viewmodel holds only app-wide ViewModels`() {
+        val subjects = productionFiles.filter { it.isInPackage("$APP.ui.viewmodel") }
+        assertTrue(
+            "ui.viewmodel rule matched no files. Did the package move? Point the rule at it.",
+            subjects.isNotEmpty(),
+        )
+        val featureViewModels = subjects
+            .flatMap { file -> file.classes().filter { it.isViewModel() }.map { file.repoPath to it.name } }
+            .filter { (_, name) -> name !in APP_WIDE_VIEW_MODELS }
+        assertTrue(
+            "ui.viewmodel is for app-wide ViewModels ($APP_WIDE_VIEW_MODELS). Move a feature's " +
+                "ViewModel to presentation/<feature>, next to its screen:\n" +
+                featureViewModels.joinToString("\n") { (path, name) -> "  $name in $path" },
+            featureViewModels.isEmpty(),
+        )
+    }
 
     private class Rule(
         val name: String,
@@ -160,9 +198,17 @@ class ArchitectureTest {
 
         val VIEW_MODEL_BASES = setOf("ViewModel", "AndroidViewModel")
 
+        /** The only ViewModels that may live in `ui.viewmodel`. Every other one belongs to a feature. */
+        val APP_WIDE_VIEW_MODELS = setOf("MainViewModel", "ThemeViewModel", "SpotlightViewModel")
+
         /** Parsed once and shared by every rule: parsing dominates the runtime. */
         val productionFiles: List<KoFileDeclaration> by lazy {
             Konsist.scopeFromProduction(moduleName = "app").files
+        }
+
+        /** Unit and instrumented test sources, for the rules that check where files live. */
+        val testFiles: List<KoFileDeclaration> by lazy {
+            Konsist.scopeFromTest(moduleName = "app").files
         }
 
         /** `a.b` contains `a.b` itself and everything under `a.b.`, but not `a.bc`. */
@@ -173,9 +219,10 @@ class ArchitectureTest {
         val KoFileDeclaration.repoPath: String
             get() = projectPath.replace('\\', '/').removePrefix("/")
 
-        fun KoFileDeclaration.declaresViewModel() = classes().any { cls ->
-            cls.name.endsWith("ViewModel") || cls.parents().any { it.name in VIEW_MODEL_BASES }
-        }
+        fun KoClassDeclaration.isViewModel() =
+            name.endsWith("ViewModel") || parents().any { it.name in VIEW_MODEL_BASES }
+
+        fun KoFileDeclaration.declaresViewModel() = classes().any { it.isViewModel() }
 
         fun KoFileDeclaration.declaresComposable() =
             functions(includeNested = true, includeLocal = true).any { fn ->

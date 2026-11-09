@@ -94,10 +94,10 @@ import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
-import com.pennywiseai.tracker.ui.screens.settings.AppearanceScreen
-import com.pennywiseai.tracker.ui.screens.settings.FAQScreen
-import com.pennywiseai.tracker.ui.screens.settings.SettingsScreen
-import com.pennywiseai.tracker.ui.screens.settings.SettingsSectionScreen
+import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
+import com.pennywiseai.tracker.presentation.settings.FAQScreen
+import com.pennywiseai.tracker.presentation.settings.SettingsScreen
+import com.pennywiseai.tracker.presentation.settings.SettingsSectionScreen
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -404,7 +404,7 @@ fun MainScreen(
         }
 
         entry<Analytics> { key ->
-                com.pennywiseai.tracker.ui.screens.analytics.AnalyticsScreen(
+                com.pennywiseai.tracker.presentation.analytics.AnalyticsScreen(
                     onNavigateToChat = {
                         if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
                             open(tab, Chat)
@@ -436,7 +436,7 @@ fun MainScreen(
                 // Hidden AI tab: don't start the chat (and its model) for
                 // the frame before the fallback to Home lands.
                 if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
-                    com.pennywiseai.tracker.ui.screens.chat.ChatScreen(
+                    com.pennywiseai.tracker.presentation.chat.ChatScreen(
                         modifier = Modifier.imePadding(),
                         onNavigateToSettings = {
                             open(tab, SettingsPage(SettingsSection.AI))
@@ -478,7 +478,7 @@ fun MainScreen(
         }
 
         entry<UnrecognizedSms> { key ->
-                com.pennywiseai.tracker.ui.screens.unrecognized.UnrecognizedSmsScreen(
+                com.pennywiseai.tracker.presentation.unrecognized.UnrecognizedSmsScreen(
                     onNavigateBack = {
                         backFrom(tab, key)
                     },

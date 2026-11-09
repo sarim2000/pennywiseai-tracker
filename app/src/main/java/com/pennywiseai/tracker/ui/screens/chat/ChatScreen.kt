@@ -46,7 +46,7 @@ import java.util.Date
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -532,7 +532,11 @@ fun ChatScreen(
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        // The bottom nav hides while the keyboard is up, so its
+                        // clearance would just leave a gap above the keyboard.
+                        if (!WindowInsets.isImeVisible) {
+                            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        }
                     }
                 }
             }

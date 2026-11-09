@@ -177,14 +177,21 @@ object SpendingComparison {
     // A lone number is more likely an amount ("my 2000 rent").
     private val YEAR_NUMBER = Regex("(?<![\\d.,])(?:19|20)\\d\\d(?![\\d.,])")
     private val YEAR_IN_CONTEXT = Regex(
-        "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than|with|to)|في|عام|سنة|مع|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
+        "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than|with)|في|عام|سنة|مع|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
         RegexOption.IGNORE_CASE
     )
-    // A written date names its own month: "2025-10", "10/2025", "15/10". ponytail: "50/50" reads as one
-    // too and is refused; the user rephrases.
+    // A written date names its own month: "2025-10", "10/2025", "15/10". A real month and day only, and
+    // no "." separator, so "2000.50" stays an amount.
+    private const val MM = "(?:0?[1-9]|1[0-2])"
     private val NUMERIC_DATE = Regex(
-        "(?<![\\d.,])(?:(?:19|20)\\d\\d[-/.]\\d{1,2}|\\d{1,2}[-/.](?:19|20)\\d\\d|\\d{1,2}/\\d{1,2}(?:/\\d{2,4})?)(?![\\d])"
+        "(?<![\\d.,])(?:(?:19|20)\\d\\d[-/]$MM|$MM[-/](?:19|20)\\d\\d|(?:0?[1-9]|[12]\\d|3[01])/$MM(?:/\\d{2,4})?)(?![\\d.,])"
     )
+
+    // What a small model writes for "no category": the comparison of all spending.
+    private val ALL_SPENDING = setOf("all", "any", "everything", "total", "overall", "general", "spending", "expenses", "expense", "none", "الكل", "كل", "الجميع", "sab")
+
+    /** The model's category argument means all spending, not a category called that. */
+    fun meansAllSpending(category: String) = category.trim().lowercase() in ALL_SPENDING
 
     // "Last month" / "pichle hafte": the previous period by name.
     private val PREVIOUS = Regex(

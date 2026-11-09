@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -92,6 +93,13 @@ fun pwPop(motion: MotionScheme): ContentTransform =
         fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 
 /**
+ * True inside a screen that arrived on a nav transition (pushed, or uncovered by a pop or a
+ * tab switch): that transition is its entrance, so [StaggeredEntrance] doesn't add a second.
+ * Provided per entry by [com.pennywiseai.tracker.navigation.rememberEntryDecorators].
+ */
+val LocalNavEntrance = staticCompositionLocalOf { false }
+
+/**
  * False when the user set "Remove animations" (animator duration scale 0). Compose already
  * zeroes animation durations then; this is for skipping `delay`-based choreography too.
  * Re-read on every resume, so toggling it in Settings applies on return. Key `delay`
@@ -134,9 +142,9 @@ fun rememberEntranceDone(): Boolean {
 
 /**
  * One item of a first-entrance stagger. Shows immediately when [skip] (the screen already
- * ran its entrance) or animations are off; otherwise reveals with [pwEnter] after [delayMs]
- * (use [staggerDelayMs]). Each item tracks its own `visible` so one composed just before
- * [skip] flips still reveals.
+ * ran its entrance), when the screen came in on a nav transition ([LocalNavEntrance]) or
+ * animations are off; otherwise reveals with [pwEnter] after [delayMs] (use [staggerDelayMs]).
+ * Each item tracks its own `visible` so one composed just before [skip] flips still reveals.
  */
 @Composable
 fun StaggeredEntrance(
@@ -146,7 +154,8 @@ fun StaggeredEntrance(
     content: @Composable AnimatedVisibilityScope.() -> Unit,
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
-    var visible by remember { mutableStateOf(skip || !animationsEnabled) }
+    val navEntrance = LocalNavEntrance.current
+    var visible by remember { mutableStateOf(skip || navEntrance || !animationsEnabled) }
     LaunchedEffect(animationsEnabled) {
         if (!visible) {
             if (animationsEnabled) delay(delayMs)

@@ -36,6 +36,7 @@ import androidx.savedstate.serialization.encodeToSavedState
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.MainScreen
+import com.pennywiseai.tracker.ui.animations.LocalNavEntrance
 import com.pennywiseai.tracker.ui.animations.pwPop
 import com.pennywiseai.tracker.ui.animations.pwPush
 import kotlinx.serialization.serializer
@@ -66,12 +67,23 @@ fun NavBackStack<NavKey>.replaceLast(key: NavKey, match: (NavKey) -> Boolean) {
     set(i, key)
 }
 
-/** Per-entry saveable state and ViewModelStore, so ViewModels stay scoped to their entry. */
+/**
+ * Per-entry saveable state and ViewModelStore, so ViewModels stay scoped to their entry,
+ * and [LocalNavEntrance] for whether the entry came in on a transition.
+ */
 @Composable
 fun rememberEntryDecorators(): List<NavEntryDecorator<NavKey>> = listOf(
     rememberSaveableStateHolderNavEntryDecorator(),
-    rememberViewModelStoreNavEntryDecorator()
+    rememberViewModelStoreNavEntryDecorator(),
+    navEntranceDecorator
 )
+
+// An entry's first frame is mid-transition (PreEnter) unless it's the host's first screen.
+private val navEntranceDecorator = NavEntryDecorator<NavKey> { entry ->
+    val transition = LocalNavAnimatedContentScope.current.transition
+    val entering = remember { transition.currentState != transition.targetState }
+    CompositionLocalProvider(LocalNavEntrance provides entering) { entry.Content() }
+}
 
 /**
  * Hands each key's properties to its entry's ViewModels as SavedStateHandle

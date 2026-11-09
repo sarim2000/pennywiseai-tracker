@@ -342,7 +342,9 @@ it by `Dimensions.Component.bottomBarHeight`.
   5. **Stagger once**, on a screen's first entrance: `StaggeredEntrance` with
      `delayMs = staggerDelayMs(index)` and `skip = rememberEntranceDone()`
      (saveable). One step and cap for every screen — don't re-type `50L * …`.
-     Scrolling lists and returning to a tab don't stagger.
+     Scrolling lists and returning to a tab don't stagger. A screen that
+     arrives on a nav transition doesn't stagger either: the push is its
+     entrance (`StaggeredEntrance` reads `LocalNavEntrance`).
   6. **"Remove animations" means content is just there.** Compose zeroes
      durations itself; skip `delay`-based choreography too
      (`rememberAnimationsEnabled()`, re-read on every resume — key `delay`

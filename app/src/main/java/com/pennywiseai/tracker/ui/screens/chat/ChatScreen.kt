@@ -399,6 +399,8 @@ fun ChatScreen(
 
                             // A transaction the model proposed — the user confirms it (#170)
                             pendingAction?.let { action ->
+                                // No fade-out: the "Added …" line lands in this slot the moment the
+                                // card completes, and a fading card would sit under it for a beat.
                                 item(key = PENDING_KEY) {
                                     if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
                                         AddReviewCard(
@@ -410,7 +412,7 @@ fun ChatScreen(
                                             onEdit = viewModel::editRow,
                                             onConfirm = viewModel::confirmPendingAction,
                                             onDismiss = viewModel::dismissPendingAction,
-                                            modifier = Modifier.animateItem()
+                                            modifier = Modifier.animateItem(fadeOutSpec = null)
                                         )
                                     } else {
                                         PendingActionCard(
@@ -418,7 +420,7 @@ fun ChatScreen(
                                             enabled = !isConfirming,
                                             onConfirm = { viewModel.confirmPendingAction() },
                                             onDismiss = { viewModel.dismissPendingAction() },
-                                            modifier = Modifier.animateItem()
+                                            modifier = Modifier.animateItem(fadeOutSpec = null)
                                         )
                                     }
                                 }

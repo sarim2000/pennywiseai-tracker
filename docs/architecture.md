@@ -309,6 +309,9 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 - Kotlin coding conventions
 - Consistent naming patterns
 - Immutable data structures
+- Formatting is ktlint via Spotless (rules in `.editorconfig`), checked only on files changed since `origin/main`: run `./gradlew spotlessCheck`, fix with `./gradlew spotlessApply`.
+- `-PspotlessRatchetFrom=<ref>` compares against another ref (a stacked PR's base); an empty value checks every file.
+- It is advisory: `check`/`build` and `init.sh` don't run it, and its CI job can't fail the workflow. Don't reformat files you aren't changing.
 
 ## Migration & Evolution
 

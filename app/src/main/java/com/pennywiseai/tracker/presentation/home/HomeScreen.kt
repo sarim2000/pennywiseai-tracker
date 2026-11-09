@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.home
 
 import androidx.activity.compose.ReportDrawnWhen
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
@@ -15,25 +14,17 @@ import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
@@ -50,10 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
@@ -66,23 +54,12 @@ import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.ui.components.BrandIcon
-import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
-import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
-import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
-import com.pennywiseai.tracker.ui.components.cards.GroupCard
-import com.pennywiseai.tracker.ui.components.cards.TransactionItem
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
 import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
@@ -91,24 +68,10 @@ import com.pennywiseai.tracker.ui.components.GreetingCard
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-
-/** Diameter of one avatar in the overlapping subscription stack. */
-private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
-
-/** Horizontal step between stacked avatars — less than the diameter, so they
- *  overlap and read as a group. */
-private val STACKED_AVATAR_STEP = Spacing.lg - Spacing.xs
-
-/** The surface-coloured ring that separates one stacked avatar from the next. */
-private val STACKED_AVATAR_RING = Spacing.xxs
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -593,30 +556,10 @@ fun HomeScreen(
                         uiState.budgetSummary?.let { summary ->
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_budgets),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        BudgetCarousel(
-                                            summary = summary,
-                                            onClick = onNavigateToBudgets,
-                                            onCreateBudget = onNavigateToBudgets,
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                        )
-                                    }
+                                    HomeBudgetsSection(
+                                        summary = summary,
+                                        onNavigateToBudgets = onNavigateToBudgets
+                                    )
                                 }
                             }
                         }
@@ -626,29 +569,11 @@ fun HomeScreen(
                         if (goals.isNotEmpty()) {
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_goals),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        com.pennywiseai.tracker.presentation.goals.GoalsHomeCard(
-                                            goals = goals,
-                                            onOpenGoal = onGoalClick,
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                        )
-                                    }
+                                    HomeGoalsSection(
+                                        goals = goals,
+                                        onNavigateToBudgets = onNavigateToBudgets,
+                                        onGoalClick = onGoalClick
+                                    )
                                 }
                             }
                         }
@@ -658,33 +583,11 @@ fun HomeScreen(
                         uiState.loanSummary?.let { summary ->
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_loans),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToLoans, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                            ActiveLoansSummaryCard(
-                                                loans = summary.activeLoans,
-                                                totalLentRemaining = summary.totalLentRemaining,
-                                                totalBorrowedRemaining = summary.totalBorrowedRemaining,
-                                                currency = uiState.selectedCurrency,
-                                                onClick = onNavigateToLoans
-                                            )
-                                        }
-                                    }
+                                    HomeLoansSection(
+                                        summary = summary,
+                                        selectedCurrency = uiState.selectedCurrency,
+                                        onNavigateToLoans = onNavigateToLoans
+                                    )
                                 }
                             }
                         }
@@ -698,35 +601,11 @@ fun HomeScreen(
                         if (groupSummaries.isNotEmpty()) {
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_groups),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToTransactionGroups, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        LazyRow(
-                                            contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
-                                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                        ) {
-                                            items(groupSummaries, key = { it.group.id }) { summary ->
-                                                HomeGroupCard(
-                                                    summary = summary,
-                                                    onClick = { onGroupClick(summary.group.id) }
-                                                )
-                                            }
-                                        }
-                                    }
+                                    HomeGroupsSection(
+                                        groupSummaries = groupSummaries,
+                                        onNavigateToTransactionGroups = onNavigateToTransactionGroups,
+                                        onGroupClick = onGroupClick
+                                    )
                                 }
                             }
                         }
@@ -735,40 +614,10 @@ fun HomeScreen(
                         // 3. Recent Transactions Section
                         item(key = section.name) {
                             StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                    SectionHeaderV2(
-                                        title = stringResource(R.string.home_section_recent_transactions),
-                                        action = {
-                                            Row(
-                                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                // Search button
-                                                IconButton(
-                                                    onClick = onNavigateToTransactionsWithSearch,
-                                                    modifier = Modifier.size(Dimensions.Component.iconButton),
-                                                    shapes = IconButtonDefaults.shapes()
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Search,
-                                                        contentDescription = stringResource(R.string.home_search_transactions),
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-
-                                                // View All button
-                                                TextButton(onClick = onNavigateToTransactions, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
+                                HomeRecentTransactionsHeader(
+                                    onNavigateToTransactionsWithSearch = onNavigateToTransactionsWithSearch,
+                                    onNavigateToTransactions = onNavigateToTransactions
+                                )
                             }
                         }
 
@@ -786,55 +635,22 @@ fun HomeScreen(
                         } else if (uiState.recentItems.isEmpty()) {
                             item(key = "${section.name}_body") {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    PennyWiseEmptyState(
-                                        icon = Icons.Default.Sync,
-                                        headline = stringResource(R.string.home_empty_headline),
-                                        description = stringResource(R.string.home_empty_description),
-                                        actionLabel = stringResource(R.string.home_empty_action),
-                                        onAction = { viewModel.scanSmsMessages() },
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        ghostContent = {
-                                            Column(
-                                                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                                            ) {
-                                                repeat(3) {
-                                                    TransactionItemSkeleton()
-                                                }
-                                            }
-                                        }
+                                    HomeRecentTransactionsEmptyState(
+                                        onScanSms = { viewModel.scanSmsMessages() }
                                     )
                                 }
                             }
                         } else {
                             item(key = "${section.name}_body") {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                                    ) {
-                                        val profileAccountKeys = remember(uiState.accountBalances) {
-                                            buildProfileAccountKeys(uiState.accountBalances)
-                                        }
-                                        uiState.recentItems.forEach { item ->
-                                            when (item) {
-                                                is HomeRecentItem.SingleTransaction -> TransactionItem(
-                                                    transaction = item.transaction,
-                                                    convertedAmount = item.convertedAmount,
-                                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                                    showTypeLabel = false,
-                                                    profileAccountKeys = profileAccountKeys,
-                                                    onClick = { onTransactionClick(item.transaction.id) }
-                                                )
-                                                is HomeRecentItem.GroupItem -> GroupCard(
-                                                    group = item.group,
-                                                    transactions = item.transactions,
-                                                    convertedAmounts = item.convertedAmounts,
-                                                    displayCurrency = if (uiState.isUnifiedMode) uiState.selectedCurrency else null,
-                                                    onClick = { onGroupClick(item.group.id) }
-                                                )
-                                            }
-                                        }
-                                    }
+                                    HomeRecentTransactionsList(
+                                        recentItems = uiState.recentItems,
+                                        accountBalances = uiState.accountBalances,
+                                        isUnifiedMode = uiState.isUnifiedMode,
+                                        selectedCurrency = uiState.selectedCurrency,
+                                        onTransactionClick = onTransactionClick,
+                                        onGroupClick = onGroupClick
+                                    )
                                 }
                             }
                         }
@@ -844,36 +660,18 @@ fun HomeScreen(
                         if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_accounts),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToManageAccounts, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_manage))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        AccountCarousel(
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            bankAccounts = uiState.accountBalances,
-                                            creditCards = uiState.creditCards,
-                                            onAccountClick = onAccountClick,
-                                            isUnifiedMode = uiState.isUnifiedMode,
-                                            selectedCurrency = uiState.selectedCurrency,
-                                            blurEffects = blurEffects,
-                                            hazeState = hazeStateBanner,
-                                            isAmountHidden = uiState.isBalanceHidden,
-                                            onToggleAmountsHidden = { viewModel.toggleBalanceVisibility() }
-                                        )
-                                    }
+                                    HomeAccountsSection(
+                                        accountBalances = uiState.accountBalances,
+                                        creditCards = uiState.creditCards,
+                                        isUnifiedMode = uiState.isUnifiedMode,
+                                        selectedCurrency = uiState.selectedCurrency,
+                                        isBalanceHidden = uiState.isBalanceHidden,
+                                        blurEffects = blurEffects,
+                                        hazeStateBanner = hazeStateBanner,
+                                        onNavigateToManageAccounts = onNavigateToManageAccounts,
+                                        onAccountClick = onAccountClick,
+                                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() }
+                                    )
                                 }
                             }
                         }
@@ -883,37 +681,17 @@ fun HomeScreen(
                         if (uiState.upcomingSubscriptions.isNotEmpty()) {
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                    ) {
-                                        SectionHeaderV2(
-                                            title = stringResource(R.string.home_section_subscriptions),
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            action = {
-                                                TextButton(onClick = onNavigateToSubscriptions, shapes = ButtonDefaults.shapes()) {
-                                                    Text(stringResource(R.string.home_view_all))
-                                                    Icon(
-                                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(Dimensions.Icon.small)
-                                                    )
-                                                }
-                                            }
-                                        )
-                                        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-                                            UpcomingSubscriptionsCard(
-                                                subscriptions = uiState.upcomingSubscriptions,
-                                                totalAmount = uiState.upcomingSubscriptionsTotal,
-                                                totalByCurrency = uiState.upcomingSubscriptionsByCurrency,
-                                                nextDue = uiState.nextDueSubscription,
-                                                isUnified = uiState.isUnifiedMode,
-                                                currency = uiState.selectedCurrency,
-                                                onClick = onNavigateToSubscriptions,
-                                                blurEffects = blurEffects,
-                                                hazeState = hazeStateBanner
-                                            )
-                                        }
-                                    }
+                                    HomeSubscriptionsSection(
+                                        upcomingSubscriptions = uiState.upcomingSubscriptions,
+                                        upcomingSubscriptionsTotal = uiState.upcomingSubscriptionsTotal,
+                                        upcomingSubscriptionsByCurrency = uiState.upcomingSubscriptionsByCurrency,
+                                        nextDueSubscription = uiState.nextDueSubscription,
+                                        isUnifiedMode = uiState.isUnifiedMode,
+                                        selectedCurrency = uiState.selectedCurrency,
+                                        blurEffects = blurEffects,
+                                        hazeStateBanner = hazeStateBanner,
+                                        onNavigateToSubscriptions = onNavigateToSubscriptions
+                                    )
                                 }
                             }
                         }
@@ -943,20 +721,11 @@ fun HomeScreen(
                         // 6. Heatmap Widget
                         item(key = section.name) {
                             StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                Column(
-                                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-                                ) {
-                                    SectionHeaderV2(
-                                        title = stringResource(R.string.home_section_activity),
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                    )
-                                    com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
-                                        transactionHeatmap = uiState.transactionHeatmap,
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        blurEffects = blurEffects,
-                                        hazeState = hazeStateBanner
-                                    )
-                                }
+                                HomeActivitySection(
+                                    transactionHeatmap = uiState.transactionHeatmap,
+                                    blurEffects = blurEffects,
+                                    hazeStateBanner = hazeStateBanner
+                                )
                             }
                         }
                     }
@@ -1144,225 +913,5 @@ fun HomeScreen(
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },
         )
-    }
-}
-
-@Composable
-private fun UpcomingSubscriptionsCard(
-    subscriptions: List<SubscriptionEntity>,
-    totalAmount: BigDecimal,
-    totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
-    nextDue: SubscriptionEntity? = null,
-    isUnified: Boolean = false,
-    currency: String,
-    onClick: () -> Unit = {},
-    blurEffects: Boolean = false,
-    hazeState: HazeState? = null
-) {
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.secondaryContainer
-
-    PennyWiseCardV2(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .frostedBlur(hazeState, tint = containerColor)
-                else Modifier
-            ),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
-        contentPadding = Dimensions.Padding.content
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                if (subscriptions.isNotEmpty()) {
-                    val maxIcons = 4
-                    val visibleSubs = subscriptions.take(maxIcons)
-                    val extraCount = subscriptions.size - maxIcons
-                    // Overlapping avatar stack. The trailing Spacer reserves the
-                    // stack's true width, since the offset children don't
-                    // contribute to the Box's measured size — derive it from the
-                    // same constants rather than restating the numbers.
-                    val stackedCount = visibleSubs.size + if (extraCount > 0) 1 else 0
-                    Box {
-                        visibleSubs.forEachIndexed { index, sub ->
-                            BrandIcon(
-                                merchantName = sub.merchantName,
-                                size = STACKED_AVATAR_SIZE,
-                                modifier = Modifier
-                                    .offset(x = STACKED_AVATAR_STEP * index)
-                                    .zIndex((maxIcons - index).toFloat())
-                                    .border(
-                                        width = STACKED_AVATAR_RING,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = CircleShape
-                                    )
-                                    .clip(CircleShape)
-                            )
-                        }
-                        if (extraCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = STACKED_AVATAR_STEP * visibleSubs.size)
-                                    .zIndex(0f)
-                                    .size(STACKED_AVATAR_SIZE)
-                                    .border(
-                                        width = STACKED_AVATAR_RING,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = CircleShape
-                                    )
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+$extraCount",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Spacer(
-                            modifier = Modifier
-                                .width(
-                                    STACKED_AVATAR_SIZE +
-                                        STACKED_AVATAR_STEP * (stackedCount - 1).coerceAtLeast(0)
-                                )
-                                .height(STACKED_AVATAR_SIZE)
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                }
-                Column {
-                    Text(
-                        text = pluralStringResource(R.plurals.home_active_subscriptions, subscriptions.size, subscriptions.size),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Text(
-                        // Unified mode: one converted figure. Native mode: per-currency
-                        // ("₹499 · $10") so a mixed set isn't summed into a mislabel.
-                        text = stringResource(
-                            R.string.home_subscriptions_monthly_total,
-                            if (isUnified) {
-                                CurrencyFormatter.formatCurrency(totalAmount, currency)
-                            } else {
-                                CurrencyFormatter.formatByCurrency(
-                                    totalByCurrency,
-                                    fallbackCurrency = currency
-                                )
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
-                    )
-                    val nextDate = nextDue?.nextPaymentDate
-                    if (nextDue != null && nextDate != null) {
-                        val days = ChronoUnit.DAYS.between(LocalDate.now(), nextDate).toInt()
-                        val due = when {
-                            days < 0 -> stringResource(R.string.home_subscriptions_due_overdue)
-                            days == 0 -> stringResource(R.string.home_subscriptions_due_today)
-                            days == 1 -> stringResource(R.string.home_subscriptions_due_tomorrow)
-                            else -> pluralStringResource(R.plurals.home_subscriptions_due_in_days, days, days)
-                        }
-                        Text(
-                            text = stringResource(R.string.home_subscriptions_next_due, nextDue.merchantName, due),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (days < 0) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-            Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActiveLoansSummaryCard(
-    loans: List<com.pennywiseai.tracker.data.database.entity.LoanEntity>,
-    totalLentRemaining: java.math.BigDecimal,
-    totalBorrowedRemaining: java.math.BigDecimal,
-    currency: String,
-    onClick: () -> Unit = {}
-) {
-    val loanColor = MaterialTheme.colorScheme.loan
-
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Loan icon
-            Icon(
-                imageVector = Icons.Default.SwapHoriz,
-                contentDescription = null,
-                tint = loanColor,
-                modifier = Modifier.size(Dimensions.Icon.medium)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = pluralStringResource(R.plurals.home_active_loans, loans.size, loans.size),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                // Both directions, what you owe first — a lender who also borrows
-                // used to see only "owed to you". Nothing in this currency → no line.
-                val subtitle = listOfNotNull(
-                    totalBorrowedRemaining.takeIf { it > java.math.BigDecimal.ZERO }?.let {
-                        stringResource(R.string.home_loans_you_owe, CurrencyFormatter.formatCurrency(it, currency))
-                    },
-                    totalLentRemaining.takeIf { it > java.math.BigDecimal.ZERO }?.let {
-                        stringResource(R.string.home_loans_owed_to_you, CurrencyFormatter.formatCurrency(it, currency))
-                    },
-                ).joinToString(" · ")
-                if (subtitle.isNotEmpty()) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = loanColor,
-                fontWeight = FontWeight.Medium
-            )
-        }
     }
 }

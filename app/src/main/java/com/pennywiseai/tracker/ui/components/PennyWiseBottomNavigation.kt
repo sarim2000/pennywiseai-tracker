@@ -206,6 +206,7 @@ fun PennyWiseBottomNavigation(
                             DockedActionButton(
                                 action = action,
                                 elevated = !blurEffects,
+                                enabled = visible,
                                 modifier = Modifier.padding(start = Spacing.sm)
                             )
                         }

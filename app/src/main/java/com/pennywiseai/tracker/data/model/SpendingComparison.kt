@@ -132,13 +132,15 @@ object SpendingComparison {
     )
     // A span or an offset: "the last 3 months", "two weeks ago", "the month before last". Only this
     // period and the one before it are compared; answering these with that would show the wrong dates.
-    // Plurals and duals alone mean more than one period. ponytail: Arabic "أشهر" is also "most
-    // famous", so "أشهر مطعم" is refused too; the user rephrases.
+    // Plurals and duals alone mean more than one period, except "both" of the two compared. A count
+    // of 1 is the supported period. ponytail: Arabic "أشهر" is also "most famous", so "أشهر مطعم"
+    // is refused too; the user rephrases.
     private val SPAN = Regex(
-        "\\b(?:weeks|months|fortnights?)\\b|\\bbefore\\s+last\\b" +
-            "|(?<![\\p{L}\\p{M}])[وفبلكه]{0,2}(?:ال)?(?:شهرين|أسبوعين|اسبوعين|أشهر|اشهر|شهور|أسابيع|اسابيع)" +
+        "(?<!\\bboth )\\b(?:weeks|months|fortnights?)\\b|\\bbefore\\s+(?:the\\s+)?last\\b" +
+            "|(?<![\\p{L}\\d])(?:[2-9]|\\d{2,}|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[\\s-]+(?:weeks?|months?)\\b" +
+            "|(?<![\\p{L}\\p{M}])[وفبلكه]{0,2}(?:ال)?(?:شهرين|شهران|أسبوعين|اسبوعين|أسبوعان|اسبوعان|أشهر|اشهر|شهور|أسابيع|اسابيع)" +
             "|قبل\\s+(?:الماضي|الفائت|السابق|اللي فات|الي فات)" +
-            "|(?<![\\p{L}\\d])(?:\\d+|do|teen|char|दो|तीन|चार|पांच|पाँच)\\s+(?:हफ्त|हफ़्त|सप्ताह|महीन|माह|haft|mahin)" +
+            "|(?<![\\p{L}\\d])(?:[2-9]|\\d{2,}|do|teen|char|paanch|panch|kuch|दो|तीन|चार|पांच|पाँच|कुछ)\\s+(?:हफ्त|हफ़्त|सप्ताह|महीन|माह|haft|mahin)" +
             "|महीनों|हफ्तों|हफ़्तों|\\bmahinon\\b",
         RegexOption.IGNORE_CASE
     )

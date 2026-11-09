@@ -31,13 +31,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -64,7 +64,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
-import kotlinx.coroutines.delay
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
@@ -267,15 +266,7 @@ private fun BudgetGroupsContent(
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
 
-    var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val animationsEnabled = rememberAnimationsEnabled()
-
-    LaunchedEffect(Unit) {
-        if (!hasAnimated) {
-            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
-            hasAnimated = true
-        }
-    }
+    val hasAnimated = rememberEntranceDone()
 
     val lazyListState = rememberLazyListState()
     LazyColumn(
@@ -311,7 +302,7 @@ private fun BudgetGroupsContent(
             items = summary.groups,
             key = { _, group -> group.group.budget.id }
         ) { index, groupSpending ->
-            StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
+            StaggeredEntrance(delayMs = staggerDelayMs(index), skip = hasAnimated, modifier = Modifier.animateItem()) {
                 BudgetCard(
                     groupSpending = groupSpending,
                     currency = uiState.currency,

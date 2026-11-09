@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.screens.chat
 
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -689,34 +690,29 @@ fun TypingIndicator(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Three animated dots
-                val infiniteTransition = rememberInfiniteTransition(label = "typing")
-                
-                for (i in 0..2) {
-                    val alpha by infiniteTransition.animateFloat(
-                        initialValue = 0.3f,
-                        targetValue = 1f,
-                        animationSpec = infiniteRepeatable(
-                            animation = keyframes {
-                                durationMillis = 1200
-                                0.3f at 0
-                                1f at 400
-                                0.3f at 800
-                            },
-                            repeatMode = RepeatMode.Restart,
-                            initialStartOffset = StartOffset(i * 200)
-                        ),
-                        label = "dot_alpha_$i"
-                    )
-                    
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .background(
-                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
-                                shape = RoundedCornerShape(50)
-                            )
-                    )
+                // Three pulsing dots; with animations removed they hold still — no loop at all.
+                if (rememberAnimationsEnabled()) {
+                    val infiniteTransition = rememberInfiniteTransition(label = "typing")
+                    for (i in 0..2) {
+                        val alpha by infiniteTransition.animateFloat(
+                            initialValue = 0.3f,
+                            targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = keyframes {
+                                    durationMillis = 1200
+                                    0.3f at 0
+                                    1f at 400
+                                    0.3f at 800
+                                },
+                                repeatMode = RepeatMode.Restart,
+                                initialStartOffset = StartOffset(i * 200)
+                            ),
+                            label = "dot_alpha_$i"
+                        )
+                        TypingDot(alpha)
+                    }
+                } else {
+                    repeat(3) { TypingDot(alpha = 1f) }
                 }
                 if (status != null) {
                     Spacer(modifier = Modifier.width(Spacing.xs))
@@ -729,6 +725,18 @@ fun TypingIndicator(
             }
         }
     }
+}
+
+@Composable
+private fun TypingDot(alpha: Float) {
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .background(
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
+                shape = RoundedCornerShape(50)
+            )
+    )
 }
 
 @Composable

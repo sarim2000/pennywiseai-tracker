@@ -15,7 +15,8 @@ import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -70,7 +71,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
-import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
@@ -119,10 +119,6 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-
-/** Entrance stagger step, and the most steps it takes — later sections share the last beat. */
-private const val ENTRANCE_STAGGER_MS = 50L
-private const val ENTRANCE_STAGGER_MAX_STEPS = 6
 
 /** Diameter of one avatar in the overlapping subscription stack. */
 private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
@@ -222,20 +218,8 @@ fun HomeScreen(
     // LazyColumn scroll state for overscroll physics
     val lazyListState = rememberLazyListState()
 
-    // Staggered entrance animation state — only animates on first composition.
-    // Each item's effect checks its own `visible`, not hasAnimated: an item composed
-    // just before hasAnimated flips would otherwise skip its reveal and stay hidden.
-    var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val animationsEnabled = rememberAnimationsEnabled()
-
-    // Mark entrance animation as complete after all stagger delays have fired
-    LaunchedEffect(Unit) {
-        if (!hasAnimated) {
-            // Slightly after the last stagger; no wait when animations are off.
-            if (animationsEnabled) delay(ENTRANCE_STAGGER_MS * (ENTRANCE_STAGGER_MAX_STEPS + 1))
-            hasAnimated = true
-        }
-    }
+    // Staggered entrance — only animates on first composition.
+    val hasAnimated = rememberEntranceDone()
 
     // Check for app updates and reviews when the screen is first displayed
     LaunchedEffect(Unit) {
@@ -606,7 +590,7 @@ fun HomeScreen(
                 }
             }
             for ((index, section) in visibleSections.withIndex()) {
-                val delayMs = ENTRANCE_STAGGER_MS * (index + 1).coerceAtMost(ENTRANCE_STAGGER_MAX_STEPS)
+                val delayMs = staggerDelayMs(index)
                 when (section) {
                     HomeSection.SAFE_TO_SPEND -> {
                         // Only once there's a spendable account with a balance.

@@ -307,7 +307,8 @@ it by `Dimensions.Component.bottomBarHeight`.
   `infiniteRepeatable` loops or where a duration is load-bearing.
 - **Motion language.** Generic transitions live in
   `ui/animations/PennyWiseMotion.kt` (`pwEnter`/`pwExit`, `pwFadeIn`/`pwFadeOut`,
-  `pwExpand`/`pwCollapse`, `StaggeredEntrance`, `rememberAnimationsEnabled`);
+  `pwExpand`/`pwCollapse`, `StaggeredEntrance`, `rememberEntranceDone`,
+  `staggerDelayMs`, `rememberAnimationsEnabled`);
   use them before hand-building a fade/slide/expand. No default-spec
   `fadeIn()`, `expandVertically()`, `animate*AsState` etc. — always pass a
   `motionScheme` spec.
@@ -328,11 +329,15 @@ it by `Dimensions.Component.bottomBarHeight`.
      scale as elevation) — fade them. The one exception is the one-shot Pro
      purchase celebration in `UpgradeSheet`, which springs its icon in on
      `fastSpatialSpec()`. Empty states and success checks don't scale.
-  5. **Stagger once**, on a screen's first entrance (`StaggeredEntrance` with a
-     saveable `hasAnimated`); scrolling lists and returning to a tab don't.
+  5. **Stagger once**, on a screen's first entrance: `StaggeredEntrance` with
+     `delayMs = staggerDelayMs(index)` and `skip = rememberEntranceDone()`
+     (saveable). One step and cap for every screen — don't re-type `50L * …`.
+     Scrolling lists and returning to a tab don't stagger.
   6. **"Remove animations" means content is just there.** Compose zeroes
      durations itself; skip `delay`-based choreography too
-     (`rememberAnimationsEnabled()`).
+     (`rememberAnimationsEnabled()`, re-read on every resume — key `delay`
+     effects on it so a pending delay drops when it turns off), and draw
+     infinite loops (typing dots) as their static frame.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

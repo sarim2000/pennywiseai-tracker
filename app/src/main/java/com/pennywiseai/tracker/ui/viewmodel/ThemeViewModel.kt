@@ -122,7 +122,7 @@ data class ThemeUiState(
     val themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
     val accentColor: AccentColor = AccentColor.SURFACE,
     val isAmoledMode: Boolean = false,
-    val appFont: AppFont = AppFont.SYSTEM,
+    val appFont: AppFont = AppFont.DEFAULT,
     val hasSkippedSmsPermission: Boolean = false,
     val blurEffectsEnabled: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,

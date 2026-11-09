@@ -279,8 +279,9 @@
     <string name="appearance_cover_selected">Sélectionné</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Polices</string>
-    <string name="appearance_font_default">Par défaut</string>
-    <string name="appearance_font_default_subtitle">Système</string>
+    <string name="appearance_font_google_sans_flex_subtitle">Alphabet latin uniquement</string>
+    <string name="appearance_font_system">Système</string>
+    <string name="appearance_font_system_subtitle">Toutes les langues</string>
     <string name="appearance_font_sn_pro_subtitle">Arrondie</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title_add">Ajouter un webhook</string>

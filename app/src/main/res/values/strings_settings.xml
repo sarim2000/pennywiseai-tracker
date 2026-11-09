@@ -361,8 +361,10 @@
 
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fonts</string>
-    <string name="appearance_font_default">Default</string>
-    <string name="appearance_font_default_subtitle">System</string>
+    <!-- Google Sans Flex has Latin letters only; other scripts show in the system font. -->
+    <string name="appearance_font_google_sans_flex_subtitle">Latin only</string>
+    <string name="appearance_font_system">System</string>
+    <string name="appearance_font_system_subtitle">All languages</string>
     <string name="appearance_font_sn_pro_subtitle">Rounded</string>
 
     <!-- ══ Webhooks screen ══ -->

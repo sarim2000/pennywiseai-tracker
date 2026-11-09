@@ -277,8 +277,9 @@
     <string name="appearance_cover_selected">Seleccionado</string>
     <!-- Fonts -->
     <string name="appearance_fonts_section">Fuentes</string>
-    <string name="appearance_font_default">Predeterminada</string>
-    <string name="appearance_font_default_subtitle">Sistema</string>
+    <string name="appearance_font_google_sans_flex_subtitle">Solo alfabeto latino</string>
+    <string name="appearance_font_system">Sistema</string>
+    <string name="appearance_font_system_subtitle">Todos los idiomas</string>
     <string name="appearance_font_sn_pro_subtitle">Redondeada</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title_add">Agregar webhook</string>

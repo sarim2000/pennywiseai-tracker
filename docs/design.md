@@ -150,6 +150,43 @@ at making hierarchy readable in a dense, number-heavy UI:
    figures get negative tracking so digits group into one number; 11–12sp labels
    keep Material's generous tracking, which is what makes small text legible.
 
+### Typeface — three choices, Google Sans Flex by default
+
+Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it to
+`getTypography(bodyFamily, headingFamily)`.
+
+| `AppFont` | Families | Script coverage |
+|---|---|---|
+| `GOOGLE_SANS_FLEX` (**default**) | `GoogleSansFlexFamily` for body, label and money; `GoogleSansFlexHeadingFamily` for display, headline and title | **Latin only.** Arabic, Cyrillic, Devanagari, … fall back per glyph to the system font |
+| `SYSTEM` | `FontFamily.Default` for both | Every script |
+| `SN_PRO` | `SNProFontFamily` (static files) for both | Latin and Cyrillic |
+
+- **Default and back-compat.** The `app_font` DataStore key is written only when
+  the user taps a font, so an absent key means "never chose" and follows
+  `AppFont.DEFAULT` (Google Sans Flex); a stored `SYSTEM` or `SN_PRO` is an
+  explicit choice and is kept. The font is not part of backups.
+- **One variable file.** `res/font/google_sans_flex.ttf` is the upstream v5.000
+  variable font instanced with fontTools to the `wght` (100–900) and `ROND`
+  (0–100) axes, with `slnt` 0, `opsz` 18 and `wdth` 100 pinned: about 300 KB
+  instead of 3.9 MB. Its OFL notice ships in `assets/licenses/fonts-OFL.txt`
+  (SN Pro's too). A new axis costs size: add it only with a role that uses it.
+- **Static instances, one per weight.** Each family declares a `Font` for every
+  weight 100–900, each pinning `wght` (and `ROND`). Compose picks the closest
+  *declared* weight, so without a 700 entry every `*Emphasized` style would
+  render at 600, identical to its base. `GoogleSansFlexTypographyTest` guards it.
+- **Roundness.** Headings use `ROND` 100: fully rounded terminals, the
+  Expressive voice. Body, labels and money use `ROND` 0, which reads crisper at
+  small sizes and in figures. `PennyWiseText` money styles take the body family
+  even when they are sized from a heading role (`heroAmount` is
+  `displaySmallEmphasized`), so amounts stay `ROND` 0 with `tnum`.
+- **Never animate a font axis.** Every axis value is a separate typeface;
+  animating `wght` or `ROND` re-lays out the text every frame. Animate size,
+  colour or alpha instead.
+- No wider (`wdth`) cut for the expanded app-bar title: long translated titles
+  already wrap, and the axis would add ~120 KB.
+- The picker draws each option in its own family, and its tiles grow with their
+  text (no fixed height), so the names still fit at a 200% font scale.
+
 ### Roles — pick the same style for the same job
 
 | Role | Use |

@@ -13,13 +13,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -56,6 +60,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -152,6 +157,7 @@ import com.pennywiseai.tracker.ui.theme.RosePine_Surface_tertiary
 import com.pennywiseai.tracker.ui.theme.RosePine_Text
 import com.pennywiseai.tracker.ui.theme.RosePine_Text_secondary
 import com.pennywiseai.tracker.ui.theme.RosePine_Text_tertiary
+import com.pennywiseai.tracker.ui.theme.GoogleSansFlexHeadingFamily
 import com.pennywiseai.tracker.ui.theme.SNProFontFamily
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -783,103 +789,98 @@ private fun CoverStyleSelector(
 
 // --- Font Selector ---
 
+/** A font tile: its name and subtitle are drawn in the font itself. */
+private data class FontOption(
+    val font: AppFont,
+    val family: FontFamily,
+    val name: String,
+    val subtitle: String
+)
+
 @Composable
 private fun FontSelector(
     currentFont: AppFont,
     onFontSelected: (AppFont) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    val options = listOf(
+        FontOption(
+            AppFont.GOOGLE_SANS_FLEX,
+            GoogleSansFlexHeadingFamily,
+            "Google Sans Flex",
+            stringResource(R.string.appearance_font_google_sans_flex_subtitle)
+        ),
+        FontOption(
+            AppFont.SYSTEM,
+            FontFamily.Default,
+            stringResource(R.string.appearance_font_system),
+            stringResource(R.string.appearance_font_system_subtitle)
+        ),
+        FontOption(
+            AppFont.SN_PRO,
+            SNProFontFamily,
+            "SN Pro",
+            stringResource(R.string.appearance_font_sn_pro_subtitle)
+        )
+    )
+    val outer = MaterialTheme.shapes.large.topStart
+    val inner = MaterialTheme.shapes.extraSmall.topStart
+    // No fixed height: tiles grow with their text and share the tallest one's
+    // height, so wrapped names still fit at a 200% font scale.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.md)
+            .height(IntrinsicSize.Min)
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            // System Default Option
-            Box(
+        options.forEachIndexed { index, option ->
+            val selected = currentFont == option.font
+            val start = if (index == 0) outer else inner
+            val end = if (index == options.lastIndex) outer else inner
+            val shape = RoundedCornerShape(
+                topStart = start, topEnd = end, bottomEnd = end, bottomStart = start
+            )
+            val nameColor = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurfaceVariant
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .height(80.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 16.dp, topEnd = 4.dp,
-                            bottomStart = 16.dp, bottomEnd = 4.dp
-                        )
-                    )
+                    .fillMaxHeight()
+                    .clip(shape)
                     .background(
-                        color = if (currentFont == AppFont.SYSTEM)
-                            MaterialTheme.colorScheme.primaryContainer
+                        if (selected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceContainerLow
                     )
-                    .clickable { onFontSelected(AppFont.SYSTEM) },
-                contentAlignment = Alignment.Center
+                    .selectable(
+                        selected = selected,
+                        role = Role.RadioButton,
+                        onClick = { onFontSelected(option.font) }
+                    )
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.md),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs, Alignment.CenterVertically)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.appearance_font_default),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Default,
-                        color = if (currentFont == AppFont.SYSTEM)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_font_default_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Default,
-                        color = if (currentFont == AppFont.SYSTEM)
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // SN Pro Option
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart = 4.dp, topEnd = 16.dp,
-                            bottomStart = 4.dp, bottomEnd = 16.dp
-                        )
-                    )
-                    .background(
-                        color = if (currentFont == AppFont.SN_PRO)
-                            MaterialTheme.colorScheme.tertiaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onFontSelected(AppFont.SN_PRO) },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "SN Pro",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = SNProFontFamily,
-                        color = if (currentFont == AppFont.SN_PRO)
-                            MaterialTheme.colorScheme.onTertiaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = stringResource(R.string.appearance_font_sn_pro_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = SNProFontFamily,
-                        color = if (currentFont == AppFont.SN_PRO)
-                            MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = option.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = option.family,
+                    color = nameColor,
+                    textAlign = TextAlign.Center
+                )
+                Text(
+                    text = option.subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = option.family,
+                    color = if (selected) nameColor.copy(alpha = Dimensions.Alpha.subtitle)
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
 }
-
-// --- Color lookup functions ---
 
 @Composable
 private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Color {

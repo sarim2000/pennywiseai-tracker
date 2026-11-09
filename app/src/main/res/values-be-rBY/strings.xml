@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">З-за розных фарматаў банкаўскіх SMS ці ранейшага разбору маглі з\'явіцца дублікаты рахункаў з трох- і чатырохзначнымі нумарамі. Калі %1$s і %2$s — адзін і той жа рахунак, аб\'яднаць іх? Транзакцыі пяройдуць на рахунак з чатырма лічбамі, гісторыя яго балансу захаваецца, а новыя SMS будуць аўтаматычна трапляць на яго.</string>
     <string name="duplicate_accounts_merge">Аб\'яднаць і запомніць</string>
     <string name="duplicate_accounts_keep">Пакінуць асобна</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

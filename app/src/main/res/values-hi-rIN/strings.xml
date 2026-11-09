@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">बैंक SMS के अलग-अलग फ़ॉर्मेट या पहले की पार्सिंग की वजह से तीन और चार अंकों वाले डुप्लिकेट खाते बन गए हो सकते हैं। अगर %1$s और %2$s एक ही खाता है, तो इन्हें मिला दें? लेन-देन चार अंकों वाले खाते में चले जाएँगे, उसकी बाकी राशि की हिस्ट्री बनी रहेगी, और आगे के SMS अपने-आप उसी में जाएँगे।</string>
     <string name="duplicate_accounts_merge">मिलाएँ और याद रखें</string>
     <string name="duplicate_accounts_keep">अलग रखें</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

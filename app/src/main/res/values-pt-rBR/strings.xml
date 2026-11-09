@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">Diferenças no formato dos SMS do banco ou leituras antigas podem ter criado contas duplicadas com três e quatro dígitos. Se %1$s e %2$s forem a mesma conta, quer juntá-las? As transações vão para a conta de quatro dígitos, o histórico de saldo dela é mantido e os próximos SMS vão usá-la automaticamente.</string>
     <string name="duplicate_accounts_merge">Juntar e lembrar</string>
     <string name="duplicate_accounts_keep">Manter separadas</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

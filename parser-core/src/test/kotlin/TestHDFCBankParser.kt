@@ -63,6 +63,18 @@ T&C. Ignore if paid""",
                 )
             ),
 
+            // Wallet spend uses "Deducted" (#1136)
+            ParserTestCase(
+                name = "Wallet deduction - Expense",
+                message = "Rs.50 Deducted\nFrom PayZapp Wallet\nOn 05-11-2026 10:19:24\nBal: Rs.120.00\nNot you? Report:\nhttps://1.hdfc.bank.in/HDFCBK/s/9 or SMS BLOCKXXW to 5676712",
+                sender = "VM-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("50"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE
+                )
+            ),
+
             // NEFT deposit (salary/income)
             ParserTestCase(
                 name = "NEFT Credit Deposit - Income",

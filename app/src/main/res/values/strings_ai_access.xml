@@ -7,7 +7,7 @@
 
     <string name="ai_access_title">AI access</string>
     <string name="ai_access_back">Back</string>
-    <string name="ai_access_intro">Ask Claude, ChatGPT or another AI app about your spending, or open the dashboard on a computer. They can read your transactions, balances and subscriptions only while an AI session is on. They can\'t change anything.</string>
+    <string name="ai_access_intro">Ask Claude, ChatGPT or another AI app about your spending, or open the dashboard on a computer. They can read your transactions, balances and subscriptions only while an AI session is on, and change nothing unless you allow it below.</string>
     <string name="ai_access_pro_only">AI access is a Pro feature.</string>
     <string name="ai_access_unlock">Unlock with Pro</string>
 
@@ -40,7 +40,9 @@
     <string name="ai_access_disconnect">Disconnect</string>
     <string name="ai_access_disconnected">Disconnected.</string>
 
-    <string name="ai_access_privacy">Your data stays on your phone. During an AI session, the AI app\'s questions pass through the relay to your phone and the answers go back the same way. The relay never stores or logs them. The AI app\'s provider (for example Anthropic or OpenAI) sees the answers it receives.\n\nConnected apps can search your whole history across all profiles, including payee names on transfers. They never get SMS text, full account numbers or reference numbers.</string>
+    <string name="ai_access_allow_changes_title">Let AI apps make changes</string>
+    <string name="ai_access_allow_changes_body">Connected apps can create categories and rules, set a merchant\'s category or display name, and re-file a merchant\'s past transactions. They can\'t delete transactions or edit amounts.</string>
+    <string name="ai_access_privacy">Your data stays on your phone. During an AI session, the AI app\'s questions pass through the relay to your phone and the answers go back the same way. The relay never stores or logs them. The AI app\'s provider (for example Anthropic or OpenAI) sees the answers it receives.\n\nConnected apps can search your whole history across all profiles, including payee names on transfers. They never get SMS text, full account numbers or reference numbers. They can only change data while Let AI apps make changes is on.</string>
 
     <string name="ai_access_relay_title">Use your own relay</string>
     <string name="ai_access_relay_body">For full control, deploy the open-source relay (relay/ in PennyWise\'s GitHub repository) to your own Cloudflare account and enter its address. Switching relays disconnects every AI app.</string>
@@ -62,6 +64,7 @@
     <string name="ai_session_channel_description">Shows while connected AI apps can read your PennyWise data</string>
     <string name="ai_session_notification_title">AI apps can read your PennyWise data</string>
     <string name="ai_session_notification_connected">Connected · read-only</string>
+    <string name="ai_session_notification_connected_changes">Connected · changes allowed</string>
     <string name="ai_session_notification_connecting">Connecting…</string>
     <string name="ai_session_tile_on">On</string>
     <string name="ai_session_tile_off">Off</string>

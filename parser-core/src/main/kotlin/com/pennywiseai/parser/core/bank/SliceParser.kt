@@ -53,6 +53,15 @@ class SliceParser : BankParser() {
             return false
         }
 
+        // A credit-card bill payment receipt ("Repayment of Rs.X received for the
+        // slice credit card", and the app notification "Payment of ₹X received for
+        // the slice credit card") is not income: the paying bank's debit already
+        // records the money, as the ICICI/BoB/PNB card parsers do (#1101).
+        if (lowerMessage.contains("credit card") &&
+            Regex("""\b(?:re)?payment of\b.*\breceived\b""").containsMatchIn(lowerMessage)) {
+            return false
+        }
+
         // UPI AutoPay mandate lifecycle notices ("... is revoked", "is paused",
         // "is suspended") are not money movements.
         if (lowerMessage.contains("revoked") ||

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Check
@@ -234,7 +233,7 @@ private fun AccountPickerRow(
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         color = if (isSelected) MaterialTheme.colorScheme.primaryContainer
         else MaterialTheme.colorScheme.surfaceContainerHighest,
         modifier = Modifier

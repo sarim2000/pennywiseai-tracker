@@ -234,12 +234,23 @@ interface TransactionDao {
           AND sms_sender IS NOT NULL
           AND sms_sender NOT LIKE '% PDF'
           AND sms_sender NOT IN (:notificationAliases)
+          AND transaction_hash NOT LIKE 'taught_%'
           AND date_time >= :from
     """)
     suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
     
-    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE merchant_name = :merchantName COLLATE NOCASE")
-    suspend fun updateCategoryForMerchant(merchantName: String, newCategory: String)
+    /**
+     * Moves [merchantName]'s other live rows of [types] to [newCategory] (the
+     * "Update existing transactions" box). Spaces around the name and case are
+     * ignored; loan-linked, split-bill and category-split rows are left alone,
+     * as is a refund when the edited row is a purchase. Same rows as
+     * [countRecategorizableForMerchant].
+     */
+    @Query("UPDATE transactions SET category = :newCategory, updated_at = strftime('%Y-%m-%dT%H:%M:%f', 'now', 'localtime') WHERE " + RECATEGORIZABLE_FOR_MERCHANT)
+    suspend fun updateCategoryForMerchant(merchantName: String, types: List<String>, excludeId: Long, newCategory: String): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE " + RECATEGORIZABLE_FOR_MERCHANT)
+    suspend fun countRecategorizableForMerchant(merchantName: String, types: List<String>, excludeId: Long): Int
 
     /**
      * [merchantName]'s live rows of [types] still in [category], minus loan-linked,
@@ -268,8 +279,6 @@ interface TransactionDao {
     @Query("UPDATE transactions SET excluded_from_analytics = :excluded, updated_at = :updatedAt WHERE id = :transactionId AND excluded_from_analytics != :excluded")
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean, updatedAt: LocalDateTime): Int
 
-    @Query("SELECT COUNT(*) FROM transactions WHERE merchant_name = :merchantName COLLATE NOCASE AND id != :excludeId")
-    suspend fun getTransactionCountForMerchant(merchantName: String, excludeId: Long): Int
 
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
@@ -339,8 +348,26 @@ interface TransactionDao {
     suspend fun getAnyBySms(smsBody: String, smsSender: String?): TransactionEntity?
 
     /**
+     * A stored row for this SMS at about this time, for messages whose text can
+     * repeat ("Paid SAR 12 at Cafe" every morning): same words at another time are
+     * another payment, so the time is part of its identity. (#279)
+     */
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE sms_body = :smsBody
+          AND (sms_sender = :smsSender OR (:smsSender IS NULL AND sms_sender IS NULL))
+          AND date_time BETWEEN :from AND :to
+        ORDER BY is_deleted ASC, id ASC
+        LIMIT 1
+        """
+    )
+    suspend fun getAnyBySmsBetween(smsBody: String, smsSender: String?, from: LocalDateTime, to: LocalDateTime): TransactionEntity?
+
+    /**
      * Active rows that share their exact SMS with another active row — duplicates
-     * left by earlier rescans (#886). Grouped and resolved by the caller.
+     * left by earlier rescans (#886). Grouped and resolved by the caller. Rows booked
+     * from a taught template (#279) are exempt: for them, repeated text is repeated payments.
      */
     @Query(
         """
@@ -348,10 +375,11 @@ interface TransactionDao {
         INNER JOIN (
             SELECT sms_body AS body, IFNULL(sms_sender, '') AS sender FROM transactions
             WHERE is_deleted = 0 AND sms_body IS NOT NULL AND sms_body != ''
+              AND transaction_hash NOT LIKE 'taught_%'
             GROUP BY sms_body, IFNULL(sms_sender, '')
             HAVING COUNT(*) > 1
         ) d ON t.sms_body = d.body AND IFNULL(t.sms_sender, '') = d.sender
-        WHERE t.is_deleted = 0
+        WHERE t.is_deleted = 0 AND t.transaction_hash NOT LIKE 'taught_%'
         ORDER BY t.sms_body, t.id
         """
     )
@@ -442,6 +470,9 @@ interface TransactionDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): List<TransactionEntity>
+
+    @Query("SELECT MIN(date_time) FROM transactions WHERE is_deleted = 0")
+    suspend fun getOldestTransactionDateTime(): LocalDateTime?
     
     @Query("""
         SELECT * FROM transactions
@@ -696,3 +727,13 @@ interface TransactionDao {
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 AND is_recurring = 1 AND sms_body IS NOT NULL AND currency = :currency")
     suspend fun getBankChargedRecurringMerchants(currency: String): List<String>
 }
+
+private const val RECATEGORIZABLE_FOR_MERCHANT = """
+    TRIM(merchant_name) = TRIM(:merchantName) COLLATE NOCASE
+    AND id != :excludeId
+    AND is_deleted = 0
+    AND transaction_type IN (:types)
+    AND loan_id IS NULL
+    AND lent_shares_total IS NULL
+    AND id NOT IN (SELECT transaction_id FROM transaction_splits)
+"""

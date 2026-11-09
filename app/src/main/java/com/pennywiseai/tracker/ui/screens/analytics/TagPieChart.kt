@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -38,7 +37,8 @@ fun TagPieChart(
     val total = tags.fold(BigDecimal.ZERO) { acc, tag -> acc + tag.amount }.toDouble()
     if (total == 0.0) return
 
-    // Slice scale is the tap-to-select pop (1 → selectedScale), not the data sweep.
+    // Slices are data: every sweep, colour and select pop runs on effects specs,
+    // so an arc never bounces past its share.
     val motion = MaterialTheme.motionScheme
     val pieData = remember(tags) {
         tags.map { tag ->
@@ -48,8 +48,12 @@ fun TagPieChart(
                 color = tagColor(tag.name),
                 selectedColor = tagColor(tag.name).copy(alpha = 0.8f),
                 selected = false,
-                scaleAnimEnterSpec = motion.fastSpatialSpec(),
-                colorAnimEnterSpec = motion.fastEffectsSpec()
+                scaleAnimEnterSpec = motion.fastEffectsSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimEnterSpec = motion.fastEffectsSpec(),
+                scaleAnimExitSpec = motion.fastEffectsSpec(),
+                colorAnimExitSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimExitSpec = motion.fastEffectsSpec()
             )
         }
     }
@@ -85,8 +89,12 @@ fun TagPieChart(
                     tags.getOrNull(pieIndex)?.let(onTagClick)
                 },
                 selectedScale = 1.1f,
-                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                scaleAnimEnterSpec = motion.fastEffectsSpec(),
                 colorAnimEnterSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimEnterSpec = motion.fastEffectsSpec(),
+                scaleAnimExitSpec = motion.fastEffectsSpec(),
+                colorAnimExitSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimExitSpec = motion.fastEffectsSpec(),
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),
@@ -138,7 +146,7 @@ private fun TagLegendItem(
             .fillMaxWidth()
             .sizeIn(minHeight = 48.dp)
             .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.small)
             .background(
                 if (isSelected) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 else androidx.compose.ui.graphics.Color.Transparent

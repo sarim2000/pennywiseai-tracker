@@ -253,16 +253,12 @@
     <string name="chat_dismiss">Ondoa</string>
     <string name="chat_input_placeholder">Uliza, au niambie ulichotumia…</string>
     <string name="chat_send">Tuma</string>
-    <string name="chat_memory_almost_full">Kumbukumbu ya mazungumzo karibu imejaa! Futa mazungumzo ili kuendelea.</string>
-    <string name="chat_memory_warning">Kumbukumbu ya mazungumzo imejaa %1$d%%. Fikiria kufuta hivi karibuni.</string>
-    <string name="chat_memory_usage">Kumbukumbu ya mazungumzo imejaa %1$d%%.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • ujumbe %1$d</item>
         <item quantity="other">Qwen 2.5 1.5B • jumbe %1$d</item>
     </plurals>
     <string name="chat_stats_tokens">Tokeni %1$s</string>
     <string name="chat_stats_tokens_of_max">Tokeni %1$s / %2$s</string>
-    <string name="chat_stats_system_tokens">Mfumo: %1$s</string>
     <string name="chat_context_usage">Matumizi ya Muktadha</string>
     <string name="chat_collapse">Kunja</string>
     <string name="chat_expand">Panua</string>
@@ -289,9 +285,9 @@
     <string name="chat_action_update">Sasisha</string>
     <string name="chat_action_change_merchant">muuzaji → %1$s</string>
     <string name="chat_action_change_category">kategoria → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Imeshindwa kutekeleza hilo: %1$s</string>
-    <string name="chat_error_memory_full">Kumbukumbu ya mazungumzo imejaa. Tafadhali futa mazungumzo ili kuendelea.</string>
     <string name="chat_error_model_downloading">Modeli inapakuliwa. Tafadhali subiri.</string>
     <string name="chat_error_model_not_downloaded">Modeli ya AI haijapakuliwa. Nenda kwenye Mipangilio ili uipakue.</string>
     <string name="chat_error_generate_failed">Imeshindwa kutoa jibu</string>

@@ -2,7 +2,12 @@ package com.pennywiseai.tracker.ui
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -30,6 +35,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -40,6 +46,8 @@ import com.pennywiseai.tracker.navigation.AccountDetail
 import com.pennywiseai.tracker.navigation.AddAccount
 import com.pennywiseai.tracker.navigation.AddTransaction
 import com.pennywiseai.tracker.navigation.AiAccess
+import com.pennywiseai.tracker.navigation.BackgroundAccess
+import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.Analytics
 import com.pennywiseai.tracker.navigation.Appearance
 import com.pennywiseai.tracker.navigation.BalanceHistory
@@ -79,6 +87,7 @@ import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.components.LocalHideNavBar
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
@@ -115,6 +124,29 @@ private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
 private fun NavBackStack<NavKey>.resetTo(root: NavKey) {
     subList(1, size).clear()
     set(0, root)
+}
+
+/**
+ * A tab switch fades through; anything else (a push or pop inside one tab) cuts.
+ * A scene belongs to the tab whose stack it tops: after a switch both the old and
+ * new screens still top their stacks, while an in-tab push or pop leaves the old
+ * screen buried or removed.
+ */
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSwitchOrCut(
+    tabTops: Map<BottomNavItem, Any?>,
+    fade: FiniteAnimationSpec<Float>,
+): ContentTransform {
+    fun tabTopping(scene: Scene<NavKey>): BottomNavItem? {
+        val key = scene.entries.lastOrNull()?.contentKey ?: return null
+        return tabTops.entries.firstOrNull { it.value == key }?.key
+    }
+    val from = tabTopping(initialState)
+    val to = tabTopping(targetState)
+    return if (from != null && to != null && from != to) {
+        fadeIn(fade) togetherWith fadeOut(fade)
+    } else {
+        EnterTransition.None togetherWith ExitTransition.None
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -187,7 +219,7 @@ fun MainScreen(
 
     // What a Settings row opens lives either in this tab's graph or above the tabs.
     fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
-        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess,
+        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, LearnedCategories,
         is BudgetGroups -> openRoot(key)
         else -> open(tab, key)
     }
@@ -230,6 +262,8 @@ fun MainScreen(
     val dockForTabs = navDock.takeIf {
         themeState.isLoading || themeState.navBarStyle == NavBarStyle.FLOATING
     }
+    // Set by a tab drawing its own bottom toolbar (Transactions' bulk select).
+    val hideNavBar = remember { mutableStateOf(false) }
 
     // Hiding the tab you're on (or the one under Settings) sends you Home, once,
     // on the next tab you land on. Other ways into a hidden tab's screen (e.g.
@@ -280,6 +314,9 @@ fun MainScreen(
                     },
                     onNavigateToTransactionsWithSearch = {
                         open(tab, Transactions(focusSearch = true))
+                    },
+                    onNavigateToReview = { kind ->
+                        openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                     },
                     onNavigateToSubscriptions = {
                         open(tab, Subscriptions)
@@ -503,12 +540,15 @@ fun MainScreen(
             rememberDecoratedNavEntries(tabStacks.getValue(tab), rememberEntryDecorators(), tabEntries(tab))
         }
     }
+    val fastEffects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    val tabTops = decoratedTabs.mapValues { it.value.lastOrNull()?.contentKey }
     val shownEntries = decoratedTabs.getValue(BottomNavItem.Home) +
         if (currentTab == BottomNavItem.Home) emptyList() else decoratedTabs.getValue(currentTab)
 
     CompositionLocalProvider(
         LocalMerchantDisplay provides merchantDisplay,
         LocalNavDock provides dockForTabs,
+        LocalHideNavBar provides hideNavBar,
     ) {
         Box(
             modifier = Modifier
@@ -523,16 +563,16 @@ fun MainScreen(
                 )
             }
 
-            // NavDisplay — NO padding, fills the full screen. Tab switches and
-            // pops within the tabs don't animate.
+            // NavDisplay — NO padding, fills the full screen. Tab switches are a
+            // fast fade-through; pushes and pops within a tab stay a hard cut.
             NavDisplay(
                 entries = shownEntries,
                 onBack = { back(currentTab) },
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState),
-                transitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
-                popTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None },
+                transitionSpec = { tabSwitchOrCut(tabTops, fastEffects) },
+                popTransitionSpec = { tabSwitchOrCut(tabTops, fastEffects) },
                 predictivePopTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
             )
 
@@ -545,7 +585,7 @@ fun MainScreen(
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.
-                    visible = !WindowInsets.isImeVisible,
+                    visible = !WindowInsets.isImeVisible && !hideNavBar.value,
                     hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,

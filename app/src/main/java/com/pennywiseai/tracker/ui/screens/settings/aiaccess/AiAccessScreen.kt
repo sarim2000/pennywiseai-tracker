@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.screens.settings.aiaccess
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -30,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -67,6 +70,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
     val session by viewModel.session.collectAsStateWithLifecycle()
     val isPro by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val relayUrl by viewModel.relayUrl.collectAsStateWithLifecycle()
+    val allowChanges by viewModel.allowChanges.collectAsStateWithLifecycle()
     var showUpgrade by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
     var showRelay by rememberSaveable { mutableStateOf(relayUrl != AiRelayClient.DEFAULT_RELAY_URL) }
@@ -134,6 +138,24 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                 }
             }
 
+            // ── Let AI apps make changes ──
+            item {
+                Card(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier
+                            .toggleable(value = allowChanges, role = Role.Switch, onValueChange = viewModel::setAllowChanges)
+                            .padding(Spacing.md),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text(stringResource(R.string.ai_access_allow_changes_title), style = MaterialTheme.typography.titleMedium)
+                            Text(stringResource(R.string.ai_access_allow_changes_body), style = MaterialTheme.typography.bodySmall)
+                        }
+                        Switch(checked = allowChanges, onCheckedChange = null)
+                    }
+                }
+            }
+
             // ── Connect an AI app ──
             item {
                 Card(Modifier.fillMaxWidth()) {
@@ -184,7 +206,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                 item { Text(stringResource(if (state.loadingConnections) R.string.ai_access_loading else R.string.ai_access_none_connected)) }
             }
             items(state.connections, key = { it.id }) { c ->
-                Card(Modifier.fillMaxWidth()) {
+                Card(Modifier.fillMaxWidth().animateItem()) {
                     Row(Modifier.padding(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(c.clientName, style = MaterialTheme.typography.bodyLarge)

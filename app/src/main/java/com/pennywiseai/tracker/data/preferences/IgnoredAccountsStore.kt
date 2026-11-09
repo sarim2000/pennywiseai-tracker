@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
@@ -66,6 +67,30 @@ class IgnoredAccountsStore @Inject constructor(
         private const val KEY = "hidden_accounts"
 
         fun keyFor(bankName: String, accountLast4: String) = "${bankName}_${accountLast4}"
+
+        /**
+         * [ignored] plus the key of each card linked to an ignored account. An
+         * already-imported card purchase is stored under the *card's* digits, so
+         * ignoring the account it draws on wouldn't hide it otherwise (#826).
+         */
+        fun withLinkedCards(
+            ignored: Set<String>,
+            cards: List<CardEntity>,
+            balances: List<AccountBalanceEntity>,
+        ): Set<String> {
+            if (ignored.isEmpty()) return ignored
+            val accountKeys = balances.map { keyFor(it.bankName, it.accountLast4) }.toSet()
+            return ignored + cards.mapNotNull { card ->
+                val account = card.accountLast4 ?: return@mapNotNull null
+                if (keyFor(card.bankName, account) !in ignored) return@mapNotNull null
+                val cardKey = keyFor(card.bankName, card.cardLast4)
+                // A card's last four can collide with a real account's at
+                // the same bank. The stored digits are all a list has to
+                // match on, so adding the key would hide that account too —
+                // leave it, and lose only the card rows we can't separate.
+                if (cardKey in accountKeys && cardKey !in ignored) null else cardKey
+            }
+        }
 
         /**
          * Pure form, so the gate is testable without a Context.

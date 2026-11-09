@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -527,8 +526,16 @@ private fun CelebrationContent(onContinue: () -> Unit) {
     }
 
     // Run the entrance animation once on mount.
+    // Copy fades in a beat after the icon pops, so the two read as a sequence.
     var animateIn by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { animateIn = true }
+    var showContent by remember { mutableStateOf(false) }
+    val animationsEnabled = com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled()
+    LaunchedEffect(Unit) {
+        animateIn = true
+        // The stagger is choreography, not a spec: skip it with animations off.
+        if (animationsEnabled) kotlinx.coroutines.delay(200L)
+        showContent = true
+    }
 
     val iconScale by animateFloatAsState(
         targetValue = if (animateIn) 1f else 0f,
@@ -536,8 +543,8 @@ private fun CelebrationContent(onContinue: () -> Unit) {
         label = "celebration-icon-scale",
     )
     val contentAlpha by animateFloatAsState(
-        targetValue = if (animateIn) 1f else 0f,
-        animationSpec = tween(durationMillis = 500, delayMillis = 200),
+        targetValue = if (showContent) 1f else 0f,
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "celebration-content-alpha",
     )
 

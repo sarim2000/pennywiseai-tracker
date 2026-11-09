@@ -254,16 +254,12 @@
     <string name="chat_dismiss">Refuser</string>
     <string name="chat_input_placeholder">Demandez-moi ou dites-moi ce que vous avez dépensé…</string>
     <string name="chat_send">Envoyer</string>
-    <string name="chat_memory_almost_full">Mémoire de chat presque pleine! Nettoyez le chat pour continuer.</string>
-    <string name="chat_memory_warning">La mémoire du chat est à %1$d%% pleine. Pensez à la vider.</string>
-    <string name="chat_memory_usage">La mémoire du chat est remplie à %1$d%%.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • Message %1$d</item>
         <item quantity="other">Qwen 2.5 1.5B • Messages %1$d</item>
     </plurals>
     <string name="chat_stats_tokens">Jetons %1$s</string>
     <string name="chat_stats_tokens_of_max">Jetons %1$s / %2$s</string>
-    <string name="chat_stats_system_tokens">Système: %1$s</string>
     <string name="chat_context_usage">Contexte d\'utilisation</string>
     <string name="chat_context_percent">%1$d %%</string>
     <string name="chat_collapse">Réduire</string>
@@ -291,9 +287,9 @@
     <string name="chat_action_update">Mise à jour</string>
     <string name="chat_action_change_merchant">marchand → %1$s</string>
     <string name="chat_action_change_category">Catégorie → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Impossible d\'appliquer ceci: %1$s</string>
-    <string name="chat_error_memory_full">La mémoire du chat est pleine. Veuillez effacer le chat pour continuer.</string>
     <string name="chat_error_model_downloading">Le modèle est en cours de téléchargement. Veuillez patienter.</string>
     <string name="chat_error_model_not_downloaded">Modèle IA non téléchargé. Allez dans Paramètres pour télécharger.</string>
     <string name="chat_error_generate_failed">Impossible de générer la réponse</string>

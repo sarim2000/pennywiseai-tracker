@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">สอน</string>
+    <string name="teach_title">สอน PennyWise ให้อ่านข้อความนี้</string>
+    <string name="teach_field_amount">จำนวนเงิน</string>
+    <string name="teach_field_merchant">ร้านค้า</string>
+    <string name="teach_field_account">บัญชี</string>
+    <string name="teach_hint_amount">แตะที่จำนวนเงินในข้อความ</string>
+    <string name="teach_hint_merchant">แตะชื่อร้านค้าทีละคำ หากไม่เลือก ครั้งหน้าจะตรงเฉพาะชื่อนี้เท่านั้น</string>
+    <string name="teach_hint_account">แตะตัวเลขบัญชีหรือบัตร (ไม่บังคับ)</string>
+    <string name="teach_amount_placeholder">ยังไม่มีจำนวนเงิน</string>
+    <string name="teach_amount_source">อ่านจาก: “%1$s”</string>
+    <string name="teach_direction_out">เงินออก</string>
+    <string name="teach_direction_in">เงินเข้า</string>
+    <string name="teach_currency">สกุลเงิน</string>
+    <string name="teach_format_question">จำนวนเงินไหน</string>
+    <string name="teach_merchant_label">ร้านค้า (ไม่บังคับ)</string>
+    <string name="teach_account_value">บัญชี ••%1$s</string>
+    <string name="teach_account_none">ไม่มีบัญชี</string>
+    <string name="teach_note">ข้อความที่คล้ายกันจากผู้ส่งนี้จะถามคุณก่อนเพิ่ม</string>
+    <string name="teach_save_expense">บันทึกรายจ่าย %1$s</string>
+    <string name="teach_save_income">บันทึกรายรับ %1$s</string>
+    <string name="teach_need_amount">แตะจำนวนเงินก่อน</string>
+    <string name="teach_need_currency">เลือกสกุลเงิน</string>
+    <string name="teach_need_format">เลือกว่าจำนวนเงินไหน</string>
+    <string name="teach_need_direction">เลือกเงินออกหรือเงินเข้า</string>
+    <string name="teach_cannot_learn">PennyWise อ่านข้อความนี้ซ้ำได้ไม่แน่นอน ลองแตะคำอื่น หรือเพิ่มชื่อร้านค้าให้มากขึ้น</string>
+    <string name="teach_saved">เพิ่มแล้ว ข้อความที่คล้ายกันจะถามก่อนเพิ่ม</string>
+    <string name="teach_added">เพิ่มแล้ว</string>
+    <string name="teach_settled">ไม่ได้เพิ่ม: มีอยู่แล้ว หรือการตั้งค่าของคุณข้ามไป</string>
+    <string name="teach_booking_failed">เพิ่มไม่สำเร็จ ยังอยู่ใน SMS ที่ไม่รู้จัก</string>
+    <string name="teach_format_changed">รูปแบบใหม่จากผู้ส่งนี้ สอนรูปแบบนี้ด้วย</string>
+    <string name="teach_find_message">ค้นหาข้อความ</string>
+    <string name="teach_picker_title">ข้อความเกี่ยวกับเงินล่าสุด</string>
+    <string name="teach_picker_body">จากกล่องข้อความของคุณ: ข้อความที่ดูเหมือนเรื่องเงินแต่ไม่อยู่ในรายการของคุณ ไม่มีอะไรออกจากโทรศัพท์ของคุณ</string>
+    <string name="teach_picker_empty">ตอนนี้ไม่มีอะไรให้สอน</string>
+    <string name="teach_taught_count">ที่สอนแล้ว (%1$d)</string>
+    <string name="teach_taught_title">ข้อความที่สอนแล้ว</string>
+    <string name="teach_taught_body">PennyWise อ่านรูปแบบเหล่านี้และถามคุณก่อนเพิ่ม การลบรูปแบบหนึ่งจะไม่ลบรายการที่มันเพิ่มไว้</string>
+    <string name="teach_delete_template">ลบ</string>
+    <string name="notif_taught_text">จาก %1$s เพิ่มเลย หรือแตะเพื่อตรวจสอบ</string>
+</resources>

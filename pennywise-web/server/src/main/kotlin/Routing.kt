@@ -35,7 +35,7 @@ fun Application.configureRouting() {
             BankOfIndiaParser(), IndianBankParser(), IndianOverseasBankParser(), CentralBankOfIndiaParser(),
             CityUnionBankParser(), KarnatakaBankParser(), PNBBankParser(), UnionBankParser(), JKBankParser(),
             AirtelPaymentsBankParser(), IPPBParser(), JioPaymentsBankParser(), JioPayParser(), JupiterBankParser(),
-            HSBCBankParser(), SliceParser(), LazyPayParser(), AMEXBankParser(), OneCardParser(), SouthIndianBankParser(),
+            HSBCBankParser(), SliceParser(), PhonePeWalletParser(), LazyPayParser(), AMEXBankParser(), OneCardParser(), SouthIndianBankParser(),
             UtkarshBankParser(), DBSBankParser(), JuspayParser(),
             // Pluxee (#685) — the web tester advertises a Pluxee sample, so the
             // /htmx/parse registry must be able to parse it too.

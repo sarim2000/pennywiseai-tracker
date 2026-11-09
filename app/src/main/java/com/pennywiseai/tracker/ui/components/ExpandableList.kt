@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,22 +25,29 @@ fun <T> ExpandableList(
     itemContent: @Composable (T) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    val displayItems = if (isExpanded) items else items.take(visibleItemCount)
-    
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
-        // Display items
-        displayItems.forEach { item ->
-            itemContent(item)
+
+    Column(modifier = modifier) {
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            items.take(visibleItemCount).forEach { item ->
+                itemContent(item)
+            }
         }
-        
+
+        // The rest opens below the visible items. Each gap rides inside the animated
+        // block (top padding) so nothing snaps open before the rows grow in.
+        AnimatedVisibility(visible = isExpanded, enter = pwExpand(), exit = pwCollapse()) {
+            Column {
+                items.drop(visibleItemCount).forEach { item ->
+                    Box(Modifier.padding(top = Spacing.md)) { itemContent(item) }
+                }
+            }
+        }
+
         // View All / View Less button
         if (items.size > visibleItemCount) {
             TextButton(
                 onClick = { isExpanded = !isExpanded },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(

@@ -104,10 +104,22 @@ fun GoalProgress.tone(): GoalTone = when (pill()) {
 /** Per month rounded up to a whole unit for display: "₹1,412/mo", and paying it still reaches the target. */
 fun GoalProgress.monthlyDisplay(): BigDecimal = perMonth.setScale(0, RoundingMode.CEILING)
 
-/** Saved / target as 0..1 for the ring (capped at a full ring when over). */
-fun GoalProgress.fraction(): Float =
+/** [amount] / target, uncapped (1.2 = 120%), both in the goal's currency; 0 with no target. */
+fun GoalProgress.ratioOf(amount: BigDecimal): Float =
     if (goal.targetAmount.signum() <= 0) 0f
-    else saved.divide(goal.targetAmount, 4, RoundingMode.DOWN).toFloat().coerceIn(0f, 1f)
+    else amount.divide(goal.targetAmount, 4, RoundingMode.DOWN).toFloat().coerceAtLeast(0f)
+
+/** Saved / target as 0..1 for the ring (capped at a full ring when over). */
+fun GoalProgress.fraction(): Float = ratioOf(saved).coerceAtMost(1f)
+
+/**
+ * The ring's centre label while its sweep animates toward [target] (a [ratioOf]):
+ * read off the same [animated] ratio, and exactly [percent] once it lands (or, heading
+ * past 100%, once the ring is full, so it doesn't tick on), so the float never shows 28%
+ * for 29%.
+ */
+fun ringPercent(animated: Float, target: Float, percent: Int): Int =
+    if (animated == target || (animated >= 1f && target >= 1f)) percent else kotlin.math.floor(animated * 100f + 0.001f).toInt()
 
 /** Whole percent saved, floored so 99.6% never shows 100% before it's Reached. */
 fun GoalProgress.percent(): Int =

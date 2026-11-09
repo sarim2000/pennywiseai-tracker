@@ -29,7 +29,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.unit.LayoutDirection
+import com.pennywiseai.tracker.domain.spending.budgetPace
+import com.pennywiseai.tracker.ui.theme.warning
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +49,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -55,16 +62,23 @@ fun BudgetCard(
     val pctUsed = groupSpending.percentageUsed
     val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
 
-    var animatedProgress by remember { mutableFloatStateOf(0f) }
-    val animatedProgressState by animateFloatAsState(
-        targetValue = animatedProgress,
+    // One animated fraction drives both the bar and the % pill, so the pill
+    // never reads 80% while the bar is still at 40%.
+    var targetFraction by remember { mutableFloatStateOf(0f) }
+    val usedFraction by animateFloatAsState(
+        targetValue = targetFraction,
         animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
 
     LaunchedEffect(pctUsed) {
-        animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
+        targetFraction = (pctUsed / 100f).coerceAtMost(1f)
     }
+    val barFraction = usedFraction.coerceAtLeast(0f)
+    // Settled — or once the bar is full, where counting on to e.g. 244% would just
+    // tick next to "over budget" — read pctUsed itself (fraction * 100 can also
+    // land on 79.999 → "79%").
+    val pillPercent = (if (usedFraction == pctUsed / 100f || (usedFraction >= 1f && pctUsed >= 100f)) pctUsed else usedFraction * 100f).toInt()
 
     val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val statusColor: Color = when {
@@ -107,7 +121,7 @@ fun BudgetCard(
 
             if (groupSpending.totalBudget > BigDecimal.ZERO) {
                 Text(
-                    text = stringResource(R.string.budget_card_percent, pctUsed.toInt()),
+                    text = stringResource(R.string.budget_card_percent, pillPercent),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
@@ -122,23 +136,52 @@ fun BudgetCard(
 
         Spacer(modifier = Modifier.height(Spacing.sm))
 
-        // Row 2: Custom rounded progress bar
+        // Pace only means something for a spending limit whose window is
+        // running: started (dayCounts clamps a future window's elapsed to 1)
+        // and not yet over (daysRemaining is 0 for past windows).
+        val pace = if (
+            groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
+            groupSpending.daysRemaining > 0 &&
+            !groupSpending.windowStart.isAfter(LocalDate.now())
+        ) {
+            budgetPace(groupSpending.totalActual, groupSpending.totalBudget, groupSpending.daysElapsed, groupSpending.windowDays)
+        } else null
+
+        // Row 2: Custom rounded progress bar. Stays flat (a data meter); a
+        // thin "today" tick marks where an even spend would be.
         if (groupSpending.totalBudget > BigDecimal.ZERO) {
             val barShape = RoundedCornerShape(50)
+            val tickColor = MaterialTheme.colorScheme.onSurface
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(Dimensions.Component.progressBarHeight)
-                    .clip(barShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .height(Dimensions.Component.paceTickHeight)
+                    .drawWithContent {
+                        drawContent()
+                        if (pace != null) {
+                            val f = if (layoutDirection == LayoutDirection.Rtl) 1f - pace.todayFraction else pace.todayFraction
+                            val w = Dimensions.Component.paceTickWidth.toPx()
+                            val x = (size.width * f).coerceIn(w / 2, size.width - w / 2)
+                            drawLine(tickColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = w, cap = StrokeCap.Round)
+                        }
+                    },
+                contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(fraction = animatedProgressState)
-                        .fillMaxHeight()
+                        .fillMaxWidth()
+                        .height(Dimensions.Component.progressBarHeight)
                         .clip(barShape)
-                        .background(barColor)
-                )
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction = barFraction)
+                            .fillMaxHeight()
+                            .clip(barShape)
+                            .background(barColor)
+                    )
+                }
             }
         }
 
@@ -210,8 +253,12 @@ fun BudgetCard(
                 }
             }
             groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
-                val startDay = groupSpending.group.budget.monthStartDay
-                    ?: groupSpending.windowStart.dayOfMonth
+                val rawStart = groupSpending.group.budget.monthStartDay
+                val startDay = if (rawStart == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) {
+                    groupSpending.windowEnd.plusDays(1).dayOfMonth
+                } else {
+                    rawStart ?: groupSpending.windowStart.dayOfMonth
+                }
                 val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
                 when {
                     renewalIn == 0 -> stringResource(R.string.budget_card_resets_today_day, startDay)
@@ -229,11 +276,27 @@ fun BudgetCard(
             }
             else -> pluralStringResource(R.plurals.budget_card_days_remaining, groupSpending.daysRemaining, groupSpending.daysRemaining)
         }
-        Text(
-            text = subtitleText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
-        )
+        // Pace is told in days, not money, so it shows no more than the
+        // percentage pill does and needs no AmountPrivacy masking. Over
+        // budget it's dropped: the hero line already says so.
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = subtitleText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
+            )
+            if (pace != null && !pace.isOverBudget) {
+                Text(
+                    text = when {
+                        pace.daysOver > 0 -> pluralStringResource(R.plurals.budget_card_days_over_pace, pace.daysOver, pace.daysOver)
+                        pace.daysOver < 0 -> (-pace.daysOver).let { pluralStringResource(R.plurals.budget_card_days_under_pace, it, it) }
+                        else -> stringResource(R.string.budget_card_on_pace)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (pace.daysOver > 0) MaterialTheme.colorScheme.warning else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(Spacing.xs))
 

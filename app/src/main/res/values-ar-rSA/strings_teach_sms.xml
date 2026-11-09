@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ══ Teach PennyWise a message (#279) ══ -->
+    <string name="teach_action">علّم</string>
+    <string name="teach_title">علّم PennyWise هذه الرسالة</string>
+    <string name="teach_field_amount">المبلغ</string>
+    <string name="teach_field_merchant">التاجر</string>
+    <string name="teach_field_account">الحساب</string>
+    <string name="teach_hint_amount">اضغط على المبلغ في الرسالة.</string>
+    <string name="teach_hint_merchant">اضغط على اسم التاجر كلمةً كلمة. إذا تركته، فلن يطابق لاحقًا إلا هذا الاسم بالضبط.</string>
+    <string name="teach_hint_account">اضغط على أرقام الحساب أو البطاقة. اختياري.</string>
+    <string name="teach_amount_placeholder">لم يُحدَّد مبلغ بعد</string>
+    <string name="teach_amount_source">القراءة من: «%1$s»</string>
+    <string name="teach_direction_out">مال صادر</string>
+    <string name="teach_direction_in">مال وارد</string>
+    <string name="teach_currency">العملة</string>
+    <string name="teach_format_question">أي مبلغ هو؟</string>
+    <string name="teach_merchant_label">التاجر (اختياري)</string>
+    <string name="teach_account_value">الحساب ••%1$s</string>
+    <string name="teach_account_none">بدون حساب</string>
+    <string name="teach_note">سيطلب PennyWise موافقتك قبل إضافة الرسائل المشابهة من هذا المرسل.</string>
+    <string name="teach_save_expense">حفظ مصروف %1$s</string>
+    <string name="teach_save_income">حفظ دخل %1$s</string>
+    <string name="teach_need_amount">اضغط على المبلغ أولاً</string>
+    <string name="teach_need_currency">اختر العملة</string>
+    <string name="teach_need_format">اختر أي مبلغ هو</string>
+    <string name="teach_need_direction">اختر مال صادر أو وارد</string>
+    <string name="teach_cannot_learn">لا يستطيع PennyWise قراءة هذه الرسالة بشكل موثوق. جرّب الضغط على كلمات أخرى، أو أضف المزيد من اسم التاجر.</string>
+    <string name="teach_saved">تمت الإضافة. ستطلب الرسائل المشابهة موافقتك قبل إضافتها.</string>
+    <string name="teach_added">تمت الإضافة.</string>
+    <string name="teach_settled">لم تتم الإضافة: إما أنها موجودة مسبقاً أو أن إعداداتك تتجاوزها.</string>
+    <string name="teach_booking_failed">تعذّرت الإضافة. ما زالت الرسالة في الرسائل القصيرة غير المعترف بها.</string>
+    <string name="teach_format_changed">صيغة جديدة من هذا المرسل. علّمها أيضاً.</string>
+    <string name="teach_find_message">بحث عن رسالة</string>
+    <string name="teach_picker_title">رسائل مالية حديثة</string>
+    <string name="teach_picker_body">من صندوق الوارد لديك: رسائل تبدو مالية لكنها غير موجودة في معاملاتك. لا شيء يغادر هاتفك.</string>
+    <string name="teach_picker_empty">لا شيء لتعليمه الآن.</string>
+    <string name="teach_taught_count">المُعلَّمة (%1$d)</string>
+    <string name="teach_taught_title">الرسائل المُعلَّمة</string>
+    <string name="teach_taught_body">يقرأ PennyWise هذه الأنماط ويسألك قبل الإضافة. حذف أحدها يُبقي المعاملات التي أضافها.</string>
+    <string name="teach_delete_template">حذف</string>
+    <string name="notif_taught_text">من %1$s. أضفها، أو اضغط للمراجعة.</string>
+</resources>

@@ -252,16 +252,12 @@
     <string name="chat_dismiss">रद्ध गर्नुहोस्</string>
     <string name="chat_input_placeholder">सोध्नुहोस्, वा के खर्च गर्नुभयो भन्नुहोस्…</string>
     <string name="chat_send">पठाउनुहोस्</string>
-    <string name="chat_memory_almost_full">च्याट मेमोरी लगभग भरिएको छ! जारी राख्न च्याट खाली गर्नुहोस्.</string>
-    <string name="chat_memory_warning">च्याट मेमोरी %1$d%% भरिएको छ। चाँडै खाली गर्न विचार गर्नुहोस्।</string>
-    <string name="chat_memory_usage">च्याट मेमोरी %1$d%% भरिएको छ।</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d सन्देश</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d सन्देश</item>
     </plurals>
     <string name="chat_stats_tokens">%1$s टोकनहरू</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s टोकनहरू</string>
-    <string name="chat_stats_system_tokens">प्रणाली: %1$s</string>
     <string name="chat_context_usage">सन्दर्भ प्रयोग</string>
     <string name="chat_collapse">सङ्कुचन गर्नुहोस्</string>
     <string name="chat_expand">विस्तार गर्नुहोस्</string>
@@ -288,9 +284,9 @@
     <string name="chat_action_update">अपडेट गर्नुहोस्</string>
     <string name="chat_action_change_merchant">व्यापारी → %1$s</string>
     <string name="chat_action_change_category">वर्ग → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">त्यो लागू गर्न सकिएन: %1$s</string>
-    <string name="chat_error_memory_full">च्याट मेमोरी भरियो। जारी राख्न कृपया च्याट खाली गर्नुहोस्।</string>
     <string name="chat_error_model_downloading">मोडेल डाउनलोड हुँदैछ। कृपया पर्खनुहोस्।</string>
     <string name="chat_error_model_not_downloaded">AI मोडेल डाउनलोड भएको छैन। डाउनलोड गर्न सेटिङ्समा जानुहोस्।</string>
     <string name="chat_error_generate_failed">जवाफ बनाउन असफल</string>

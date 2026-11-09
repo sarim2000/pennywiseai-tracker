@@ -54,6 +54,8 @@
     <!-- Budget -->
     <string name="settings_budget_cycle_title">Budget Cycle Start Day</string>
     <string name="settings_budget_cycle_dialog_body">Pick the day each monthly budget cycle starts. e.g. 25 means the cycle runs from the 25th through the 24th of the next month.</string>
+    <string name="settings_budget_cycle_last_working_day">Last working day of the month</string>
+    <string name="settings_budget_cycle_last_working_day_short">Last working day</string>
 
     <!-- Contacts -->
     <string name="settings_contacts_section">Contacts</string>
@@ -527,4 +529,9 @@
     <string name="faq_still_need_help_section">Still Need Help?</string>
     <string name="faq_report_issue_title">Report an Issue</string>
     <string name="faq_report_issue_subtitle">Submit bug reports, bank requests, or feature improvements on GitHub</string>
+    <string name="learned_categories_title">Learned categories</string>
+    <string name="learned_categories_subtitle">Categories PennyWise remembers from your edits</string>
+    <string name="learned_categories_intro">When you change a transaction\'s category, PennyWise remembers it for that merchant and uses it for new transactions. Remove one to stop that. Past transactions keep their category.</string>
+    <string name="learned_categories_empty">Nothing learned yet. Categories you pick for a merchant show up here.</string>
+    <string name="learned_categories_remove">Remove learned category for %1$s</string>
 </resources>

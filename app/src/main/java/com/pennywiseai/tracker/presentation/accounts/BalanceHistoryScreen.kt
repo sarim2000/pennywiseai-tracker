@@ -153,7 +153,8 @@ fun BalanceHistoryScreen(
                                         expandedSources + balance.id
                                     }
                                 },
-                                clipboard = clipboard
+                                clipboard = clipboard,
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -211,12 +212,13 @@ private fun BalanceHistoryItem(
     onSaveEdit: () -> Unit,
     onCancelEdit: () -> Unit,
     onToggleExpand: () -> Unit,
-    clipboard: androidx.compose.ui.platform.ClipboardManager
+    clipboard: androidx.compose.ui.platform.ClipboardManager,
+    modifier: Modifier = Modifier
 ) {
     PennyWiseCardV2(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .animateContentSize(),
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
         colors = CardDefaults.cardColors(
             containerColor = if (isLatest) {
                 MaterialTheme.colorScheme.surfaceContainerHighest
@@ -373,7 +375,7 @@ private fun BalanceHistoryItem(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         },
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                        shape = MaterialTheme.shapes.large,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                             unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,

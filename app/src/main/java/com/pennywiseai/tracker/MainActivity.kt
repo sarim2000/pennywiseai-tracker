@@ -30,6 +30,7 @@ class MainActivity : FragmentActivity() {
 
     companion object {
         const val EXTRA_OPEN_ADD_TRANSACTION = "com.pennywiseai.tracker.OPEN_ADD_TRANSACTION"
+        const val EXTRA_OPEN_UNRECOGNIZED = "com.pennywiseai.tracker.OPEN_UNRECOGNIZED"
 
         /** The quick add sheet's draft, carried into the full form by "More details". */
         const val EXTRA_ADD_AMOUNT = "com.pennywiseai.tracker.ADD_AMOUNT"
@@ -46,6 +47,8 @@ class MainActivity : FragmentActivity() {
 
         /** Goal widgets (#914): open a goal, the Budgets screen, or "New goal" there. */
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
+        const val EXTRA_OPEN_REVIEW = "com.pennywiseai.tracker.OPEN_REVIEW"
+        const val EXTRA_REVIEW_WEEK_START = "com.pennywiseai.tracker.REVIEW_WEEK_START"
         private const val KEY_LAUNCH_PENDING = "launch_request_pending"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
@@ -171,6 +174,13 @@ class MainActivity : FragmentActivity() {
         val goalId = intent.getLongExtra(EXTRA_OPEN_GOAL_ID, -1L)
         widgetDestination = when {
             goalId > 0 -> com.pennywiseai.tracker.navigation.GoalDetail(goalId)
+            intent.getBooleanExtra(EXTRA_OPEN_UNRECOGNIZED, false) ->
+                com.pennywiseai.tracker.navigation.UnrecognizedSms
+            intent.hasExtra(EXTRA_OPEN_REVIEW) ->
+                com.pennywiseai.tracker.navigation.Review(
+                    kind = intent.getStringExtra(EXTRA_OPEN_REVIEW) ?: "WEEK",
+                    weekStart = intent.getStringExtra(EXTRA_REVIEW_WEEK_START),
+                )
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
                 com.pennywiseai.tracker.navigation.BudgetGroups(
                     createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false),

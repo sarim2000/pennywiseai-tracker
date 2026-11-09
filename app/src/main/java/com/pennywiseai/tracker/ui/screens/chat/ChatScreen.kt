@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -46,7 +48,7 @@ import java.util.Date
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun ChatScreen(
     modifier: Modifier = Modifier,
@@ -58,8 +60,8 @@ fun ChatScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
-    val baseCurrency by viewModel.baseCurrency.collectAsStateWithLifecycle()
     val isDeveloperMode by viewModel.isDeveloperModeEnabled.collectAsStateWithLifecycle()
     val chatStats by viewModel.chatStats.collectAsStateWithLifecycle()
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
@@ -308,29 +310,17 @@ fun ChatScreen(
                         // Developer info card
                         AnimatedVisibility(
                             visible = isDeveloperMode && messages.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = pwExpand(),
+                            exit = pwCollapse()
                         ) {
                             DeveloperInfoCard(chatStats = chatStats)
                         }
                         
-                        // Token limit warning
-                        AnimatedVisibility(
-                            visible = chatStats.contextUsagePercent >= 80,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
-                        ) {
-                            TokenLimitWarning(
-                                usagePercent = chatStats.contextUsagePercent,
-                                onClearChat = { viewModel.clearChat() }
-                            )
-                        }
-
                         // Clear chat button when there are messages
                         AnimatedVisibility(
                             visible = messages.isNotEmpty(),
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = pwExpand(),
+                            exit = pwCollapse()
                         ) {
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -400,13 +390,24 @@ fun ChatScreen(
                             // A transaction the model proposed — the user confirms it (#170)
                             pendingAction?.let { action ->
                                 item {
-                                    PendingActionCard(
-                                        action = action,
-                                        currency = baseCurrency,
-                                        enabled = !isConfirming,
-                                        onConfirm = { viewModel.confirmPendingAction() },
-                                        onDismiss = { viewModel.dismissPendingAction() }
-                                    )
+                                    if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
+                                        AddReviewCard(
+                                            rows = action.rows,
+                                            categories = categories,
+                                            enabled = !isConfirming,
+                                            onToggle = viewModel::toggleRow,
+                                            onEdit = viewModel::editRow,
+                                            onConfirm = viewModel::confirmPendingAction,
+                                            onDismiss = viewModel::dismissPendingAction
+                                        )
+                                    } else {
+                                        PendingActionCard(
+                                            action = action,
+                                            enabled = !isConfirming,
+                                            onConfirm = { viewModel.confirmPendingAction() },
+                                            onDismiss = { viewModel.dismissPendingAction() }
+                                        )
+                                    }
                                 }
                             }
 
@@ -436,8 +437,8 @@ fun ChatScreen(
                         // Error message
                         AnimatedVisibility(
                             visible = uiState.error != null,
-                            enter = expandVertically() + fadeIn(),
-                            exit = shrinkVertically() + fadeOut()
+                            enter = pwExpand(),
+                            exit = pwCollapse()
                         ) {
                             PennyWiseCardV2(
                                 modifier = Modifier
@@ -503,7 +504,7 @@ fun ChatScreen(
                                         // Keep keyboard open by requesting focus
                                         focusRequester.requestFocus()
                                     },
-                                    enabled = inputText.isNotBlank() && !uiState.isLoading,
+                                    enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming,
                                     modifier = Modifier.size(48.dp),
                                     shapes = IconButtonDefaults.shapes()
                                 ) {
@@ -521,86 +522,16 @@ fun ChatScreen(
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        // The bottom nav hides while the keyboard is up, so its
+                        // clearance would just leave a gap above the keyboard.
+                        if (!WindowInsets.isImeVisible) {
+                            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        }
                     }
                 }
             }
         }
     }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TokenLimitWarning(
-    usagePercent: Int,
-    onClearChat: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val backgroundColor = when {
-        usagePercent >= 95 -> MaterialTheme.colorScheme.errorContainer
-        usagePercent >= 90 -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
-    }
-
-    val contentColor = when {
-        usagePercent >= 95 -> MaterialTheme.colorScheme.onErrorContainer
-        usagePercent >= 90 -> MaterialTheme.colorScheme.onTertiaryContainer
-        else -> MaterialTheme.colorScheme.onSecondaryContainer
-    }
-    
-    val icon = when {
-        usagePercent >= 95 -> Icons.Default.Error
-        else -> Icons.Default.Warning
-    }
-    
-    val message = when {
-        usagePercent >= 95 -> stringResource(R.string.chat_memory_almost_full)
-        usagePercent >= 90 -> stringResource(R.string.chat_memory_warning, usagePercent)
-        else -> stringResource(R.string.chat_memory_usage, usagePercent)
-    }
-    
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = backgroundColor,
-        tonalElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.content),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = contentColor,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
-                Spacer(modifier = Modifier.width(Spacing.sm))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = contentColor
-                )
-            }
-            if (usagePercent >= 90) {
-                TextButton(
-                    onClick = onClearChat,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = contentColor
-                    ),
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.chat_clear), fontWeight = FontWeight.Bold)
-                }
-            }
-        }
     }
 }
 
@@ -672,8 +603,8 @@ fun DeveloperInfoCard(
             
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Column(
                     modifier = Modifier
@@ -725,13 +656,6 @@ fun DeveloperInfoCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (chatStats.systemPromptTokens > 0) {
-                            Text(
-                                text = stringResource(R.string.chat_stats_system_tokens, TokenUtils.formatNumber(chatStats.systemPromptTokens)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
             }
@@ -821,7 +745,7 @@ fun ChatMessageItem(
         PennyWiseCardV2(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .animateContentSize(),
+                .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
             colors = CardDefaults.cardColors(
                 containerColor = if (message.isUser)
                     MaterialTheme.colorScheme.primaryContainer
@@ -926,29 +850,18 @@ private fun ChatEmptyState(
     }
 }
 
-/** Confirm card for an action the AI proposed (#170): add, delete or update. Nothing happens without the tap. */
+/** Confirm card for a delete or update the AI proposed (#170). Nothing happens without the tap. */
 @Composable
 private fun PendingActionCard(
     action: com.pennywiseai.tracker.data.model.PendingChatAction,
-    currency: String,
     enabled: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    // A new draft is in the base currency; an existing row is shown in its own.
-    val fmt = { a: java.math.BigDecimal -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(a, currency) }
     val own = { t: com.pennywiseai.tracker.data.database.entity.TransactionEntity -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(t.amount, t.currency) }
-    val income = com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME
     val (title, headline, detail, button) = when (action) {
-        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> {
-            val d = action.draft
-            listOf(
-                stringResource(if (d.type == income) R.string.chat_action_add_income else R.string.chat_action_add_expense),
-                "${fmt(d.amount)} · ${d.merchant}",
-                stringResource(R.string.chat_action_add_detail, categoryLabel(d.category), d.accountLabel),
-                stringResource(R.string.chat_action_add)
-            )
-        }
+        // AddReviewCard shows these.
+        is com.pennywiseai.tracker.data.model.PendingChatAction.Add -> return
         is com.pennywiseai.tracker.data.model.PendingChatAction.Delete -> {
             val t = action.transaction
             listOf(

@@ -317,7 +317,11 @@ fun BudgetGroupEditScreen(
                             BudgetPeriodType.WEEKLY ->
                                 stringResource(R.string.budget_edit_resets_every, dayOfWeekName(uiState.weekStartDay))
                             BudgetPeriodType.MONTHLY ->
+                                if (com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(uiState.monthStartDay)) {
+                                stringResource(R.string.budget_edit_resets_last_working_day)
+                            } else {
                                 stringResource(R.string.budget_edit_resets_on_day, uiState.monthStartDay)
+                            }
                             BudgetPeriodType.CUSTOM ->
                                 stringResource(R.string.budget_edit_runs_once)
                         }
@@ -923,7 +927,11 @@ private fun MonthAnchorRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = monthStartDay.toString(),
+                text = if (com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(monthStartDay)) {
+                    stringResource(R.string.settings_budget_cycle_last_working_day_short)
+                } else {
+                    monthStartDay.toString()
+                },
                 style = MaterialTheme.typography.bodyLarge
             )
         }
@@ -933,16 +941,30 @@ private fun MonthAnchorRow(
         // pattern.
         Row(verticalAlignment = Alignment.CenterVertically) {
             OutlinedIconButton(
-                onClick = { onMonthDaySelected(monthStartDay - 1) },
-                enabled = monthStartDay > 1,
+                onClick = {
+                    val next = when {
+                        com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(monthStartDay) -> 31
+                        monthStartDay == 1 -> com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY
+                        else -> monthStartDay - 1
+                    }
+                    onMonthDaySelected(next)
+                },
+                enabled = true,
                 shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.KeyboardArrowDown, contentDescription = stringResource(R.string.budget_edit_decrease_day))
             }
             Spacer(modifier = Modifier.width(Spacing.xs))
             OutlinedIconButton(
-                onClick = { onMonthDaySelected(monthStartDay + 1) },
-                enabled = monthStartDay < 31,
+                onClick = {
+                    val next = when {
+                        com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(monthStartDay) -> 1
+                        monthStartDay == 31 -> com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY
+                        else -> monthStartDay + 1
+                    }
+                    onMonthDaySelected(next)
+                },
+                enabled = true,
                 shapes = IconButtonDefaults.shapes()
             ) {
                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.budget_edit_increase_day))

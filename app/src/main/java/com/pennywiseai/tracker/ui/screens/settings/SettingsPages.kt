@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -44,6 +46,9 @@ import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.domain.loan.UpiRequest
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.navigation.AiAccess
+import com.pennywiseai.tracker.navigation.BackgroundAccess
+import com.pennywiseai.tracker.navigation.LearnedCategories
+import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.ExchangeRates
@@ -90,9 +95,11 @@ import com.pennywiseai.tracker.ui.theme.red_dark
 import com.pennywiseai.tracker.ui.theme.red_light
 import com.pennywiseai.tracker.ui.theme.teal_dark
 import com.pennywiseai.tracker.ui.theme.teal_light
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
 import com.pennywiseai.tracker.ui.viewmodel.AppLockViewModel
+import com.pennywiseai.tracker.ui.viewmodel.BackgroundAccessViewModel
 import com.pennywiseai.tracker.ui.viewmodel.PermissionViewModel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -151,6 +158,7 @@ private fun TrackingPage(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     permissionViewModel: PermissionViewModel = hiltViewModel(),
     trackedAppsViewModel: TrackedAppsViewModel = hiltViewModel(),
+    backgroundAccessViewModel: BackgroundAccessViewModel = hiltViewModel(),
 ) {
     val smsScanMonths by settingsViewModel.smsScanMonths.collectAsStateWithLifecycle(initialValue = 3)
     val smsScanAllTime by settingsViewModel.smsScanAllTime.collectAsStateWithLifecycle(initialValue = false)
@@ -167,6 +175,29 @@ private fun TrackingPage(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         permissionViewModel.refreshNotificationAccess()
+    }
+    val backgroundAccess by backgroundAccessViewModel.state.collectAsStateWithLifecycle()
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        backgroundAccessViewModel.refresh()
+        onPauseOrDispose {}
+    }
+    // Without SMS access there's no tracking to protect, so nothing to nag about.
+    val backgroundStepsLeft = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }
+    val backgroundStepsColor = MaterialTheme.colorScheme.warning
+
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.BatteryChargingFull,
+            iconBgColor = if (backgroundStepsLeft != null) backgroundStepsColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.secondaryContainer,
+            iconTint = if (backgroundStepsLeft != null) backgroundStepsColor else MaterialTheme.colorScheme.onSecondaryContainer,
+            title = stringResource(R.string.background_access_title),
+            subtitle = stringResource(R.string.background_access_settings_subtitle),
+            onClick = { onNavigate(BackgroundAccess) },
+            position = ListItemPosition.Single,
+            trailingText = backgroundStepsLeft?.let {
+                pluralStringResource(R.plurals.background_access_settings_left, it, it)
+            }
+        )
     }
 
     SectionHeaderV2(title = stringResource(R.string.settings_group_sms))
@@ -389,6 +420,15 @@ private fun AccountsPage(
             onClick = { onNavigate(Rules) },
             position = ListItemPosition.Middle
         )
+        SettingsNavItem(
+            icon = Icons.Default.Lightbulb,
+            iconBgColor = orange_light,
+            iconTint = orange_dark,
+            title = stringResource(R.string.learned_categories_title),
+            subtitle = stringResource(R.string.learned_categories_subtitle),
+            onClick = { onNavigate(LearnedCategories) },
+            position = ListItemPosition.Middle
+        )
         SettingsSwitchRow(
             icon = Icons.Default.CreditCard,
             iconBgColor = indigo_light,
@@ -478,7 +518,11 @@ private fun PlanningPage(
             subtitle = stringResource(R.string.settings_budget_cycle_current, budgetCycleRange(budgetCycleStartDay)),
             onClick = { showBudgetCycleSheet = true },
             position = ListItemPosition.Top,
-            trailingText = ordinalSuffix(budgetCycleStartDay)
+            trailingText = if (BudgetCycle.isLastWorkingDay(budgetCycleStartDay)) {
+                stringResource(R.string.settings_budget_cycle_last_working_day_short)
+            } else {
+                ordinalSuffix(budgetCycleStartDay)
+            }
         )
         SettingsNavItem(
             icon = Icons.Default.AccountBalanceWallet,
@@ -532,7 +576,13 @@ private fun PlanningPage(
             title = stringResource(R.string.settings_budget_cycle_title),
             body = stringResource(R.string.settings_budget_cycle_dialog_body),
             onDismiss = { showBudgetCycleSheet = false },
-            choices = (BudgetCycle.MIN_START_DAY..BudgetCycle.MAX_START_DAY).map { day ->
+            choices = listOf(
+                SettingsChoice(
+                    label = stringResource(R.string.settings_budget_cycle_last_working_day),
+                    selected = BudgetCycle.isLastWorkingDay(budgetCycleStartDay),
+                    description = budgetCycleRange(BudgetCycle.LAST_WORKING_DAY),
+                ) { settingsViewModel.updateBudgetCycleStartDay(BudgetCycle.LAST_WORKING_DAY) }
+            ) + (BudgetCycle.MIN_START_DAY..BudgetCycle.MAX_START_DAY).map { day ->
                 SettingsChoice(
                     label = ordinalSuffix(day),
                     selected = day == budgetCycleStartDay,
@@ -610,7 +660,7 @@ private fun CurrencyPage(
             onCheckedChange = { settingsViewModel.setUnifiedCurrencyMode(it) },
             position = ListItemPosition.Middle
         )
-        AnimatedVisibility(visible = unifiedCurrencyMode) {
+        AnimatedVisibility(visible = unifiedCurrencyMode, enter = pwExpand(), exit = pwCollapse()) {
             SettingsNavItem(
                 icon = Icons.Default.AttachMoney,
                 iconBgColor = teal_light,
@@ -814,6 +864,8 @@ private fun numberFormatStyleExample(style: NumberFormatStyle): String = stringR
 private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val dailySummaryEnabled by settingsViewModel.dailySummaryEnabled.collectAsStateWithLifecycle(initialValue = DAILY_SUMMARY_DEFAULT)
+    val weeklySummaryEnabled by settingsViewModel.weeklySummaryEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val conscienceEnabled by settingsViewModel.conscienceEnabled.collectAsStateWithLifecycle(initialValue = false)
     // The recap is a notification: on Android 13+ turning it on asks for the
     // permission first, and a refusal leaves it off with a word on why.
     val dailySummaryPermissionLauncher = rememberLauncherForActivityResult(
@@ -825,6 +877,41 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             Toast.makeText(context, R.string.settings_daily_summary_needs_permission, Toast.LENGTH_LONG).show()
         }
     }
+    val weeklySummaryPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setWeeklySummaryEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_weekly_summary_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    val budgetAlertsEnabled by settingsViewModel.budgetAlertsEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val budgetAlertsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setBudgetAlertsEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.settings_budget_alerts_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    val conscienceAvailable = remember(context) { ConscienceText(context).speaksAppLanguage }
+    val consciencePermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            settingsViewModel.setConscienceEnabled(true)
+        } else {
+            Toast.makeText(context, R.string.conscience_needs_permission, Toast.LENGTH_LONG).show()
+        }
+    }
+    fun needsNotificationPermission() =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
 
     SettingsGroup {
         SettingsSwitchRow(
@@ -835,13 +922,7 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             subtitle = stringResource(R.string.settings_daily_summary_subtitle),
             checked = dailySummaryEnabled,
             onCheckedChange = { enabled ->
-                val needsPermission = enabled &&
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                    androidx.core.content.ContextCompat.checkSelfPermission(
-                        context,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-                if (needsPermission) {
+                if (enabled && needsNotificationPermission()) {
                     dailySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                 } else {
                     settingsViewModel.setDailySummaryEnabled(enabled)
@@ -849,6 +930,56 @@ private fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMod
             },
             position = ListItemPosition.Top
         )
+        SettingsSwitchRow(
+            icon = Icons.Default.Insights,
+            iconBgColor = indigo_light,
+            iconTint = indigo_dark,
+            title = stringResource(R.string.settings_weekly_summary_title),
+            subtitle = stringResource(R.string.settings_weekly_summary_subtitle),
+            checked = weeklySummaryEnabled,
+            onCheckedChange = { enabled ->
+                if (enabled && needsNotificationPermission()) {
+                    weeklySummaryPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    settingsViewModel.setWeeklySummaryEnabled(enabled)
+                }
+            },
+            position = ListItemPosition.Middle
+        )
+        SettingsSwitchRow(
+            icon = Icons.Default.Notifications,
+            iconBgColor = indigo_light,
+            iconTint = indigo_dark,
+            title = stringResource(R.string.settings_budget_alerts_title),
+            subtitle = stringResource(R.string.settings_budget_alerts_subtitle, 80),
+            checked = budgetAlertsEnabled,
+            onCheckedChange = { enabled ->
+                if (enabled && needsNotificationPermission()) {
+                    budgetAlertsPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    settingsViewModel.setBudgetAlertsEnabled(enabled)
+                }
+            },
+            position = ListItemPosition.Middle
+        )
+        if (conscienceAvailable) {
+            SettingsSwitchRow(
+                icon = Icons.Default.Psychology,
+                iconBgColor = pink_light,
+                iconTint = pink_dark,
+                title = stringResource(R.string.conscience_title),
+                subtitle = stringResource(R.string.conscience_settings_subtitle),
+                checked = conscienceEnabled,
+                onCheckedChange = { enabled ->
+                    if (enabled && needsNotificationPermission()) {
+                        consciencePermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        settingsViewModel.setConscienceEnabled(enabled)
+                    }
+                },
+                position = ListItemPosition.Middle
+            )
+        }
         SettingsNavItem(
             icon = Icons.Default.Tune,
             iconBgColor = indigo_light,
@@ -895,7 +1026,7 @@ private fun SecurityPage(
             enabled = appLockUiState.canUseBiometric || appLockUiState.isLockEnabled,
             position = ListItemPosition.Top
         )
-        AnimatedVisibility(visible = appLockUiState.isLockEnabled) {
+        AnimatedVisibility(visible = appLockUiState.isLockEnabled, enter = pwExpand(), exit = pwCollapse()) {
             SettingsNavItem(
                 icon = Icons.Default.Timer,
                 iconBgColor = pink_light,
@@ -1452,8 +1583,8 @@ private fun AiChatSettingsItem(
         // Progress details during download
         AnimatedVisibility(
             visible = downloadState == DownloadState.DOWNLOADING,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
+            enter = pwExpand(),
+            exit = pwCollapse()
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
 
 import androidx.compose.ui.platform.LocalContext
@@ -9,8 +11,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
@@ -33,7 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -54,6 +54,8 @@ import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.AmountPrivacy
@@ -97,13 +99,12 @@ fun SubscriptionsScreen(
 
     // Staggered entrance animation state — only animates on first composition
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slideOffsetPx = with(density) { 30.dp.roundToPx() }
+    val animationsEnabled = rememberAnimationsEnabled()
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
-            delay(600) // slightly after the last possible stagger
+            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
             hasAnimated = true
         }
     }
@@ -133,6 +134,14 @@ fun SubscriptionsScreen(
             snackbarHostState.showSnackbar(message = msg, duration = SnackbarDuration.Short)
             viewModel.clearMarkPaidMessage()
         }
+    }
+
+    // "Payment settled": the user's own mark-paid / link gets the row's check + haptic.
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(uiState.settledSubscriptionId) {
+        val id = uiState.settledSubscriptionId ?: return@LaunchedEffect
+        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        try { delay(SETTLED_HOLD_MILLIS) } finally { viewModel.clearSettled(id) }
     }
 
     // "Not recurring" on a suggestion, undoable.
@@ -211,17 +220,7 @@ fun SubscriptionsScreen(
         ) {
             // Total Monthly Subscriptions Summary (0ms delay)
             item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!hasAnimated) { delay(0); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                    )
-                ) {
+                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                     TotalSubscriptionsSummary(
                         totalAmount = uiState.totalMonthlyAmount,
                         totalByCurrency = uiState.totalByCurrency,
@@ -280,21 +279,12 @@ fun SubscriptionsScreen(
                     items = uiState.activeSubscriptions,
                     key = { _, item -> item.id }
                 ) { index, subscription ->
-                    val visible = remember { mutableStateOf(hasAnimated) }
-                    LaunchedEffect(Unit) {
-                        if (!hasAnimated) { delay((index + 1) * 50L); visible.value = true }
-                    }
-                    AnimatedVisibility(
-                        visible = visible.value,
-                        enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
-                            initialOffsetY = { slideOffsetPx },
-                            animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
-                        )
-                    ) {
+                    StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
                         SwipeableSubscriptionItem(
                             subscription = subscription,
                             accounts = accounts,
                             isPaidThisCycle = subscription.id in uiState.paidThisCycleIds,
+                            settled = subscription.id == uiState.settledSubscriptionId,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             onTap = { markPaidTarget = subscription },
@@ -416,7 +406,7 @@ private fun EndedSubscriptionsSection(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        AnimatedVisibility(visible = expanded) {
+        AnimatedVisibility(visible = expanded, enter = pwExpand(), exit = pwCollapse()) {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 endedSubscriptions.forEach { sub ->
                     EndedSubscriptionItem(
@@ -544,6 +534,7 @@ private fun SwipeableSubscriptionItem(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     isPaidThisCycle: Boolean = false,
+    settled: Boolean = false,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     onTap: () -> Unit = {},
@@ -579,6 +570,7 @@ private fun SwipeableSubscriptionItem(
                     SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
                     else -> Color.Transparent
                 },
+                animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "background color"
             )
             Box(
@@ -618,11 +610,13 @@ private fun SwipeableSubscriptionItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Brand Icon
-                        BrandIcon(
-                            merchantName = subscription.merchantName,
-                            size = 48.dp,
-                            showBackground = true
-                        )
+                        SettledCheck(settled = settled, size = Dimensions.Icon.avatarLarge) {
+                            BrandIcon(
+                                merchantName = subscription.merchantName,
+                                size = Dimensions.Icon.avatarLarge,
+                                showBackground = true
+                            )
+                        }
                         
                         // Content
                         Column(
@@ -882,7 +876,7 @@ private fun SwipeableSubscriptionItem(
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(8.dp)
+                                shape = MaterialTheme.shapes.small
                             ) {
                                 Text(
                                     text = CurrencyFormatter.maskAmountsIn(subscription.smsBody),

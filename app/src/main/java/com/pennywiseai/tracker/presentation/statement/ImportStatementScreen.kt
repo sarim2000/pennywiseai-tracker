@@ -122,7 +122,7 @@ fun ImportStatementScreen(
                 navigationContent = {
                     Box(
                         modifier = Modifier
-                            .animateContentSize()
+                            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
                             .padding(start = 16.dp)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },

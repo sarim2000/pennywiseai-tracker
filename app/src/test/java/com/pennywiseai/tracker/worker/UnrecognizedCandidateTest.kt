@@ -1,6 +1,10 @@
 package com.pennywiseai.tracker.worker
 
+import com.pennywiseai.parser.core.MessageTemplates
+import com.pennywiseai.parser.core.TeachSelection
+import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker.Companion.isUnrecognizedCandidate
+import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker.Companion.taughtSenderKeeps
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -29,5 +33,25 @@ class UnrecognizedCandidateTest {
         assertFalse(isUnrecognizedCandidate("TestBanka", "OTP 123456 for login"))
         assertFalse(isUnrecognizedCandidate("TestShop", "Big sale this weekend, visit us"))
         assertFalse(isUnrecognizedCandidate("+38200000000", "I paid 12,50 EUR for lunch"))
+    }
+
+    @Test
+    fun `a scan keeps a taught sender's new format while it's recent`() {
+        val sample = "Paid SAR 50.00 at Juice Bar"
+        val templates = listOf(
+            MessageTemplates.build(
+                id = "t", senderKey = "ZQTBNK", body = sample,
+                selection = TeachSelection(amount = 9..13),
+                type = TransactionType.EXPENSE, currency = "SAR", bankName = "Zqt Bank"
+            )!!
+        )
+        fun kept(body: String, timestamp: Long) = taughtSenderKeeps(templates, "ZQTBNK", body, timestamp, recentSince = 100L)
+
+        assertTrue("taught shape", kept("Paid SAR 75.00 at Juice Bar", 200L))
+        assertTrue("taught shape, however old", kept("Paid SAR 75.00 at Juice Bar", 50L))
+        assertTrue("new format", kept("You spent SAR 75.00 today", 200L))
+        assertFalse("an old one is no change of format", kept("You spent SAR 75.00 today", 50L))
+        assertFalse("not about money", kept("Your parcel has arrived", 200L))
+        assertFalse("an OTP", kept("OTP 123456 for your SAR 75.00 payment", 200L))
     }
 }

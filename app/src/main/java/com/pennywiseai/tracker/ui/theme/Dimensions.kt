@@ -99,6 +99,9 @@ object Dimensions {
         /** Larger avatar — profile headers, prominent settings rows. */
         val avatarLarge = 48.dp
 
+        /** The merchant avatar heading a detail screen (transaction detail). */
+        val hero = 56.dp
+
         /** The glyph inside an empty-state circle. */
         val emptyStateGlyph = 32.dp
 
@@ -127,6 +130,18 @@ object Dimensions {
     // ── Component metrics ─────────────────────────────────────────────────
     object Component {
         val bottomBarHeight = 80.dp
+
+        /** Expanded height of `CustomTitleTopAppBar`'s collapsing bar (title only). */
+        val appBarExpandedHeight = 110.dp
+
+        /** The same bar with a subtitle line — one M3 subtitle step (24dp) taller. */
+        val appBarExpandedHeightWithSubtitle = 134.dp
+
+        /** Home's expanded bar, tall enough to hold the GreetingCard. */
+        val homeAppBarExpandedHeight = 150.dp
+
+        /** The year review's month bars. */
+        val reviewBarHeight = 72.dp
 
         /** Widest a current value may get at the end of a settings row. */
         val rowValueMaxWidth = 96.dp
@@ -179,6 +194,10 @@ object Dimensions {
          * Material default — three weights for the same idea.
          */
         val progressBarHeight = 8.dp
+
+        /** The "today" tick on a budget meter: stands a little proud of the track so it reads over the fill. */
+        val paceTickHeight = 14.dp
+        val paceTickWidth = 2.dp
 
         /** Goal progress ring on a card, and its stroke (#914). */
         val goalRing = 56.dp

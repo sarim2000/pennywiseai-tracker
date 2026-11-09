@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.*
@@ -235,8 +237,8 @@ fun FAQScreen(
                                 
                                 AnimatedVisibility(
                                     visible = isExpanded,
-                                    enter = expandVertically() + fadeIn(),
-                                    exit = shrinkVertically() + fadeOut()
+                                    enter = pwExpand(),
+                                    exit = pwCollapse()
                                 ) {
                                     Spacer(modifier = Modifier.height(Spacing.sm))
                                     Row(

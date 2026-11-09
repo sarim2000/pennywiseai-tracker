@@ -10,6 +10,10 @@ import androidx.annotation.RequiresApi
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -93,6 +97,7 @@ import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.screens.settings.BackgroundAccessChecklist
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -123,6 +128,7 @@ fun OnBoardingScreen(
                         OnBoardingStep.WELCOME -> viewModel.goToNextStep()
                         OnBoardingStep.PROFILE -> viewModel.goToNextStep()
                         OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
+                        OnBoardingStep.BACKGROUND_ACCESS -> viewModel.goToNextStep()
                         OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
                         OnBoardingStep.ACCOUNT_SETUP -> {
                             viewModel.completeOnboarding(onOnboardingComplete)
@@ -146,6 +152,9 @@ fun OnBoardingScreen(
             )
         }
     ) { innerPadding ->
+        val motion = MaterialTheme.motionScheme
+        // Forward comes from the end edge: the right in LTR, the left in RTL.
+        val endSign = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
         AnimatedContent(
             targetState = uiState.currentStep,
             modifier = Modifier
@@ -154,11 +163,12 @@ fun OnBoardingScreen(
             transitionSpec = {
                 val targetIndex = stepOrder.indexOf(targetState)
                 val initialIndex = stepOrder.indexOf(initialState)
-                if (targetIndex > initialIndex) {
-                    slideInHorizontally { it } togetherWith slideOutHorizontally { -it }
-                } else {
-                    slideInHorizontally { -it } togetherWith slideOutHorizontally { it }
-                }
+                // Short travel (a fifth of the width), slow spatial for a full-screen move.
+                val dir = if (targetIndex > initialIndex) endSign else -endSign
+                (fadeIn(motion.defaultEffectsSpec()) +
+                    slideInHorizontally(motion.slowSpatialSpec()) { dir * it / 5 }) togetherWith
+                    (fadeOut(motion.defaultEffectsSpec()) +
+                        slideOutHorizontally(motion.slowSpatialSpec()) { -dir * it / 5 })
             },
             label = "onboarding_step"
         ) { step ->
@@ -175,6 +185,7 @@ fun OnBoardingScreen(
                     uiState = uiState,
                     onPermissionResult = { viewModel.onSmsPermissionResult(it) }
                 )
+                OnBoardingStep.BACKGROUND_ACCESS -> BackgroundAccessStep()
                 OnBoardingStep.SMS_SCAN -> SmsScanStep(uiState = uiState)
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
@@ -657,6 +668,25 @@ private fun PermissionsStep(
     }
 }
 
+@Composable
+private fun BackgroundAccessStep() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        Text(
+            text = stringResource(R.string.background_access_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        BackgroundAccessChecklist()
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun SmsScanStep(uiState: OnBoardingUiState) {
@@ -1062,6 +1092,12 @@ private fun OnBoardingBottomBar(
                         Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.onboarding_continue))
                         }
+                    }
+                }
+
+                OnBoardingStep.BACKGROUND_ACCESS -> {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.onboarding_continue))
                     }
                 }
 

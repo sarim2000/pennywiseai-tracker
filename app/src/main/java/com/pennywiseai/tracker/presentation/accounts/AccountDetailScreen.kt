@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.domain.model.icon
@@ -168,7 +170,8 @@ fun AccountDetailScreen(
                     AccountTransactionItem(
                         transaction = transaction,
                         primaryCurrency = uiState.primaryCurrency,
-                        onClick = { onTransactionClick(transaction.id) }
+                        onClick = { onTransactionClick(transaction.id) },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -249,8 +252,8 @@ private fun ExpandableBalanceChart(
             
             AnimatedVisibility(
                 visible = isExpanded,
-                enter = expandVertically(),
-                exit = shrinkVertically()
+                enter = pwExpand(),
+                exit = pwCollapse()
             ) {
                 Column {
                     Spacer(modifier = Modifier.height(Spacing.md))
@@ -521,7 +524,8 @@ private fun DateRangeFilter(
 private fun AccountTransactionItem(
     transaction: TransactionEntity,
     primaryCurrency: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val amountColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
@@ -538,7 +542,7 @@ private fun AccountTransactionItem(
     }
     
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(

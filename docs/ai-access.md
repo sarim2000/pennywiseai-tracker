@@ -13,7 +13,7 @@ The connection then shows under **Connected apps**, where you can disconnect it 
 ## Ask questions
 
 1. Start an **AI session** in the app (15, 30 or 60 minutes), or tap the **PennyWise AI** tile in Quick Settings. A notification shows while it's on, with **+15 min** and **Stop**.
-2. Ask the AI app anything, for example “What did I spend on food last month?” or “Which subscriptions renew this week?”.
+2. Ask the AI app anything, for example “What did I spend on food last month?” or “Which subscriptions renew this week?”. With changes allowed, you can also ask it to tidy up, for example “file everything from Swiggy and Zomato under Food” or “make a rule that puts my rent payments in Housing”.
 
 Outside a session the AI app gets a message telling you to start one. Nothing can reach your data then.
 
@@ -27,7 +27,7 @@ Open `https://ai.pennywise.zynth.dev/dashboard/` on a computer, click **Connect 
 
 - **Can read:** transactions (date, merchant or payee, category, type, amount and currency, bank and last 4 digits of the account), account balances and card dues, and active subscriptions — across your whole history and all profiles.
 - **Never get:** SMS text, full account numbers, UPI or reference numbers, notes, receipts, budgets, goals, loans or settings.
-- **Can't change anything.** Every tool is read-only.
+- **Change nothing unless you allow it.** Turn on **Let AI apps make changes** on the Connect Claude / ChatGPT screen to let them create categories and rules, set a merchant's category (for its future transactions, and its past ones still in Others) or display name. It's off by default, and the AI app asks you before each change. They can never delete transactions or edit amounts.
 - Amounts always come with their currency; totals are never added across currencies.
 - The AI app's provider (for example Anthropic or OpenAI) sees the answers it receives, under its own privacy policy.
 

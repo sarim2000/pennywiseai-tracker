@@ -8,10 +8,13 @@
     <string name="widget_description_category_pie">यो महिनाको खर्च वर्गअनुसार, संकेतसहितको पाई चार्टमा।</string>
     <string name="widget_name_add_transaction">नगद खर्च</string>
     <string name="widget_name_summary">खर्च सारांश</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">लेनदेन थप्नुहोस्</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">थप्नुहोस्</string>
     <string name="shortcut_add_transaction_long">लेनदेन थप्नुहोस्</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">विकासमा सहयोग गर्नुहोस्</string>
     <string name="support_subtitle">एक्लो developer ले बनाएको — सानो टिपले यसलाई अघि बढाउँछ 🦉</string>
     <string name="support_dialog_body">PennyWise निःशुल्क र open source हो, एक्लो developer ले बनाएको। यो build मा सबै कुरा पहिले नै अनलक छ। यदि यो तपाईंलाई काम लाग्छ भने, एउटा टिपले यसलाई अघि बढाउँछ 🦉</string>

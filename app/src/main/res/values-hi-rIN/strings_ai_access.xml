@@ -6,7 +6,6 @@
     <string name="ai_access_settings_subtitle_pro">Pro · आपकी इजाज़त रहने तक AI ऐप्स आपका डेटा पढ़ सकें</string>
     <string name="ai_access_title">AI एक्सेस</string>
     <string name="ai_access_back">वापस</string>
-    <string name="ai_access_intro">Claude, ChatGPT या किसी और AI ऐप से अपने खर्च के बारे में पूछें, या कंप्यूटर पर डैशबोर्ड खोलें। वे आपके लेन-देन, बाकी राशि और सदस्यताएँ सिर्फ़ तभी पढ़ सकते हैं जब AI सेशन चालू हो। वे कुछ भी बदल नहीं सकते।</string>
     <string name="ai_access_pro_only">AI एक्सेस एक Pro सुविधा है।</string>
     <string name="ai_access_unlock">Pro से अनलॉक करें</string>
     <string name="ai_access_session_title">AI सेशन</string>
@@ -34,7 +33,6 @@
     <string name="ai_access_connected_on">कनेक्ट हुआ %s</string>
     <string name="ai_access_disconnect">डिस्कनेक्ट करें</string>
     <string name="ai_access_disconnected">डिस्कनेक्ट हो गया।</string>
-    <string name="ai_access_privacy">आपका डेटा आपके फ़ोन पर ही रहता है। AI सेशन के दौरान AI ऐप के सवाल रिले से होकर आपके फ़ोन तक आते हैं और जवाब उसी रास्ते वापस जाते हैं। रिले इन्हें कभी सेव या लॉग नहीं करता। AI ऐप की कंपनी (जैसे Anthropic या OpenAI) को वही जवाब दिखते हैं जो उसे मिलते हैं।\n\nकनेक्ट किए गए ऐप्स सभी प्रोफ़ाइल में आपकी पूरी हिस्ट्री खोज सकते हैं, स्थानांतरण में पाने वालों के नाम भी। उन्हें SMS टेक्स्ट, पूरे खाता नंबर या रेफ़रेंस नंबर कभी नहीं मिलते।</string>
     <string name="ai_access_relay_title">अपना खुद का रिले इस्तेमाल करें</string>
     <string name="ai_access_relay_body">पूरे कंट्रोल के लिए ओपन-सोर्स रिले (PennyWise की GitHub रिपॉज़िटरी में relay/) को अपने Cloudflare अकाउंट पर डिप्लॉय करें और उसका पता डालें। रिले बदलने पर हर AI ऐप डिस्कनेक्ट हो जाएगा।</string>
     <string name="ai_access_relay_label">रिले का पता</string>

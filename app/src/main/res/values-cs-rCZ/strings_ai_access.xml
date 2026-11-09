@@ -6,7 +6,6 @@
     <string name="ai_access_settings_subtitle_pro">Pro · Nechte AI aplikace číst vaše data, dokud to povolíte</string>
     <string name="ai_access_title">Přístup pro AI</string>
     <string name="ai_access_back">Zpět</string>
-    <string name="ai_access_intro">Zeptejte se Claude, ChatGPT nebo jiné AI aplikace na své výdaje, nebo otevřete přehled na počítači. Vaše transakce, zůstatky a předplatné mohou číst jen během zapnuté AI relace. Nic změnit nemohou.</string>
     <string name="ai_access_pro_only">Přístup pro AI je funkce Pro.</string>
     <string name="ai_access_unlock">Odemknout s Pro</string>
     <string name="ai_access_session_title">AI relace</string>
@@ -32,7 +31,6 @@
     <string name="ai_access_connected_on">Připojeno %s</string>
     <string name="ai_access_disconnect">Odpojit</string>
     <string name="ai_access_disconnected">Odpojeno.</string>
-    <string name="ai_access_privacy">Vaše data zůstávají v telefonu. Během AI relace putují dotazy AI aplikace přes relay do vašeho telefonu a odpovědi se vracejí stejnou cestou. Relay je nikdy neukládá ani nezaznamenává. Poskytovatel AI aplikace (například Anthropic nebo OpenAI) vidí odpovědi, které obdrží.\n\nPřipojené aplikace mohou prohledávat celou vaši historii ve všech profilech, včetně jmen příjemců u převodů. Nikdy nedostanou text SMS, celá čísla účtů ani referenční čísla.</string>
     <string name="ai_access_relay_title">Použít vlastní relay</string>
     <string name="ai_access_relay_body">Pro plnou kontrolu nasaďte open-source relay (relay/ v GitHub repozitáři PennyWise) na svůj vlastní účet Cloudflare a zadejte jeho adresu. Změna relay odpojí všechny AI aplikace.</string>
     <string name="ai_access_relay_label">Adresa relay</string>

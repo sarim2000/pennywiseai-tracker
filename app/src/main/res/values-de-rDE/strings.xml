@@ -8,10 +8,13 @@
     <string name="widget_description_category_pie">Die Ausgaben dieses Monats nach Kategorie als Kreisdiagramm mit Legende.</string>
     <string name="widget_name_add_transaction">Barausgabe</string>
     <string name="widget_name_summary">Ausgabenübersicht</string>
+    <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">Transaktion hinzufügen</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">Hinzufügen</string>
     <string name="shortcut_add_transaction_long">Transaktion hinzufügen</string>
+    <!-- Developer's public donation address, shown in the "Support development"
+         section on F-Droid builds (which have no Play billing). Intentionally
+         public (a name-based UPI VPA, not a phone number). -->
     <string name="support_title">Entwicklung unterstützen</string>
     <string name="support_subtitle">Von einem einzelnen Entwickler gebaut – ein kleines Trinkgeld hält das Projekt am Laufen 🦉</string>
     <string name="support_dialog_body">PennyWise ist kostenlos und Open Source, gebaut von einem einzelnen Entwickler. In dieser Version ist bereits alles freigeschaltet. Wenn Ihnen die App hilft, hält ein Trinkgeld sie am Laufen 🦉</string>

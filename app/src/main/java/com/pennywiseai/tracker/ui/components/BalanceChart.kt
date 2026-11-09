@@ -4,8 +4,6 @@ import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
-import androidx.compose.animation.core.EaseInOutCubic
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -15,6 +13,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -86,6 +85,7 @@ fun BalanceChart(
         }
     }
 
+    val animationsEnabled = rememberAnimationsEnabled()
     LineChart(
         modifier = modifier
             .fillMaxWidth()
@@ -98,7 +98,8 @@ fun BalanceChart(
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
                 secondGradientFillColor = Color.Transparent,
-                strokeAnimationSpec = tween(1500, easing = EaseInOutCubic),
+                strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+                gradientAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                 gradientAnimationDelay = 750,
                 drawStyle = DrawStyle.Stroke(width = 2.dp),
                 curvedEdges = true,
@@ -170,7 +171,8 @@ fun BalanceChart(
                 color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
             )
         ),
-        animationMode = AnimationMode.Together(delayBuilder = { it * 200L }),
+        // The library's coroutine delays ignore Remove animations; None draws it at once.
+        animationMode = if (animationsEnabled) AnimationMode.Together(delayBuilder = { it * 200L }) else AnimationMode.None,
     )
 }
 

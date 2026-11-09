@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.PaddingValues
@@ -54,8 +56,8 @@ fun PreferenceSwitch(
 ) {
     BlurredAnimatedVisibility(
         visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut()
+        enter = pwFadeIn(),
+        exit = pwFadeOut()
     ) {
         GroupedRow(
             position = position,

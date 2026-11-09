@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -16,6 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.Animatable
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
@@ -50,6 +51,11 @@ fun SpendingHeatmap(
     val dayLabels = remember(locale) {
         DayOfWeek.entries.map { it.getDisplayName(TextStyle.NARROW, locale) }
     }
+    // The grid fades in once, as one piece; data changes repaint cells without re-fading.
+    val gridAlpha = remember { Animatable(0f) }
+    val gridFade = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
+    LaunchedEffect(Unit) { gridAlpha.animateTo(1f, gridFade) }
+
     val gapSize = 4.dp
     val dayLabelColumnWidth = 24.dp
     val minCellSize = 20.dp
@@ -100,11 +106,12 @@ fun SpendingHeatmap(
 
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = if (gridFits) {
-                            Modifier.padding(bottom = 8.dp)
-                        } else {
-                            Modifier.horizontalScroll(scrollState).padding(bottom = 8.dp)
-                        }
+                        modifier = Modifier
+                            .graphicsLayer { alpha = gridAlpha.value }
+                            .then(
+                                if (gridFits) Modifier.padding(bottom = 8.dp)
+                                else Modifier.horizontalScroll(scrollState).padding(bottom = 8.dp)
+                            )
                     ) {
                         for (w in 0 until totalWeeks) {
                             Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
@@ -127,7 +134,7 @@ fun SpendingHeatmap(
                                     Box(
                                         modifier = Modifier
                                             .size(cellSize)
-                                            .clip(RoundedCornerShape(4.dp))
+                                            .clip(MaterialTheme.shapes.extraSmall)
                                             .background(color)
                                     )
                                 }

@@ -269,9 +269,6 @@
     <string name="chat_dismiss">Закрыть</string>
     <string name="chat_input_placeholder">Спросите или расскажите, на что потратили…</string>
     <string name="chat_send">Отправить</string>
-    <string name="chat_memory_almost_full">Память чата почти заполнена! Очистите чат, чтобы продолжить.</string>
-    <string name="chat_memory_warning">Память чата заполнена на %1$d%%. Рекомендуется очистить вскоре.</string>
-    <string name="chat_memory_usage">Память чата заполнена на %1$d%%.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d сообщение</item>
         <item quantity="few">Qwen 2.5 1.5B • %1$d сообщений</item>
@@ -280,7 +277,6 @@
     </plurals>
     <string name="chat_stats_tokens">%1$s токенов</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s токенов</string>
-    <string name="chat_stats_system_tokens">Система: %1$s</string>
     <string name="chat_context_usage">Использование контекста</string>
     <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Свернуть</string>
@@ -308,9 +304,9 @@
     <string name="chat_action_update">Обновить</string>
     <string name="chat_action_change_merchant">торговец → %1$s</string>
     <string name="chat_action_change_category">категория → %1$s</string>
+    <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Не может быть применено: %1$s</string>
-    <string name="chat_error_memory_full">Память чата заполнена. Очистите чат, чтобы продолжить.</string>
     <string name="chat_error_model_downloading">Модель загружается. Пожалуйста, подождите.</string>
     <string name="chat_error_model_not_downloaded">Модель ИИ не загружена. Перейдите в Настройки для загрузки.</string>
     <string name="chat_error_generate_failed">Не удалось сгенерировать ответ</string>

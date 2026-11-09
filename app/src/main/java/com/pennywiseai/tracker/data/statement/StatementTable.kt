@@ -66,6 +66,10 @@ data class CellAmount(val value: BigDecimal, val negative: Boolean?)
 
 data class TableParseResult(val transactions: List<ParsedTransaction>, val skippedRows: Int)
 
+/** Imported rows keep a parser's name as their sender: STATEMENT, or "<source> PDF". */
+internal fun isStatementSender(sender: String): Boolean =
+    sender == StatementTableParser.STATEMENT_SENDER || sender.endsWith(" PDF")
+
 /** Pure: spreadsheet rows + a [StatementColumnMapping] → transactions. */
 object StatementTableParser {
 

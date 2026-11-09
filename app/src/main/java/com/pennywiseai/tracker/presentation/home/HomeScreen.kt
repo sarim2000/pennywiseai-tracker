@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.home
 
 import com.pennywiseai.tracker.utils.AppDates
 
+import androidx.activity.compose.ReportDrawnWhen
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -13,9 +14,8 @@ import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
 import androidx.activity.compose.LocalActivity
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.SwapHoriz
@@ -61,7 +62,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -72,12 +72,13 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.delay
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.data.share.SharePeriod
+import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
-import com.pennywiseai.tracker.ui.components.ShareMonthBanner
+import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.ReviewPromptBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
@@ -119,8 +120,9 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-/** Distance each card travels on the first-composition entrance animation. */
-private val ENTRANCE_SLIDE_DISTANCE = Spacing.lg
+/** Entrance stagger step, and the most steps it takes — later sections share the last beat. */
+private const val ENTRANCE_STAGGER_MS = 50L
+private const val ENTRANCE_STAGGER_MAX_STEPS = 6
 
 /** Diameter of one avatar in the overlapping subscription stack. */
 private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
@@ -143,6 +145,7 @@ fun HomeScreen(
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -156,6 +159,8 @@ fun HomeScreen(
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    // Time to full display: the balance and recent list show data, not skeletons.
+    ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
     val isProEntitled by viewModel.isProEntitled.collectAsState()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsState()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
@@ -164,7 +169,7 @@ fun HomeScreen(
     val groupSummaries by viewModel.groupSummaries.collectAsState()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
-    val showSharePrompt by viewModel.showSharePrompt.collectAsState()
+    val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
@@ -182,9 +187,6 @@ fun HomeScreen(
     var showMenuSheet by remember { mutableStateOf(false) }
     var showShareSheet by remember { mutableStateOf(false) }
     var showEditWidgetsSheet by remember { mutableStateOf(false) }
-    // Period the sheet should open on. The monthly banner points it at the finished
-    // month; opening from the overflow menu uses whatever the user saved.
-    var sharePromptPeriod by remember { mutableStateOf<SharePeriod?>(null) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
     // Profile filter dropdown state
@@ -224,14 +226,13 @@ fun HomeScreen(
     // Each item's effect checks its own `visible`, not hasAnimated: an item composed
     // just before hasAnimated flips would otherwise skip its reveal and stay hidden.
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slideOffsetPx = with(density) { ENTRANCE_SLIDE_DISTANCE.roundToPx() }
-    val motion = MaterialTheme.motionScheme
+    val animationsEnabled = rememberAnimationsEnabled()
 
     // Mark entrance animation as complete after all stagger delays have fired
     LaunchedEffect(Unit) {
         if (!hasAnimated) {
-            delay(350) // slightly after the last stagger (300ms)
+            // Slightly after the last stagger; no wait when animations are off.
+            if (animationsEnabled) delay(ENTRANCE_STAGGER_MS * (ENTRANCE_STAGGER_MAX_STEPS + 1))
             hasAnimated = true
         }
     }
@@ -296,7 +297,7 @@ fun HomeScreen(
         }
     }
     
-    Scaffold(
+    PennyWiseScaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         // The bottom nav bar is overlaid on top of this Scaffold by MainScreen,
@@ -308,7 +309,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = Dimensions.Component.bottomBarHeight)
             )
         },
-        topBar = {
+        customTopBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
@@ -485,17 +486,7 @@ fun HomeScreen(
         ) {
             // 1. Balance Card (0ms delay)
             item {
-                val visible = remember { mutableStateOf(hasAnimated) }
-                LaunchedEffect(Unit) {
-                    if (!visible.value) { delay(0); visible.value = true }
-                }
-                AnimatedVisibility(
-                    visible = visible.value,
-                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                        initialOffsetY = { slideOffsetPx },
-                        animationSpec = motion.defaultSpatialSpec()
-                    )
-                ) {
+                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                     if (!uiState.isBalanceReady) {
                         BalanceCardSkeleton(
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
@@ -541,18 +532,19 @@ fun HomeScreen(
             val promoSlot: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
                 val payday = paydaySuggestion
                 val recurring = recurringSuggestions
-                // Monthly share prompt. Offers the user something ("your month, summed
-                // up") rather than asking a favour, and only appears when the finished month
-                // actually has enough in it to be worth sending.
-                if (showSharePrompt) {
+                // Review prompt. Offers the user something ("your month, summed up")
+                // rather than asking a favour, and only appears when the finished period
+                // actually has enough in it to be worth reading.
+                val prompt = reviewPrompt
+                if (prompt != null) {
                     item {
-                        ShareMonthBanner(
+                        ReviewPromptBanner(
+                            prompt = prompt,
                             onOpen = {
-                                viewModel.markSharePromptHandled()
-                                sharePromptPeriod = SharePeriod.LAST_MONTH
-                                showShareSheet = true
+                                viewModel.markReviewPromptHandled()
+                                onNavigateToReview(prompt.kind)
                             },
-                            onDismiss = { viewModel.markSharePromptHandled() },
+                            onDismiss = { viewModel.markReviewPromptHandled() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                         )
                     }
@@ -614,23 +606,13 @@ fun HomeScreen(
                 }
             }
             for ((index, section) in visibleSections.withIndex()) {
-                val delayMs = 50L * (index + 1)
+                val delayMs = ENTRANCE_STAGGER_MS * (index + 1).coerceAtMost(ENTRANCE_STAGGER_MAX_STEPS)
                 when (section) {
                     HomeSection.SAFE_TO_SPEND -> {
                         // Only once there's a spendable account with a balance.
                         safeToSpend?.let { state ->
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     SafeToSpendCard(
                                         state = state,
                                         isBalanceHidden = uiState.isBalanceHidden,
@@ -646,17 +628,7 @@ fun HomeScreen(
                         // 2. Budget Carousel
                         uiState.budgetSummary?.let { summary ->
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -689,17 +661,7 @@ fun HomeScreen(
                         // 2.25. Goals (#914) — only when there's a non-archived goal.
                         if (goals.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -731,17 +693,7 @@ fun HomeScreen(
                         // 2.5. Loans Summary — only when active loans exist
                         uiState.loanSummary?.let { summary ->
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -781,17 +733,7 @@ fun HomeScreen(
                         // to have recent activity.
                         if (groupSummaries.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -828,17 +770,7 @@ fun HomeScreen(
                     HomeSection.RECENT_TRANSACTIONS -> {
                         // 3. Recent Transactions Section
                         item(key = section.name) {
-                            val visible = remember { mutableStateOf(hasAnimated) }
-                            LaunchedEffect(Unit) {
-                                if (!visible.value) { delay(delayMs); visible.value = true }
-                            }
-                            AnimatedVisibility(
-                                visible = visible.value,
-                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                    initialOffsetY = { slideOffsetPx },
-                                    animationSpec = motion.defaultSpatialSpec()
-                                )
-                            ) {
+                            StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                 Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                                     SectionHeaderV2(
                                         title = stringResource(R.string.home_section_recent_transactions),
@@ -889,17 +821,7 @@ fun HomeScreen(
                             }
                         } else if (uiState.recentItems.isEmpty()) {
                             item(key = "${section.name}_body") {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     PennyWiseEmptyState(
                                         icon = Icons.Default.Sync,
                                         headline = stringResource(R.string.home_empty_headline),
@@ -921,17 +843,7 @@ fun HomeScreen(
                             }
                         } else {
                             item(key = "${section.name}_body") {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
@@ -967,17 +879,7 @@ fun HomeScreen(
                         // 4. Account Carousel
                         if (uiState.creditCards.isNotEmpty() || uiState.accountBalances.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -1016,17 +918,7 @@ fun HomeScreen(
                         // 5. Upcoming Subscriptions Alert
                         if (uiState.upcomingSubscriptions.isNotEmpty()) {
                             item(key = section.name) {
-                                val visible = remember { mutableStateOf(hasAnimated) }
-                                LaunchedEffect(Unit) {
-                                    if (!visible.value) { delay(delayMs); visible.value = true }
-                                }
-                                AnimatedVisibility(
-                                    visible = visible.value,
-                                    enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                        initialOffsetY = { slideOffsetPx },
-                                        animationSpec = motion.defaultSpatialSpec()
-                                    )
-                                ) {
+                                StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     Column(
                                         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                     ) {
@@ -1067,17 +959,7 @@ fun HomeScreen(
                         // Reference detail, so a late, hideable section rather than a fixed
                         // card above the decision cards. Hides itself on dormant months.
                     item(key = section.name) {
-                        val visible = remember { mutableStateOf(hasAnimated) }
-                        LaunchedEffect(Unit) {
-                            if (!visible.value) { delay(delayMs); visible.value = true }
-                        }
-                        AnimatedVisibility(
-                            visible = visible.value,
-                            enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                initialOffsetY = { slideOffsetPx },
-                                animationSpec = motion.defaultSpatialSpec()
-                            )
-                        ) {
+                        StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                             CashFlowCard(
                                 currency = uiState.selectedCurrency,
                                 // When card spend counts as expense (#705) it's already in
@@ -1096,17 +978,7 @@ fun HomeScreen(
                     HomeSection.ACTIVITY -> {
                         // 6. Heatmap Widget
                         item(key = section.name) {
-                            val visible = remember { mutableStateOf(hasAnimated) }
-                            LaunchedEffect(Unit) {
-                                if (!visible.value) { delay(delayMs); visible.value = true }
-                            }
-                            AnimatedVisibility(
-                                visible = visible.value,
-                                enter = fadeIn(motion.defaultEffectsSpec()) + slideInVertically(
-                                    initialOffsetY = { slideOffsetPx },
-                                    animationSpec = motion.defaultSpatialSpec()
-                                )
-                            ) {
+                            StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                 Column(
                                     verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
                                 ) {
@@ -1147,6 +1019,7 @@ fun HomeScreen(
                     },
                     onLongClickLabel = fullResyncLabel,
                     loading = uiState.isScanning,
+                    resultCount = uiState.scanNewCount,
                     onPositioned = onFabPositioned
                 )
             )
@@ -1304,10 +1177,7 @@ fun HomeScreen(
 
     // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
     if (showShareSheet) {
-        ShareCardSheet(
-            initialPeriod = sharePromptPeriod,
-            onDismiss = { showShareSheet = false; sharePromptPeriod = null },
-        )
+        ShareCardSheet(onDismiss = { showShareSheet = false })
     }
 
     // Avatar menu bottom sheet
@@ -1335,14 +1205,23 @@ fun HomeScreen(
                         .fillMaxWidth()
                 )
 
-                // Monthly recap (Top) — the growth loop lives here rather than buried
-                // in the Subscriptions screen, where nobody would find it. Named for what
-                // it is rather than "Share ...": the menu sits beside Settings and Rate,
-                // and leading with the ask makes it read as a favour being requested.
+                // Reviews (Top) — week, cycle and year, whatever the Home banner is offering.
                 MenuListItem(
-                    headline = stringResource(R.string.home_menu_monthly_recap),
-                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    headline = stringResource(R.string.review_title),
+                    icon = { Icon(Icons.Default.Insights, contentDescription = null) },
                     position = ListItemPosition.Top,
+                    onClick = {
+                        showMenuSheet = false
+                        onNavigateToReview(ReviewKind.MONTH)
+                    }
+                )
+
+                // Share card (Middle) — the growth loop lives here rather than buried
+                // in the Subscriptions screen, where nobody would find it.
+                MenuListItem(
+                    headline = stringResource(R.string.home_menu_share_card),
+                    icon = { Icon(Icons.Default.Share, contentDescription = null) },
+                    position = ListItemPosition.Middle,
                     onClick = {
                         showMenuSheet = false
                         showShareSheet = true

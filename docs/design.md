@@ -98,6 +98,7 @@ a mistake next to its neighbours.
 | `large` | 32dp | Glyph inside a tonal circle; prominent standalone glyph |
 | `list` / `avatar` | 40dp | Leading avatar / brand circle in a row (M3 standard) |
 | `avatarLarge` | 48dp | Profile headers, settings-row circles |
+| `hero` | 56dp | The merchant avatar heading a detail screen |
 | `emptyStateGlyph` / `emptyStateContainer` | 32 / 64dp | Empty-state icon + its circle |
 | `extraLarge` | 96dp | Whole-screen illustrative icon |
 
@@ -183,7 +184,8 @@ the jobs the plain roles don't cover:
 ## Shape
 
 `theme/Shape.kt`: `extraSmall` 4 · `small` 8 · `medium` 12 · `large` 16 ·
-`extraLarge` 28.
+`largeIncreased` 20 · `extraLarge` 28 · `extraLargeIncreased` 32 ·
+`extraExtraLarge` 48 (the last three are the M3 Expressive steps).
 
 Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
@@ -265,8 +267,23 @@ width-capped so centred text doesn't wrap into an awkward shape.
 
 ### `PennyWiseScaffold` / `CustomTitleTopAppBar`
 
-All screens use one of these for consistent system-bar and app-bar handling.
-App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
+All screens use `PennyWiseScaffold` for consistent system-bar and app-bar
+handling — no raw `Scaffold`. Pass `title` for its plain top bar, or a
+`CustomTitleTopAppBar` through `customTopBar` for the collapsing one. The
+scaffold also takes `snackbarHost`; tab screens under the overlaid nav bar pad
+it by `Dimensions.Component.bottomBarHeight`.
+
+- `CustomTitleTopAppBar`'s expanded bar is the M3 Expressive
+  `LargeFlexibleTopAppBar`; the collapsed bar is a centred single-row bar.
+  Expanded heights are the `Dimensions.Component.appBarExpandedHeight*` and
+  `homeAppBarExpandedHeight` tokens — no dp literals.
+- Titles use `titleLarge` collapsed and `headlineMediumEmphasized` expanded
+  (one of the emphasized hero moments below).
+- **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the
+  screen would otherwise lose on scroll — e.g. Transactions shows the active
+  period, because its period chip hides when the list scrolls. It shows in
+  both bar states and makes the expanded bar one step taller. Don't repeat the
+  title or invent data for it; leave it `null` when there's nothing to add.
 
 ### Choices and progress (Material 3 Expressive)
 
@@ -288,6 +305,36 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
   use them for bounded data values (progress fractions, chart sweeps), where
   a bounce past 100% reads as wrong. `tween` stays only inside
   `infiniteRepeatable` loops or where a duration is load-bearing.
+- **Motion language.** Generic transitions live in
+  `ui/animations/PennyWiseMotion.kt` (`pwEnter`/`pwExit`, `pwFadeIn`/`pwFadeOut`,
+  `pwExpand`/`pwCollapse`, `StaggeredEntrance`, `rememberAnimationsEnabled`);
+  use them before hand-building a fade/slide/expand. No default-spec
+  `fadeIn()`, `expandVertically()`, `animate*AsState` etc. — always pass a
+  `motionScheme` spec.
+  1. **Chrome moves, money settles.** Position/size/shape use spatial specs
+     (`fast` < 48dp parts, `default` cards/sheets/panels, `slow` full screens);
+     amounts, percents, arcs, bars, alpha and colour use effects specs. A number
+     never passes through a value it doesn't have. An amount's own drift and
+     size settle, and a programmatic scroll to a scroll boundary, are effects
+     too: an overshooting spring would jiggle the figure or hit the clamp.
+  2. **One beat per change** — no staggering digits or sibling figures.
+  3. **Short travel.** Slides are a fraction of the screen (a few dp for
+     content, a quarter of the bar for chrome), never full-width by default.
+  4. **No bounce on data; no scale-in on icons or content** (Material reads
+     scale as elevation) — fade them. The one exception is the one-shot Pro
+     purchase celebration in `UpgradeSheet`, which springs its icon in on
+     `fastSpatialSpec()`. Empty states and success checks don't scale.
+  5. **Stagger once**, on a screen's first entrance (`StaggeredEntrance` with a
+     saveable `hasAnimated`); scrolling lists and returning to a tab don't.
+  6. **"Remove animations" means content is just there.** Compose zeroes
+     durations itself; skip `delay`-based choreography too
+     (`rememberAnimationsEnabled()`).
+- **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
+  `Modifier.animateItem()` on the item's root composable, so rows slide on
+  insert, remove and filter instead of jumping. It needs a stable, unique
+  key, and must sit on the item root (e.g. the `AnimatedVisibility`, not the
+  card inside it). `AnimatedCurrencyText` swaps instantly when either side is
+  the privacy mask — hiding amounts isn't a value change.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
@@ -306,8 +353,9 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
   Action menus stay `DropdownMenuItem`. Include/exclude lists whose items are
   all ticked by default keep checkbox rows (their icons identify them).
 - **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
-  for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
-  expanded app-bar title.
+  for hero moments only: the Home hero amount — this month's spending in the
+  expanded `BalanceCard` (`PennyWiseText.heroAmount`) — and the expanded
+  app-bar title.
 - The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
   (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 

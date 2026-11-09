@@ -8,6 +8,7 @@ import androidx.sqlite.execSQL
 import com.pennywiseai.tracker.data.database.longs
 import com.pennywiseai.tracker.data.database.pennyWiseMigrationHelper
 import com.pennywiseai.tracker.data.database.rows
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -119,7 +120,7 @@ class DuplicateAccountDialogTest {
     @Test fun incomingManualTransferKeepsItsBankLinkAcrossMerges() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
         try {
-            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
+            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db, UserPreferencesRepository(instrumentation.targetContext))
             val time = LocalDateTime.of(2026, 1, 1, 0, 0)
             for (bank in listOf("Example Bank", "Another Bank")) {
                 balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = "000",
@@ -153,7 +154,7 @@ class DuplicateAccountDialogTest {
     @Test fun editingTransferDestinationUpdatesBothManualBalances() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
         try {
-            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
+            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db, UserPreferencesRepository(instrumentation.targetContext))
             val time = LocalDateTime.of(2026, 1, 1, 0, 0)
             for ((bank, suffix) in listOf("Source Bank" to "3000", "Example Bank" to "1000", "Another Bank" to "1000")) {
                 balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = suffix,
@@ -180,7 +181,7 @@ class DuplicateAccountDialogTest {
     @Test fun renamingManualDestinationPreservesTransferUntilDeletion() = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java).build()
         try {
-            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db)
+            val balances = AccountBalanceRepository(db.accountBalanceDao(), db.transactionDao(), db, UserPreferencesRepository(instrumentation.targetContext))
             val time = LocalDateTime.of(2026, 1, 1, 0, 0)
             for ((bank, suffix) in listOf("Source Bank" to "3000", "Example Bank" to "1000")) {
                 balances.seedManualAccount(AccountBalanceEntity(bankName = bank, accountLast4 = suffix,

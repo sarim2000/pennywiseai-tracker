@@ -12,3 +12,4 @@ Supersedes ADR-0001. Claude and ChatGPT reach the phone through a Cloudflare Wor
 - OAuth sign-in runs on the Worker. It stores AI connections (hashed tokens mapped to a phone) and nothing about the user's money; sign-in and token refresh work even when the phone is offline.
 - When no AI session is running, the AI app gets a plain-language tool result telling the user to start one, instead of a connection error.
 - The phone no longer needs a TLS server, a certificate or ACME. It keeps the MCP tools, the outbound line and the AI session timer.
+- Write tools (2026-11) are refused on the phone unless the user turns on "Let AI apps make changes", off by default, because apps paired before then were connected as read-only. The relay marks them `readOnlyHint: false`, so MCP clients ask the user before each call. They can't delete transactions, edit amounts or create BLOCK rules.

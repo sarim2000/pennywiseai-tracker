@@ -41,6 +41,8 @@ class BackupSchemaGuardTest {
         serializer<SmsPreferences>().descriptor,
         serializer<DeveloperPreferences>().descriptor,
         serializer<AppPreferences>().descriptor,
+        serializer<TaughtTemplate>().descriptor,
+        serializer<TaughtTemplatePart>().descriptor,
         serializer<BackupReceipt>().descriptor,
     )
 

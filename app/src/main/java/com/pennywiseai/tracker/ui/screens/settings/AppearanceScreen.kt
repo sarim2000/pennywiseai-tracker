@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.screens.settings
 
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwCollapse
 import android.os.Build
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
@@ -198,7 +200,7 @@ fun AppearanceScreen(
             ) {
                 // Theme section: Mode + Style + Accent + AMOLED/Blur toggles
                 Column(
-                    modifier = Modifier.animateContentSize(),
+                    modifier = Modifier.animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     // Theme Mode Selector (System / Light / Dark)
@@ -216,9 +218,9 @@ fun AppearanceScreen(
                     // Accent Color Picker with ColorSchemeBox (only when branded)
                     BlurredAnimatedVisibility(
                         visible = themeUiState.themeStyle == ThemeStyle.BRANDED,
-                        enter = fadeIn() + slideInVertically { -it },
-                        exit = fadeOut() + slideOutVertically { -it },
-                        modifier = Modifier.animateContentSize().zIndex(-1f)
+                        enter = pwExpand(),
+                        exit = pwCollapse(),
+                        modifier = Modifier.zIndex(-1f)
                     ) {
                         val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
 
@@ -357,7 +359,7 @@ fun AppearanceScreen(
 private fun NavigationContent(onNavigateBack: () -> Unit) {
     Box(
         modifier = Modifier
-            .animateContentSize()
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
             .padding(start = 16.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -632,7 +634,7 @@ private fun NavBarStyleSelector(
     onStyleSelected: (NavBarStyle) -> Unit
 ) {
     Column(
-        modifier = Modifier.animateContentSize().fillMaxWidth().padding(horizontal = Spacing.md),
+        modifier = Modifier.animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()).fillMaxWidth().padding(horizontal = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Row(
@@ -737,7 +739,7 @@ private fun CoverStyleSelector(
             Box(
                 modifier = Modifier
                     .size(width = 80.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .then(
                         if (style == CoverStyle.NONE) {
                             Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -753,7 +755,7 @@ private fun CoverStyleSelector(
                         if (isSelected) Modifier.border(
                             width = 3.dp,
                             color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = MaterialTheme.shapes.medium
                         ) else Modifier
                     )
                     .clickable { onStyleSelected(style) },

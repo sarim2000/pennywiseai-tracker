@@ -4,6 +4,9 @@ import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import android.content.Context
 import android.util.Log
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
+import com.pennywiseai.tracker.worker.MoneyAlertWorker
+import com.pennywiseai.tracker.worker.MoneyAlertNotifications
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
@@ -74,7 +77,9 @@ class SmsTransactionProcessor @Inject constructor(
          */
         val intentionallySkipped: Boolean = false,
         /** Set when this charge may be a subscription at a new price; nothing changes until the user confirms. */
-        val priceChange: PriceChange? = null
+        val priceChange: PriceChange? = null,
+        /** True when saving threw, so nothing was decided about this message and it's worth keeping. */
+        val failed: Boolean = false
     )
 
     /** [subscriptionName] bills [previousAmount]; the saved charge carries the new amount and currency. */
@@ -128,7 +133,9 @@ class SmsTransactionProcessor @Inject constructor(
      */
     suspend fun saveParsedTransaction(
         parsedInput: ParsedTransaction,
-        smsBody: String
+        smsBody: String,
+        /** Set when identical text can be a new payment: only a row this close in time is this SMS. See TaughtMessageBooker. */
+        sameEventWindow: java.time.Duration? = null
     ): ProcessingResult = BankAccountMergeStore.mutationMutex.withLock {
         // One lock across the SMS receiver and the notification listener: a bank
         // that texts and pushes at the same moment would otherwise let both pass
@@ -176,7 +183,12 @@ class SmsTransactionProcessor @Inject constructor(
             // Same SMS already stored under an older hash (a parser fix changed the
             // amount): never insert it twice, and repair a known-bad amount. (#886)
             entity.smsBody?.let { body ->
-                transactionRepository.getAnyBySms(body, entity.smsSender)?.let { stored ->
+                val sameSms = if (sameEventWindow != null) {
+                    transactionRepository.getAnyBySmsAround(body, entity.smsSender, entity.dateTime, sameEventWindow)
+                } else {
+                    transactionRepository.getAnyBySms(body, entity.smsSender)
+                }
+                sameSms?.let { stored ->
                     if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
                         transactionRepository.correctParsedAmount(stored, entity)
                     }
@@ -286,6 +298,8 @@ class SmsTransactionProcessor @Inject constructor(
 
                 // Trigger widget refresh for the transaction-derived widgets
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
+                MoneyAlertWorker.enqueue(appContext)
 
                 return ProcessingResult(
                     true,
@@ -298,7 +312,7 @@ class SmsTransactionProcessor @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error saving transaction: ${e.message}")
-            return ProcessingResult(false, reason = e.message)
+            return ProcessingResult(false, reason = e.message, failed = true)
         }
     }
 
@@ -384,9 +398,11 @@ class SmsTransactionProcessor @Inject constructor(
                 ?: parsedTransaction.currency
             // Moves from the balance just before this SMS in time, not the newest
             // row, the same rule as the inbox scan (#982).
-            accountBalanceRepository.insertSmsTransactionBalance(
+            var balanceBefore: BigDecimal? = null
+            val savedBalance = accountBalanceRepository.insertSmsTransactionBalance(
                 parsedTransaction.bankName, targetAccountLast4, entity.dateTime
             ) { before ->
+                balanceBefore = before
                 val newBalance = BalanceCalculator.balanceAfter(
                     explicitBalance = parsedTransaction.balance,
                     // A loan account's balance is owed too: a payment lowers it (#792).
@@ -425,6 +441,7 @@ class SmsTransactionProcessor @Inject constructor(
                     lowBalanceThreshold = existingAccount?.lowBalanceThreshold
                 )
             }
+            notifyIfBalanceFellLow(parsedTransaction.balance, existingAccount, balanceBefore, savedBalance)
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
         }
     }
@@ -466,6 +483,27 @@ class SmsTransactionProcessor @Inject constructor(
         )
 
         accountBalanceRepository.insertBalance(balanceEntity)
+        notifyIfBalanceFellLow(balance, existingAccount, existingAccount?.balance, balanceEntity)
         Log.d(TAG, "Saved wallet balance for ${parsedTransaction.bankName}")
+    }
+
+    /**
+     * #509: tell the user the moment an account falls to its low-balance
+     * threshold. Only on a balance the bank reported ([reported]): a derived one
+     * can drift. Only when [saved] is the account's newest row: a delayed SMS
+     * isn't its balance now. Credit cards and loans owe money, so "low" means nothing there.
+     */
+    private fun notifyIfBalanceFellLow(
+        reported: BigDecimal?,
+        latest: AccountBalanceEntity?,
+        before: BigDecimal?,
+        saved: AccountBalanceEntity
+    ) {
+        if (reported == null || saved.isLiability) return
+        if (latest != null && saved.timestamp.isBefore(latest.timestamp)) return
+        if (!MoneyAlertRules.crossedLowBalance(before, saved.balance, saved.lowBalanceThreshold)) return
+        // Apart from the save: a notification that fails mustn't report the SMS as failed.
+        runCatching { MoneyAlertNotifications.showLowBalance(appContext, saved) }
+            .onFailure { Log.e(TAG, "Low-balance alert failed", it) }
     }
 }

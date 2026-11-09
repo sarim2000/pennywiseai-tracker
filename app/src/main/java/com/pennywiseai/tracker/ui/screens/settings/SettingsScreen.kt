@@ -538,7 +538,7 @@ internal fun SettingsChoiceSheet(
 private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
     Box(
         modifier = Modifier
-            .animateContentSize()
+            .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec())
             .padding(start = Spacing.md)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

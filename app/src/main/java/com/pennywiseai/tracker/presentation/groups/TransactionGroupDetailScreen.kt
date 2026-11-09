@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -252,7 +251,8 @@ fun TransactionGroupDetailScreen(
                     GroupTransactionItem(
                         transaction = txn,
                         onRemove = { viewModel.removeTransaction(txn.id) },
-                        onClick = { onNavigateToTransactionDetail(txn.id) }
+                        onClick = { onNavigateToTransactionDetail(txn.id) },
+                        modifier = Modifier.animateItem()
                     )
                 }
             } else {
@@ -344,7 +344,8 @@ fun TransactionGroupDetailScreen(
 private fun GroupTransactionItem(
     transaction: TransactionEntity,
     onRemove: () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val color = when (transaction.transactionType) {
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
@@ -358,7 +359,7 @@ private fun GroupTransactionItem(
     }
 
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick
     ) {
         Row(
@@ -445,7 +446,7 @@ private fun AddTransactionToGroupSheet(
                 placeholder = { Text(stringResource(R.string.group_detail_picker_search)) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = TextFieldDefaults.colors(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
@@ -484,7 +485,7 @@ private fun AddTransactionToGroupSheet(
                         }
 
                         PennyWiseCardV2(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().animateItem(),
                             onClick = { onAdd(txn.id) }
                         ) {
                             Row(
@@ -559,7 +560,7 @@ private fun EditGroupDialog(
                     label = { Text(stringResource(R.string.group_name)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
@@ -571,7 +572,7 @@ private fun EditGroupDialog(
                     onValueChange = { note = it },
                     label = { Text(stringResource(R.string.group_note)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent

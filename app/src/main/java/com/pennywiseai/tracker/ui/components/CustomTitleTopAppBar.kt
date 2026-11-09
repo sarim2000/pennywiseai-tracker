@@ -2,14 +2,8 @@ package com.pennywiseai.tracker.ui.components
 
 import android.os.Build
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.updateTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.LargeFlexibleTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -52,6 +46,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
@@ -70,6 +65,7 @@ fun CustomTitleTopAppBar(
     scrollBehaviorSmall: TopAppBarScrollBehavior,
     scrollBehaviorLarge: TopAppBarScrollBehavior,
     title: String,
+    subtitle: String? = null,
     isHomeScreen: Boolean = false,
     hasBackButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
@@ -88,6 +84,7 @@ fun CustomTitleTopAppBar(
         LargerTopAppBar(
             scrollBehaviorLarge = scrollBehaviorLarge,
             title = title,
+            subtitle = subtitle,
             isHomeScreen = isHomeScreen,
             hasBackButton = hasBackButton,
             collapsedFraction = collapsedFraction,
@@ -104,6 +101,7 @@ fun CustomTitleTopAppBar(
     RegularTopAppBar(
         scrollBehaviorSmall = scrollBehaviorSmall,
         title = title,
+        subtitle = subtitle,
         isHomeScreen = isHomeScreen,
         hasBackButton = hasBackButton,
         actionContent = actionContent,
@@ -124,6 +122,7 @@ private fun LargerTopAppBar(
     modifier: Modifier = Modifier,
     scrollBehaviorLarge: TopAppBarScrollBehavior,
     title: String,
+    subtitle: String?,
     isHomeScreen: Boolean,
     hasBackButton: Boolean = false,
     collapsedFraction: Float,
@@ -134,7 +133,11 @@ private fun LargerTopAppBar(
     blurEffects: Boolean = true,
     themeColors: ColorScheme,
 ) {
-    LargeTopAppBar(
+    // The M3 Expressive flexible bar. Without a subtitle it lays out exactly
+    // like the LargeTopAppBar it replaced (same internals and title padding);
+    // our title sets its own emphasized style, so the bar's default type
+    // doesn't apply.
+    LargeFlexibleTopAppBar(
         title = {
             TitleForLargeTopAppBar(
                 title = title,
@@ -143,6 +146,17 @@ private fun LargerTopAppBar(
                 extraInfoCard = extraInfoCard,
             )
         },
+        subtitle = subtitle?.let {
+            {
+                Text(
+                    text = it,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    // Lines up with the title's start inset.
+                    modifier = Modifier.padding(start = Spacing.smd)
+                )
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
             scrolledContainerColor = Color.Transparent
@@ -150,8 +164,8 @@ private fun LargerTopAppBar(
         navigationIcon = {
             BlurredAnimatedVisibility(
                 visible = hasBackButton && !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+                enter = pwFadeIn(),
+                exit = pwFadeOut()
             ) {
                 navigationContent()
             }
@@ -159,8 +173,8 @@ private fun LargerTopAppBar(
         actions = {
             BlurredAnimatedVisibility(
                 visible = !isHomeScreen,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+                enter = pwFadeIn(),
+                exit = pwFadeOut()
             ) {
                 // Lay multiple actions (e.g. Edit + overflow) out horizontally. The
                 // visibility wrapper renders into a Box, not a RowScope, so without
@@ -171,7 +185,11 @@ private fun LargerTopAppBar(
             }
         },
         collapsedHeight = TopAppBarDefaults.LargeAppBarCollapsedHeight,
-        expandedHeight = if (isHomeScreen) 150.dp else 110.dp,
+        expandedHeight = when {
+            isHomeScreen -> Dimensions.Component.homeAppBarExpandedHeight
+            subtitle != null -> Dimensions.Component.appBarExpandedHeightWithSubtitle
+            else -> Dimensions.Component.appBarExpandedHeight
+        },
         windowInsets = WindowInsets(0.dp),
         scrollBehavior = scrollBehaviorLarge,
         modifier = Modifier
@@ -210,8 +228,8 @@ private fun TitleForLargeTopAppBar(
     ) {
         BlurredAnimatedVisibility(
             visible = !isHomeScreen,
-            enter = fadeIn() + scaleIn(),
-            exit = fadeOut() + scaleOut()
+            enter = pwFadeIn(),
+            exit = pwFadeOut()
         ) {
             Text(
                 text = title,
@@ -232,6 +250,7 @@ private fun RegularTopAppBar(
     modifier: Modifier = Modifier,
     scrollBehaviorSmall: TopAppBarScrollBehavior,
     title: String,
+    subtitle: String?,
     isHomeScreen: Boolean,
     hasBackButton: Boolean = false,
     actionContent: @Composable () -> Unit = {},
@@ -245,8 +264,8 @@ private fun RegularTopAppBar(
 ) {
     BlurredAnimatedVisibility(
         visible = collapsedFraction > 0.01f,
-        enter = fadeIn(),
-        exit = fadeOut()
+        enter = pwFadeIn(),
+        exit = pwFadeOut()
     ) {
         val barColors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
@@ -255,8 +274,8 @@ private fun RegularTopAppBar(
         val navigationIcon: @Composable () -> Unit = {
             BlurredAnimatedVisibility(
                 visible = hasBackButton,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut()
+                enter = pwFadeIn(),
+                exit = pwFadeOut()
             ) {
                 navigationContent()
             }
@@ -314,21 +333,40 @@ private fun RegularTopAppBar(
             // claimed to have no action button — so the nine screens that
             // claimed an action button while rendering none ended up with the
             // title visibly off to the right.
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleLarge,
-                        textAlign = TextAlign.Center,
-                    )
-                },
-                colors = barColors,
-                navigationIcon = navigationIcon,
-                actions = { actionContent() },
-                scrollBehavior = scrollBehaviorSmall,
-                windowInsets = WindowInsets(0.dp),
-                modifier = barModifier
-            )
+            val barTitle: @Composable () -> Unit = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            if (subtitle == null) {
+                CenterAlignedTopAppBar(
+                    title = barTitle,
+                    colors = barColors,
+                    navigationIcon = navigationIcon,
+                    actions = { actionContent() },
+                    scrollBehavior = scrollBehaviorSmall,
+                    windowInsets = WindowInsets(0.dp),
+                    modifier = barModifier
+                )
+            } else {
+                // Same centred layout (both share M3's single-row bar), plus
+                // the subtitle line under the title.
+                TopAppBar(
+                    title = barTitle,
+                    subtitle = {
+                        Text(text = subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    },
+                    titleHorizontalAlignment = Alignment.CenterHorizontally,
+                    colors = barColors,
+                    navigationIcon = navigationIcon,
+                    actions = { actionContent() },
+                    scrollBehavior = scrollBehaviorSmall,
+                    windowInsets = WindowInsets(0.dp),
+                    modifier = barModifier
+                )
+            }
         }
     }
 }

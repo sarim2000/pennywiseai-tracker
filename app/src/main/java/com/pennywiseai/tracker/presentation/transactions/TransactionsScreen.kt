@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -98,6 +100,7 @@ fun TransactionsScreen(
     // Custom date range carried by an analytics drill-down (period == CUSTOM)
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
+    currencyOnly: Boolean = false,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -230,6 +233,7 @@ fun TransactionsScreen(
             initialTag,
             initialTransactionType
         )
+        if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
     }
 
     // Track if we've already processed these specific nav params
@@ -311,7 +315,9 @@ fun TransactionsScreen(
     // When the app bottom nav is overlaid on this screen (#635), it sits over an
     // 80.dp strip the Scaffold inset here doesn't know about, so the list + FAB
     // stack need matching bottom clearance (whether or not a back arrow shows).
-    val bottomBarClearance = if (reserveBottomBarSpace) Dimensions.Component.bottomBarHeight else 0.dp
+    // In selection mode the bulk toolbar replaces the nav bar and the Scaffold
+    // pads for it instead.
+    val bottomBarClearance = if (reserveBottomBarSpace && !selectionMode) Dimensions.Component.bottomBarHeight else 0.dp
 
     // As a tab under the floating nav bar, Add docks beside the bar and Export
     // moves to the top bar instead of a FAB stack.
@@ -325,8 +331,9 @@ fun TransactionsScreen(
             )
         )
     }
+    if (selectionMode) HideNavBar()
 
-    Scaffold(
+    PennyWiseScaffold(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -337,10 +344,10 @@ fun TransactionsScreen(
                 modifier = Modifier.padding(bottom = if (navDock != null) bottomBarClearance else 0.dp)
             )
         },
-        topBar = {
+        customTopBar = {
             if (selectionMode) {
                 // Contextual top bar for bulk-edit (#369): close left, count as title,
-                // Change Category + Delete on the right.
+                // Select all on the right. The bulk actions live in BulkActionsToolbar.
                 CustomTitleTopAppBar(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
@@ -352,40 +359,9 @@ fun TransactionsScreen(
                         }
                     },
                     actionContent = {
-                        // Wrap explicitly in a Row so both action IconButtons render
-                        // even when the top-bar's actions slot is constrained.
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Link exactly two selected rows as a transfer — the
-                            // manual counterpart to the auto-detected chip (#614),
-                            // covering pairs the detector misses (fees, wide gaps).
-                            if (selectedIds.size < uiState.transactions.size) {
-                                IconButton(onClick = { viewModel.selectAllVisible() }, shapes = IconButtonDefaults.shapes()) {
-                                    Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.txn_list_select_all))
-                                }
-                            }
-                            if (selectedIds.size == 2) {
-                                IconButton(onClick = { viewModel.bulkMarkAsTransfer() }, shapes = IconButtonDefaults.shapes()) {
-                                    Icon(
-                                        Icons.Default.SwapHoriz,
-                                        contentDescription = stringResource(R.string.txn_list_mark_as_transfer)
-                                    )
-                                }
-                            }
-                            IconButton(onClick = { showBulkCategorySheet = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Default.Category, contentDescription = stringResource(R.string.txn_list_change_category))
-                            }
-                            IconButton(onClick = { showBulkGroupSheet = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.PlaylistAdd,
-                                    contentDescription = stringResource(R.string.txn_list_add_to_group)
-                                )
-                            }
-                            IconButton(onClick = { viewModel.bulkDelete() }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = stringResource(R.string.txn_list_delete_selected),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                        if (selectedIds.size < uiState.transactions.size) {
+                            IconButton(onClick = { viewModel.selectAllVisible() }, shapes = IconButtonDefaults.shapes()) {
+                                Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.txn_list_select_all))
                             }
                         }
                     },
@@ -396,6 +372,9 @@ fun TransactionsScreen(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = stringResource(R.string.txn_list_title),
+                    // The period chip row hides once the list scrolls; this keeps
+                    // the active period readable in the collapsed bar.
+                    subtitle = periodChipLabel,
                     hasBackButton = showBackButton,
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
@@ -419,8 +398,18 @@ fun TransactionsScreen(
                 )
             }
         },
+        bottomBar = {
+            BulkActionsToolbar(
+                visible = selectionMode,
+                canMarkAsTransfer = selectedIds.size == 2,
+                onChangeCategory = { showBulkCategorySheet = true },
+                onAddToGroup = { showBulkGroupSheet = true },
+                onDelete = { viewModel.bulkDelete() },
+                onMarkAsTransfer = { viewModel.bulkMarkAsTransfer() }
+            )
+        },
         floatingActionButton = {
-            if (navDock == null) Column(
+            if (navDock == null && !selectionMode) Column(
                 modifier = Modifier.padding(bottom = bottomBarClearance),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
@@ -708,6 +697,7 @@ fun TransactionsScreen(
                                 }
                                 if (selectionMode) {
                                     com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                        modifier = Modifier.animateItem(),
                                         transaction = transaction,
                                         showDate = dateGroup == DateGroup.THIS_WEEK || dateGroup == DateGroup.EARLIER,
                                         listItemPosition = ListItemPosition.from(index, transactions.size),
@@ -719,7 +709,7 @@ fun TransactionsScreen(
                                         containerColor = rowContainerColor
                                     )
                                 } else {
-                                    Column {
+                                    Column(Modifier.animateItem()) {
                                         SwipeToEditCategory(
                                             transaction = transaction,
                                             onRequestEdit = { pendingCategoryEditId = it.id }
@@ -1009,6 +999,7 @@ private fun SwipeToEditCategory(
                         MaterialTheme.colorScheme.secondaryContainer
                     else -> Color.Transparent
                 },
+                animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
                 label = "swipe_edit_background"
             )
             Box(
@@ -1210,8 +1201,8 @@ private fun TransactionFilterHeader(
 
         AnimatedVisibility(
             visible = !collapsed,
-            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+            enter = pwExpand(),
+            exit = pwCollapse()
         ) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),

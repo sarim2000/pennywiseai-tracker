@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.androidx.baselineprofile)
+    alias(libs.plugins.dependency.analysis)
 }
 
 android {
@@ -228,6 +229,11 @@ tasks.register<Copy>("copyChangelog") {
 android.sourceSets["main"].assets.directories.add(generatedAssetsDir.get().asFile.path)
 
 tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.configureEach {
+    dependsOn("copyChangelog")
+}
+
+// Dependency Analysis (buildHealth) reads the asset sources too.
+tasks.matching { it.name.startsWith("explodeAssetSource") }.configureEach {
     dependsOn("copyChangelog")
 }
 

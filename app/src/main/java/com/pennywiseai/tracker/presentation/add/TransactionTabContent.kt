@@ -55,6 +55,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import androidx.compose.ui.platform.LocalDensity
+import com.pennywiseai.tracker.ui.theme.money
 
 // Reusable filled text field colors with no indicator
 @Composable
@@ -229,7 +230,7 @@ fun TransactionTabContent(
                     value = uiState.amount,
                     onValueChange = viewModel::updateTransactionAmount,
                     label = { Text(stringResource(R.string.add_field_amount), fontWeight = FontWeight.SemiBold) },
-                    textStyle = MaterialTheme.typography.headlineSmall,
+                    textStyle = MaterialTheme.typography.headlineSmall.money(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = uiState.amountError != null,
                     supportingText = uiState.amountError?.let { { Text(it.asString()) } },

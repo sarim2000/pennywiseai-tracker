@@ -129,7 +129,7 @@ app/
 │   │   ├── database/            # Room database, DAOs, entities
 │   │   ├── repository/          # Repository implementations
 │   │   ├── manager/             # SmsTransactionProcessor, sync managers
-│   │   ├── preferences/         # DataStore-backed settings
+│   │   ├── preferences/         # "user_preferences" DataStore (UserPreferencesRepository, focused *Preferences contracts), small per-feature stores
 │   │   ├── currency/ backup/ contacts/
 │   │   └── mapper/
 │   ├── di/                      # Hilt modules (DatabaseModule, etc.)
@@ -234,6 +234,17 @@ UI recomposes with new state
 - **Hilt** for compile-time DI
 - Scoped components (@Singleton, @ViewModelScoped)
 - Module-based provision
+
+**Preferences.** App settings live in one DataStore file, `user_preferences`, behind
+`UserPreferencesRepository`. `di/PreferencesModule` binds its focused contracts
+(`CurrencyPreferences`, `BudgetPreferences`, `ScanPreferences`, `PrivacyPreferences`,
+`NotificationPreferences`, `BackupPreferences`, `BillingPreferences`,
+`RecurringSuggestionPreferences`) to that one singleton. Inject the narrowest contract a
+class needs; the repository type is for classes that span several groups or read the
+`UserPreferences` snapshot. A new setting goes on the matching contract. Key names, value
+types, defaults and the migration are pinned by `UserPreferencesKeysGoldenTest` and
+`UserPreferencesStorageGoldenTest`: a rename there resets the setting on every install, and
+splitting the file needs an explicitly versioned migration.
 
 ### Asynchronous Programming
 - **Kotlin Coroutines** for async operations

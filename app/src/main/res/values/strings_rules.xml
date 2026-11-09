@@ -259,16 +259,12 @@
     <string name="chat_dismiss">Dismiss</string>
     <string name="chat_input_placeholder">Ask, or tell me what you spent…</string>
     <string name="chat_send">Send</string>
-    <string name="chat_memory_almost_full">Chat memory almost full! Clear chat to continue.</string>
-    <string name="chat_memory_warning">Chat memory is %1$d%% full. Consider clearing soon.</string>
-    <string name="chat_memory_usage">Chat memory is %1$d%% full.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d message</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d messages</item>
     </plurals>
     <string name="chat_stats_tokens">%1$s tokens</string>
     <string name="chat_stats_tokens_of_max">%1$s / %2$s tokens</string>
-    <string name="chat_stats_system_tokens">System: %1$s</string>
     <string name="chat_context_usage">Context Usage</string>
     <string name="chat_context_percent">%1$d%%</string>
     <string name="chat_collapse">Collapse</string>
@@ -341,7 +337,7 @@
 
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Couldn\'t apply that: %1$s</string>
-    <string name="chat_error_memory_full">Chat memory is full. Please clear the chat to continue.</string>
+    <string name="chat_error_message_too_long">That message is too long for the AI. Try a shorter one.</string>
     <string name="chat_error_model_downloading">Model is downloading. Please wait.</string>
     <string name="chat_error_model_not_downloaded">AI model not downloaded. Go to Settings to download.</string>
     <string name="chat_error_generate_failed">Failed to generate response</string>

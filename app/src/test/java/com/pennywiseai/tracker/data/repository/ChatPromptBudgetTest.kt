@@ -1,12 +1,13 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.utils.TokenUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** #959: a fresh chat must always fit; only a long conversation runs out of room. */
+/** #959: a fresh chat must always fit; a long one sheds its oldest turns from the model's window. */
 class ChatPromptBudgetTest {
 
     private fun prompt(expense: List<String>, income: List<String>, accounts: List<String>) =
@@ -19,9 +20,11 @@ class ChatPromptBudgetTest {
         )
 
     @Test
-    fun `budget leaves headroom inside the model's 4096-token context`() {
-        assertTrue(TokenUtils.CHAT_TOKEN_BUDGET < TokenUtils.MODEL_CONTEXT_TOKENS)
-        assertTrue(TokenUtils.CHAT_TOKEN_BUDGET > 1200)
+    fun `the window keeps room for the message and a reply`() {
+        assertTrue(TokenUtils.fitsWindow(1200, "coffee 120"))
+        assertFalse(TokenUtils.fitsWindow(3500, "coffee 120"))
+        // A token a character: a Hindi or Arabic message is never undercounted.
+        assertFalse(TokenUtils.fitsWindow(1200, "x".repeat(2000)))
     }
 
     @Test
@@ -61,16 +64,23 @@ class ChatPromptBudgetTest {
             income = (1..100).map { "$longName income $it" },
             accounts = (1..200).map { "Joint Household Savings Account Number $it" }
         )
-        // The prompt is a bounded slice of the budget, leaving room to actually chat.
-        assertTrue(TokenUtils.estimateTokens(p) < TokenUtils.CHAT_TOKEN_BUDGET / 2)
-        assertTrue(TokenUtils.fitsChatBudget(listOf(p), "how much did I spend on groceries this month?"))
+        // The prompt is a bounded slice of the window, leaving room for the tools and to chat.
+        assertTrue(TokenUtils.estimateTokens(p) < TokenUtils.MODEL_CONTEXT_TOKENS / 4)
+        assertTrue(TokenUtils.fitsWindow(TokenUtils.estimateTokens(p) + TOOLS_TOKENS, "how much did I spend on groceries this month?"))
     }
 
     @Test
-    fun `a genuinely long conversation runs out of room`() {
-        val p = prompt(listOf("Groceries"), listOf("Salary"), emptyList())
-        val turn = "x".repeat(400) // ~100 tokens a message
-        val history = listOf(p) + List(40) { turn }
-        assertFalse(TokenUtils.fitsChatBudget(history, "one more question"))
+    fun `a long chat leaves the window from its oldest half, at a user turn`() {
+        val chat = listOf(true, false, true, false, false, true, false).mapIndexed { i, user ->
+            ChatMessage(message = "m$i", isUser = user, timestamp = i.toLong())
+        }
+        // Drops m0..m3, then the reply m4 that would open the window mid-exchange.
+        assertEquals(listOf("m5", "m6"), LlmRepository.dropOlderHalf(chat).map { it.message })
+        assertEquals(emptyList<ChatMessage>(), LlmRepository.dropOlderHalf(chat.take(1)))
+    }
+
+    private companion object {
+        // The tool schemas LiteRT-LM adds to the system turn, roughly.
+        const val TOOLS_TOKENS = 700
     }
 }

@@ -26,6 +26,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.pennywiseai.tracker.data.model.SpendingComparison
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -90,7 +91,19 @@ class ChatTurnTest {
         mapOf("items" to amounts.map { mapOf("amount" to it, "merchant" to "shop") })
     )
 
-    private suspend fun send(message: String) = repository.sendMessageStream(message).toList().joinToString("")
+    // What the screen ends up showing: ChatViewModel folds a reset the same way.
+    private suspend fun send(message: String) =
+        repository.sendMessageStream(message).toList().fold("") { shown, part -> if (part == LlmRepository.RESET_REPLY) "" else shown + part }
+
+    @Test
+    fun `prose streamed before a comparison leaves the screen, and the save`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
+        events = listOf(LlmEvent.Text("You spent ₹999 more. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
+        assertEquals("NO_DATA", send("compare with last month"))
+        assertEquals("NO_DATA", saved.last().message)
+    }
 
     @Test
     fun `every add of a turn lands on one review card`() = runTest {

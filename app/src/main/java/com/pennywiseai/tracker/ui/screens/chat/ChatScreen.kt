@@ -200,7 +200,7 @@ fun ChatScreen(
                             flingBehavior = rememberOverscrollFlingBehavior { listState }
                         ) {
                             items(messages, key = { it.id }) { message ->
-                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null))
+                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
                             }
                         }
                     }
@@ -391,16 +391,16 @@ fun ChatScreen(
                                 }
                             }
 
-                            // Saved rows slide and fade out, but land without a fade: each new
-                            // one was already on screen — typed, streamed, or the confirmed card.
+                            // Rows only slide (placement), never fade: every row swaps in place —
+                            // the streamed reply for its saved message, the card for its "Added"
+                            // line — and a fading row would draw over or under its replacement.
+                            // On device a fade-in on the card also stuck at alpha 0, hiding it.
                             items(messages, key = { it.id }) { message ->
-                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null))
+                                ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
                             }
 
                             // A transaction the model proposed — the user confirms it (#170)
                             pendingAction?.let { action ->
-                                // No fade-out: the "Added …" line lands in this slot the moment the
-                                // card completes, and a fading card would sit under it for a beat.
                                 item(key = PENDING_KEY) {
                                     if (action is com.pennywiseai.tracker.data.model.PendingChatAction.Add) {
                                         AddReviewCard(
@@ -412,7 +412,7 @@ fun ChatScreen(
                                             onEdit = viewModel::editRow,
                                             onConfirm = viewModel::confirmPendingAction,
                                             onDismiss = viewModel::dismissPendingAction,
-                                            modifier = Modifier.animateItem(fadeOutSpec = null)
+                                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
                                         )
                                     } else {
                                         PendingActionCard(
@@ -420,7 +420,7 @@ fun ChatScreen(
                                             enabled = !isConfirming,
                                             onConfirm = { viewModel.confirmPendingAction() },
                                             onDismiss = { viewModel.dismissPendingAction() },
-                                            modifier = Modifier.animateItem(fadeOutSpec = null)
+                                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null)
                                         )
                                     }
                                 }
@@ -438,14 +438,14 @@ fun ChatScreen(
                                                 isUser = false,
                                                 timestamp = System.currentTimeMillis()
                                             ),
-                                            modifier = Modifier.animateItem(),
+                                            modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
                                             isStreaming = true
                                         )
                                     } else {
                                         // One status line per request, picked when the wait starts,
                                         // so a tool call's silent few seconds don't look like a hang.
                                         val status = remember(uiState.isLoading) { THINKING_LINES.random() }
-                                        TypingIndicator(status = stringResource(status), modifier = Modifier.animateItem())
+                                        TypingIndicator(status = stringResource(status), modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
                                     }
                                 }
                             }

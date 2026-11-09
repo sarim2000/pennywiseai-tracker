@@ -74,4 +74,41 @@ class HomeSectionLayoutTest {
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode("  "))
         assertEquals(HomeSection.entries.map { it to true }, HomeSectionLayout.DEFAULT)
     }
+
+    private val threeSections = listOf(
+        HomeSection.SAFE_TO_SPEND to true,
+        HomeSection.BUDGETS to false,
+        HomeSection.ACTIVITY to true,
+    )
+
+    @Test
+    fun `moving a section swaps it with its neighbour`() {
+        assertEquals(
+            listOf(HomeSection.BUDGETS to false, HomeSection.SAFE_TO_SPEND to true, HomeSection.ACTIVITY to true),
+            HomeSectionLayout.move(threeSections, HomeSection.BUDGETS, -1),
+        )
+        assertEquals(
+            listOf(HomeSection.SAFE_TO_SPEND to true, HomeSection.ACTIVITY to true, HomeSection.BUDGETS to false),
+            HomeSectionLayout.move(threeSections, HomeSection.BUDGETS, 1),
+        )
+    }
+
+    @Test
+    fun `moving past either end or moving a missing section changes nothing`() {
+        assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.SAFE_TO_SPEND, -1))
+        assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.ACTIVITY, 1))
+        assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.GROUPS, 1))
+    }
+
+    @Test
+    fun `hiding or showing a section keeps its place`() {
+        assertEquals(
+            listOf(HomeSection.SAFE_TO_SPEND to false, HomeSection.BUDGETS to false, HomeSection.ACTIVITY to true),
+            HomeSectionLayout.withVisibility(threeSections, HomeSection.SAFE_TO_SPEND, false),
+        )
+        assertEquals(
+            listOf(HomeSection.SAFE_TO_SPEND to true, HomeSection.BUDGETS to true, HomeSection.ACTIVITY to true),
+            HomeSectionLayout.withVisibility(threeSections, HomeSection.BUDGETS, true),
+        )
+    }
 }

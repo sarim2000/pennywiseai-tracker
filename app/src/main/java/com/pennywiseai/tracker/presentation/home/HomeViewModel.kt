@@ -156,20 +156,13 @@ class HomeViewModel @Inject constructor(
 
     fun moveHomeSection(section: HomeSection, delta: Int) {
         viewModelScope.launch {
-            userPreferencesRepository.updateHomeSectionLayout { layout ->
-                val from = layout.indexOfFirst { it.first == section }
-                val to = from + delta
-                if (from < 0 || to !in layout.indices) layout
-                else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
-            }
+            userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.move(it, section, delta) }
         }
     }
 
     fun setHomeSectionVisible(section: HomeSection, visible: Boolean) {
         viewModelScope.launch {
-            userPreferencesRepository.updateHomeSectionLayout { layout ->
-                layout.map { if (it.first == section) section to visible else it }
-            }
+            userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.withVisibility(it, section, visible) }
         }
     }
 

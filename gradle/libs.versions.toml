@@ -23,6 +23,9 @@ mockk = "1.14.11"
 # Konsist bundles kotlin-compiler-embeddable: keep it on a release built against
 # the project's Kotlin version (0.18.1 targets Kotlin 2.4.21).
 konsist = "0.18.1"
+# ktlint parses with its own embedded Kotlin compiler (1.8.0 ships 2.2.21), not the
+# project's: after a Kotlin or ktlint bump, confirm it still parses every source.
+ktlint = "1.8.0"
 navigation3 = "1.2.0"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
@@ -47,6 +50,7 @@ haze = "2.1.0"
 composeCharts = "1.0.0"
 billingKtx = "9.1.0"
 leakcanary = "3.0-alpha-9"
+spotless = "8.11.0"
 
 [libraries]
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
@@ -128,3 +132,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

@@ -1,0 +1,43 @@
+root = true
+
+# ktlint settings, read by Spotless (./gradlew spotlessCheck / spotlessApply).
+# Only ktlint keys live here, so the IDE's own formatting is unchanged.
+# Calibrated against the existing code: a rule is off when the codebase
+# deliberately writes it the other way, not because it is hard to satisfy.
+[*.{kt,kts}]
+# IntelliJ's Kotlin style, which the project already uses (kotlin.code.style=official).
+ktlint_code_style = intellij_idea
+# Compose: @Composable functions are PascalCase.
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+# Left to the author: trailing commas, and star imports (the IDE writes them at 5+ names).
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+ktlint_standard_no-wildcard-imports = disabled
+
+# Layouts the codebase uses on purpose: packed argument/parameter lists and lambdas,
+# expression bodies on the next line, brace-less multiline if/else, one-line
+# `try { } finally { }`, block bodies with a single return, aligned comments,
+# blank lines grouping a builder chain or a when, and compact runs of one-line
+# declarations (`@Inject lateinit var`, `@Provides @Singleton fun`, a commented `val`).
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_parameter-list-wrapping = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_function-literal = disabled
+ktlint_standard_wrapping = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_multiline-if-else = disabled
+ktlint_standard_statement-wrapping = disabled
+ktlint_standard_annotation = disabled
+ktlint_standard_function-expression-body = disabled
+ktlint_standard_no-multi-spaces = disabled
+ktlint_standard_no-blank-lines-in-chained-method-calls = disabled
+ktlint_standard_blank-line-between-when-conditions = disabled
+ktlint_standard_spacing-between-declarations-with-annotations = disabled
+ktlint_standard_spacing-between-declarations-with-comments = disabled
+
+# Naming the codebase follows instead: Test<Bank>Parser.kt parser tests, camelCase
+# constants next to Compose values, `_state` flows exposed through a differently named property.
+ktlint_standard_filename = disabled
+ktlint_standard_property-naming = disabled
+ktlint_standard_backing-property-naming = disabled

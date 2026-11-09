@@ -97,22 +97,6 @@ class ArchitectureTest {
     ).check()
 
     @Test
-    fun `theme does not import features, data or domain`() = Rule(
-        name = "ui.theme",
-        appliesTo = { it.isInPackage("$APP.ui.theme") },
-        forbidden = listOf(
-            "$APP.presentation",
-            "$APP.worker",
-            "$APP.data",
-            "$APP.domain",
-        ),
-        allowlist = setOf(
-            // AccentColor, AppFont and ThemeStyle from data.preferences
-            "app/src/main/java/com/pennywiseai/tracker/ui/theme/Theme.kt",
-        ),
-    ).check()
-
-    @Test
     fun `no Kotlin file lives in the retired ui screens package`() {
         // Checks the package line as well as the path: Kotlin doesn't require the
         // two to match, and a rebase can carry a file into presentation/ with its

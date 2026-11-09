@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.MainScreen
 import com.pennywiseai.tracker.ui.animations.LocalNavEntrance
 import com.pennywiseai.tracker.ui.animations.pwPop
+import com.pennywiseai.tracker.ui.animations.pwPredictivePop
 import com.pennywiseai.tracker.ui.animations.pwPush
 import kotlinx.serialization.serializer
 
@@ -137,7 +138,7 @@ fun PennyWiseNavHost(
         entryDecorators = rememberEntryDecorators(),
         transitionSpec = { pwPush(motion) },
         popTransitionSpec = { pwPop(motion) },
-        predictivePopTransitionSpec = { pwPop(motion) },
+        predictivePopTransitionSpec = { pwPredictivePop() },
         entryProvider = withRouteArgs(entryProvider {
         // At once: a fade-in shows the screen it's locking through it.
         entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {

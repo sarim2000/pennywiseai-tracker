@@ -77,6 +77,7 @@ import com.pennywiseai.tracker.navigation.rememberEntryDecorators
 import com.pennywiseai.tracker.navigation.withRouteArgs
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.animations.pwPop
+import com.pennywiseai.tracker.ui.animations.pwPredictivePop
 import com.pennywiseai.tracker.ui.animations.pwPush
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
@@ -128,7 +129,7 @@ private fun NavBackStack<NavKey>.resetTo(root: NavKey) {
 
 /**
  * A tab switch fades through; a push or pop inside one tab slides like the root host
- * ([pwPush] / [pwPop]). A scene belongs to the tab whose stack it tops: after a switch
+ * ([pwPush] / [pwPop], [pwPredictivePop] under a back swipe). A scene belongs to the tab whose stack it tops: after a switch
  * both the old and new screens still top their stacks, while an in-tab push or pop
  * leaves the old screen buried or removed.
  */
@@ -136,6 +137,7 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabTransition(
     tabTops: Map<BottomNavItem, Any?>,
     motion: MotionScheme,
     pop: Boolean,
+    predictive: Boolean = false,
 ): ContentTransform {
     fun tabTopping(scene: Scene<NavKey>): BottomNavItem? {
         val key = scene.entries.lastOrNull()?.contentKey ?: return null
@@ -146,6 +148,7 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabTransition(
     return when {
         from != null && to != null && from != to ->
             fadeIn(motion.fastEffectsSpec()) togetherWith fadeOut(motion.fastEffectsSpec())
+        predictive -> pwPredictivePop()
         pop -> pwPop(motion)
         else -> pwPush(motion)
     }
@@ -578,7 +581,7 @@ fun MainScreen(
                     .hazeSource(hazeState),
                 transitionSpec = { tabTransition(tabTops, motion, pop = false) },
                 popTransitionSpec = { tabTransition(tabTops, motion, pop = true) },
-                predictivePopTransitionSpec = { tabTransition(tabTops, motion, pop = true) }
+                predictivePopTransitionSpec = { tabTransition(tabTops, motion, pop = true, predictive = true) }
             )
 
             // Bottom navigation OVERLAID on content

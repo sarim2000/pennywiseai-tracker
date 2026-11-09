@@ -357,8 +357,12 @@ it by `Dimensions.Component.bottomBarHeight`.
   stack in `MainScreen`) speak one language from `PennyWiseMotion.kt`. A push is
   `pwPush`: the new screen rises a quarter of the screen on the default spatial
   spring as it fades in, and the screen under it fades out. A pop is `pwPop`:
-  the top screen sinks a quarter and fades. The predictive-back preview *is*
-  the pop, so a back swipe scrubs it and cancelling puts the screen back. The
+  the top screen sinks a quarter and fades. A back swipe previews with
+  `pwPredictivePop`: the top screen stays opaque and shrinks toward 90% under
+  the finger (the platform's predictive-back look, the one sanctioned scale on
+  content), so the screen it returns to shows around it with no double
+  exposure; it fades only once the swipe commits, and cancelling scrubs it
+  back. Its linear `tween`s are load-bearing — the finger is the clock. The
   travel is vertical, so it reads the same in RTL. A tab switch is a fast
   effects fade-through, never a slide; Home and Transaction detail cross-fade
   so the brand icon can fly between them. The bottom bar and its docked action

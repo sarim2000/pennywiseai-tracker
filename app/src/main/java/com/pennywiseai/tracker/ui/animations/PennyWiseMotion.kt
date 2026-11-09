@@ -6,9 +6,12 @@ import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -84,13 +87,26 @@ fun pwPush(motion: MotionScheme): ContentTransform =
     fadeIn(motion.defaultEffectsSpec()) + slideInVertically(motion.defaultSpatialSpec()) { it / 4 } togetherWith
         fadeOut(motion.fastEffectsSpec())
 
-/**
- * The reverse of [pwPush]: the top screen sinks a quarter and fades off the one under it.
- * Also the predictive-back preview, so a back swipe scrubs it and cancelling restores it.
- */
+/** The reverse of [pwPush]: the top screen sinks a quarter and fades off the one under it. */
 fun pwPop(motion: MotionScheme): ContentTransform =
     fadeIn(motion.defaultEffectsSpec()) togetherWith
         fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
+
+/** Length of the back-swipe scrub; the top screen fades only in its last [PREDICTIVE_FADE_MS]. */
+private const val PREDICTIVE_MS = 400
+private const val PREDICTIVE_FADE_MS = 120
+
+/**
+ * The back-swipe preview (both nav hosts): the top screen stays opaque and shrinks toward
+ * 90% under the finger — the platform's predictive-back look — so the screen it returns to
+ * shows around it with no double exposure; it fades only once the swipe commits.
+ * Cancelling scrubs it back. Linear `tween`s because the finger drives the clock: the
+ * duration is load-bearing (scale here is a back preview, not an entrance — rule 4).
+ */
+fun pwPredictivePop(): ContentTransform =
+    EnterTransition.None togetherWith
+        scaleOut(tween(PREDICTIVE_MS, easing = LinearEasing), targetScale = 0.9f) +
+        fadeOut(tween(PREDICTIVE_FADE_MS, delayMillis = PREDICTIVE_MS - PREDICTIVE_FADE_MS, easing = LinearEasing))
 
 /**
  * True inside a screen that arrived on a nav transition (pushed, or uncovered by a pop or a

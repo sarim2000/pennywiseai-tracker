@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.model
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.forTotals
@@ -75,8 +76,25 @@ object SpendingComparison {
     private fun spending(rows: List<TransactionWithSplits>) = rows.forTotals()
         .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
 
-    /** Same rules as the month summary (what counts toward totals, credit as spending); a category gets its split share. */
-    fun spend(rows: List<TransactionWithSplits>, category: String? = null): Map<String, BigDecimal> =
+    /**
+     * Refunds (INCOME + DEDUCT_SPENT) as (currency, category, amount): they come off spending, as on
+     * Home and in Analytics. A refund's category is the budget category it gives back to.
+     */
+    internal fun refunds(rows: List<TransactionWithSplits>) = rows.forTotals()
+        .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+        .map { Triple(it.transaction.currency, (it.transaction.budgetCategory ?: "").ifEmpty { "Others" }, it.transaction.amount) }
+
+    /**
+     * Same rules as Home's "spent": what counts toward totals, credit as spending, refunds netted per
+     * currency and floored at zero. A category gets its split share and the refunds given back to it.
+     */
+    fun spend(rows: List<TransactionWithSplits>, category: String? = null): Map<String, BigDecimal> {
+        val refunded = refunds(rows).filter { category == null || it.second.equals(category, ignoreCase = true) }
+            .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
+        return grossSpend(rows, category).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
+    }
+
+    private fun grossSpend(rows: List<TransactionWithSplits>, category: String?): Map<String, BigDecimal> =
         spending(rows)
             .mapNotNull { row ->
                 val amount = if (category == null) row.transaction.amount
@@ -87,18 +105,28 @@ object SpendingComparison {
             .sumByCurrency({ it.first }, { it.second })
             .mapValues { it.value.amount }
 
-    /** Each currency's biggest categories, largest first, split shares included. Never ranked across currencies. */
-    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5): Map<String, List<Pair<String, BigDecimal>>> =
-        spending(rows)
+    /**
+     * Each currency's biggest categories, largest first: split shares in, refunds given back to a
+     * category out (floored at zero, and a category refunded in full drops off). Never ranked across currencies.
+     */
+    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5): Map<String, List<Pair<String, BigDecimal>>> {
+        val refunded = refunds(rows).groupBy({ it.first to it.second }, { it.third })
+            .mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
+        return spending(rows)
             .flatMap { row -> row.getAmountByCategory().map { (category, amount) -> Triple(row.transaction.currency, category, amount) } }
             .groupBy { it.first }
-            .toSortedMap()
-            .mapValues { (_, items) ->
+            .mapValues { (currency, items) ->
                 items.groupBy({ it.second }, { it.third })
-                    .map { (category, amounts) -> category to amounts.fold(BigDecimal.ZERO, BigDecimal::add) }
+                    .map { (category, amounts) ->
+                        category to (amounts.fold(BigDecimal.ZERO, BigDecimal::add) - (refunded[currency to category] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO)
+                    }
+                    .filter { it.second.signum() > 0 }
                     .sortedByDescending { it.second }
                     .take(limit)
             }
+            .filterValues { it.isNotEmpty() }
+            .toSortedMap()
+    }
 
     /** Whole percent, kept as BigDecimal: a tiny previous total can't overflow into a flipped sign. */
     internal fun change(current: BigDecimal, previous: BigDecimal): BigDecimal? =
@@ -149,8 +177,13 @@ object SpendingComparison {
     // A lone number is more likely an amount ("my 2000 rent").
     private val YEAR_NUMBER = Regex("(?<![\\d.,])(?:19|20)\\d\\d(?![\\d.,])")
     private val YEAR_IN_CONTEXT = Regex(
-        "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than)|في|عام|سنة|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
+        "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than|with|to)|في|عام|سنة|مع|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
         RegexOption.IGNORE_CASE
+    )
+    // A written date names its own month: "2025-10", "10/2025", "15/10". ponytail: "50/50" reads as one
+    // too and is refused; the user rephrases.
+    private val NUMERIC_DATE = Regex(
+        "(?<![\\d.,])(?:(?:19|20)\\d\\d[-/.]\\d{1,2}|\\d{1,2}[-/.](?:19|20)\\d\\d|\\d{1,2}/\\d{1,2}(?:/\\d{2,4})?)(?![\\d])"
     )
 
     // "Last month" / "pichle hafte": the previous period by name.
@@ -182,7 +215,7 @@ object SpendingComparison {
         val years = YEAR_NUMBER.findAll(userMessage).map { it.value }.toSet().size
         return when {
             (week && month) || years > 1 || YEAR_IN_CONTEXT.containsMatchIn(userMessage) || UNSUPPORTED.containsMatchIn(userMessage) ||
-                SPAN.containsMatchIn(userMessage) -> null
+                SPAN.containsMatchIn(userMessage) || NUMERIC_DATE.containsMatchIn(userMessage) -> null
             week -> Period.WEEK
             month -> Period.MONTH
             modelPick == null || modelPick.toString().isBlank() -> Period.MONTH

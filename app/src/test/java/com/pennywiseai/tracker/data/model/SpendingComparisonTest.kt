@@ -28,14 +28,17 @@ class SpendingComparisonTest {
         category: String = "Food & Dining",
         splits: List<Pair<String, String>> = emptyList(),
         excluded: Boolean = false,
-        lent: String? = null
+        lent: String? = null,
+        refundTo: String? = null
     ): TransactionWithSplits {
         val id = nextId++
         return TransactionWithSplits(
             TransactionEntity(
                 id = id, amount = BigDecimal(amount), merchantName = "Shop", category = category, transactionType = type,
                 dateTime = now, transactionHash = "h$id", currency = currency, excludedFromAnalytics = excluded,
-                lentSharesTotal = lent?.let(::BigDecimal)
+                lentSharesTotal = lent?.let(::BigDecimal),
+                budgetCategory = refundTo,
+                budgetImpactType = refundTo?.let { com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT }
             ),
             splits.map { (cat, amt) -> TransactionSplitEntity(transactionId = id, category = cat, amount = BigDecimal(amt)) }
         )
@@ -181,6 +184,12 @@ class SpendingComparisonTest {
         assertNull(SpendingComparison.period("pichle kuch hafte ka kharcha compare karo", "week"))
         assertNull(SpendingComparison.period("pichle paanch mahine ka kharcha compare karo", "month"))
         assertNull(SpendingComparison.period("Compare my spending in both fortnights", "month"))
+        // A written date or year names its own month.
+        assertNull(SpendingComparison.period("compare this month with 2025-10", "month"))
+        assertNull(SpendingComparison.period("compare this month with 10/2025", "month"))
+        assertNull(SpendingComparison.period("compare spending since 15/10", "month"))
+        assertNull(SpendingComparison.period("compare this month with 2025", "month"))
+        assertNull(SpendingComparison.period("قارن هالشهر مع 2025", "month"))
         // A count of one, or both of the two compared, is the supported comparison.
         assertEquals(Period.MONTH, SpendingComparison.period("is 1 mahine ka kharcha pichle mahine se compare karo", null))
         assertEquals(Period.MONTH, SpendingComparison.period("compare this month with last month; both months had rent", null))
@@ -233,5 +242,40 @@ class SpendingComparisonTest {
     fun `month spend is per currency and leaves income out`() {
         val spent = SpendingComparison.spend(listOf(tx("120"), tx("30", type = TransactionType.CREDIT), tx("7", currency = "USD"), tx("900", type = TransactionType.INCOME)))
         assertEquals(mapOf("INR" to BigDecimal("150"), "USD" to BigDecimal("7")), spent)
+
+    }
+
+    @Test
+    fun `top categories take refunds off the category they give back to`() {
+        val top = SpendingComparison.topCategories(
+            listOf(
+                tx("1000", category = "Shopping"),
+                tx("900", type = TransactionType.INCOME, refundTo = "Shopping"),
+                tx("300", category = "Travel"),
+                tx("300", type = TransactionType.INCOME, refundTo = "Travel"),
+                tx("5", currency = "USD", category = "Travel"),
+                tx("5", currency = "USD", type = TransactionType.INCOME, refundTo = "Travel")
+            )
+        )
+        // Shopping nets to 100; Travel and the whole USD list are refunded in full and drop off.
+        assertEquals(mapOf("INR" to listOf("Shopping" to BigDecimal("100"))), top)
+    }
+
+    @Test
+    fun `refunds come off spending in their own currency and category, never below zero`() {
+        val cur = listOf(
+            tx("1000", category = "Shopping"),
+            tx("400", type = TransactionType.INCOME, category = "Refund", refundTo = "Shopping"),
+            tx("50", currency = "USD", category = "Shopping"),
+            tx("80", currency = "USD", type = TransactionType.INCOME, refundTo = "Shopping"),
+            tx("5000", type = TransactionType.INCOME, category = "Salary")
+        )
+        val prev = listOf(tx("300", category = "Shopping"))
+        val r = SpendingComparison.compare(windows, cur, prev) as Result.Rows
+        // ₹1,000 − ₹400; the salary isn't a refund. The USD over-refund floors at zero, not −30.
+        assertEquals(BigDecimal("600"), r.rows.single { it.currency == "INR" }.current)
+        assertEquals(BigDecimal.ZERO, r.rows.single { it.currency == "USD" }.current)
+        val food = SpendingComparison.compare(windows, cur + tx("20"), prev, "Food & Dining") as Result.Rows
+        assertEquals(BigDecimal("20"), food.rows.single().current)
     }
 }

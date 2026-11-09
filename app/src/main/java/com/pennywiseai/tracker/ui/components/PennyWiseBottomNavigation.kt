@@ -52,6 +52,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
@@ -82,8 +83,12 @@ fun PennyWiseBottomNavigation(
 ) {
     val navigationItems = BottomNavItem.visible(hiddenTabs)
     val containerColor = MaterialTheme.colorScheme.surface
+    // A leaving bar still draws (and hit-tests) through its exit. Ignore its taps,
+    // or a tab tap would strand a push and the docked Sync would scan behind it.
+    val selectTab: (BottomNavItem) -> Unit = { if (visible) onTabSelected(it) }
 
-    Box(modifier = modifier) {
+    // TalkBack skips a leaving bar too, rather than announce tabs that do nothing.
+    Box(modifier = if (visible) modifier else modifier.clearAndSetSemantics {}) {
         // NORMAL style NavigationBar
         BlurredAnimatedVisibility(
             visible = visible && navBarStyle == NavBarStyle.NORMAL,
@@ -110,7 +115,7 @@ fun PennyWiseBottomNavigation(
                         val selected = item.route == selectedRoute
                         NavigationBarItem(
                             selected = selected,
-                            onClick = { onTabSelected(item) },
+                            onClick = { selectTab(item) },
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
@@ -186,7 +191,7 @@ fun PennyWiseBottomNavigation(
                     FloatingNavPill(
                         items = navigationItems,
                         selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
-                        onSelect = onTabSelected,
+                        onSelect = selectTab,
                         blurEffects = blurEffects,
                         hazeState = hazeState,
                         modifier = Modifier.weight(1f)
@@ -206,7 +211,8 @@ fun PennyWiseBottomNavigation(
                             DockedActionButton(
                                 action = action,
                                 elevated = !blurEffects,
-                                enabled = visible,
+                                // Off once the bar or the action is leaving.
+                                enabled = visible && dockAction != null,
                                 modifier = Modifier.padding(start = Spacing.sm)
                             )
                         }

@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.core.TimeConstants
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -18,7 +18,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class AppLockRepository @Inject constructor(
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: PrivacyPreferences
 ) {
 
     /**
@@ -76,7 +76,7 @@ class AppLockRepository @Inject constructor(
         userPreferencesRepository.setAppLockTimeoutWithTimestamp(minutes)
     }
 
-    /** True the first time only; see [UserPreferencesRepository.claimAppLockNoScreenLockNotice]. */
+    /** True the first time only; see [PrivacyPreferences.claimAppLockNoScreenLockNotice]. */
     suspend fun claimNoScreenLockNotice(): Boolean = userPreferencesRepository.claimAppLockNoScreenLockNotice()
 
     /**

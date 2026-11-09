@@ -4,7 +4,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.ExchangeRateProvider
 import com.pennywiseai.tracker.data.currency.ExchangeRateProviderFactory
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -67,7 +67,7 @@ object ApplicationModule {
     fun provideCurrencyConversionService(
         exchangeRateDao: ExchangeRateDao,
         exchangeRateProvider: ExchangeRateProvider,
-        userPreferencesRepository: UserPreferencesRepository
+        userPreferencesRepository: CurrencyPreferences
     ): CurrencyConversionService {
         return CurrencyConversionService(
             exchangeRateDao = exchangeRateDao,

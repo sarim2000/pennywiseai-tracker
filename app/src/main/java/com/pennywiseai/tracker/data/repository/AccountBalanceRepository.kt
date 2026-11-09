@@ -8,7 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.presentation.accounts.AccountType
 import com.pennywiseai.tracker.utils.BalanceCalculator
@@ -27,7 +27,7 @@ open class AccountBalanceRepository @Inject constructor(
     private val accountBalanceDao: AccountBalanceDao,
     private val transactionDao: TransactionDao,
     private val database: PennyWiseDatabase,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: NotificationPreferences
 ) {
     companion object {
         const val SOURCE_OPENING = "OPENING"

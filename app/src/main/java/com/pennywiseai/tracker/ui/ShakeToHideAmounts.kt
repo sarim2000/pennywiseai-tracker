@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import com.pennywiseai.tracker.utils.ShakeDetector
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -38,7 +38,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ShakeToHideViewModel @Inject constructor(
-    private val preferences: UserPreferencesRepository
+    private val preferences: PrivacyPreferences
 ) : ViewModel() {
     val enabled: StateFlow<Boolean> = preferences.shakeToHideAmounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)

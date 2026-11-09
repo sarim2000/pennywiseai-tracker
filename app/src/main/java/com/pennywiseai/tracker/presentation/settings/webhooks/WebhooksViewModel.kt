@@ -5,7 +5,7 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.*
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.webhook.*
 import com.pennywiseai.tracker.ui.UiText
@@ -47,7 +47,7 @@ class WebhooksViewModel @Inject constructor(
     private val scheduler: WebhookSyncScheduler,
     private val preferences: WebhookPreferences,
     private val entitlementGate: EntitlementGate,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: CurrencyPreferences
 ) : ViewModel() {
     val isProEntitled = entitlementGate.isProEntitled
     private val _state = MutableStateFlow(WebhooksUiState())

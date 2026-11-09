@@ -10,7 +10,7 @@ import android.widget.Toast
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.ConscienceNotifier
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
@@ -41,7 +41,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun transactionRepository(): TransactionRepository
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
-        fun userPreferencesRepository(): UserPreferencesRepository
+        fun notificationPreferences(): NotificationPreferences
     }
 
     companion object {
@@ -236,7 +236,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     }
                     ACTION_CONSCIENCE_RETIRE -> {
                         runCatching {
-                            intent.getStringExtra(EXTRA_CONSCIENCE_LINE_KEY)?.let { entryPoint.userPreferencesRepository().retireConscienceLine(it) }
+                            intent.getStringExtra(EXTRA_CONSCIENCE_LINE_KEY)?.let { entryPoint.notificationPreferences().retireConscienceLine(it) }
                             ConscienceNotifier.showRetired(context)
                         }.onFailure { Log.e(TAG, "Error retiring a conscience line", it) }
                     }

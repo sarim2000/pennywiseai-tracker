@@ -180,6 +180,7 @@ class SpendingComparisonTest {
         assertNull(SpendingComparison.period("هل كان الشهران الماضيان أكثر إنفاقاً مما قبلهما؟", "month"))
         assertNull(SpendingComparison.period("pichle kuch hafte ka kharcha compare karo", "week"))
         assertNull(SpendingComparison.period("pichle paanch mahine ka kharcha compare karo", "month"))
+        assertNull(SpendingComparison.period("Compare my spending in both fortnights", "month"))
         // A count of one, or both of the two compared, is the supported comparison.
         assertEquals(Period.MONTH, SpendingComparison.period("is 1 mahine ka kharcha pichle mahine se compare karo", null))
         assertEquals(Period.MONTH, SpendingComparison.period("compare this month with last month; both months had rent", null))

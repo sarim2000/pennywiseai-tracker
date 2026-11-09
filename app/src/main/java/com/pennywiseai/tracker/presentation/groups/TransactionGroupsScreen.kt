@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -122,7 +121,8 @@ fun TransactionGroupsScreen(
             items(uiState.groups, key = { it.group.id }) { summary ->
                 GroupListItem(
                     summary = summary,
-                    onClick = { onNavigateToGroupDetail(summary.group.id) }
+                    onClick = { onNavigateToGroupDetail(summary.group.id) },
+                    modifier = Modifier.animateItem()
                 )
             }
         }
@@ -139,12 +139,13 @@ fun TransactionGroupsScreen(
 @Composable
 private fun GroupListItem(
     summary: GroupSummary,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val accentColor = MaterialTheme.colorScheme.income
 
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick
     ) {
         Row(
@@ -240,7 +241,7 @@ private fun CreateGroupDialog(
                     label = { Text(stringResource(R.string.group_name)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
@@ -252,7 +253,7 @@ private fun CreateGroupDialog(
                     onValueChange = { note = it },
                     label = { Text(stringResource(R.string.group_note)) },
                     singleLine = true,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent

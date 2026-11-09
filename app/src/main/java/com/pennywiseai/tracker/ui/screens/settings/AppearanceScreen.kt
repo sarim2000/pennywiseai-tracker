@@ -737,7 +737,7 @@ private fun CoverStyleSelector(
             Box(
                 modifier = Modifier
                     .size(width = 80.dp, height = 56.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .then(
                         if (style == CoverStyle.NONE) {
                             Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
@@ -753,7 +753,7 @@ private fun CoverStyleSelector(
                         if (isSelected) Modifier.border(
                             width = 3.dp,
                             color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = MaterialTheme.shapes.medium
                         ) else Modifier
                     )
                     .clickable { onStyleSelected(style) },

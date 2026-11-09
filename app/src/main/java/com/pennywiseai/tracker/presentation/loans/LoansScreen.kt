@@ -195,7 +195,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.personItems(
                 LoanListItem(
                     loan = loan,
                     onClick = { onNavigateToLoanDetail(loan.id) },
-                    modifier = Modifier.padding(start = Spacing.lg)
+                    modifier = Modifier.animateItem().padding(start = Spacing.lg)
                 )
             }
             if (person.hasActive) {

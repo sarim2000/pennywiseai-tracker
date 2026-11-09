@@ -329,6 +329,7 @@ private fun BudgetGroupsContent(
             }
             AnimatedVisibility(
                 visible = visible.value,
+                modifier = Modifier.animateItem(),
                 enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                     initialOffsetY = { slideOffsetPx },
                     animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
@@ -347,8 +348,7 @@ private fun BudgetGroupsContent(
                     onMoveUp = { onMoveGroupUp(groupSpending.group.budget.id) },
                     onMoveDown = { onMoveGroupDown(groupSpending.group.budget.id) },
                     onViewHistory = { onNavigateToHistory(groupSpending.group.budget.id) },
-                    onCategoryClick = onCategoryClick,
-                    modifier = Modifier.animateItem()
+                    onCategoryClick = onCategoryClick
                 )
             }
         }

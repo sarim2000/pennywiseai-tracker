@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -165,7 +164,7 @@ private fun PieLegendItem(
             .fillMaxWidth()
             .sizeIn(minHeight = 48.dp)
             .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(MaterialTheme.shapes.small)
             .background(
                 if (isSelected) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                 else Color.Transparent

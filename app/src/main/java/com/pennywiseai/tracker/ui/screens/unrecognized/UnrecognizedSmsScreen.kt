@@ -258,6 +258,7 @@ fun UnrecognizedSmsScreen(
                     }
                     AnimatedVisibility(
                         visible = visible.value,
+                        modifier = Modifier.animateItem(),
                         enter = fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()) + slideInVertically(
                             initialOffsetY = { slideOffsetPx },
                             animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()

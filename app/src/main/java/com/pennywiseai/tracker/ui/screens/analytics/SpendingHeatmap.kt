@@ -6,7 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -127,7 +126,7 @@ fun SpendingHeatmap(
                                     Box(
                                         modifier = Modifier
                                             .size(cellSize)
-                                            .clip(RoundedCornerShape(4.dp))
+                                            .clip(MaterialTheme.shapes.extraSmall)
                                             .background(color)
                                     )
                                 }

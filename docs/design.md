@@ -183,7 +183,8 @@ the jobs the plain roles don't cover:
 ## Shape
 
 `theme/Shape.kt`: `extraSmall` 4 · `small` 8 · `medium` 12 · `large` 16 ·
-`extraLarge` 28.
+`largeIncreased` 20 · `extraLarge` 28 · `extraLargeIncreased` 32 ·
+`extraExtraLarge` 48 (the last three are the M3 Expressive steps).
 
 Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
@@ -288,6 +289,12 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
   use them for bounded data values (progress fractions, chart sweeps), where
   a bounce past 100% reads as wrong. `tween` stays only inside
   `infiniteRepeatable` loops or where a duration is load-bearing.
+- **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
+  `Modifier.animateItem()` on the item's root composable, so rows slide on
+  insert, remove and filter instead of jumping. It needs a stable, unique
+  key, and must sit on the item root (e.g. the `AnimatedVisibility`, not the
+  card inside it). `AnimatedCurrencyText` swaps instantly when either side is
+  the privacy mask — hiding amounts isn't a value change.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
@@ -306,8 +313,9 @@ App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
   Action menus stay `DropdownMenuItem`. Include/exclude lists whose items are
   all ticked by default keep checkbox rows (their icons identify them).
 - **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
-  for hero moments only: the Home balance (`PennyWiseText.heroAmount`) and the
-  expanded app-bar title.
+  for hero moments only: the Home hero amount — this month's spending in the
+  expanded `BalanceCard` (`PennyWiseText.heroAmount`) — and the expanded
+  app-bar title.
 - The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
   (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 

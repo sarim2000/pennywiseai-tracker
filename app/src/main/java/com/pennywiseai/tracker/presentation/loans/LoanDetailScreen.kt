@@ -269,7 +269,8 @@ fun LoanDetailScreen(
                         transaction = txn,
                         isOriginal = isOriginal,
                         loanDirection = loan.direction,
-                        onClick = { onNavigateToTransactionDetail(txn.id) }
+                        onClick = { onNavigateToTransactionDetail(txn.id) },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -313,7 +314,7 @@ fun LoanDetailScreen(
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -379,7 +380,8 @@ private fun LoanTransactionItem(
     transaction: TransactionEntity,
     isOriginal: Boolean,
     loanDirection: LoanDirection,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     // Sign and colour follow the actual money flow: "+" in the income colour for
     // money in, "-" in ink for money out (red is kept for problems).
@@ -393,7 +395,7 @@ private fun LoanTransactionItem(
     val sign = if (moneyIn) "+" else "-"
 
     PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         onClick = onClick
     ) {
         Row(
@@ -551,7 +553,7 @@ private fun RecordPaymentBottomSheet(
                     singleLine = true,
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,

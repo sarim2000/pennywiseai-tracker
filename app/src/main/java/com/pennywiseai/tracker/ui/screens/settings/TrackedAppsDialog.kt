@@ -142,6 +142,7 @@ fun TrackedAppsDialog(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier
+                                    .animateItem()
                                     .fillMaxWidth()
                                     .clickable(role = Role.Checkbox) { viewModel.setTracked(app.packageName, !checked) }
                             ) {

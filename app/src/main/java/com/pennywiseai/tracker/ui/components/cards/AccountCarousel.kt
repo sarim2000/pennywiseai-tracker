@@ -126,7 +126,7 @@ private fun AccountCarouselCard(
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
 
-    val cardShape = RoundedCornerShape(16.dp)
+    val cardShape = MaterialTheme.shapes.large
 
     PennyWiseCardV2(
         modifier = modifier

@@ -213,7 +213,11 @@ class LlmRepository @Inject constructor(
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
         // A comparison is the code's figures alone: prose beside it could carry the model's own arithmetic.
-        if (toolCalls.any { it.isComparison(userMessage) }) responseBuilder.clear()
+        if (toolCalls.any { it.isComparison(userMessage) }) {
+            responseBuilder.clear()
+            // Off the screen too, before the figures land beside it.
+            if (shownUpTo > 0) emit(RESET_REPLY)
+        }
         val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
         var addsProposed = false
         var skippedCards = 0
@@ -649,6 +653,8 @@ class LlmRepository @Inject constructor(
         private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
+        /** Emitted in place of text: drop what was streamed so far. */
+        internal const val RESET_REPLY = "\u0000reset"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.
         internal const val MESSAGE_TOO_LONG = "Message too long for the model"
         internal const val INTEGRITY_FAILED = "AI model failed its integrity check and was removed"

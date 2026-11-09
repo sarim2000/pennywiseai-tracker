@@ -271,7 +271,7 @@ class ChatViewModel @Inject constructor(
                             firstShown = true
                             android.util.Log.i(LlmRepository.TIMING, "first=${(System.nanoTime() - tap) / 1_000_000}ms")
                         }
-                        _currentResponse.value += partialResponse
+                        _currentResponse.value = if (partialResponse == LlmRepository.RESET_REPLY) "" else _currentResponse.value + partialResponse
                     }
                 android.util.Log.i(LlmRepository.TIMING, "reply=${(System.nanoTime() - tap) / 1_000_000}ms")
                 

@@ -166,6 +166,15 @@ class SpendingComparisonTest {
         assertNull(SpendingComparison.period("2025 vs 2024", "month"))
         assertNull(SpendingComparison.period("compare this month with the same month in 2025", "month"))
         assertNull(SpendingComparison.period("قارن صرفي هالشهر وهالأسبوع", null))
+        // Spans and offsets: only this period and the one before it are compared.
+        assertNull(SpendingComparison.period("compare this week with two weeks ago", "week"))
+        assertNull(SpendingComparison.period("compare the last 3 months", "month"))
+        assertNull(SpendingComparison.period("this month vs the month before last", "month"))
+        assertNull(SpendingComparison.period("قارن صرفي آخر 3 شهور", "month"))
+        assertNull(SpendingComparison.period("قارن هالأسبوع بالأسبوع قبل الماضي", "week"))
+        assertNull(SpendingComparison.period("صرفي آخر شهرين", "month"))
+        assertNull(SpendingComparison.period("pichle do mahine ka kharcha compare karo", "month"))
+        assertNull(SpendingComparison.period("पिछले तीन महीनों का खर्च", "month"))
     }
 
     @Test

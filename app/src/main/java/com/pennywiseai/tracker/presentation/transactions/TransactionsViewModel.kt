@@ -24,7 +24,6 @@ import com.pennywiseai.tracker.presentation.common.AccountOption
 import com.pennywiseai.tracker.presentation.common.accountOptions
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -47,7 +46,6 @@ import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.YearMonth
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -753,13 +751,8 @@ class TransactionsViewModel @Inject constructor(
                         // discard it (#749). Observed, so a split edit refreshes the chips.
                         transactionSplitDao.observeSplitsForActiveTransactions()
                             .map { allSplits ->
-                                val ids = transactions.mapTo(HashSet()) { it.id }
-                                val splits = allSplits.filter { it.transactionId in ids }
-                                // Parents of present sub-categories are filterable too (#374),
-                                // and the auto-clear below must not drop them.
-                                val present = (transactions.map { it.category } + splits.map { it.category }).distinct()
                                 val parentOf = this@TransactionsViewModel.categories.value.values.toList().parentNameOf()
-                                (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
+                                filterableCategories(transactions, allSplits, parentOf)
                             }
                     }
                     .flowOn(Dispatchers.Default)
@@ -829,18 +822,14 @@ class TransactionsViewModel @Inject constructor(
                 getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
                     .map { allTransactions ->
                         // Apply profile, account, then tag filters
-                        val profileAndAccountFiltered = filterTransactionsByAccount(
-                            filterByProfile(allTransactions, profileId),
-                            accountKey
+                        val tracked = filterTrackedByProfile(
+                            allTransactions, profileId, _ignoredAccountKeys.value, _profileAccountKeys.value
                         )
-                        val transactions = if (tag != null) {
-                            profileAndAccountFiltered.filter { tx ->
-                                transactionTagsMap.value[tx.id]
-                                    ?.any { it.equals(tag, ignoreCase = true) } == true
-                            }
-                        } else {
-                            profileAndAccountFiltered
-                        }
+                        val transactions = filterByTag(
+                            filterTransactionsByAccount(tracked, accountKey),
+                            tag,
+                            transactionTagsMap.value
+                        )
                         val sorted = if (isUnified) {
                             // Show all transactions regardless of currency
                             sortTransactions(transactions, sort)
@@ -1332,21 +1321,6 @@ class TransactionsViewModel @Inject constructor(
         return converted
     }
 
-    private fun filterByProfile(
-        transactions: List<TransactionEntity>,
-        profileId: Long?
-    ): List<TransactionEntity> {
-        // Ignored accounts drop out first, and independently of the profile
-        // filter — that one returns early for "All profiles" and falls back to
-        // Personal for an unattributed transaction, so it can't carry the
-        // exclusion (#826).
-        val ignored = _ignoredAccountKeys.value
-        val tracked = if (ignored.isEmpty()) transactions else transactions.filterNot { tx ->
-            IgnoredAccountsStore.isIgnored(ignored, tx.bankName, tx.accountNumber)
-        }
-        return filterTransactionsByProfile(tracked, profileId, _profileAccountKeys.value)
-    }
-
     private fun getFilteredTransactions(
         searchQuery: String,
         period: TimePeriod,
@@ -1387,68 +1361,19 @@ class TransactionsViewModel @Inject constructor(
                 // Observe the splits rather than snapshot them, so editing a split while
                 // this list is open re-evaluates the filter instead of leaving it stale.
                 transactionSplitDao.observeSplitsForActiveTransactions()
-                    .map { allSplits ->
-                        val splitsByTxId = allSplits.groupBy { it.transactionId }
-                        transactions.filter { tx ->
-                            tx.category in effectiveCategories ||
-                                splitsByTxId[tx.id]?.any { it.category in effectiveCategories } == true
-                        }
-                    }
+                    .map { allSplits -> filterByCategories(transactions, effectiveCategories, allSplits) }
             }
         } else {
             baseFlow
         }
         
         // Apply transaction type filter
-        val typeFilteredFlow = categoriesFilteredFlow.map { transactions ->
-            val types = typeFilter.transactionTypes
-            if (types == null) transactions else transactions.filter { it.transactionType in types }
-        }
-        
-        // Apply search filter
-        return if (searchQuery.isBlank()) {
-            typeFilteredFlow
-        } else {
-            typeFilteredFlow.map { transactions ->
-                transactions.filter { transaction ->
-                    // Check merchant name and description
-                    val matchesMerchant = transaction.merchantName.contains(searchQuery, ignoreCase = true)
-                    val matchesDescription = transaction.description?.contains(searchQuery, ignoreCase = true) == true
-                    val matchesReference = transaction.reference?.contains(searchQuery, ignoreCase = true) == true
+        val typeFilteredFlow = categoriesFilteredFlow.map { filterByType(it, typeFilter) }
 
-                    // Check user-set tags
-                    val matchesTag = transactionTagsMap.value[transaction.id]
-                        ?.any { it.contains(searchQuery, ignoreCase = true) } == true
-
-                    // Check the merchant's user-set display alias (#691)
-                    val matchesAlias = merchantAliases.value[transaction.merchantName]
-                        ?.contains(searchQuery, ignoreCase = true) == true
-
-                    // Check SMS body (full text search)
-                    val matchesSmsBody = transaction.smsBody?.contains(searchQuery, ignoreCase = true) == true
-                    
-                    // Check if search query matches amount
-                    val matchesAmount = try {
-                        // Remove commas and spaces from search query for number parsing
-                        val cleanedQuery = searchQuery.replace(",", "").replace(" ", "").trim()
-                        
-                        // Check if it's a valid number and matches the amount
-                        if (cleanedQuery.isNotEmpty() && cleanedQuery.all { it.isDigit() || it == '.' }) {
-                            val amountString = transaction.amount.toPlainString()
-                            // Support both exact and partial matches
-                            amountString.contains(cleanedQuery) || 
-                            // Also match formatted amount (e.g., "1,000" matches "1000")
-                            amountString.replace(",", "").contains(cleanedQuery)
-                        } else {
-                            false
-                        }
-                    } catch (e: Exception) {
-                        false
-                    }
-                    
-                    matchesMerchant || matchesDescription || matchesReference || matchesTag || matchesAlias || matchesSmsBody || matchesAmount
-                }
-            }
+        // Apply search filter. Tags and aliases are read per list, so the re-run a change
+        // to either one triggers sees it.
+        return typeFilteredFlow.map {
+            filterBySearch(it, searchQuery, transactionTagsMap.value, merchantAliases.value)
         }
     }
     
@@ -1474,35 +1399,6 @@ class TransactionsViewModel @Inject constructor(
         return dates.first.atStartOfDay() to dates.second.atTime(23, 59, 59)
     }
 
-    private fun sortTransactions(transactions: List<TransactionEntity>, sortOption: SortOption): List<TransactionEntity> {
-        return when (sortOption) {
-            SortOption.DATE_NEWEST -> transactions.sortedByDescending { it.dateTime }
-            SortOption.DATE_OLDEST -> transactions.sortedBy { it.dateTime }
-            SortOption.AMOUNT_HIGHEST -> transactions.sortedByDescending { it.amount }
-            SortOption.AMOUNT_LOWEST -> transactions.sortedBy { it.amount }
-            SortOption.MERCHANT_AZ -> transactions.sortedBy { it.merchantName.lowercase() }
-            SortOption.MERCHANT_ZA -> transactions.sortedByDescending { it.merchantName.lowercase() }
-        }
-    }
-    
-    private fun groupTransactionsByDate(
-        transactions: List<TransactionEntity>
-    ): Map<DateGroup, List<TransactionEntity>> {
-        val today = LocalDate.now()
-        val yesterday = today.minusDays(1)
-        val weekStart = today.minusWeeks(1)
-        
-        return transactions.groupBy { transaction ->
-            val transactionDate = transaction.dateTime.toLocalDate()
-            when {
-                transactionDate == today -> DateGroup.TODAY
-                transactionDate == yesterday -> DateGroup.YESTERDAY
-                transactionDate > weekStart -> DateGroup.THIS_WEEK
-                else -> DateGroup.EARLIER
-            }
-        }
-    }
-    
     fun getReportUrl(transaction: TransactionEntity): String {
         return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
     }
@@ -1520,13 +1416,6 @@ private class ComputedList(
     val transactions: List<TransactionEntity>,
     val grouped: Map<DateGroup, List<TransactionEntity>>,
     val totals: CurrencyGroupedTotals
-)
-
-data class FilterParams(
-    val query: String,
-    val period: TimePeriod,
-    val category: String?,
-    val typeFilter: TransactionTypeFilter
 )
 
 enum class DateGroup(@StringRes val labelRes: Int) {

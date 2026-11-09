@@ -177,3 +177,86 @@ same machine.
 **Runtime (startup, scrolling, memory) is not measured here.** Those numbers need a
 physical device. Use the Macrobenchmark procedure in [performance.md](performance.md),
 whose last emulator measurement was inconclusive.
+
+## Dependencies
+
+Audited with the [Dependency Analysis Gradle Plugin](https://github.com/autonomousapps/dependency-analysis-gradle-plugin)
+3.20.2 and a grep of each declared library's packages across every source set. The
+plugin is applied to the root, `:app`, `:parser-core` and `:shared`, and only
+reports. Nothing depends on its tasks and every issue is set to `warn`, so it can't
+fail a build. Re-run it with:
+
+```bash
+./gradlew buildHealth --max-workers=2
+# report: build/reports/dependency-analysis/build-health-report.txt
+```
+
+- `--max-workers=2` matters on this machine. With 4 workers the analysis compiled
+  several `:app` variants at once and the Kotlin daemon ran out of memory. A second
+  run, with the variants already compiled, took 1.5 minutes.
+- It analyses `fdroid` and `standard` in `debug` and `release`, plus their unit and
+  instrumented tests. The benchmark and non-minified variants are copies of
+  release and are skipped through `dependency.analysis.android.ignored.variants` in
+  `gradle.properties`.
+- It reads JVM and Android bytecode only, so the iOS source sets of `:parser-core`
+  and `:shared` are invisible to it. `:baselineprofile` is not analysed.
+- 3.20.2 lists AGP 9.3.1 as the newest version it was tested with. It works on
+  9.5.0, and `dependency.analysis.compatibility=NONE` hides the warning it printed
+  on every build. Re-check `buildHealth` after the next AGP bump.
+- Applying the plugin adds no measurable configuration time: an up-to-date
+  `:app:compileStandardDebugKotlin` took about 0.9 s with and without it.
+
+### Removed
+
+Each removal was checked by diffing the resolved `:app` classpaths (runtime and
+compile, both flavors, debug and release, unit and instrumented tests) before and
+after.
+
+| Dependency | Why it was unused | Classpath change |
+|---|---|---|
+| `io.ktor:ktor-client-websockets` | An empty compatibility artifact: its jar holds a single `Empty` class. The `WebSockets` client plugin ships in `ktor-client-core`, and `io.ktor.websocket.Frame` comes from `ktor-websockets`, which `ktor-client-core` exposes as an API dependency | The artifact leaves every classpath. No other version moves |
+| `androidx.lifecycle:lifecycle-runtime-ktx` | Empty since Lifecycle 2.8, when `lifecycleScope` and `repeatOnLifecycle` moved into `lifecycle-runtime` | None. Other Lifecycle 2.11.0 libraries still bring it in |
+
+The F-Droid flavor still has no Play or billing code: `fdroidReleaseRuntimeClasspath`
+matches nothing for `billing|play|gms`, before and after.
+
+### Kept, although the plugin reports them unused
+
+| Dependency | Why it stays |
+|---|---|
+| `androidx.core:core-ktx` | Empty, since the extensions now live in `androidx.core:core`. It is still the only declaration that sets the `androidx.core` version (1.19.1), which 32 production files import. Replacing it with `androidx.core:core` at the same version would be safe |
+| `androidx.work:work-runtime-ktx` | Empty, but it holds WorkManager at 2.12.0. Without it `work-runtime` falls to 2.7.1, the version `glance-appwidget` asks for, and the legacy `androidx.room` 2.2.5 joins the runtime. Replace it with `work-runtime`, don't just delete it |
+| `androidx.test.espresso:espresso-core` (androidTest) | Nothing imports it, but it sets the instrumentation versions. Without it `androidx.test:runner` falls from 1.7.0 to 1.5.0 and Espresso from 3.7.0 to 3.5.0. `AndroidJUnitRunner` is named only as a string in `testInstrumentationRunner`, so no import shows the dependency |
+| `io.mockk:mockk-android` (androidTest) | `WebhookSyncSchedulerTest` uses it. The plugin wants the bundle's parts (`mockk-core`, `mockk-dsl` and the agents) declared instead |
+| `org.junit.jupiter:junit-jupiter` (`:parser-core` tests) | It bundles the JUnit 5 engine the tests run on. The plugin only sees the `junit-jupiter-api` classes the tests compile against |
+
+### Advice not applied
+
+- **Runtime-only scopes.** The plugin would move `leakcanary-android` and
+  `ui-test-manifest` to `debugRuntimeOnly`, and `profileinstaller` and
+  `kotlinx-coroutines-android` to `runtimeOnly`. No code calls them. LeakCanary
+  installs itself, `ui-test-manifest` adds a test activity to the debug manifest,
+  `profileinstaller` registers itself in the manifest, and `coroutines-android` supplies
+  `Dispatchers.Main` through a service loader. The APK would be the same, and
+  `implementation` is what each library documents, so the scopes stay.
+  `coroutines-android` is also pinned for LiteRT-LM (#599).
+- **`:shared` scopes.** The plugin suggests `api` for `room3-runtime`,
+  `kotlinx-coroutines-core` and `kotlinx-datetime`, because `:shared`'s public types
+  expose them. That is worth revisiting once `:shared` has more consumers than the
+  two category helpers `:app` uses today. Two of its suggestions are wrong: moving
+  `:parser-core` to `androidMain` would break iOS, where `src/bankParserMain` also
+  compiles, and `pdfbox-android` belongs in `androidMain`, where it already is.
+- **Declaring used transitive dependencies.** `:app` gets 58 such lines:
+  Compose foundation, runtime and animation, `androidx.core:core`,
+  `lifecycle-common`, Dagger, `ktor-http` and others. Adding them now would only
+  pin versions that the BOM and the declared libraries already set. The advice
+  matters per module, so apply it to each feature module as it is extracted.
+
+### Other findings
+
+- `:parser-core` and `:shared` declare `kotlinx-datetime` 0.7.1, but `:app`
+  resolves `0.8.0-0.6.x-compat`, which `ktor-serialization-kotlinx-json` 3.6.1
+  requests. The parsers are compiled against 0.7.1 and run on the compat build.
+  The unit tests pass on it.
+- Everything in `:baselineprofile` is used. The plugin only asks it to declare
+  `benchmark-macro`, `androidx.test:monitor` and `junit` directly.

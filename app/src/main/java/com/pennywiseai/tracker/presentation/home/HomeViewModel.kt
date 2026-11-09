@@ -48,7 +48,6 @@ import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.countingTransferPairsOnce
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -116,6 +115,15 @@ class HomeViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
 ) : ViewModel() {
+
+    /**
+     * The converter Home's figure functions (HomeFigures.kt and its neighbours) take.
+     * First in the class on purpose: properties initialise in declaration order, and the
+     * collectors init{} launches use it.
+     */
+    private val convert: ConvertAmount = { amount, from, to ->
+        currencyConversionService.convertAmountOrNull(amount, from, to)
+    }
 
     /**
      * Drives the subtle Pro chip in the home top bar — hidden when the
@@ -500,50 +508,6 @@ class HomeViewModel @Inject constructor(
         return filterAccountsByProfile(allBalances, hiddenAccounts, _uiState.value.selectedProfileId)
     }
 
-    private fun computeBreakdownByCurrency(
-        transactions: List<TransactionEntity>,
-        countCreditAsExpense: Boolean = false
-    ): Map<String, TransactionRepository.MonthlyBreakdown> {
-        // "Exclude from analytics" transactions stay in history & account balances
-        // but must not count toward the home card's income/spend figures — same as
-        // the Analytics screen, budgets and AI summaries already do (#451). Loan
-        // exclusion already happened upstream in loadHomeData(); forTotals() is
-        // idempotent, so this stays correct if that upstream filter ever moves.
-        return transactions
-            .forTotals()
-            .groupBy { it.currency }.mapValues { (_, txs) ->
-            // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
-            // expense, so it should shrink "Spent this month" and not appear as
-            // new income. "Extra budget" (ADD_TO_LIMIT) is real money in — leave
-            // it in the income total.
-            val refundTotal = txs
-                .filter {
-                    it.transactionType == TransactionType.INCOME &&
-                        it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
-                }
-                .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
-            val income = txs
-                .filter {
-                    it.transactionType == TransactionType.INCOME &&
-                        it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
-                }
-                .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
-            val rawExpenses = txs
-                .filter {
-                    it.transactionType == TransactionType.EXPENSE ||
-                        // Fold credit-card spend into expenses when the user opted in (#705).
-                        (countCreditAsExpense && it.transactionType == TransactionType.CREDIT)
-                }
-                .fold(BigDecimal.ZERO) { acc, tx -> acc + tx.amount }
-            val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
-            TransactionRepository.MonthlyBreakdown(
-                total = income - expenses,
-                income = income,
-                expenses = expenses
-            )
-        }
-    }
-
     /**
      * Net daily expense map for the sparkline: EXPENSE adds, Refund (INCOME +
      * DEDUCT_SPENT) subtracts. Loan-linked transactions are excluded. Amounts are
@@ -627,7 +591,7 @@ class HomeViewModel @Inject constructor(
                         .forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
-                    computeBreakdownByCurrency(nonLoan, creditAsExpense)
+                    breakdownByCurrency(nonLoan, creditAsExpense)
                 }
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
@@ -830,17 +794,16 @@ class HomeViewModel @Inject constructor(
                 // `today` too: the same-point window grows by a day every day.
                 .combine(today) { (cycles, nonLoan, creditAsExpense), day ->
                     val full = cycles.map { (start, end) ->
-                        computeBreakdownByCurrency(
+                        breakdownByCurrency(
                             nonLoan.filter { it.dateTime.toLocalDate() in start..end },
                             creditAsExpense
                         )
                     }
                     // As many days into the previous cycle as today is into this one, under
                     // the headline's own spend rules (credit-card preference included).
-                    val (prevStart, prevEnd) = cycles.first()
-                    val elapsed = ChronoUnit.DAYS.between(_currentCycleWindow.value.first, day).coerceAtLeast(0)
-                    val cutoff = minOf(prevStart.plusDays(elapsed), prevEnd)
-                    val samePoint = computeBreakdownByCurrency(
+                    val (prevStart, _) = cycles.first()
+                    val cutoff = samePointCutoff(cycles.first(), _currentCycleWindow.value.first, day)
+                    val samePoint = breakdownByCurrency(
                         nonLoan.filter { it.dateTime.toLocalDate() in prevStart..cutoff },
                         creditAsExpense
                     )
@@ -1533,46 +1496,22 @@ class HomeViewModel @Inject constructor(
         if (isUnified) {
             // Convert all transactions to display currency
             viewModelScope.launch {
-                var creditCardTotal = BigDecimal.ZERO
-                var transferTotal = BigDecimal.ZERO
-                var investmentTotal = BigDecimal.ZERO
-
-                for (tx in nonLoanTransactions.countingTransferPairsOnce { it }) {
-                    val converted = currencyConversionService
-                        .convertAmountOrNull(tx.amount, tx.currency, selectedCurrency) ?: continue
-                    when (tx.transactionType) {
-                        com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT -> creditCardTotal += converted
-                        com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER -> transferTotal += converted
-                        com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT -> investmentTotal += converted
-                        else -> { /* skip */ }
-                    }
+                val motion = moneyInMotion(nonLoanTransactions) { tx ->
+                    convert(tx.amount, tx.currency, selectedCurrency)
                 }
-
                 _uiState.value = _uiState.value.copy(
-                    currentMonthCreditCard = creditCardTotal,
-                    currentMonthTransfer = transferTotal,
-                    currentMonthInvestment = investmentTotal
+                    currentMonthCreditCard = motion.credit,
+                    currentMonthTransfer = motion.transfer,
+                    currentMonthInvestment = motion.investment
                 )
             }
         } else {
             // Filter transactions by selected currency
-            val currencyTransactions = nonLoanTransactions.filter { it.currency == selectedCurrency }
-                .countingTransferPairsOnce { it }
-
-            val creditCardTotal = currencyTransactions
-                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT }
-                .fold(java.math.BigDecimal.ZERO) { acc, t -> acc + t.amount }
-            val transferTotal = currencyTransactions
-                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER }
-                .fold(java.math.BigDecimal.ZERO) { acc, t -> acc + t.amount }
-            val investmentTotal = currencyTransactions
-                .filter { it.transactionType == com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT }
-                .fold(java.math.BigDecimal.ZERO) { acc, t -> acc + t.amount }
-
+            val motion = moneyInMotion(nonLoanTransactions.filter { it.currency == selectedCurrency }) { it.amount }
             _uiState.value = _uiState.value.copy(
-                currentMonthCreditCard = creditCardTotal,
-                currentMonthTransfer = transferTotal,
-                currentMonthInvestment = investmentTotal
+                currentMonthCreditCard = motion.credit,
+                currentMonthTransfer = motion.transfer,
+                currentMonthInvestment = motion.investment
             )
         }
     }
@@ -1625,11 +1564,11 @@ class HomeViewModel @Inject constructor(
         if (_uiState.value.isUnifiedMode) {
             // Aggregate all currencies, converting to selectedCurrency (displayCurrency)
             viewModelScope.launch {
-                val currentBreakdown = aggregateBreakdowns(currentMonthBreakdownMap, selectedCurrency)
-                val lastBreakdown = aggregateBreakdowns(lastMonthBreakdownMap, selectedCurrency)
-                val lastSamePoint = aggregateBreakdowns(lastMonthSamePointBreakdownMap, selectedCurrency).expenses
-                val loanLoss = aggregateAcrossCurrencies(currentMonthLoanLossByCurrency, selectedCurrency, isUnified = true)
-                val lent = aggregateAcrossCurrencies(currentMonthLentByCurrency, selectedCurrency, isUnified = true)
+                val currentBreakdown = combinedBreakdown(currentMonthBreakdownMap, selectedCurrency, convert)
+                val lastBreakdown = combinedBreakdown(lastMonthBreakdownMap, selectedCurrency, convert)
+                val lastSamePoint = combinedBreakdown(lastMonthSamePointBreakdownMap, selectedCurrency, convert).expenses
+                val loanLoss = combinedTotal(currentMonthLoanLossByCurrency, selectedCurrency, convert)
+                val lent = combinedTotal(currentMonthLentByCurrency, selectedCurrency, convert)
 
                 _uiState.value = _uiState.value.copy(
                     currentMonthTotal = currentBreakdown.total - loanLoss,
@@ -1649,8 +1588,8 @@ class HomeViewModel @Inject constructor(
                             val loss = previousCycleLoanLoss.getOrNull(i).orEmpty()
                             // A cycle with only a settlement loss still counts as history.
                             if (map.isEmpty() && loss.isEmpty()) null
-                            else aggregateBreakdowns(map, selectedCurrency).expenses +
-                                aggregateAcrossCurrencies(loss, selectedCurrency, isUnified = true)
+                            else combinedBreakdown(map, selectedCurrency, convert).expenses +
+                                combinedTotal(loss, selectedCurrency, convert)
                         }
                     )
                 )
@@ -1706,83 +1645,12 @@ class HomeViewModel @Inject constructor(
         return SpendForecast.of(spent, currency, start, end, LocalDate.now(), previous)
     }
 
-    private suspend fun aggregateAcrossCurrencies(
-        byCurrency: Map<String, BigDecimal>,
-        selectedCurrency: String,
-        isUnified: Boolean
-    ): BigDecimal {
-        if (byCurrency.isEmpty()) return BigDecimal.ZERO
-        if (!isUnified) return byCurrency[selectedCurrency] ?: BigDecimal.ZERO
-        var total = BigDecimal.ZERO
-        for ((currency, amount) in byCurrency) {
-            total += if (currency == selectedCurrency) amount
-            else currencyConversionService.convertAmountOrNull(amount, currency, selectedCurrency)
-                ?: continue // never-rated pair — skip, don't face-value (#670)
-        }
-        return total
-    }
-
-    private suspend fun aggregateBreakdowns(
-        breakdownMap: Map<String, TransactionRepository.MonthlyBreakdown>,
-        targetCurrency: String
-    ): TransactionRepository.MonthlyBreakdown {
-        var totalTotal = BigDecimal.ZERO
-        var totalIncome = BigDecimal.ZERO
-        var totalExpenses = BigDecimal.ZERO
-
-        for ((currency, breakdown) in breakdownMap) {
-            if (currency == targetCurrency) {
-                totalTotal += breakdown.total
-                totalIncome += breakdown.income
-                totalExpenses += breakdown.expenses
-            } else {
-                // One rate serves all three figures; if the pair has never had a
-                // rate, skip this currency's breakdown entirely (#670).
-                val rateTotal = currencyConversionService.convertAmountOrNull(breakdown.total, currency, targetCurrency) ?: continue
-                totalTotal += rateTotal
-                totalIncome += currencyConversionService.convertAmountOrNull(breakdown.income, currency, targetCurrency) ?: BigDecimal.ZERO
-                totalExpenses += currencyConversionService.convertAmountOrNull(breakdown.expenses, currency, targetCurrency) ?: BigDecimal.ZERO
-            }
-        }
-
-        return TransactionRepository.MonthlyBreakdown(
-            total = totalTotal,
-            income = totalIncome,
-            expenses = totalExpenses
-        )
-    }
-
     private suspend fun convertAccountEntities(
         entities: List<AccountBalanceEntity>,
         targetCurrency: String,
         isUnifiedMode: Boolean
-    ): List<AccountBalanceEntity> {
-        if (!isUnifiedMode) return entities
-        return entities.map { account ->
-            if (account.currency == targetCurrency) {
-                account
-            } else {
-                // Fetch-on-miss: getExchangeRate lazily fetches the rate when it isn't
-                // cached yet, so the very first render converts instead of showing the
-                // raw native amount mislabelled with the display currency (the #545/MZN
-                // bug: a $400 account drawn as "MZN400"). Only relabel to the target
-                // currency when a rate actually exists — otherwise keep the account's
-                // native currency so the row shows an honest "$400", not "MZN400".
-                val rate = currencyConversionService.getExchangeRate(account.currency, targetCurrency)
-                if (rate != null) {
-                    // Keep full precision here and let display formatting round. Rounding
-                    // balance and creditLimit separately would make "available = limit -
-                    // balance" round twice and drift a cent on foreign credit cards.
-                    account.copy(
-                        balance = account.balance.multiply(rate),
-                        creditLimit = account.creditLimit?.multiply(rate),
-                        currency = targetCurrency
-                    )
-                } else {
-                    account
-                }
-            }
-        }
+    ): List<AccountBalanceEntity> = convertAccounts(entities, targetCurrency, isUnifiedMode) { from, to ->
+        currencyConversionService.getExchangeRate(from, to)
     }
 
     override fun onCleared() {

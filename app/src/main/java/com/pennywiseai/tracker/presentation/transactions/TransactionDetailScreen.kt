@@ -88,6 +88,9 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.SettledCheck
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -103,6 +106,7 @@ import dev.chrisbanes.haze.hazeSource
 import com.pennywiseai.tracker.utils.formatAmount
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -131,6 +135,9 @@ private val editTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, 
 private val editMiddleShape = RoundedCornerShape(4.dp)
 private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
 private val editFullShape = RoundedCornerShape(16.dp)
+
+/** How long the saved-transaction check holds before the avatar returns. */
+private const val SETTLED_HOLD_MS = 900L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,12 +213,23 @@ fun TransactionDetailScreen(
     
     // Show success snackbar
     val updatedMessage = stringResource(R.string.txn_detail_updated)
+    // "Receipt settled": only the user's own Save gets the check + haptic.
+    var settled by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    var settleRequests by remember { mutableIntStateOf(0) }
     LaunchedEffect(saveSuccess) {
         if (saveSuccess) {
-            scope.launch {
-                snackbarHostState.showSnackbar(updatedMessage)
-                viewModel.clearSaveSuccess()
-            }
+            // Consume the save first: rotating mid-snackbar must not replay the check.
+            viewModel.clearSaveSuccess()
+            scope.launch { snackbarHostState.showSnackbar(updatedMessage) }
+            settleRequests++
+        }
+    }
+    LaunchedEffect(settleRequests) {
+        if (settleRequests > 0) {
+            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            settled = true
+            try { delay(SETTLED_HOLD_MS) } finally { settled = false }
         }
     }
     
@@ -397,6 +415,7 @@ fun TransactionDetailScreen(
             TransactionDetailContent(
                 transaction = txn,
                 isEditMode = isEditMode,
+                settled = settled,
                 applyToAllFromMerchant = applyToAllFromMerchant,
                 updateExistingTransactions = updateExistingTransactions,
                 existingTransactionCount = existingTransactionCount,
@@ -564,6 +583,7 @@ fun TransactionDetailScreen(
 private fun TransactionDetailContent(
     transaction: TransactionEntity,
     isEditMode: Boolean,
+    settled: Boolean,
     applyToAllFromMerchant: Boolean,
     updateExistingTransactions: Boolean,
     existingTransactionCount: Int,
@@ -583,6 +603,11 @@ private fun TransactionDetailContent(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    // Bring the avatar back into view so the user actually sees the check.
+    val scrollSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    LaunchedEffect(settled) {
+        if (settled) scrollState.animateScrollTo(0, scrollSpec)
+    }
 
     Column(
         modifier = modifier
@@ -617,6 +642,7 @@ private fun TransactionDetailContent(
         } else {
             TransactionReceipt(
                 transaction = transaction,
+                settled = settled,
                 primaryCurrency = accountPrimaryCurrency,
                 convertedAmount = convertedAmount,
                 viewModel = viewModel,
@@ -638,6 +664,7 @@ private fun TransactionDetailContent(
 @Composable
 private fun TransactionReceipt(
     transaction: TransactionEntity,
+    settled: Boolean,
     primaryCurrency: String,
     convertedAmount: BigDecimal?,
     viewModel: TransactionDetailViewModel,
@@ -695,13 +722,14 @@ private fun TransactionReceipt(
                 } else {
                     Modifier
                 }
-                BrandIcon(
-                    merchantName = transaction.merchantName,
-                    category = transaction.category,
-                    modifier = heroIconModifier,
-                    size = 56.dp,
-                    showBackground = true
-                )
+                SettledCheck(settled = settled, size = 56.dp, modifier = heroIconModifier) {
+                    BrandIcon(
+                        merchantName = transaction.merchantName,
+                        category = transaction.category,
+                        size = 56.dp,
+                        showBackground = true
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
 

@@ -14,32 +14,20 @@ import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -58,10 +46,7 @@ import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
-import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.data.preferences.CoverStyle
-import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
-import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.CoverGradientBanner
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.GreetingCard
@@ -130,7 +115,6 @@ fun HomeScreen(
 
     // Profile filter dropdown state
     var showProfileFilterMenu by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val deletedMessage = stringResource(R.string.home_transaction_deleted)
     val undoLabel = stringResource(R.string.home_undo)
 
@@ -248,121 +232,20 @@ fun HomeScreen(
                 hazeState = hazeState,
                 blurEffects = blurEffects,
                 actionContent = {
-                    val containerColor = MaterialTheme.colorScheme.surfaceContainer
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(end = Dimensions.Padding.content),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        // Subtle Pro discovery chip — yellow sparkle that ties
-                        // back to the Settings → PennyWise Pro entry. Hidden
-                        // for already-entitled users so it's never pushy.
-                        // Tap → opens the same UpgradeSheet as Settings.
-                        if (!isProEntitled) {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = com.pennywiseai.tracker.ui.theme.yellow_light,
-                                        shape = CircleShape,
-                                    )
-                                    .clickable(
-                                        onClick = { showUpgradeSheet = true },
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = stringResource(R.string.home_upgrade_pro),
-                                    tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
-                                    modifier = Modifier.size(Dimensions.Icon.inline),
-                                )
-                            }
-                        }
-
-                        // Business/Personal filter dropdown
-                        Box {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                        shape = CircleShape
-                                    )
-                                    .clickable(
-                                        onClick = { showProfileFilterMenu = true },
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = profileFilterIcon(uiState.profiles, uiState.selectedProfileId),
-                                    contentDescription = stringResource(R.string.home_profile_filter),
-                                    tint = MaterialTheme.colorScheme.inverseSurface,
-                                    modifier = Modifier.size(Dimensions.Icon.inline)
-                                )
-                            }
-                            ProfileFilterDropdown(
-                                expanded = showProfileFilterMenu,
-                                profiles = uiState.profiles,
-                                selectedProfileId = uiState.selectedProfileId,
-                                onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                                onDismiss = { showProfileFilterMenu = false }
-                            )
-                        }
-                        if (navDock != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(Dimensions.Component.iconButton)
-                                    .clip(CircleShape)
-                                    .background(
-                                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                        shape = CircleShape
-                                    )
-                                    .clickable(
-                                        onClick = onNavigateToAddScreen,
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = stringResource(R.string.home_fab_add),
-                                    tint = MaterialTheme.colorScheme.inverseSurface,
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
-                                )
-                            }
-                        }
-                        // More options button
-                        Box(
-                            modifier = Modifier
-                                .size(Dimensions.Component.iconButton)
-                                .clip(CircleShape)
-                                .background(
-                                    color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                                    shape = CircleShape
-                                )
-                                .clickable(
-                                    onClick = { showMenuSheet = true },
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null,
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreHoriz,
-                                contentDescription = stringResource(R.string.home_more_options),
-                                tint = MaterialTheme.colorScheme.inverseSurface,
-                                modifier = Modifier.size(Dimensions.Icon.medium)
-                            )
-                        }
-                    }
+                    HomeTopBarActions(
+                        isProEntitled = isProEntitled,
+                        blurEffects = blurEffects,
+                        profiles = uiState.profiles,
+                        selectedProfileId = uiState.selectedProfileId,
+                        showProfileFilterMenu = showProfileFilterMenu,
+                        showAddAction = navDock != null,
+                        onUpgradeClick = { showUpgradeSheet = true },
+                        onOpenProfileFilter = { showProfileFilterMenu = true },
+                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                        onDismissProfileFilter = { showProfileFilterMenu = false },
+                        onNavigateToAddScreen = onNavigateToAddScreen,
+                        onMoreClick = { showMenuSheet = true }
+                    )
                 },
                 extraInfoCard = {
                     GreetingCard(
@@ -758,84 +641,14 @@ fun HomeScreen(
             )
         } else {
             // FABs - Direct access (no speed dial)
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(
-                        end = Dimensions.Padding.content,
-                        bottom = Dimensions.Component.fabBottomInset
-                    ),
-                verticalArrangement = Arrangement.spacedBy(Spacing.smd),
-                horizontalAlignment = Alignment.End
-            ) {
-                // Add FAB (top, small)
-                SmallFloatingActionButton(
-                    onClick = onNavigateToAddScreen,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = stringResource(R.string.home_fab_add)
-                    )
-                }
-            
-                // Sync FAB (bottom, primary)
-                // Single tap: incremental scan, Long press: full resync
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    Surface(
-                        modifier = Modifier
-                            .spotlightTarget(onFabPositioned)
-                            .size(Dimensions.Component.fab)
-                            .pointerInput(Unit) {
-                                detectTapGestures(
-                                    onTap = { viewModel.scanSmsMessages() },
-                                    onLongPress = {
-                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                        showFullResyncDialog = true
-                                    }
-                                )
-                            },
-                        shape = FloatingActionButtonDefaults.shape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shadowElevation = Dimensions.Elevation.fab,
-                        tonalElevation = Dimensions.Elevation.fab,
-                    ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            // M3 Expressive: the shape-morphing loading indicator
-                            // takes the icon's place while a scan runs.
-                            if (uiState.isScanning) {
-                                LoadingIndicator(
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.semantics {
-                                        contentDescription = context.getString(R.string.home_fab_sync)
-                                    }
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Sync,
-                                    contentDescription = stringResource(R.string.home_fab_sync),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
-                    // Hint for long-press functionality - only show for new users (no transactions yet)
-                    if (uiState.recentItems.isEmpty() && !uiState.isLoading) {
-                        Text(
-                            text = stringResource(R.string.home_fab_sync_hint),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
+            HomeFabStack(
+                isScanning = uiState.isScanning,
+                showSyncHint = uiState.recentItems.isEmpty() && !uiState.isLoading,
+                onNavigateToAddScreen = onNavigateToAddScreen,
+                onSync = { viewModel.scanSmsMessages() },
+                onRequestFullResync = { showFullResyncDialog = true },
+                onFabPositioned = onFabPositioned
+            )
         }
 
         // Full Resync Confirmation Dialog

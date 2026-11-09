@@ -110,7 +110,8 @@ class AiContextRepositoryTest {
                 arrayOf(com.pennywiseai.tracker.data.database.dao.TransactionSplitDao::class.java)
             ) { _, _, _ -> error("unused") } as com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
             userPreferencesRepository = userPreferencesRepository,
-            currencyConversionService = currencyConversionService
+            currencyConversionService = currencyConversionService,
+            loanRepository = io.mockk.mockk()
         )
     }
 

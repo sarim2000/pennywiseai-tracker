@@ -101,6 +101,18 @@ class SpendingComparisonTest {
     }
 
     @Test
+    fun `a forgiven loan balance counts as spent, per currency`() {
+        // ₹1,000 dinner with ₹400 lent, then forgiven: spent is the full ₹1,000, as on Home (#938).
+        val r = SpendingComparison.compare(
+            windows,
+            current = listOf(tx("1000", lent = "400")),
+            previous = listOf(tx("500")),
+            currentLoss = mapOf("INR" to BigDecimal("400"), "USD" to BigDecimal("5"))
+        )
+        assertEquals(mapOf("INR" to Triple("1000", "500", 100), "USD" to Triple("5", "0", null)), rows(r))
+    }
+
+    @Test
     fun `income, transfers and what doesn't count toward totals are left out`() {
         val r = SpendingComparison.compare(
             windows,

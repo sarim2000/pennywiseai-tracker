@@ -526,7 +526,8 @@ class LlmRepository @Inject constructor(
             QuickAction.COMPARE_MONTH -> comparisonText(aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null), null)
             QuickAction.MONTH_SPEND -> {
                 val (window, rows) = aiContextRepository.monthSoFar()
-                val spent = SpendingComparison.spend(rows)
+                // Forgiven loan balances count as spent, as on Home (#938).
+                val spent = with(SpendingComparison) { spend(rows).plusAmounts(aiContextRepository.settlementLoss(window)) }
                 if (spent.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
                 else (listOf(context.getString(R.string.chat_reply_month_spend, range(window))) + spent.ordered().map { (c, a) -> money(a, c) }).joinToString("\n")
             }

@@ -57,13 +57,15 @@ object SpendingComparison {
         windows: Pair<Window, Window>,
         current: List<TransactionWithSplits>,
         previous: List<TransactionWithSplits>,
-        category: String? = null
+        category: String? = null,
+        currentLoss: Map<String, BigDecimal> = emptyMap(),
+        previousLoss: Map<String, BigDecimal> = emptyMap()
     ): Result {
         val (cw, pw) = windows
         if (previous.isEmpty()) return Result.NoData(cw, pw, pw)
         if (current.isEmpty()) return Result.NoData(cw, pw, cw)
-        val now = spend(current, category)
-        val before = spend(previous, category)
+        val now = spend(current, category).plusAmounts(currentLoss)
+        val before = spend(previous, category).plusAmounts(previousLoss)
         val rows = (now.keys + before.keys).sorted().map { currency ->
             val c = now[currency] ?: BigDecimal.ZERO
             val p = before[currency] ?: BigDecimal.ZERO
@@ -71,6 +73,10 @@ object SpendingComparison {
         }
         return Result.Rows(cw, pw, rows)
     }
+
+    /** Adds [other] per currency (a forgiven loan's balance onto spending), never across currencies. */
+    fun Map<String, BigDecimal>.plusAmounts(other: Map<String, BigDecimal>): Map<String, BigDecimal> =
+        (keys + other.keys).associateWith { (this[it] ?: BigDecimal.ZERO) + (other[it] ?: BigDecimal.ZERO) }
 
     /** What counts as spending, as in the month summary: credit too. */
     private fun spending(rows: List<TransactionWithSplits>) = rows.forTotals()

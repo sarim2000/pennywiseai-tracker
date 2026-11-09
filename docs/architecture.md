@@ -46,6 +46,12 @@ PennyWise follows modern Android architecture guidelines with MVVM pattern, Clea
 - UiState data classes
 ```
 
+Home's figure math is plain functions next to its ViewModel, unit-tested without
+it: `HomeFigures.kt` (per-currency breakdown, currency collapse, money in motion,
+account conversion), `HomeSpendTrend.kt` (the sparkline) and `HomeBudgetSummary.kt`
+(the unified-mode budget card). They take a converter lambda rather than
+`CurrencyConversionService`. `HomeViewModel` keeps the flows, caches and UI state.
+
 ### Domain Layer (Business Logic)
 **Components:**
 - Use Cases/Interactors

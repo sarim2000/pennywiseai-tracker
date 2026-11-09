@@ -70,7 +70,7 @@ import com.pennywiseai.tracker.domain.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -122,7 +122,7 @@ class QuickAddActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) unlocked.value = true else checkLock()
         setContent {
-            PennyWiseTheme {
+            PennyWiseUserTheme {
                 if (unlocked.value) Host()
             }
         }

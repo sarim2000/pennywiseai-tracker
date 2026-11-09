@@ -1,6 +1,11 @@
 package com.pennywiseai.tracker.ui.viewmodel
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.AppFont
@@ -8,6 +13,7 @@ import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -133,3 +139,24 @@ data class ThemeUiState(
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0
 )
+
+/**
+ * [PennyWiseTheme] wearing the user's saved appearance (theme, colours, font) — for
+ * activities outside the main app shell (Quick Add, the category picker, widget setup).
+ * Draws nothing until preferences load, so a saved font never flashes the default first.
+ */
+@Composable
+fun PennyWiseUserTheme(content: @Composable () -> Unit) {
+    val state by hiltViewModel<ThemeViewModel>().themeUiState.collectAsStateWithLifecycle()
+    if (state.isLoading) return
+    PennyWiseTheme(
+        darkTheme = state.isDarkTheme ?: isSystemInDarkTheme(),
+        dynamicColor = state.isDynamicColorEnabled,
+        themeStyle = state.themeStyle,
+        accentColor = state.accentColor,
+        isAmoledMode = state.isAmoledMode,
+        appFont = state.appFont,
+        blurEffects = state.blurEffectsEnabled,
+        content = content,
+    )
+}

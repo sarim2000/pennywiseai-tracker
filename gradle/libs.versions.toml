@@ -20,6 +20,9 @@ lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 mockk = "1.14.11"
+# Konsist bundles kotlin-compiler-embeddable: keep it on a release built against
+# the project's Kotlin version (0.18.1 targets Kotlin 2.4.21).
+konsist = "0.18.1"
 navigation3 = "1.2.0"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
@@ -99,6 +102,7 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktorVersion" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktorVersion" }
 ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktorVersion" }

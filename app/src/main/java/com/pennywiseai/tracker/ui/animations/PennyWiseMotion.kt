@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.animations
 import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.expandVertically
@@ -10,7 +11,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +73,23 @@ fun pwCollapse(): ExitTransition {
     return shrinkVertically(motion.fastSpatialSpec(), shrinkTowards = Alignment.Top) +
         fadeOut(motion.fastEffectsSpec())
 }
+
+/**
+ * A screen opening over another (both nav hosts, every push): it rises a quarter of the
+ * screen on the default spatial spring while fading in; the screen under it just fades.
+ * Vertical, so it reads the same in RTL. Takes the scheme because nav specs aren't composable.
+ */
+fun pwPush(motion: MotionScheme): ContentTransform =
+    fadeIn(motion.defaultEffectsSpec()) + slideInVertically(motion.defaultSpatialSpec()) { it / 4 } togetherWith
+        fadeOut(motion.fastEffectsSpec())
+
+/**
+ * The reverse of [pwPush]: the top screen sinks a quarter and fades off the one under it.
+ * Also the predictive-back preview, so a back swipe scrubs it and cancelling restores it.
+ */
+fun pwPop(motion: MotionScheme): ContentTransform =
+    fadeIn(motion.defaultEffectsSpec()) togetherWith
+        fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 
 /**
  * False when the user set "Remove animations" (animator duration scale 0). Compose already

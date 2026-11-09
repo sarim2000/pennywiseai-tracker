@@ -316,8 +316,8 @@ it by `Dimensions.Component.bottomBarHeight`.
   `infiniteRepeatable` loops or where a duration is load-bearing.
 - **Motion language.** Generic transitions live in
   `ui/animations/PennyWiseMotion.kt` (`pwEnter`/`pwExit`, `pwFadeIn`/`pwFadeOut`,
-  `pwExpand`/`pwCollapse`, `StaggeredEntrance`, `rememberEntranceDone`,
-  `staggerDelayMs`, `rememberAnimationsEnabled`);
+  `pwExpand`/`pwCollapse`, `pwPush`/`pwPop`, `StaggeredEntrance`,
+  `rememberEntranceDone`, `staggerDelayMs`, `rememberAnimationsEnabled`);
   use them before hand-building a fade/slide/expand. No default-spec
   `fadeIn()`, `expandVertically()`, `animate*AsState` etc. — always pass a
   `motionScheme` spec.
@@ -333,7 +333,8 @@ it by `Dimensions.Component.bottomBarHeight`.
      `on*` role.
   2. **One beat per change** — no staggering digits or sibling figures.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for
-     content, a quarter of the bar for chrome), never full-width by default.
+     content, a quarter of the bar for chrome, a quarter of the screen for a
+     screen push), never full-width by default.
   4. **No bounce on data; no scale-in on icons or content** (Material reads
      scale as elevation) — fade them. The one exception is the one-shot Pro
      purchase celebration in `UpgradeSheet`, which springs its icon in on
@@ -350,6 +351,20 @@ it by `Dimensions.Component.bottomBarHeight`.
   7. **Shared elements** (the transaction icon from list to detail) move their
      bounds on `defaultSpatialSpec()` via `sharedElementIcon`, not Compose's
      default bounds spring.
+- **Navigation motion.** Both nav hosts (`PennyWiseNavHost` and each tab's
+  stack in `MainScreen`) speak one language from `PennyWiseMotion.kt`. A push is
+  `pwPush`: the new screen rises a quarter of the screen on the default spatial
+  spring as it fades in, and the screen under it fades out. A pop is `pwPop`:
+  the top screen sinks a quarter and fades. The predictive-back preview *is*
+  the pop, so a back swipe scrubs it and cancelling puts the screen back. The
+  travel is vertical, so it reads the same in RTL. A tab switch is a fast
+  effects fade-through, never a slide; Home and Transaction detail cross-fade
+  so the brand icon can fly between them. The bottom bar and its docked action
+  are chrome above the stacks: they show and hide with their own motion and
+  never slide with a screen. A screen's own `BackHandler` (bulk selection,
+  App Lock, an editor sub-page) registers after the hosts, so it gets the
+  gesture first; a plain `BackHandler` shows no preview, which is right for
+  "undo a mode" backs.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

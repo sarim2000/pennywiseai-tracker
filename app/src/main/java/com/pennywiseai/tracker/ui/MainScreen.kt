@@ -4,11 +4,8 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -18,6 +15,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -78,6 +76,8 @@ import com.pennywiseai.tracker.navigation.navigate
 import com.pennywiseai.tracker.navigation.rememberEntryDecorators
 import com.pennywiseai.tracker.navigation.withRouteArgs
 import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
+import com.pennywiseai.tracker.ui.animations.pwPop
+import com.pennywiseai.tracker.ui.animations.pwPush
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
@@ -127,14 +127,15 @@ private fun NavBackStack<NavKey>.resetTo(root: NavKey) {
 }
 
 /**
- * A tab switch fades through; anything else (a push or pop inside one tab) cuts.
- * A scene belongs to the tab whose stack it tops: after a switch both the old and
- * new screens still top their stacks, while an in-tab push or pop leaves the old
- * screen buried or removed.
+ * A tab switch fades through; a push or pop inside one tab slides like the root host
+ * ([pwPush] / [pwPop]). A scene belongs to the tab whose stack it tops: after a switch
+ * both the old and new screens still top their stacks, while an in-tab push or pop
+ * leaves the old screen buried or removed.
  */
-private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSwitchOrCut(
+private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabTransition(
     tabTops: Map<BottomNavItem, Any?>,
-    fade: FiniteAnimationSpec<Float>,
+    motion: MotionScheme,
+    pop: Boolean,
 ): ContentTransform {
     fun tabTopping(scene: Scene<NavKey>): BottomNavItem? {
         val key = scene.entries.lastOrNull()?.contentKey ?: return null
@@ -142,10 +143,11 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabSwitchOrCut(
     }
     val from = tabTopping(initialState)
     val to = tabTopping(targetState)
-    return if (from != null && to != null && from != to) {
-        fadeIn(fade) togetherWith fadeOut(fade)
-    } else {
-        EnterTransition.None togetherWith ExitTransition.None
+    return when {
+        from != null && to != null && from != to ->
+            fadeIn(motion.fastEffectsSpec()) togetherWith fadeOut(motion.fastEffectsSpec())
+        pop -> pwPop(motion)
+        else -> pwPush(motion)
     }
 }
 
@@ -540,7 +542,7 @@ fun MainScreen(
             rememberDecoratedNavEntries(tabStacks.getValue(tab), rememberEntryDecorators(), tabEntries(tab))
         }
     }
-    val fastEffects = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+    val motion = MaterialTheme.motionScheme
     val tabTops = decoratedTabs.mapValues { it.value.lastOrNull()?.contentKey }
     val shownEntries = decoratedTabs.getValue(BottomNavItem.Home) +
         if (currentTab == BottomNavItem.Home) emptyList() else decoratedTabs.getValue(currentTab)
@@ -564,28 +566,36 @@ fun MainScreen(
             }
 
             // NavDisplay — NO padding, fills the full screen. Tab switches are a
-            // fast fade-through; pushes and pops within a tab stay a hard cut.
+            // fast fade-through; pushes and pops within a tab slide like the root
+            // host's, and a back gesture previews the pop (cancelling restores it).
+            // Only the top enabled back handler gets a gesture: this one while a tab
+            // has somewhere to go back to, else the root's (never both at rest).
             NavDisplay(
                 entries = shownEntries,
                 onBack = { back(currentTab) },
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState),
-                transitionSpec = { tabSwitchOrCut(tabTops, fastEffects) },
-                popTransitionSpec = { tabSwitchOrCut(tabTops, fastEffects) },
-                predictivePopTransitionSpec = { EnterTransition.None togetherWith ExitTransition.None }
+                transitionSpec = { tabTransition(tabTops, motion, pop = false) },
+                popTransitionSpec = { tabTransition(tabTops, motion, pop = true) },
+                predictivePopTransitionSpec = { tabTransition(tabTops, motion, pop = true) }
             )
 
             // Bottom navigation OVERLAID on content
             // Wait for prefs so a hidden tab never flashes in on launch.
-            if (!themeState.isLoading && baseRoute in listOf("home", "transactions", "analytics", "chat")) {
+            // A pushed screen hides the bar with its own exit (it never slides with
+            // the screen); it keeps the last tab selected while it leaves.
+            val onTabScreen = baseRoute in listOf("home", "transactions", "analytics", "chat")
+            val lastTabRoute = remember { arrayOf(baseRoute) }
+            if (onTabScreen) lastTabRoute[0] = baseRoute
+            if (!themeState.isLoading) {
                 PennyWiseBottomNavigation(
-                    selectedRoute = baseRoute,
+                    selectedRoute = lastTabRoute[0],
                     onTabSelected = ::onTabClick,
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.
-                    visible = !WindowInsets.isImeVisible && !hideNavBar.value,
+                    visible = onTabScreen && !WindowInsets.isImeVisible && !hideNavBar.value,
                     hiddenTabs = hiddenTabs,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,

@@ -9,7 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
@@ -34,7 +34,7 @@ import javax.inject.Inject
 class SubscriptionsViewModel @Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val subscriptionRepository: SubscriptionRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService,
     private val markSubscriptionPaidUseCase: MarkSubscriptionPaidUseCase,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,

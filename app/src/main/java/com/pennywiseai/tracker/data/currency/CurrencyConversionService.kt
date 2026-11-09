@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.data.currency
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.core.TimeConstants
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -28,7 +28,7 @@ import javax.inject.Singleton
 class CurrencyConversionService @Inject constructor(
     private val exchangeRateDao: ExchangeRateDao,
     private val exchangeRateProvider: ExchangeRateProvider,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: CurrencyPreferences
 ) {
     private val backgroundScope = CoroutineScope(Dispatchers.IO)
 

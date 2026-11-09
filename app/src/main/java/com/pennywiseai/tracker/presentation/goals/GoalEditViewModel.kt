@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.GoalRepository
 import com.pennywiseai.tracker.ui.components.PRESET_COLORS
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -42,7 +42,7 @@ data class GoalEditUiState(
 @HiltViewModel
 class GoalEditViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 

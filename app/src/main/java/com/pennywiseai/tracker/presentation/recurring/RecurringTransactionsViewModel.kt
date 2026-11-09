@@ -8,7 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.billing.FreeTierLimits
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +27,7 @@ import javax.inject.Inject
 class RecurringTransactionsViewModel @Inject constructor(
     private val repository: RecurringTransactionRepository,
     getCategoriesUseCase: GetCategoriesUseCase,
-    userPreferencesRepository: UserPreferencesRepository,
+    userPreferencesRepository: CurrencyPreferences,
     entitlementGate: EntitlementGate
 ) : ViewModel() {
 

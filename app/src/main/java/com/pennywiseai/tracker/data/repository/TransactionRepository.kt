@@ -7,7 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.domain.model.BudgetCycle
@@ -28,7 +28,7 @@ import kotlin.math.min
 open class TransactionRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionSplitDao: TransactionSplitDao,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: BudgetPreferences,
     private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao,
     private val goalRepository: GoalRepository
 ) {

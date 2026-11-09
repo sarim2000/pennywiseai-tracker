@@ -8,7 +8,7 @@ import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.ExportResult
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.BackupPreferences
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -19,7 +19,7 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val backupExporter: BackupExporter,
     private val folderBackupWriter: FolderBackupWriter,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: BackupPreferences
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {

@@ -41,7 +41,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
@@ -111,7 +111,7 @@ fun Context.latinString(@StringRes id: Int, vararg args: Any): String =
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface WidgetEntryPoint {
-    fun userPreferences(): UserPreferencesRepository
+    fun userPreferences(): PrivacyPreferences
 }
 
 /**

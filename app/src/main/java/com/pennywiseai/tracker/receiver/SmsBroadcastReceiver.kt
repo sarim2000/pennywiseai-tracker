@@ -65,7 +65,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun ignoredAccountsStore(): IgnoredAccountsStore
         fun unrecognizedSmsRepository(): UnrecognizedSmsRepository
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
-        fun userPreferencesRepository(): com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+        fun recurringSuggestionPreferences(): com.pennywiseai.tracker.data.preferences.RecurringSuggestionPreferences
         fun conscienceManager(): ConscienceManager
     }
 
@@ -769,7 +769,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val trackCycle = runCatching {
                 entryPoint.trackRepeatChargeUseCase().suggestedCycle(saved)?.takeIf {
                     canShowTransactionAlerts(context) &&
-                        entryPoint.userPreferencesRepository().tryRecordRecurringOffer(offerKey, today, RECURRING_OFFER_INTERVAL_DAYS)
+                        entryPoint.recurringSuggestionPreferences().tryRecordRecurringOffer(offerKey, today, RECURRING_OFFER_INTERVAL_DAYS)
                 }
             }
                 .onFailure { Log.e(TAG, "Error checking for a repeat charge", it) }
@@ -791,7 +791,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 priceLine, trackCycle, offerPriceUpdate = result.priceChange != null
             )
             if (trackCycle != null && !posted) {
-                runCatching { entryPoint.userPreferencesRepository().releaseRecurringOffer(offerKey, today) }
+                runCatching { entryPoint.recurringSuggestionPreferences().releaseRecurringOffer(offerKey, today) }
             }
             // #734: tell the user right away when the bank's balance disagrees with the ledger.
             runCatching { entryPoint.detectBalanceDiscrepancy().execute(saved) }

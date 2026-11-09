@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.data.statement.ImportStatementUseCase
 import com.pennywiseai.tracker.data.statement.StatementAccount
 import com.pennywiseai.tracker.data.statement.StatementBalanceCheck
@@ -76,7 +76,7 @@ sealed class ImportStatementUiState {
 @HiltViewModel
 class ImportStatementViewModel @Inject constructor(
     private val importStatementUseCase: ImportStatementUseCase,
-    private val preferences: UserPreferencesRepository,
+    private val preferences: BillingPreferences,
     entitlementGate: EntitlementGate,
     @ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {

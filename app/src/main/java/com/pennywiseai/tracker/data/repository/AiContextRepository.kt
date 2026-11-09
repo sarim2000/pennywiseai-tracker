@@ -4,7 +4,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.*
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
@@ -19,7 +19,7 @@ import javax.inject.Singleton
 class AiContextRepository @Inject constructor(
     private val transactionDao: TransactionDao,
     private val transactionSplitDao: com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService,
     private val loanRepository: LoanRepository
 ) {

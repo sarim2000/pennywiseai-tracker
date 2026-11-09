@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.utils.forTotals
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -31,7 +31,7 @@ import kotlinx.coroutines.flow.map
 @Singleton
 class BudgetSummaryProvider @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService
 ) {
     fun summary(yearMonth: YearMonth): Flow<BudgetOverallSummary> =

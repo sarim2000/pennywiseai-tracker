@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.add
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -74,6 +75,8 @@ fun SubscriptionTabContent(
     val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    // Closing the picker would hand focus back to a text field and pop its keyboard up again.
+    val focusManager = LocalFocusManager.current
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showBillingCycleMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
@@ -268,7 +271,7 @@ fun SubscriptionTabContent(
                         )
                         .padding(Spacing.sm)
                         .clickable(
-                            onClick = { showDatePicker = true },
+                            onClick = { focusManager.clearFocus(); showDatePicker = true },
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ),

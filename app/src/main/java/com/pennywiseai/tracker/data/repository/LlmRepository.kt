@@ -423,9 +423,15 @@ class LlmRepository @Inject constructor(
     private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = if (call.isComparison(userMessage)) {
         val period = SpendingComparison.period(userMessage, call.arguments["period"])
         val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
-        val category = if (wanted.isEmpty()) null else matchCategory(wanted, categoryRepository.getAllCategories().first()) ?: wanted
+        val known = if (wanted.isEmpty()) null else matchCategory(wanted, categoryRepository.getAllCategories().first())
+        // A name no transaction carries either is unknown, not a category with nothing spent.
+        val category = known ?: wanted.ifEmpty { null }
         if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
-        else comparisonText(aiContextRepository.compareSpending(period, category), category)
+        else aiContextRepository.compareSpending(period, category).let { result ->
+            if (category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()) {
+                context.getString(R.string.chat_reply_unknown_category, wanted)
+            } else comparisonText(result, category)
+        }
     } else when (call.name) {
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
             val match = findTransaction(call.arguments, userMessage)

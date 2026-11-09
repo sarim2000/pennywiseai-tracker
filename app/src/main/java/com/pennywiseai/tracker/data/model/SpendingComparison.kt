@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.model
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.forTotals
@@ -71,8 +72,25 @@ object SpendingComparison {
         return Result.Rows(cw, pw, rows)
     }
 
-    /** Same rules as the month summary (what counts toward totals, credit as spending); a category gets its split share. */
-    private fun spend(rows: List<TransactionWithSplits>, category: String?): Map<String, BigDecimal> =
+    /**
+     * Refunds (INCOME + DEDUCT_SPENT) as (currency, category, amount): they come off spending, as on
+     * Home and in Analytics. A refund's category is the budget category it gives back to.
+     */
+    internal fun refunds(rows: List<TransactionWithSplits>) = rows.forTotals()
+        .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+        .map { Triple(it.transaction.currency, (it.transaction.budgetCategory ?: "").ifEmpty { "Others" }, it.transaction.amount) }
+
+    /**
+     * Same rules as Home's "spent": what counts toward totals, credit as spending, refunds netted per
+     * currency and floored at zero. A category gets its split share and the refunds given back to it.
+     */
+    private fun spend(rows: List<TransactionWithSplits>, category: String?): Map<String, BigDecimal> {
+        val refunded = refunds(rows).filter { category == null || it.second.equals(category, ignoreCase = true) }
+            .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
+        return grossSpend(rows, category).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
+    }
+
+    private fun grossSpend(rows: List<TransactionWithSplits>, category: String?): Map<String, BigDecimal> =
         rows.forTotals()
             .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
             .mapNotNull { row ->
@@ -133,8 +151,13 @@ object SpendingComparison {
     // A lone number is more likely an amount ("my 2000 rent").
     private val YEAR_NUMBER = Regex("(?<![\\d.,])(?:19|20)\\d\\d(?![\\d.,])")
     private val YEAR_IN_CONTEXT = Regex(
-        "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than)|في|عام|سنة|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
+        "(?:\\b(?:in|of|from|since|during|vs\\.?|versus|than|with|to)|في|عام|سنة|مع|सन|वर्ष)\\s+(?:19|20)\\d\\d(?![\\d.,])",
         RegexOption.IGNORE_CASE
+    )
+    // A written date names its own month: "2025-10", "10/2025", "15/10". ponytail: "50/50" reads as one
+    // too and is refused; the user rephrases.
+    private val NUMERIC_DATE = Regex(
+        "(?<![\\d.,])(?:(?:19|20)\\d\\d[-/.]\\d{1,2}|\\d{1,2}[-/.](?:19|20)\\d\\d|\\d{1,2}/\\d{1,2}(?:/\\d{2,4})?)(?![\\d])"
     )
 
     // "Last month" / "pichle hafte": the previous period by name.
@@ -166,7 +189,7 @@ object SpendingComparison {
         val years = YEAR_NUMBER.findAll(userMessage).map { it.value }.toSet().size
         return when {
             (week && month) || years > 1 || YEAR_IN_CONTEXT.containsMatchIn(userMessage) || UNSUPPORTED.containsMatchIn(userMessage) ||
-                SPAN.containsMatchIn(userMessage) -> null
+                SPAN.containsMatchIn(userMessage) || NUMERIC_DATE.containsMatchIn(userMessage) -> null
             week -> Period.WEEK
             month -> Period.MONTH
             modelPick == null || modelPick.toString().isBlank() -> Period.MONTH

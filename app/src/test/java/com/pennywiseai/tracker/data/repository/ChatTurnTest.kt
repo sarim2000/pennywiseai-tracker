@@ -106,6 +106,18 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a comparison for a category nobody has is unknown, not nothing spent`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any()) } returns SpendingComparison.Result.Rows(w, w, emptyList())
+        every { context.getString(R.string.chat_reply_compare_nothing_category, any(), any(), any()) } returns "NOTHING"
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "Unicorns")))
+        assertEquals("UNKNOWN_CATEGORY", send("compare unicorns with last month"))
+        // A category the user has, with nothing spent, is still zero.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        assertEquals("NOTHING", send("قارن الطعام بالشهر الماضي"))
+    }
+
+    @Test
     fun `every add of a turn lands on one review card`() = runTest {
         events = listOf(add(120.0, 300.0))
         val reply = send("coffee 120 and lunch 300")

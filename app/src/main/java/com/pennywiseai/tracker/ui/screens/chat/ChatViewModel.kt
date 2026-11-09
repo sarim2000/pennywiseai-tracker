@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -218,6 +220,9 @@ class ChatViewModel @Inject constructor(
                         if (drafts.isNotEmpty()) withContext(NonCancellable) {
                             addTransactionUseCase.executeAll(drafts)
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
+                            // Saved: the card shows its check for a beat, then gives way to its line.
+                            _uiState.value = _uiState.value.copy(cardSaved = true)
+                            delay(SETTLED_HOLD_MILLIS)
                             llmRepository.completePendingAction(
                                 drafts.joinToString("\n") { draft ->
                                     context.getString(
@@ -233,6 +238,7 @@ class ChatViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = UiText.Res(R.string.chat_error_apply_failed, listOf(e.message.orEmpty())))
             } finally {
+                _uiState.value = _uiState.value.copy(cardSaved = false)
                 _isConfirming.value = false
             }
         }
@@ -348,7 +354,9 @@ class ChatViewModel @Inject constructor(
 
 data class ChatUiState(
     val isLoading: Boolean = false,
-    val error: UiText? = null
+    val error: UiText? = null,
+    /** An Add card's rows were just saved: it holds its check until its line replaces it. */
+    val cardSaved: Boolean = false
 )
 
 data class ChatStats(

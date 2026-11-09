@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.ui.screens.chat
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
@@ -63,6 +65,7 @@ import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.SettledCheck
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -75,12 +78,16 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-/** What the model proposed from one message. Nothing is written until the user taps Add (#170). */
+/**
+ * What the model proposed from one message. Nothing is written until the user taps Add (#170).
+ * Once the rows are [saved], the actions give way to the receipt's check until the card goes.
+ */
 @Composable
 internal fun AddReviewCard(
     rows: List<ReviewRow>,
     categories: List<CategoryEntity>,
     enabled: Boolean,
+    saved: Boolean,
     onToggle: (Int) -> Unit,
     onEdit: (Int, TransactionDraft) -> Unit,
     onConfirm: () -> Unit,
@@ -111,21 +118,31 @@ internal fun AddReviewCard(
             rows.forEach { row ->
                 ReviewRowItem(row, enabled, onToggle = { onToggle(row.id) }, onEdit = { editing = row.id })
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(
-                    onClick = onDismiss,
-                    enabled = enabled,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = fg),
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.chat_cancel))
-                }
-                Button(onClick = onConfirm, enabled = enabled && selected > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
-                    Text(
-                        if (rows.size == 1) stringResource(R.string.chat_action_add)
-                        else pluralStringResource(R.plurals.chat_action_add_count, selected, selected)
-                    )
+            // No amounts in here: the rows above keep their (masked) figures out of the crossfade.
+            Crossfade(saved, animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(), label = "addCardActions") { done ->
+                if (done) {
+                    // The check is the avatar's height, about a button's, so the card doesn't jump.
+                    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        SettledCheck(settled = true, size = Dimensions.Icon.avatar) {}
+                    }
+                } else {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            enabled = enabled,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = fg),
+                            shapes = ButtonDefaults.shapes()
+                        ) {
+                            Text(stringResource(R.string.chat_cancel))
+                        }
+                        Button(onClick = onConfirm, enabled = enabled && selected > 0, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) {
+                            Text(
+                                if (rows.size == 1) stringResource(R.string.chat_action_add)
+                                else pluralStringResource(R.plurals.chat_action_add_count, selected, selected)
+                            )
+                        }
+                    }
                 }
             }
         }

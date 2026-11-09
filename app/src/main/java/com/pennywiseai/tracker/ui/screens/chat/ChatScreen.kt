@@ -28,6 +28,8 @@ import com.pennywiseai.tracker.R
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -82,6 +84,12 @@ fun ChatScreen(
                 )
             }
         }
+    }
+
+    // "Receipt settled": only an Add that was saved gets the check + Confirm haptic.
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(uiState.cardSaved) {
+        if (uiState.cardSaved) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
     // Scroll behaviors for TopAppBar
@@ -397,6 +405,7 @@ fun ChatScreen(
                                             rows = action.rows,
                                             categories = categories,
                                             enabled = !isConfirming,
+                                            saved = uiState.cardSaved,
                                             onToggle = viewModel::toggleRow,
                                             onEdit = viewModel::editRow,
                                             onConfirm = viewModel::confirmPendingAction,

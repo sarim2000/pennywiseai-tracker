@@ -338,6 +338,12 @@ it by `Dimensions.Component.bottomBarHeight`.
   pass `animateItem(fadeInSpec = null)`: a new row was already on screen
   (typed, streamed or the confirmed card), so it lands without a second
   fade; the typing/streaming reply shares one keyed slot.
+- **"Receipt settled"** (`SettledCheck`): only after the user's own save is
+  written — never on load, import or a failed save — the item's avatar gives
+  way to a check (fade + cookie→circle morph, no scale), with
+  `HapticFeedbackType.Confirm`, held `SETTLED_HOLD_MILLIS`. Transaction detail
+  Save and Subscriptions mark-paid swap the avatar; the chat's Add card swaps
+  its Cancel/Add buttons for the check, then gives way to its "Added …" line.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.

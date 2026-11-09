@@ -128,6 +128,15 @@ object Dimensions {
     object Component {
         val bottomBarHeight = 80.dp
 
+        /** Expanded height of `CustomTitleTopAppBar`'s collapsing bar (title only). */
+        val appBarExpandedHeight = 110.dp
+
+        /** The same bar with a subtitle line — one M3 subtitle step (24dp) taller. */
+        val appBarExpandedHeightWithSubtitle = 134.dp
+
+        /** Home's expanded bar, tall enough to hold the GreetingCard. */
+        val homeAppBarExpandedHeight = 150.dp
+
         /** The year review's month bars. */
         val reviewBarHeight = 72.dp
 

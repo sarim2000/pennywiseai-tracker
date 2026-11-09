@@ -79,6 +79,7 @@ import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
+import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.ReviewPromptBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
@@ -298,7 +299,7 @@ fun HomeScreen(
         }
     }
     
-    Scaffold(
+    PennyWiseScaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         // The bottom nav bar is overlaid on top of this Scaffold by MainScreen,
@@ -310,7 +311,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = Dimensions.Component.bottomBarHeight)
             )
         },
-        topBar = {
+        customTopBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,

@@ -7,6 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
+/**
+ * The app's screen scaffold. Pass [title] for the default top bar, or
+ * [customTopBar] — usually a [CustomTitleTopAppBar], which takes an optional
+ * `subtitle` — for a collapsing one.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PennyWiseScaffold(
@@ -17,6 +22,7 @@ fun PennyWiseScaffold(
     transparentTopBar: Boolean = false,
     customTopBar: @Composable (() -> Unit)? = null,
     bottomBar: @Composable () -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
     floatingActionButton: @Composable () -> Unit = {},
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     containerColor: Color = MaterialTheme.colorScheme.background,
@@ -36,6 +42,7 @@ fun PennyWiseScaffold(
             )
         },
         bottomBar = bottomBar,
+        snackbarHost = snackbarHost,
         floatingActionButton = floatingActionButton,
         floatingActionButtonPosition = floatingActionButtonPosition,
         containerColor = containerColor,

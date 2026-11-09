@@ -328,7 +328,7 @@ fun TransactionsScreen(
         )
     }
 
-    Scaffold(
+    PennyWiseScaffold(
         modifier = modifier
             .fillMaxSize()
             .nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -339,7 +339,7 @@ fun TransactionsScreen(
                 modifier = Modifier.padding(bottom = if (navDock != null) bottomBarClearance else 0.dp)
             )
         },
-        topBar = {
+        customTopBar = {
             if (selectionMode) {
                 // Contextual top bar for bulk-edit (#369): close left, count as title,
                 // Change Category + Delete on the right.
@@ -398,6 +398,9 @@ fun TransactionsScreen(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = stringResource(R.string.txn_list_title),
+                    // The period chip row hides once the list scrolls; this keeps
+                    // the active period readable in the collapsed bar.
+                    subtitle = periodChipLabel,
                     hasBackButton = showBackButton,
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
@@ -710,6 +713,7 @@ fun TransactionsScreen(
                                 }
                                 if (selectionMode) {
                                     com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+                                        modifier = Modifier.animateItem(),
                                         transaction = transaction,
                                         showDate = dateGroup == DateGroup.THIS_WEEK || dateGroup == DateGroup.EARLIER,
                                         listItemPosition = ListItemPosition.from(index, transactions.size),
@@ -721,7 +725,7 @@ fun TransactionsScreen(
                                         containerColor = rowContainerColor
                                     )
                                 } else {
-                                    Column {
+                                    Column(Modifier.animateItem()) {
                                         SwipeToEditCategory(
                                             transaction = transaction,
                                             onRequestEdit = { pendingCategoryEditId = it.id }

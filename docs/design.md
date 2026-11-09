@@ -266,8 +266,23 @@ width-capped so centred text doesn't wrap into an awkward shape.
 
 ### `PennyWiseScaffold` / `CustomTitleTopAppBar`
 
-All screens use one of these for consistent system-bar and app-bar handling.
-App-bar titles use `titleLarge` (collapsed) and `headlineMedium` (expanded).
+All screens use `PennyWiseScaffold` for consistent system-bar and app-bar
+handling — no raw `Scaffold`. Pass `title` for its plain top bar, or a
+`CustomTitleTopAppBar` through `customTopBar` for the collapsing one. The
+scaffold also takes `snackbarHost`; tab screens under the overlaid nav bar pad
+it by `Dimensions.Component.bottomBarHeight`.
+
+- `CustomTitleTopAppBar`'s expanded bar is the M3 Expressive
+  `LargeFlexibleTopAppBar`; the collapsed bar is a centred single-row bar.
+  Expanded heights are the `Dimensions.Component.appBarExpandedHeight*` and
+  `homeAppBarExpandedHeight` tokens — no dp literals.
+- Titles use `titleLarge` collapsed and `headlineMediumEmphasized` expanded
+  (one of the emphasized hero moments below).
+- **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the
+  screen would otherwise lose on scroll — e.g. Transactions shows the active
+  period, because its period chip hides when the list scrolls. It shows in
+  both bar states and makes the expanded bar one step taller. Don't repeat the
+  title or invent data for it; leave it `null` when there's nothing to add.
 
 ### Choices and progress (Material 3 Expressive)
 

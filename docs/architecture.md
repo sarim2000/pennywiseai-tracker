@@ -133,6 +133,48 @@ iosApp/                          # Swift iOS app
 pennywise-web/                   # Web deployment (Cloudflare Worker + server/)
 ```
 
+## Ownership & dependency rules
+
+These rules set the direction for new code and for moves under
+[ADR-0003](adr/0003-incremental-architecture-modernization.md). The code doesn't
+follow all of them yet. [architecture-baseline.md](architecture-baseline.md)
+lists the existing cycles and back-edges, and `scripts/arch/package-deps.sh`
+reprints them. A PR may remove a violation but must not add one.
+
+| Package (`com.pennywiseai.tracker.…`) | Owns | Must not import |
+|---|---|---|
+| `presentation/<feature>`, `ui/screens/<feature>` | A feature's screens, ViewModel and UI state, kept together | Another feature's screens or internal components |
+| `ui/components`, `ui/theme`, `ui/icons`, `ui/animations`, `ui/effects` | Components and design tokens used by more than one feature | `presentation`, `ui/screens`, `worker` |
+| `domain` | Use cases, business rules, models, service interfaces | `presentation`, `ui`, Compose, Activities or other Android UI |
+| `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui` |
+| `utils`, `core` | Small helpers used across layers: money, currency, dates | `presentation`, `ui`, Android entry points |
+| `worker`, `receiver`, `widget`, `tile`, `aiaccess` | Android entry points | Feature screen internals. Use `domain`/`data` instead |
+| `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root | (may import anything) |
+
+1. **No new cycles.** If two packages import each other, cut the edge that points
+   from the lower layer to the higher one.
+2. **Non-UI code doesn't live in screen packages.** If `data`, `domain`, a worker
+   or a widget needs it, move it into `domain` (or `utils` for a small pure
+   helper) instead of importing the screen package. Examples today are the
+   profile filters in `presentation/common` and `presentation/accounts/AccountType`.
+3. **Shared UI is feature-agnostic.** A component in `ui/components` takes plain
+   parameters. It doesn't import a feature's state types. A component only one
+   feature uses lives in that feature's package.
+4. **Domain has no UI or Android UI dependencies.** Use cases may use Room
+   entities and repositories from `data`, which is the current pattern. Introduce
+   a separate domain model only when a feature needs one.
+5. **Money has one definition.** Use `utils/Money.kt`, `MoneyTotals.kt` and
+   `CurrencyFormatter` (see the hard constraints in `CLAUDE.md`). Check `:shared`
+   before adding a model, so it isn't defined twice.
+6. **Moves keep persisted names.** WorkManager stores worker class names, and
+   widgets, tiles, the notification listener and the launcher activity are bound
+   by their component names. Room table and column names, DataStore keys and
+   backup field names must not change during a refactor either.
+7. **Gradle modules.** `:parser-core` stays pure Kotlin. `:shared` `commonMain`
+   has no Android API. A new module is split off only when its package has no
+   back-edges into `:app`. It depends on other modules with `implementation`, and
+   uses `api` only for a contract that is actually public.
+
 ## Data Flow Example
 ```
 User opens app

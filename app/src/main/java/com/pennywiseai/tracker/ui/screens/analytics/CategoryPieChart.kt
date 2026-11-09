@@ -3,10 +3,9 @@ package com.pennywiseai.tracker.ui.screens.analytics
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import java.math.BigDecimal
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -45,7 +44,8 @@ fun CategoryPieChart(
     val total = categories.fold(BigDecimal.ZERO) { acc, cat -> acc + cat.amount }.toDouble()
     if (total == 0.0) return
 
-    // Slice scale is the tap-to-select pop (1 → selectedScale), not the data sweep.
+    // Slices are data: every sweep, colour and select pop runs on effects specs,
+    // so an arc never bounces past its share.
     val motion = MaterialTheme.motionScheme
     val pieData = remember(categories) {
         categories.map { category ->
@@ -56,8 +56,12 @@ fun CategoryPieChart(
                 color = sliceColor,
                 selectedColor = sliceColor.copy(alpha = 0.8f),
                 selected = false,
-                scaleAnimEnterSpec = motion.fastSpatialSpec(),
-                colorAnimEnterSpec = motion.fastEffectsSpec()
+                scaleAnimEnterSpec = motion.fastEffectsSpec(),
+                colorAnimEnterSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimEnterSpec = motion.fastEffectsSpec(),
+                scaleAnimExitSpec = motion.fastEffectsSpec(),
+                colorAnimExitSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimExitSpec = motion.fastEffectsSpec()
             )
         }
     }
@@ -90,8 +94,12 @@ fun CategoryPieChart(
                     categories.find { it.name == categoryName }?.let(onCategoryClick)
                 },
                 selectedScale = 1.1f,
-                scaleAnimEnterSpec = motion.fastSpatialSpec(),
+                scaleAnimEnterSpec = motion.fastEffectsSpec(),
                 colorAnimEnterSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimEnterSpec = motion.fastEffectsSpec(),
+                scaleAnimExitSpec = motion.fastEffectsSpec(),
+                colorAnimExitSpec = motion.fastEffectsSpec(),
+                spaceDegreeAnimExitSpec = motion.fastEffectsSpec(),
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),
@@ -101,18 +109,24 @@ fun CategoryPieChart(
             val selectedPie = chartData.find { it.selected }
             BlurredAnimatedVisibility(
                 visible = selectedPie != null,
-                enter = fadeIn() + scaleIn(),
-                exit = fadeOut() + scaleOut(),
+                enter = fadeIn(motion.defaultEffectsSpec()),
+                exit = fadeOut(motion.fastEffectsSpec()),
                 modifier = Modifier.align(Alignment.Center)
             ) {
-                if (selectedPie != null && selectedPie.label != null) {
+                // Moving the selection to another slice crossfades the centre icon.
+                Crossfade(
+                    targetState = selectedPie,
+                    animationSpec = motion.defaultEffectsSpec(),
+                    label = "pie_centre"
+                ) { pie ->
+                    val label = pie?.label ?: return@Crossfade
                     CategoryIcon(
-                        category = selectedPie.label!!,
+                        category = label,
                         size = 32.dp,
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .background(selectedPie.color.copy(alpha = 0.2f))
+                            .background(pie.color.copy(alpha = 0.2f))
                             .padding(12.dp)
                     )
                 }

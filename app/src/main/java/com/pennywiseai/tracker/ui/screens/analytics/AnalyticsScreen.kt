@@ -9,8 +9,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,6 +45,8 @@ import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -180,6 +180,9 @@ fun AnalyticsScreen(
             )
         }
     ) { paddingValues ->
+    // Data swaps here fade on effects specs: no full-width slides, no overshoot.
+    val motion = MaterialTheme.motionScheme
+
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -350,7 +353,11 @@ fun AnalyticsScreen(
                     )
 
                     // Expandable chart type selector card
-                    AnimatedVisibility(visible = showChartTypeSelector) {
+                    AnimatedVisibility(
+                        visible = showChartTypeSelector,
+                        enter = pwExpand(),
+                        exit = pwCollapse()
+                    ) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -416,16 +423,21 @@ fun AnalyticsScreen(
                     // Chart display with crossfade transition
                     Crossfade(
                         targetState = chartType,
+                        animationSpec = motion.defaultEffectsSpec(),
                         label = "chart_transition"
                     ) { type ->
+                        // The trend's own currency, set with the data in one state: the
+                        // picker's selectedCurrency flips first, which labelled the old
+                        // figures with the new symbol for a frame.
+                        val trendCurrency = uiState.currency.ifEmpty { selectedCurrency }
                         when (type) {
                             ChartType.LINE -> BalanceChart(
-                                primaryCurrency = selectedCurrency,
+                                primaryCurrency = trendCurrency,
                                 balanceHistory = uiState.spendingTrend,
                                 height = 220
                             )
                             ChartType.BAR -> SpendingBarChart(
-                                primaryCurrency = selectedCurrency,
+                                primaryCurrency = trendCurrency,
                                 data = uiState.spendingTrend,
                                 height = 220
                             )
@@ -467,15 +479,9 @@ fun AnalyticsScreen(
                     AnimatedContent(
                         targetState = categoryViewType,
                         transitionSpec = {
-                            if (targetState == CategoryViewType.CHART) {
-                                (slideInHorizontally { -it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            } else {
-                                (slideInHorizontally { it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { -it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            }
+                            fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                fadeOut(motion.fastEffectsSpec()) using
+                                SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
                         },
                         label = "category_view_transition"
                     ) { viewType ->
@@ -542,15 +548,9 @@ fun AnalyticsScreen(
                     AnimatedContent(
                         targetState = tagViewType,
                         transitionSpec = {
-                            if (targetState == CategoryViewType.CHART) {
-                                (slideInHorizontally { -it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            } else {
-                                (slideInHorizontally { it } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { -it } + fadeOut()) using
-                                    SizeTransform(clip = false)
-                            }
+                            fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                fadeOut(motion.fastEffectsSpec()) using
+                                SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
                         },
                         label = "tag_view_transition"
                     ) { viewType ->

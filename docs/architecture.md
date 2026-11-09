@@ -52,6 +52,11 @@ account conversion), `HomeSpendTrend.kt` (the sparkline) and `HomeBudgetSummary.
 (the unified-mode budget card). They take a converter lambda rather than
 `CurrencyConversionService`. `HomeViewModel` keeps the flows, caches and UI state.
 
+The Transactions list follows the same split: `TransactionListFilters.kt` (filter,
+search, sort and date-group steps) and `TransactionListTotals.kt` (per-currency and
+unified totals). `TransactionsViewModel` keeps the triggers, threading and currency
+auto-select.
+
 ### Domain Layer (Business Logic)
 **Components:**
 - Use Cases/Interactors

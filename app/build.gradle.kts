@@ -324,6 +324,8 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
+    // Architecture guardrails (ArchitectureTest): parses app sources, test-only.
+    testImplementation(libs.konsist)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.junit)
@@ -379,4 +381,10 @@ tasks.withType<Test>().configureEach {
     inputs.dir(layout.projectDirectory.dir("src/main/res"))
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("androidResourcesForParityTest")
+    // Same for ArchitectureTest, which parses the Kotlin sources' imports. An
+    // import edit doesn't always change the bytecode (swap one import line for
+    // another), and then the compiled classes alone wouldn't re-run the test.
+    inputs.files(fileTree("src") { include("*/java/**/*.kt") })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("kotlinSourcesForArchitectureTest")
 }

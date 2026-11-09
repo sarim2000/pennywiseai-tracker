@@ -338,6 +338,9 @@ it by `Dimensions.Component.bottomBarHeight`.
      (`rememberAnimationsEnabled()`, re-read on every resume — key `delay`
      effects on it so a pending delay drops when it turns off), and draw
      infinite loops (typing dots) as their static frame.
+  7. **Shared elements** (the transaction icon from list to detail) move their
+     bounds on `defaultSpatialSpec()` via `sharedElementIcon`, not Compose's
+     default bounds spring.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique

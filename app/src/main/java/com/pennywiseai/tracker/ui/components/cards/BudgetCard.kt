@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.ui.theme.warning
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -85,10 +86,14 @@ fun BudgetCard(
     // The 70/90% thresholds read the percent the pill is showing, so the colour
     // turns as the bar crosses them rather than before the bar gets there.
     val budgetColor = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val (statusTarget, onStatusTarget) = budgetStatusColors(pillPercent.toFloat())
+    val (statusTarget, _) = budgetStatusColors(pillPercent.toFloat())
     val colorSpec = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
     val statusColor by animateColorAsState(statusTarget, colorSpec, label = "budgetStatusColor")
-    val onStatusColor by animateColorAsState(onStatusTarget, colorSpec, label = "budgetOnStatusColor")
+    // Text snaps to whichever on-colour reads best on the fill as it is right now.
+    // Crossfading light→dark text while the fill goes dark→light meets in an
+    // unreadable middle (e.g. Pine dark: primary → tertiary).
+    val onStatusColor = with(MaterialTheme.colorScheme) { listOf(onPrimary, onTertiary, onError) }
+        .maxBy { contrastRatio(it, statusColor) }
     // The bar wears the budget's own color while it's healthy; the pill and
     // hero text stay semantic so a red budget at 36% doesn't read as danger.
     val barColor by animateColorAsState(
@@ -370,6 +375,13 @@ fun budgetStatusColors(percent: Float): Pair<Color, Color> = with(MaterialTheme.
         percent >= BUDGET_WARN_PERCENT -> tertiary to onTertiary
         else -> primary to onPrimary
     }
+}
+
+/** WCAG contrast ratio between two opaque colours (1..21). */
+private fun contrastRatio(a: Color, b: Color): Float {
+    val la = a.luminance() + 0.05f
+    val lb = b.luminance() + 0.05f
+    return maxOf(la, lb) / minOf(la, lb)
 }
 
 /** A whisper of the budget's color over the card surface (#763). */

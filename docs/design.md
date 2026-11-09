@@ -344,6 +344,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   `HapticFeedbackType.Confirm`, held `SETTLED_HOLD_MILLIS`. Transaction detail
   Save and Subscriptions mark-paid swap the avatar; the chat's Add card swaps
   its Cancel/Add buttons for the check, then gives way to its "Added …" line.
+- **A screen of sibling money figures enters as one group.** Period Review
+  fades its loaded content in once on first visit (one `StaggeredEntrance`,
+  delay 0, saveable flag) instead of staggering its cards (rules 2 and 5);
+  later periods, and coming back, just appear.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.

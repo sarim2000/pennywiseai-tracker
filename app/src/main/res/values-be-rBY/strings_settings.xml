@@ -301,7 +301,7 @@
     <string name="appearance_fonts_section">Шрыфты</string>
     <string name="appearance_font_default">Стандартны</string>
     <string name="appearance_font_default_subtitle">Сістэмны</string>
-    <string name="appearance_font_sn_pro_subtitle">Сучасны монашырынны</string>
+    <string name="appearance_font_sn_pro_subtitle">Акруглены</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title">Вэбхукі</string>
     <string name="webhooks_title_add">Дадаць вэбхук</string>

@@ -283,7 +283,7 @@
     <string name="appearance_fonts_section">Fonti</string>
     <string name="appearance_font_default">Chaguomsingi</string>
     <string name="appearance_font_default_subtitle">Mfumo</string>
-    <string name="appearance_font_sn_pro_subtitle">Mono ya Kisasa</string>
+    <string name="appearance_font_sn_pro_subtitle">Mviringo</string>
     <!-- ══ Webhooks screen ══ -->
     <string name="webhooks_title_add">Ongeza webhook</string>
     <string name="webhooks_title_edit">Hariri webhook</string>

@@ -178,7 +178,7 @@ internal fun BoxScope.HomeFabStack(
     onNavigateToAddScreen: () -> Unit,
     onSync: () -> Unit,
     onRequestFullResync: () -> Unit,
-    onFabPositioned: (Rect) -> Unit
+    onFabPositioned: ((Rect) -> Unit)?
 ) {
     val view = LocalView.current
     val context = LocalContext.current
@@ -212,7 +212,7 @@ internal fun BoxScope.HomeFabStack(
         ) {
             Surface(
                 modifier = Modifier
-                    .spotlightTarget(onFabPositioned)
+                    .then(onFabPositioned?.let { Modifier.spotlightTarget(it) } ?: Modifier)
                     .size(Dimensions.Component.fab)
                     .pointerInput(Unit) {
                         detectTapGestures(

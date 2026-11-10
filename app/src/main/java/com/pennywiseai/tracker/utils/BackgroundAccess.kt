@@ -1,14 +1,17 @@
 package com.pennywiseai.tracker.utils
 
+import android.Manifest
 import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
 import androidx.core.content.UnusedAppRestrictionsConstants
 import androidx.core.content.getSystemService
 import androidx.core.net.toUri
@@ -191,6 +194,9 @@ fun Context.isBackgroundRestricted(): Boolean? =
 fun Context.batteryUnrestrictedIntents(): List<Intent> = listOf(
     Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
 )
+
+fun Context.canReadSms(): Boolean =
+    ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
 
 fun Context.appInfoIntent(): Intent =
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri())

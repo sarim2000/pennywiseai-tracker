@@ -14,8 +14,8 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.manager.SmsScanManager
 import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -163,6 +163,8 @@ class OnBoardingViewModel @Inject constructor(
                 smsPermissionSkipped = !granted
             )
         }
+        // Granted from the dialog or app settings: move on rather than wait for Continue.
+        if (granted && _uiState.value.currentStep == OnBoardingStep.PERMISSIONS) goToNextStep()
     }
 
     fun skipSmsPermission() {
@@ -326,12 +328,13 @@ class OnBoardingViewModel @Inject constructor(
             }
             // A widget added before onboarding finished holds the ₹ default.
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+            // Onboarding already scanned: Home's "tap here to scan" hint would teach a step done.
+            if (state.scanCompleted) userPreferencesRepository.markScanTutorialShown()
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }
             onComplete()
         }
     }
-
 }
 
 /**

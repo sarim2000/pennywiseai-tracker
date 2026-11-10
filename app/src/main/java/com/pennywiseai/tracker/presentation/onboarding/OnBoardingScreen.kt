@@ -81,6 +81,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -105,6 +106,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
+import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -587,11 +589,11 @@ private fun PermissionsStep(
     uiState: OnBoardingUiState,
     onPermissionResult: (Boolean) -> Unit
 ) {
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val readSmsGranted = permissions[Manifest.permission.READ_SMS] == true
-        onPermissionResult(readSmsGranted)
+    val smsAccess = rememberSmsAccess(onGranted = { onPermissionResult(true) })
+    // Recreated after a grant in app settings, access starts granted and onGranted never
+    // fires. Catch the ViewModel up; an earlier grant (Back to this step) is already recorded.
+    LaunchedEffect(smsAccess.granted) {
+        if (smsAccess.granted && !uiState.smsPermissionGranted) onPermissionResult(true)
     }
 
     Column(
@@ -682,16 +684,25 @@ private fun PermissionsStep(
             }
         } else {
             Button(
-                onClick = {
-                    // SMS only; notifications are asked after the first scan, with a reason.
-                    permissionLauncher.launch(
-                        arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
-                    )
-                },
+                onClick = smsAccess.request,
                 modifier = Modifier.fillMaxWidth(),
                 shapes = ButtonDefaults.shapes()
             ) {
-                Text(stringResource(R.string.onboarding_enable_permissions))
+                Text(
+                    stringResource(
+                        if (smsAccess.blocked) R.string.sms_access_open_settings
+                        else R.string.onboarding_enable_permissions
+                    )
+                )
+            }
+            if (smsAccess.blocked) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.sms_access_blocked_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

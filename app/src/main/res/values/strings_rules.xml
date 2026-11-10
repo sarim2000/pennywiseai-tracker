@@ -34,6 +34,12 @@
     <string name="permission_notification_open_settings">Open Notification Access Settings</string>
     <string name="permission_rationale">Without SMS access, you\'ll need to manually add all your transactions. We only read bank transaction messages, not personal conversations.</string>
     <string name="permission_enable_button">Enable Automatic Detection</string>
+    <string name="sms_access_card_title">Turn on SMS access</string>
+    <string name="sms_access_card_body">PennyWise finds your spending in bank SMS. Without access, bank SMS aren\'t tracked.</string>
+    <string name="sms_access_allow">Allow SMS access</string>
+    <string name="sms_access_open_settings">Open app settings</string>
+    <string name="sms_access_empty_body">They\'ll show up here once SMS access is on.</string>
+    <string name="sms_access_blocked_hint">Android won\'t ask again. Allow SMS in app settings.</string>
     <!-- ══ Unrecognized SMS ══ -->
     <string name="unrecognized_title">Unrecognized SMS</string>
     <string name="unrecognized_back">Back</string>

@@ -124,8 +124,7 @@ class ChatViewModel @Inject constructor(
         // Resume an in-progress download, or (when idle) resolve + re-verify the model.
         checkAndResumeDownload()
 
-        llmRepository.claimModel(this)
-        warmUpWhenReady()
+        // The model is claimed and warmed up in onScreenShown(), when Chat is actually on screen.
 
         viewModelScope.launch {
             modelDownloader.progress.map { it.failure }.distinctUntilChanged().collect { failure ->
@@ -175,10 +174,10 @@ class ChatViewModel @Inject constructor(
         llmRepository.updateRows { rows -> rows.map { if (it.id == id) it.copy(draft = draft, check = null, selected = true) else it } }
     }
 
-    /** A card belongs to the conversation that produced it: leaving the screen drops it. */
     /** Loads the model and prefills the chat before the first send. A failure is left for that send. */
     private fun warmUpWhenReady() {
-        viewModelScope.launch {
+        warmUpJob?.cancel()
+        warmUpJob = viewModelScope.launch {
             modelRepository.modelState.first { it == ModelState.READY }
             runCatching { llmRepository.warmUp() }
                 .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it else android.util.Log.w(LlmRepository.TIMING, "Warm-up failed (${it.javaClass.simpleName})") }
@@ -186,34 +185,35 @@ class ChatViewModel @Inject constructor(
     }
 
     // The loaded model holds gigabytes of native memory (3.3 GB measured on a Galaxy S23),
-    // and Chat is a tab whose ViewModel outlives it on screen. So the model is let go once
-    // Chat has been out of sight for a while, and loaded again when it comes back.
+    // and Chat is a tab whose ViewModel outlives it on screen. So the model is loaded only
+    // while Chat is on screen, and let go once Chat has been out of sight for a while.
+    private var warmUpJob: kotlinx.coroutines.Job? = null
     private var releaseJob: kotlinx.coroutines.Job? = null
-    private var modelReleased = false
+
+    // Identifies this screen to LlmRepository without the singleton holding the ViewModel.
+    private val modelOwner = Any()
 
     fun onScreenShown() {
         releaseJob?.cancel()
-        llmRepository.claimModel(this)
-        if (modelReleased) {
-            modelReleased = false
-            warmUpWhenReady()
-        }
+        llmRepository.claimModel(modelOwner)
+        warmUpWhenReady() // a no-op when the model is still loaded
     }
 
     fun onScreenHidden() {
+        // A warm-up still waiting (a download about to finish) must not load the model off screen.
+        warmUpJob?.cancel()
         releaseJob?.cancel()
         releaseJob = viewModelScope.launch {
             // ponytail: fixed grace so a quick tab switch doesn't cost a ~12 s reload; onTrimMemory if it ever matters.
             delay(MODEL_IDLE_RELEASE_MS)
             _uiState.first { !it.isLoading } // never cut off a reply still streaming
-            modelReleased = true
             releaseModelQuietly()
         }
     }
 
     private suspend fun releaseModelQuietly() {
         try {
-            llmRepository.releaseModel(this)
+            llmRepository.releaseModel(modelOwner)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -221,6 +221,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /** A card belongs to the conversation that produced it: leaving the screen drops it. */
     override fun onCleared() {
         llmRepository.clearPendingAction()
         // viewModelScope is already cancelled here.

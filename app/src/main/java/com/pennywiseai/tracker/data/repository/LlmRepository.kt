@@ -271,6 +271,10 @@ class LlmRepository @Inject constructor(
     /** Loads the model and prefills the chat when the screen opens, while the user is still typing. */
     suspend fun warmUp() {
         if (modelRepository.modelState.first() != ModelState.READY) return
+        // Already warm. The screen warms up on every return, maybe while a reply still streams,
+        // and re-checking a long chat's window here (with a reply's worth reserved) closed the
+        // conversation under that reply. A send checks its own room.
+        conversationLock.withLock { if (llmService.isInitialized() && llmService.hasActiveConversation()) return }
         ensureConversation(pending = null, incoming = "")
     }
 

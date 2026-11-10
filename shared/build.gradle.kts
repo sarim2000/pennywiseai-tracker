@@ -51,11 +51,13 @@ kotlin {
                 implementation(libs.pdfbox.android)
             }
         }
-        // iOS only: Android uses the app's framework driver, and in commonMain this put
-        // a 1.25 MB native SQLite per ABI into every Android APK.
-        iosMain.dependencies { implementation(libs.androidx.sqlite.bundled) }
         if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {
-            iosMain { kotlin.srcDir("src/bankParserMain/kotlin") }
+            iosMain {
+                kotlin.srcDir("src/bankParserMain/kotlin")
+                // iOS only: Android uses the app's framework driver, and in commonMain this
+                // put a 1.25 MB native SQLite per ABI into every Android APK.
+                dependencies { implementation(libs.androidx.sqlite.bundled) }
+            }
         }
     }
 }

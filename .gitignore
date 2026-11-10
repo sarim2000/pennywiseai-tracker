@@ -44,7 +44,15 @@ keys/
 scripts/.env
 
 reddit.md
-.claude
+# Shared skills are tracked; anything else (local or third-party) stays ignored.
+# Adding a shared skill? Allowlist its folder here.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/backup-maintainer/
+!.claude/skills/emulator-verify/
+!.claude/skills/parser-author/
+!.claude/skills/parser-triage/
 
 # Release artifacts
 *.apk
@@ -86,7 +94,13 @@ secrets/
 
 # Local tooling (screenshot editor, agent skills) — not part of the app
 aso-screenshots/
-.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/backup-maintainer/
+!.agents/skills/emulator-verify/
+!.agents/skills/parser-author/
+!.agents/skills/parser-triage/
 skills-lock.json
 
 # Release-notes generator (Claude Agent SDK) deps — package-lock.json is

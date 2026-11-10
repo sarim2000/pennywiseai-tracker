@@ -35,7 +35,7 @@ complaint.
    default re-introduces the "can't restore old backup" bug (#414);
    `BackupSchemaGuardTest` enforces this. Use `@Contextual` for
    `BigDecimal`/`LocalDate`/`LocalDateTime`, `@Serializable` for enums. See
-   `docs/backup-format.md` or the **backup-maintainer** subagent before touching
+   `docs/backup-format.md` or the **backup-maintainer** skill before touching
    entities or `data/backup/`.
 4. **Never put PII in code, comments, tests, or anywhere.**
 5. **Never hand-edit the version or changelogs.** `scripts/release.sh` owns
@@ -99,9 +99,16 @@ part of the gate — don't use them to verify.
 | AI access (MCP relay, dashboard) | `docs/ai-access.md`, `relay/README.md`, `docs/adr/0002-*` | Touching `aiaccess/`, the relay or the dashboard |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |
 
-**Subagents:** `backup-maintainer` (backup-serialized changes) ·
+**Skills** (in `.agents/skills/`, shared by every agent; `.claude/skills/` only
+forwards to them): `backup-maintainer` (any persistence change) ·
 `parser-author` (write/fix a parser end-to-end) · `parser-triage` (assess a
-fresh `[BANK]` issue).
+fresh `[BANK]` issue) · `emulator-verify` (on-device check).
+
+## Scope & commits
+- Stay on the task and match the surrounding code. Report unrelated problems
+  instead of fixing them in the same change.
+- One concern per commit, and each commit compiles on its own. Conventional
+  titles in the style of the history, e.g. `fix(parser): …`, `feat(backup): …`.
 
 ## Releasing
 For a routine release: merge the PRs, then — from an up-to-date `main` with a

@@ -202,14 +202,6 @@ class ArchitectureTest {
             // Launch targets for PendingIntents: an Activity is a component, not screen code.
             "$MAIN/worker/DailySummaryWorker.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
             "$MAIN/widget/RecentTransactionsWidget.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
-            // Period-review loader and helpers, still in presentation.review
-            "$MAIN/worker/WeeklySummaryWorker.kt" to setOf(
-                "$APP.presentation.review.PeriodReviewLoader",
-                "$APP.presentation.review.ReviewKind",
-                "$APP.presentation.review.changeText",
-                "$APP.presentation.review.latestReviewOffset",
-                "$APP.presentation.review.percentChange",
-            ),
             // Goal status text, built from string resources
             "$MAIN/widget/GoalWidgetData.kt" to setOf(
                 "$APP.presentation.goals.shortLine",

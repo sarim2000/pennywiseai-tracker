@@ -1,7 +1,5 @@
-package com.pennywiseai.tracker.presentation.review
+package com.pennywiseai.tracker.domain.review
 
-import android.content.Context
-import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
@@ -293,10 +291,3 @@ internal suspend fun reviewPromptFor(
 /** Whether a cycle is exactly one calendar month, so a month's name is the right label for it. */
 internal fun isCalendarMonth(start: LocalDate, end: LocalDate): Boolean =
     start.dayOfMonth == 1 && end == YearMonth.from(start).atEndOfMonth()
-
-/** "12% less than the week before". Shared by the screen and the weekly recap. */
-internal fun changeText(context: Context, change: Int, target: String): String = when {
-    change == 0 -> context.getString(R.string.review_change_same, target)
-    change < 0 -> context.getString(R.string.review_change_less, -change, target)
-    else -> context.getString(R.string.review_change_more, change, target)
-}

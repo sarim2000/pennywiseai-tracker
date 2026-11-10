@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.review
+package com.pennywiseai.tracker.domain.review
 
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType

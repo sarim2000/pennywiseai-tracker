@@ -29,7 +29,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.presentation.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock

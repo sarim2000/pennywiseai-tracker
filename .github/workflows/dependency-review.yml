@@ -1,0 +1,22 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    # No checkout: the action diffs the PR's dependency graph through the API.
+    - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      with:
+        # Block only high/critical advisories: low/moderate ones in transitive
+        # build deps would fail unrelated PRs. All still show in the summary.
+        fail-on-severity: high

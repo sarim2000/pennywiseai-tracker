@@ -1,0 +1,54 @@
+# Dependabot version updates. Kept quiet on purpose: minor and patch bumps
+# arrive as one grouped PR per ecosystem, majors as their own PRs so a breaking
+# upgrade is reviewed alone. Security updates are separate and not scheduled.
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      # Every action bump in one PR, majors included.
+      github-actions:
+        patterns: ["*"]
+
+  # The Android build (version catalog, plugins, wrapper), the web server
+  # build, and the chat-eval harness, which mirrors the app's LiteRT-LM and
+  # coroutines versions.
+  - package-ecosystem: gradle
+    directories:
+      - /
+      - /pennywise-web
+      - /scripts/chat-eval
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      gradle-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # pennywise-web commits no lockfile (bun or npm both work there), so npm,
+  # which can update package.json alone, covers it with the npm-locked dirs.
+  - package-ecosystem: npm
+    directories:
+      - /relay
+      - /relay/dashboard
+      - /pennywise-web
+      - /scripts/release-notes
+      - /scripts/content-mine
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]

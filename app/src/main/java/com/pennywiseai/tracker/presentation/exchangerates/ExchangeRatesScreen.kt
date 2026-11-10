@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
@@ -43,7 +42,7 @@ fun ExchangeRatesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var editingRate by remember { mutableStateOf<ExchangeRateEntity?>(null) }
+    var editingRate by remember { mutableStateOf<ExchangeRateSnapshot?>(null) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -208,7 +207,7 @@ fun ExchangeRatesScreen(
 
 @Composable
 private fun ExchangeRateCard(
-    rate: ExchangeRateEntity,
+    rate: ExchangeRateSnapshot,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -268,7 +267,7 @@ private fun ExchangeRateCard(
 
 @Composable
 private fun EditRateDialog(
-    rate: ExchangeRateEntity,
+    rate: ExchangeRateSnapshot,
     onDismiss: () -> Unit,
     onSetCustomRate: (BigDecimal) -> Unit,
     onResetToAuto: () -> Unit

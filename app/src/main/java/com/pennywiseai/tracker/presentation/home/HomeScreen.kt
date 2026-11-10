@@ -105,6 +105,10 @@ fun HomeScreen(
     val activity = LocalActivity.current
     // A grant from the card, the sync button or app settings starts the first scan.
     val smsAccess = rememberSmsAccess(onGranted = viewModel::onSmsAccessGranted)
+    // Recreated while App info was open: access starts granted, so onGranted never fires.
+    LaunchedEffect(smsAccess.granted) {
+        if (smsAccess.granted) viewModel.runPendingScan()
+    }
     // The "tap here to scan" hint needs access Home opened with: without it the SMS access
     // card asks instead, and a grant made here already starts the scan the hint would teach.
     val hadSmsAccessOnOpen = remember { smsAccess.granted }
@@ -357,6 +361,7 @@ fun HomeScreen(
                 item(key = "sms_access") {
                     SmsAccessCard(
                         access = smsAccess,
+                        onRequest = { viewModel.scanSmsMessages() },
                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                     )
                 }

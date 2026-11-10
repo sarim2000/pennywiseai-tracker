@@ -1100,14 +1100,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** (forceResync, rescanAll) of a scan that waited for SMS access. */
-    private var pendingScan = false to false
+    /**
+     * (forceResync, rescanAll) of a scan waiting for SMS access. Lives as long as the
+     * ViewModel, so it outlasts an activity recreated while App info is open.
+     * ponytail: lost on process death; Home then shows the scan empty state and hint instead.
+     */
+    private var pendingScan: Pair<Boolean, Boolean>? = null
 
-    /** SMS access arrived: run the scan that asked for it, or a normal one. */
+    /** SMS access arrived: run the waiting scan, or a normal one. */
     fun onSmsAccessGranted() {
-        val (forceResync, rescanAll) = pendingScan
-        pendingScan = false to false
+        val (forceResync, rescanAll) = pendingScan ?: (false to false)
+        pendingScan = null
         scanSmsMessages(forceResync = forceResync, rescanAll = rescanAll)
+    }
+
+    /** Home opened with access while a scan was waiting for it (activity recreated). */
+    fun runPendingScan() {
+        if (pendingScan != null && context.canReadSms()) onSmsAccessGranted()
     }
 
     /**

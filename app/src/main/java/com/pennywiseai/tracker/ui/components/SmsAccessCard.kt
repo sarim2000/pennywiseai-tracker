@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 fun SmsAccessCard(
     access: SmsAccess,
     modifier: Modifier = Modifier,
+    onRequest: () -> Unit = access.request,
 ) {
     val ink = MaterialTheme.colorScheme.onSecondaryContainer
     PennyWiseCardV2(
@@ -68,7 +69,7 @@ fun SmsAccessCard(
                 .padding(end = Spacing.xs),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = access.request, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = onRequest, shapes = ButtonDefaults.shapes()) {
                 Text(
                     stringResource(
                         if (access.blocked) R.string.sms_access_open_settings

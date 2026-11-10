@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.utils.AppDates
 
 import java.time.format.TextStyle
@@ -66,7 +67,7 @@ fun BudgetGroupEditScreen(
     viewModel: BudgetGroupEditViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showAddCategoryDropdown by remember { mutableStateOf(false) }
     var isEditingName by remember { mutableStateOf(false) }

@@ -174,6 +174,9 @@ class InAppUpdateManager @Inject constructor(
      */
     fun cleanup() {
         unregisterListener()
+        // A singleton: holding the screen's scope and snackbar past it leaks the Activity.
+        snackbarHostState = null
+        coroutineScope = null
     }
     
     companion object {

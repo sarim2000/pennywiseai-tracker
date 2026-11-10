@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 
 import com.pennywiseai.tracker.R
@@ -48,7 +49,7 @@ fun ManageAccountsScreen(
     onNavigateToBalanceHistory: (bankName: String, accountLast4: String) -> Unit,
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showUpdateDialog by remember { mutableStateOf(false) }
     var selectedAccount by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedAccountEntity by remember { mutableStateOf<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity?>(null) }
@@ -60,10 +61,10 @@ fun ManageAccountsScreen(
     // Account merge (#368) — single screen-level entry point; the sheet handles
     // source + target selection + confirmation in one self-contained flow.
     var showMergeSheet by remember { mutableStateOf(false) }
-    val isProEntitled by viewModel.isProEntitled.collectAsState()
+    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
-    val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsState()
+    val pendingProfileReassign by viewModel.pendingProfileReassign.collectAsStateWithLifecycle()
     val dismissedDuplicates = remember { mutableStateListOf<String>() }
     val accountDuplicate = BankAccountMergeStore
         .duplicatePairs(uiState.accounts)

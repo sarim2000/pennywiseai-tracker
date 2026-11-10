@@ -3,15 +3,18 @@
 # init.sh — the verification gate for coding agents (and humans).
 #
 # Runs exactly what .github/workflows/test.yml gates on, so "green here" means
-# "green there". Schema changes also run database-upgrade-test.yml, which needs
-# an emulator and isn't run here. Prefer this over `./gradlew build` / `lint`,
-# which are heavier and are NOT part of the gate.
+# "green there". Every target starts with the format check (ktlint via Spotless,
+# files changed since origin/main only), which never edits files. Schema changes
+# also run database-upgrade-test.yml, which needs an emulator and isn't run here.
+# Prefer this over `./gradlew build` / `lint`, which are heavier and are NOT part
+# of the gate.
 #
 # Usage:
 #   ./init.sh            # verify everything (default)
 #   ./init.sh parser     # parser-core JVM tests only  (fast; use for parser work)
 #   ./init.sh app        # app compile + unit tests (:app, :core:designsystem, :feature:*) only
 #   ./init.sh all        # same as no argument
+#   ./init.sh format     # format check only (what the .githooks/pre-push hook runs)
 #
 # Exit code is non-zero if any step fails (fail-fast).
 
@@ -46,6 +49,9 @@ find_jdk21() {
   candidates+=("/Applications/Android Studio.app/Contents/jbr/Contents/Home")
   # 4. Common SDKMAN install.
   candidates+=("${SDKMAN_DIR:-$HOME/.sdkman}/candidates/java/current")
+  # 5. A JDK 21 Gradle's toolchain support downloaded (macOS bundle or plain
+  #    layout, with or without the jdk-21.x.y subdirectory newer Gradles add).
+  candidates+=("$HOME"/.gradle/jdks/*21*{,/*}{/Contents/Home,})
 
   for c in "${candidates[@]}"; do
     major="$(jdk_major "$c" || true)"
@@ -80,6 +86,18 @@ run() {
   "$@"
 }
 
+verify_format() {
+  # Check-only on purpose: a gate that rewrote files could clobber unrelated
+  # uncommitted work. Fixing is one explicit command away.
+  if ! run ./gradlew spotlessCheck --continue -q; then
+    echo "" >&2
+    echo "✗ Formatting check failed. Fix with: ./gradlew spotlessApply" >&2
+    echo "  then review and commit the diff. Errors marked 'no autocorrection'" >&2
+    echo "  (e.g. a comment inside the import list) need a manual edit first." >&2
+    return 1
+  fi
+}
+
 verify_parser() {
   run ./gradlew :parser-core:test
 }
@@ -90,11 +108,12 @@ verify_app() {
 }
 
 case "$TARGET" in
-  parser) verify_parser ;;
-  app)    verify_app ;;
-  all)    verify_parser; verify_app ;;
+  format) verify_format ;;
+  parser) verify_format; verify_parser ;;
+  app)    verify_format; verify_app ;;
+  all)    verify_format; verify_parser; verify_app ;;
   *)
-    echo "Unknown target: '$TARGET' (expected: parser | app | all)" >&2
+    echo "Unknown target: '$TARGET' (expected: format | parser | app | all)" >&2
     exit 2
     ;;
 esac

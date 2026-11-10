@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">Exchange Rates</string>
+    <string name="exchange_rates_refresh">Refresh rates</string>
+    <string name="exchange_rates_empty_title">No exchange rates available</string>
+    <string name="exchange_rates_empty_description">Rates will appear when you have transactions in multiple currencies</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">Last updated: %1$s</string>
+    <string name="exchange_rates_hint">Tap a rate to set a custom value. Custom rates are preserved across API refreshes.</string>
+    <string name="exchange_rates_reset_all">Reset All to Auto</string>
+    <string name="exchange_rates_badge_custom">Custom</string>
+    <string name="exchange_rates_badge_api">API</string>
+    <string name="exchange_rates_rate_label">Exchange Rate</string>
+    <string name="exchange_rates_invalid_rate">Enter a valid positive number</string>
+    <string name="exchange_rates_reset">Reset to Auto</string>
+    <string name="exchange_rates_set_custom">Set Custom Rate</string>
+    <string name="exchange_rates_error_load">Failed to load rates</string>
+    <string name="exchange_rates_error_refresh">Failed to refresh rates</string>
+    <string name="exchange_rates_error_set_custom">Failed to set custom rate</string>
+    <string name="exchange_rates_error_clear_custom">Failed to clear custom rate</string>
+    <string name="exchange_rates_error_clear_all_custom">Failed to clear custom rates</string>
+</resources>

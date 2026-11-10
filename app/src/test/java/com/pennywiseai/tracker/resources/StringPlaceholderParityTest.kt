@@ -21,8 +21,16 @@ import org.w3c.dom.Element
  */
 class StringPlaceholderParityTest {
 
-    private val resDir = File("src/main/res").takeIf { it.isDirectory }
-        ?: File("app/src/main/res")
+    /** Gradle runs tests from `app/`; an IDE may run them from the repo root. */
+    private val root = if (File("settings.gradle.kts").isFile) File(".") else File("..")
+
+    /** :app's res plus every feature module's, each with its own English source. */
+    private val resDirs: List<File> =
+        listOf(File(root, "app/src/main/res")) +
+            File(root, "feature").listFiles().orEmpty()
+                .map { File(it, "src/main/res") }
+                .filter { it.isDirectory }
+                .sortedBy { it.path }
 
     /** `%`, optional `N$` index, flags/width/precision, then the conversion. */
     private val format = Regex("""%(\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?([a-zA-Z])""")
@@ -77,7 +85,20 @@ class StringPlaceholderParityTest {
     }
 
     @Test
+    fun `feature module strings are checked too`() {
+        assertTrue(
+            "No feature/exchangerates/src/main/res found from ${root.absoluteFile.normalize()}; " +
+                "the test would silently skip feature-module translations.",
+            resDirs.any { it.invariantSeparatorsPath.endsWith("feature/exchangerates/src/main/res") },
+        )
+    }
+
+    @Test
     fun `translated strings use the same placeholders as English`() {
+        resDirs.forEach(::checkResDir)
+    }
+
+    private fun checkResDir(resDir: File) {
         val base = File(resDir, "values")
         assertTrue("Could not find res/values at ${resDir.absolutePath}", base.isDirectory)
 

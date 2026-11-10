@@ -1,5 +1,11 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.domain.goals.GoalPill
+import com.pennywiseai.tracker.domain.goals.GoalTone
+import com.pennywiseai.tracker.domain.goals.percent
+import com.pennywiseai.tracker.domain.goals.pill
+import com.pennywiseai.tracker.domain.goals.ratioOf
+import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.utils.AppDates
 
 import android.content.Context

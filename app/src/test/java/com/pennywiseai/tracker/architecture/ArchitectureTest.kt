@@ -5,17 +5,19 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
- * Package-boundary guardrails for `:app`. The rules are the ones in
- * docs/architecture.md ("Ownership & dependency rules"), checked on the
- * production sources of every flavor and build type.
+ * Package-boundary guardrails for `:app` and the `:feature:*` modules. The rules
+ * are the ones in docs/architecture.md ("Ownership & dependency rules"), checked
+ * on the production sources of every flavor and build type.
  *
- * A rule forbids some imports in some files. Files that already broke a rule
- * when it was added are listed in its allowlist. **An allowlist may only
- * shrink:** fix the import and delete the entry. An entry whose file no longer
- * violates (fixed, moved or deleted) fails the test too, so a removed
- * back-edge can't come back unnoticed.
+ * A rule forbids some imports in some files. Imports that already broke a rule
+ * when it was added are listed in its allowlist, per file and per exact import,
+ * so an allowlisted file can't quietly gain a second back-edge. **An allowlist
+ * may only shrink:** fix the import and delete the entry. An entry that no
+ * longer matches an import (fixed, moved or deleted) fails the test too, so a
+ * removed back-edge can't come back unnoticed.
  *
  * Only `import` lines are checked. A fully qualified name written in code
  * isn't caught, so don't use one to get around a rule.
@@ -40,25 +42,15 @@ class ArchitectureTest {
             "android.app.Activity",
             "androidx.room3",
         ),
-        allowlist = setOf(
-            // presentation.common profile filters
-            "app/src/main/java/com/pennywiseai/tracker/domain/conscience/ConscienceEligibility.kt",
-            // Compose icons/stringResource, presentation.accounts.AccountType
-            "app/src/main/java/com/pennywiseai/tracker/domain/model/AccountTypeExtensions.kt",
-            // FragmentActivity for the biometric prompt
-            "app/src/main/java/com/pennywiseai/tracker/domain/security/BiometricAuthManager.kt",
-        ),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
-    fun `data does not import presentation`() = Rule(
+    fun `data does not import presentation or ui`() = Rule(
         name = "data",
         appliesTo = { it.isInPackage("$APP.data") },
-        forbidden = listOf("$APP.presentation"),
-        allowlist = setOf(
-            // presentation.accounts.AccountType
-            "app/src/main/java/com/pennywiseai/tracker/data/repository/AccountBalanceRepository.kt",
-        ),
+        forbidden = listOf("$APP.presentation", "$APP.ui"),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -72,8 +64,9 @@ class ArchitectureTest {
             "$APP.receiver",
             "$APP.widget",
             "$APP.tile",
+            "$APP.aiaccess",
         ),
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -81,11 +74,7 @@ class ArchitectureTest {
         name = "ViewModel",
         appliesTo = { it.declaresViewModel() },
         forbidden = DATABASE_ACCESS,
-        allowlist = setOf(
-            // TransactionSplitDao
-            "app/src/main/java/com/pennywiseai/tracker/presentation/budgetgroups/BudgetGroupEditViewModel.kt",
-            "app/src/main/java/com/pennywiseai/tracker/presentation/transactions/TransactionsViewModel.kt",
-        ),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -93,8 +82,35 @@ class ArchitectureTest {
         name = "@Composable",
         appliesTo = { it.declaresComposable() },
         forbidden = DATABASE_ACCESS,
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
+
+    // One rule per package, so each fails on its own if its package moves, and
+    // every package's report is shown, not just the first failing one.
+
+    @Test
+    fun `Android entry points do not import screen code`() = checkAll(
+        ENTRY_POINTS.map { pkg ->
+            Rule(
+                name = pkg,
+                appliesTo = { it.isInPackage("$APP.$pkg") },
+                forbidden = listOf("$APP.presentation"),
+                allowlist = ENTRY_POINT_ALLOWLIST.filterKeys { it.isUnderPackage(pkg) },
+            )
+        },
+    )
+
+    @Test
+    fun `shared UI does not import features or workers`() = checkAll(
+        SHARED_UI.map { pkg ->
+            Rule(
+                name = pkg,
+                appliesTo = { it.isInPackage("$APP.$pkg") },
+                forbidden = listOf("$APP.presentation", "$APP.worker"),
+                allowlist = SHARED_UI_ALLOWLIST.filterKeys { it.isUnderPackage(pkg) },
+            )
+        },
+    )
 
     @Test
     fun `no Kotlin file lives in the retired ui screens package`() {
@@ -129,31 +145,50 @@ class ArchitectureTest {
         )
     }
 
+    @Test
+    fun `feature modules are scanned`() {
+        assertTrue(
+            "No :feature:exchangerates file found. Did MODULES stop discovering feature/*?",
+            productionFiles.any { it.repoPath.startsWith("feature/exchangerates/src/main/") },
+        )
+        assertTrue(
+            "No :feature:exchangerates test file found. Did MODULES stop discovering feature/*?",
+            testFiles.any { it.repoPath.startsWith("feature/exchangerates/src/test/") },
+        )
+    }
+
     private class Rule(
         val name: String,
         val appliesTo: (KoFileDeclaration) -> Boolean,
         val forbidden: List<String>,
-        val allowlist: Set<String>,
+        /** File path → the exact imports it may keep. */
+        val allowlist: Map<String, Set<String>>,
     ) {
-        fun check() {
+        fun check() = checkAll(listOf(this))
+
+        /** What's wrong, or "" when the rule holds. */
+        fun report(): String {
             val subjects = productionFiles.filter(appliesTo)
-            assertTrue(
-                "$name rule matched no files. Did the package move? Point the rule at it.",
-                subjects.isNotEmpty(),
-            )
+            if (subjects.isEmpty()) return "$name rule matched no files. Did the package move? Point the rule at it.\n"
 
             val violations = subjects
                 .associate { file ->
-                    file.repoPath to file.imports.map { it.name }.filter { import ->
+                    // Konsist names `import a.B.*` just `a.B`. Keep the `.*`, or a wildcard
+                    // would pass as the exact import an allowlist entry names.
+                    file.repoPath to file.imports.map { if (it.isWildcard) "${it.name}.*" else it.name }.filter { import ->
                         forbidden.any { import.isWithin(it) }
                     }
                 }
                 .filterValues { it.isNotEmpty() }
 
-            val added = violations.filterKeys { it !in allowlist }
-            val stale = allowlist - violations.keys
+            val added = violations
+                .mapValues { (path, imports) -> imports - allowlist[path].orEmpty() }
+                .filterValues { it.isNotEmpty() }
+            val stale = allowlist.flatMap { (path, imports) ->
+                (imports - violations[path].orEmpty().toSet()).map { "$path: import $it" }
+            }
 
-            val report = buildString {
+            return buildString {
                 if (added.isNotEmpty()) {
                     appendLine("$name: forbidden imports. Move the code to the right layer (docs/architecture.md):")
                     added.forEach { (path, imports) ->
@@ -166,12 +201,48 @@ class ArchitectureTest {
                     stale.forEach { appendLine("  $it") }
                 }
             }
-            assertTrue(report, report.isEmpty())
         }
     }
 
     private companion object {
         const val APP = "com.pennywiseai.tracker"
+        const val MAIN = "app/src/main/java/com/pennywiseai/tracker"
+
+        /** Android entry points. They may start a screen's Activity but not use its code. */
+        val ENTRY_POINTS = listOf("worker", "widget", "receiver", "tile", "aiaccess")
+
+        val ENTRY_POINT_ALLOWLIST = mapOf(
+            // Launch targets for PendingIntents: an Activity is a component, not screen code.
+            "$MAIN/worker/DailySummaryWorker.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
+            "$MAIN/widget/RecentTransactionsWidget.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
+            // Goal status text, built from string resources
+            "$MAIN/widget/GoalWidgetData.kt" to setOf(
+                "$APP.presentation.goals.shortLine",
+                "$APP.presentation.goals.statusLine",
+            ),
+            "$MAIN/widget/GoalWidgetConfigActivity.kt" to setOf(
+                "$APP.presentation.goals.GoalRing",
+                "$APP.presentation.goals.statusLine",
+            ),
+            // The unrecognized-SMS suggestion model, which also builds an Add draft
+            "$MAIN/receiver/SmsBroadcastReceiver.kt" to setOf("$APP.presentation.unrecognized.Suggestion"),
+        )
+
+        /** Feature-agnostic UI shared by every screen (docs/architecture.md rule 3). */
+        val SHARED_UI = listOf("ui.components", "ui.icons", "ui.animations", "ui.effects")
+
+        val SHARED_UI_ALLOWLIST = mapOf(
+            "$MAIN/ui/components/ShareCard.kt" to setOf("$APP.presentation.share.ShareCardData"),
+            "$MAIN/ui/components/SmsParsingProgressDialog.kt" to setOf("$APP.worker.OptimizedSmsReaderWorker"),
+        )
+
+        fun checkAll(rules: List<Rule>) {
+            val report = rules.joinToString("") { it.report() }
+            assertTrue(report, report.isEmpty())
+        }
+
+        /** Whether a repo path is in [pkg] or below it, e.g. `ui.components` (and `ui.components.cards`). */
+        fun String.isUnderPackage(pkg: String) = "/tracker/${pkg.replace('.', '/')}/" in this
 
         /** Room itself, the database class and the DAOs. Entities are plain models and allowed. */
         val DATABASE_ACCESS = listOf(
@@ -185,14 +256,26 @@ class ArchitectureTest {
         /** The only ViewModels that may live in `ui.viewmodel`. Every other one belongs to a feature. */
         val APP_WIDE_VIEW_MODELS = setOf("MainViewModel", "ThemeViewModel", "SpotlightViewModel")
 
+        /**
+         * `app` plus every `feature/<name>` module (Konsist names a nested module by its
+         * path). Feature modules keep `com.pennywiseai.tracker.*` packages, so every rule
+         * applies to them unchanged.
+         */
+        val MODULES: List<String> by lazy {
+            // Gradle runs tests from the module dir; an IDE may run them from the root.
+            val root = if (File("settings.gradle.kts").isFile) File(".") else File("..")
+            listOf("app") + File(root, "feature").listFiles { f -> File(f, "build.gradle.kts").isFile }
+                .orEmpty().map { "feature/${it.name}" }.sorted()
+        }
+
         /** Parsed once and shared by every rule: parsing dominates the runtime. */
         val productionFiles: List<KoFileDeclaration> by lazy {
-            Konsist.scopeFromProduction(moduleName = "app").files
+            MODULES.flatMap { Konsist.scopeFromProduction(moduleName = it).files }
         }
 
         /** Unit and instrumented test sources, for the rules that check where files live. */
         val testFiles: List<KoFileDeclaration> by lazy {
-            Konsist.scopeFromTest(moduleName = "app").files
+            MODULES.flatMap { Konsist.scopeFromTest(moduleName = it).files }
         }
 
         /** `a.b` contains `a.b` itself and everything under `a.b.`, but not `a.bc`. */

@@ -26,7 +26,6 @@
     <string name="permission_title">Activa la detección automática de transacciones</string>
     <string name="permission_description">PennyWise puede detectar y clasificar automáticamente tus transacciones bancarias a partir de los SMS, y así ahorrarte tiempo y esfuerzo.</string>
     <string name="permission_privacy_title">Tu privacidad importa</string>
-    <string name="permission_privacy_points">• Solo se procesan los mensajes de transacciones\n• Todos los datos se quedan en tu dispositivo\n• No se leen mensajes personales\n• Puedes revocar el acceso cuando quieras en Ajustes</string>
     <string name="permission_notification_title">Activa el acceso a notificaciones bancarias</string>
     <string name="permission_notification_description">Permite que PennyWise lea las notificaciones de transacciones de las apps bancarias compatibles. Así se registran las compras cuando el SMS llega tarde o no llega.</string>
     <string name="permission_notification_enabled">Acceso a notificaciones activado</string>
@@ -199,8 +198,6 @@
     <string name="onboarding_selected_cd">Seleccionado</string>
     <string name="onboarding_permission_title">Activa la detección automática</string>
     <string name="onboarding_permission_body">PennyWise puede detectar y clasificar automáticamente tus transacciones bancarias a partir de los SMS.</string>
-    <string name="onboarding_permission_granted">¡Permisos concedidos! Toca Continuar para seguir.</string>
-    <string name="onboarding_enable_permissions">Activar permisos</string>
     <string name="onboarding_scan_in_progress">Escaneando tus mensajes...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">%1$d / %2$d mensaje procesado</item>

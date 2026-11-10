@@ -136,7 +136,7 @@ class ImportStatementViewModel @Inject constructor(
                     showPreview(Pending(read.transactions, account))
                 }
                 is ImportStatementUseCase.PdfRead.Error ->
-                    _uiState.value = ImportStatementUiState.Error(read.message)
+                    _uiState.value = ImportStatementUiState.Error(UiText.of(read.message))
                 is ImportStatementUseCase.PdfRead.PasswordRequired ->
                     _uiState.value = ImportStatementUiState.PasswordRequired(uri, read.wrongPassword)
             }
@@ -156,7 +156,7 @@ class ImportStatementViewModel @Inject constructor(
                 }
                 showMapping(rows, withNamedAccount(rows, saved ?: StatementTableParser.guessMapping(rows), accounts), accounts)
             } catch (e: ImportStatementUseCase.UnreadableFileException) {
-                _uiState.value = ImportStatementUiState.Error(e.text)
+                _uiState.value = ImportStatementUiState.Error(UiText.of(e.text))
             } catch (e: Exception) {
                 _uiState.value = ImportStatementUiState.Error(UiText.Res(R.string.import_statement_error_read))
             }

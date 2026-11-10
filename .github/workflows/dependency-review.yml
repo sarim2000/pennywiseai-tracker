@@ -1,0 +1,43 @@
+# Fails a PR that adds a dependency with a known high/critical vulnerability.
+# Waits for dependency-graph.yml + dependency-graph-submit.yml to submit the
+# PR's Gradle snapshot, then diffs it against the base commit's.
+#
+# Not required for merging (and not in test.yml's `check` job) while it's new:
+# it depends on two other workflows and on repo settings (Dependency graph), so
+# a hiccup there would block every PR. Promote it once it has proven reliable.
+# On a fork PR it's only a safety net for honest mistakes: the PR controls the
+# build that produces its own graph.
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+    - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      with:
+        fail-on-severity: high
+        # The Gradle plugin submits no scopes, so GitHub reports them as
+        # `unknown`; with the default (`runtime`) nothing could ever fail.
+        fail-on-scopes: runtime, unknown
+        # License policy is a separate decision; vulnerabilities only for now.
+        license-check: false
+        # Fork PRs can't get `pull-requests: write`, so no PR comment; the
+        # result is in the job summary.
+        comment-summary-in-pr: never
+        # Poll until the PR's Gradle snapshot lands (generate + submit runs).
+        retry-on-snapshot-warnings: true
+        retry-on-snapshot-warnings-timeout: 900

@@ -28,7 +28,6 @@
     <string name="permission_title">Уключыце аўтаматычнае распазнаванне транзакцый</string>
     <string name="permission_description">PennyWise можа сам знаходзіць банкаўскія транзакцыі ў SMS і раскладваць іх па катэгорыях, эканомячы ваш час.</string>
     <string name="permission_privacy_title">Ваша прыватнасць важная</string>
-    <string name="permission_privacy_points">• Апрацоўваюцца толькі паведамленні пра транзакцыі\n• Усе даныя застаюцца на прыладзе\n• Асабістыя паведамленні не чытаюцца\n• Доступ можна адклікаць у любы час у наладах</string>
     <string name="permission_notification_title">Доступ да апавяшчэнняў банкаў</string>
     <string name="permission_notification_description">Дазвольце PennyWise чытаць апавяшчэнні пра транзакцыі з падтрымліваемых банкаўскіх праграм. Гэта дапамагае ўлічваць пакупкі, калі SMS затрымліваецца або не прыходзіць.</string>
     <string name="permission_notification_enabled">Доступ да апавяшчэнняў уключаны</string>
@@ -208,8 +207,6 @@
     <string name="onboarding_selected_cd">Выбрана</string>
     <string name="onboarding_permission_title">Уключыце аўтараспазнаванне</string>
     <string name="onboarding_permission_body">PennyWise можа сам знаходзіць банкаўскія транзакцыі ў SMS і раскладваць іх па катэгорыях.</string>
-    <string name="onboarding_permission_granted">Дазволы атрыманы! Націсніце «Працягнуць».</string>
-    <string name="onboarding_enable_permissions">Даць дазволы</string>
     <string name="onboarding_scan_in_progress">Сканаванне паведамленняў...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">Апрацавана паведамленняў: %1$d / %2$d</item>

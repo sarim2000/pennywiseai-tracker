@@ -214,6 +214,8 @@ class LlmRepository @Inject constructor(
         // time, since a second proposal would replace the first unseen.
         // A comparison is the code's figures alone: prose beside it could carry the model's own arithmetic.
         if (toolCalls.any { it.isComparison(userMessage) }) {
+            // The live conversation still holds that prose; the next turn rebuilds from what was saved.
+            if (responseBuilder.isNotEmpty()) conversationBroken = true
             responseBuilder.clear()
             // Off the screen too, before the figures land beside it.
             if (shownUpTo > 0) emit(RESET_REPLY)
@@ -442,12 +444,12 @@ class LlmRepository @Inject constructor(
         val known = if (asked.isEmpty()) null else matchCategory(asked, categoryRepository.getAllCategories().first())
         val category = known ?: asked.ifEmpty { null }
         if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
-        else aiContextRepository.compareSpending(period, category).let { result ->
+        else aiContextRepository.compareSpending(period, category, creditAsExpense()).let { result ->
             // A name neither the list nor any transaction carries: "all" from the model means all
             // spending; anything else is unknown, not a category with nothing spent.
             val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
             when {
-                unknown && SpendingComparison.meansAllSpending(asked) -> comparisonText(aiContextRepository.compareSpending(period, null), null)
+                unknown && SpendingComparison.meansAllSpending(asked) -> comparisonText(aiContextRepository.compareSpending(period, null, creditAsExpense()), null)
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
                 else -> comparisonText(result, category)
             }
@@ -533,23 +535,25 @@ class LlmRepository @Inject constructor(
      * Saved for the screen but never shown to the model (see [QUICK_ID]). Per currency, never
      * converted, like the comparison.
      */
+    private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
+
     suspend fun answerQuickAction(action: QuickAction) {
         val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
         // The user's own currency on top, the rest by code: the same order in every answer.
         val base = userPreferencesRepository.baseCurrency.first()
         fun <V> Map<String, V>.ordered() = entries.sortedWith(compareBy({ it.key != base }, { it.key })).map { it.key to it.value }
         val answer = when (action) {
-            QuickAction.COMPARE_MONTH -> comparisonText(aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null), null)
+            QuickAction.COMPARE_MONTH -> comparisonText(aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()), null)
             QuickAction.MONTH_SPEND -> {
                 val (window, rows) = aiContextRepository.monthSoFar()
                 // Forgiven loan balances count as spent, as on Home (#938).
-                val spent = with(SpendingComparison) { spend(rows).plusAmounts(aiContextRepository.settlementLoss(window)) }
+                val spent = with(SpendingComparison) { spend(rows, creditAsExpense = creditAsExpense()).plusAmounts(aiContextRepository.settlementLoss(window)) }
                 if (spent.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
                 else (listOf(context.getString(R.string.chat_reply_month_spend, range(window))) + spent.ordered().map { (c, a) -> money(a, c) }).joinToString("\n")
             }
             QuickAction.TOP_CATEGORIES -> {
                 val (window, rows) = aiContextRepository.monthSoFar()
-                val top = SpendingComparison.topCategories(rows)
+                val top = SpendingComparison.topCategories(rows, creditAsExpense = creditAsExpense())
                 if (top.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
                 // A blank line between currencies: each is its own ranking.
                 else context.getString(R.string.chat_reply_top_categories, range(window)) + "\n" +

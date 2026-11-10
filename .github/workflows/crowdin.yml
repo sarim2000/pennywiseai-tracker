@@ -12,6 +12,7 @@ on:
       - 'fastlane/metadata/android/en-US/full_description.txt'
       - 'fastlane/metadata/android/en-US/changelogs/default.txt'
       - 'app/src/main/res/values/strings*.xml'
+      - 'feature/*/src/main/res/values/strings*.xml'
       - 'crowdin.yml'
   schedule:
     - cron: '0 6 * * 1'   # Mondays 06:00 UTC — pull fresh translations
@@ -29,17 +30,20 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   crowdin:
     runs-on: ubuntu-latest
+    # Pushes the l10n/crowdin branch and opens the translations PR.
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Crowdin push sources & download translations
-        uses: crowdin/github-action@v3
+        uses: crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a # v3.6.0
         with:
           upload_sources: true
           upload_translations: ${{ inputs.upload_translations == true }}

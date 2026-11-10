@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -22,7 +21,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.presentation.common.TimePeriod
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -108,6 +107,7 @@ class TransactionsViewModelListTest {
             every { getAllTransactions() } returns afterFiltersSet { rows }
             // Only for the VM's first run, on its default period, which selectPeriod below replaces.
             every { getTransactionsBetweenDates(any<LocalDateTime>(), any<LocalDateTime>()) } returns afterFiltersSet { rows }
+            every { observeSplitsForActiveTransactions() } returns flowOf(splits)
             every { getAllCurrencies() } returns flowOf(rows.map { it.currency }.distinct())
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(rows.map { it.currency }.distinct())
         }
@@ -117,7 +117,6 @@ class TransactionsViewModelListTest {
             every { observeAllTagNames() } returns flowOf(tagNames)
         }
         val aliasRepo = mockk<MerchantAliasRepository> { every { getAllAliases() } returns flowOf(aliases) }
-        val splitDao = mockk<TransactionSplitDao> { every { observeSplitsForActiveTransactions() } returns flowOf(splits) }
         val prefs = mockk<UserPreferencesRepository> {
             every { baseCurrency } returns flowOf("USD")
             every { displayCurrency } returns flowOf("USD")
@@ -136,7 +135,7 @@ class TransactionsViewModelListTest {
         val profiles = mockk<ProfileRepository> { every { observeAllProfiles() } returns flowOf(emptyList()) }
         val groups = mockk<TransactionGroupRepository> { every { getAllGroups() } returns flowOf(emptyList()) }
         viewModel = TransactionsViewModel(
-            transactions, categoryRepo, tags, aliasRepo, splitDao, prefs, conversions, accounts, cards, ignored,
+            transactions, categoryRepo, tags, aliasRepo, prefs, conversions, accounts, cards, ignored,
             profiles, groups, mockk(relaxed = true), mockk(relaxed = true), SavedStateHandle(), mockk<Context>(relaxed = true),
         )
         viewModel.selectPeriod(TimePeriod.ALL)

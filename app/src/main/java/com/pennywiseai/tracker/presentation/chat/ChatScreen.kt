@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.repository.QuickAction
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -135,6 +136,9 @@ fun ChatScreen(
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
+                    // Quick answers get saved here too, so they have to be clearable without a model.
+                    ClearChatBar(visible = messages.isNotEmpty(), onClear = viewModel::clearChat)
+
                     // If no messages, show the download prompt centered
                     if (messages.isEmpty()) {
                         Box(
@@ -216,6 +220,10 @@ fun ChatScreen(
                             }
                         }
                     }
+
+                    // These need no model, so they stay usable while there's none.
+                    QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
+                    Spacer(modifier = Modifier.height(Spacing.sm))
 
                     // Show model required banner at bottom
                     Surface(
@@ -336,44 +344,7 @@ fun ChatScreen(
                             DeveloperInfoCard(chatStats = chatStats)
                         }
                         
-                        // Clear chat button when there are messages
-                        AnimatedVisibility(
-                            visible = messages.isNotEmpty(),
-                            enter = pwExpand(),
-                            exit = pwCollapse()
-                        ) {
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 1.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(
-                                            horizontal = Dimensions.Padding.content,
-                                            vertical = Spacing.sm
-                                        ),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    TextButton(
-                                        onClick = { viewModel.clearChat() },
-                                        colors = ButtonDefaults.textButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error
-                                        ),
-                                        shapes = ButtonDefaults.shapes()
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text(stringResource(R.string.chat_clear_chat))
-                                    }
-                                }
-                            }
-                        }
+                        ClearChatBar(visible = messages.isNotEmpty(), onClear = viewModel::clearChat)
 
                         // Messages list
                         LazyColumn(
@@ -497,22 +468,7 @@ fun ChatScreen(
                             tonalElevation = 3.dp
                         ) {
                           Column {
-                            // M8: one-tap questions the app answers itself, no model involved.
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, top = Spacing.sm),
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                com.pennywiseai.tracker.data.repository.QuickAction.entries.forEach { action ->
-                                    SuggestionChip(
-                                        onClick = { viewModel.runQuickAction(action) },
-                                        label = { Text(stringResource(action.label)) },
-                                        enabled = !uiState.isLoading && !isConfirming
-                                    )
-                                }
-                            }
+                            QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -894,6 +850,67 @@ private fun PendingActionCard(
                     colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
                     shapes = ButtonDefaults.shapes()
                 ) { Text(button) }
+            }
+        }
+    }
+}
+
+/** M8: one-tap questions the app answers itself, no model involved. */
+@Composable
+private fun QuickActionChips(enabled: Boolean, onClick: (QuickAction) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, top = Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        QuickAction.entries.forEach { action ->
+            SuggestionChip(
+                onClick = { onClick(action) },
+                label = { Text(stringResource(action.label)) },
+                enabled = enabled
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.ClearChatBar(visible: Boolean, onClear: () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = pwExpand(),
+        exit = pwCollapse()
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = Dimensions.Padding.content,
+                        vertical = Spacing.sm
+                    ),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(
+                    onClick = onClear,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.chat_clear_chat))
+                }
             }
         }
     }

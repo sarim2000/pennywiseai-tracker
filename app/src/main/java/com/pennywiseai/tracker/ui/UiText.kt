@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.core.ResText
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 
 /**
@@ -26,6 +27,8 @@ sealed interface UiText {
     }
 
     companion object {
+        fun of(text: ResText): UiText = Res(text.id, text.args)
+
         /** A category name, translated if it's an un-renamed built-in. */
         fun category(name: String): UiText = CategoryMapping.labelRes(name)?.let { Res(it) } ?: Plain(name)
     }

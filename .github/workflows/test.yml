@@ -144,6 +144,9 @@ jobs:
     timeout-minutes: 10
     # Advisory while the codebase is brought in line: a failure is reported
     # here but never fails the workflow. Fix locally with ./gradlew spotlessApply.
+    # ponytail: ~480 of ~1230 Kotlin files still fail ktlint and the ratchet is
+    # per file, so blocking now forces whole-file reformats on any touch. Drop
+    # continue-on-error once the cleanup PRs land.
     continue-on-error: true
 
     steps:
@@ -168,3 +171,18 @@ jobs:
 
     - name: Check formatting of changed files
       run: ./gradlew spotlessCheck --continue
+
+  # Branch protection should require this job instead of each job above.
+  # Upgrade Test (API 26) stays a separate, path-filtered workflow: it runs only
+  # on schema/database PRs, so it can't be required — check it on those PRs.
+  check:
+    name: Check
+    needs: [parser-tests, app-compile, app-unit-tests, format-check]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+
+    steps:
+    - name: Fail if any job failed or was cancelled
+      if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+      run: exit 1

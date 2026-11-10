@@ -216,6 +216,39 @@ jobs:
     - name: Check formatting of changed files
       run: ./gradlew spotlessCheck --continue
 
+  workflow-lint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    # zizmor fails on unpinned `uses:`, template injection, persisted
+    # credentials, etc. Deliberate exceptions are inline `# zizmor: ignore[...]`.
+    # The token enables its online audits (impostor-commit, known-vulnerable-actions).
+    - name: zizmor
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: pipx run --spec zizmor==1.32.0 zizmor --format=github .github/workflows
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    # warning and above: real bugs. info/style notes (quoting tags, grouped
+    # redirects) aren't worth churning scripts/release.sh for.
+    - name: ShellCheck
+      run: git ls-files -z '*.sh' | xargs -0 -r pipx run --spec shellcheck-py==0.11.0.1 shellcheck --severity=warning
+
   # Branch protection should require this job instead of each job above.
   # Upgrade Test (API 26) stays a separate, path-filtered workflow: it runs only
   # on schema/database PRs, so it can't be required — check it on those PRs.
@@ -226,13 +259,15 @@ jobs:
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
 
     - name: Test release.sh's branch and tree guard
       run: bash scripts/test-release-guard.sh
 
   check:
     name: Check
-    needs: [parser-tests, app-compile, app-unit-tests, android-lint, format-check, release-guard]
+    needs: [parser-tests, app-compile, app-unit-tests, android-lint, format-check, release-guard, workflow-lint, shellcheck]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1

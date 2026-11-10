@@ -19,8 +19,9 @@ data class ConvertedTotal(
 
 /**
  * Converts into [baseCurrency] with the stored rates. [ratesToBase] maps a currency
- * code to how many [baseCurrency] units one unit of it buys, in micros. Every
- * amountMinor in the app is value x 100, so the rate applies to it directly.
+ * code to how many [baseCurrency] units one unit of it buys, in micros. Amounts are
+ * in each currency's own minor units ([MinorUnits]: JOD x 1000, INR x 100), so a
+ * conversion also moves between the two scales.
  */
 class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<String, Long>) {
 
@@ -28,7 +29,11 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
     fun convert(amountMinor: Long, currency: String): Long? {
         if (currency.equals(baseCurrency, ignoreCase = true)) return amountMinor
         val rate = ratesToBase[currency.uppercase()] ?: return null
-        return applyRate(amountMinor, rate)
+        val from = MinorUnits.factor(currency)
+        val to = MinorUnits.factor(baseCurrency)
+        // amountMinor / from x rate x to, scaled up before the one rounding (factors are 100 or 1000).
+        return if (to >= from) applyRate(amountMinor * (to / from), rate, MICROS)
+        else applyRate(amountMinor, rate, MICROS * (from / to))
     }
 
     /**
@@ -73,12 +78,12 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
             return CurrencyConverter(base, map)
         }
 
-        /** amountMinor x rateMicros / 1e6, rounded half away from zero, without overflowing on the product. */
-        private fun applyRate(amountMinor: Long, rateMicros: Long): Long {
-            val whole = amountMinor * (rateMicros / MICROS)
-            val part = amountMinor * (rateMicros % MICROS)
-            val half = if (part < 0) -MICROS / 2 else MICROS / 2
-            return whole + (part + half) / MICROS
+        /** amountMinor x rateMicros / [divisor], rounded half away from zero, without overflowing on the product. */
+        private fun applyRate(amountMinor: Long, rateMicros: Long, divisor: Long): Long {
+            val whole = amountMinor * (rateMicros / divisor)
+            val part = amountMinor * (rateMicros % divisor)
+            val half = if (part < 0) -divisor / 2 else divisor / 2
+            return whole + (part + half) / divisor
         }
     }
 }

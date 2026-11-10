@@ -73,9 +73,7 @@ struct AddEditAccountScreen: View {
                 accountLast4 = account.accountLast4
                 accountType = account.accountType ?? "SAVINGS"
                 currency = account.currency
-                let whole = account.balanceMinor / 100
-                let fraction = abs(account.balanceMinor) % 100
-                balanceText = "\(whole).\(String(format: "%02d", Int(fraction)))"
+                balanceText = AmountFormatter.plain(minorUnits: account.balanceMinor, currency: account.currency)
             }
         }
     }
@@ -108,6 +106,6 @@ struct AddEditAccountScreen: View {
 
     private func parseBalanceMinor(_ text: String) -> Int64 {
         guard let value = Double(text) else { return 0 }
-        return Int64(value * 100)
+        return Int64(value * Double(MinorUnits.shared.factor(currency: currency)))
     }
 }

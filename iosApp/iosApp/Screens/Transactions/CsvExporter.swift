@@ -20,7 +20,7 @@ struct CsvExporter {
 
         for tx in transactions {
             let date = Date(epochMillis: tx.occurredAtEpochMillis)
-            let amountDecimal = Decimal(tx.amountMinor) / 100
+            let amountDecimal = Decimal(tx.amountMinor) / Decimal(MinorUnits.shared.factor(currency: tx.currency))
 
             let row: [String] = [
                 dateFormatter.string(from: date),

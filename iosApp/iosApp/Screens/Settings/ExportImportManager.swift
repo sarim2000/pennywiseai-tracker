@@ -21,7 +21,7 @@ final class ExportImportManager: ObservableObject {
         let accounts = facade.getAllAccounts()
 
         let backup = BackupPayload(
-            version: 1,
+            version: 2,
             exportDate: ISO8601DateFormatter().string(from: Date()),
             transactions: transactions.map { TransactionBackup(from: $0) },
             categories: categories.map { CategoryBackup(from: $0) },
@@ -62,10 +62,15 @@ final class ExportImportManager: ObservableObject {
             let decoder = JSONDecoder()
             let backup = try decoder.decode(BackupPayload.self, from: data)
 
-            guard backup.version == 1 else {
+            guard backup.version == 1 || backup.version == 2 else {
                 isImporting = false
                 statusMessage = "Unsupported backup version \(backup.version)"
                 return
+            }
+            // v1 held every amount as value × 100; v2 holds 3-decimal currencies (JOD, KWD…)
+            // as value × 1000 (shared MinorUnits), so a v1 amount in one is scaled up.
+            let minor = { (amount: Int64, currency: String) -> Int64 in
+                backup.version == 1 ? amount * MinorUnits.shared.factor(currency: currency) / 100 : amount
             }
 
             var txImported = 0
@@ -87,7 +92,7 @@ final class ExportImportManager: ObservableObject {
                     bankName: acc.bankName,
                     accountLast4: acc.accountLast4,
                     accountType: acc.accountType ?? "SAVINGS",
-                    balanceMinor: acc.balanceMinor,
+                    balanceMinor: minor(acc.balanceMinor, acc.currency),
                     currency: acc.currency
                 )
                 if ok { accImported += 1 }
@@ -97,13 +102,13 @@ final class ExportImportManager: ObservableObject {
                 let catLimits = bud.categoryBreakdowns.map { cb in
                     SharedBudgetCategoryBreakdown(
                         categoryName: cb.categoryName,
-                        limitMinor: cb.limitMinor,
+                        limitMinor: minor(cb.limitMinor, bud.currency),
                         spentMinor: 0
                     )
                 }
                 let id = facade.createBudget(
                     name: bud.name,
-                    limitMinor: bud.limitMinor,
+                    limitMinor: minor(bud.limitMinor, bud.currency),
                     periodType: bud.periodType,
                     startEpochMillis: 0,
                     endEpochMillis: Int64.max,
@@ -118,7 +123,7 @@ final class ExportImportManager: ObservableObject {
                 let snapshot = facade.addTransactionAndLoadHome(
                     merchantName: tx.merchantName,
                     category: tx.category,
-                    amountMinor: tx.amountMinor,
+                    amountMinor: minor(tx.amountMinor, tx.currency),
                     note: tx.note,
                     currency: tx.currency,
                     transactionType: tx.transactionType,

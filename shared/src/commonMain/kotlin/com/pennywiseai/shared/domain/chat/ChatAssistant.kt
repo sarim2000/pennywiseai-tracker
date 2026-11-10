@@ -11,6 +11,7 @@ import com.pennywiseai.shared.data.repository.SharedCategoryRepository
 import com.pennywiseai.shared.data.repository.SharedTransactionRepository
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ManualTransactionInput
 import com.pennywiseai.shared.domain.usecase.TransactionMutationResult
@@ -219,9 +220,7 @@ class ChatAssistant(
     companion object {
         /** Currency-tagged plain text for the model ("INR 120.50"); the UI formats its own. */
         fun money(minor: Long, currency: String): String {
-            val sign = if (minor < 0) "-" else ""
-            val abs = kotlin.math.abs(minor)
-            return "$currency $sign${abs / 100}.${(abs % 100).toString().padStart(2, '0')}"
+            return "$currency ${MinorUnits.toPlain(minor, currency)}"
         }
 
         /** Category the user named, tolerant of "Food", "food and dining", "FOOD & DINING". */
@@ -276,7 +275,7 @@ internal object ChatDrafts {
         accounts: List<SharedAccountBalanceEntity>
     ): ChatDraft? {
         if (!amount.isFinite() || amount <= 0 || amount >= 1e13) return null
-        val amountMinor = (amount * 100).roundToLong().takeIf { it > 0 } ?: return null
+        val amountMinor = MinorUnits.fromDouble(amount, currency).takeIf { it > 0 } ?: return null
         val merchant = merchantArg.trim().ifEmpty { "Unknown" }
         val wanted = categoryArg.trim()
         // With no verb either way, trust the model's INCOME only with an income-only category.
@@ -345,7 +344,9 @@ object ChatTransactionFinder {
         if (tokens.isEmpty() && wantedAmount == null && wantedDay == null) return null
         return candidates.asSequence()
             .filter { !it.isDeleted }
-            .filter { wantedAmount == null || it.amountMinor == wantedAmount }
+            // ponytail: the wanted amount is value x 100, so a 3-decimal row (x 1000) matches only when
+            // it has at most 2 decimals; "1.235 JOD" falls through to findWithFallback's loosened match.
+            .filter { wantedAmount == null || it.amountMinor * 100 == wantedAmount * MinorUnits.factor(it.currency) }
             .filter { wantedDay == null || Instant.fromEpochMilliseconds(it.occurredAtEpochMillis).toLocalDateTime(timeZone).date == wantedDay }
             .map { tx -> tx to score(tx, tokens) }
             .filter { (_, s) -> s > 0 || tokens.isEmpty() }

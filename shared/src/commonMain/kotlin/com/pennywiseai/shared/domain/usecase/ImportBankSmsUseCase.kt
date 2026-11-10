@@ -10,6 +10,7 @@ import com.pennywiseai.shared.data.repository.SharedRuleRepository
 import com.pennywiseai.shared.data.repository.SharedTransactionRepository
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.shared.domain.rules.SharedRuleEvaluator
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
@@ -89,7 +90,7 @@ class ImportBankSmsUseCase(
 
         val now = currentTimeMillis()
         val transaction = SharedTransaction(
-            amountMinor = toMinor(parsed.amount),
+            amountMinor = toMinor(parsed.amount, parsed.currency),
             merchantName = merchant,
             category = rule?.category ?: mappedCategory ?: defaultCategory,
             transactionType = finalType,
@@ -100,7 +101,7 @@ class ImportBankSmsUseCase(
             reference = parsed.reference,
             bankName = parsed.bankName,
             accountLast4 = parsed.accountLast4,
-            balanceAfterMinor = parsed.balance?.let(::toMinor),
+            balanceAfterMinor = parsed.balance?.let { toMinor(it, parsed.currency) },
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now
         )
@@ -114,18 +115,19 @@ class ImportBankSmsUseCase(
         val balance = parsed.balance ?: return
         val last4 = targetAccountLast4(parsed) ?: return
         val existing = accountRepository.getLatestBalance(parsed.bankName, last4)
+        // The account keeps its own currency (Android's processBalanceUpdate): a USD
+        // spend on an INR card must not relabel the INR balance as USD.
+        val currency = existing?.currency ?: parsed.accountCurrency ?: parsed.currency
         accountRepository.insertBalance(
             SharedAccountBalanceEntity(
                 bankName = parsed.bankName,
                 accountLast4 = last4,
                 timestampEpochMillis = receivedAt,
-                balanceMinor = toMinor(balance),
+                balanceMinor = toMinor(balance, currency),
                 transactionId = transactionId,
                 isCreditCard = existing?.isCreditCard ?: (parsed.type == "CREDIT"),
                 accountType = existing?.accountType,
-                // The account keeps its own currency (Android's processBalanceUpdate): a USD
-                // spend on an INR card must not relabel the INR balance as USD.
-                currency = existing?.currency ?: parsed.accountCurrency ?: parsed.currency,
+                currency = currency,
                 createdAtEpochMillis = currentTimeMillis()
             )
         )
@@ -151,13 +153,8 @@ class ImportBankSmsUseCase(
 
         private val saveLock = Mutex()
 
-        /** "450.00" → 45000. Every shared amount is value × 100, whatever the currency. */
-        internal fun toMinor(plainAmount: String): Long {
-            val negative = plainAmount.startsWith("-")
-            val (whole, fraction) = plainAmount.removePrefix("-").split('.').let { it[0] to it.getOrElse(1) { "" } }
-            val minor = (whole.ifEmpty { "0" }.toLong() * 100) + fraction.padEnd(2, '0').take(2).toLong()
-            return if (negative) -minor else minor
-        }
+        /** "450.00" INR → 45000, "1.235" JOD → 1235: value × 10^digits of [currency] (MinorUnits). */
+        internal fun toMinor(plainAmount: String, currency: String): Long = MinorUnits.fromPlain(plainAmount, currency)
 
         /** Android's ParsedTransactionMapper rule: ALL-CAPS becomes Title Case, mixed case stays. */
         internal fun normalizeMerchantName(name: String): String {
@@ -168,7 +165,7 @@ class ImportBankSmsUseCase(
     }
 }
 
-/** What parser-core read from one SMS, flattened to common types (amounts as plain decimals, 2 places). */
+/** What parser-core read from one SMS, flattened to common types (amounts as plain decimals, the currency's places). */
 internal data class ParsedBankSms(
     val amount: String,
     val type: String,

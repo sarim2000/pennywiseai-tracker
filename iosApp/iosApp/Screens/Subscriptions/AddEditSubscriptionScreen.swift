@@ -39,7 +39,7 @@ struct AddEditSubscriptionScreen: View {
             if let subscription = editingSubscription {
                 merchantName = subscription.merchantName
                 // Keep the paise/cents: "2.99", not a truncated "2".
-                amountText = AmountFormatter.format(minorUnits: subscription.amountMinor)
+                amountText = AmountFormatter.plain(minorUnits: subscription.amountMinor, currency: subscription.currency)
                 selectedCategory = subscription.category
                 selectedCurrency = subscription.currency
             }
@@ -115,7 +115,7 @@ struct AddEditSubscriptionScreen: View {
         // hex or "inf" are rejected, never read as a different amount.
         guard normalized.range(of: #"^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"#, options: .regularExpression) != nil,
               let value = Double(normalized), value > 0, value < 1_000_000_000_000 else { return 0 }
-        return Int64((value * 100).rounded())
+        return Int64(AmountFormatter.minorUnits(value, currency: selectedCurrency))
     }
 
     private func save() {

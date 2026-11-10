@@ -127,7 +127,7 @@ struct AddEditTransactionView: View {
     private func loadExistingTransaction(_ id: Int64) {
         guard let txn = facade.getTransactionById(transactionId: id) else { return }
         merchantName = txn.merchantName
-        amountText = AmountFormatter.format(minorUnits: txn.amountMinor)
+        amountText = AmountFormatter.plain(minorUnits: txn.amountMinor, currency: txn.currency)
         selectedType = txn.transactionType
         selectedCategory = txn.category
         selectedCurrency = txn.currency
@@ -141,7 +141,7 @@ struct AddEditTransactionView: View {
         guard isValid else { return }
         guard let amountValue = Double(amountText) else { return }
 
-        let amountMinor = Int64((amountValue * 100.0).rounded())
+        let amountMinor = Int64(AmountFormatter.minorUnits(amountValue, currency: selectedCurrency))
         let epochMillis = Int64((selectedDate.timeIntervalSince1970 * 1000.0).rounded())
 
         if let editId = editingTransactionId {

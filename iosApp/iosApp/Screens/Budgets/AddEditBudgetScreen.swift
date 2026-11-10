@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 struct AddEditBudgetScreen: View {
     @ObservedObject private var currencyManager = CurrencyManager.shared
@@ -40,12 +41,12 @@ struct AddEditBudgetScreen: View {
             viewModel.loadCategories()
             if let budget = editingBudget {
                 name = budget.name
-                totalLimitText = String(budget.limitMinor / 100)
+                totalLimitText = String(budget.limitMinor / MinorUnits.shared.factor(currency: budget.currency))
                 periodType = budget.periodType
                 groupType = budget.groupType
                 for cat in budget.categoryBreakdowns {
                     selectedCategories.insert(cat.categoryName)
-                    categoryAmounts[cat.categoryName] = String(cat.limitMinor / 100)
+                    categoryAmounts[cat.categoryName] = String(cat.limitMinor / MinorUnits.shared.factor(currency: budget.currency))
                 }
             }
         }
@@ -158,7 +159,8 @@ struct AddEditBudgetScreen: View {
     }
 
     private func saveBudget() {
-        let limitMinor = (Int64(totalLimitText) ?? 0) * 100
+        let factor = MinorUnits.shared.factor(currency: CurrencyManager.shared.displayCurrency)
+        let limitMinor = (Int64(totalLimitText) ?? 0) * factor
 
         let calendar = Calendar.current
         let now = Date()
@@ -169,7 +171,7 @@ struct AddEditBudgetScreen: View {
         let endMillis = Int64(endOfMonth.timeIntervalSince1970 * 1000)
 
         let catLimits: [(String, Int64)] = selectedCategories.sorted().compactMap { cat in
-            let amount = (Int64(categoryAmounts[cat] ?? "0") ?? 0) * 100
+            let amount = (Int64(categoryAmounts[cat] ?? "0") ?? 0) * factor
             return amount > 0 ? (cat, amount) : (cat, limitMinor / Int64(max(1, selectedCategories.count)))
         }
 

@@ -302,9 +302,28 @@ class ImportBankSmsUseCaseTest {
 
     @Test
     fun plainAmountsBecomeMinorUnits() {
-        assertEquals(45_000L, ImportBankSmsUseCase.toMinor("450.00"))
-        assertEquals(-12_345L, ImportBankSmsUseCase.toMinor("-123.45"))
-        assertEquals(50L, ImportBankSmsUseCase.toMinor("0.50"))
+        assertEquals(45_000L, ImportBankSmsUseCase.toMinor("450.00", "INR"))
+        assertEquals(-12_345L, ImportBankSmsUseCase.toMinor("-123.45", "USD"))
+        assertEquals(50L, ImportBankSmsUseCase.toMinor("0.50", "INR"))
+        // Three-decimal currencies keep their fils: value x 1000.
+        assertEquals(1_235L, ImportBankSmsUseCase.toMinor("1.235", "JOD"))
+        assertEquals(-50_000L, ImportBankSmsUseCase.toMinor("-50.000", "KWD"))
+        assertEquals(100L, ImportBankSmsUseCase.toMinor("0.1", "OMR"))
+    }
+
+    @Test
+    fun aThreeDecimalSmsKeepsItsLastDigit() = runTest {
+        val jodSpend = "A Trx using Card XXXX0000 from TEST STORE for JOD 1.235 " +
+            "on 20-Jun-2026 at 14:21 GMT+3. Available balance is JOD 100.125."
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("ArabBank", jodSpend, RECEIVED_AT)).transaction
+
+        assertEquals("JOD", saved.currency)
+        assertEquals(1_235L, saved.amountMinor) // not 1.24 (124)
+        assertEquals(100_125L, saved.balanceAfterMinor)
+        val balance = accounts.balances.single()
+        assertEquals(100_125L, balance.balanceMinor)
+        assertEquals("JOD", balance.currency)
     }
 }
 

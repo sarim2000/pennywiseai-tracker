@@ -193,6 +193,17 @@ class MoneyTotalsTest {
     }
 
     @Test
+    fun minorUnits_exactMinorKeepsLargeWholeAmounts() {
+        // Past 2^52, x + 0.5 lands on the next integer, so "round half up" by adding 0.5 moved an
+        // already-whole 4503599627370497 to ...498 and the round-trip then rejected it.
+        assertEquals(4_503_599_627_370_497L, MinorUnits.exactMinor(4503599627370.497, "JOD"))
+        assertEquals(-4_503_599_627_370_497L, MinorUnits.exactMinor(-4503599627370.497, "JOD"))
+        assertEquals(1235L, MinorUnits.exactMinor(1.235, "JOD"))
+        assertEquals(1235L, MinorUnits.exactMinor(12.35, "INR"))
+        assertEquals(null, MinorUnits.exactMinor(1.235, "USD"))
+    }
+
+    @Test
     fun converter_outOfRangeIsUnconvertedNeverWrong() {
         // 1,000,000 USD per JOD is past the rate bound (900,000 units per unit): JOD 9,999.999
         // would be USD 9,999,999,000.00 (999_999_900_000) or nothing, never a wrapped figure.

@@ -55,7 +55,10 @@ object MinorUnits {
         val factor = factor(currency)
         val scaled = amount * factor
         if (!scaled.isFinite() || abs(scaled) >= 9.0e15) return null // past 2^53 a Double has no exact minor units
-        val minor = (sign(scaled) * floor(abs(scaled) + 0.5)).toLong()
+        // Not floor(x + 0.5): past 2^52 that addition itself rounds a whole x up to the next integer.
+        // x - floor(x) is exact, so splitting off the fraction rounds half away from zero safely.
+        val whole = floor(abs(scaled))
+        val minor = (sign(scaled) * (if (abs(scaled) - whole >= 0.5) whole + 1 else whole)).toLong()
         return minor.takeIf { it.toDouble() / factor == amount }
     }
 

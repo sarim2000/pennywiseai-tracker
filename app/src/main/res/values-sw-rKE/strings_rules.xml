@@ -26,7 +26,6 @@
     <string name="permission_title">Washa Utambuzi wa Miamala Kiotomatiki</string>
     <string name="permission_description">PennyWise inaweza kutambua na kupanga miamala yako ya benki kutoka kwa SMS moja kwa moja, ikikuokolea muda na juhudi.</string>
     <string name="permission_privacy_title">Faragha Yako Ni Muhimu</string>
-    <string name="permission_privacy_points">• Ujumbe wa miamala tu ndio unashughulikiwa\n• Data yote inabaki kwenye kifaa chako\n• Hakuna ujumbe binafsi unaosomwa\n• Unaweza kuondoa ruhusa wakati wowote kwenye Mipangilio</string>
     <string name="permission_notification_title">Washa Ufikiaji wa Arifa za Benki</string>
     <string name="permission_notification_description">Ruhusu PennyWise isome arifa za miamala kutoka app za benki zinazotumika. Hii husaidia kunasa manunuzi SMS ikichelewa au isipopatikana.</string>
     <string name="permission_notification_enabled">Ufikiaji wa arifa umewashwa</string>
@@ -200,8 +199,6 @@
     <string name="onboarding_selected_cd">Imechaguliwa</string>
     <string name="onboarding_permission_title">Washa Utambuzi Kiotomatiki</string>
     <string name="onboarding_permission_body">PennyWise inaweza kutambua na kupanga miamala yako ya benki kutoka kwa SMS moja kwa moja.</string>
-    <string name="onboarding_permission_granted">Ruhusa zimetolewa! Gusa Endelea ili kuendelea.</string>
-    <string name="onboarding_enable_permissions">Washa Ruhusa</string>
     <string name="onboarding_scan_in_progress">Inasoma ujumbe wako...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">Ujumbe %1$d / %2$d umeshughulikiwa</item>

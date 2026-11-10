@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background

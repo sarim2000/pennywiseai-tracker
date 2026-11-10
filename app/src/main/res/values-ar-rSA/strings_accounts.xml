@@ -299,26 +299,6 @@
     <string name="loan_detail_enter_amount">أدخل المبلغ</string>
     <string name="loan_detail_amount_label">المبلغ</string>
     <string name="loan_detail_add">إضافة</string>
-    <!-- ══ Exchange rates ══ -->
-    <string name="exchange_rates_title">أسعار الصرف</string>
-    <string name="exchange_rates_refresh">تحديث المعدلات</string>
-    <string name="exchange_rates_empty_title">لا تتوفر أسعار صرف</string>
-    <string name="exchange_rates_empty_description">ستظهر المعدلات عندما يكون لديك معاملات بعملات متعددة</string>
-    <!-- %1$s = date and time -->
-    <string name="exchange_rates_last_updated">آخر تحديث: %1$s</string>
-    <string name="exchange_rates_hint">انقر على معدل لتعيين قيمة مخصصة. يتم الحفاظ على المعدلات المخصصة عبر تحديثات API.</string>
-    <string name="exchange_rates_reset_all">إعادة تعيين الكل تلقائياً</string>
-    <string name="exchange_rates_badge_custom">مخصص</string>
-    <string name="exchange_rates_badge_api">API</string>
-    <string name="exchange_rates_rate_label">سعر الصرف</string>
-    <string name="exchange_rates_invalid_rate">أدخل رقماً موجباً صحيحاً</string>
-    <string name="exchange_rates_reset">إعادة تعيين تلقائي</string>
-    <string name="exchange_rates_set_custom">تعيين معدل مخصص</string>
-    <string name="exchange_rates_error_load">فشل تحميل المعدلات</string>
-    <string name="exchange_rates_error_refresh">فشل تحديث المعدلات</string>
-    <string name="exchange_rates_error_set_custom">فشل في تعيين معدل مخصص</string>
-    <string name="exchange_rates_error_clear_custom">فشل في مسح المعدل المخصص</string>
-    <string name="exchange_rates_error_clear_all_custom">فشل في مسح المعدلات المخصصة</string>
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">لمحة عامة عن الحسابات</string>
     <string name="accounts_overview_bank_balance">رصيد البنك</string>

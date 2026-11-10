@@ -1,5 +1,5 @@
-import java.util.Properties
 import org.gradle.api.tasks.PathSensitivity
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -14,7 +14,7 @@ plugins {
 android {
     namespace = "com.pennywiseai.tracker"
     compileSdk = 37
-    
+
     buildFeatures {
         buildConfig = true
     }
@@ -27,7 +27,7 @@ android {
         versionName = "2.25.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
         // Load RSA public key from local.properties
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
@@ -55,7 +55,7 @@ android {
                 create("release") {
                     val localProperties = Properties()
                     localProperties.load(localPropertiesFile.inputStream())
-                    
+
                     val keystorePath = localProperties.getProperty("RELEASE_STORE_FILE", "")
                     if (keystorePath.isNotEmpty()) {
                         storeFile = file(keystorePath)
@@ -67,7 +67,7 @@ android {
             }
         }
     }
-    
+
     flavorDimensions += "version"
     productFlavors {
         create("fdroid") {
@@ -108,7 +108,6 @@ android {
         }
     }
 
-
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -124,7 +123,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            
+
             // Only apply signing config to standard flavor
             for (flavor in productFlavors) {
                 if (flavor.name == "standard") {
@@ -136,7 +135,7 @@ android {
                     }
                 }
             }
-            
+
             // Include debug symbols for native crashes
             ndk {
                 debugSymbolLevel = "SYMBOL_TABLE"
@@ -247,6 +246,7 @@ dependencies {
     implementation(project(":parser-core"))
     implementation(project(":shared"))
     implementation(project(":core:designsystem"))
+    implementation(project(":feature:exchangerates"))
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.profileinstaller)
@@ -257,13 +257,13 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    
+
     // Material Icons Extended
     implementation(libs.androidx.compose.material.icons.extended)
-    
+
     // Splash Screen API
     implementation(libs.androidx.core.splashscreen)
-    
+
     // Lifecycle and ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -272,7 +272,7 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
-    
+
     // Kotlin Serialization
     implementation(libs.kotlinx.serialization.json)
 
@@ -283,7 +283,7 @@ dependencies {
     // AI access: WebSocket line to the relay (ADR 0002). The WebSockets plugin ships
     // in ktor-client-core; ktor-client-websockets is an empty artifact.
     implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
-    
+
     // DataStore
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.documentfile)
@@ -295,15 +295,15 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
-    
+
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.sqlite.framework) // AndroidSQLiteDriver (system SQLite)
     ksp(libs.androidx.room.compiler)
-    
+
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
-    
+
     // Hilt WorkManager integration
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
@@ -318,13 +318,13 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // LiteRT-LM for on-device LLM inference
     implementation(libs.litertlm.android)
-    
+
     // Google Play In-App Updates (only for standard flavor)
     "standardImplementation"(libs.app.update)
-    
+
     // Google Play In-App Reviews (only for standard flavor)
     "standardImplementation"(libs.review)
-    
+
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.client.mock)
@@ -342,7 +342,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     debugImplementation(libs.leakcanary.android)
-    
+
     // Coil for image loading
     implementation(libs.coil.compose)
     // On-device QR for split-bill UPI requests (#346): pure-Java encoder, no Play services, no network.
@@ -387,6 +387,10 @@ tasks.withType<Test>().configureEach {
     inputs.dir(layout.projectDirectory.dir("src/main/res"))
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("androidResourcesForParityTest")
+    // Both tests also read the feature modules (feature/*/src).
+    inputs.files(rootProject.fileTree("feature") { include("*/src/**/res/**/*.xml", "*/src/*/java/**/*.kt") })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("featureSourcesForArchitectureAndParityTests")
     // Same for ArchitectureTest, which parses the Kotlin sources' imports. An
     // import edit doesn't always change the bytecode (swap one import line for
     // another), and then the compiled classes alone wouldn't re-run the test.

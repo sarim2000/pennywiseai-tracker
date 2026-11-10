@@ -20,8 +20,8 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals

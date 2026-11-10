@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.onboarding
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.app.LocaleConfig
 import android.app.LocaleManager
 import android.os.Build
@@ -32,7 +33,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -118,6 +125,17 @@ fun OnBoardingScreen(
     val stepOrder = remember {
         OnBoardingStep.entries.toList()
     }
+    // Notifications are asked once, after the first scan has shown what PennyWise does,
+    // not bundled with the SMS prompt. Whatever the answer, onboarding moves on.
+    val context = LocalContext.current
+    var notificationsAsked by rememberSaveable { mutableStateOf(false) }
+    val notificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { viewModel.goToNextStep() }
+    val askNotifications = !notificationsAsked &&
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED
     Scaffold(
         bottomBar = {
             OnBoardingBottomBar(
@@ -129,7 +147,12 @@ fun OnBoardingScreen(
                         OnBoardingStep.PROFILE -> viewModel.goToNextStep()
                         OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
                         OnBoardingStep.BACKGROUND_ACCESS -> viewModel.goToNextStep()
-                        OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
+                        OnBoardingStep.SMS_SCAN -> if (askNotifications) {
+                            notificationsAsked = true
+                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.goToNextStep()
+                        }
                         OnBoardingStep.ACCOUNT_SETUP -> {
                             viewModel.completeOnboarding(onOnboardingComplete)
                         }
@@ -186,7 +209,10 @@ fun OnBoardingScreen(
                     onPermissionResult = { viewModel.onSmsPermissionResult(it) }
                 )
                 OnBoardingStep.BACKGROUND_ACCESS -> BackgroundAccessStep()
-                OnBoardingStep.SMS_SCAN -> SmsScanStep(uiState = uiState)
+                OnBoardingStep.SMS_SCAN -> SmsScanStep(
+                    uiState = uiState,
+                    showNotificationReason = askNotifications
+                )
                 OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
                     uiState = uiState,
                     onSelectAccount = { viewModel.selectAccount(it) }
@@ -409,6 +435,13 @@ private fun ProfileStep(
             onValueChange = { viewModel.updateUserName(it) },
             label = { Text(stringResource(R.string.onboarding_name_label)) },
             singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = {
+                if (uiState.userName.isNotBlank()) viewModel.goToNextStep()
+            }),
             shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
@@ -650,14 +683,10 @@ private fun PermissionsStep(
         } else {
             Button(
                 onClick = {
-                    val permissions = mutableListOf(
-                        Manifest.permission.READ_SMS,
-                        Manifest.permission.RECEIVE_SMS
+                    // SMS only; notifications are asked after the first scan, with a reason.
+                    permissionLauncher.launch(
+                        arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
                     )
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                    permissionLauncher.launch(permissions.toTypedArray())
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shapes = ButtonDefaults.shapes()
@@ -689,7 +718,7 @@ private fun BackgroundAccessStep() {
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SmsScanStep(uiState: OnBoardingUiState) {
+private fun SmsScanStep(uiState: OnBoardingUiState, showNotificationReason: Boolean) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -786,6 +815,16 @@ private fun SmsScanStep(uiState: OnBoardingUiState) {
                 )
                 Spacer(modifier = Modifier.height(Spacing.lg))
                 MissingBankCard()
+            }
+
+            if (showNotificationReason) {
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                Text(
+                    text = stringResource(R.string.onboarding_notifications_reason),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
         } else {
             // Not started yet
@@ -1033,12 +1072,14 @@ private fun OnBoardingBottomBar(
     // Keep the controls above the system navigation bar under edge-to-edge (#563):
     // the Scaffold's bottomBar slot doesn't apply navigation-bar insets on its own,
     // so without this the gesture/3-button nav bar overlaps the Next button.
-    Column(modifier = Modifier.navigationBarsPadding()) {
+    // imePadding keeps "Save & Continue" above the keyboard on the name step.
+    Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
         StepIndicator(
             currentStep = uiState.currentStep,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = Spacing.sm)
+                // Top gap so content scrolled behind the bar (keyboard open) doesn't touch the dots.
+                .padding(top = Spacing.sm, bottom = Spacing.sm)
         )
 
     Row(

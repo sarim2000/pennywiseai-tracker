@@ -34,7 +34,6 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1") // same as parser-core's
                 implementation(libs.androidx.room.runtime)
-                implementation(libs.androidx.sqlite.bundled)
                 implementation(project(":parser-core"))
             }
         }
@@ -52,6 +51,9 @@ kotlin {
                 implementation(libs.pdfbox.android)
             }
         }
+        // iOS only: Android uses the app's framework driver, and in commonMain this put
+        // a 1.25 MB native SQLite per ABI into every Android APK.
+        iosMain.dependencies { implementation(libs.androidx.sqlite.bundled) }
         if (org.jetbrains.kotlin.konan.target.HostManager.hostIsMac) {
             iosMain { kotlin.srcDir("src/bankParserMain/kotlin") }
         }

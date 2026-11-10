@@ -222,8 +222,10 @@ tests, so `./init.sh app` and CI fail on a new violation:
 | Files | Must not import |
 |---|---|
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
-| `data` | `presentation` |
-| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile` |
+| `data` | `presentation`, `ui` |
+| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
+| `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (an Activity used as a launch target is allowlisted by name) |
+| `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
 
 `ui.theme` needs no rule: `:core:designsystem` can't see `:app`'s code.
@@ -233,10 +235,11 @@ any source set may be in the retired `ui.screens` package (by path or by
 `package` line), and `ui.viewmodel` may hold only `MainViewModel`,
 `ThemeViewModel` and `SpotlightViewModel`.
 
-Files that already broke a rule are in that rule's allowlist. An allowlist only
-shrinks. Don't add to it: move the code to the right layer. When you fix a file,
-delete its entry. The test also fails on an entry whose file no longer violates,
-so a fixed import can't come back. A fully qualified name in code isn't checked,
+Imports that already broke a rule are in that rule's allowlist, keyed by file
+and exact import, so an allowlisted file can't gain a new back-edge. An
+allowlist only shrinks. Don't add to it: move the code to the right layer. When
+you fix an import, delete its entry. The test also fails on an entry that no
+longer matches an import, so a fixed import can't come back. A fully qualified name in code isn't checked,
 so don't use one to get around a rule.
 
 ## Data Flow Example

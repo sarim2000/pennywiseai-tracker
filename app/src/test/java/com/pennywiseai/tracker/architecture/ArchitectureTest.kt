@@ -11,11 +11,12 @@ import org.junit.Test
  * docs/architecture.md ("Ownership & dependency rules"), checked on the
  * production sources of every flavor and build type.
  *
- * A rule forbids some imports in some files. Files that already broke a rule
- * when it was added are listed in its allowlist. **An allowlist may only
- * shrink:** fix the import and delete the entry. An entry whose file no longer
- * violates (fixed, moved or deleted) fails the test too, so a removed
- * back-edge can't come back unnoticed.
+ * A rule forbids some imports in some files. Imports that already broke a rule
+ * when it was added are listed in its allowlist, per file and per exact import,
+ * so an allowlisted file can't quietly gain a second back-edge. **An allowlist
+ * may only shrink:** fix the import and delete the entry. An entry that no
+ * longer matches an import (fixed, moved or deleted) fails the test too, so a
+ * removed back-edge can't come back unnoticed.
  *
  * Only `import` lines are checked. A fully qualified name written in code
  * isn't caught, so don't use one to get around a rule.
@@ -40,7 +41,7 @@ class ArchitectureTest {
             "android.app.Activity",
             "androidx.room3",
         ),
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -48,7 +49,7 @@ class ArchitectureTest {
         name = "data",
         appliesTo = { it.isInPackage("$APP.data") },
         forbidden = listOf("$APP.presentation", "$APP.ui"),
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -62,8 +63,9 @@ class ArchitectureTest {
             "$APP.receiver",
             "$APP.widget",
             "$APP.tile",
+            "$APP.aiaccess",
         ),
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -71,7 +73,7 @@ class ArchitectureTest {
         name = "ViewModel",
         appliesTo = { it.declaresViewModel() },
         forbidden = DATABASE_ACCESS,
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
 
     @Test
@@ -79,8 +81,35 @@ class ArchitectureTest {
         name = "@Composable",
         appliesTo = { it.declaresComposable() },
         forbidden = DATABASE_ACCESS,
-        allowlist = emptySet(),
+        allowlist = emptyMap(),
     ).check()
+
+    // One rule per package, so each fails on its own if its package moves, and
+    // every package's report is shown, not just the first failing one.
+
+    @Test
+    fun `Android entry points do not import screen code`() = checkAll(
+        ENTRY_POINTS.map { pkg ->
+            Rule(
+                name = pkg,
+                appliesTo = { it.isInPackage("$APP.$pkg") },
+                forbidden = listOf("$APP.presentation"),
+                allowlist = ENTRY_POINT_ALLOWLIST.filterKeys { it.isUnderPackage(pkg) },
+            )
+        },
+    )
+
+    @Test
+    fun `shared UI does not import features or workers`() = checkAll(
+        SHARED_UI.map { pkg ->
+            Rule(
+                name = pkg,
+                appliesTo = { it.isInPackage("$APP.$pkg") },
+                forbidden = listOf("$APP.presentation", "$APP.worker"),
+                allowlist = SHARED_UI_ALLOWLIST.filterKeys { it.isUnderPackage(pkg) },
+            )
+        },
+    )
 
     @Test
     fun `no Kotlin file lives in the retired ui screens package`() {
@@ -119,27 +148,34 @@ class ArchitectureTest {
         val name: String,
         val appliesTo: (KoFileDeclaration) -> Boolean,
         val forbidden: List<String>,
-        val allowlist: Set<String>,
+        /** File path → the exact imports it may keep. */
+        val allowlist: Map<String, Set<String>>,
     ) {
-        fun check() {
+        fun check() = checkAll(listOf(this))
+
+        /** What's wrong, or "" when the rule holds. */
+        fun report(): String {
             val subjects = productionFiles.filter(appliesTo)
-            assertTrue(
-                "$name rule matched no files. Did the package move? Point the rule at it.",
-                subjects.isNotEmpty(),
-            )
+            if (subjects.isEmpty()) return "$name rule matched no files. Did the package move? Point the rule at it.\n"
 
             val violations = subjects
                 .associate { file ->
-                    file.repoPath to file.imports.map { it.name }.filter { import ->
+                    // Konsist names `import a.B.*` just `a.B`. Keep the `.*`, or a wildcard
+                    // would pass as the exact import an allowlist entry names.
+                    file.repoPath to file.imports.map { if (it.isWildcard) "${it.name}.*" else it.name }.filter { import ->
                         forbidden.any { import.isWithin(it) }
                     }
                 }
                 .filterValues { it.isNotEmpty() }
 
-            val added = violations.filterKeys { it !in allowlist }
-            val stale = allowlist - violations.keys
+            val added = violations
+                .mapValues { (path, imports) -> imports - allowlist[path].orEmpty() }
+                .filterValues { it.isNotEmpty() }
+            val stale = allowlist.flatMap { (path, imports) ->
+                (imports - violations[path].orEmpty().toSet()).map { "$path: import $it" }
+            }
 
-            val report = buildString {
+            return buildString {
                 if (added.isNotEmpty()) {
                     appendLine("$name: forbidden imports. Move the code to the right layer (docs/architecture.md):")
                     added.forEach { (path, imports) ->
@@ -152,12 +188,56 @@ class ArchitectureTest {
                     stale.forEach { appendLine("  $it") }
                 }
             }
-            assertTrue(report, report.isEmpty())
         }
     }
 
     private companion object {
         const val APP = "com.pennywiseai.tracker"
+        const val MAIN = "app/src/main/java/com/pennywiseai/tracker"
+
+        /** Android entry points. They may start a screen's Activity but not use its code. */
+        val ENTRY_POINTS = listOf("worker", "widget", "receiver", "tile", "aiaccess")
+
+        val ENTRY_POINT_ALLOWLIST = mapOf(
+            // Launch targets for PendingIntents: an Activity is a component, not screen code.
+            "$MAIN/worker/DailySummaryWorker.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
+            "$MAIN/widget/RecentTransactionsWidget.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
+            // Period-review loader and helpers, still in presentation.review
+            "$MAIN/worker/WeeklySummaryWorker.kt" to setOf(
+                "$APP.presentation.review.PeriodReviewLoader",
+                "$APP.presentation.review.ReviewKind",
+                "$APP.presentation.review.changeText",
+                "$APP.presentation.review.latestReviewOffset",
+                "$APP.presentation.review.percentChange",
+            ),
+            // Goal status text, built from string resources
+            "$MAIN/widget/GoalWidgetData.kt" to setOf(
+                "$APP.presentation.goals.shortLine",
+                "$APP.presentation.goals.statusLine",
+            ),
+            "$MAIN/widget/GoalWidgetConfigActivity.kt" to setOf(
+                "$APP.presentation.goals.GoalRing",
+                "$APP.presentation.goals.statusLine",
+            ),
+            // The unrecognized-SMS suggestion model, which also builds an Add draft
+            "$MAIN/receiver/SmsBroadcastReceiver.kt" to setOf("$APP.presentation.unrecognized.Suggestion"),
+        )
+
+        /** Feature-agnostic UI shared by every screen (docs/architecture.md rule 3). */
+        val SHARED_UI = listOf("ui.components", "ui.icons", "ui.animations", "ui.effects")
+
+        val SHARED_UI_ALLOWLIST = mapOf(
+            "$MAIN/ui/components/ShareCard.kt" to setOf("$APP.presentation.share.ShareCardData"),
+            "$MAIN/ui/components/SmsParsingProgressDialog.kt" to setOf("$APP.worker.OptimizedSmsReaderWorker"),
+        )
+
+        fun checkAll(rules: List<Rule>) {
+            val report = rules.joinToString("") { it.report() }
+            assertTrue(report, report.isEmpty())
+        }
+
+        /** Whether a repo path is in [pkg] or below it, e.g. `ui.components` (and `ui.components.cards`). */
+        fun String.isUnderPackage(pkg: String) = "/tracker/${pkg.replace('.', '/')}/" in this
 
         /** Room itself, the database class and the DAOs. Entities are plain models and allowed. */
         val DATABASE_ACCESS = listOf(

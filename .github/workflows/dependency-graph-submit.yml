@@ -49,17 +49,27 @@ jobs:
         set -euo pipefail
         # A fork's own branch may also be called "main", hence the repo check.
         if [[ "$RUN_EVENT" == push && "$RUN_REPO" == "$REPO" && "$RUN_BRANCH" == main ]]; then
-          ref_re='^refs/heads/main$'
+          want_ref=refs/heads/main
         elif [[ "$RUN_EVENT" == pull_request ]]; then
-          ref_re='^refs/pull/[0-9]+/merge$'
+          # The snapshot names its own PR ref, so look the PR up instead of
+          # trusting it: exactly one open PR into main whose head is this run's
+          # repo, branch and commit. (workflow_run.pull_requests is empty for forks.)
+          prs=$(gh api --method GET "repos/$REPO/pulls" -f state=open -f base=main \
+                  -f head="${RUN_REPO%%/*}:$RUN_BRANCH" \
+                | jq -c --arg sha "$RUN_SHA" --arg repo "$RUN_REPO" \
+                    '[.[] | select(.head.sha == $sha and .head.repo.full_name == $repo) | .number]')
+          if [[ "$(jq length <<<"$prs")" != 1 ]]; then
+            echo "::error::Expected one open PR for $RUN_REPO:$RUN_BRANCH@$RUN_SHA, found $prs"; exit 1
+          fi
+          want_ref="refs/pull/$(jq '.[0]' <<<"$prs")/merge"
         else
           echo "::error::Unexpected run: event=$RUN_EVENT"; exit 1
         fi
 
         n=0
         while IFS= read -r -d '' f; do
-          if ! jq -e --arg sha "$RUN_SHA" --arg re "$ref_re" \
-               '(.sha == $sha) and (.ref | type == "string" and test($re))' "$f" >/dev/null; then
+          if ! jq -e --arg sha "$RUN_SHA" --arg ref "$want_ref" \
+               '.sha == $sha and .ref == $ref' "$f" >/dev/null; then
             echo "::error::Rejected $(basename "$f"): sha/ref don't match the triggering run"; exit 1
           fi
           gh api --method POST "repos/$REPO/dependency-graph/snapshots" --input "$f" --jq '.message'

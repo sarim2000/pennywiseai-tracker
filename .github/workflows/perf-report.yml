@@ -10,6 +10,7 @@ on:
     paths:
     - 'app/**'
     - 'core/**'
+    - 'feature/**'
     - 'shared/**'
     - 'parser-core/**'
     - 'baselineprofile/**'

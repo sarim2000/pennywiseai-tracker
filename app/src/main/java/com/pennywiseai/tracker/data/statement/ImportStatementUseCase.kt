@@ -11,7 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.core.ResText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -36,7 +36,7 @@ class ImportStatementUseCase @Inject constructor(
 ) {
     sealed interface PdfRead {
         data class Parsed(val transactions: List<ParsedTransaction>) : PdfRead
-        data class Error(val message: UiText) : PdfRead
+        data class Error(val message: ResText) : PdfRead
         /** The statement PDF is locked; ask for its password ([wrongPassword]: the last one failed). */
         data class PasswordRequired(val wrongPassword: Boolean) : PdfRead
     }
@@ -45,23 +45,23 @@ class ImportStatementUseCase @Inject constructor(
         try {
             val text = PdfTextExtractor.extractText(context, uri, password)
             val parser = PdfParserFactory.getParser(text)
-                ?: return@withContext PdfRead.Error(UiText.Res(R.string.import_statement_error_unsupported))
+                ?: return@withContext PdfRead.Error(ResText(R.string.import_statement_error_unsupported))
             val parsed = parser.parse(text)
-            if (parsed.isEmpty()) PdfRead.Error(UiText.Res(R.string.import_statement_error_no_transactions)) else PdfRead.Parsed(parsed)
+            if (parsed.isEmpty()) PdfRead.Error(ResText(R.string.import_statement_error_no_transactions)) else PdfRead.Parsed(parsed)
         } catch (e: PdfPasswordRequiredException) {
             PdfRead.PasswordRequired(e.wrongPassword)
         } catch (e: Exception) {
             // The exception's own text is English and technical (and can hold the file's URI).
-            PdfRead.Error(UiText.Res(R.string.import_statement_error_read))
+            PdfRead.Error(ResText(R.string.import_statement_error_read))
         }
     }
 
     /** A spreadsheet the user can fix; [text] says what's wrong, in the app's language. */
-    class UnreadableFileException(val text: UiText) : Exception()
+    class UnreadableFileException(val text: ResText) : Exception()
 
     /** The spreadsheet's rows; throws [UnreadableFileException] for a file the user can fix. */
     suspend fun readTable(uri: Uri): List<List<String>> = withContext(Dispatchers.IO) {
-        fun unreadable(id: Int, vararg args: Any) = UnreadableFileException(UiText.Res(id, args.toList()))
+        fun unreadable(id: Int, vararg args: Any) = UnreadableFileException(ResText(id, args.toList()))
         val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
             input.readNBytesCompat(MAX_FILE_BYTES + 1).takeIf { it.size <= MAX_FILE_BYTES }
                 ?: throw unreadable(R.string.import_statement_error_too_large)

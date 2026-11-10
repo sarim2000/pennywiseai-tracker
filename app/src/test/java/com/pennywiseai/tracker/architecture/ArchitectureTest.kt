@@ -51,10 +51,10 @@ class ArchitectureTest {
     ).check()
 
     @Test
-    fun `data does not import presentation`() = Rule(
+    fun `data does not import presentation or ui`() = Rule(
         name = "data",
         appliesTo = { it.isInPackage("$APP.data") },
-        forbidden = listOf("$APP.presentation"),
+        forbidden = listOf("$APP.presentation", "$APP.ui"),
         allowlist = setOf(
             // presentation.accounts.AccountType
             "app/src/main/java/com/pennywiseai/tracker/data/repository/AccountBalanceRepository.kt",

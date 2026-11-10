@@ -82,25 +82,22 @@ abstract class SharedDatabase : RoomDatabase() {
          */
         val MIGRATION_2_3: Migration = object : Migration(2, 3) {
             override suspend fun migrate(connection: SQLiteConnection) {
-                val dinars = "('BHD','JOD','KWD','LYD','OMR','TND')"
-                val inDinars = "UPPER(currency) IN $dinars"
-                // Children first: they find their currency through the parent row.
-                connection.execSQL(
-                    "UPDATE shared_transaction_splits SET amount_minor = amount_minor * 10 " +
-                        "WHERE transaction_id IN (SELECT id FROM shared_transactions WHERE $inDinars)"
+                val inDinars = "UPPER(currency) IN ('BHD','JOD','KWD','LYD','OMR','TND')"
+                // A value past Long.MAX_VALUE / 10 can't take × 10 without wrapping; it is left as it
+                // is. BETWEEN, not ABS(): ABS(Long.MIN_VALUE) is an SQLite overflow error.
+                val limit = Long.MAX_VALUE / 10
+                fun scale(table: String, column: String, rows: String) = connection.execSQL(
+                    "UPDATE $table SET $column = $column * 10 WHERE $column BETWEEN -$limit AND $limit AND $rows"
                 )
-                connection.execSQL(
-                    "UPDATE shared_budget_categories SET budget_amount_minor = budget_amount_minor * 10 " +
-                        "WHERE budget_id IN (SELECT id FROM shared_budgets WHERE $inDinars)"
-                )
-                connection.execSQL(
-                    "UPDATE shared_transactions SET amount_minor = amount_minor * 10, " +
-                        "balance_after_minor = balance_after_minor * 10 WHERE $inDinars"
-                )
-                connection.execSQL("UPDATE shared_account_balances SET balance_minor = balance_minor * 10 WHERE $inDinars")
-                connection.execSQL("UPDATE shared_cards SET last_balance_minor = last_balance_minor * 10 WHERE $inDinars")
-                connection.execSQL("UPDATE shared_budgets SET limit_minor = limit_minor * 10 WHERE $inDinars")
-                connection.execSQL("UPDATE shared_subscriptions SET amount_minor = amount_minor * 10 WHERE $inDinars")
+                // Children find their currency through the parent row.
+                scale("shared_transaction_splits", "amount_minor", "transaction_id IN (SELECT id FROM shared_transactions WHERE $inDinars)")
+                scale("shared_budget_categories", "budget_amount_minor", "budget_id IN (SELECT id FROM shared_budgets WHERE $inDinars)")
+                scale("shared_transactions", "amount_minor", inDinars)
+                scale("shared_transactions", "balance_after_minor", inDinars)
+                scale("shared_account_balances", "balance_minor", inDinars)
+                scale("shared_cards", "last_balance_minor", inDinars)
+                scale("shared_budgets", "limit_minor", inDinars)
+                scale("shared_subscriptions", "amount_minor", inDinars)
                 // shared_category_budget_limits has no currency column, so it can't be told apart; left as is.
             }
         }

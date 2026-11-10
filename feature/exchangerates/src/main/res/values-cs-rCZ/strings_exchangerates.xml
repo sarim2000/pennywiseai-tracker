@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">Směnné kurzy</string>
+    <string name="exchange_rates_refresh">Aktualizovat kurzy</string>
+    <string name="exchange_rates_empty_title">Žádné směnné kurzy nejsou k dispozici</string>
+    <string name="exchange_rates_empty_description">Sazby se zobrazí, když máte transakce ve více měnách</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">Naposledy aktualizováno: %1$s</string>
+    <string name="exchange_rates_hint">Pro nastavení vlastní hodnoty klepněte na sazbu. Vlastní sazby jsou zachovány napříč obnovením API.</string>
+    <string name="exchange_rates_reset_all">Obnovit vše na Auto</string>
+    <string name="exchange_rates_badge_custom">Vlastní</string>
+    <string name="exchange_rates_badge_api">API</string>
+    <string name="exchange_rates_rate_label">Směnný kurz</string>
+    <string name="exchange_rates_invalid_rate">Zadejte platné kladné číslo</string>
+    <string name="exchange_rates_reset">Obnovit na automatické</string>
+    <string name="exchange_rates_set_custom">Nastavit vlastní sazbu.</string>
+    <string name="exchange_rates_error_load">Nepodařilo se načíst sazby</string>
+    <string name="exchange_rates_error_refresh">Obnovení frekvence se nezdařilo</string>
+    <string name="exchange_rates_error_set_custom">Nastavení vlastní sazby se nezdařilo</string>
+    <string name="exchange_rates_error_clear_custom">Nepodařilo se vymazat vlastní sazbu</string>
+    <string name="exchange_rates_error_clear_all_custom">Nepodařilo se vymazat vlastní sazby</string>
+</resources>

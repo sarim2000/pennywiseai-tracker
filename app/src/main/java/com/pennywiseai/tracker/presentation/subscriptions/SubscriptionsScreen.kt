@@ -46,8 +46,8 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.domain.model.icon
-import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.presentation.accounts.icon
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2

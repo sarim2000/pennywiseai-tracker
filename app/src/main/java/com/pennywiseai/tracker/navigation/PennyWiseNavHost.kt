@@ -412,7 +412,7 @@ fun PennyWiseNavHost(
         }
 
         entry<ExchangeRates> { key ->
-            com.pennywiseai.tracker.presentation.exchangerates.ExchangeRatesScreen(
+            ExchangeRatesEntry(
                 onNavigateBack = {
                     backStack.pop(key)
                 }

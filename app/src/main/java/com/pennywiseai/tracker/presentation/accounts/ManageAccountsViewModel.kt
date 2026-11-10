@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.domain.model.AccountType
 import kotlinx.coroutines.sync.withLock
 
 import com.pennywiseai.tracker.ui.UiText
@@ -53,15 +54,6 @@ data class AccountFormState(
     val isValid: Boolean = false,
     val errorMessage: UiText? = null
 )
-
-enum class AccountType {
-    SAVINGS,
-    CURRENT,
-    CREDIT,
-    CASH,
-    /** Bank loan account (#792): the balance is the amount still owed, like a credit card. */
-    LOAN
-}
 
 data class PendingProfileReassign(
     val bankName: String,

@@ -111,7 +111,8 @@ class AiContextRepositoryTest {
             ) { _, _, _ -> error("unused") } as com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
             userPreferencesRepository = userPreferencesRepository,
             currencyConversionService = currencyConversionService,
-            loanRepository = io.mockk.mockk()
+            loanRepository = io.mockk.mockk(),
+            categoryDao = io.mockk.mockk(relaxed = true)
         )
     }
 
@@ -213,5 +214,31 @@ class AiContextRepositoryTest {
             transactionHash = "hash_" + (1..100000).random(),
             loanId = loanId
         )
+    }
+
+    @Test
+    fun `comparing a parent counts its children, whatever casing the model used`() = runBlocking {
+        val at = LocalDateTime.now()
+        fun row(id: Long, category: String) = com.pennywiseai.tracker.data.database.entity.TransactionWithSplits(
+            TransactionEntity(id = id, amount = BigDecimal("10"), merchantName = "Shop", category = category, transactionType = TransactionType.EXPENSE, dateTime = at, transactionHash = "h$id", currency = "INR"),
+            emptyList()
+        )
+        val parentAndChild = AiContextRepository(
+            transactionDao = transactionDao,
+            transactionSplitDao = io.mockk.mockk {
+                io.mockk.every { getTransactionsWithSplitsAllCurrencies(any(), any()) } returns kotlinx.coroutines.flow.flowOf(listOf(row(1, "Food"), row(2, "Coffee"), row(3, "Travel")))
+            },
+            userPreferencesRepository = userPreferencesRepository,
+            currencyConversionService = currencyConversionService,
+            loanRepository = io.mockk.mockk(relaxed = true),
+            categoryDao = io.mockk.mockk {
+                io.mockk.coEvery { getAllCategoriesList() } returns listOf(
+                    com.pennywiseai.tracker.data.database.entity.CategoryEntity(id = 1, name = "Food", color = "#000"),
+                    com.pennywiseai.tracker.data.database.entity.CategoryEntity(id = 2, name = "Coffee", color = "#000", parentId = 1)
+                )
+            }
+        )
+        val result = parentAndChild.compareSpending(com.pennywiseai.tracker.data.model.SpendingComparison.Period.MONTH, "food", creditAsExpense = false)
+        assertEquals(BigDecimal("20"), (result as com.pennywiseai.tracker.data.model.SpendingComparison.Result.Rows).rows.single().current)
     }
 }

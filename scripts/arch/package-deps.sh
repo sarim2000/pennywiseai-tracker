@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Package dependency matrix for :app (com.pennywiseai.tracker), then every pair
-# of packages that import each other (a cycle).
+# Package dependency matrix for :app, :feature:* and :core:* (all in
+# com.pennywiseai.tracker), then every pair of packages that import each other
+# (a cycle).
 #
 # Counts `import com.pennywiseai.tracker.…` lines in main + flavor sources
 # (R and BuildConfig excluded). Fully qualified names in code and same-package
@@ -13,7 +14,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 # shellcheck disable=SC2016  # the single-quoted text is an awk program
-find app/src/main app/src/standard app/src/fdroid -name '*.kt' -print0 |
+# Feature and core modules keep com.pennywiseai.tracker packages, so they count too.
+find app/src/main app/src/standard app/src/fdroid feature/*/src/main core/*/src/main -name '*.kt' -print0 |
 xargs -0 awk -v depth="${1:-1}" '
 function key(p, strip,   a, n, i, k) {
   sub(/^com\.pennywiseai\.tracker\.?/, "", p)
@@ -35,7 +37,7 @@ FNR == 1 { src = "" }
 END {
   for (i = 2; i <= np; i++)                     # insertion sort (no asort in BSD awk)
     for (j = i; j > 1 && pk[j-1] > pk[j]; j--) { t = pk[j]; pk[j] = pk[j-1]; pk[j-1] = t }
-  printf "Imports between :app packages, depth %d (row imports column)\n%19s", depth, ""
+  printf "Imports between packages, depth %d (row imports column)\n%19s", depth, ""
   for (j = 1; j <= np; j++) printf "%5d", j
   print ""
   for (i = 1; i <= np; i++) {

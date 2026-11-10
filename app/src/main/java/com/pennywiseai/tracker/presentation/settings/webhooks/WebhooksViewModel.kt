@@ -93,7 +93,7 @@ class WebhooksViewModel @Inject constructor(
             runCatching { LocalDate.parse(editor.end).atTime(java.time.LocalTime.MAX) }.getOrNull(),
             editor.currency, editor.headers)
         val error = WebhookValidation.validateDraft(draft)
-        if (error != null) { message(error); return@action }
+        if (error != null) { message(UiText.of(error)); return@action }
         repository.save(draft)
         _state.update { it.copy(editor = null, message = UiText.Res(R.string.webhooks_msg_saved)) }
     }
@@ -101,7 +101,7 @@ class WebhooksViewModel @Inject constructor(
     fun setInterval(value: String) = _state.update { it.copy(interval = value) }
     fun saveInterval() = action {
         val error = WebhookValidation.validateIntervalHours(_state.value.interval)
-        if (error != null) { message(error); return@action }
+        if (error != null) { message(UiText.of(error)); return@action }
         preferences.setInterval(_state.value.interval.toInt())
         message(UiText.Res(R.string.webhooks_msg_interval_saved))
     }

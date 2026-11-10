@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import org.junit.Test
 import java.math.BigDecimal
 

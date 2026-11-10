@@ -30,7 +30,6 @@
     <string name="permission_title">تمكين الكشف التلقائي عن المعاملات</string>
     <string name="permission_description">يمكن لـ PennyWise الكشف عن المعاملات المصرفية الخاصة بك وتصنيفها تلقائيا من رسائل الرسائل القصيرة، وتوفير الوقت والجهد.</string>
     <string name="permission_privacy_title">مسائل الخصوصية الخاصة بك</string>
-    <string name="permission_privacy_points">• تتم معالجة رسائل المعاملات فقط\n• تبقى جميع البيانات على جهازك\n• لا توجد رسائل شخصية مقروءة\n• يمكنك إلغاء الوصول في أي وقت من الإعدادات</string>
     <string name="permission_notification_title">تمكين الوصول إلى إشعار البنك</string>
     <string name="permission_notification_description">السماح لـ PennyWise بقراءة إشعارات المعاملات من التطبيقات المصرفية المعتمدة. هذا يساعد على التقاط المشتريات عندما يتم تأخير الرسائل القصيرة أو غير متوفرة.</string>
     <string name="permission_notification_enabled">تمكين الوصول إلى الإشعارات</string>
@@ -218,8 +217,6 @@
     <string name="onboarding_selected_cd">المحدد</string>
     <string name="onboarding_permission_title">تمكين الكشف التلقائي</string>
     <string name="onboarding_permission_body">يمكن لـ PennyWise الكشف تلقائياً عن المعاملات المصرفية الخاصة بك من رسائل الرسائل القصيرة SMS وتصنيفها.</string>
-    <string name="onboarding_permission_granted">تم منح الأذونات! انقر على الاستمرار للمتابعة.</string>
-    <string name="onboarding_enable_permissions">تمكين الأذونات</string>
     <string name="onboarding_scan_in_progress">جارٍ فحص رسائلك...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="zero">%1$d / %2$d تم معالجة الرسائل</item>

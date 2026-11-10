@@ -66,7 +66,7 @@ import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.di.ApplicationScope
-import com.pennywiseai.tracker.domain.security.BiometricAuthManager
+import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.theme.Dimensions

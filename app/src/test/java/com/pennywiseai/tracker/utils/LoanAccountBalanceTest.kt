@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.utils
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.presentation.home.spendableAccounts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

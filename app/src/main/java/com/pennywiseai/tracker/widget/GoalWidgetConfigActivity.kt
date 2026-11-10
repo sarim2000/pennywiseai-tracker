@@ -10,7 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.repository.AppLockRepository
-import com.pennywiseai.tracker.domain.security.BiometricAuthManager
+import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge

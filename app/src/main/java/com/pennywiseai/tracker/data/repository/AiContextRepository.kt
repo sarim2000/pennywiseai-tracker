@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.model.*
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
@@ -21,7 +22,8 @@ class AiContextRepository @Inject constructor(
     private val transactionSplitDao: com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
     private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService,
-    private val loanRepository: LoanRepository
+    private val loanRepository: LoanRepository,
+    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
 ) {
     
     /** This month so far, in the base currency: all the chat's prompt and summary tool need. */
@@ -77,14 +79,19 @@ class AiContextRepository @Inject constructor(
     }
 
     /** [SpendingComparison] on the saved transactions, as of now. Also for one-tap questions that skip the model (M8). */
-    suspend fun compareSpending(period: SpendingComparison.Period, category: String?): SpendingComparison.Result {
+    suspend fun compareSpending(period: SpendingComparison.Period, category: String?, creditAsExpense: Boolean): SpendingComparison.Result {
         val windows = SpendingComparison.windows(
             period, java.time.LocalDateTime.now(), java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).firstDayOfWeek
         )
         val (current, previous) = windows.toList().map { transactionSplitDao.getTransactionsWithSplitsAllCurrencies(it.start, it.end).first() }
         // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
         val (currentLoss, previousLoss) = if (category == null) settlementLoss(windows.first) to settlementLoss(windows.second) else emptyMap<String, BigDecimal>() to emptyMap()
-        return SpendingComparison.compare(windows, current, previous, category, currentLoss, previousLoss)
+        // A parent counts its children, as the category filters do. The model's casing isn't the saved name's.
+        val categories = category?.let { asked ->
+            val all = categoryDao.getAllCategoriesList()
+            all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
+        }
+        return SpendingComparison.compare(windows, current, previous, categories, currentLoss, previousLoss, creditAsExpense)
     }
 
     /** Lent balances forgiven in [window], per currency: Home adds these to "Spent" (#938). */

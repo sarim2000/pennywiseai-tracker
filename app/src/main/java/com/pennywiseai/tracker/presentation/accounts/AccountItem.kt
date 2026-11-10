@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -22,7 +23,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import java.math.BigDecimal
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.domain.model.icon
 
 @Composable
 internal fun AccountItem(

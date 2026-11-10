@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.widget.inAppLanguage
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -14,6 +13,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetBucketInput
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -87,7 +87,7 @@ class BudgetGroupEditViewModel @Inject constructor(
     private val budgetGroupRepository: BudgetGroupRepository,
     private val categoryRepository: CategoryRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val transactionSplitDao: TransactionSplitDao
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
 
     private val groupId: Long = savedStateHandle.get<Long>("groupId") ?: -1L
@@ -109,15 +109,15 @@ class BudgetGroupEditViewModel @Inject constructor(
 
             val today = LocalDate.now()
             val yearMonth = YearMonth.from(today)
-            val startDate = yearMonth.atDay(1).atStartOfDay()
-            val endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59)
+            val startDate = yearMonth.atDay(1)
+            val endDate = yearMonth.atEndOfMonth()
 
             // The "spending hint" panel on the right of the budget amount
             // ("Spent: $X") is computed from the calendar month regardless
             // of cadence — it's a quick glance, not the authoritative spend
             // figure. The authoritative spend figure is what the home card
             // shows, which honours the budget's own period window.
-            val transactions = transactionSplitDao.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
+            val transactions = transactionRepository.getTransactionsWithSplitsFiltered(startDate, endDate, currency).first()
             // Mirror the main budget screen's routing: type-bucket-eligible
             // outflows (INVESTMENT) are summed per type, everything else per
             // category. Keeps the edit screen's "current spending" hint accurate

@@ -274,25 +274,6 @@
     <string name="loan_detail_enter_amount">रकम हाल्नुहोस्</string>
     <string name="loan_detail_amount_label">रकम</string>
     <string name="loan_detail_add">थप्नुहोस्</string>
-    <!-- ══ Exchange rates ══ -->
-    <string name="exchange_rates_title">विनिमय दरहरू</string>
-    <string name="exchange_rates_refresh">दरहरू रिफ्रेस गर्नुहोस्</string>
-    <string name="exchange_rates_empty_title">कुनै विनिमय दर उपलब्ध छैन</string>
-    <string name="exchange_rates_empty_description">धेरै मुद्रामा लेनदेन भएपछि दरहरू देखिनेछन्</string>
-    <!-- %1$s = date and time -->
-    <string name="exchange_rates_last_updated">अन्तिम अद्यावधिक: %1$s</string>
-    <string name="exchange_rates_hint">आफ्नै मान सेट गर्न दरमा ट्याप गर्नुहोस्। आफ्नै दरहरू API रिफ्रेस हुँदा पनि जोगिन्छन्।</string>
-    <string name="exchange_rates_reset_all">सबैलाई स्वचालितमा रिसेट गर्नुहोस्</string>
-    <string name="exchange_rates_badge_custom">अनुकूल</string>
-    <string name="exchange_rates_rate_label">विनिमय दर</string>
-    <string name="exchange_rates_invalid_rate">मान्य धनात्मक संख्या हाल्नुहोस्</string>
-    <string name="exchange_rates_reset">स्वचालितमा रिसेट गर्नुहोस्</string>
-    <string name="exchange_rates_set_custom">आफ्नै दर सेट गर्नुहोस्</string>
-    <string name="exchange_rates_error_load">दरहरू लोड गर्न असफल</string>
-    <string name="exchange_rates_error_refresh">दरहरू रिफ्रेस गर्न असफल</string>
-    <string name="exchange_rates_error_set_custom">आफ्नै दर सेट गर्न असफल</string>
-    <string name="exchange_rates_error_clear_custom">आफ्नै दर हटाउन असफल</string>
-    <string name="exchange_rates_error_clear_all_custom">आफ्नै दरहरू हटाउन असफल</string>
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">खाताहरूको सारांश</string>
     <string name="accounts_overview_bank_balance">बैंक बालान्स</string>

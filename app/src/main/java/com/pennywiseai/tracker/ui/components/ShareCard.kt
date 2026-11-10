@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.painterResource
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.share.SHARE_CARD_URL
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -60,8 +61,6 @@ object ShareCardColors {
 /** 4:5 — the aspect WhatsApp and Instagram both render without cropping. */
 val ShareCardWidth = 360.dp
 val ShareCardHeight = 450.dp
-
-const val SHARE_CARD_URL = "pennywise.zynth.dev"
 
 @Composable
 fun ShareCard(

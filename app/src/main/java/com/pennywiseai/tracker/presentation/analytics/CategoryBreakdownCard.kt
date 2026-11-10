@@ -1,0 +1,139 @@
+package com.pennywiseai.tracker.presentation.analytics
+
+import com.pennywiseai.tracker.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.components.ExpandableList
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+
+@Composable
+fun CategoryBreakdownCard(
+    categories: List<CategoryData>,
+    currency: String,
+    modifier: Modifier = Modifier,
+    onCategoryClick: (CategoryData) -> Unit = {}
+) {
+    val maxAmount = categories.map { it.amount }.maxOrNull() ?: java.math.BigDecimal.ZERO
+
+    PennyWiseCardV2(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Text(
+                text = stringResource(R.string.analytics_spending_by_category),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium
+            )
+
+            ExpandableList(
+                items = categories,
+                visibleItemCount = 5
+            ) { category ->
+                CategoryBar(
+                    category = category,
+                    maxAmount = maxAmount,
+                    currency = currency,
+                    onClick = { onCategoryClick(category) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryBar(
+    category: CategoryData,
+    maxAmount: java.math.BigDecimal,
+    currency: String,
+    onClick: () -> Unit = {}
+) {
+    val targetFraction = if (maxAmount > java.math.BigDecimal.ZERO) {
+        (category.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
+    } else 0f
+
+    // Animated progress bar fill
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (visible) targetFraction else 0f,
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+        label = "category_bar_${category.name}"
+    )
+
+    // Category color: user's assigned color, else built-in palette, else gray (#586)
+    val categoryColor = CategoryMapping.colorFor(category.name, category.color)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .clickable { onClick() }
+            .padding(vertical = Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = categoryLabel(category.name),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.analytics_percent, category.percentage.toInt()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = CurrencyFormatter.formatCurrency(category.amount, currency),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // Animated progress bar with rounded corners
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(MaterialTheme.shapes.extraSmall)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(animatedFraction)
+                    .fillMaxHeight()
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(categoryColor)
+            )
+        }
+    }
+}

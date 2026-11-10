@@ -12,7 +12,7 @@ import com.pennywiseai.parser.core.bank.IndianBankParser
 import com.pennywiseai.parser.core.bank.SBIBankParser
 import com.pennywiseai.parser.core.bank.FederalBankParser
 import com.pennywiseai.parser.core.MandateInfo
-import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -317,7 +317,7 @@ class SubscriptionRepository @Inject constructor(
 
     private fun determineCategory(merchantName: String): String {
         // Use unified category mapping
-        return com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(CategoryMapping.getCategory(merchantName))
+        return com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current(SharedCategoryMapping.getCategory(merchantName))
     }
 
     /**

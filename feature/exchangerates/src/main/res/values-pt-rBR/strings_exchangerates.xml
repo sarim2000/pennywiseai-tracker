@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">Taxas de câmbio</string>
+    <string name="exchange_rates_refresh">Taxas de atualização</string>
+    <string name="exchange_rates_empty_title">Não há taxas de câmbio disponíveis</string>
+    <string name="exchange_rates_empty_description">As tarifas aparecerão quando você tiver transações em várias moedas</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">Última atualização: %1$s</string>
+    <string name="exchange_rates_hint">Toque em uma taxa para definir um valor personalizado. As taxas personalizadas são preservadas durante as atualizações da API.</string>
+    <string name="exchange_rates_reset_all">Redefinir Tudo para Auto</string>
+    <string name="exchange_rates_badge_custom">Personalizado</string>
+    <string name="exchange_rates_badge_api">API</string>
+    <string name="exchange_rates_rate_label">Taxa de Câmbio</string>
+    <string name="exchange_rates_invalid_rate">Insira um número positivo válido</string>
+    <string name="exchange_rates_reset">Redefinir para Automático</string>
+    <string name="exchange_rates_set_custom">Definir taxa personalizada</string>
+    <string name="exchange_rates_error_load">Falha ao carregar taxas</string>
+    <string name="exchange_rates_error_refresh">Falha ao atualizar as taxas</string>
+    <string name="exchange_rates_error_set_custom">Falha ao definir a taxa personalizada</string>
+    <string name="exchange_rates_error_clear_custom">Falha ao limpar a taxa personalizada</string>
+    <string name="exchange_rates_error_clear_all_custom">Falha ao limpar taxas de personalização</string>
+</resources>

@@ -138,8 +138,8 @@ class SpendingComparisonTest {
     fun `a category counts its share of split transactions`() {
         val current = listOf(tx("100", category = "Food & Dining", splits = listOf("Food & Dining" to "60", "Transportation" to "40")))
         val previous = listOf(tx("50", category = "Transportation"))
-        assertEquals(mapOf("INR" to Triple("40", "50", -20)), rows(SpendingComparison.compare(windows, current, previous, "transportation")))
-        assertEquals(mapOf("INR" to Triple("60", "0", null)), rows(SpendingComparison.compare(windows, current, previous, "Food & Dining")))
+        assertEquals(mapOf("INR" to Triple("40", "50", -20)), rows(SpendingComparison.compare(windows, current, previous, setOf("transportation"))))
+        assertEquals(mapOf("INR" to Triple("60", "0", null)), rows(SpendingComparison.compare(windows, current, previous, setOf("Food & Dining"))))
         assertEquals(mapOf("INR" to Triple("100", "50", 100)), rows(SpendingComparison.compare(windows, current, previous)))
     }
 
@@ -150,7 +150,7 @@ class SpendingComparisonTest {
         // Only income last month: recorded, so a real zero.
         val r = SpendingComparison.compare(windows, listOf(tx("10")), listOf(tx("500", type = TransactionType.INCOME)))
         assertEquals(mapOf("INR" to Triple("10", "0", null)), rows(r))
-        val none = SpendingComparison.compare(windows, listOf(tx("10")), listOf(tx("20")), category = "Travel")
+        val none = SpendingComparison.compare(windows, listOf(tx("10")), listOf(tx("20")), categories = setOf("Travel"))
         assertTrue((none as Result.Rows).rows.isEmpty())
     }
 
@@ -303,7 +303,23 @@ class SpendingComparisonTest {
         // ₹1,000 − ₹400; the salary isn't a refund. The USD over-refund floors at zero, not −30.
         assertEquals(BigDecimal("600"), r.rows.single { it.currency == "INR" }.current)
         assertEquals(BigDecimal.ZERO, r.rows.single { it.currency == "USD" }.current)
-        val food = SpendingComparison.compare(windows, cur + tx("20"), prev, "Food & Dining") as Result.Rows
+        val food = SpendingComparison.compare(windows, cur + tx("20"), prev, setOf("Food & Dining")) as Result.Rows
         assertEquals(BigDecimal("20"), food.rows.single().current)
+    }
+
+    @Test
+    fun `card purchases count only when the user folds them into spending`() {
+        val mixed = listOf(tx("100"), tx("40", type = TransactionType.CREDIT, category = "Shopping"))
+        assertEquals(mapOf("INR" to BigDecimal("100")), SpendingComparison.spend(mixed, creditAsExpense = false))
+        assertEquals(mapOf("INR" to BigDecimal("140")), SpendingComparison.spend(mixed, creditAsExpense = true))
+        assertEquals(listOf("Food & Dining"), SpendingComparison.topCategories(mixed, creditAsExpense = false).getValue("INR").map { it.first })
+        val onlyCard = SpendingComparison.compare(windows, listOf(tx("40", type = TransactionType.CREDIT)), listOf(tx("10")), creditAsExpense = false)
+        assertEquals(mapOf("INR" to Triple("0", "10", -100)), rows(onlyCard))
+    }
+
+    @Test
+    fun `a category set rolls in every name it holds, refunds included`() {
+        val cur = listOf(tx("60", category = "Food"), tx("30", category = "Coffee"), tx("9", category = "Travel"), tx("10", type = TransactionType.INCOME, refundTo = "Coffee"))
+        assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("food", "coffee")))
     }
 }

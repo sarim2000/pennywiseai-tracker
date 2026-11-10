@@ -275,26 +275,6 @@
     <string name="loan_detail_enter_amount">Entrez le montant</string>
     <string name="loan_detail_amount_label">Montant</string>
     <string name="loan_detail_add">Ajouter</string>
-    <!-- ══ Exchange rates ══ -->
-    <string name="exchange_rates_title">Taux de change</string>
-    <string name="exchange_rates_refresh">Taux de rafraîchissement</string>
-    <string name="exchange_rates_empty_title">Aucun taux de change disponible</string>
-    <string name="exchange_rates_empty_description">Les tarifs apparaîtront lorsque vous aurez des transactions dans plusieurs devises</string>
-    <!-- %1$s = date and time -->
-    <string name="exchange_rates_last_updated">Dernière mise à jour : %1$s</string>
-    <string name="exchange_rates_hint">Tapotez sur un taux pour définir une valeur personnalisée. Les taux personnalisés sont préservés à travers les rafraîchissements de l\'API.</string>
-    <string name="exchange_rates_reset_all">Tout réinitialiser à Auto</string>
-    <string name="exchange_rates_badge_custom">Personnalisé</string>
-    <string name="exchange_rates_badge_api">API</string>
-    <string name="exchange_rates_rate_label">Taux de change</string>
-    <string name="exchange_rates_invalid_rate">Entrez un nombre positif valide</string>
-    <string name="exchange_rates_reset">Réinitialiser à Auto</string>
-    <string name="exchange_rates_set_custom">Définir le taux personnalisé</string>
-    <string name="exchange_rates_error_load">Échec de chargement des débits</string>
-    <string name="exchange_rates_error_refresh">Échec du rafraichissement des taux</string>
-    <string name="exchange_rates_error_set_custom">Impossible de définir le taux personnalisé</string>
-    <string name="exchange_rates_error_clear_custom">Échec de l\'effacement du taux personnalisé</string>
-    <string name="exchange_rates_error_clear_all_custom">Échec de l\'effacement des tarifs personnalisés</string>
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">Aperçu des comptes clients</string>
     <string name="accounts_overview_bank_balance">Solde bancaire</string>

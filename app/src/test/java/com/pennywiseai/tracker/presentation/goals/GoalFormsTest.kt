@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.tracker.domain.goals.GoalPill
+import com.pennywiseai.tracker.domain.goals.fraction
+import com.pennywiseai.tracker.domain.goals.pill
+import com.pennywiseai.tracker.domain.goals.ratioOf
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalRules

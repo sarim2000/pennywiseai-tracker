@@ -1,6 +1,7 @@
 # Crowdin configuration — in-app strings + Google Play store metadata.
 #
-# App UI: every app/src/main/res/values/strings*.xml is a source file. The UI
+# App UI: every app/src/main/res/values/strings*.xml and every feature module's
+# feature/<name>/src/main/res/values/strings*.xml is a source file. The UI
 # is being moved into string resources one screen at a time; each area keeps
 # its own strings_<area>.xml so extraction PRs don't collide.
 # Store listing: the fastlane / Triple-T "supply" metadata (title,
@@ -36,9 +37,15 @@ files:
     translation: /app/src/main/res/values-%android_code%/%original_file_name%
     skip_untranslated_strings: true
     # Android has no "es-EM" region; ship Spanish (Modern) as plain values-es.
-    languages_mapping:
+    languages_mapping: &android_langs
       android_code:
         es-EM: es
+  # Feature modules own their strings (strings_<feature>.xml). One entry per
+  # module: Crowdin can't map a wildcarded module dir back to its values-* dir.
+  - source: /feature/exchangerates/src/main/res/values/strings*.xml
+    translation: /feature/exchangerates/src/main/res/values-%android_code%/%original_file_name%
+    skip_untranslated_strings: true
+    languages_mapping: *android_langs
 
   # Store listing: only ship fully-translated files, so a non-English listing
   # never shows English copy.

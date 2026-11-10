@@ -6,7 +6,7 @@ import androidx.glance.color.ColorProvider
 import androidx.glance.material3.ColorProviders
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.presentation.goals.GoalTone
+import com.pennywiseai.tracker.domain.goals.GoalTone
 import com.pennywiseai.tracker.ui.theme.*
 
 /**

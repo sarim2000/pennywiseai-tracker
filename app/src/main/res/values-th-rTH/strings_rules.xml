@@ -25,7 +25,6 @@
     <string name="permission_title">เปิดการตรวจจับธุรกรรมอัตโนมัติ</string>
     <string name="permission_description">PennyWise ตรวจจับและจัดหมวดหมู่ธุรกรรมธนาคารจากข้อความ SMS ให้อัตโนมัติ ช่วยประหยัดเวลาและแรงของคุณ</string>
     <string name="permission_privacy_title">ความเป็นส่วนตัวของคุณสำคัญ</string>
-    <string name="permission_privacy_points">• ประมวลผลเฉพาะข้อความธุรกรรมเท่านั้น\n• ข้อมูลทั้งหมดอยู่บนเครื่องของคุณ\n• ไม่อ่านข้อความส่วนตัว\n• ยกเลิกสิทธิ์ได้ทุกเมื่อในการตั้งค่า</string>
     <string name="permission_notification_title">เปิดสิทธิ์เข้าถึงการแจ้งเตือนธนาคาร</string>
     <string name="permission_notification_description">อนุญาตให้ PennyWise อ่านการแจ้งเตือนธุรกรรมจากแอปธนาคารที่รองรับ ช่วยบันทึกการซื้อเวลาที่ SMS มาช้าหรือไม่มี SMS</string>
     <string name="permission_notification_enabled">เปิดสิทธิ์เข้าถึงการแจ้งเตือนแล้ว</string>
@@ -196,8 +195,6 @@
     <string name="onboarding_selected_cd">ที่เลือก</string>
     <string name="onboarding_permission_title">เปิดการตรวจจับอัตโนมัติ</string>
     <string name="onboarding_permission_body">PennyWise ตรวจจับและจัดหมวดหมู่ธุรกรรมธนาคารจากข้อความ SMS ให้อัตโนมัติ</string>
-    <string name="onboarding_permission_granted">ให้สิทธิ์แล้ว! แตะดำเนินการต่อเพื่อไปต่อ</string>
-    <string name="onboarding_enable_permissions">เปิดสิทธิ์</string>
     <string name="onboarding_scan_in_progress">กำลังสแกนข้อความของคุณ...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="other">ประมวลผลแล้ว %1$d / %2$d ข้อความ</item>

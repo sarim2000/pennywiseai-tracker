@@ -272,25 +272,6 @@
     <string name="loan_detail_enter_amount">Weka kiasi</string>
     <string name="loan_detail_amount_label">Kiasi</string>
     <string name="loan_detail_add">Ongeza</string>
-    <!-- ══ Exchange rates ══ -->
-    <string name="exchange_rates_title">Viwango vya Ubadilishaji</string>
-    <string name="exchange_rates_refresh">Onyesha upya viwango</string>
-    <string name="exchange_rates_empty_title">Hakuna viwango vya ubadilishaji</string>
-    <string name="exchange_rates_empty_description">Viwango vitaonekana ukiwa na miamala ya sarafu tofauti</string>
-    <!-- %1$s = date and time -->
-    <string name="exchange_rates_last_updated">Ilisasishwa mwisho: %1$s</string>
-    <string name="exchange_rates_hint">Gusa kiwango ili uweke thamani yako. Viwango ulivyoweka mwenyewe vinabaki hata API ikisasisha.</string>
-    <string name="exchange_rates_reset_all">Rudisha Zote kuwa Otomatiki</string>
-    <string name="exchange_rates_badge_custom">Yako</string>
-    <string name="exchange_rates_rate_label">Kiwango cha Ubadilishaji</string>
-    <string name="exchange_rates_invalid_rate">Weka namba sahihi iliyo juu ya sifuri</string>
-    <string name="exchange_rates_reset">Rudisha kuwa Otomatiki</string>
-    <string name="exchange_rates_set_custom">Weka Kiwango Chako</string>
-    <string name="exchange_rates_error_load">Imeshindwa kupakia viwango</string>
-    <string name="exchange_rates_error_refresh">Imeshindwa kuonyesha upya viwango</string>
-    <string name="exchange_rates_error_set_custom">Imeshindwa kuweka kiwango chako</string>
-    <string name="exchange_rates_error_clear_custom">Imeshindwa kuondoa kiwango chako</string>
-    <string name="exchange_rates_error_clear_all_custom">Imeshindwa kuondoa viwango ulivyoweka</string>
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">Muhtasari wa Akaunti</string>
     <string name="accounts_overview_bank_balance">Salio la Benki</string>

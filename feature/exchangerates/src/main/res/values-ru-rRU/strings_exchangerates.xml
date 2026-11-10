@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">Курсы обмена</string>
+    <string name="exchange_rates_refresh">Обновить тарифы</string>
+    <string name="exchange_rates_empty_title">Обменные курсы не доступны</string>
+    <string name="exchange_rates_empty_description">Тарифы появятся при совершении сделок в нескольких валютах</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">Последнее обновление: %1$s</string>
+    <string name="exchange_rates_hint">Нажмите на курс для установки пользовательского значения. Пользовательские тарифы сохраняются при обновлении API.</string>
+    <string name="exchange_rates_reset_all">Сбросить все в авто</string>
+    <string name="exchange_rates_badge_custom">Пользовательский</string>
+    <string name="exchange_rates_badge_api">API</string>
+    <string name="exchange_rates_rate_label">Курс обмена</string>
+    <string name="exchange_rates_invalid_rate">Введите действительное положительное число</string>
+    <string name="exchange_rates_reset">Сброс на авто</string>
+    <string name="exchange_rates_set_custom">Установить свою цену</string>
+    <string name="exchange_rates_error_load">Не удалось загрузить курсы</string>
+    <string name="exchange_rates_error_refresh">Не удалось обновить тарифы</string>
+    <string name="exchange_rates_error_set_custom">Не удалось установить собственный курс</string>
+    <string name="exchange_rates_error_clear_custom">Не удалось очистить пользовательский курс</string>
+    <string name="exchange_rates_error_clear_all_custom">Не удалось очистить пользовательские тарифы</string>
+</resources>

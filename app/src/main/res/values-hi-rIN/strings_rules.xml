@@ -26,7 +26,6 @@
     <string name="permission_title">लेन-देन अपने-आप पहचानना चालू करें</string>
     <string name="permission_description">PennyWise SMS से आपके बैंक लेन-देन अपने-आप पहचानकर उनकी श्रेणी तय कर सकता है, जिससे आपका समय और मेहनत बचती है।</string>
     <string name="permission_privacy_title">आपकी प्राइवेसी ज़रूरी है</string>
-    <string name="permission_privacy_points">• सिर्फ़ लेन-देन वाले मैसेज प्रोसेस होते हैं\n• सारा डेटा आपके डिवाइस पर ही रहता है\n• कोई निजी मैसेज नहीं पढ़ा जाता\n• आप कभी भी सेटिंग्स में एक्सेस हटा सकते हैं</string>
     <string name="permission_notification_title">बैंक नोटिफ़िकेशन एक्सेस चालू करें</string>
     <string name="permission_notification_description">PennyWise को सपोर्टेड बैंकिंग ऐप्स के लेन-देन नोटिफ़िकेशन पढ़ने दें। इससे SMS देर से आने या न आने पर भी खरीदारी दर्ज हो जाती है।</string>
     <string name="permission_notification_enabled">नोटिफ़िकेशन एक्सेस चालू है</string>
@@ -200,8 +199,6 @@
     <string name="onboarding_selected_cd">चयनित</string>
     <string name="onboarding_permission_title">अपने-आप पहचानना चालू करें</string>
     <string name="onboarding_permission_body">PennyWise SMS मैसेज से आपके बैंक लेन-देन अपने-आप पहचानकर उनकी श्रेणी तय कर सकता है।</string>
-    <string name="onboarding_permission_granted">अनुमति मिल गई! आगे बढ़ने के लिए जारी रखें पर टैप करें।</string>
-    <string name="onboarding_enable_permissions">अनुमति दें</string>
     <string name="onboarding_scan_in_progress">आपके मैसेज स्कैन हो रहे हैं...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">%1$d / %2$d मैसेज प्रोसेस हुआ</item>

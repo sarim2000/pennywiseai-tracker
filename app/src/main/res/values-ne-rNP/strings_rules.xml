@@ -26,7 +26,6 @@
     <string name="permission_title">लेनदेन आफैं पत्ता लगाउने सुविधा सक्षम गर्नुहोस्</string>
     <string name="permission_description">PennyWise ले SMS सन्देशबाट तपाईंका बैंक लेनदेन आफैं पत्ता लगाएर वर्गीकरण गर्न सक्छ, जसले तपाईंको समय र मेहनत बचाउँछ।</string>
     <string name="permission_privacy_title">तपाईंको गोपनीयता महत्त्वपूर्ण छ</string>
-    <string name="permission_privacy_points">• लेनदेनका सन्देश मात्र प्रक्रिया गरिन्छ\n• सबै डेटा तपाईंकै डिभाइसमा रहन्छ\n• कुनै व्यक्तिगत सन्देश पढिँदैन\n• सेटिङ्समा जुनसुकै बेला पहुँच फिर्ता लिन सक्नुहुन्छ</string>
     <string name="permission_notification_title">बैंक सूचना पहुँच सक्षम गर्नुहोस्</string>
     <string name="permission_notification_description">समर्थित बैंकिङ app का लेनदेन सूचनाहरू पढ्न PennyWise लाई अनुमति दिनुहोस्। SMS ढिलो आउँदा वा नआउँदा पनि खरिदहरू समेट्न यसले मद्दत गर्छ।</string>
     <string name="permission_notification_enabled">सूचना पहुँच सक्षम छ</string>
@@ -200,8 +199,6 @@
     <string name="onboarding_selected_cd">छानिएको</string>
     <string name="onboarding_permission_title">आफैं पत्ता लगाउने सक्षम गर्नुहोस्</string>
     <string name="onboarding_permission_body">PennyWise ले SMS सन्देशबाट तपाईंका बैंक लेनदेन आफैं पत्ता लगाएर वर्गीकरण गर्न सक्छ।</string>
-    <string name="onboarding_permission_granted">अनुमति दिइयो! अघि बढ्न जारी राख्नुहोस् थिच्नुहोस्।</string>
-    <string name="onboarding_enable_permissions">अनुमति दिनुहोस्</string>
     <string name="onboarding_scan_in_progress">तपाईंका सन्देश स्क्यान गर्दै...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">%1$d / %2$d सन्देश प्रक्रिया भयो</item>

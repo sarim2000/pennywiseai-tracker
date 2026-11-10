@@ -21,13 +21,17 @@ import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
+import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewPrompt
+import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
@@ -72,10 +76,6 @@ import java.time.LocalDate
 import java.time.YearMonth
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
-import com.pennywiseai.tracker.presentation.review.PeriodReviewLoader
-import com.pennywiseai.tracker.presentation.review.ReviewKind
-import com.pennywiseai.tracker.presentation.review.ReviewPrompt
-import com.pennywiseai.tracker.presentation.review.reviewPromptFor
 import javax.inject.Inject
 
 /**

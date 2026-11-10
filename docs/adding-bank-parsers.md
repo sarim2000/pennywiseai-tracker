@@ -2,7 +2,7 @@
 
 Bank parsers live in the **`parser-core`** module (pure Kotlin, no Android
 dependencies) so they can be reused across platforms. For anything more than a
-trivial tweak, prefer the **`parser-author`** subagent, which owns this
+trivial tweak, prefer the **`parser-author`** skill (`.agents/skills/parser-author/`), which owns this
 end-to-end (read samples → write/extend parser → tests → register → run tests).
 
 ## Where parsers live
@@ -18,6 +18,7 @@ All parsers extend `BankParser`. But:
 - **Iranian banks** extend `BaseIranianBankParser` (Persian-digit amounts,
   Iranian SMS shapes).
 - **Thai banks** extend `BaseThailandBankParser`.
+- **Salvadoran banks** extend `BaseElSalvadorBankParser`.
 - Everything else extends `BankParser` directly.
 
 ## Key methods

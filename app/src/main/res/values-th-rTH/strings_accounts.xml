@@ -268,25 +268,6 @@
     <string name="loan_detail_enter_amount">ใส่จำนวนเงิน</string>
     <string name="loan_detail_amount_label">จำนวนเงิน</string>
     <string name="loan_detail_add">เพิ่ม</string>
-    <!-- ══ Exchange rates ══ -->
-    <string name="exchange_rates_title">อัตราแลกเปลี่ยน</string>
-    <string name="exchange_rates_refresh">รีเฟรชอัตรา</string>
-    <string name="exchange_rates_empty_title">ยังไม่มีอัตราแลกเปลี่ยน</string>
-    <string name="exchange_rates_empty_description">อัตราจะแสดงเมื่อคุณมีธุรกรรมหลายสกุลเงิน</string>
-    <!-- %1$s = date and time -->
-    <string name="exchange_rates_last_updated">อัปเดตล่าสุด: %1$s</string>
-    <string name="exchange_rates_hint">แตะอัตราเพื่อตั้งค่าเอง อัตราที่ตั้งเองจะยังอยู่แม้รีเฟรชจาก API</string>
-    <string name="exchange_rates_reset_all">รีเซ็ตทั้งหมดเป็นอัตโนมัติ</string>
-    <string name="exchange_rates_badge_custom">กำหนดเอง</string>
-    <string name="exchange_rates_rate_label">อัตราแลกเปลี่ยน</string>
-    <string name="exchange_rates_invalid_rate">ใส่ตัวเลขบวกที่ถูกต้อง</string>
-    <string name="exchange_rates_reset">รีเซ็ตเป็นอัตโนมัติ</string>
-    <string name="exchange_rates_set_custom">ตั้งอัตราเอง</string>
-    <string name="exchange_rates_error_load">โหลดอัตราไม่สำเร็จ</string>
-    <string name="exchange_rates_error_refresh">รีเฟรชอัตราไม่สำเร็จ</string>
-    <string name="exchange_rates_error_set_custom">ตั้งอัตราเองไม่สำเร็จ</string>
-    <string name="exchange_rates_error_clear_custom">ล้างอัตราที่ตั้งเองไม่สำเร็จ</string>
-    <string name="exchange_rates_error_clear_all_custom">ล้างอัตราที่ตั้งเองไม่สำเร็จ</string>
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">ภาพรวมบัญชี</string>
     <string name="accounts_overview_bank_balance">ยอดเงินในธนาคาร</string>

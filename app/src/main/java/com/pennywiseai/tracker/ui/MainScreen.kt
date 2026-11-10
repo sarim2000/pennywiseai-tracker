@@ -91,7 +91,6 @@ import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.ui.components.LocalHideNavBar
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockState
-import com.pennywiseai.tracker.ui.components.PennyWiseBottomNavigation
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen

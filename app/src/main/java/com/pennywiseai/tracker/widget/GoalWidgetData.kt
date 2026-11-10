@@ -5,12 +5,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.data.repository.GoalProgress
-import com.pennywiseai.tracker.presentation.goals.GoalTone
-import com.pennywiseai.tracker.presentation.goals.fraction
-import com.pennywiseai.tracker.presentation.goals.percent
+import com.pennywiseai.tracker.domain.goals.GoalTone
+import com.pennywiseai.tracker.domain.goals.fraction
+import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.presentation.goals.shortLine
 import com.pennywiseai.tracker.presentation.goals.statusLine
-import com.pennywiseai.tracker.presentation.goals.tone
+import com.pennywiseai.tracker.domain.goals.tone
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable

@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -80,6 +81,8 @@ fun GoalEditScreen(
     val errors = if (state.showErrors) form.errors(viewModel.today, state.original) else emptySet()
     val perMonth = form.perMonth(viewModel.today, state.original, state.contributions)
     var showDatePicker by remember { mutableStateOf(false) }
+    // Closing the picker would hand focus back to a text field and pop its keyboard up again.
+    val focusManager = LocalFocusManager.current
 
     PennyWiseScaffold(
         title = stringResource(if (state.isEditing) R.string.goal_edit_title_edit else R.string.goal_edit_title_new),
@@ -165,7 +168,7 @@ fun GoalEditScreen(
                 readOnly = true,
                 label = { Text(stringResource(R.string.goal_edit_due)) },
                 trailingIcon = {
-                    IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
+                    IconButton(onClick = { focusManager.clearFocus(); showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.goal_edit_due))
                     }
                 },

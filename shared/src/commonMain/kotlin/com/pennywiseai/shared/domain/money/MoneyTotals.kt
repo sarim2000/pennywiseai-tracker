@@ -85,7 +85,7 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
 
 /**
  * Money math the iOS screens share, so every screen totals and rounds the same
- * way. Never sums across currencies (CLAUDE.md hard constraint #2): totals come
+ * way. Never sums across currencies (AGENTS.md hard constraint #2): totals come
  * back one per currency, in first-seen order.
  */
 object MoneyTotals {

@@ -17,7 +17,7 @@ import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.di.ApplicationScope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -56,7 +56,7 @@ import kotlin.coroutines.resume
 @Singleton
 class PlayBillingGateway @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val preferences: UserPreferencesRepository,
+    private val preferences: BillingPreferences,
     @ApplicationScope private val applicationScope: CoroutineScope,
 ) : PurchaseGateway {
 

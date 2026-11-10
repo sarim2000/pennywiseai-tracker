@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.billing.license
 
 import android.os.Build
 import android.util.Log
+import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.data.preferences.StoredLicense
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.di.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -37,7 +37,7 @@ import javax.inject.Singleton
 @Singleton
 class LicenseManager @Inject constructor(
     private val client: LicenseClient,
-    private val preferences: UserPreferencesRepository,
+    private val preferences: BillingPreferences,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
 

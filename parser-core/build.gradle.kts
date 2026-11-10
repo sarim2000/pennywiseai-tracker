@@ -1,6 +1,7 @@
 plugins {
     kotlin("multiplatform")
     `maven-publish`
+    alias(libs.plugins.dependency.analysis)
 }
 
 group = "com.pennywiseai"

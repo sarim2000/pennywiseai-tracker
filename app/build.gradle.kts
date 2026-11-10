@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.androidx.baselineprofile)
+    alias(libs.plugins.dependency.analysis)
 }
 
 android {
@@ -231,6 +232,11 @@ tasks.matching { it.name.startsWith("merge") && it.name.contains("Assets") }.con
     dependsOn("copyChangelog")
 }
 
+// Dependency Analysis (buildHealth) reads the asset sources too.
+tasks.matching { it.name.startsWith("explodeAssetSource") }.configureEach {
+    dependsOn("copyChangelog")
+}
+
 // Lint tasks also need to depend on copyChangelog since they analyze generated assets
 tasks.matching { it.name.contains("lint") || it.name.contains("Lint") }.configureEach {
     dependsOn("copyChangelog")
@@ -240,11 +246,11 @@ dependencies {
     // Local modules
     implementation(project(":parser-core"))
     implementation(project(":shared"))
+    implementation(project(":core:designsystem"))
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
@@ -274,9 +280,9 @@ dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
-    // AI access: WebSocket line to the relay (ADR 0002)
+    // AI access: WebSocket line to the relay (ADR 0002). The WebSockets plugin ships
+    // in ktor-client-core; ktor-client-websockets is an empty artifact.
     implementation(libs.ktor.client.okhttp) // platform TLS; CIO rejects Cloudflare certs
-    implementation(libs.ktor.client.websockets)
     
     // DataStore
     implementation(libs.androidx.datastore.preferences)
@@ -324,6 +330,8 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
+    // Architecture guardrails (ArchitectureTest): parses app sources, test-only.
+    testImplementation(libs.konsist)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.androidx.junit)
@@ -379,4 +387,10 @@ tasks.withType<Test>().configureEach {
     inputs.dir(layout.projectDirectory.dir("src/main/res"))
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("androidResourcesForParityTest")
+    // Same for ArchitectureTest, which parses the Kotlin sources' imports. An
+    // import edit doesn't always change the bytecode (swap one import line for
+    // another), and then the compiled classes alone wouldn't re-run the test.
+    inputs.files(fileTree("src") { include("*/java/**/*.kt") })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("kotlinSourcesForArchitectureTest")
 }

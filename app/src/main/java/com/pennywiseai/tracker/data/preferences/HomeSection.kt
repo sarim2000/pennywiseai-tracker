@@ -21,7 +21,8 @@ enum class HomeSection(val label: String) {
 
 /**
  * Codec for the `home_sections` preference: comma-separated section names in
- * display order, a leading `!` marking a hidden one, e.g. `BUDGETS,!GROUPS,…`.
+ * display order, a leading `!` marking a hidden one, e.g. `BUDGETS,!GROUPS,…`,
+ * and the edits Home's section customisation makes to a layout.
  * Pure so it is unit-testable without DataStore.
  */
 object HomeSectionLayout {
@@ -48,4 +49,19 @@ object HomeSectionLayout {
             .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to true) }
         return layout
     }
+
+    /**
+     * [section] swapped with the section [delta] places away. Unchanged when [section]
+     * isn't in [layout] or the move would pass either end.
+     */
+    fun move(layout: List<Pair<HomeSection, Boolean>>, section: HomeSection, delta: Int): List<Pair<HomeSection, Boolean>> {
+        val from = layout.indexOfFirst { it.first == section }
+        val to = from + delta
+        return if (from < 0 || to !in layout.indices) layout
+        else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
+    }
+
+    /** [section] shown or hidden in place. */
+    fun withVisibility(layout: List<Pair<HomeSection, Boolean>>, section: HomeSection, visible: Boolean): List<Pair<HomeSection, Boolean>> =
+        layout.map { if (it.first == section) section to visible else it }
 }

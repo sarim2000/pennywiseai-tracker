@@ -18,7 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.screens.analytics.TagData
+import com.pennywiseai.tracker.presentation.analytics.TagData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions

@@ -14,7 +14,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.presentation.review.PeriodReviewLoader
 import com.pennywiseai.tracker.presentation.review.ReviewKind
 import com.pennywiseai.tracker.presentation.review.changeText
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit
  * The opt-in weekly recap: last week's spending, compared with the week before.
  *
  * Checks every morning rather than once a week. OEM battery managers kill scheduled
- * work, and a single missed weekly run would lose the whole week. [UserPreferencesRepository.weeklySummaryLastWeek]
+ * work, and a single missed weekly run would lose the whole week. [NotificationPreferences.weeklySummaryLastWeek]
  * makes the check idempotent: the first run that gets through after a week ends
  * delivers that one week, explicitly dated, and a phone off for three weeks gets one
  * recap rather than a backlog.
@@ -45,7 +45,7 @@ class WeeklySummaryWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val loader: PeriodReviewLoader,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: NotificationPreferences,
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {

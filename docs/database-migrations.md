@@ -1,10 +1,10 @@
 # Database Migrations Guide
 
-PennyWise's Room database stands at version 58 (`SCHEMA_VERSION`, 23 entities). Every migration, auto or manual, is defined in one file: `app/src/main/java/com/pennywiseai/tracker/data/database/PennyWiseDatabase.kt`. Start there when you touch the schema; this doc explains how that file is organized and which rules keep upgrades safe.
+PennyWise's current Room schema lives in `app/src/main/java/com/pennywiseai/tracker/data/database/PennyWiseDatabase.kt`: `SCHEMA_VERSION`, the entities and the `@Database` `autoMigrations` list. How older files reach it lives next door in `PennyWiseMigrations.kt`: every manual migration, `ALL_MIGRATIONS` and the auto-migration specs. Start with those two when you touch the schema; this doc explains how they are organized and which rules keep upgrades safe.
 
 ## The one rule: ALL_MIGRATIONS
 
-Manual migrations register in a single shared array at the bottom of `PennyWiseDatabase.kt`:
+Manual migrations register in a single shared array in `PennyWiseMigrations.kt`:
 
 ```kotlin
 val ALL_MIGRATIONS: Array<Migration> = arrayOf(
@@ -22,7 +22,7 @@ Two builders consume that array: the Hilt provider in `di/DatabaseModule.kt`, an
 
 Purely additive changes need no migration code. Bump `SCHEMA_VERSION`, add `AutoMigration(from = N, to = N + 1)` to the `@Database` annotation, build once so KSP exports the schema JSON, commit it. Recent examples: v55→56 created the `merchant_aliases` table and v56→57 added a nullable `account_last4` column to subscriptions.
 
-When Room can't infer your intent, give the auto-migration a spec class next to the database class:
+When Room can't infer your intent, give the auto-migration a spec class in `PennyWiseMigrations.kt`:
 
 - `Migration4To5` removes `chat_messages.sessionId` through `@DeleteColumn.Entries`
 - `Migration35To36` drops the `category_budget_limits` table through `@DeleteTable.Entries`
@@ -33,7 +33,7 @@ When Room can't infer your intent, give the auto-migration a spec class next to 
 
 ### Route 2: manual migration
 
-Reach for `Migration(from, to)` when data moves in ways Room can't generate: nullability flips, column guards on databases that may have drifted, backfills. The file holds 19 registered ones, `MIGRATION_12_14` through `MIGRATION_57_58`. Read two or three before writing your own — `MIGRATION_13_14` shows the house pattern of checking `PRAGMA table_info` before altering.
+Reach for `Migration(from, to)` when data moves in ways Room can't generate: nullability flips, column guards on databases that may have drifted, backfills. `PennyWiseMigrations.kt` holds them all. Read two or three before writing your own — `MIGRATION_13_14` shows the house pattern of checking `PRAGMA table_info` before altering.
 
 Two quirks worth knowing:
 

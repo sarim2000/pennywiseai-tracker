@@ -1,4 +1,4 @@
-Fonts bundled with PennyWise (app/src/main/res/font/), both licensed under the
+Fonts bundled with PennyWise (core/designsystem/src/main/res/font/), both licensed under the
 SIL Open Font License, Version 1.1, reproduced below.
 
 Google Sans Flex (google_sans_flex.ttf)

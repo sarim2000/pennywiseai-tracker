@@ -30,32 +30,34 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
 
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
-    name = "user_preferences",
-    produceMigrations = { _ ->
-        listOf(
-            object : androidx.datastore.core.DataMigration<Preferences> {
-                override suspend fun cleanUp() {}
-                
-                override suspend fun migrate(currentData: Preferences): Preferences {
-                    val prefs = currentData.toMutablePreferences()
-                    val hasCompletedOnboarding = prefs[booleanPreferencesKey("has_completed_onboarding")] == true
-                    val hasAllTimeSet = prefs.contains(booleanPreferencesKey("sms_scan_all_time"))
-                    
-                    if (hasCompletedOnboarding && !hasAllTimeSet) {
-                        prefs[booleanPreferencesKey("sms_scan_all_time")] = false
-                    }
-                    return prefs
-                }
-                
-                override suspend fun shouldMigrate(currentData: Preferences): Boolean {
-                    val hasCompletedOnboarding = currentData[booleanPreferencesKey("has_completed_onboarding")] == true
-                    val hasAllTimeSet = currentData.contains(booleanPreferencesKey("sms_scan_all_time"))
-                    return hasCompletedOnboarding && !hasAllTimeSet
-                }
-            }
-        )
+/** The one DataStore file behind [UserPreferencesRepository]. Renaming it loses every setting. */
+internal const val USER_PREFERENCES_STORE_NAME = "user_preferences"
+
+/** Users who onboarded before all-time scanning existed keep the scan window they had. */
+internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<Preferences> {
+    override suspend fun cleanUp() {}
+
+    override suspend fun migrate(currentData: Preferences): Preferences {
+        val prefs = currentData.toMutablePreferences()
+        val hasCompletedOnboarding = prefs[booleanPreferencesKey("has_completed_onboarding")] == true
+        val hasAllTimeSet = prefs.contains(booleanPreferencesKey("sms_scan_all_time"))
+
+        if (hasCompletedOnboarding && !hasAllTimeSet) {
+            prefs[booleanPreferencesKey("sms_scan_all_time")] = false
+        }
+        return prefs
     }
+
+    override suspend fun shouldMigrate(currentData: Preferences): Boolean {
+        val hasCompletedOnboarding = currentData[booleanPreferencesKey("has_completed_onboarding")] == true
+        val hasAllTimeSet = currentData.contains(booleanPreferencesKey("sms_scan_all_time"))
+        return hasCompletedOnboarding && !hasAllTimeSet
+    }
+}
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = USER_PREFERENCES_STORE_NAME,
+    produceMigrations = { _ -> listOf(SmsScanAllTimeMigration) }
 )
 
 /**
@@ -66,10 +68,23 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 const val DAILY_SUMMARY_DEFAULT = false
 
 @Singleton
-open class UserPreferencesRepository @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private object PreferencesKeys {
+open class UserPreferencesRepository internal constructor(
+    private val context: Context,
+    private val dataStore: DataStore<Preferences>
+) : CurrencyPreferences,
+    BudgetPreferences,
+    ScanPreferences,
+    PrivacyPreferences,
+    NotificationPreferences,
+    BackupPreferences,
+    BillingPreferences,
+    RecurringSuggestionPreferences {
+    // Production always takes the delegate: a second DataStore on the same file throws.
+    // The internal constructor exists so tests can give each case its own empty file.
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(context, context.dataStore)
+
+    internal object PreferencesKeys {
         val DARK_THEME_ENABLED = booleanPreferencesKey("dark_theme_enabled")
         val DYNAMIC_COLOR_ENABLED = booleanPreferencesKey("dynamic_color_enabled")
         val THEME_STYLE = stringPreferencesKey("theme_style")
@@ -237,7 +252,7 @@ open class UserPreferencesRepository @Inject constructor(
         const val SUPPORT_NUDGE_COOLDOWN_DAYS = 30L
     }
 
-    val userPreferences: Flow<UserPreferences> = context.dataStore.data
+    val userPreferences: Flow<UserPreferences> = dataStore.data
         .map { preferences ->
             UserPreferences(
                 isDarkThemeEnabled = preferences[PreferencesKeys.DARK_THEME_ENABLED],
@@ -279,23 +294,23 @@ open class UserPreferencesRepository @Inject constructor(
             )
         }
 
-    val baseCurrency: Flow<String> = context.dataStore.data
+    override val baseCurrency: Flow<String> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
         }
 
-    val unifiedCurrencyMode: Flow<Boolean> = context.dataStore.data
+    override val unifiedCurrencyMode: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] ?: false
         }
 
-    val displayCurrency: Flow<String> = context.dataStore.data
+    override val displayCurrency: Flow<String> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.DISPLAY_CURRENCY]
                 ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR"
         }
 
-    val isDeveloperModeEnabled: Flow<Boolean> = context.dataStore.data
+    val isDeveloperModeEnabled: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] ?: false
         }
@@ -307,12 +322,12 @@ open class UserPreferencesRepository @Inject constructor(
      * Analytics screen is unaffected — it already lets users select the Credit
      * type to view card spend. (#705)
      */
-    val countCreditCardAsExpense: Flow<Boolean> = context.dataStore.data
+    val countCreditCardAsExpense: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.COUNT_CREDIT_AS_EXPENSE] ?: false
         }
 
-    val numberFormatStyle: Flow<NumberFormatStyle> = context.dataStore.data
+    val numberFormatStyle: Flow<NumberFormatStyle> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.NUMBER_FORMAT_STYLE]?.let {
                 try {
@@ -323,7 +338,7 @@ open class UserPreferencesRepository @Inject constructor(
             } ?: NumberFormatStyle.AUTO
         }
 
-    val dateFormatStyle: Flow<DateFormatStyle> = context.dataStore.data
+    val dateFormatStyle: Flow<DateFormatStyle> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.DATE_FORMAT_STYLE]
                 ?.let { name -> DateFormatStyle.entries.firstOrNull { it.name == name } }
@@ -331,7 +346,7 @@ open class UserPreferencesRepository @Inject constructor(
         }
 
     suspend fun updateDarkThemeEnabled(enabled: Boolean?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (enabled == null) {
                 preferences.remove(PreferencesKeys.DARK_THEME_ENABLED)
             } else {
@@ -341,59 +356,59 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateDynamicColorEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.DYNAMIC_COLOR_ENABLED] = enabled
         }
     }
 
     suspend fun updateThemeStyle(themeStyle: ThemeStyle) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.THEME_STYLE] = themeStyle.name
         }
     }
 
     suspend fun updateAccentColor(accentColor: AccentColor) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.ACCENT_COLOR] = accentColor.name
         }
     }
 
     suspend fun updateAmoledMode(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.IS_AMOLED_MODE] = enabled
         }
     }
 
     suspend fun updateAppFont(appFont: AppFont) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_FONT] = appFont.name
         }
     }
 
     suspend fun updateSkippedSmsPermission(skipped: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SKIPPED_SMS_PERMISSION] = skipped
         }
     }
     
     suspend fun setDeveloperModeEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] = enabled
         }
     }
 
     suspend fun setCountCreditCardAsExpense(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.COUNT_CREDIT_AS_EXPENSE] = enabled
         }
     }
 
     /** The 9 PM recap notification (DailySummaryWorker); default in [DAILY_SUMMARY_DEFAULT]. */
-    val dailySummaryEnabled: Flow<Boolean> = context.dataStore.data
+    override val dailySummaryEnabled: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] ?: DAILY_SUMMARY_DEFAULT }
 
-    suspend fun setDailySummaryEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setDailySummaryEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.DAILY_SUMMARY_ENABLED] = enabled
         }
     }
@@ -402,11 +417,11 @@ open class UserPreferencesRepository @Inject constructor(
      * The device the user said the manufacturer step is done on: the setting lives
      * on that phone, so a phone transfer must not carry the answer over. Not in backups.
      */
-    val backgroundOemStepConfirmedOn: Flow<String?> = context.dataStore.data
+    val backgroundOemStepConfirmedOn: Flow<String?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] }
 
     suspend fun setBackgroundOemStepConfirmedOn(device: String?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (device != null) {
                 preferences[PreferencesKeys.BACKGROUND_OEM_STEP_CONFIRMED_ON] = device
             } else {
@@ -416,11 +431,11 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /** Budget notifications (MoneyAlertWorker); an opt-in from Settings → Notifications. */
-    val budgetAlertsEnabled: Flow<Boolean> = context.dataStore.data
+    override val budgetAlertsEnabled: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] ?: false }
 
-    suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setBudgetAlertsEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.BUDGET_ALERTS_ENABLED] = enabled
         }
     }
@@ -431,10 +446,10 @@ open class UserPreferencesRepository @Inject constructor(
      * Stays on this device, outside backups: a restore can only cost one more true alert.
      */
     // ponytail: a deleted budget leaves its short key behind; sweep if budgets ever churn.
-    suspend fun claimBudgetAlert(budgetId: Long, window: String, tier: BudgetAlertTier): Boolean {
+    override suspend fun claimBudgetAlert(budgetId: Long, window: String, tier: BudgetAlertTier): Boolean {
         val key = stringPreferencesKey("budget_alert_$budgetId")
         var claimed = false
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             MoneyAlertRules.nextBudgetLatch(preferences[key], window, tier)?.let {
                 preferences[key] = it
                 claimed = true
@@ -444,10 +459,10 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /** True once per dip of this account under its threshold; [isLow] false rearms it. */
-    suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
+    override suspend fun claimLowBalanceAlert(bankName: String, accountLast4: String, isLow: Boolean): Boolean {
         val key = lowBalanceToldKey(bankName, accountLast4)
         var claimed = false
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (!isLow) {
                 preferences.remove(key)
             } else if (preferences[key] != true) {
@@ -459,9 +474,9 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /** A rename is the same account in the same dip, so what it was told goes with it. */
-    suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String) {
+    override suspend fun moveLowBalanceAlert(oldBankName: String, accountLast4: String, newBankName: String) {
         val oldKey = lowBalanceToldKey(oldBankName, accountLast4)
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (preferences[oldKey] == true) {
                 preferences.remove(oldKey)
                 preferences[lowBalanceToldKey(newBankName, accountLast4)] = true
@@ -472,16 +487,16 @@ open class UserPreferencesRepository @Inject constructor(
     private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
         booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
     
-    val conscienceEnabled: Flow<Boolean> = context.dataStore.data
+    override val conscienceEnabled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
 
-    suspend fun setConscienceEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
+    override suspend fun setConscienceEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.CONSCIENCE_ENABLED] = enabled }
     }
 
     /** "Not this one": the line never comes back. */
-    suspend fun retireConscienceLine(lineKey: String) {
-        context.dataStore.edit {
+    override suspend fun retireConscienceLine(lineKey: String) {
+        dataStore.edit {
             it[PreferencesKeys.CONSCIENCE_RETIRED_LINES] = it[PreferencesKeys.CONSCIENCE_RETIRED_LINES].orEmpty() + lineKey
         }
     }
@@ -492,7 +507,7 @@ open class UserPreferencesRepository @Inject constructor(
      * re-read here, since it can change while the history is read. Null when the
      * cadence says no or no candidate has a line left.
      */
-    suspend fun tryClaimConscience(
+    override suspend fun tryClaimConscience(
         candidates: List<ConscienceCandidate>,
         contentLocale: String,
         nowMillis: Long,
@@ -500,7 +515,7 @@ open class UserPreferencesRepository @Inject constructor(
         random: Random,
     ): ConscienceChoice? {
         var claimed: ConscienceChoice? = null
-        context.dataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             claimed = null
             if (prefs[PreferencesKeys.CONSCIENCE_ENABLED] != true) return@edit
             val log = ConscienceCadence.decode(prefs[PreferencesKeys.CONSCIENCE_LOG] ?: emptySet())
@@ -516,114 +531,114 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateSystemPrompt(prompt: String) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT] = prompt
         }
     }
     
-    fun getSystemPrompt(): Flow<String?> = context.dataStore.data
+    fun getSystemPrompt(): Flow<String?> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT]
         }
     
     suspend fun markScanTutorialShown() {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] = true
         }
     }
     
     suspend fun saveActiveDownloadId(id: Long) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.ACTIVE_DOWNLOAD_ID] = id
         }
     }
     
     suspend fun getActiveDownloadId(): Long? {
-        return context.dataStore.data
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.ACTIVE_DOWNLOAD_ID] }
             .first()
     }
     
     suspend fun clearActiveDownloadId() {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.ACTIVE_DOWNLOAD_ID)
         }
     }
     
-    val smsScanMonths: Flow<Int> = context.dataStore.data
+    override val smsScanMonths: Flow<Int> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3 // Default to 3 months
         }
     
-    suspend fun updateSmsScanMonths(months: Int) {
-        context.dataStore.edit { preferences ->
+    override suspend fun updateSmsScanMonths(months: Int) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_MONTHS] = months
         }
     }
 
-    suspend fun getSmsScanMonths(): Int {
-        return context.dataStore.data
+    override suspend fun getSmsScanMonths(): Int {
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3 }
             .first()
     }
 
-    val smsScanAllTime: Flow<Boolean> = context.dataStore.data
+    override val smsScanAllTime: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true
         }
 
-    suspend fun updateSmsScanAllTime(allTime: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun updateSmsScanAllTime(allTime: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] = allTime
         }
     }
 
-    suspend fun getSmsScanAllTime(): Boolean {
-        return context.dataStore.data
+    override suspend fun getSmsScanAllTime(): Boolean {
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_ALL_TIME] ?: true }
             .first()
     }
 
-    val smsScanUseCustomDate: Flow<Boolean> = context.dataStore.data
+    override val smsScanUseCustomDate: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_USE_CUSTOM_DATE] ?: false
         }
 
-    suspend fun updateSmsScanUseCustomDate(useCustomDate: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun updateSmsScanUseCustomDate(useCustomDate: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_USE_CUSTOM_DATE] = useCustomDate
         }
     }
 
-    suspend fun getSmsScanUseCustomDate(): Boolean {
-        return context.dataStore.data
+    override suspend fun getSmsScanUseCustomDate(): Boolean {
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_USE_CUSTOM_DATE] ?: false }
             .first()
     }
 
-    val smsScanCustomDate: Flow<Long?> = context.dataStore.data
+    override val smsScanCustomDate: Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] }
 
-    suspend fun updateSmsScanCustomDate(dateMillis: Long) {
-        context.dataStore.edit { preferences ->
+    override suspend fun updateSmsScanCustomDate(dateMillis: Long) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] = dateMillis
         }
     }
 
-    suspend fun getSmsScanCustomDate(): Long? {
-        return context.dataStore.data
+    override suspend fun getSmsScanCustomDate(): Long? {
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] }
             .first()
     }
     
-    suspend fun setLastScanTimestamp(timestamp: Long) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setLastScanTimestamp(timestamp: Long) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SCAN_TIMESTAMP] = timestamp
         }
     }
     
-    suspend fun setLastScanPeriod(period: Int) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setLastScanPeriod(period: Int) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SCAN_PERIOD] = period
         }
     }
@@ -633,7 +648,7 @@ open class UserPreferencesRepository @Inject constructor(
      * shows exactly what will be sent, so an opinionated default is safe and means the
      * first share is two taps rather than a configuration exercise.
      */
-    val shareCardConfig: Flow<ShareCardConfig> = context.dataStore.data
+    val shareCardConfig: Flow<ShareCardConfig> = dataStore.data
         .map { preferences ->
             ShareCardConfig(
                 hero = ShareHero.fromName(preferences[PreferencesKeys.SHARE_CARD_HERO]),
@@ -645,7 +660,7 @@ open class UserPreferencesRepository @Inject constructor(
      * The month ("2026-07") whose share prompt the user has already dismissed or acted
      * on, or null if they never have.
      */
-    val sharePromptHandledMonth: Flow<String?> = context.dataStore.data
+    val sharePromptHandledMonth: Flow<String?> = dataStore.data
         .map { it[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] }
 
     /**
@@ -657,83 +672,83 @@ open class UserPreferencesRepository @Inject constructor(
      * on display means an app kill doesn't silently burn the month's only prompt.
      */
     suspend fun markSharePromptHandled(month: String) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHARE_PROMPT_HANDLED_MONTH] = month
         }
     }
 
     /** The year ("2026") whose January review banner was opened or dismissed. */
-    val reviewPromptHandledYear: Flow<String?> = context.dataStore.data
+    val reviewPromptHandledYear: Flow<String?> = dataStore.data
         .map { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] }
 
     /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
     suspend fun markReviewPromptHandledYear(year: String) {
-        context.dataStore.edit { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] = year }
+        dataStore.edit { it[PreferencesKeys.REVIEW_PROMPT_HANDLED_YEAR] = year }
     }
 
     /** The opt-in weekly recap (WeeklySummaryWorker). */
-    val weeklySummaryEnabled: Flow<Boolean> = context.dataStore.data
+    override val weeklySummaryEnabled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] ?: false }
 
-    suspend fun setWeeklySummaryEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] = enabled }
+    override suspend fun setWeeklySummaryEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_ENABLED] = enabled }
     }
 
     /** The first day of the last week the weekly recap has dealt with. */
-    val weeklySummaryLastWeek: Flow<String?> = context.dataStore.data
+    override val weeklySummaryLastWeek: Flow<String?> = dataStore.data
         .map { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] }
 
-    suspend fun setWeeklySummaryLastWeek(weekStart: String) {
-        context.dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] = weekStart }
+    override suspend fun setWeeklySummaryLastWeek(weekStart: String) {
+        dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] = weekStart }
     }
 
     /** Whether the one-time Home Pro card (#945) has been tapped or dismissed. */
-    val proHomeCardHandled: Flow<Boolean> = context.dataStore.data
+    val proHomeCardHandled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] ?: false }
 
     /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
     suspend fun markProHomeCardHandled() {
-        context.dataStore.edit { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] = true }
+        dataStore.edit { it[PreferencesKeys.PRO_HOME_CARD_HANDLED] = true }
     }
 
     /** Whether the one-time "start budgets on payday?" Home card was accepted or dismissed. */
-    val paydaySuggestionHandled: Flow<Boolean> = context.dataStore.data
+    val paydaySuggestionHandled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] ?: false }
 
     /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
     suspend fun markPaydaySuggestionHandled() {
-        context.dataStore.edit { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] = true }
+        dataStore.edit { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] = true }
     }
 
     /** Recurring-bill suggestions marked "Not recurring"; they never come back. */
-    val dismissedRecurringSuggestions: Flow<Set<String>> = context.dataStore.data
+    override val dismissedRecurringSuggestions: Flow<Set<String>> = dataStore.data
         .map { it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet() }
 
-    suspend fun addDismissedRecurringSuggestions(keys: Collection<String>) {
+    override suspend fun addDismissedRecurringSuggestions(keys: Collection<String>) {
         if (keys.isEmpty()) return
-        context.dataStore.edit {
+        dataStore.edit {
             it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
                 (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) + keys
         }
     }
 
-    suspend fun removeDismissedRecurringSuggestion(key: String) {
-        context.dataStore.edit {
+    override suspend fun removeDismissedRecurringSuggestion(key: String) {
+        dataStore.edit {
             it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
                 (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) - key
         }
     }
 
     /** Suggestion keys the Home card showed when it was last dismissed. */
-    val recurringHomeCardSeen: Flow<Set<String>> = context.dataStore.data
+    val recurringHomeCardSeen: Flow<Set<String>> = dataStore.data
         .map { it[PreferencesKeys.RECURRING_HOME_CARD_SEEN] ?: emptySet() }
 
     /** When the Home card was last dismissed (epoch millis), or null. */
-    val recurringHomeCardDismissedAt: Flow<Long?> = context.dataStore.data
+    val recurringHomeCardDismissedAt: Flow<Long?> = dataStore.data
         .map { it[PreferencesKeys.RECURRING_HOME_CARD_DISMISSED_AT] }
 
     suspend fun dismissRecurringHomeCard(shownKeys: Collection<String>, nowMillis: Long) {
-        context.dataStore.edit {
+        dataStore.edit {
             it[PreferencesKeys.RECURRING_HOME_CARD_SEEN] =
                 (it[PreferencesKeys.RECURRING_HOME_CARD_SEEN] ?: emptySet()) + shownKeys
             it[PreferencesKeys.RECURRING_HOME_CARD_DISMISSED_AT] = nowMillis
@@ -746,9 +761,9 @@ open class UserPreferencesRepository @Inject constructor(
      * whether the offer may be shown. Entries older than [perMerchantDays] are
      * dropped as it goes.
      */
-    suspend fun tryRecordRecurringOffer(key: String, today: LocalDate, perMerchantDays: Long): Boolean {
+    override suspend fun tryRecordRecurringOffer(key: String, today: LocalDate, perMerchantDays: Long): Boolean {
         var allowed = false
-        context.dataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val day = today.toEpochDay()
             val log = (prefs[PreferencesKeys.RECURRING_OFFER_LOG] ?: emptySet())
                 .mapNotNull { entry ->
@@ -764,53 +779,53 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /** Undoes [tryRecordRecurringOffer] for an offer that was never shown. */
-    suspend fun releaseRecurringOffer(key: String, today: LocalDate) {
-        context.dataStore.edit { prefs ->
+    override suspend fun releaseRecurringOffer(key: String, today: LocalDate) {
+        dataStore.edit { prefs ->
             prefs[PreferencesKeys.RECURRING_OFFER_LOG] =
                 (prefs[PreferencesKeys.RECURRING_OFFER_LOG] ?: emptySet()) - "$key|${today.toEpochDay()}"
         }
     }
 
     suspend fun setShareCardConfig(config: ShareCardConfig) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHARE_CARD_HERO] = config.hero.name
             preferences[PreferencesKeys.SHARE_CARD_PERIOD] = config.period.name
         }
     }
 
     suspend fun setFirstLaunchTime(timestamp: Long) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.FIRST_LAUNCH_TIME] = timestamp
         }
     }
     
     suspend fun hasShownReviewPrompt(): Boolean {
-        return context.dataStore.data
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] ?: false }
             .first()
     }
     
     suspend fun markReviewPromptShown() {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] = true
             preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] = System.currentTimeMillis()
         }
     }
     
     // Flow methods for backup/restore
-    fun getLastScanTimestamp(): Flow<Long?> = context.dataStore.data
+    override fun getLastScanTimestamp(): Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.LAST_SCAN_TIMESTAMP] }
     
-    fun getLastScanPeriod(): Flow<Int?> = context.dataStore.data
+    override fun getLastScanPeriod(): Flow<Int?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.LAST_SCAN_PERIOD] }
     
-    fun getFirstLaunchTime(): Flow<Long?> = context.dataStore.data
+    fun getFirstLaunchTime(): Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.FIRST_LAUNCH_TIME] }
     
-    fun getHasShownReviewPrompt(): Flow<Boolean> = context.dataStore.data
+    fun getHasShownReviewPrompt(): Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] ?: false }
     
-    fun getLastReviewPromptTime(): Flow<Long?> = context.dataStore.data
+    fun getLastReviewPromptTime(): Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] }
     
     // Update methods for import
@@ -843,31 +858,31 @@ open class UserPreferencesRepository @Inject constructor(
     }
     
     suspend fun updateHasShownScanTutorial(shown: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] = shown
         }
     }
     
     suspend fun updateHasShownReviewPrompt(shown: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] = shown
         }
     }
     
     suspend fun updateLastReviewPromptTime(timestamp: Long) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] = timestamp
         }
     }
 
     // App Lock methods
-    val isAppLockEnabled: Flow<Boolean> = context.dataStore.data
+    override val isAppLockEnabled: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.APP_LOCK_ENABLED] ?: false
         }
 
-    suspend fun setAppLockEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setAppLockEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
         }
     }
@@ -876,8 +891,8 @@ open class UserPreferencesRepository @Inject constructor(
      * Atomically updates both app lock enabled state and authentication timestamp.
      * This prevents race conditions where the flow sees enabled=true but timestamp=0.
      */
-    suspend fun setAppLockEnabledWithTimestamp(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setAppLockEnabledWithTimestamp(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_ENABLED] = enabled
             if (enabled) {
                 preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
@@ -885,13 +900,13 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    val appLockTimeoutMinutes: Flow<Int> = context.dataStore.data
+    override val appLockTimeoutMinutes: Flow<Int> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] ?: 1 // Default to 1 minute
         }
 
     suspend fun setAppLockTimeoutMinutes(minutes: Int) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] = minutes
         }
     }
@@ -900,54 +915,54 @@ open class UserPreferencesRepository @Inject constructor(
      * Atomically updates timeout and authentication timestamp.
      * This prevents immediate lock when changing timeout by resetting the auth time.
      */
-    suspend fun setAppLockTimeoutWithTimestamp(minutes: Int) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setAppLockTimeoutWithTimestamp(minutes: Int) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] = minutes
             preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = System.currentTimeMillis()
         }
     }
 
-    suspend fun getAppLockTimeoutMinutes(): Int {
-        return context.dataStore.data
+    override suspend fun getAppLockTimeoutMinutes(): Int {
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.APP_LOCK_TIMEOUT_MINUTES] ?: 1 }
             .first()
     }
 
-    suspend fun setLastAuthTimestamp(timestamp: Long) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setLastAuthTimestamp(timestamp: Long) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] = timestamp
         }
     }
 
-    suspend fun getLastAuthTimestamp(): Long {
-        return context.dataStore.data
+    override suspend fun getLastAuthTimestamp(): Long {
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L }
             .first()
     }
 
     /** True only the first time it's called: the no-screen-lock notice is shown once. */
-    suspend fun claimAppLockNoScreenLockNotice(): Boolean {
+    override suspend fun claimAppLockNoScreenLockNotice(): Boolean {
         var first = false
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             first = preferences[PreferencesKeys.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN] != true
             preferences[PreferencesKeys.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN] = true
         }
         return first
     }
 
-    fun getLastAuthTimestampFlow(): Flow<Long> = context.dataStore.data
+    override fun getLastAuthTimestampFlow(): Flow<Long> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.LAST_AUTH_TIMESTAMP] ?: 0L
         }
 
     // Feature discovery - Full resync hint
-    val hasUsedFullResync: Flow<Boolean> = context.dataStore.data
+    val hasUsedFullResync: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] ?: false
         }
 
     suspend fun markFullResyncUsed() {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_USED_FULL_RESYNC] = true
         }
     }
@@ -955,17 +970,17 @@ open class UserPreferencesRepository @Inject constructor(
     // Pro tier — UI-cached entitlement so first frame after cold start
     // doesn't flicker `false → true` while BillingClient connects. Real
     // source of truth is Play; this is a hint only.
-    val proCachedIsPro: Flow<Boolean> = context.dataStore.data
+    override val proCachedIsPro: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.PRO_CACHED_IS_PRO] ?: false }
 
-    suspend fun setProCachedIsPro(isPro: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setProCachedIsPro(isPro: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.PRO_CACHED_IS_PRO] = isPro
         }
     }
 
     /** Stored website license (Dodo). Null [StoredLicense.key] means none. */
-    val storedLicense: Flow<StoredLicense?> = context.dataStore.data.map { p ->
+    override val storedLicense: Flow<StoredLicense?> = dataStore.data.map { p ->
         p[PreferencesKeys.LICENSE_KEY]?.let { key ->
             StoredLicense(
                 key = key,
@@ -976,8 +991,8 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    suspend fun setStoredLicense(license: StoredLicense?) {
-        context.dataStore.edit { p ->
+    override suspend fun setStoredLicense(license: StoredLicense?) {
+        dataStore.edit { p ->
             if (license == null) {
                 p.remove(PreferencesKeys.LICENSE_KEY)
                 p.remove(PreferencesKeys.LICENSE_INSTANCE_ID)
@@ -995,7 +1010,7 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /** Epoch-day the contextual F-Droid support nudge was last shown (0 = never). */
-    val supportNudgeLastShownDay: Flow<Long> = context.dataStore.data
+    val supportNudgeLastShownDay: Flow<Long> = dataStore.data
         .map { it[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L }
 
     /**
@@ -1005,13 +1020,13 @@ open class UserPreferencesRepository @Inject constructor(
      * most once per [SUPPORT_NUDGE_COOLDOWN_DAYS] days, across every trigger
      * site (a single global timestamp). Callers gate on the F-Droid flavor.
      */
-    suspend fun claimSupportNudge(): Boolean {
+    override suspend fun claimSupportNudge(): Boolean {
         val today = LocalDate.now().toEpochDay()
         // Check-and-set inside a single edit{} so the read and write are one
         // atomic transaction — DataStore serializes edit blocks, so two
         // concurrent claims can't both observe the stale timestamp and win.
         var claimed = false
-        context.dataStore.edit { prefs ->
+        dataStore.edit { prefs ->
             val last = prefs[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] ?: 0L
             if (today - last >= SUPPORT_NUDGE_COOLDOWN_DAYS) {
                 prefs[PreferencesKeys.SUPPORT_NUDGE_LAST_SHOWN_DAY] = today
@@ -1027,11 +1042,11 @@ open class UserPreferencesRepository @Inject constructor(
      * free users get one import per calendar month, so this single
      * timestamp is enough (no per-month counter needed since the limit is 1).
      */
-    val lastStatementImportAt: Flow<Long?> = context.dataStore.data
+    override val lastStatementImportAt: Flow<Long?> = dataStore.data
         .map { it[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] }
 
-    suspend fun markStatementImported(epochMillis: Long) {
-        context.dataStore.edit { preferences ->
+    override suspend fun markStatementImported(epochMillis: Long) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_STATEMENT_IMPORT_AT] = epochMillis
         }
     }
@@ -1042,58 +1057,58 @@ open class UserPreferencesRepository @Inject constructor(
      * backed up: a lost mapping costs one re-map.
      */
     suspend fun getStatementColumnMappings(): String? =
-        context.dataStore.data.first()[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS]
+        dataStore.data.first()[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS]
 
     suspend fun setStatementColumnMappings(json: String) {
-        context.dataStore.edit { it[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS] = json }
+        dataStore.edit { it[PreferencesKeys.STATEMENT_COLUMN_MAPPINGS] = json }
     }
 
     // What's New feature
     suspend fun getLastSeenAppVersion(): String? {
-        return context.dataStore.data
+        return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.LAST_SEEN_APP_VERSION] }
             .first()
     }
 
     suspend fun setLastSeenAppVersion(version: String) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SEEN_APP_VERSION] = version
         }
     }
 
     // Unified Currency Mode
-    suspend fun setUnifiedCurrencyMode(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setUnifiedCurrencyMode(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.UNIFIED_CURRENCY_MODE] = enabled
         }
     }
 
-    suspend fun setDisplayCurrency(currency: String) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setDisplayCurrency(currency: String) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.DISPLAY_CURRENCY] = currency
         }
     }
 
     // Budget Groups Migration
-    val hasMigratedToBudgetGroups: Flow<Boolean> = context.dataStore.data
+    val hasMigratedToBudgetGroups: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.HAS_MIGRATED_TO_BUDGET_GROUPS] ?: false
         }
 
     suspend fun setHasMigratedToBudgetGroups(migrated: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_MIGRATED_TO_BUDGET_GROUPS] = migrated
         }
     }
 
     // Monthly Budget
-    val monthlyBudgetLimit: Flow<java.math.BigDecimal?> = context.dataStore.data
+    val monthlyBudgetLimit: Flow<java.math.BigDecimal?> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.MONTHLY_BUDGET_LIMIT]?.let { java.math.BigDecimal(it) }
         }
 
     suspend fun updateMonthlyBudgetLimit(amount: java.math.BigDecimal?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (amount == null) {
                 preferences.remove(PreferencesKeys.MONTHLY_BUDGET_LIMIT)
             } else {
@@ -1107,17 +1122,17 @@ open class UserPreferencesRepository @Inject constructor(
      * (the calendar-month default); up to 31. Stored as an Int 1..31 — out-of-range
      * values from older builds or migrations are clamped at read time.
      */
-    val budgetCycleStartDay: Flow<Int> = context.dataStore.data
+    override val budgetCycleStartDay: Flow<Int> = dataStore.data
         .map { preferences ->
             val raw = preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] ?: 1
             if (raw == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) raw else raw.coerceIn(1, 31)
         }
 
-    suspend fun getBudgetCycleStartDay(): Int = budgetCycleStartDay.first()
+    override suspend fun getBudgetCycleStartDay(): Int = budgetCycleStartDay.first()
 
-    suspend fun updateBudgetCycleStartDay(day: Int) {
+    override suspend fun updateBudgetCycleStartDay(day: Int) {
         val clamped = if (day == com.pennywiseai.tracker.domain.model.BudgetCycle.LAST_WORKING_DAY) day else day.coerceIn(1, 31)
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
         }
         // Every widget computes "this cycle" from this day.
@@ -1128,21 +1143,21 @@ open class UserPreferencesRepository @Inject constructor(
      * Explicit base-currency choice from the Settings currency selector. Marks the
      * currency as user-set so the main account can no longer override it.
      */
-    suspend fun updateBaseCurrency(currency: String) {
-        context.dataStore.edit { preferences ->
+    override suspend fun updateBaseCurrency(currency: String) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.BASE_CURRENCY] = currency
             preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] = true
         }
     }
 
     suspend fun updateNumberFormatStyle(style: NumberFormatStyle) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.NUMBER_FORMAT_STYLE] = style.name
         }
     }
 
     suspend fun updateDateFormatStyle(style: DateFormatStyle) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.DATE_FORMAT_STYLE] = style.name
         }
     }
@@ -1152,8 +1167,8 @@ open class UserPreferencesRepository @Inject constructor(
      * user hasn't explicitly chosen one via the Settings currency selector. The
      * explicit selector always wins.
      */
-    suspend fun applyMainAccountCurrency(currency: String) {
-        context.dataStore.edit { preferences ->
+    override suspend fun applyMainAccountCurrency(currency: String) {
+        dataStore.edit { preferences ->
             if (preferences[PreferencesKeys.BASE_CURRENCY_USER_SET] != true) {
                 preferences[PreferencesKeys.BASE_CURRENCY] = currency
             }
@@ -1161,7 +1176,7 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     // Balance Visibility
-    val isBalanceHidden: Flow<Boolean> = context.dataStore.data
+    override val isBalanceHidden: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] ?: true // hidden until the user reveals it
         }
@@ -1171,11 +1186,11 @@ open class UserPreferencesRepository @Inject constructor(
      * until the user taps the eye, Home stays hidden ([isBalanceHidden]) and the rest
      * of the app shows its numbers, so a fresh install doesn't look empty.
      */
-    val isAmountHiddenEverywhere: Flow<Boolean> = context.dataStore.data
+    override val isAmountHiddenEverywhere: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.BALANCE_HIDDEN] ?: false }
 
     suspend fun setBalanceHidden(hidden: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
@@ -1188,9 +1203,9 @@ open class UserPreferencesRepository @Inject constructor(
      * before any choice: Home's eye sees hidden ([isBalanceHidden]), a shake sees
      * the rest of the app shown ([isAmountHiddenEverywhere]), so it hides.
      */
-    suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean = true): Boolean {
+    override suspend fun toggleBalanceHidden(hiddenWhenUnset: Boolean): Boolean {
         var hidden = true
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
@@ -1199,19 +1214,19 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     /** Shake the phone to hide / show amounts. Off by default: a jolt in a pocket shouldn't reveal them. */
-    val shakeToHideAmounts: Flow<Boolean> = context.dataStore.data
+    override val shakeToHideAmounts: Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.SHAKE_TO_HIDE_AMOUNTS] ?: false }
 
-    suspend fun setShakeToHideAmounts(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setShakeToHideAmounts(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SHAKE_TO_HIDE_AMOUNTS] = enabled
         }
     }
 
     /** True only the first time it's called: the first shake explains the gesture. */
-    suspend fun claimShakeToHideHint(): Boolean {
+    override suspend fun claimShakeToHideHint(): Boolean {
         var first = false
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             first = preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] != true
             preferences[PreferencesKeys.SHAKE_TO_HIDE_HINT_SHOWN] = true
         }
@@ -1220,35 +1235,35 @@ open class UserPreferencesRepository @Inject constructor(
 
     // Replace UPI VPAs with matching contact names at display time.
     // Off by default — turning on prompts for READ_CONTACTS.
-    val useContactsForVpa: Flow<Boolean> = context.dataStore.data
+    val useContactsForVpa: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.USE_CONTACTS_FOR_VPA] ?: false
         }
 
     suspend fun setUseContactsForVpa(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.USE_CONTACTS_FOR_VPA] = enabled
         }
     }
 
     /** The user's own UPI ID (#346), or null until they enter one. */
-    val upiId: Flow<String?> = context.dataStore.data
+    val upiId: Flow<String?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.UPI_ID]?.takeIf { it.isNotBlank() } }
 
     /** Blank or null clears it. */
     suspend fun setUpiId(id: String?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             val trimmed = id?.trim().orEmpty()
             if (trimmed.isEmpty()) preferences.remove(PreferencesKeys.UPI_ID) else preferences[PreferencesKeys.UPI_ID] = trimmed
         }
     }
 
     // Selected Profile
-    val selectedProfileId: Flow<Long?> = context.dataStore.data
+    val selectedProfileId: Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.SELECTED_PROFILE_ID] }
 
     suspend fun updateSelectedProfileId(profileId: Long?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (profileId == null) {
                 preferences.remove(PreferencesKeys.SELECTED_PROFILE_ID)
             } else {
@@ -1260,20 +1275,20 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     // Blur Effects
-    val blurEffectsEnabled: Flow<Boolean> = context.dataStore.data
+    val blurEffectsEnabled: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] ?: true
         }
 
     suspend fun updateBlurEffectsEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] = enabled
         }
     }
 
     // Navigation Bar Style
     suspend fun updateNavBarStyle(style: NavBarStyle) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.NAV_BAR_STYLE] = style.name
         }
     }
@@ -1281,7 +1296,7 @@ open class UserPreferencesRepository @Inject constructor(
     // Bottom-bar tabs (#912). Read-modify-write inside one edit so quick
     // toggles of two tabs can't overwrite each other.
     suspend fun setNavTabHidden(route: String, hidden: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             val current = preferences[PreferencesKeys.HIDDEN_NAV_TABS] ?: emptySet()
             preferences[PreferencesKeys.HIDDEN_NAV_TABS] =
                 if (hidden) current + route else current - route
@@ -1289,57 +1304,57 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateHiddenNavTabs(routes: Set<String>) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HIDDEN_NAV_TABS] = routes
         }
     }
 
     // Analytics Chart Type
     suspend fun saveAnalyticsChartType(chartType: String) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] = chartType
         }
     }
 
-    fun getAnalyticsChartType(): Flow<String?> = context.dataStore.data
+    fun getAnalyticsChartType(): Flow<String?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.ANALYTICS_CHART_TYPE] }
 
     suspend fun saveAnalyticsGroupBy(groupBy: String) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.ANALYTICS_GROUP_BY] = groupBy
         }
     }
 
-    fun getAnalyticsGroupBy(): Flow<String?> = context.dataStore.data
+    fun getAnalyticsGroupBy(): Flow<String?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.ANALYTICS_GROUP_BY] }
 
     // Cover Style
     suspend fun updateCoverStyle(style: CoverStyle) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.COVER_STYLE] = style.name
         }
     }
 
     // Home sections (#770)
-    val homeSectionLayout: Flow<List<Pair<HomeSection, Boolean>>> = context.dataStore.data
+    val homeSectionLayout: Flow<List<Pair<HomeSection, Boolean>>> = dataStore.data
         .map { preferences -> HomeSectionLayout.decode(preferences[PreferencesKeys.HOME_SECTIONS]) }
 
     /** Read-modify-write inside one `edit` so rapid taps can't clobber each other. */
     suspend fun updateHomeSectionLayout(
         transform: (List<Pair<HomeSection, Boolean>>) -> List<Pair<HomeSection, Boolean>>
     ) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             val current = HomeSectionLayout.decode(preferences[PreferencesKeys.HOME_SECTIONS])
             preferences[PreferencesKeys.HOME_SECTIONS] = HomeSectionLayout.encode(transform(current))
         }
     }
 
     /** Accounts left out of "Safe to spend" ("bankName_last4"); empty = every spendable account counts. */
-    val safeToSpendExcludedAccounts: Flow<Set<String>> = context.dataStore.data
+    val safeToSpendExcludedAccounts: Flow<Set<String>> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet() }
 
     suspend fun setSafeToSpendAccountIncluded(key: String, included: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             val current = preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet()
             preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] = if (included) current - key else current + key
         }
@@ -1347,13 +1362,13 @@ open class UserPreferencesRepository @Inject constructor(
 
     // Profile & Onboarding
     suspend fun updateUserName(name: String) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.USER_NAME] = name
         }
     }
 
     suspend fun updateProfileImageUri(uri: String?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (uri == null) {
                 preferences.remove(PreferencesKeys.PROFILE_IMAGE_URI)
             } else {
@@ -1363,19 +1378,19 @@ open class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun updateProfileBackgroundColor(color: Int) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = color
         }
     }
 
     suspend fun updateHasCompletedOnboarding(completed: Boolean) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
         }
     }
 
     suspend fun updateMainAccountKey(accountKey: String?) {
-        context.dataStore.edit { preferences ->
+        dataStore.edit { preferences ->
             if (accountKey == null) {
                 preferences.remove(PreferencesKeys.MAIN_ACCOUNT_KEY)
             } else {
@@ -1384,59 +1399,59 @@ open class UserPreferencesRepository @Inject constructor(
         }
     }
 
-    val scheduledFolderBackupEnabled: Flow<Boolean> = context.dataStore.data
+    override val scheduledFolderBackupEnabled: Flow<Boolean> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_ENABLED] ?: false
         }
 
-    val scheduledFolderBackupTreeUri: Flow<String?> = context.dataStore.data
+    val scheduledFolderBackupTreeUri: Flow<String?> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_TREE_URI]
         }
 
-    val scheduledFolderBackupLastTimestamp: Flow<Long?> = context.dataStore.data
+    override val scheduledFolderBackupLastTimestamp: Flow<Long?> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP]
         }
 
-    suspend fun isScheduledFolderBackupEnabled(): Boolean {
+    override suspend fun isScheduledFolderBackupEnabled(): Boolean {
         return scheduledFolderBackupEnabled.first()
     }
 
-    suspend fun getScheduledFolderBackupTreeUri(): String? {
+    override suspend fun getScheduledFolderBackupTreeUri(): String? {
         return scheduledFolderBackupTreeUri.first()
     }
 
-    suspend fun setScheduledFolderBackupEnabled(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setScheduledFolderBackupEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_ENABLED] = enabled
         }
     }
 
-    suspend fun setScheduledFolderBackupTreeUri(treeUri: String) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setScheduledFolderBackupTreeUri(treeUri: String) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_TREE_URI] = treeUri
         }
     }
 
-    suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
-        context.dataStore.edit { preferences ->
+    override suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
+        dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
         }
     }
 
-    val exportIncludeReceipts: Flow<Boolean> = context.dataStore.data
+    override val exportIncludeReceipts: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] ?: true }
 
-    val folderBackupIncludeReceipts: Flow<Boolean> = context.dataStore.data
+    override val folderBackupIncludeReceipts: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] ?: false }
 
-    suspend fun setExportIncludeReceipts(include: Boolean) {
-        context.dataStore.edit { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] = include }
+    override suspend fun setExportIncludeReceipts(include: Boolean) {
+        dataStore.edit { it[PreferencesKeys.EXPORT_INCLUDE_RECEIPTS] = include }
     }
 
-    suspend fun setFolderBackupIncludeReceipts(include: Boolean) {
-        context.dataStore.edit { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] = include }
+    override suspend fun setFolderBackupIncludeReceipts(include: Boolean) {
+        dataStore.edit { it[PreferencesKeys.FOLDER_BACKUP_INCLUDE_RECEIPTS] = include }
     }
 }
 

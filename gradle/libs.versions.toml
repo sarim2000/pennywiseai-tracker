@@ -20,6 +20,12 @@ lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 mockk = "1.14.11"
+# Konsist bundles kotlin-compiler-embeddable: keep it on a release built against
+# the project's Kotlin version (0.18.1 targets Kotlin 2.4.21).
+konsist = "0.18.1"
+# ktlint parses with its own embedded Kotlin compiler (1.8.0 ships 2.2.21), not the
+# project's: after a Kotlin or ktlint bump, confirm it still parses every source.
+ktlint = "1.8.0"
 navigation3 = "1.2.0"
 opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
@@ -44,6 +50,8 @@ haze = "2.1.0"
 composeCharts = "1.0.0"
 billingKtx = "9.1.0"
 leakcanary = "3.0-alpha-9"
+spotless = "8.11.0"
+dependencyAnalysis = "3.20.2"
 
 [libraries]
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
@@ -54,6 +62,7 @@ androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstall
 androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 androidx-compose-material-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-core = { group = "androidx.core", name = "core", version.ref = "coreKtx" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
@@ -81,7 +90,6 @@ hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", ve
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
@@ -99,9 +107,9 @@ ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negoti
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktorVersion" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktorVersion" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktorVersion" }
-ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktorVersion" }
 mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockk" }
 opencsv = { module = "com.opencsv:opencsv", version.ref = "opencsv" }
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfboxAndroid" }
@@ -124,3 +132,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }

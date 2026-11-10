@@ -12,7 +12,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -67,7 +67,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val transactionGroupRepository: TransactionGroupRepository,
     private val tagRepository: TagRepository,
     private val currencyConversionService: CurrencyConversionService,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     private val receiptManager: ReceiptManager,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val ruleRepository: com.pennywiseai.tracker.domain.repository.RuleRepository,

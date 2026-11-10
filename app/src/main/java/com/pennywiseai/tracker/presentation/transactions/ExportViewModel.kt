@@ -5,7 +5,7 @@ import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.export.CsvExporter
 import com.pennywiseai.tracker.data.export.ExportResult
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +14,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ExportViewModel @Inject constructor(
     private val csvExporter: CsvExporter,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: BillingPreferences,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -33,6 +33,6 @@ class ExportViewModel @Inject constructor(
         return csvExporter.exportTransactions(transactions, fileName)
     }
 
-    /** @see UserPreferencesRepository.claimSupportNudge — global, frequency-capped. */
+    /** @see BillingPreferences.claimSupportNudge — global, frequency-capped. */
     suspend fun claimSupportNudge(): Boolean = userPreferencesRepository.claimSupportNudge()
 }

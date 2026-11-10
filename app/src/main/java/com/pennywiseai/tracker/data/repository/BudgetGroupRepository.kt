@@ -14,7 +14,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.flow.Flow
@@ -36,7 +36,7 @@ import javax.inject.Singleton
 class BudgetGroupRepository @Inject constructor(
     private val budgetDao: BudgetDao,
     private val transactionSplitDao: TransactionSplitDao,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: BudgetPreferences,
     private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
 ) {
     // Sub-categories (#374): spend rolls up into the parent, and a budget on a

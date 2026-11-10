@@ -42,4 +42,16 @@
 - [ ] `./gradlew lint` passes locally
 - [ ] Follows existing code style and patterns
 
+## Refactor PRs
+
+<!-- Only for `refactor:` PRs. Delete this section otherwise. See docs/adr/0003-incremental-architecture-modernization.md. -->
+
+- [ ] Behavior unchanged; scope stated above, no features or dependency upgrades mixed in
+- [ ] Money stays currency-tagged and nothing sums across currencies
+- [ ] Backup fields keep their defaults; any migration was run on the API 26 AVD
+- [ ] Worker, widget, tile and service classes moved only with a plan for existing installs; no DataStore key, Room column or backup field renamed
+- [ ] No new package cycle or back-edge (`scripts/arch/package-deps.sh`)
+- [ ] `./init.sh` passes and both flavors build (`:app:assembleStandardDebug`, `:app:compileFdroidDebugKotlin`)
+- [ ] Runtime/UI changes checked on a device or emulator
+
 

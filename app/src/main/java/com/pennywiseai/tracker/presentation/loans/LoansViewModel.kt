@@ -7,7 +7,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,7 +35,7 @@ data class LoansUiState(
 @HiltViewModel
 class LoansViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService,
     @ApplicationContext private val context: Context
 ) : ViewModel() {

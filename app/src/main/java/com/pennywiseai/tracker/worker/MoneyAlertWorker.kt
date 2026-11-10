@@ -11,7 +11,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
@@ -30,7 +30,7 @@ class MoneyAlertChecker @Inject constructor(
     @ApplicationContext private val context: Context,
     private val budgetSummaryProvider: BudgetSummaryProvider,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: NotificationPreferences,
     private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     /**
@@ -88,7 +88,7 @@ class MoneyAlertWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
     private val moneyAlertChecker: MoneyAlertChecker,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: NotificationPreferences
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {

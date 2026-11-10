@@ -6,7 +6,6 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
-import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -21,12 +20,10 @@ import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
-import com.pennywiseai.tracker.presentation.common.CurrencyTotals
 import com.pennywiseai.tracker.presentation.common.AccountOption
 import com.pennywiseai.tracker.presentation.common.accountOptions
 import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -37,8 +34,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.utils.countingTransferPairsOnce
-import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,7 +46,6 @@ import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.YearMonth
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -241,69 +235,12 @@ class TransactionsViewModel @Inject constructor(
         initialValue = FilteredTotals()
     )
 
-    /**
-     * Collapses per-currency grouped totals into the figures for [currency]:
-     * either that one currency's bucket, or — in unified mode — every bucket
-     * converted into it. This is the ONLY way a single-figure total may be
-     * produced from mixed currencies (hard constraint 2); shared by the list
-     * totals and the selection totals so the two cards can never disagree on
-     * the currency rules.
-     */
     private suspend fun resolveTotals(
         groupedTotals: CurrencyGroupedTotals,
         currency: String,
         isUnified: Boolean
-    ): FilteredTotals {
-        // isNotEmpty, not size > 1: in unified mode even a single-currency set
-        // needs converting when that one currency isn't the display currency —
-        // a selection of only-USD rows under an INR display would otherwise
-        // look up the empty INR bucket and show zeros.
-        return if (isUnified && groupedTotals.totalsByCurrency.isNotEmpty()) {
-            // Aggregate all currencies converted to display currency
-            var income = BigDecimal.ZERO
-            var expenses = BigDecimal.ZERO
-            var credit = BigDecimal.ZERO
-            var transfer = BigDecimal.ZERO
-            var investment = BigDecimal.ZERO
-            var count = 0
-            for ((cur, totals) in groupedTotals.totalsByCurrency) {
-                if (cur == currency) {
-                    income += totals.income
-                    expenses += totals.expenses
-                    credit += totals.credit
-                    transfer += totals.transfer
-                    investment += totals.investment
-                } else {
-                    // Skip unconvertible currency pairs (add nothing) rather than
-                    // counting face value (#670). The transactions still appear in
-                    // the list, so `count` below stays complete.
-                    income += currencyConversionService.convertAmountOrNull(totals.income, cur, currency) ?: BigDecimal.ZERO
-                    expenses += currencyConversionService.convertAmountOrNull(totals.expenses, cur, currency) ?: BigDecimal.ZERO
-                    credit += currencyConversionService.convertAmountOrNull(totals.credit, cur, currency) ?: BigDecimal.ZERO
-                    transfer += currencyConversionService.convertAmountOrNull(totals.transfer, cur, currency) ?: BigDecimal.ZERO
-                    investment += currencyConversionService.convertAmountOrNull(totals.investment, cur, currency) ?: BigDecimal.ZERO
-                }
-                count += totals.transactionCount
-            }
-            // Net = true cash flow (income − expenses). Credit-card spend,
-            // transfers, and investments are *not* in the visible Expenses tile,
-            // so subtracting them here produced a Net that didn't reconcile with
-            // the user-visible math. Those channels live on the home Cash-Flow
-            // card as deliberately separate categories.
-            val netBalance = income - expenses
-            FilteredTotals(income, expenses, credit, transfer, investment, netBalance, count)
-        } else {
-            val currencyTotals = groupedTotals.getTotalsForCurrency(currency)
-            FilteredTotals(
-                income = currencyTotals.income,
-                expenses = currencyTotals.expenses,
-                credit = currencyTotals.credit,
-                transfer = currencyTotals.transfer,
-                investment = currencyTotals.investment,
-                netBalance = currencyTotals.netBalance,
-                transactionCount = currencyTotals.transactionCount
-            )
-        }
+    ): FilteredTotals = resolveFilteredTotals(groupedTotals, currency, isUnified) { amount, from, to ->
+        currencyConversionService.convertAmountOrNull(amount, from, to)
     }
 
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
@@ -814,13 +751,8 @@ class TransactionsViewModel @Inject constructor(
                         // discard it (#749). Observed, so a split edit refreshes the chips.
                         transactionSplitDao.observeSplitsForActiveTransactions()
                             .map { allSplits ->
-                                val ids = transactions.mapTo(HashSet()) { it.id }
-                                val splits = allSplits.filter { it.transactionId in ids }
-                                // Parents of present sub-categories are filterable too (#374),
-                                // and the auto-clear below must not drop them.
-                                val present = (transactions.map { it.category } + splits.map { it.category }).distinct()
                                 val parentOf = this@TransactionsViewModel.categories.value.values.toList().parentNameOf()
-                                (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
+                                filterableCategories(transactions, allSplits, parentOf)
                             }
                     }
                     .flowOn(Dispatchers.Default)
@@ -890,18 +822,14 @@ class TransactionsViewModel @Inject constructor(
                 getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
                     .map { allTransactions ->
                         // Apply profile, account, then tag filters
-                        val profileAndAccountFiltered = filterTransactionsByAccount(
-                            filterByProfile(allTransactions, profileId),
-                            accountKey
+                        val tracked = filterTrackedByProfile(
+                            allTransactions, profileId, _ignoredAccountKeys.value, _profileAccountKeys.value
                         )
-                        val transactions = if (tag != null) {
-                            profileAndAccountFiltered.filter { tx ->
-                                transactionTagsMap.value[tx.id]
-                                    ?.any { it.equals(tag, ignoreCase = true) } == true
-                            }
-                        } else {
-                            profileAndAccountFiltered
-                        }
+                        val transactions = filterByTag(
+                            filterTransactionsByAccount(tracked, accountKey),
+                            tag,
+                            transactionTagsMap.value
+                        )
                         val sorted = if (isUnified) {
                             // Show all transactions regardless of currency
                             sortTransactions(transactions, sort)
@@ -1393,21 +1321,6 @@ class TransactionsViewModel @Inject constructor(
         return converted
     }
 
-    private fun filterByProfile(
-        transactions: List<TransactionEntity>,
-        profileId: Long?
-    ): List<TransactionEntity> {
-        // Ignored accounts drop out first, and independently of the profile
-        // filter — that one returns early for "All profiles" and falls back to
-        // Personal for an unattributed transaction, so it can't carry the
-        // exclusion (#826).
-        val ignored = _ignoredAccountKeys.value
-        val tracked = if (ignored.isEmpty()) transactions else transactions.filterNot { tx ->
-            IgnoredAccountsStore.isIgnored(ignored, tx.bankName, tx.accountNumber)
-        }
-        return filterTransactionsByProfile(tracked, profileId, _profileAccountKeys.value)
-    }
-
     private fun getFilteredTransactions(
         searchQuery: String,
         period: TimePeriod,
@@ -1448,68 +1361,19 @@ class TransactionsViewModel @Inject constructor(
                 // Observe the splits rather than snapshot them, so editing a split while
                 // this list is open re-evaluates the filter instead of leaving it stale.
                 transactionSplitDao.observeSplitsForActiveTransactions()
-                    .map { allSplits ->
-                        val splitsByTxId = allSplits.groupBy { it.transactionId }
-                        transactions.filter { tx ->
-                            tx.category in effectiveCategories ||
-                                splitsByTxId[tx.id]?.any { it.category in effectiveCategories } == true
-                        }
-                    }
+                    .map { allSplits -> filterByCategories(transactions, effectiveCategories, allSplits) }
             }
         } else {
             baseFlow
         }
         
         // Apply transaction type filter
-        val typeFilteredFlow = categoriesFilteredFlow.map { transactions ->
-            val types = typeFilter.transactionTypes
-            if (types == null) transactions else transactions.filter { it.transactionType in types }
-        }
-        
-        // Apply search filter
-        return if (searchQuery.isBlank()) {
-            typeFilteredFlow
-        } else {
-            typeFilteredFlow.map { transactions ->
-                transactions.filter { transaction ->
-                    // Check merchant name and description
-                    val matchesMerchant = transaction.merchantName.contains(searchQuery, ignoreCase = true)
-                    val matchesDescription = transaction.description?.contains(searchQuery, ignoreCase = true) == true
-                    val matchesReference = transaction.reference?.contains(searchQuery, ignoreCase = true) == true
+        val typeFilteredFlow = categoriesFilteredFlow.map { filterByType(it, typeFilter) }
 
-                    // Check user-set tags
-                    val matchesTag = transactionTagsMap.value[transaction.id]
-                        ?.any { it.contains(searchQuery, ignoreCase = true) } == true
-
-                    // Check the merchant's user-set display alias (#691)
-                    val matchesAlias = merchantAliases.value[transaction.merchantName]
-                        ?.contains(searchQuery, ignoreCase = true) == true
-
-                    // Check SMS body (full text search)
-                    val matchesSmsBody = transaction.smsBody?.contains(searchQuery, ignoreCase = true) == true
-                    
-                    // Check if search query matches amount
-                    val matchesAmount = try {
-                        // Remove commas and spaces from search query for number parsing
-                        val cleanedQuery = searchQuery.replace(",", "").replace(" ", "").trim()
-                        
-                        // Check if it's a valid number and matches the amount
-                        if (cleanedQuery.isNotEmpty() && cleanedQuery.all { it.isDigit() || it == '.' }) {
-                            val amountString = transaction.amount.toPlainString()
-                            // Support both exact and partial matches
-                            amountString.contains(cleanedQuery) || 
-                            // Also match formatted amount (e.g., "1,000" matches "1000")
-                            amountString.replace(",", "").contains(cleanedQuery)
-                        } else {
-                            false
-                        }
-                    } catch (e: Exception) {
-                        false
-                    }
-                    
-                    matchesMerchant || matchesDescription || matchesReference || matchesTag || matchesAlias || matchesSmsBody || matchesAmount
-                }
-            }
+        // Apply search filter. Tags and aliases are read per list, so the re-run a change
+        // to either one triggers sees it.
+        return typeFilteredFlow.map {
+            filterBySearch(it, searchQuery, transactionTagsMap.value, merchantAliases.value)
         }
     }
     
@@ -1535,112 +1399,10 @@ class TransactionsViewModel @Inject constructor(
         return dates.first.atStartOfDay() to dates.second.atTime(23, 59, 59)
     }
 
-    private fun sortTransactions(transactions: List<TransactionEntity>, sortOption: SortOption): List<TransactionEntity> {
-        return when (sortOption) {
-            SortOption.DATE_NEWEST -> transactions.sortedByDescending { it.dateTime }
-            SortOption.DATE_OLDEST -> transactions.sortedBy { it.dateTime }
-            SortOption.AMOUNT_HIGHEST -> transactions.sortedByDescending { it.amount }
-            SortOption.AMOUNT_LOWEST -> transactions.sortedBy { it.amount }
-            SortOption.MERCHANT_AZ -> transactions.sortedBy { it.merchantName.lowercase() }
-            SortOption.MERCHANT_ZA -> transactions.sortedByDescending { it.merchantName.lowercase() }
-        }
-    }
-    
-    private fun groupTransactionsByDate(
-        transactions: List<TransactionEntity>
-    ): Map<DateGroup, List<TransactionEntity>> {
-        val today = LocalDate.now()
-        val yesterday = today.minusDays(1)
-        val weekStart = today.minusWeeks(1)
-        
-        return transactions.groupBy { transaction ->
-            val transactionDate = transaction.dateTime.toLocalDate()
-            when {
-                transactionDate == today -> DateGroup.TODAY
-                transactionDate == yesterday -> DateGroup.YESTERDAY
-                transactionDate > weekStart -> DateGroup.THIS_WEEK
-                else -> DateGroup.EARLIER
-            }
-        }
-    }
-    
     fun getReportUrl(transaction: TransactionEntity): String {
         return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
     }
     
-}
-
-internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {
-    // Loan disbursements/repayments and analytics-excluded transactions still
-    // appear in the list (it's the full ledger) but must not count toward the
-    // period's Income/Expense/etc. totals — loans are tracked in the Loans
-    // feature, and excluded txns are opted out of every spend figure by the
-    // user. Matches the Home/Analytics convention (HomeViewModel#1142).
-    val nonLoanTransactions = transactions.forTotals()
-    val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
-
-    val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
-        // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
-        // expense, so it shrinks "Expenses" (floored at zero) and does not
-        // appear in "Income". "Extra budget" (ADD_TO_LIMIT) is real money in
-        // and stays in income — same treatment as HomeViewModel.
-        val refundTotal = currencyTransactions
-            .filter {
-                it.transactionType == TransactionType.INCOME &&
-                    it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
-            }
-            .sumOf { it.amount }
-
-        val income = currencyTransactions
-            .filter {
-                it.transactionType == TransactionType.INCOME &&
-                    it.budgetImpactType != BudgetImpactType.DEDUCT_SPENT
-            }
-            .sumOf { it.amount }
-
-        val rawExpenses = currencyTransactions
-            .filter { it.transactionType == TransactionType.EXPENSE }
-            .sumOf { it.amount }
-        val expenses = (rawExpenses - refundTotal).coerceAtLeast(BigDecimal.ZERO)
-
-        val credit = currencyTransactions
-            .filter { it.transactionType == TransactionType.CREDIT }
-            .sumOf { it.amount }
-
-        val transfer = currencyTransactions
-            .filter { it.transactionType == TransactionType.TRANSFER }
-            // ponytail: a pair across currencies counts in each currency, so it
-            // shows twice in a unified total; dedupe before grouping if that matters.
-            .countingTransferPairsOnce { it }
-            .sumOf { it.amount }
-
-        val investment = currencyTransactions
-            .filter { it.transactionType == TransactionType.INVESTMENT }
-            .sumOf { it.amount }
-
-        CurrencyTotals(
-            currency = currency,
-            income = income,
-            expenses = expenses,
-            credit = credit,
-            transfer = transfer,
-            investment = investment,
-            transactionCount = currencyTransactions.size
-        )
-    }
-
-    // Note: availableCurrencies are now provided by the separate availableCurrencies StateFlow
-    // We'll keep the old behavior for compatibility but the UI should use availableCurrencies property
-    // Use standard currency sorting (INR first, then alphabetical)
-    val filteredAvailableCurrencies = CurrencyUtils.sortCurrencies(
-        totalsByCurrency.keys.toList()
-    )
-
-    return CurrencyGroupedTotals(
-        totalsByCurrency = totalsByCurrency,
-        availableCurrencies = filteredAvailableCurrencies,
-        transactionCount = nonLoanTransactions.size
-    )
 }
 
 data class TransactionsUiState(
@@ -1654,13 +1416,6 @@ private class ComputedList(
     val transactions: List<TransactionEntity>,
     val grouped: Map<DateGroup, List<TransactionEntity>>,
     val totals: CurrencyGroupedTotals
-)
-
-data class FilterParams(
-    val query: String,
-    val period: TimePeriod,
-    val category: String?,
-    val typeFilter: TransactionTypeFilter
 )
 
 enum class DateGroup(@StringRes val labelRes: Int) {

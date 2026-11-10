@@ -26,5 +26,6 @@ rootProject.name = "pennywiseai-tracker"
 include(":app")
 include(":parser-core")
 include(":shared")
+include(":core:designsystem")
 include(":iosApp")
 include(":baselineprofile")

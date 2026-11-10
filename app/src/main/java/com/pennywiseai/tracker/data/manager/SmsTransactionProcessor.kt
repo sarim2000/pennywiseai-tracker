@@ -41,8 +41,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Shared processor for SMS transactions. Used by both SmsBroadcastReceiver
- * and OptimizedSmsReaderWorker to ensure consistent transaction processing.
+ * Saves one transaction as it arrives: a live SMS, a bank notification or a
+ * confirmed taught message. The inbox scan keeps its own save path in
+ * worker/smsscan on purpose: it replaces UPI duplicates, reads rules from a
+ * per-scan cache and defers balances, since its parsers save out of order.
  */
 @Singleton
 class SmsTransactionProcessor @Inject constructor(

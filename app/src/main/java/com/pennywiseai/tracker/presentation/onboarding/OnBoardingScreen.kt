@@ -1,0 +1,1226 @@
+package com.pennywiseai.tracker.presentation.onboarding
+
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.app.LocaleConfig
+import android.app.LocaleManager
+import android.os.Build
+import android.os.LocaleList
+import androidx.annotation.RequiresApi
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.core.content.ContextCompat
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearWavyProgressIndicator
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+// TextFieldDefaults already imported above
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
+import com.pennywiseai.tracker.ui.components.rememberSmsAccess
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.text.Collator
+import java.util.Currency
+import java.util.Locale
+
+@Composable
+fun OnBoardingScreen(
+    onOnboardingComplete: () -> Unit,
+    viewModel: OnBoardingViewModel = hiltViewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val stepOrder = remember {
+        OnBoardingStep.entries.toList()
+    }
+    // Notifications are asked once, after the first scan has shown what PennyWise does,
+    // not bundled with the SMS prompt. Whatever the answer, onboarding moves on.
+    val context = LocalContext.current
+    var notificationsAsked by rememberSaveable { mutableStateOf(false) }
+    val notificationLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { viewModel.goToNextStep() }
+    val askNotifications = !notificationsAsked &&
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED
+    Scaffold(
+        bottomBar = {
+            OnBoardingBottomBar(
+                uiState = uiState,
+                onBack = { viewModel.goToPreviousStep() },
+                onNext = {
+                    when (uiState.currentStep) {
+                        OnBoardingStep.WELCOME -> viewModel.goToNextStep()
+                        OnBoardingStep.PROFILE -> viewModel.goToNextStep()
+                        OnBoardingStep.PERMISSIONS -> viewModel.goToNextStep()
+                        OnBoardingStep.BACKGROUND_ACCESS -> viewModel.goToNextStep()
+                        OnBoardingStep.SMS_SCAN -> if (askNotifications) {
+                            notificationsAsked = true
+                            notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.goToNextStep()
+                        }
+                        OnBoardingStep.ACCOUNT_SETUP -> {
+                            viewModel.completeOnboarding(onOnboardingComplete)
+                        }
+                    }
+                },
+                onSkip = {
+                    when (uiState.currentStep) {
+                        OnBoardingStep.PERMISSIONS -> {
+                            viewModel.skipSmsPermission()
+                            viewModel.goToNextStep()
+                        }
+                        OnBoardingStep.SMS_SCAN -> viewModel.goToNextStep()
+                        OnBoardingStep.ACCOUNT_SETUP -> {
+                            viewModel.completeOnboarding(onOnboardingComplete)
+                        }
+                        else -> viewModel.goToNextStep()
+                    }
+                },
+                onStartScan = { viewModel.startSmsScan() }
+            )
+        }
+    ) { innerPadding ->
+        val motion = MaterialTheme.motionScheme
+        // Forward comes from the end edge: the right in LTR, the left in RTL.
+        val endSign = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
+        AnimatedContent(
+            targetState = uiState.currentStep,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            transitionSpec = {
+                val targetIndex = stepOrder.indexOf(targetState)
+                val initialIndex = stepOrder.indexOf(initialState)
+                // Short travel (a fifth of the width), slow spatial for a full-screen move.
+                val dir = if (targetIndex > initialIndex) endSign else -endSign
+                (fadeIn(motion.defaultEffectsSpec()) +
+                    slideInHorizontally(motion.slowSpatialSpec()) { dir * it / 5 }) togetherWith
+                    (fadeOut(motion.defaultEffectsSpec()) +
+                        slideOutHorizontally(motion.slowSpatialSpec()) { -dir * it / 5 })
+            },
+            label = "onboarding_step"
+        ) { step ->
+            when (step) {
+                OnBoardingStep.WELCOME -> WelcomeStep(
+                    uiState = uiState,
+                    viewModel = viewModel
+                )
+                OnBoardingStep.PROFILE -> ProfileStep(
+                    uiState = uiState,
+                    viewModel = viewModel
+                )
+                OnBoardingStep.PERMISSIONS -> PermissionsStep(
+                    uiState = uiState,
+                    onPermissionResult = { viewModel.onSmsPermissionResult(it) }
+                )
+                OnBoardingStep.BACKGROUND_ACCESS -> BackgroundAccessStep()
+                OnBoardingStep.SMS_SCAN -> SmsScanStep(
+                    uiState = uiState,
+                    showNotificationReason = askNotifications
+                )
+                OnBoardingStep.ACCOUNT_SETUP -> AccountSetupStep(
+                    uiState = uiState,
+                    onSelectAccount = { viewModel.selectAccount(it) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeStep(
+    uiState: OnBoardingUiState,
+    viewModel: OnBoardingViewModel
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+            contentDescription = stringResource(R.string.onboarding_logo_cd),
+            modifier = Modifier
+                .size(HERO_ICON_SIZE)
+                .clip(CircleShape),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        Text(
+            text = stringResource(R.string.onboarding_welcome_title),
+            style = MaterialTheme.typography.headlineLarge,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.md))
+
+        Text(
+            text = stringResource(R.string.onboarding_welcome_body),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            ),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(Spacing.md)) {
+                Text(
+                    text = stringResource(R.string.onboarding_setup_heading),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.onboarding_setup_steps),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+
+        // ponytail: per-app language is framework-only on Android 13+ (same as Settings);
+        // older versions keep following the device language.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Spacer(modifier = Modifier.height(Spacing.lg))
+            LanguagePicker()
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        Text(
+            text = stringResource(R.string.onboarding_currency_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        OnboardingPicker(
+            options = viewModel.currencies,
+            selected = uiState.selectedCurrency,
+            label = ::currencyLabel,
+            onSelect = viewModel::selectCurrency,
+            supportingText = stringResource(R.string.onboarding_currency_hint)
+        )
+    }
+}
+
+/** Defaults to the device language; picking one sets the per-app locale and recreates the activity. */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@Composable
+private fun LanguagePicker() {
+    val context = LocalContext.current
+    val localeManager = remember { context.getSystemService(LocaleManager::class.java) }
+    val languages = remember {
+        val supported = LocaleConfig(context).supportedLocales ?: LocaleList.getEmptyLocaleList()
+        // Debug builds also list the en-XA / ar-XB pseudolocales.
+        val locales = (0 until supported.size()).map { supported[it] }.filter { it.country !in PSEUDO_REGIONS }
+        val multiRegion = locales.groupBy { it.language }.filterValues { it.size > 1 }.keys
+        // Region only where a language has several variants (pt-BR / pt-PT).
+        listOf<Pair<Locale?, String>>(null to "") + locales
+            .map { it to (if (it.language in multiRegion) it.getDisplayName(it) else it.getDisplayLanguage(it)).replaceFirstChar { c -> c.titlecase(it) } }
+            .sortedWith(compareBy(Collator.getInstance()) { it.second })
+    }
+    val deviceLanguage = stringResource(R.string.onboarding_language_device)
+    val current = localeManager.applicationLocales.takeUnless { it.isEmpty }?.get(0)
+    Text(
+        text = stringResource(R.string.settings_language_title),
+        style = MaterialTheme.typography.titleMedium
+    )
+    Spacer(modifier = Modifier.height(Spacing.sm))
+    OnboardingPicker(
+        options = languages,
+        selected = languages.firstOrNull { it.first == current } ?: languages.first(),
+        label = { (locale, name) -> if (locale == null) deviceLanguage else name },
+        onSelect = { (locale, _) ->
+            localeManager.applicationLocales = locale?.let { LocaleList(it) } ?: LocaleList.getEmptyLocaleList()
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> OnboardingPicker(
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+    supportingText: String? = null
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        TextField(
+            value = label(selected),
+            onValueChange = {},
+            readOnly = true,
+            singleLine = true,
+            supportingText = supportingText?.let { { Text(it) } },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEachIndexed { index, option ->
+                SelectableDropdownMenuItem(
+                    selected = option == selected,
+                    text = { Text(label(option)) },
+                    onClick = {
+                        expanded = false
+                        onSelect(option)
+                    },
+                    shapes = MenuDefaults.itemShape(index, options.size),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProfileStep(
+    uiState: OnBoardingUiState,
+    viewModel: OnBoardingViewModel
+) {
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.selectProfileImage(it) }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        Text(
+            text = stringResource(R.string.onboarding_name_title),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        TextField(
+            value = uiState.userName,
+            onValueChange = { viewModel.updateUserName(it) },
+            label = { Text(stringResource(R.string.onboarding_name_label)) },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(onDone = {
+                if (uiState.userName.isNotBlank()) viewModel.goToNextStep()
+            }),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth(),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+            )
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        Text(
+            text = stringResource(R.string.onboarding_avatar_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            itemsIndexed(viewModel.avatarDrawables) { index, drawableRes ->
+                val isSelected = uiState.profileImageUri == null && uiState.selectedAvatarIndex == index
+                Box(
+                    modifier = Modifier
+                        .size(OPTION_TILE_SIZE)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        .then(
+                            if (isSelected) Modifier.border(
+                                SELECTION_RING_WIDTH,
+                                MaterialTheme.colorScheme.primary,
+                                CircleShape
+                            ) else Modifier
+                        )
+                        .clickable { viewModel.selectAvatar(index) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = drawableRes),
+                        contentDescription = stringResource(R.string.onboarding_avatar_cd, index + 1),
+                        modifier = Modifier.size(Dimensions.Icon.avatar),
+                        colorFilter = ColorFilter.tint(
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            }
+
+            item {
+                // Gallery picker option
+                Box(
+                    modifier = Modifier
+                        .size(OPTION_TILE_SIZE)
+                        .clip(CircleShape)
+                        .background(
+                            if (uiState.profileImageUri != null) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        .then(
+                            if (uiState.profileImageUri != null) Modifier.border(
+                                SELECTION_RING_WIDTH,
+                                MaterialTheme.colorScheme.primary,
+                                CircleShape
+                            ) else Modifier
+                        )
+                        .clickable { imagePicker.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (uiState.profileImageUri != null) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(R.string.onboarding_photo_selected_cd),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(Dimensions.Icon.large)
+                        )
+                    } else {
+                        Text(
+                            text = "+",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        Text(
+            text = stringResource(R.string.onboarding_background_color_title),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.sm))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            viewModel.backgroundColors.forEachIndexed { index, colorInt ->
+                val isSelected = uiState.selectedBackgroundColor == index
+                Box(
+                    modifier = Modifier
+                        .size(Dimensions.Icon.avatar)
+                        .clip(CircleShape)
+                        .background(Color(colorInt))
+                        .then(
+                            if (isSelected) Modifier.border(
+                                SELECTION_RING_WIDTH,
+                                MaterialTheme.colorScheme.onSurface,
+                                CircleShape
+                            ) else Modifier
+                        )
+                        .clickable { viewModel.selectBackgroundColor(index) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = stringResource(R.string.onboarding_selected_cd),
+                            tint = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionsStep(
+    uiState: OnBoardingUiState,
+    onPermissionResult: (Boolean) -> Unit
+) {
+    val smsAccess = rememberSmsAccess(onGranted = { onPermissionResult(true) })
+    // Recreated after a grant in app settings, access starts granted and onGranted never
+    // fires. Catch the ViewModel up; an earlier grant (Back to this step) is already recorded.
+    LaunchedEffect(smsAccess.granted) {
+        if (smsAccess.granted && !uiState.smsPermissionGranted) onPermissionResult(true)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.MailOutline,
+            contentDescription = null,
+            modifier = Modifier.size(HERO_ICON_SIZE_SMALL),
+            tint = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        Text(
+            text = stringResource(R.string.onboarding_permission_title),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.md))
+
+        Text(
+            text = stringResource(R.string.onboarding_permission_body),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.lg))
+
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            shape = MaterialTheme.shapes.large,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(Spacing.md)) {
+                Text(
+                    text = stringResource(R.string.permission_privacy_title),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.permission_privacy_points),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        if (uiState.smsPermissionGranted) {
+            val incomeColor = MaterialTheme.colorScheme.income
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
+                ),
+                shape = MaterialTheme.shapes.large,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = incomeColor
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.sm))
+                    Text(
+                        text = stringResource(R.string.onboarding_permission_granted),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = incomeColor
+                    )
+                }
+            }
+        } else {
+            Button(
+                onClick = smsAccess.request,
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(
+                    stringResource(
+                        if (smsAccess.blocked) R.string.sms_access_open_settings
+                        else R.string.onboarding_enable_permissions
+                    )
+                )
+            }
+            if (smsAccess.blocked) {
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.sms_access_blocked_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BackgroundAccessStep() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        Text(
+            text = stringResource(R.string.background_access_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        BackgroundAccessChecklist()
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun SmsScanStep(uiState: OnBoardingUiState, showNotificationReason: Boolean) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        if (uiState.isScanning) {
+            LoadingIndicator(
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer)
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            Text(
+                text = stringResource(R.string.onboarding_scan_in_progress),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            if (uiState.scanTotal > 0) {
+                val progress = uiState.scanProcessed.toFloat() / uiState.scanTotal.toFloat()
+                LinearWavyProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = pluralStringResource(R.plurals.onboarding_scan_processed, uiState.scanTotal, uiState.scanProcessed, uiState.scanTotal),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (uiState.scanParsed > 0) {
+                    Text(
+                        text = pluralStringResource(R.plurals.onboarding_scan_found, uiState.scanParsed, uiState.scanParsed),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (uiState.scanEstimatedRemaining > 0) {
+                    val seconds = uiState.scanEstimatedRemaining / 1000
+                    Text(
+                        text = stringResource(R.string.onboarding_scan_remaining, seconds),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(R.string.onboarding_scan_preparing),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else if (uiState.scanCompleted) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            Text(
+                text = stringResource(R.string.onboarding_scan_complete),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            if (uiState.scanSaved > 0) {
+                Text(
+                    text = pluralStringResource(R.plurals.onboarding_scan_saved, uiState.scanSaved, uiState.scanSaved, uiState.scanTotal),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.onboarding_scan_none_found),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                MissingBankCard()
+            }
+
+            if (showNotificationReason) {
+                Spacer(modifier = Modifier.height(Spacing.lg))
+                Text(
+                    text = stringResource(R.string.onboarding_notifications_reason),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            // Not started yet
+            Icon(
+                imageVector = Icons.Filled.MailOutline,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            Text(
+                text = stringResource(R.string.onboarding_scan_title),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            Text(
+                text = stringResource(R.string.onboarding_scan_body),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** Nothing parsed usually means an unsupported bank: point to the bank-support request. */
+@Composable
+private fun MissingBankCard() {
+    val context = LocalContext.current
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.md)) {
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Spacer(modifier = Modifier.height(Spacing.xs))
+            Text(
+                text = stringResource(R.string.onboarding_bank_missing_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            TextButton(
+                onClick = {
+                    // ponytail: no browser installed → ActivityNotFoundException is swallowed, nothing else to offer
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
+                },
+                modifier = Modifier.align(Alignment.End),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Text(stringResource(R.string.onboarding_bank_missing_action))
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountSetupStep(
+    uiState: OnBoardingUiState,
+    onSelectAccount: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .verticalScroll(rememberScrollState())
+            .padding(Spacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(modifier = Modifier.height(Spacing.xl))
+
+        if (uiState.accounts.isEmpty()) {
+            Icon(
+                imageVector = Icons.Filled.AccountBalance,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.emptyStateContainer),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            Text(
+                text = stringResource(R.string.onboarding_all_set),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            Text(
+                text = stringResource(R.string.onboarding_no_accounts),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.onboarding_main_account_title),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            Text(
+                text = stringResource(R.string.onboarding_main_account_body),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(Spacing.lg))
+
+            uiState.accounts.forEach { account ->
+                val accountKey = "${account.bankName}_${account.accountLast4}"
+                val isSelected = uiState.selectedAccountKey == accountKey
+
+                // The muted "on" colour has to follow the container. Selecting a
+                // row swaps its fill to primaryContainer, and onSurfaceVariant —
+                // a colour paired with `surface` — then sat on it at almost no
+                // contrast, making the masked digits vanish on the selected row.
+                val mutedColor = if (isSelected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer.copy(
+                        alpha = Dimensions.Alpha.subtitle
+                    )
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
+                Card(
+                    onClick = { onSelectAccount(accountKey) },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                    ),
+                    border = if (isSelected) BorderStroke(
+                        Spacing.xxs,
+                        MaterialTheme.colorScheme.primary
+                    ) else null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = Spacing.xs)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(Spacing.md)
+                            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                        ) {
+                            Text(
+                                text = account.bankName,
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            // Mobile-money wallets have no account number.
+                            if (account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+                                Text(
+                                    text = "****${account.accountLast4}",
+                                    style = PennyWiseText.amountSmall,
+                                    color = mutedColor
+                                )
+                            }
+                        }
+                        Text(
+                            text = CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                            style = PennyWiseText.amountRow
+                        )
+                        if (isSelected) {
+                            Spacer(modifier = Modifier.width(Spacing.sm))
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = stringResource(R.string.onboarding_selected_cd),
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(Dimensions.Icon.inline)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepIndicator(
+    currentStep: OnBoardingStep,
+    modifier: Modifier = Modifier
+) {
+    val steps = OnBoardingStep.entries
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        steps.forEachIndexed { index, step ->
+            val isActive = step == currentStep
+            val isPast = index < steps.indexOf(currentStep)
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = Spacing.xs)
+                    .size(if (isActive) STEP_DOT_ACTIVE else STEP_DOT_INACTIVE)
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            isActive -> MaterialTheme.colorScheme.primary
+                            isPast -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        }
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnBoardingBottomBar(
+    uiState: OnBoardingUiState,
+    onBack: () -> Unit,
+    onNext: () -> Unit,
+    onSkip: () -> Unit,
+    onStartScan: () -> Unit
+) {
+    val isFirstStep = uiState.currentStep == OnBoardingStep.WELCOME
+    val canGoBack = !isFirstStep && !uiState.isScanning
+
+    // Keep the controls above the system navigation bar under edge-to-edge (#563):
+    // the Scaffold's bottomBar slot doesn't apply navigation-bar insets on its own,
+    // so without this the gesture/3-button nav bar overlaps the Next button.
+    // imePadding keeps "Save & Continue" above the keyboard on the name step.
+    Column(modifier = Modifier.navigationBarsPadding().imePadding()) {
+        StepIndicator(
+            currentStep = uiState.currentStep,
+            modifier = Modifier
+                .fillMaxWidth()
+                // Top gap so content scrolled behind the bar (keyboard open) doesn't touch the dots.
+                .padding(top = Spacing.sm, bottom = Spacing.sm)
+        )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Back button
+        if (canGoBack) {
+            IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.onboarding_back)
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.width(48.dp))
+        }
+
+        // Skip / CTA button area
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            when (uiState.currentStep) {
+                OnBoardingStep.WELCOME -> {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.onboarding_get_started))
+                    }
+                }
+
+                OnBoardingStep.PROFILE -> {
+                    Button(
+                        onClick = onNext,
+                        enabled = uiState.userName.isNotBlank(),
+                        shapes = ButtonDefaults.shapes()
+                    ) {
+                        Text(stringResource(R.string.onboarding_save_continue))
+                    }
+                }
+
+                OnBoardingStep.PERMISSIONS -> {
+                    if (!uiState.smsPermissionGranted) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_skip))
+                        }
+                    }
+                    if (uiState.smsPermissionGranted) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_continue))
+                        }
+                    }
+                }
+
+                OnBoardingStep.BACKGROUND_ACCESS -> {
+                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.onboarding_continue))
+                    }
+                }
+
+                OnBoardingStep.SMS_SCAN -> {
+                    if (!uiState.isScanning && !uiState.scanCompleted) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_skip))
+                        }
+                        Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_start_scanning))
+                        }
+                    } else if (uiState.isScanning) {
+                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_skip))
+                        }
+                    } else if (uiState.scanCompleted) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_continue))
+                        }
+                    }
+                }
+
+                OnBoardingStep.ACCOUNT_SETUP -> {
+                    if (uiState.accounts.isEmpty()) {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_finish))
+                        }
+                    } else {
+                        if (uiState.selectedAccountKey == null) {
+                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.onboarding_skip))
+                            }
+                        }
+                        Button(
+                            onClick = onNext,
+                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
+                            shapes = ButtonDefaults.shapes()
+                        ) {
+                            if (uiState.isCompleting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(Dimensions.Icon.medium),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(stringResource(R.string.onboarding_finish))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    }
+}
+
+/** "₹ INR · Indian Rupee" — the localized name helps pick among similar codes. */
+private fun currencyLabel(code: String): String {
+    val name = runCatching { Currency.getInstance(code).displayName }.getOrNull()
+    val symbol = CurrencyFormatter.getCurrencySymbol(code)
+    val base = if (symbol == code) code else "$symbol $code"
+    return if (name == null || name == code) base else "$base · $name"
+}
+
+// Onboarding-only geometry. These are intentionally larger than any in-app
+// token: full-screen illustrative moments, not list chrome.
+private val HERO_ICON_SIZE = 100.dp
+private const val BANK_REQUEST_URL =
+    "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md"
+private val PSEUDO_REGIONS = setOf("XA", "XB")
+private val HERO_ICON_SIZE_SMALL = 80.dp
+private val OPTION_TILE_SIZE = 72.dp
+private val SELECTION_RING_WIDTH = 3.dp
+private val STEP_DOT_ACTIVE = Spacing.sm
+private val STEP_DOT_INACTIVE = 6.dp

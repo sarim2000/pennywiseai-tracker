@@ -13,7 +13,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -49,7 +49,7 @@ class AddViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val budgetGroupRepository: BudgetGroupRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: CurrencyPreferences,
     private val transactionRepository: TransactionRepository,
     private val merchantMappingRepository: MerchantMappingRepository,
     private val tagRepository: TagRepository,

@@ -7,7 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.builtinKey
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.preferences.RecurringSuggestionPreferences
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
@@ -39,7 +39,7 @@ class RecurringSuggestionsUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val subscriptionRepository: SubscriptionRepository,
     private val categoryDao: CategoryDao,
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val userPreferencesRepository: RecurringSuggestionPreferences,
     @ApplicationScope scope: CoroutineScope,
 ) {
 

@@ -42,6 +42,9 @@ import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.SmsAccessCard
+import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
@@ -100,6 +103,18 @@ fun HomeScreen(
     val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
+    // A grant from the card, the sync button or app settings starts the first scan.
+    val smsAccess = rememberSmsAccess(onGranted = viewModel::onSmsAccessGranted)
+    // The "tap here to scan" hint needs access Home opened with: without it the SMS access
+    // card asks instead, and a grant made here already starts the scan the hint would teach.
+    val hadSmsAccessOnOpen = remember { smsAccess.granted }
+    val scanHintTarget: ((Rect) -> Unit)? = onFabPositioned.takeIf { hadSmsAccessOnOpen }
+    LaunchedEffect(uiState.smsAccessNeeded) {
+        if (uiState.smsAccessNeeded) {
+            viewModel.onSmsAccessPrompted()
+            smsAccess.request()
+        }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -336,6 +351,17 @@ fun HomeScreen(
                 }
             }
 
+            // Without SMS access nothing gets tracked: ask right under the balance card,
+            // above the fold, not at the bottom of the list behind the nav bar.
+            if (!smsAccess.granted && !uiState.isLoading && uiState.recentItems.isEmpty()) {
+                item(key = "sms_access") {
+                    SmsAccessCard(
+                        access = smsAccess,
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                    )
+                }
+            }
+
             // Share / one-time Pro card: below the first section that actually shows
             // (Safe to spend by default), so the decision card stays first and the
             // prompt still sits high enough to be seen and dismissed.
@@ -515,6 +541,16 @@ fun HomeScreen(
                                     }
                                 }
                             }
+                        } else if (uiState.recentItems.isEmpty() && !smsAccess.granted) {
+                            // No button: the SMS access card at the top is the one place that asks.
+                            item(key = "${section.name}_body") {
+                                PennyWiseEmptyState(
+                                    icon = Icons.Default.Sync,
+                                    headline = stringResource(R.string.home_empty_headline),
+                                    description = stringResource(R.string.sms_access_empty_body),
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                )
+                            }
                         } else if (uiState.recentItems.isEmpty()) {
                             item(key = "${section.name}_body") {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
@@ -636,7 +672,7 @@ fun HomeScreen(
                     onLongClickLabel = fullResyncLabel,
                     loading = uiState.isScanning,
                     resultCount = uiState.scanNewCount,
-                    onPositioned = onFabPositioned
+                    onPositioned = scanHintTarget
                 )
             )
         } else {
@@ -647,7 +683,7 @@ fun HomeScreen(
                 onNavigateToAddScreen = onNavigateToAddScreen,
                 onSync = { viewModel.scanSmsMessages() },
                 onRequestFullResync = { showFullResyncDialog = true },
-                onFabPositioned = onFabPositioned
+                onFabPositioned = scanHintTarget
             )
         }
 

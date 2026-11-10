@@ -163,6 +163,8 @@ class OnBoardingViewModel @Inject constructor(
                 smsPermissionSkipped = !granted
             )
         }
+        // Granted from the dialog or app settings: move on rather than wait for Continue.
+        if (granted && _uiState.value.currentStep == OnBoardingStep.PERMISSIONS) goToNextStep()
     }
 
     fun skipSmsPermission() {
@@ -326,6 +328,8 @@ class OnBoardingViewModel @Inject constructor(
             }
             // A widget added before onboarding finished holds the ₹ default.
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+            // Onboarding already scanned: Home's "tap here to scan" hint would teach a step done.
+            if (state.scanCompleted) userPreferencesRepository.markScanTutorialShown()
             userPreferencesRepository.updateHasCompletedOnboarding(true)
             _uiState.update { it.copy(isCompleting = false) }
             onComplete()

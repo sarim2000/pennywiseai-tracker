@@ -42,6 +42,7 @@ import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.canReadSms
 import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -1099,6 +1100,16 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    /** (forceResync, rescanAll) of a scan that waited for SMS access. */
+    private var pendingScan = false to false
+
+    /** SMS access arrived: run the scan that asked for it, or a normal one. */
+    fun onSmsAccessGranted() {
+        val (forceResync, rescanAll) = pendingScan
+        pendingScan = false to false
+        scanSmsMessages(forceResync = forceResync, rescanAll = rescanAll)
+    }
+
     /**
      * Scans SMS messages for transactions.
      * @param forceResync If true, performs a full resync from scratch, reprocessing all SMS messages.
@@ -1108,6 +1119,14 @@ class HomeViewModel @Inject constructor(
      *                  anything: adds missed messages and keeps every edit.
      */
     fun scanSmsMessages(forceResync: Boolean = false, rescanAll: Boolean = false) {
+        // Every scan starts here (sync, resync, empty state, the tutorial). Without access it
+        // would find nothing, and a rebuild would delete rows it can't read back: ask instead,
+        // and run the scan that was asked for once access arrives.
+        if (!context.canReadSms()) {
+            pendingScan = forceResync to rescanAll
+            _uiState.value = _uiState.value.copy(smsAccessNeeded = true)
+            return
+        }
         val inputData = workDataOf(
             OptimizedSmsReaderWorker.INPUT_FORCE_RESYNC to forceResync,
             OptimizedSmsReaderWorker.INPUT_RESCAN_ALL to rescanAll
@@ -1133,6 +1152,10 @@ class HomeViewModel @Inject constructor(
 
         // Track work progress
         observeWorkProgress()
+    }
+
+    fun onSmsAccessPrompted() {
+        _uiState.value = _uiState.value.copy(smsAccessNeeded = false)
     }
 
     private fun observeWorkProgress() {
@@ -1604,6 +1627,8 @@ internal fun shouldShowProHomeCard(
     nowMillis - installedAtMillis >= java.util.concurrent.TimeUnit.DAYS.toMillis(PRO_CARD_MIN_INSTALL_DAYS)
 
 data class HomeUiState(
+    /** A scan was asked for without SMS access; Home asks for it, then clears this. */
+    val smsAccessNeeded: Boolean = false,
     val userName: String = "User",
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,

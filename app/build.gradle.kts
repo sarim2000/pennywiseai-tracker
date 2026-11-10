@@ -175,8 +175,16 @@ android {
         }
     }
     lint {
-        abortOnError = false
+        // New errors fail the build; existing debt lives in the baseline.
+        // Refresh it with ./gradlew :app:updateLintBaselineStandardDebug.
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
         checkReleaseBuilds = false
+        // Version-bump nags go stale as releases ship, and for the root gradle/
+        // files they record machine-specific paths in the baseline.
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion", "NewerVersionAvailable")
+        // Crowdin fills translations after merge, so new strings ship untranslated.
+        warning += "MissingTranslation"
     }
 }
 

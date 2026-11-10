@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.ui.components
+package com.pennywiseai.tracker.presentation.analytics
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -17,8 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.components.ExpandableList
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.presentation.analytics.TagData
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions

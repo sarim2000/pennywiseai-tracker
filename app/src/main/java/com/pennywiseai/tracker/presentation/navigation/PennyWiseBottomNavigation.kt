@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.ui.components
+package com.pennywiseai.tracker.presentation.navigation
 
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
@@ -56,7 +56,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
-import com.pennywiseai.tracker.presentation.navigation.BottomNavItem
+import com.pennywiseai.tracker.ui.components.DockedActionButton
+import com.pennywiseai.tracker.ui.components.NavDockAction
+import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing

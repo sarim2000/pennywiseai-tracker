@@ -52,8 +52,8 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.filterIcon
-import com.pennywiseai.tracker.ui.components.shortLabel
+import com.pennywiseai.tracker.presentation.common.filterIcon
+import com.pennywiseai.tracker.presentation.common.shortLabel
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter

@@ -4,8 +4,6 @@ import androidx.activity.compose.ReportDrawnWhen
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
-import com.pennywiseai.tracker.ui.components.cards.SafeToSpendCard
-import com.pennywiseai.tracker.ui.components.cards.SafeToSpendSheet
 import android.view.HapticFeedbackConstants
 import androidx.activity.ComponentActivity
 import androidx.work.WorkInfo
@@ -37,7 +35,7 @@ import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
-import com.pennywiseai.tracker.ui.components.ReviewPromptBanner
+import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.ui.components.PaydaySuggestionCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.ProHomeCard

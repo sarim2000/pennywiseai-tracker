@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.ui.components
+package com.pennywiseai.tracker.presentation.common
 
 import androidx.compose.runtime.Composable
 import com.pennywiseai.tracker.R
@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
 
 @Composable
 fun TransactionTypeFilter.shortLabel(): String = stringResource(

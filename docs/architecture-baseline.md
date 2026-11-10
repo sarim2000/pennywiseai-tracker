@@ -12,7 +12,11 @@ the feature ViewModels `AppLock`, `Permission`, `Rules` and `BackgroundAccess` f
 `ui/viewmodel/` to the same feature packages (refactor PR 05). `ui/theme/`, the
 fonts and the three appearance enums moved to `:core:designsystem` (refactor PR 17),
 which removes the `ui.theme` → `data` back-edge from `:app`. `ui/components` stayed
-in `:app`; [architecture.md](architecture.md#coredesignsystem) says why.
+in `:app`; [architecture.md](architecture.md#coredesignsystem) says why. The four
+`data` → `ui` imports are gone (refactor PR 19): `SHARE_CARD_URL` lives in
+`data/share`, `SubscriptionRepository` calls `SharedCategoryMapping` directly, and
+the import-statement and webhook-validation errors are a plain `core.ResText` that
+the ViewModels turn into `UiText`. `ArchitectureTest` now forbids `data` → `ui`.
 
 Re-check the package graph with:
 

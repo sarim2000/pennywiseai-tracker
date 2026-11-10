@@ -179,7 +179,7 @@ reprints them. A PR may remove a violation but must not add one.
    entities and repositories from `data`, which is the current pattern. Introduce
    a separate domain model only when a feature needs one.
 5. **Money has one definition.** Use `utils/Money.kt`, `MoneyTotals.kt` and
-   `CurrencyFormatter` (see the hard constraints in `CLAUDE.md`). Check `:shared`
+   `CurrencyFormatter` (see the hard constraints in `AGENTS.md`). Check `:shared`
    before adding a model, so it isn't defined twice.
 6. **Moves keep persisted names.** WorkManager stores worker class names, and
    widgets, tiles, the notification listener and the launcher activity are bound

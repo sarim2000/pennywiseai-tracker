@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.model.icon
 
 import com.pennywiseai.tracker.R
@@ -41,7 +42,7 @@ fun AddAccountScreen(
     onNavigateBack: () -> Unit,
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
-    val formState by viewModel.formState.collectAsState()
+    val formState by viewModel.formState.collectAsStateWithLifecycle()
     var showTypeDropdown by remember { mutableStateOf(false) }
     var showCurrencyDropdown by remember { mutableStateOf(false) }
 

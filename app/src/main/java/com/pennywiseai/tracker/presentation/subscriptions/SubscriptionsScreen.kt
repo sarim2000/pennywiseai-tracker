@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.animation.ValueAnimator
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -76,8 +77,8 @@ fun SubscriptionsScreen(
     onNavigateBack: () -> Unit = {},
     onAddSubscriptionClick: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val accounts by viewModel.accounts.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     // Subscription currently being marked-as-paid. Null = sheet closed.
     var markPaidTarget by remember { mutableStateOf<SubscriptionEntity?>(null) }

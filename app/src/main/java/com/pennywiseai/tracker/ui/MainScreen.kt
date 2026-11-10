@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -20,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -184,8 +184,8 @@ fun MainScreen(
     // The bar shows on a tab-level screen and always highlights the tab on screen,
     // even when that tab drilled into another tab's screen (Analytics → Transactions).
     val baseRoute = if (tabOf(topKey) != null) currentTab.route else ""
-    val spotlightState by spotlightViewModel.spotlightState.collectAsState()
-    val themeState by themeViewModel.themeUiState.collectAsState()
+    val spotlightState by spotlightViewModel.spotlightState.collectAsStateWithLifecycle()
+    val themeState by themeViewModel.themeUiState.collectAsStateWithLifecycle()
 
     // Each tab's screens act on that tab's own stack (entries are built once,
     // so they mustn't capture which tab is current).
@@ -242,15 +242,15 @@ fun MainScreen(
     }
 
     // What's New dialog state
-    val whatsNewVersion by mainViewModel.whatsNewVersion.collectAsState()
+    val whatsNewVersion by mainViewModel.whatsNewVersion.collectAsStateWithLifecycle()
 
     // UPI VPA → contact name. Read the toggle as state; the lambda closes
     // over the current value + the singleton resolver, and is provided
     // through a CompositionLocal so every transaction-rendering composable
     // (TransactionItem, TransactionDetailScreen header, etc.) can apply the
     // same rule without prop-drilling the resolver everywhere.
-    val useContactsForVpa by mainViewModel.useContactsForVpa.collectAsState()
-    val merchantAliases by mainViewModel.merchantAliases.collectAsState()
+    val useContactsForVpa by mainViewModel.useContactsForVpa.collectAsStateWithLifecycle()
+    val merchantAliases by mainViewModel.merchantAliases.collectAsStateWithLifecycle()
     val merchantDisplay = remember(useContactsForVpa, merchantAliases) {
         { raw: String? ->
             displayMerchantName(raw, useContactsForVpa, mainViewModel.contactsResolver, merchantAliases)

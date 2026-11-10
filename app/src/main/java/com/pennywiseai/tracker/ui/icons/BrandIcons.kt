@@ -252,7 +252,20 @@ object BrandIcons {
         "keells" to R.drawable.ic_brand_keells,
     )
     
-    fun getIconResource(merchantName: String): Int? {
+    // Both lookups scan every brand key and depend only on the name, and a list runs them
+    // for each row it composes. Sentinels stand for "no match": LruCache holds no nulls.
+    private val iconCache = android.util.LruCache<String, Int>(512)
+    private val colorCache = android.util.LruCache<String, String>(512)
+
+    fun getIconResource(merchantName: String): Int? =
+        (iconCache.get(merchantName) ?: (findIconResource(merchantName) ?: 0).also { iconCache.put(merchantName, it) })
+            .takeIf { it != 0 }
+
+    fun getBrandColor(merchantName: String): String? =
+        (colorCache.get(merchantName) ?: (findBrandColor(merchantName) ?: "").also { colorCache.put(merchantName, it) })
+            .ifEmpty { null }
+
+    private fun findIconResource(merchantName: String): Int? {
         val normalized = merchantName.lowercase()
 
         // Special handling for "cred": match it as a whole word so banking terms
@@ -291,7 +304,7 @@ object BrandIcons {
         return false
     }
     
-    fun getBrandColor(merchantName: String): String? = when {
+    private fun findBrandColor(merchantName: String): String? = when {
         // Entertainment
         merchantName.contains("netflix", ignoreCase = true) -> "#E50914"
         merchantName.contains("spotify", ignoreCase = true) -> "#1DB954"

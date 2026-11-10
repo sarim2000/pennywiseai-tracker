@@ -66,6 +66,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.flowOn
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -191,7 +193,7 @@ class HomeViewModel @Inject constructor(
 
     // Per-currency LENT-loan settlement loss for each of those cycles, folded into "usual"
     // the same way currentMonthLoanLossByCurrency is folded into this cycle's spend.
-    private var previousCycleLoanLoss: List<Map<String, BigDecimal>> = emptyList()
+    @Volatile private var previousCycleLoanLoss: List<Map<String, BigDecimal>> = emptyList()
 
     // Per-currency total loss from LENT loans settled this month. Folded into the displayed
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
@@ -543,6 +545,8 @@ class HomeViewModel @Inject constructor(
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     breakdownByCurrency(nonLoan, creditAsExpense)
                 }
+                // Filtering and grouping off the main thread; the collector still runs on Main.
+                .flowOn(Dispatchers.Default)
                 .collect { breakdownByCurrency ->
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
                 }
@@ -641,6 +645,8 @@ class HomeViewModel @Inject constructor(
                 .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
                     filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
                 }
+                // Filtering and grouping off the main thread; the collector still runs on Main.
+                .flowOn(Dispatchers.Default)
                 .collect { transactions ->
                     updateTransactionTypeTotals(transactions)
                 }
@@ -664,6 +670,8 @@ class HomeViewModel @Inject constructor(
                     val keys = buildProfileAccountKeys(balances)
                     filterTransactionsByProfile(lentTxns, profileId, keys)
                 }
+                // Filtering and grouping off the main thread; the collector still runs on Main.
+                .flowOn(Dispatchers.Default)
                 .collect { filtered ->
                     currentMonthLentByCurrency = filtered.groupBy { it.currency }.mapValues { (_, txs) ->
                         // Honour partial-loan tagging: only the loan_contribution
@@ -759,6 +767,8 @@ class HomeViewModel @Inject constructor(
                     )
                     full to samePoint
                 }
+                // Filtering and grouping off the main thread; the collector still runs on Main.
+                .flowOn(Dispatchers.Default)
                 .collect { (breakdowns, samePoint) ->
                     previousCycleBreakdownMaps = breakdowns
                     lastMonthSamePointBreakdownMap = samePoint
@@ -793,6 +803,8 @@ class HomeViewModel @Inject constructor(
                 .combine(
                     _uiState.map { it.selectedCurrency to it.isUnifiedMode }.distinctUntilChanged()
                 ) { allTransactions, _ -> allTransactions }
+                // Filtering and grouping off the main thread; the collector still runs on Main.
+                .flowOn(Dispatchers.Default)
                 .collect { allTransactions ->
                     val (firstOfMonth, _) = _currentCycleWindow.value
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
@@ -889,7 +901,7 @@ class HomeViewModel @Inject constructor(
                 _cachedAccountBalances.filterNotNull()
             ) { transactions, profileId, balances ->
                 filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-            }.collect { transactions ->
+            }.flowOn(Dispatchers.Default).collect { transactions ->
                 val heatmap = transactions
                     .groupBy { it.dateTime.toLocalDate().toEpochDay() }
                     .mapValues { it.value.size }
@@ -899,13 +911,7 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             // Load recent items: ungrouped transactions + groups, merged and sorted by most recent activity
-            val rawGroupsFlow = transactionGroupRepository.getAllGroups().flatMapLatest { groups ->
-                if (groups.isEmpty()) flowOf(emptyList())
-                else combine(groups.map { group ->
-                    transactionGroupRepository.getTransactionsForGroup(group.id)
-                        .map { txns -> group to txns }
-                }) { it.toList() }
-            }
+            val rawGroupsFlow = transactionGroupRepository.observeGroupsWithTransactions()
 
             combine(
                 combine(
@@ -959,7 +965,7 @@ class HomeViewModel @Inject constructor(
                         }
                     }
                 }
-            }.collect { items ->
+            }.flowOn(Dispatchers.Default).collect { items ->
                 _uiState.value = _uiState.value.copy(recentItems = items, isLoading = false)
             }
         }
@@ -1167,37 +1173,41 @@ class HomeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(smsAccessNeeded = false)
     }
 
+    private var workProgressJob: kotlinx.coroutines.Job? = null
+
+    // One collector, tied to viewModelScope: the observeForever this replaced was never
+    // removed, so each scan added one that kept a cleared ViewModel alive.
     private fun observeWorkProgress() {
-        val workManager = WorkManager.getInstance(context)
+        workProgressJob?.cancel()
+        workProgressJob = viewModelScope.launch {
+            WorkManager.getInstance(context).getWorkInfosByTagFlow(OptimizedSmsReaderWorker.WORK_NAME).collect { workInfos ->
+                // A running scan wins (so an earlier, finished one sharing the tag can't
+                // end it early), then the user's own scan, then any (scans started
+                // elsewhere, e.g. onboarding or SmsScanManager, still drive isScanning).
+                val currentWork = workInfos.firstOrNull { !it.state.isFinished }
+                    ?: workInfos.firstOrNull { it.id == scanWorkId }
+                    ?: workInfos.firstOrNull()
+                if (currentWork != null) {
+                    _smsScanWorkInfo.value = currentWork
 
-        // Use getWorkInfosById for more direct observation
-        workManager.getWorkInfosByTagLiveData(OptimizedSmsReaderWorker.WORK_NAME).observeForever { workInfos ->
-            // A running scan wins (so an earlier, finished one sharing the tag can't
-            // end it early), then the user's own scan, then any (scans started
-            // elsewhere, e.g. onboarding or SmsScanManager, still drive isScanning).
-            val currentWork = workInfos.firstOrNull { !it.state.isFinished }
-                ?: workInfos.firstOrNull { it.id == scanWorkId }
-                ?: workInfos.firstOrNull()
-            if (currentWork != null) {
-                _smsScanWorkInfo.value = currentWork
-
-                // Update scanning state based on work state
-                when (currentWork.state) {
-                    WorkInfo.State.SUCCEEDED -> {
-                        // "+N" only for the scan the user started here.
-                        val justFinished = _uiState.value.isScanning && currentWork.id == scanWorkId && scanReportsNew
-                        _uiState.value = _uiState.value.copy(isScanning = false)
-                        // The final count rides on outputData; progress is already cleared.
-                        if (justFinished) showScanResult(currentWork.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, 0))
-                    }
-                    WorkInfo.State.FAILED,
-                    WorkInfo.State.CANCELLED,
-                    WorkInfo.State.BLOCKED -> {
-                        _uiState.value = _uiState.value.copy(isScanning = false)
-                    }
-                    else -> {
-                        // Still running or enqueued
-                        _uiState.value = _uiState.value.copy(isScanning = true)
+                    // Update scanning state based on work state
+                    when (currentWork.state) {
+                        WorkInfo.State.SUCCEEDED -> {
+                            // "+N" only for the scan the user started here.
+                            val justFinished = _uiState.value.isScanning && currentWork.id == scanWorkId && scanReportsNew
+                            _uiState.value = _uiState.value.copy(isScanning = false)
+                            // The final count rides on outputData; progress is already cleared.
+                            if (justFinished) showScanResult(currentWork.outputData.getInt(OptimizedSmsReaderWorker.PROGRESS_SAVED, 0))
+                        }
+                        WorkInfo.State.FAILED,
+                        WorkInfo.State.CANCELLED,
+                        WorkInfo.State.BLOCKED -> {
+                            _uiState.value = _uiState.value.copy(isScanning = false)
+                        }
+                        else -> {
+                            // Still running or enqueued
+                            _uiState.value = _uiState.value.copy(isScanning = true)
+                        }
                     }
                 }
             }
@@ -1406,7 +1416,7 @@ class HomeViewModel @Inject constructor(
     fun checkForInAppReview(activity: ComponentActivity) {
         viewModelScope.launch {
             // Get current transaction count as additional eligibility factor
-            val transactionCount = transactionRepository.getAllTransactions().first().size
+            val transactionCount = transactionRepository.observeActiveTransactionCount().first()
             inAppReviewManager.checkAndShowReviewIfEligible(activity, transactionCount)
         }
     }

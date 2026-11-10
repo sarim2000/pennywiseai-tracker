@@ -165,10 +165,10 @@ fun TransactionTabContent(
     viewModel: AddViewModel,
     onSave: () -> Unit
 ) {
-    val uiState by viewModel.transactionUiState.collectAsState()
+    val uiState by viewModel.transactionUiState.collectAsStateWithLifecycle()
     val categories by viewModel.transactionCategories.collectAsStateWithLifecycle()
     var showAddCategoryDialog by remember { mutableStateOf(false) }
-    val accounts by viewModel.accounts.collectAsState()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -286,7 +286,7 @@ fun TransactionTabContent(
             }
 
             // ── Tags (create or select existing) ──
-            val allTagNames by viewModel.allTagNames.collectAsState()
+            val allTagNames by viewModel.allTagNames.collectAsStateWithLifecycle()
             TagInputField(
                 selectedTags = uiState.tags,
                 allTags = allTagNames,
@@ -627,8 +627,8 @@ fun TransactionTabContent(
 
             // ── Budget Impact (INCOME only) ──
             if (uiState.transactionType == TransactionType.INCOME) {
-                val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsState()
-                val refundCategories by viewModel.refundCategories.collectAsState()
+                val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsStateWithLifecycle()
+                val refundCategories by viewModel.refundCategories.collectAsStateWithLifecycle()
                 AddBudgetImpactSection(
                     budgetImpactType = uiState.budgetImpactType,
                     budgetCategory = uiState.budgetCategory,

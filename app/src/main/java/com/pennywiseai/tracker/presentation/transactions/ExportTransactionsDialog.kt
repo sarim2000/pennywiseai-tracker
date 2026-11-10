@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -43,7 +44,7 @@ fun ExportTransactionsDialog(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var exportState by remember { mutableStateOf<ExportState>(ExportState.Ready) }
-    val isProEntitled by viewModel.isProEntitled.collectAsState()
+    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     // F-Droid support nudge: on the open build there's no Pro to sell, so a
     // successful export (a Pro-equivalent power feature) is a natural, capped

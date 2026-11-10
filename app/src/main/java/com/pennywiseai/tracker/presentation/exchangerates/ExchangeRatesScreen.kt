@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -41,7 +42,7 @@ fun ExchangeRatesScreen(
     viewModel: ExchangeRatesViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var editingRate by remember { mutableStateOf<ExchangeRateEntity?>(null) }
 

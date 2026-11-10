@@ -1,18 +1,16 @@
 package com.pennywiseai.tracker.presentation.onboarding
 
 import android.Manifest
-import android.content.Intent
-import android.content.pm.PackageManager
 import android.app.LocaleConfig
 import android.app.LocaleManager
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.LocaleList
-import androidx.annotation.RequiresApi
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -30,17 +28,12 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.core.content.ContextCompat
-import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,70 +41,76 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
-// TextFieldDefaults already imported above
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
-import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.Collator
 import java.util.Currency
@@ -1093,115 +1092,115 @@ private fun OnBoardingBottomBar(
                 .padding(top = Spacing.sm, bottom = Spacing.sm)
         )
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Back button
-        if (canGoBack) {
-            IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.onboarding_back)
-                )
-            }
-        } else {
-            Spacer(modifier = Modifier.width(48.dp))
-        }
-
-        // Skip / CTA button area
         Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.lg, vertical = Spacing.md),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            when (uiState.currentStep) {
-                OnBoardingStep.WELCOME -> {
-                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.onboarding_get_started))
-                    }
+            // Back button
+            if (canGoBack) {
+                IconButton(onClick = onBack, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.onboarding_back)
+                    )
                 }
+            } else {
+                Spacer(modifier = Modifier.width(48.dp))
+            }
 
-                OnBoardingStep.PROFILE -> {
-                    Button(
-                        onClick = onNext,
-                        enabled = uiState.userName.isNotBlank(),
-                        shapes = ButtonDefaults.shapes()
-                    ) {
-                        Text(stringResource(R.string.onboarding_save_continue))
-                    }
-                }
-
-                OnBoardingStep.PERMISSIONS -> {
-                    if (!uiState.smsPermissionGranted) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_skip))
-                        }
-                    }
-                    if (uiState.smsPermissionGranted) {
+            // Skip / CTA button area
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                when (uiState.currentStep) {
+                    OnBoardingStep.WELCOME -> {
                         Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_continue))
+                            Text(stringResource(R.string.onboarding_get_started))
                         }
                     }
-                }
 
-                OnBoardingStep.BACKGROUND_ACCESS -> {
-                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.onboarding_continue))
-                    }
-                }
-
-                OnBoardingStep.SMS_SCAN -> {
-                    if (!uiState.isScanning && !uiState.scanCompleted) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_skip))
-                        }
-                        Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_start_scanning))
-                        }
-                    } else if (uiState.isScanning) {
-                        TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_skip))
-                        }
-                    } else if (uiState.scanCompleted) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_continue))
+                    OnBoardingStep.PROFILE -> {
+                        Button(
+                            onClick = onNext,
+                            enabled = uiState.userName.isNotBlank(),
+                            shapes = ButtonDefaults.shapes()
+                        ) {
+                            Text(stringResource(R.string.onboarding_save_continue))
                         }
                     }
-                }
 
-                OnBoardingStep.ACCOUNT_SETUP -> {
-                    if (uiState.accounts.isEmpty()) {
-                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
-                            Text(stringResource(R.string.onboarding_finish))
-                        }
-                    } else {
-                        if (uiState.selectedAccountKey == null) {
+                    OnBoardingStep.PERMISSIONS -> {
+                        if (!uiState.smsPermissionGranted) {
                             TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.onboarding_skip))
                             }
                         }
-                        Button(
-                            onClick = onNext,
-                            enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
-                            shapes = ButtonDefaults.shapes()
-                        ) {
-                            if (uiState.isCompleting) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(Dimensions.Icon.medium),
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
+                        if (uiState.smsPermissionGranted) {
+                            Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.onboarding_continue))
+                            }
+                        }
+                    }
+
+                    OnBoardingStep.BACKGROUND_ACCESS -> {
+                        Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.onboarding_continue))
+                        }
+                    }
+
+                    OnBoardingStep.SMS_SCAN -> {
+                        if (!uiState.isScanning && !uiState.scanCompleted) {
+                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.onboarding_skip))
+                            }
+                            Button(onClick = onStartScan, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.onboarding_start_scanning))
+                            }
+                        } else if (uiState.isScanning) {
+                            TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.onboarding_skip))
+                            }
+                        } else if (uiState.scanCompleted) {
+                            Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.onboarding_continue))
+                            }
+                        }
+                    }
+
+                    OnBoardingStep.ACCOUNT_SETUP -> {
+                        if (uiState.accounts.isEmpty()) {
+                            Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.onboarding_finish))
+                            }
+                        } else {
+                            if (uiState.selectedAccountKey == null) {
+                                TextButton(onClick = onSkip, shapes = ButtonDefaults.shapes()) {
+                                    Text(stringResource(R.string.onboarding_skip))
+                                }
+                            }
+                            Button(
+                                onClick = onNext,
+                                enabled = uiState.selectedAccountKey != null || uiState.accounts.isEmpty(),
+                                shapes = ButtonDefaults.shapes()
+                            ) {
+                                if (uiState.isCompleting) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(Dimensions.Icon.medium),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Text(stringResource(R.string.onboarding_finish))
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }
     }
 }
 

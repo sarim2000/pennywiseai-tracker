@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.domain.model.icon
 
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
@@ -10,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*

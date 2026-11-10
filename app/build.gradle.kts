@@ -246,6 +246,7 @@ dependencies {
     implementation(project(":parser-core"))
     implementation(project(":shared"))
     implementation(project(":core:designsystem"))
+    implementation(project(":feature:exchangerates"))
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.profileinstaller)
@@ -386,6 +387,10 @@ tasks.withType<Test>().configureEach {
     inputs.dir(layout.projectDirectory.dir("src/main/res"))
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("androidResourcesForParityTest")
+    // Both tests also read the feature modules (feature/*/src).
+    inputs.files(rootProject.fileTree("feature") { include("*/src/**/res/**/*.xml", "*/src/*/java/**/*.kt") })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("featureSourcesForArchitectureAndParityTests")
     // Same for ArchitectureTest, which parses the Kotlin sources' imports. An
     // import edit doesn't always change the bytecode (swap one import line for
     // another), and then the compiled classes alone wouldn't re-run the test.

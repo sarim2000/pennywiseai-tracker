@@ -44,10 +44,10 @@ import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.domain.model.displayName
+import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.domain.model.icon
-import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.presentation.accounts.icon
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter

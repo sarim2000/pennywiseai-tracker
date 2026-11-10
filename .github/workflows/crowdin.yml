@@ -12,6 +12,7 @@ on:
       - 'fastlane/metadata/android/en-US/full_description.txt'
       - 'fastlane/metadata/android/en-US/changelogs/default.txt'
       - 'app/src/main/res/values/strings*.xml'
+      - 'feature/*/src/main/res/values/strings*.xml'
       - 'crowdin.yml'
   schedule:
     - cron: '0 6 * * 1'   # Mondays 06:00 UTC — pull fresh translations

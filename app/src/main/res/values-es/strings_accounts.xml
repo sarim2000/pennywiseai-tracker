@@ -271,25 +271,6 @@
     <string name="loan_detail_enter_amount">Ingresa el monto</string>
     <string name="loan_detail_amount_label">Monto</string>
     <string name="loan_detail_add">Agregar</string>
-    <!-- ══ Exchange rates ══ -->
-    <string name="exchange_rates_title">Tipos de cambio</string>
-    <string name="exchange_rates_refresh">Actualizar tipos</string>
-    <string name="exchange_rates_empty_title">No hay tipos de cambio disponibles</string>
-    <string name="exchange_rates_empty_description">Los tipos aparecerán cuando tengas transacciones en varias monedas</string>
-    <!-- %1$s = date and time -->
-    <string name="exchange_rates_last_updated">Última actualización: %1$s</string>
-    <string name="exchange_rates_hint">Toca un tipo para definir un valor personalizado. Los tipos personalizados se conservan al actualizar desde la API.</string>
-    <string name="exchange_rates_reset_all">Restablecer todo a automático</string>
-    <string name="exchange_rates_badge_custom">Personalizado</string>
-    <string name="exchange_rates_rate_label">Tipo de cambio</string>
-    <string name="exchange_rates_invalid_rate">Ingresa un número positivo válido</string>
-    <string name="exchange_rates_reset">Restablecer a automático</string>
-    <string name="exchange_rates_set_custom">Definir tipo personalizado</string>
-    <string name="exchange_rates_error_load">No se pudieron cargar los tipos</string>
-    <string name="exchange_rates_error_refresh">No se pudieron actualizar los tipos</string>
-    <string name="exchange_rates_error_set_custom">No se pudo definir el tipo personalizado</string>
-    <string name="exchange_rates_error_clear_custom">No se pudo quitar el tipo personalizado</string>
-    <string name="exchange_rates_error_clear_all_custom">No se pudieron quitar los tipos personalizados</string>
     <!-- ══ Accounts overview card (home) ══ -->
     <string name="accounts_overview_title">Resumen de cuentas</string>
     <string name="accounts_overview_bank_balance">Saldo bancario</string>

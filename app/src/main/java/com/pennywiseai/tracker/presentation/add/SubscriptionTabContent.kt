@@ -28,10 +28,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.domain.model.displayName
-import com.pennywiseai.tracker.domain.model.icon
+import com.pennywiseai.tracker.presentation.accounts.displayName
+import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.presentation.accounts.AccountType
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon

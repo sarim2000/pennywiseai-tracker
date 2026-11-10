@@ -140,7 +140,8 @@ app/
 │   ├── backup/ core/ initializer/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
-│                                #   appearance enums (same packages as before the move)
+│                                #   overscroll effect, appearance enums (same packages as before the move)
+feature/exchangerates/           # Exchange-rates screen + ViewModel (package presentation.exchangerates)
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
 shared/                          # KMP code shared with iOS
 iosApp/                          # Swift iOS app
@@ -170,8 +171,9 @@ reprints them. A PR may remove a violation but must not add one.
    from the lower layer to the higher one.
 2. **Non-UI code doesn't live in screen packages.** If `data`, `domain`, a worker
    or a widget needs it, move it into `domain` (or `utils` for a small pure
-   helper) instead of importing the screen package. Examples today are the
-   profile filters in `presentation/common` and `presentation/accounts/AccountType`.
+   helper) instead of importing the screen package. The profile filters
+   (`domain/model/ProfileFilters.kt`) and `AccountType` (`domain/model`) moved
+   down this way; their labels and icons stay in `presentation/accounts/AccountTypeUi.kt`.
 3. **Shared UI is feature-agnostic.** A component in `ui/components` takes plain
    parameters. It doesn't import a feature's state types. A component only one
    feature uses lives in that feature's package.
@@ -192,8 +194,8 @@ reprints them. A PR may remove a violation but must not add one.
 
 ### `:core:designsystem`
 
-Holds `PennyWiseTheme`, the `ui.theme` tokens, the 17 fonts, `LocalBlurEffects` and
-the appearance enums (`AccentColor`, `AppFont`, `ThemeStyle`). `:app` depends on it,
+Holds `PennyWiseTheme`, the `ui.theme` tokens, the 17 fonts, `LocalBlurEffects`, the
+overscroll effect (`ui.effects.overScrollVertical` and friends) and the appearance enums (`AccentColor`, `AppFont`, `ThemeStyle`). `:app` depends on it,
 and it depends on no project module, so the compiler keeps the theme free of
 `data`, `domain` and feature code.
 
@@ -202,8 +204,8 @@ and it depends on no project module, so the compiler keeps the theme free of
   `UserPreferencesRepository` import a `ui` package. They are stored by name, so
   entries can't be renamed. If a `:core:datastore` is ever extracted, move them
   down rather than making it depend on this module.
-- **No string resources here.** Crowdin and `StringPlaceholderParityTest` cover only
-  `app/src/main/res`.
+- **No string resources here.** Crowdin and `StringPlaceholderParityTest` cover
+  `app/src/main/res` and the feature modules' `res`, not this module's.
 - **`ui/components` stays in `:app`.** About 14 of its files are generic, but `:app`
   is the only module that renders Compose. The rest of the package needs
   `R.string`, money formatting, Haze, Coil or feature types, so moving the generic
@@ -212,17 +214,37 @@ and it depends on no project module, so the compiler keeps the theme free of
 - **No convention plugin yet.** One library module doesn't justify `build-logic`, so
   its build file repeats `:app`'s SDK and JVM settings. Revisit when a second one lands.
 
+### `:feature:exchangerates`
+
+The first feature module: `ExchangeRatesScreen`, its ViewModel and the
+`ExchangeRatesData` port. It depends on `:core:designsystem` only. `:app` binds the
+port (`di/ExchangeRatesModule.kt`) and calls the screen through
+`navigation/ExchangeRatesEntry.kt`, which passes in what stays in `:app`: the
+`CustomTitleTopAppBar` (as a `topBar` slot, with the back button), `AppDates` and
+`CurrencyFormatter`, and the shared `accounts_*` strings, resolved.
+
+- **The package stays `com.pennywiseai.tracker.presentation.exchangerates`**, so the
+  Hilt ViewModel key and every rule below apply as before. Its `R` is
+  `com.pennywiseai.feature.exchangerates.R`.
+- **Strings live in the module** (`res/values*/strings_exchangerates.xml`). Crowdin
+  needs one `files` entry per feature module in `crowdin.yml`.
+- Hilt and KSP run here for the ViewModel. Room, KSP schemas and the baseline
+  profile stay in `:app`.
+
 ### Enforced by `ArchitectureTest`
 
 `app/src/test/.../architecture/ArchitectureTest.kt` (Konsist) checks the
-`import` lines of the production sources in every flavor. It runs with the unit
+`import` lines of the production sources in every flavor, in `:app` and every
+`feature/*` module. It runs with the unit
 tests, so `./init.sh app` and CI fail on a new violation:
 
 | Files | Must not import |
 |---|---|
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
-| `data` | `presentation` |
-| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile` |
+| `data` | `presentation`, `ui` |
+| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
+| `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (an Activity used as a launch target is allowlisted by name) |
+| `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
 
 `ui.theme` needs no rule: `:core:designsystem` can't see `:app`'s code.
@@ -232,10 +254,11 @@ any source set may be in the retired `ui.screens` package (by path or by
 `package` line), and `ui.viewmodel` may hold only `MainViewModel`,
 `ThemeViewModel` and `SpotlightViewModel`.
 
-Files that already broke a rule are in that rule's allowlist. An allowlist only
-shrinks. Don't add to it: move the code to the right layer. When you fix a file,
-delete its entry. The test also fails on an entry whose file no longer violates,
-so a fixed import can't come back. A fully qualified name in code isn't checked,
+Imports that already broke a rule are in that rule's allowlist, keyed by file
+and exact import, so an allowlisted file can't gain a new back-edge. An
+allowlist only shrinks. Don't add to it: move the code to the right layer. When
+you fix an import, delete its entry. The test also fails on an entry that no
+longer matches an import, so a fixed import can't come back. A fully qualified name in code isn't checked,
 so don't use one to get around a rule.
 
 ## Data Flow Example

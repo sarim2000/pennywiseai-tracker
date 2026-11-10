@@ -12,9 +12,10 @@ updates:
     commit-message:
       prefix: chore(deps)
     groups:
-      # Every action bump in one PR, majors included.
+      # Minor and patch action bumps in one PR; majors come one per PR.
       github-actions:
         patterns: ["*"]
+        update-types: [minor, patch]
 
   # The Android build (version catalog, plugins, wrapper), the web server
   # build, and the chat-eval harness, which mirrors the app's LiteRT-LM and

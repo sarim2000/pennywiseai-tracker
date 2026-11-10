@@ -96,6 +96,14 @@ class GoalFormsTest {
     }
 
     @Test
+    fun `editing a three-decimal linked share keeps its fils`() {
+        // 0.014 JOD went to a USD goal as $0.02; halving it must leave 0.007 JOD, not 0.01.
+        val linked = GoalContributionEntity(id = 5, goalId = 1, amount = bd("0.02"), originalAmount = bd("0.014"), originalCurrency = "JOD", transactionId = 9)
+        val edited = editContribution(linked, bd("0.01"), today, "", bd("1")).getOrThrow()
+        assertEquals(0, bd("0.007").compareTo(edited.originalAmount))
+    }
+
+    @Test
     fun `pill shows Behind only once a month or more behind the even pace`() {
         val created = today.minusMonths(6)
         val goal = GoalEntity(id = 1, targetAmount = bd("1200"), dueDate = created.plusMonths(12), createdAt = created.atStartOfDay())

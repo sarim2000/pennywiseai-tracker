@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -114,7 +115,8 @@ fun editContribution(
     val (origAmount, origCurrency) = when {
         !changed || existing.originalAmount == null -> existing.originalAmount to existing.originalCurrency
         existing.transactionId == null -> null to null
-        else -> existing.originalAmount.multiply(newAbs).divide(oldAbs, 2, RoundingMode.HALF_UP) to existing.originalCurrency
+        else -> existing.originalAmount.multiply(newAbs)
+            .divide(oldAbs, existing.originalCurrency?.let(MinorUnits::digits) ?: 2, RoundingMode.HALF_UP) to existing.originalCurrency
     }
     return Result.success(
         existing.copy(amount = signed, date = date, note = note, originalAmount = origAmount, originalCurrency = origCurrency)

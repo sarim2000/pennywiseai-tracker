@@ -89,6 +89,14 @@ run() {
 verify_format() {
   # Check-only on purpose: a gate that rewrote files could clobber unrelated
   # uncommitted work. Fixing is one explicit command away.
+  # Spotless diffs against the merge base with origin/main (build.gradle.kts), so
+  # a missing ref or a shallow clone fails before any file is checked.
+  if ! git merge-base HEAD origin/main >/dev/null 2>&1; then
+    echo "✗ The format check compares against origin/main, which is missing or has" >&2
+    echo "  no common history with HEAD. Run: git fetch origin main" >&2
+    echo "  (shallow clone: git fetch --unshallow origin)" >&2
+    return 1
+  fi
   if ! run ./gradlew spotlessCheck --continue -q; then
     echo "" >&2
     echo "✗ Formatting check failed. Fix with: ./gradlew spotlessApply" >&2

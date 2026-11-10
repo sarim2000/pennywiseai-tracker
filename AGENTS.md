@@ -69,8 +69,8 @@ there). Scope it to what you touched:
 
 `init.sh` sets `JAVA_HOME` to a JDK 21 (it tries `JAVA_HOME`, macOS `java_home`,
 Android Studio's JBR, SDKMAN, then a Gradle-downloaded JDK). Run the raw
-`./gradlew` tasks it wraps only if you need finer control. `./gradlew build` and `lint` are heavier and **not**
-part of the gate — don't use them to verify.
+`./gradlew` tasks it wraps only if you need finer control. `./gradlew build` and
+`lint` are heavier and **not** part of the gate — don't use them to verify.
 
 A format failure means `./gradlew spotlessApply`, then review and commit the
 diff. It checks whole files changed since `origin/main`, so touching a legacy

@@ -35,6 +35,17 @@ object MinorUnits {
     /** A typed or spoken amount (12.5) in [currency]'s minor units, rounded half away from zero. */
     fun fromDouble(amount: Double, currency: String): Long = (amount * factor(currency)).roundToLong()
 
+    /**
+     * [amount] in [currency]'s minor units only when it fits that precision exactly:
+     * 1.235 is 1235 in JOD but null in USD (123.5 cents), so a match never rounds.
+     */
+    fun exactMinor(amount: Double, currency: String): Long? {
+        val scaled = amount * factor(currency)
+        if (!scaled.isFinite() || abs(scaled) >= 9.0e15) return null // past 2^53 a Double has no exact cents
+        val minor = scaled.roundToLong()
+        return minor.takeIf { abs(scaled - minor) < 1e-6 }
+    }
+
     /** 1235 JOD → "1.235", 45000 INR → "450.00". */
     fun toPlain(amountMinor: Long, currency: String): String {
         val factor = factor(currency)

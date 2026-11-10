@@ -111,11 +111,22 @@ class ChatAssistantTest {
     }
 
     @Test
+    fun aThreeDecimalAmountPicksTheExactRow() = runTest {
+        seed("Test Cafe", 1_235, daysAgo = 0, currency = "JOD") // JOD 1.235
+        seed("Test Cafe", 1_240, daysAgo = 0, currency = "JOD") // JOD 1.240
+
+        val delete = assertIs<PendingChatAction.Delete>(assistant.proposeChange(true, "test cafe", 1.235, -1, "", "").action)
+        assertEquals(1_235L, delete.transaction.amountMinor)
+        val other = assertIs<PendingChatAction.Delete>(assistant.proposeChange(true, "test cafe", 1.24, -1, "", "").action)
+        assertEquals(1_240L, other.transaction.amountMinor)
+    }
+
+    @Test
     fun finderTreatsAStatedAmountAsAHardFilterButLoosensIt() {
         val today = LocalDate(2026, 10, 15)
         val tea = SharedTransaction(id = 1, amountMinor = 2_000, merchantName = "Tea", category = "Food", transactionType = SharedTransactionType.EXPENSE, occurredAtEpochMillis = NOW)
-        assertNull(ChatTransactionFinder.findBest(listOf(tea), "tea", 9_900, null, today, TimeZone.UTC))
-        val match = assertNotNull(ChatTransactionFinder.findWithFallback(listOf(tea), "tea", 9_900, null, today, TimeZone.UTC))
+        assertNull(ChatTransactionFinder.findBest(listOf(tea), "tea", 99.0, null, today, TimeZone.UTC))
+        val match = assertNotNull(ChatTransactionFinder.findWithFallback(listOf(tea), "tea", 99.0, null, today, TimeZone.UTC))
         assertTrue(match.loosened)
     }
 

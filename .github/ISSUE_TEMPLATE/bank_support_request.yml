@@ -10,13 +10,12 @@ body:
         > [!WARNING]
         > **Remove your personal data before pasting any SMS.** Issues are public.
         >
-        > Replace the digits with `X` in:
-        > - account and card numbers
-        > - balances
-        > - UPI IDs, reference / transaction numbers
+        > - **Account and card numbers:** replace the digits with `X`.
+        > - **Reference / transaction numbers:** replace with made-up digits of the same length.
+        > - **Balances and amounts:** replace with made-up numbers (keep them numbers).
+        > - **Names, UPI IDs, phone numbers, email addresses:** replace the whole thing, letters included (e.g. `name@okbank` → `xxxx@xxxx`).
         >
-        > Replace your name and any other person's name too. You can change amounts.
-        > Keep everything else as it is (wording, spacing, punctuation, length) so the parser pattern still matches.
+        > Keep the wording, spacing and punctuation as they are — that's what the parser is written against.
 
   - type: input
     id: bank-name
@@ -52,7 +51,7 @@ body:
         **Mask personal data first** (see the warning above).
       placeholder: |
         Sender: AD-XXXXXX
-        Rs.250.00 debited from A/c XXXXXX on 01-01-25 to VPA xxxxxxx@xxx. UPI Ref XXXXXXXXXXXX. Avl Bal Rs.X,XXX.XX
+        Rs.250.00 debited from A/c XXXXXX on 01-01-25 to VPA xxxxxxx@xxx. UPI Ref 123456789012. Avl Bal Rs.1,234.56
 
         Sender: JM-XXXXXX
         Paste another SMS example here
@@ -88,5 +87,5 @@ body:
     attributes:
       label: Personal data
       options:
-        - label: I replaced account/card numbers, names, balances, UPI IDs and reference numbers in the SMS above (digits → X).
+        - label: I replaced account/card numbers, reference numbers, balances, names, UPI IDs, phone numbers and email addresses in the SMS above.
           required: true

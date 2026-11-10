@@ -70,11 +70,9 @@ struct LogExpenseIntent: AppIntent {
         let name = merchant.trimmingCharacters(in: .whitespacesAndNewlines)
         let currency = UserDefaults.standard.string(forKey: "displayCurrency") ?? "INR"
         // A Shortcut can pass a calculated value: reject NaN/inf/huge before Int64() traps on it.
-        let scaled = AmountFormatter.minorUnits(amount, currency: currency)
-        guard scaled.isFinite, scaled >= 1, scaled < 1e15, !name.isEmpty else {
+        guard let amountMinor = AmountFormatter.minorUnits(amount, currency: currency), amountMinor >= 1, !name.isEmpty else {
             return "Give an amount above zero and a merchant"
         }
-        let amountMinor = Int64(scaled)
         let facade = PennyWiseSharedFacade.companion.shared
         _ = facade.initializeAndLoadHome() // seeds categories if the app has never been opened
 

@@ -139,7 +139,7 @@ struct AddEditBudgetScreen: View {
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        (Int64(totalLimitText) ?? 0) > 0
+        AmountFormatter.minorUnits(wholeUnits: totalLimitText, currency: CurrencyManager.shared.displayCurrency) > 0
     }
 
     private func toggleCategory(_ category: String) {
@@ -159,8 +159,8 @@ struct AddEditBudgetScreen: View {
     }
 
     private func saveBudget() {
-        let factor = MinorUnits.shared.factor(currency: CurrencyManager.shared.displayCurrency)
-        let limitMinor = (Int64(totalLimitText) ?? 0) * factor
+        let currency = CurrencyManager.shared.displayCurrency
+        let limitMinor = AmountFormatter.minorUnits(wholeUnits: totalLimitText, currency: currency)
 
         let calendar = Calendar.current
         let now = Date()
@@ -171,7 +171,7 @@ struct AddEditBudgetScreen: View {
         let endMillis = Int64(endOfMonth.timeIntervalSince1970 * 1000)
 
         let catLimits: [(String, Int64)] = selectedCategories.sorted().compactMap { cat in
-            let amount = (Int64(categoryAmounts[cat] ?? "0") ?? 0) * factor
+            let amount = AmountFormatter.minorUnits(wholeUnits: categoryAmounts[cat] ?? "0", currency: currency)
             return amount > 0 ? (cat, amount) : (cat, limitMinor / Int64(max(1, selectedCategories.count)))
         }
 

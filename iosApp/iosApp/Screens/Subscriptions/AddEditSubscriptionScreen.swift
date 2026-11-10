@@ -115,7 +115,7 @@ struct AddEditSubscriptionScreen: View {
         // hex or "inf" are rejected, never read as a different amount.
         guard normalized.range(of: #"^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"#, options: .regularExpression) != nil,
               let value = Double(normalized), value > 0, value < 1_000_000_000_000 else { return 0 }
-        return Int64(AmountFormatter.minorUnits(value, currency: selectedCurrency))
+        return AmountFormatter.minorUnits(value, currency: selectedCurrency) ?? 0
     }
 
     private func save() {

@@ -106,6 +106,6 @@ struct AddEditAccountScreen: View {
 
     private func parseBalanceMinor(_ text: String) -> Int64 {
         guard let value = Double(text) else { return 0 }
-        return Int64(value * Double(MinorUnits.shared.factor(currency: currency)))
+        return AmountFormatter.minorUnits(value, currency: currency) ?? 0
     }
 }

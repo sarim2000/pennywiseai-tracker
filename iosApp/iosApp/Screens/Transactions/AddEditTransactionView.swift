@@ -139,9 +139,8 @@ struct AddEditTransactionView: View {
 
     private func saveTransaction() {
         guard isValid else { return }
-        guard let amountValue = Double(amountText) else { return }
-
-        let amountMinor = Int64(AmountFormatter.minorUnits(amountValue, currency: selectedCurrency))
+        guard let amountValue = Double(amountText),
+              let amountMinor = AmountFormatter.minorUnits(amountValue, currency: selectedCurrency) else { return }
         let epochMillis = Int64((selectedDate.timeIntervalSince1970 * 1000.0).rounded())
 
         if let editId = editingTransactionId {

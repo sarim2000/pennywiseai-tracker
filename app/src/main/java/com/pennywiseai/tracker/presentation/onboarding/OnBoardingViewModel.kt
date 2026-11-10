@@ -14,8 +14,8 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.manager.SmsScanManager
 import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -335,7 +335,6 @@ class OnBoardingViewModel @Inject constructor(
             onComplete()
         }
     }
-
 }
 
 /**

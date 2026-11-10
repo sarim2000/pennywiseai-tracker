@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Local release script that replicates .github/workflows/release.yml
+# Cuts a release: version bump, changelogs, APKs, tag, push, GitHub release.
 # Usage: ./scripts/release.sh [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--no-relay] [--dry-run]
 #
 # One-shot headless release (build + Claude notes + tag + push + GitHub release
@@ -380,7 +380,7 @@ fi
 
 echo -e "${GREEN}✅ APKs built${NC}"
 
-# 7. Rename APKs (matching GitHub Actions)
+# 7. Rename APKs to their published names
 STANDARD_PATH="app/build/outputs/apk/standard/release"
 FDROID_PATH="app/build/outputs/apk/fdroid/release"
 

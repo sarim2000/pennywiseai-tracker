@@ -1,8 +1,8 @@
 # Release Process
 
-Releases are cut by **`scripts/release.sh`**, which replicates
-`.github/workflows/release.yml` locally. This script is the **single source of
-truth** for the version and changelogs.
+Releases are cut locally by **`scripts/release.sh`** — there is no CI release
+workflow. This script is the **single source of truth** for the version and
+changelogs.
 
 > ⚠️ **Never hand-edit the version or changelogs.** Do not touch `versionCode` /
 > `versionName` in `app/build.gradle.kts`, and never hand-write a
@@ -71,9 +71,10 @@ One-shot headless release with a Play draft:
 
 ## Prerequisites (one-time)
 
-- **Signing** — the release build needs the signing config wired up (keystore +
-  credentials) the same way `release.yml` consumes its GitHub secrets. If the
-  workflow shows an unsigned APK, the signing config/secrets are misconfigured.
+- **Signing** — the standard release build signs with the keystore named in
+  `local.properties`: `RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`,
+  `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`. Without them Gradle builds an
+  unsigned APK. The F-Droid APK is always unsigned.
 - **`--play`** additionally needs the Play Console service-account credentials
   that `scripts/upload-play.sh` expects.
 - **`--web`** needs the `pennywise-web` deploy toolchain (`bun`, Cloudflare

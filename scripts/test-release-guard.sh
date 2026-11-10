@@ -5,25 +5,30 @@
 set -u
 
 RELEASE_SH="$(cd "$(dirname "$0")" && pwd)/release.sh"
-TMP=$(mktemp -d)
+TMP=$(mktemp -d) || exit 1
 trap 'rm -rf "$TMP"' EXIT
+cd "$TMP" || exit 1  # never run setup from the real checkout
 export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com \
        GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 FAILED=0
 
 # A bare origin and a clone ($TMP/work) on main, in sync. ($TMP/other) is a
 # second clone used to move origin/main ahead of work.
+# Setup is one && chain: any failed step aborts the run, so a failed clone can
+# never leave later writes, commits or pushes running in the real checkout.
 fresh() {
-    rm -rf "$TMP/origin.git" "$TMP/work" "$TMP/other"
-    git init -q --bare -b main "$TMP/origin.git"
-    git clone -q "$TMP/origin.git" "$TMP/work" 2>/dev/null
-    cd "$TMP/work"
-    git checkout -q -b main
-    mkdir -p scripts app
-    cp "$RELEASE_SH" scripts/release.sh
-    printf 'versionCode = 1\nversionName = "1.0.0"\n' > app/build.gradle.kts
-    git add -A && git commit -q -m init && git push -q origin main
-    git clone -q "$TMP/origin.git" "$TMP/other"
+    cd "$TMP" &&
+    rm -rf "$TMP/origin.git" "$TMP/work" "$TMP/other" &&
+    git init -q --bare -b main "$TMP/origin.git" &&
+    git clone -q "$TMP/origin.git" "$TMP/work" 2>/dev/null &&
+    cd "$TMP/work" &&
+    git checkout -q -b main &&
+    mkdir -p scripts app &&
+    cp "$RELEASE_SH" scripts/release.sh &&
+    printf 'versionCode = 1\nversionName = "1.0.0"\n' > app/build.gradle.kts &&
+    git add -A && git commit -q -m init && git push -q origin main &&
+    git clone -q "$TMP/origin.git" "$TMP/other" ||
+        { echo "FAIL test setup"; exit 1; }
 }
 
 advance_origin() {

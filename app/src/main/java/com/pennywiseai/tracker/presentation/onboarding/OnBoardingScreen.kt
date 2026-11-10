@@ -1217,7 +1217,7 @@ private fun currencyLabel(code: String): String {
 // token: full-screen illustrative moments, not list chrome.
 private val HERO_ICON_SIZE = 100.dp
 private const val BANK_REQUEST_URL =
-    "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md"
+    "https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.yml"
 private val PSEUDO_REGIONS = setOf("XA", "XB")
 private val HERO_ICON_SIZE_SMALL = 80.dp
 private val OPTION_TILE_SIZE = 72.dp

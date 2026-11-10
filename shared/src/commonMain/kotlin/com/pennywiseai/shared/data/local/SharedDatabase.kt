@@ -83,8 +83,10 @@ abstract class SharedDatabase : RoomDatabase() {
         val MIGRATION_2_3: Migration = object : Migration(2, 3) {
             override suspend fun migrate(connection: SQLiteConnection) {
                 val inDinars = "UPPER(currency) IN ('BHD','JOD','KWD','LYD','OMR','TND')"
-                // A value past Long.MAX_VALUE / 10 can't take × 10 without wrapping; it is left as it
-                // is. BETWEEN, not ABS(): ABS(Long.MIN_VALUE) is an SQLite overflow error.
+                // ponytail: rows past ±Long.MAX_VALUE / 10 (over ~9.2e14 JOD, only a misparse makes
+                // one) can't take × 10 without wrapping, so they stay as they are and read ÷ 10 after
+                // the upgrade. Garbage either way; add recovery only if a real amount ever gets there.
+                // BETWEEN, not ABS(): ABS(Long.MIN_VALUE) is an SQLite overflow error.
                 val limit = Long.MAX_VALUE / 10
                 fun scale(table: String, column: String, rows: String) = connection.execSQL(
                     "UPDATE $table SET $column = $column * 10 WHERE $column BETWEEN -$limit AND $limit AND $rows"

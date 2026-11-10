@@ -17,7 +17,9 @@ class SharedDatabaseMigrationTest {
     @Test
     fun threeDecimalRowsAreRescaledAndEverythingElseIsUntouched() = runTest {
         V2_TABLES.forEach { connection.execSQL(it) }
-        val tooBig = 1_000_000_000_000_000_000L // past Long.MAX_VALUE / 10: x 10 would wrap
+        // Past Long.MAX_VALUE / 10, x 10 would wrap. Intended: such a row (only a misparse makes
+        // one) is left unchanged and so reads 10x smaller after the upgrade; see MIGRATION_2_3.
+        val tooBig = 1_000_000_000_000_000_000L
         connection.execSQL(
             "INSERT INTO shared_transactions (id, amount_minor, merchant_name, category, transaction_type, " +
                 "occurred_at_epoch_millis, currency, balance_after_minor, created_at_epoch_millis, updated_at_epoch_millis) VALUES " +

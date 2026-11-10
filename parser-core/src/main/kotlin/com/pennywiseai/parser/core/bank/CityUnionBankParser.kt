@@ -214,6 +214,11 @@ class CityUnionBankParser : BaseIndianBankParser() {
             return false
         }
 
+        // Advance notices ("will be debited with ... UPI Autopay") are not money moved yet.
+        if (lowerMessage.contains("will be debited") || lowerMessage.contains("will be credited")) {
+            return false
+        }
+
         // Check for City Union Bank specific transaction patterns
         if (lowerMessage.contains("is debited for") ||
             lowerMessage.contains("debited with") ||

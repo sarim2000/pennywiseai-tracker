@@ -54,6 +54,12 @@ class CityUnionBankParserTest {
                 message = "OTP 123456 for UPI Autopay mandate. Do not share. -CUB",
                 sender = "JK-CUBANK-S",
                 shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Autopay advance notice is not a transaction",
+                message = "Your account will be debited with Rs.50.00 on 12-11-2026 towards EXAMPLE TECHNOLOGY PRIVATE LIMITED UPI Autopay. -CUB",
+                sender = "JK-CUBANK-S",
+                shouldParse = false
             )
         )
     )

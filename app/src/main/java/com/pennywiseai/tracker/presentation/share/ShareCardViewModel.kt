@@ -16,8 +16,8 @@ import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.data.statement.isStatementSender
 import com.pennywiseai.tracker.presentation.common.TimePeriod
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.review.isCalendarMonth
 import com.pennywiseai.tracker.presentation.transactions.dateQueryWindow

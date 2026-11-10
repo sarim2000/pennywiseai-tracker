@@ -40,14 +40,7 @@ class ArchitectureTest {
             "android.app.Activity",
             "androidx.room3",
         ),
-        allowlist = setOf(
-            // presentation.common profile filters
-            "app/src/main/java/com/pennywiseai/tracker/domain/conscience/ConscienceEligibility.kt",
-            // Compose icons/stringResource, presentation.accounts.AccountType
-            "app/src/main/java/com/pennywiseai/tracker/domain/model/AccountTypeExtensions.kt",
-            // FragmentActivity for the biometric prompt
-            "app/src/main/java/com/pennywiseai/tracker/domain/security/BiometricAuthManager.kt",
-        ),
+        allowlist = emptySet(),
     ).check()
 
     @Test
@@ -55,10 +48,7 @@ class ArchitectureTest {
         name = "data",
         appliesTo = { it.isInPackage("$APP.data") },
         forbidden = listOf("$APP.presentation"),
-        allowlist = setOf(
-            // presentation.accounts.AccountType
-            "app/src/main/java/com/pennywiseai/tracker/data/repository/AccountBalanceRepository.kt",
-        ),
+        allowlist = emptySet(),
     ).check()
 
     @Test

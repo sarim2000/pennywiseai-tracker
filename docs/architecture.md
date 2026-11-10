@@ -170,8 +170,9 @@ reprints them. A PR may remove a violation but must not add one.
    from the lower layer to the higher one.
 2. **Non-UI code doesn't live in screen packages.** If `data`, `domain`, a worker
    or a widget needs it, move it into `domain` (or `utils` for a small pure
-   helper) instead of importing the screen package. Examples today are the
-   profile filters in `presentation/common` and `presentation/accounts/AccountType`.
+   helper) instead of importing the screen package. The profile filters
+   (`domain/model/ProfileFilters.kt`) and `AccountType` (`domain/model`) moved
+   down this way; their labels and icons stay in `presentation/accounts/AccountTypeUi.kt`.
 3. **Shared UI is feature-agnostic.** A component in `ui/components` takes plain
    parameters. It doesn't import a feature's state types. A component only one
    feature uses lives in that feature's package.

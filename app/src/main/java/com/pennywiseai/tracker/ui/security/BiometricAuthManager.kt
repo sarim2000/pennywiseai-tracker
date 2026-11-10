@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.domain.security
+package com.pennywiseai.tracker.ui.security
 
 import android.app.KeyguardManager
 import android.content.Context

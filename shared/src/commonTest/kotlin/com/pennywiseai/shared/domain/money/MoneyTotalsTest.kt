@@ -164,4 +164,20 @@ class MoneyTotalsTest {
         val toBhd = CurrencyConverter.fromRates("BHD", listOf(Triple("KWD", "BHD", 1_225_000L)))
         assertEquals(1_513L, toBhd.convert(1_235L, "KWD")) // 1.235 x 1.225 = 1.512875
     }
+
+    @Test
+    fun converter_largeAmountsDontOverflowInEitherDirection() {
+        // JOD 2,000,000,000 at 117.50 INR/JOD = INR 235,000,000,000.00.
+        val toInr = CurrencyConverter.fromRates("INR", listOf(Triple("JOD", "INR", 117_500_000L)))
+        assertEquals(23_500_000_000_000L, toInr.convert(2_000_000_000_000L, "JOD"))
+        assertEquals(-23_500_000_000_000L, toInr.convert(-2_000_000_000_000L, "JOD"))
+
+        // INR 5,000,000,000,000 at 0.008511 JOD/INR = JOD 42,555,000,000.000.
+        val toJod = CurrencyConverter.fromRates("JOD", listOf(Triple("INR", "JOD", 8_511L)))
+        assertEquals(42_555_000_000_000L, toJod.convert(500_000_000_000_000L, "INR"))
+        assertEquals(-42_555_000_000_000L, toJod.convert(-500_000_000_000_000L, "INR"))
+
+        // Same exponent, large: USD 50,000,000,000 at 83.50 INR/USD.
+        assertEquals(417_500_000_000_000L, usdToInr.convert(5_000_000_000_000L, "USD"))
+    }
 }

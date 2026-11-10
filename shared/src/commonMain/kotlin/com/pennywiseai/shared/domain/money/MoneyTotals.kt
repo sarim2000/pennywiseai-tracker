@@ -29,11 +29,9 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
     fun convert(amountMinor: Long, currency: String): Long? {
         if (currency.equals(baseCurrency, ignoreCase = true)) return amountMinor
         val rate = ratesToBase[currency.uppercase()] ?: return null
-        val from = MinorUnits.factor(currency)
-        val to = MinorUnits.factor(baseCurrency)
-        // amountMinor / from x rate x to, scaled up before the one rounding (factors are 100 or 1000).
-        return if (to >= from) applyRate(amountMinor * (to / from), rate, MICROS)
-        else applyRate(amountMinor, rate, MICROS * (from / to))
+        // amountMinor / from x rate / 1e6 x to: the scale change folds into the divisor
+        // (1e5, 1e6 or 1e7; factors are 100 or 1000), so there is one rounding.
+        return applyRate(amountMinor, rate, MICROS * MinorUnits.factor(currency) / MinorUnits.factor(baseCurrency))
     }
 
     /**
@@ -78,12 +76,18 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
             return CurrencyConverter(base, map)
         }
 
-        /** amountMinor x rateMicros / [divisor], rounded half away from zero, without overflowing on the product. */
+        /**
+         * amountMinor x rateMicros / [divisor], rounded once, half away from zero. Splitting the
+         * amount (q x divisor + r) keeps every product in range: q x rate is exact whenever the
+         * result fits a Long, and |r| < divisor (at most 1e7) times a rate under 9e11 micros
+         * (900,000 units per unit) stays under Long.MAX_VALUE.
+         */
         private fun applyRate(amountMinor: Long, rateMicros: Long, divisor: Long): Long {
-            val whole = amountMinor * (rateMicros / divisor)
-            val part = amountMinor * (rateMicros % divisor)
+            val q = amountMinor / divisor
+            val r = amountMinor % divisor
+            val part = r * rateMicros
             val half = if (part < 0) -divisor / 2 else divisor / 2
-            return whole + (part + half) / divisor
+            return q * rateMicros + (part + half) / divisor
         }
     }
 }

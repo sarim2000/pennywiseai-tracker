@@ -7,7 +7,6 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.time.LocalDate
@@ -28,44 +27,7 @@ enum class TimePeriod(@StringRes val labelRes: Int) {
         get() = this == THIS_MONTH || this == LAST_MONTH
 }
 
-enum class TransactionTypeFilter(@StringRes val labelRes: Int) {
-    ALL(R.string.filter_type_all),
-    INCOME(R.string.filter_type_income),
-    EXPENSE(R.string.filter_type_expense),
-    CREDIT(R.string.filter_type_credit),
-    /** Expense + credit-card spend together (#898). Analytics-only, see [inTransactionsList]. */
-    SPENDING(R.string.filter_type_spending),
-    TRANSFER(R.string.filter_type_transfer),
-    INVESTMENT(R.string.filter_type_investment);
-
-    /** The transaction types this filter shows; null means every type. */
-    val transactionTypes: Set<TransactionType>?
-        get() = when (this) {
-            ALL -> null
-            INCOME -> setOf(TransactionType.INCOME)
-            EXPENSE -> setOf(TransactionType.EXPENSE)
-            CREDIT -> setOf(TransactionType.CREDIT)
-            SPENDING -> setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
-            TRANSFER -> setOf(TransactionType.TRANSFER)
-            INVESTMENT -> setOf(TransactionType.INVESTMENT)
-        }
-
-    /** Spend views that net refunds (INCOME + DEDUCT_SPENT) off their totals (#629). */
-    val netsRefunds: Boolean
-        get() = this == EXPENSE || this == SPENDING
-
-    /**
-     * Offered in the Transactions screen's type menu. SPENDING is an Analytics
-     * view (#898); the list already shows expense and credit totals side by side.
-     */
-    val inTransactionsList: Boolean
-        get() = this != SPENDING
-}
-
 val TimePeriod.label: String
-    @Composable @ReadOnlyComposable get() = stringResource(labelRes)
-
-val TransactionTypeFilter.label: String
     @Composable @ReadOnlyComposable get() = stringResource(labelRes)
 
 fun getDateRangeForPeriod(period: TimePeriod): Pair<LocalDate, LocalDate>? {

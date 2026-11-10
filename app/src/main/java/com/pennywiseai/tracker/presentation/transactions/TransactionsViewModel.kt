@@ -15,7 +15,7 @@ import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.presentation.common.TimePeriod
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import com.pennywiseai.tracker.utils.dateQueryWindow
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -1471,17 +1472,6 @@ private data class BudgetParams(
     val categories: String?,
     val transactionType: String?
 )
-
-/**
- * The window to ask SQL for so that it returns every row between [start] and [end].
- * date_time is compared as text, and the converter reads more forms than it writes:
- * "2026-11-01 08:30:15" and "2026-11-01T00:00" both sort before a "2026-11-01T00:00:00"
- * bound, though neither is before that moment, and "2026-10-31 24:00:00" reads as
- * November 1 yet carries the previous date. So the lower bound clears all of the previous
- * date in every form, and the caller filters the parsed values to the exact boundary.
- */
-internal fun dateQueryWindow(start: LocalDateTime, end: LocalDateTime): Pair<LocalDateTime, LocalDateTime> =
-    start.minusDays(2) to end.plusDays(1)
 
 /**
  * Self-transfer suggestion heuristic (#385): pair each EXPENSE with an INCOME row

@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.presentation.common
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import com.pennywiseai.tracker.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
@@ -12,6 +14,22 @@ import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+
+@get:StringRes
+val TransactionTypeFilter.labelRes: Int
+    get() = when (this) {
+        TransactionTypeFilter.ALL -> R.string.filter_type_all
+        TransactionTypeFilter.INCOME -> R.string.filter_type_income
+        TransactionTypeFilter.EXPENSE -> R.string.filter_type_expense
+        TransactionTypeFilter.CREDIT -> R.string.filter_type_credit
+        TransactionTypeFilter.SPENDING -> R.string.filter_type_spending
+        TransactionTypeFilter.TRANSFER -> R.string.filter_type_transfer
+        TransactionTypeFilter.INVESTMENT -> R.string.filter_type_investment
+    }
+
+val TransactionTypeFilter.label: String
+    @Composable @ReadOnlyComposable get() = stringResource(labelRes)
 
 @Composable
 fun TransactionTypeFilter.shortLabel(): String = stringResource(

@@ -13,7 +13,7 @@ import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
-import com.pennywiseai.tracker.presentation.transactions.dateQueryWindow
+import com.pennywiseai.tracker.utils.dateQueryWindow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged

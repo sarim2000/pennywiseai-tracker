@@ -21,7 +21,7 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.presentation.common.TimePeriod
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

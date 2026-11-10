@@ -44,7 +44,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.label
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*

@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.transactions
+package com.pennywiseai.tracker.utils
 
 import com.pennywiseai.tracker.data.database.converter.Converters
 import org.junit.Assert.assertFalse

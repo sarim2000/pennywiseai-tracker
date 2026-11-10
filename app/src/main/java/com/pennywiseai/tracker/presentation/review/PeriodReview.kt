@@ -4,11 +4,11 @@ import android.content.Context
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.presentation.common.TransactionTypeFilter
-import com.pennywiseai.tracker.presentation.analytics.analyticsRowsFor
-import com.pennywiseai.tracker.presentation.analytics.defaultTypeFilter
-import com.pennywiseai.tracker.presentation.analytics.netOf
-import com.pennywiseai.tracker.presentation.analytics.refundNetting
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
+import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
+import com.pennywiseai.tracker.domain.spending.netOf
+import com.pennywiseai.tracker.domain.spending.refundNetting
 import com.pennywiseai.tracker.utils.forTotals
 import java.math.BigDecimal
 import java.math.RoundingMode

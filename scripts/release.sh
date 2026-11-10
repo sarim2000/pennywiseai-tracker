@@ -77,9 +77,13 @@ GUARD_PROBLEMS=()
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 [ "$CURRENT_BRANCH" = "main" ] || GUARD_PROBLEMS+=("On branch '$CURRENT_BRANCH', not main")
 [ -z "$(git status --porcelain --untracked-files=no)" ] || GUARD_PROBLEMS+=("Uncommitted changes to tracked files (see git status)")
-if ! git fetch --quiet origin main; then
+# Fetch only when the local checks pass (or on a dry run), and compare against
+# FETCH_HEAD: a custom fetch refspec may not update origin/main.
+if [ ${#GUARD_PROBLEMS[@]} -gt 0 ] && [ "$DRY_RUN" != "true" ]; then
+    :
+elif ! git fetch --quiet origin main; then
     GUARD_PROBLEMS+=("Could not fetch origin/main to check that HEAD is current")
-elif [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+elif [ "$(git rev-parse HEAD)" != "$(git rev-parse --verify FETCH_HEAD)" ]; then
     GUARD_PROBLEMS+=("HEAD is not origin/main (pull, or push your commits through a PR first)")
 fi
 for problem in "${GUARD_PROBLEMS[@]}"; do

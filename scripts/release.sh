@@ -69,6 +69,27 @@ for arg in "$@"; do
     esac
 done
 
+# 0. Refuse the wrong tree: the script commits to the current branch, tags it
+# and pushes main, so it must run on a clean main that matches origin/main.
+# Untracked files don't count — the release commit only adds files it writes.
+# A dry run reports the same problems as warnings and carries on.
+GUARD_PROBLEMS=()
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+[ "$CURRENT_BRANCH" = "main" ] || GUARD_PROBLEMS+=("On branch '$CURRENT_BRANCH', not main")
+[ -z "$(git status --porcelain --untracked-files=no)" ] || GUARD_PROBLEMS+=("Uncommitted changes to tracked files (see git status)")
+if ! git fetch --quiet origin main; then
+    GUARD_PROBLEMS+=("Could not fetch origin/main to check that HEAD is current")
+elif [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+    GUARD_PROBLEMS+=("HEAD is not origin/main (pull, or push your commits through a PR first)")
+fi
+for problem in "${GUARD_PROBLEMS[@]}"; do
+    if [ "$DRY_RUN" = "true" ]; then echo -e "${YELLOW}⚠️  $problem${NC}"; else echo -e "${RED}❌ $problem${NC}"; fi
+done
+if [ ${#GUARD_PROBLEMS[@]} -gt 0 ] && [ "$DRY_RUN" != "true" ]; then
+    echo "Release from an up-to-date, clean main: git checkout main && git pull --ff-only"
+    exit 1
+fi
+
 echo -e "${GREEN}🚀 Starting release (${VERSION_BUMP} bump)${NC}"
 
 # 1. Get current version

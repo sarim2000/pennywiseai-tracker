@@ -13,9 +13,9 @@ truth** for the version and changelogs.
 
 > ⚠️ **Run from an up-to-date `main` with a clean working tree.** The script
 > commits the version bump to your *current* branch, tags that commit, and then
-> runs `git push origin main`. On any other branch — or a stale or dirty `main`
-> — it will tag the wrong commit and push a `main` that doesn't contain the
-> release. It does **not** guard against this for you.
+> runs `git push origin main`. It refuses to start otherwise: off `main`, with
+> uncommitted changes to tracked files, or when `HEAD` isn't `origin/main`
+> (`--dry-run` prints these as warnings and carries on).
 
 ```bash
 git checkout main && git pull --ff-only    # be on current main

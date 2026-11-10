@@ -26,4 +26,19 @@ final class MoneyEntryTests: XCTestCase {
         XCTAssertEqual(AmountFormatter.minorUnits(wholeUnits: "9223372036854775807", currency: "JOD"), 0)
         XCTAssertEqual(AmountFormatter.minorUnits(wholeUnits: "abc", currency: "USD"), 0)
     }
+
+    func testV1BackupAmountsMoveToTodaysMinorUnits() {
+        // v1: JOD 1.24 stored as 124; today JOD is × 1000.
+        XCTAssertEqual(BackupPayload.minorUnits(124, currency: "JOD", version: 1), 1240)
+        XCTAssertEqual(BackupPayload.minorUnits(-500, currency: "kwd", version: 1), -5000)
+        XCTAssertEqual(BackupPayload.minorUnits(45_000, currency: "INR", version: 1), 45_000)
+        // v2 is already in today's units.
+        XCTAssertEqual(BackupPayload.minorUnits(1235, currency: "JOD", version: 2), 1235)
+    }
+
+    func testAV1AmountThatWouldOverflowIsRefused() {
+        XCTAssertNil(BackupPayload.minorUnits(Int64.max / 10 + 1, currency: "JOD", version: 1))
+        XCTAssertNil(BackupPayload.minorUnits(Int64.min, currency: "BHD", version: 1))
+        XCTAssertEqual(BackupPayload.minorUnits(Int64.max, currency: "USD", version: 1), Int64.max)
+    }
 }

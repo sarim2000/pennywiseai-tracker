@@ -338,8 +338,11 @@ internal class FakeTransactions : SharedTransactionRepository {
     override suspend fun getById(id: Long) = rows.firstOrNull { it.id == id }
     override suspend fun getByHash(hash: String) = rows.firstOrNull { it.transactionHash == hash }
     override suspend fun getByReference(reference: String) = rows.firstOrNull { it.reference == reference }
-    override suspend fun getByAmountAndDate(amountMinor: Long, startEpochMillis: Long, endEpochMillis: Long) =
-        rows.filter { it.amountMinor == amountMinor && it.occurredAtEpochMillis in startEpochMillis..endEpochMillis }
+    override suspend fun getByAmountAndDate(amountMinor: Long, currency: String, startEpochMillis: Long, endEpochMillis: Long) =
+        rows.filter {
+            it.amountMinor == amountMinor && it.currency.equals(currency, ignoreCase = true) &&
+                it.occurredAtEpochMillis in startEpochMillis..endEpochMillis
+        }
     override suspend fun insert(transaction: SharedTransaction): Long {
         val id = rows.size + 1L
         rows += transaction.copy(id = id)

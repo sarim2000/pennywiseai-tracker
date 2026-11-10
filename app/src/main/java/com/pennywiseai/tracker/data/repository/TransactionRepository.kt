@@ -609,6 +609,10 @@ open class TransactionRepository @Inject constructor(
     suspend fun getTransactionWithSplitsSync(transactionId: Long): TransactionWithSplits? =
         transactionSplitDao.getTransactionWithSplitsSync(transactionId)
 
+    /** Splits of every non-deleted transaction, observed so split edits re-emit. */
+    fun observeSplitsForActiveTransactions(): Flow<List<TransactionSplitEntity>> =
+        transactionSplitDao.observeSplitsForActiveTransactions()
+
     /**
      * Gets splits for a specific transaction.
      */

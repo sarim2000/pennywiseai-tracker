@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -55,7 +54,6 @@ class TransactionsViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val tagRepository: TagRepository,
     private val merchantAliasRepository: MerchantAliasRepository,
-    private val transactionSplitDao: TransactionSplitDao,
     private val userPreferencesRepository: com.pennywiseai.tracker.data.preferences.UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val accountBalanceRepository: AccountBalanceRepository,
@@ -749,7 +747,7 @@ class TransactionsViewModel @Inject constructor(
                         // category that exists only inside a split is still one the
                         // user can filter on, and the auto-clear below must not
                         // discard it (#749). Observed, so a split edit refreshes the chips.
-                        transactionSplitDao.observeSplitsForActiveTransactions()
+                        transactionRepository.observeSplitsForActiveTransactions()
                             .map { allSplits ->
                                 val parentOf = this@TransactionsViewModel.categories.value.values.toList().parentNameOf()
                                 filterableCategories(transactions, allSplits, parentOf)
@@ -1360,7 +1358,7 @@ class TransactionsViewModel @Inject constructor(
             baseFlow.flatMapLatest { transactions ->
                 // Observe the splits rather than snapshot them, so editing a split while
                 // this list is open re-evaluates the filter instead of leaving it stale.
-                transactionSplitDao.observeSplitsForActiveTransactions()
+                transactionRepository.observeSplitsForActiveTransactions()
                     .map { allSplits -> filterByCategories(transactions, effectiveCategories, allSplits) }
             }
         } else {

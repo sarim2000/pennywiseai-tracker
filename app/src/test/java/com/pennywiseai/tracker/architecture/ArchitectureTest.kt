@@ -81,11 +81,7 @@ class ArchitectureTest {
         name = "ViewModel",
         appliesTo = { it.declaresViewModel() },
         forbidden = DATABASE_ACCESS,
-        allowlist = setOf(
-            // TransactionSplitDao
-            "app/src/main/java/com/pennywiseai/tracker/presentation/budgetgroups/BudgetGroupEditViewModel.kt",
-            "app/src/main/java/com/pennywiseai/tracker/presentation/transactions/TransactionsViewModel.kt",
-        ),
+        allowlist = emptySet(),
     ).check()
 
     @Test

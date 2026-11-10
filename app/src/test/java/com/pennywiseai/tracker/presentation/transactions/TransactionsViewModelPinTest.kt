@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.transactions
 import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -79,6 +78,7 @@ class TransactionsViewModelPinTest {
                 val range = firstArg<LocalDateTime>()..secondArg<LocalDateTime>()
                 afterFiltersSet { rows.filter { it.dateTime in range } }
             }
+            every { observeSplitsForActiveTransactions() } returns flowOf(emptyList())
             every { getAllCurrencies() } returns flowOf(listOf("USD"))
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(listOf("USD"))
         }
@@ -92,7 +92,6 @@ class TransactionsViewModelPinTest {
             every { observeAllTagNames() } returns flowOf(emptyList())
         }
         val aliases = mockk<MerchantAliasRepository> { every { getAllAliases() } returns flowOf(emptyList()) }
-        val splits = mockk<TransactionSplitDao> { every { observeSplitsForActiveTransactions() } returns flowOf(emptyList()) }
         val prefs = mockk<UserPreferencesRepository> {
             every { baseCurrency } returns flowOf("USD")
             every { displayCurrency } returns flowOf("USD")
@@ -111,7 +110,7 @@ class TransactionsViewModelPinTest {
         val profiles = mockk<ProfileRepository> { every { observeAllProfiles() } returns flowOf(emptyList()) }
         val groups = mockk<TransactionGroupRepository> { every { getAllGroups() } returns flowOf(emptyList()) }
         viewModel = TransactionsViewModel(
-            transactions, categories, tags, aliases, splits, prefs, mockk(relaxed = true), accounts, cards, ignored,
+            transactions, categories, tags, aliases, prefs, mockk(relaxed = true), accounts, cards, ignored,
             profiles, groups, mockk(relaxed = true), mockk(relaxed = true), SavedStateHandle(), mockk<Context>(relaxed = true),
         )
     }

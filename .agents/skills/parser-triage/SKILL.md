@@ -25,7 +25,7 @@ gh issue view <n> -R sarim2000/pennywiseai-tracker --json title,body,author,stat
 ```
 Use `--json`: in a non-TTY shell `--comments` prints only the comments, never the body.
 Read both layouts:
-- **Issue form** (`bank_support_request.yml`): `### Bank name`, `### Country`, `### Sender ID(s)`,
+- **Issue form** (if the repo has moved to an issue form): `### Bank name`, `### Country`, `### Sender ID(s)`,
   `### SMS examples (masked)`, `### Transaction types needed`, `### Additional information`,
   `### Personal data`. An empty field renders as `_No response_`.
 - **Legacy Markdown** (`bank_support_request.md`): `**Bank Name**:`, `**Country**:`, one

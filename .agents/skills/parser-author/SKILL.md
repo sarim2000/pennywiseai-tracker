@@ -85,9 +85,11 @@ Commit the regenerated docs together with the parser change that caused them.
   `Character.`, and the other APIs listed in adding-bank-parsers.md. Use
   `"...".toBigDecimal()` and `Regex`.
 - **iOS parity:** if your change alters a sample in
-  `parser-core/src/test/resources/ios-parity.tsv`, the JVM gate stays green but
-  iOS doesn't. Regenerate with
-  `PARITY_REGEN=1 ./gradlew :parser-core:jvmTest --tests '*IosParityFixture*'`.
+  `parser-core/src/test/resources/ios-parity.tsv`, the JVM gate stays green and
+  no CI job runs the iOS test, so stale expectations only fail when
+  `./gradlew :parser-core:iosSimulatorArm64Test` runs (macOS). Regenerate with
+  `PARITY_REGEN=1 ./gradlew :parser-core:jvmTest --tests '*IosParityFixture*' --rerun-tasks`
+  (`PARITY_REGEN` isn't a task input, so without `--rerun-tasks` Gradle may skip it).
 - **Base-class keyword filter:** `isNonTransactionMessage()` matches substrings,
   so a real transaction containing `offer`, `otp`, `win `, or `due on` (without a
   completed-money verb) is silently dropped. Add a test case that covers it.

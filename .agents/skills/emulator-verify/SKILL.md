@@ -53,14 +53,15 @@ record that you started it.
 ## 3. Install and launch
 
 ```bash
-T0=$(adb -s "$SERIAL" shell date '+%m-%d %H:%M:%S.000')
+T0=$(adb -s "$SERIAL" shell "date '+%m-%d %H:%M:%S.000'")   # quote the whole remote command; adb drops host quotes
 adb -s "$SERIAL" install -r app/build/outputs/apk/standard/debug/app-standard-universal-debug.apk
 adb -s "$SERIAL" shell am start -n com.pennywiseai.tracker.debug/com.pennywiseai.tracker.MainActivity
 ```
 
 `INSTALL_FAILED_UPDATE_INCOMPATIBLE` means the existing `.debug` install was
-signed with a different debug key. Don't change signing. Uninstall only on an
-emulator you started. Otherwise stop with BLOCKED and ask. On a fresh install,
+signed with a different debug key. Don't change signing. Uninstall only on a
+disposable AVD you created for this task (starting an existing AVD doesn't make
+its data disposable). Otherwise stop with BLOCKED and ask. On a fresh install,
 finish onboarding with Skip and by declining SMS. The probe doesn't need the
 SMS permission.
 
@@ -116,7 +117,8 @@ screenshot before you report PASS.
 
 - Never run `adb kill-server` or any other global ADB reset. Never kill
   processes by name pattern.
-- Never clear data, uninstall, or `logcat -c` on a device you didn't start.
+- Never clear data, uninstall, or `logcat -c` unless the AVD is a disposable one
+  you created for this task, or the user explicitly said so.
   Don't touch signing configs or keystores.
 - Restore Appearance and night mode. Stop (`adb -s "$SERIAL" emu kill`) only
   emulators you started, and only once the user is done iterating.

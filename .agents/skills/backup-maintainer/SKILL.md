@@ -54,9 +54,9 @@ don't. If it does, do all of these:
    inserts nothing. Insert with `id = 0` and keep an old→new id map. Remap child
    foreign keys: null an unmapped optional link, and skip and count a row whose
    required parent didn't map.
-7. Add the entity's descriptor to `entityDescriptors` in `BackupSchemaGuardTest`. A
-   brand-new table's required fields may join `KNOWN_REQUIRED_ENTITY_FIELDS`, since
-   every backup that has the table has them, but prefer defaults.
+7. Add the entity's descriptor to `entityDescriptors` in `BackupSchemaGuardTest`. Give
+   every serialized field a default (HC3), new tables included;
+   `KNOWN_REQUIRED_ENTITY_FIELDS` only records historical exceptions — don't add to it.
 
 ## (c) Backup wrapper model (`backup/BackupModels.kt`)
 
@@ -99,13 +99,10 @@ don't. If it does, do all of these:
 3. Compile. KSP writes
    `app/schemas/com.pennywiseai.tracker.data.database.PennyWiseDatabase/<N+1>.json`.
    Commit it and review its diff like code.
-4. The SQL must run on SQLite 3.18 (minSdk 26). Don't use `HAVING` without `GROUP BY`
-   (3.39), `RENAME COLUMN` (3.25), `DROP COLUMN` (3.35), UPSERT `ON CONFLICT … DO`
-   (3.24), window functions (3.25) or `RETURNING` (3.35). To rename or drop a column,
-   rebuild the table (CREATE new, INSERT … SELECT, DROP, `ALTER TABLE … RENAME TO`), or
-   use an `AutoMigrationSpec` with `@RenameColumn`/`@DeleteColumn` so Room generates
-   the rebuild. Guard re-runs with `db.hasColumn(...)` as `MIGRATION_13_14` does.
-   `MigrationSqlCompatibilityTest` only catches `HAVING`.
+4. The SQL must run on SQLite 3.18 — follow `docs/database-migrations.md` (it lists
+   the syntax old phones reject). `MigrationSqlCompatibilityTest` only catches
+   `HAVING`, so the rest is on you. To rename or drop a column, rebuild the table or
+   use an `AutoMigrationSpec` with `@RenameColumn`/`@DeleteColumn`.
 5. Never add `fallbackToDestructiveMigration()`.
 6. Check the upgrade on old Android with the **emulator-verify** skill, following "Old
    Android runs old SQLite" in `docs/database-migrations.md`. On the `Api26_Migration`
@@ -125,8 +122,15 @@ don't. If it does, do all of these:
   `./gradlew :app:testStandardDebugUnitTest --tests "com.pennywiseai.tracker.data.backup.*"`.
   When done, run `./init.sh app` (it includes `BackupSchemaGuardTest`,
   `MigrationRegistryTest` and `MigrationSqlCompatibilityTest`).
-- On device, restore a backup exported by the last release, with MERGE and then
-  REPLACE_ALL. The success message must not mention "rows could not be imported".
+- On device — **only a disposable install holding synthetic data**: REPLACE_ALL
+  (`BackupImporter.replaceAllData()`) deletes every table before restoring.
+  1. Restore a backup exported by the last release, with MERGE and then REPLACE_ALL.
+  2. Export synthetic data that uses the new table/field **from this build**, restore it
+     with both strategies, and check the values and relationships arrive. An old backup
+     can't contain the new data, and model tests skip exporter/importer wiring.
+  3. MERGE the same file again: nothing should duplicate.
+
+  No restore message may mention "rows could not be imported".
 - Commit titles look like `feat(backup): … (#NNN)` or `fix(backup): … (#NNN)`.
 
 ## Stop and ask the maintainer before you

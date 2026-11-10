@@ -22,7 +22,7 @@ import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.AccountOption
 import com.pennywiseai.tracker.presentation.common.accountOptions
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService

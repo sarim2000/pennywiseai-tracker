@@ -25,9 +25,9 @@ import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
-import com.pennywiseai.tracker.presentation.common.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository

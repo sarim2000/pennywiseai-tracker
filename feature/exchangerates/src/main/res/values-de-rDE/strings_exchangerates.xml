@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">Wechselkurse</string>
+    <string name="exchange_rates_refresh">Aktualisierungsraten</string>
+    <string name="exchange_rates_empty_title">Keine Wechselkurse verfügbar</string>
+    <string name="exchange_rates_empty_description">Kurse werden angezeigt, wenn Sie Transaktionen in mehreren Währungen haben</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">Zuletzt aktualisiert: %1$s</string>
+    <string name="exchange_rates_hint">Tippen Sie auf eine Rate um einen benutzerdefinierten Wert festzulegen. Benutzerdefinierte Raten werden über alle API-Aktualisierungen beibehalten.</string>
+    <string name="exchange_rates_reset_all">Alles auf Automatisch zurücksetzen</string>
+    <string name="exchange_rates_badge_custom">Eigene</string>
+    <string name="exchange_rates_badge_api">API</string>
+    <string name="exchange_rates_rate_label">Wechselkurs</string>
+    <string name="exchange_rates_invalid_rate">Geben Sie eine gültige positive Zahl ein</string>
+    <string name="exchange_rates_reset">Auf Auto zurücksetzen</string>
+    <string name="exchange_rates_set_custom">Eigene Rate festlegen</string>
+    <string name="exchange_rates_error_load">Fehler beim Laden der Raten</string>
+    <string name="exchange_rates_error_refresh">Fehler beim Aktualisieren der Raten</string>
+    <string name="exchange_rates_error_set_custom">Fehler beim Festlegen der benutzerdefinierten Rate</string>
+    <string name="exchange_rates_error_clear_custom">Fehler beim Löschen der benutzerdefinierten Rate</string>
+    <string name="exchange_rates_error_clear_all_custom">Fehler beim Löschen der benutzerdefinierten Raten</string>
+</resources>

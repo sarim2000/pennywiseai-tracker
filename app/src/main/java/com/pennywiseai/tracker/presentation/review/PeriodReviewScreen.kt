@@ -53,6 +53,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.ShareWindow
+import com.pennywiseai.tracker.domain.review.CategoryLine
+import com.pennywiseai.tracker.domain.review.CurrencyReview
+import com.pennywiseai.tracker.domain.review.PeriodReview
+import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.domain.review.isCalendarMonth
+import com.pennywiseai.tracker.domain.review.latestReviewOffset
+import com.pennywiseai.tracker.domain.review.partialYearSpan
+import com.pennywiseai.tracker.domain.review.percentChange
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -67,6 +76,7 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.changeText
 import java.time.LocalDate
 import java.util.Locale
 

@@ -5,8 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.AppLockRepository
-import com.pennywiseai.tracker.domain.security.BiometricAuthManager
-import com.pennywiseai.tracker.domain.security.BiometricCapability
+import com.pennywiseai.tracker.ui.security.BiometricAuthManager
+import com.pennywiseai.tracker.ui.security.BiometricCapability
 import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*

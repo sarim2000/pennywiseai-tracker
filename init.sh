@@ -10,7 +10,7 @@
 # Usage:
 #   ./init.sh            # verify everything (default)
 #   ./init.sh parser     # parser-core JVM tests only  (fast; use for parser work)
-#   ./init.sh app        # app compile + unit tests (:app, :core:designsystem) only
+#   ./init.sh app        # app compile + unit tests (:app, :core:designsystem, :feature:*) only
 #   ./init.sh all        # same as no argument
 #
 # Exit code is non-zero if any step fails (fail-fast).
@@ -86,7 +86,7 @@ verify_parser() {
 
 verify_app() {
   run ./gradlew :app:compileStandardDebugKotlin
-  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest
+  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest
 }
 
 case "$TARGET" in

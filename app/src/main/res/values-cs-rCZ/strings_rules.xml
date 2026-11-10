@@ -28,7 +28,6 @@
     <string name="permission_title">Povolit automatickou detekci transakcí</string>
     <string name="permission_description">PennyWise může automaticky rozpoznat a kategorizovat vaše bankovní transakce pomocí SMS zpráv, ušetřit vám čas a úsilí.</string>
     <string name="permission_privacy_title">Záleží na vašem soukromí</string>
-    <string name="permission_privacy_points">• Pouze transakční zprávy jsou zpracovávány\n• Všechna data zůstávají na vašem zařízení\n• Žádné osobní zprávy nejsou čteny\n• Přístup můžete odvolat kdykoliv v Nastavení</string>
     <string name="permission_notification_title">Povolit přístup k bankovním oznámením</string>
     <string name="permission_notification_description">Povolit PennyWise číst oznámení o transakcích z podporovaných bankovních aplikací. To pomáhá zachytávat nákupy, když je SMS zpožděna nebo není dostupná.</string>
     <string name="permission_notification_enabled">Přístup k oznámením povolen</string>
@@ -210,8 +209,6 @@
     <string name="onboarding_selected_cd">Vybrané</string>
     <string name="onboarding_permission_title">Povolit automatické rozpoznávání</string>
     <string name="onboarding_permission_body">PennyWise může automaticky rozpoznat a kategorizovat vaše bankovní transakce z SMS zpráv.</string>
-    <string name="onboarding_permission_granted">Oprávnění uděleno! Chcete-li pokračovat, klepněte na tlačítko Pokračovat.</string>
-    <string name="onboarding_enable_permissions">Povolit oprávnění</string>
     <string name="onboarding_scan_in_progress">Vyhledávání vašich zpráv...</string>
     <plurals name="onboarding_scan_processed">
         <item quantity="one">%1$d / %2$d zpráva zpracována</item>

@@ -6,11 +6,13 @@ import android.graphics.Bitmap
 import android.net.Uri
 import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.components.SHARE_CARD_URL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+
+/** Printed on the share card and appended to the share text. */
+const val SHARE_CARD_URL = "pennywise.zynth.dev"
 
 /**
  * Writes a rendered share card to disk and hands it to the system share sheet.

@@ -23,8 +23,19 @@ final class MoneyEntryTests: XCTestCase {
         XCTAssertNil(AmountFormatter.minorUnits(.nan, currency: "USD"))
         XCTAssertNil(AmountFormatter.minorUnits(1e17, currency: "JOD"))
         XCTAssertEqual(AmountFormatter.minorUnits(wholeUnits: "250", currency: "JOD"), 250_000)
-        XCTAssertEqual(AmountFormatter.minorUnits(wholeUnits: "9223372036854775807", currency: "JOD"), 0)
-        XCTAssertEqual(AmountFormatter.minorUnits(wholeUnits: "abc", currency: "USD"), 0)
+        XCTAssertNil(AmountFormatter.minorUnits(wholeUnits: "9223372036854775807", currency: "JOD"))
+        XCTAssertNil(AmountFormatter.minorUnits(wholeUnits: "abc", currency: "USD"))
+        XCTAssertEqual(AmountFormatter.minorUnits(wholeUnits: "", currency: "USD"), 0) // empty is no limit, not an error
+    }
+
+    func testARejectedFieldIsNilNeverZero() {
+        // An existing JOD balance of 1,000,000,000,000.000 is 10^15 minor units: past the entry range,
+        // so the account screen must block Save, not store a balance of 0.
+        let shown = AmountFormatter.plain(minorUnits: 1_000_000_000_000_000, currency: "JOD")
+        XCTAssertNil(AmountFormatter.minorUnits(field: shown, currency: "JOD"))
+        XCTAssertNil(AmountFormatter.minorUnits(field: "12,5x", currency: "USD"))
+        XCTAssertEqual(AmountFormatter.minorUnits(field: "", currency: "USD"), 0)
+        XCTAssertEqual(AmountFormatter.minorUnits(field: " 1.001 ", currency: "JOD"), 1001)
     }
 
     func testV1BackupAmountsMoveToTodaysMinorUnits() {

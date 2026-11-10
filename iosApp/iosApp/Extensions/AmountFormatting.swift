@@ -16,13 +16,24 @@ enum AmountFormatter {
         return Int64(scaled)
     }
 
-    /// Whole units typed in a budget field ("250") in `currency`'s minor units; 0 when it isn't a
-    /// number or would overflow.
-    static func minorUnits(wholeUnits text: String, currency: String) -> Int64 {
-        guard let units = Int64(text) else { return 0 }
-        let (minor, overflow) = units.multipliedReportingOverflow(by: MinorUnits.shared.factor(currency: currency))
-        return overflow ? 0 : minor
+    /// An amount field: 0 when left empty, nil when the text isn't a usable amount (the screen
+    /// then blocks Save and says so — a rejected entry is never saved as 0).
+    static func minorUnits(field text: String, currency: String) -> Int64? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { return 0 }
+        return Double(trimmed).flatMap { minorUnits($0, currency: currency) }
     }
+
+    /// Whole units typed in a budget field ("250") in `currency`'s minor units: 0 when left empty,
+    /// nil when it isn't a number or would overflow.
+    static func minorUnits(wholeUnits text: String, currency: String) -> Int64? {
+        if text.isEmpty { return 0 }
+        guard let units = Int64(text) else { return nil }
+        let (minor, overflow) = units.multipliedReportingOverflow(by: MinorUnits.shared.factor(currency: currency))
+        return overflow ? nil : minor
+    }
+
+    static let invalidAmountMessage = "Enter a valid amount"
 
     static func format(minorUnits: Int64, currency: String) -> String {
         CurrencyFormatter.format(amountMinor: minorUnits, currencyCode: currency)

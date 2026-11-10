@@ -63,6 +63,11 @@ struct AddEditBudgetScreen: View {
                 TextField("Total Limit", text: $totalLimitText)
                     .keyboardType(.numberPad)
             }
+            if limitMinor(totalLimitText) == nil {
+                Text(AmountFormatter.invalidAmountMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
             Picker("Type", selection: $groupType) {
                 Text("Spending Limit").tag("LIMIT")
                 Text("Savings Target").tag("TARGET")
@@ -132,6 +137,11 @@ struct AddEditBudgetScreen: View {
                     }
                 }
             }
+            if categoryLimitsInvalid {
+                Text(AmountFormatter.invalidAmountMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
         }
     }
 
@@ -139,7 +149,18 @@ struct AddEditBudgetScreen: View {
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        AmountFormatter.minorUnits(wholeUnits: totalLimitText, currency: CurrencyManager.shared.displayCurrency) > 0
+        (limitMinor(totalLimitText) ?? 0) > 0 &&
+        !categoryLimitsInvalid
+    }
+
+    /// Nil when the text can't be stored as a limit: Save stays off, never a substitute 0
+    /// (an empty category field is 0, which shares the total out evenly).
+    private func limitMinor(_ text: String) -> Int64? {
+        AmountFormatter.minorUnits(wholeUnits: text, currency: CurrencyManager.shared.displayCurrency)
+    }
+
+    private var categoryLimitsInvalid: Bool {
+        selectedCategories.contains { limitMinor(categoryAmounts[$0] ?? "") == nil }
     }
 
     private func toggleCategory(_ category: String) {
@@ -159,8 +180,7 @@ struct AddEditBudgetScreen: View {
     }
 
     private func saveBudget() {
-        let currency = CurrencyManager.shared.displayCurrency
-        let limitMinor = AmountFormatter.minorUnits(wholeUnits: totalLimitText, currency: currency)
+        guard isValid, let totalMinor = limitMinor(totalLimitText) else { return }
 
         let calendar = Calendar.current
         let now = Date()
@@ -170,16 +190,17 @@ struct AddEditBudgetScreen: View {
         let startMillis = Int64(startOfMonth.timeIntervalSince1970 * 1000)
         let endMillis = Int64(endOfMonth.timeIntervalSince1970 * 1000)
 
-        let catLimits: [(String, Int64)] = selectedCategories.sorted().compactMap { cat in
-            let amount = AmountFormatter.minorUnits(wholeUnits: categoryAmounts[cat] ?? "0", currency: currency)
-            return amount > 0 ? (cat, amount) : (cat, limitMinor / Int64(max(1, selectedCategories.count)))
+        var catLimits: [(String, Int64)] = []
+        for cat in selectedCategories.sorted() {
+            guard let amount = limitMinor(categoryAmounts[cat] ?? "") else { return }
+            catLimits.append(amount > 0 ? (cat, amount) : (cat, totalMinor / Int64(max(1, selectedCategories.count))))
         }
 
         if let existing = editingBudget {
             _ = viewModel.updateBudget(
                 id: existing.id,
                 name: name.trimmingCharacters(in: .whitespaces),
-                limitMinor: limitMinor,
+                limitMinor: totalMinor,
                 periodType: periodType,
                 startEpochMillis: startMillis,
                 endEpochMillis: endMillis,
@@ -190,7 +211,7 @@ struct AddEditBudgetScreen: View {
         } else {
             _ = viewModel.createBudget(
                 name: name.trimmingCharacters(in: .whitespaces),
-                limitMinor: limitMinor,
+                limitMinor: totalMinor,
                 periodType: periodType,
                 startEpochMillis: startMillis,
                 endEpochMillis: endMillis,

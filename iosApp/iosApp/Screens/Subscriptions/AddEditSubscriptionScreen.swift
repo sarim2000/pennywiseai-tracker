@@ -60,6 +60,11 @@ struct AddEditSubscriptionScreen: View {
                 TextField("Amount", text: $amountText)
                     .keyboardType(.decimalPad)
             }
+            if !amountText.isEmpty && amountMinor == nil {
+                Text(AmountFormatter.invalidAmountMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
         }
     }
 
@@ -101,25 +106,26 @@ struct AddEditSubscriptionScreen: View {
 
     private var isValid: Bool {
         !merchantName.trimmingCharacters(in: .whitespaces).isEmpty &&
-        amountMinor > 0
+        (amountMinor ?? 0) > 0
     }
 
     /// Locale-aware ("2,99" with a comma keyboard; the "2.99" prefill also
-    /// parses). Unparseable or out-of-range input is 0, which keeps Save
-    /// disabled instead of overflowing Int64.
-    private var amountMinor: Int64 {
+    /// parses). Unparseable or out-of-range input is nil: Save stays off and
+    /// the field says so, never storing a substitute.
+    private var amountMinor: Int64? {
         let separator = Locale.current.decimalSeparator ?? "."
         let normalized = amountText.trimmingCharacters(in: .whitespaces)
             .replacingOccurrences(of: separator, with: ".")
         // Plain digits with an optional fraction only: "1,234.56", "1e3",
         // hex or "inf" are rejected, never read as a different amount.
         guard normalized.range(of: #"^(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$"#, options: .regularExpression) != nil,
-              let value = Double(normalized), value > 0, value < 1_000_000_000_000 else { return 0 }
-        return AmountFormatter.minorUnits(value, currency: selectedCurrency) ?? 0
+              let value = Double(normalized), value > 0, value < 1_000_000_000_000 else { return nil }
+        return AmountFormatter.minorUnits(value, currency: selectedCurrency)
     }
 
     private func save() {
         let currency = selectedCurrency
+        guard isValid, let amountMinor else { return }
 
         if let existing = editingSubscription {
             _ = viewModel.updateSubscription(

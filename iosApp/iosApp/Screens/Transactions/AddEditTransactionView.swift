@@ -29,7 +29,12 @@ struct AddEditTransactionView: View {
 
     private var isValid: Bool {
         !merchantName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            Double(amountText).map { $0 > 0 } ?? false
+            (amountMinor ?? 0) > 0
+    }
+
+    /// Nil when the typed amount can't be stored (Save stays off and says so).
+    private var amountMinor: Int64? {
+        AmountFormatter.minorUnits(field: amountText, currency: selectedCurrency)
     }
 
     var body: some View {
@@ -85,7 +90,7 @@ struct AddEditTransactionView: View {
                 }
             }
 
-            if let error = errorMessage {
+            if let error = errorMessage ?? (amountMinor == nil ? AmountFormatter.invalidAmountMessage : nil) {
                 Section {
                     Text(error)
                         .foregroundStyle(.red)
@@ -138,9 +143,7 @@ struct AddEditTransactionView: View {
     }
 
     private func saveTransaction() {
-        guard isValid else { return }
-        guard let amountValue = Double(amountText),
-              let amountMinor = AmountFormatter.minorUnits(amountValue, currency: selectedCurrency) else { return }
+        guard isValid, let amountMinor else { return }
         let epochMillis = Int64((selectedDate.timeIntervalSince1970 * 1000.0).rounded())
 
         if let editId = editingTransactionId {

@@ -57,6 +57,7 @@ class ChatTurnTest {
     }
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true) {
         every { baseCurrency } returns flowOf("INR")
+        every { countCreditCardAsExpense } returns flowOf(false)
     }
     private val categories = mockk<CategoryRepository>(relaxed = true) {
         every { getVisibleCategories() } returns flowOf(listOf(CategoryEntity(id = 1, name = "طعام", color = "#000")))
@@ -98,17 +99,29 @@ class ChatTurnTest {
     @Test
     fun `prose streamed before a comparison leaves the screen, and the save`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
         every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
         events = listOf(LlmEvent.Text("You spent ₹999 more. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
         assertEquals("NO_DATA", send("compare with last month"))
         assertEquals("NO_DATA", saved.last().message)
+        // The model must not remember the figures it wrote: the next turn rebuilds from the save.
+        coVerify(exactly = 1) { llmService.closeConversation() }
+    }
+
+    @Test
+    fun `a comparison with no prose keeps the live conversation`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
+        send("compare with last month")
+        coVerify(exactly = 0) { llmService.closeConversation() }
     }
 
     @Test
     fun `a comparison for a category nobody has is unknown, not nothing spent`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any()) } returns SpendingComparison.Result.Rows(w, w, emptyList())
+        coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.Rows(w, w, emptyList())
         every { context.getString(R.string.chat_reply_compare_nothing_category, any(), any(), any()) } returns "NOTHING"
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "Unicorns")))
         assertEquals("UNKNOWN_CATEGORY", send("compare unicorns with last month"))
@@ -124,11 +137,11 @@ class ChatTurnTest {
     @Test
     fun `a category only transactions carry is that category, even when it reads like "all"`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any()) } returns
+        coEvery { aiContext.compareSpending(any(), any(), any()) } returns
             SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("100"), BigDecimal.ZERO, null)))
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "General")))
         send("compare general with last month")
-        coVerify(exactly = 0) { aiContext.compareSpending(any(), null) }
+        coVerify(exactly = 0) { aiContext.compareSpending(any(), null, any()) }
     }
 
     @Test

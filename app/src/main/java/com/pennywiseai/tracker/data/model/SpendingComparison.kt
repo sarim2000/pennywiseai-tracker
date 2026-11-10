@@ -57,16 +57,17 @@ object SpendingComparison {
         windows: Pair<Window, Window>,
         current: List<TransactionWithSplits>,
         previous: List<TransactionWithSplits>,
-        category: String? = null,
+        categories: Set<String>? = null,
         currentLoss: Map<String, BigDecimal> = emptyMap(),
-        previousLoss: Map<String, BigDecimal> = emptyMap()
+        previousLoss: Map<String, BigDecimal> = emptyMap(),
+        creditAsExpense: Boolean = true
     ): Result {
         val (cw, pw) = windows
         // A loan forgiven in a window is activity there too, even with no transactions.
         if (previous.isEmpty() && previousLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, pw)
         if (current.isEmpty() && currentLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, cw)
-        val now = spend(current, category).plusAmounts(currentLoss)
-        val before = spend(previous, category).plusAmounts(previousLoss)
+        val now = spend(current, categories, creditAsExpense).plusAmounts(currentLoss)
+        val before = spend(previous, categories, creditAsExpense).plusAmounts(previousLoss)
         val rows = (now.keys + before.keys).sorted().map { currency ->
             val c = now[currency] ?: BigDecimal.ZERO
             val p = before[currency] ?: BigDecimal.ZERO
@@ -79,9 +80,11 @@ object SpendingComparison {
     fun Map<String, BigDecimal>.plusAmounts(other: Map<String, BigDecimal>): Map<String, BigDecimal> =
         (keys + other.keys).associateWith { (this[it] ?: BigDecimal.ZERO) + (other[it] ?: BigDecimal.ZERO) }
 
-    /** What counts as spending, as in the month summary: credit too. */
-    private fun spending(rows: List<TransactionWithSplits>) = rows.forTotals()
-        .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
+    /** What counts as spending, as on Home: card purchases only when the user folds them in (#705). */
+    private fun spending(rows: List<TransactionWithSplits>, creditAsExpense: Boolean) = rows.forTotals()
+        .filter { it.transaction.transactionType == TransactionType.EXPENSE || (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT) }
+
+    private fun Set<String>?.includes(name: String) = this == null || any { it.equals(name, ignoreCase = true) }
 
     /**
      * Refunds (INCOME + DEDUCT_SPENT) as (currency, category, amount): they come off spending, as on
@@ -92,20 +95,20 @@ object SpendingComparison {
         .map { Triple(it.transaction.currency, (it.transaction.budgetCategory ?: "").ifEmpty { "Others" }, it.transaction.amount) }
 
     /**
-     * Same rules as Home's "spent": what counts toward totals, credit as spending, refunds netted per
-     * currency and floored at zero. A category gets its split share and the refunds given back to it.
+     * Same rules as Home's "spent": what counts toward totals, refunds netted per currency and floored
+     * at zero. [categories] (null = all) get their split shares and the refunds given back to them.
      */
-    fun spend(rows: List<TransactionWithSplits>, category: String? = null): Map<String, BigDecimal> {
-        val refunded = refunds(rows).filter { category == null || it.second.equals(category, ignoreCase = true) }
+    fun spend(rows: List<TransactionWithSplits>, categories: Set<String>? = null, creditAsExpense: Boolean = true): Map<String, BigDecimal> {
+        val refunded = refunds(rows).filter { categories.includes(it.second) }
             .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
-        return grossSpend(rows, category).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
+        return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
     }
 
-    private fun grossSpend(rows: List<TransactionWithSplits>, category: String?): Map<String, BigDecimal> =
-        spending(rows)
+    private fun grossSpend(rows: List<TransactionWithSplits>, categories: Set<String>?, creditAsExpense: Boolean): Map<String, BigDecimal> =
+        spending(rows, creditAsExpense)
             .mapNotNull { row ->
-                val amount = if (category == null) row.transaction.amount
-                    else row.getAmountByCategory().entries.filter { it.key.equals(category, ignoreCase = true) }
+                val amount = if (categories == null) row.transaction.amount
+                    else row.getAmountByCategory().entries.filter { categories.includes(it.key) }
                         .takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO) { acc, e -> acc + e.value } ?: return@mapNotNull null
                 row.transaction.currency to amount
             }
@@ -116,10 +119,10 @@ object SpendingComparison {
      * Each currency's biggest categories, largest first: split shares in, refunds given back to a
      * category out (floored at zero, and a category refunded in full drops off). Never ranked across currencies.
      */
-    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5): Map<String, List<Pair<String, BigDecimal>>> {
+    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5, creditAsExpense: Boolean = true): Map<String, List<Pair<String, BigDecimal>>> {
         val refunded = refunds(rows).groupBy({ it.first to it.second }, { it.third })
             .mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
-        return spending(rows)
+        return spending(rows, creditAsExpense)
             .flatMap { row -> row.getAmountByCategory().map { (category, amount) -> Triple(row.transaction.currency, category, amount) } }
             .groupBy { it.first }
             .mapValues { (currency, items) ->

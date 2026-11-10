@@ -73,6 +73,7 @@ done
 # and pushes main, so it must run on a clean main that matches origin/main.
 # Untracked files don't count — the release commit only adds files it writes.
 # A dry run reports the same problems as warnings and carries on.
+# Tested by scripts/test-release-guard.sh (CI: Tests / Release Guard Test).
 GUARD_PROBLEMS=()
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 [ "$CURRENT_BRANCH" = "main" ] || GUARD_PROBLEMS+=("On branch '$CURRENT_BRANCH', not main")

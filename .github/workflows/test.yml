@@ -176,9 +176,20 @@ jobs:
   # Branch protection should require this job instead of each job above.
   # Upgrade Test (API 26) stays a separate, path-filtered workflow: it runs only
   # on schema/database PRs, so it can't be required — check it on those PRs.
+  release-guard:
+    name: Release Guard Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Test release.sh's branch and tree guard
+      run: bash scripts/test-release-guard.sh
+
   check:
     name: Check
-    needs: [parser-tests, app-compile, app-unit-tests, format-check]
+    needs: [parser-tests, app-compile, app-unit-tests, format-check, release-guard]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 1

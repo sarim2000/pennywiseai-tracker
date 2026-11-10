@@ -439,7 +439,9 @@ private fun ProfileStep(
                 capitalization = KeyboardCapitalization.Words,
                 imeAction = ImeAction.Done
             ),
-            keyboardActions = KeyboardActions(onDone = { viewModel.goToNextStep() }),
+            keyboardActions = KeyboardActions(onDone = {
+                if (uiState.userName.isNotBlank()) viewModel.goToNextStep()
+            }),
             shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(
@@ -1111,8 +1113,11 @@ private fun OnBoardingBottomBar(
                 }
 
                 OnBoardingStep.PROFILE -> {
-                    // The name is optional: a blank one shows the default greeting.
-                    Button(onClick = onNext, shapes = ButtonDefaults.shapes()) {
+                    Button(
+                        onClick = onNext,
+                        enabled = uiState.userName.isNotBlank(),
+                        shapes = ButtonDefaults.shapes()
+                    ) {
                         Text(stringResource(R.string.onboarding_save_continue))
                     }
                 }

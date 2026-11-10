@@ -53,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -65,8 +66,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-/** Amount fields accept digits with one optional decimal point. */
-internal val amountInput = Regex("^\\d*\\.?\\d{0,2}$")
+/** Amount fields accept digits with one optional decimal point, up to [currency]'s decimals (3 for JOD). */
+internal fun amountInput(currency: String) = Regex("^\\d*\\.?\\d{0,${MinorUnits.digits(currency)}}$")
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -145,7 +146,7 @@ fun GoalEditScreen(
                 )
                 OutlinedTextField(
                     value = form.target,
-                    onValueChange = { v -> if (v.matches(amountInput)) viewModel.update { it.copy(target = v) } },
+                    onValueChange = { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(target = v) } },
                     label = { Text(stringResource(R.string.goal_edit_target)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -180,7 +181,7 @@ fun GoalEditScreen(
             if (!state.isEditing) {
                 OutlinedTextField(
                     value = form.alreadySaved,
-                    onValueChange = { v -> if (v.matches(amountInput)) viewModel.update { it.copy(alreadySaved = v) } },
+                    onValueChange = { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(alreadySaved = v) } },
                     label = { Text(stringResource(R.string.goal_edit_already_saved)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(form.currency)) },
                     singleLine = true,

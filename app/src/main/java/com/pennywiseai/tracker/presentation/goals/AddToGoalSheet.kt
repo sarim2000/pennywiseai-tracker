@@ -134,7 +134,7 @@ fun AddToGoalSheet(
             }
             OutlinedTextField(
                 value = amount,
-                onValueChange = { if (it.matches(amountInput)) { amount = it; onEdited() } },
+                onValueChange = { if (it.matches(amountInput(currency))) { amount = it; onEdited() } },
                 label = { Text(stringResource(R.string.goal_money_amount)) },
                 prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                 singleLine = true,
@@ -151,7 +151,7 @@ fun AddToGoalSheet(
                 )
                 OutlinedTextField(
                     value = manual,
-                    onValueChange = { if (it.matches(amountInput)) manual = it },
+                    onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
                     singleLine = true,

@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalRules
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,6 +19,14 @@ class GoalFormsTest {
 
     private val today = LocalDate.of(2026, 10, 16)
     private fun bd(v: String) = BigDecimal(v)
+
+    @Test
+    fun `amount input allows the goal currency's own decimals`() {
+        assertTrue("1.235".matches(amountInput("JOD")))
+        assertTrue("1.23".matches(amountInput("USD")))
+        assertFalse("1.235".matches(amountInput("USD")))
+        assertFalse("1.2355".matches(amountInput("JOD")))
+    }
 
     @Test
     fun `per month helper uses target minus already saved over months left`() {

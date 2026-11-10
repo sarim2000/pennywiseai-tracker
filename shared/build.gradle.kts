@@ -48,7 +48,7 @@ kotlin {
         getByName("androidHostTest").dependencies {
             // The Android bundled-SQLite artifact ships device JNI only; its JVM twin (same version,
             // same classes) carries host natives, so the migration test runs a real SQLite here.
-            runtimeOnly("androidx.sqlite:sqlite-bundled-jvm:2.7.1")
+            runtimeOnly(libs.androidx.sqlite.bundled.jvm)
         }
         val androidMain by getting {
             // Bank SMS parsers are platform code in parser-core (no common API),

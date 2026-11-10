@@ -41,6 +41,20 @@ class CurrencyConversionServiceOfflineTest {
         coVerify(exactly = 1) { provider.fetchAllExchangeRatesWithMetadata(any()) }
     }
 
+    @Test
+    fun `a conversion into a three-decimal currency keeps its fils`() = runBlocking {
+        val dao = mockk<ExchangeRateDao>(relaxed = true)
+        val now = LocalDateTime.now()
+        coEvery { dao.getExchangeRate("USD", "JOD", any()) } returns ExchangeRateEntity(
+            fromCurrency = "USD", toCurrency = "JOD", rate = BigDecimal("0.709"),
+            provider = "test", updatedAt = now, expiresAt = now.plusDays(1)
+        )
+        val service = CurrencyConversionService(dao, mockk(relaxed = true), mockk<UserPreferencesRepository>(relaxed = true))
+
+        // 10 USD x 0.709 = 7.090 JOD; rounding to 2 places used to show 7.09.
+        assertEquals(BigDecimal("7.090"), service.convertAmountOrNull(BigDecimal("10"), "USD", "JOD"))
+    }
+
     /**
      * AUD-03: the rate cache used to be a plain mutableMapOf written/read by
      * concurrent coroutines without synchronization — risking

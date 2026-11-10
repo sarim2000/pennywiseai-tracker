@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
-import com.pennywiseai.tracker.R
+import com.pennywiseai.feature.exchangerates.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

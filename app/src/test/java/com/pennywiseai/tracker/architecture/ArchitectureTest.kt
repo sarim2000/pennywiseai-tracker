@@ -5,11 +5,12 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
- * Package-boundary guardrails for `:app`. The rules are the ones in
- * docs/architecture.md ("Ownership & dependency rules"), checked on the
- * production sources of every flavor and build type.
+ * Package-boundary guardrails for `:app` and the `:feature:*` modules. The rules
+ * are the ones in docs/architecture.md ("Ownership & dependency rules"), checked
+ * on the production sources of every flavor and build type.
  *
  * A rule forbids some imports in some files. Imports that already broke a rule
  * when it was added are listed in its allowlist, per file and per exact import,
@@ -144,6 +145,18 @@ class ArchitectureTest {
         )
     }
 
+    @Test
+    fun `feature modules are scanned`() {
+        assertTrue(
+            "No :feature:exchangerates file found. Did MODULES stop discovering feature/*?",
+            productionFiles.any { it.repoPath.startsWith("feature/exchangerates/src/main/") },
+        )
+        assertTrue(
+            "No :feature:exchangerates test file found. Did MODULES stop discovering feature/*?",
+            testFiles.any { it.repoPath.startsWith("feature/exchangerates/src/test/") },
+        )
+    }
+
     private class Rule(
         val name: String,
         val appliesTo: (KoFileDeclaration) -> Boolean,
@@ -243,14 +256,26 @@ class ArchitectureTest {
         /** The only ViewModels that may live in `ui.viewmodel`. Every other one belongs to a feature. */
         val APP_WIDE_VIEW_MODELS = setOf("MainViewModel", "ThemeViewModel", "SpotlightViewModel")
 
+        /**
+         * `app` plus every `feature/<name>` module (Konsist names a nested module by its
+         * path). Feature modules keep `com.pennywiseai.tracker.*` packages, so every rule
+         * applies to them unchanged.
+         */
+        val MODULES: List<String> by lazy {
+            // Gradle runs tests from the module dir; an IDE may run them from the root.
+            val root = if (File("settings.gradle.kts").isFile) File(".") else File("..")
+            listOf("app") + File(root, "feature").listFiles { f -> File(f, "build.gradle.kts").isFile }
+                .orEmpty().map { "feature/${it.name}" }.sorted()
+        }
+
         /** Parsed once and shared by every rule: parsing dominates the runtime. */
         val productionFiles: List<KoFileDeclaration> by lazy {
-            Konsist.scopeFromProduction(moduleName = "app").files
+            MODULES.flatMap { Konsist.scopeFromProduction(moduleName = it).files }
         }
 
         /** Unit and instrumented test sources, for the rules that check where files live. */
         val testFiles: List<KoFileDeclaration> by lazy {
-            Konsist.scopeFromTest(moduleName = "app").files
+            MODULES.flatMap { Konsist.scopeFromTest(moduleName = it).files }
         }
 
         /** `a.b` contains `a.b` itself and everything under `a.b.`, but not `a.bc`. */

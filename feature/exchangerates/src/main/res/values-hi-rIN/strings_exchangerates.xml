@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">विनिमय दरें</string>
+    <string name="exchange_rates_refresh">दरें रीफ़्रेश करें</string>
+    <string name="exchange_rates_empty_title">कोई विनिमय दर उपलब्ध नहीं</string>
+    <string name="exchange_rates_empty_description">जब आपके पास कई मुद्राओं में लेन-देन होंगे, तब दरें यहाँ दिखेंगी</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">अंतिम अद्यतन: %1$s</string>
+    <string name="exchange_rates_hint">कस्टम वैल्यू सेट करने के लिए किसी दर पर टैप करें। API रीफ़्रेश होने पर भी कस्टम दरें बनी रहती हैं।</string>
+    <string name="exchange_rates_reset_all">सभी को ऑटो पर रीसेट करें</string>
+    <string name="exchange_rates_badge_custom">कस्टम</string>
+    <string name="exchange_rates_rate_label">विनिमय दर</string>
+    <string name="exchange_rates_invalid_rate">सही पॉज़िटिव संख्या डालें</string>
+    <string name="exchange_rates_reset">ऑटो पर रीसेट करें</string>
+    <string name="exchange_rates_set_custom">कस्टम दर सेट करें</string>
+    <string name="exchange_rates_error_load">दरें लोड नहीं हो सकीं</string>
+    <string name="exchange_rates_error_refresh">दरें रीफ़्रेश नहीं हो सकीं</string>
+    <string name="exchange_rates_error_set_custom">कस्टम दर सेट नहीं हो सकी</string>
+    <string name="exchange_rates_error_clear_custom">कस्टम दर हटाई नहीं जा सकी</string>
+    <string name="exchange_rates_error_clear_all_custom">कस्टम दरें हटाई नहीं जा सकीं</string>
+</resources>

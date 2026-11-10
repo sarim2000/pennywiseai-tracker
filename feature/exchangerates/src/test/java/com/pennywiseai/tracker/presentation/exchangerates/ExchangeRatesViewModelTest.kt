@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
-import com.pennywiseai.tracker.R
+import com.pennywiseai.feature.exchangerates.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

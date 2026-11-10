@@ -121,7 +121,7 @@ jobs:
     - uses: gradle/actions/setup-gradle@v5
 
     - name: Run standard debug unit tests
-      run: ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest --build-cache --continue
+      run: ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest --build-cache --continue
 
     - name: Upload test results
       uses: actions/upload-artifact@v7
@@ -131,6 +131,7 @@ jobs:
         path: |
           app/build/test-results/
           core/designsystem/build/test-results/
+          feature/exchangerates/build/test-results/
         retention-days: 7
 
   format-check:

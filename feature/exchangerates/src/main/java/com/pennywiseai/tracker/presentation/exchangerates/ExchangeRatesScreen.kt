@@ -1,8 +1,6 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
+import com.pennywiseai.feature.exchangerates.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +12,6 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,19 +23,36 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
 
+/**
+ * The app's shared pieces come in as parameters, so this module needs nothing from
+ * :app. `navigation/ExchangeRatesEntry.kt` in :app supplies them.
+ *
+ * @param topBar the app's top bar, given the title, both scroll behaviors, the haze
+ *   source and this screen's actions (the refresh button). It owns the back button.
+ * @param formatDateTime the "last updated" date and time.
+ * @param currencySymbol the symbol shown before a currency code.
+ * @param cancelLabel the edit dialog's dismiss button.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ExchangeRatesScreen(
+    topBar: @Composable (
+        title: String,
+        scrollBehaviorSmall: TopAppBarScrollBehavior,
+        scrollBehaviorLarge: TopAppBarScrollBehavior,
+        hazeState: HazeState,
+        actions: @Composable () -> Unit,
+    ) -> Unit,
+    formatDateTime: (LocalDateTime) -> String,
+    currencySymbol: (String) -> String,
+    cancelLabel: String,
     viewModel: ExchangeRatesViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -52,27 +66,20 @@ fun ExchangeRatesScreen(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.exchange_rates_title),
-                hasBackButton = true,
-                navigationContent = {
-                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.accounts_back))
-                    }
-                },
-                actionContent = {
-                    IconButton(
-                        onClick = { viewModel.refreshRates() },
-                        enabled = !uiState.isRefreshing,
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
-                    }
-                },
-                hazeState = hazeState
-            )
+            topBar(
+                stringResource(R.string.exchange_rates_title),
+                scrollBehaviorSmall,
+                scrollBehaviorLarge,
+                hazeState,
+            ) {
+                IconButton(
+                    onClick = { viewModel.refreshRates() },
+                    enabled = !uiState.isRefreshing,
+                    shapes = IconButtonDefaults.shapes()
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.exchange_rates_refresh))
+                }
+            }
         }
     ) { paddingValues ->
         when {
@@ -132,7 +139,7 @@ fun ExchangeRatesScreen(
                     uiState.lastUpdated?.let { lastUpdated ->
                         item {
                             Text(
-                                text = stringResource(R.string.exchange_rates_last_updated, lastUpdated.format(AppDates.dateTimeFormatter())),
+                                text = stringResource(R.string.exchange_rates_last_updated, formatDateTime(lastUpdated)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -155,6 +162,7 @@ fun ExchangeRatesScreen(
                     ) { rate ->
                         ExchangeRateCard(
                             rate = rate,
+                            currencySymbol = currencySymbol,
                             onClick = { editingRate = rate },
                             modifier = Modifier.animateItem()
                         )
@@ -192,6 +200,7 @@ fun ExchangeRatesScreen(
     editingRate?.let { rate ->
         EditRateDialog(
             rate = rate,
+            cancelLabel = cancelLabel,
             onDismiss = { editingRate = null },
             onSetCustomRate = { newRate ->
                 viewModel.setCustomRate(rate.fromCurrency, rate.toCurrency, newRate)
@@ -208,6 +217,7 @@ fun ExchangeRatesScreen(
 @Composable
 private fun ExchangeRateCard(
     rate: ExchangeRateSnapshot,
+    currencySymbol: (String) -> String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -229,7 +239,7 @@ private fun ExchangeRateCard(
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${CurrencyFormatter.getCurrencySymbol(rate.fromCurrency)} ${rate.fromCurrency}",
+                        text = "${currencySymbol(rate.fromCurrency)} ${rate.fromCurrency}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
@@ -239,7 +249,7 @@ private fun ExchangeRateCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "${CurrencyFormatter.getCurrencySymbol(rate.toCurrency)} ${rate.toCurrency}",
+                        text = "${currencySymbol(rate.toCurrency)} ${rate.toCurrency}",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
@@ -268,6 +278,7 @@ private fun ExchangeRateCard(
 @Composable
 private fun EditRateDialog(
     rate: ExchangeRateSnapshot,
+    cancelLabel: String,
     onDismiss: () -> Unit,
     onSetCustomRate: (BigDecimal) -> Unit,
     onResetToAuto: () -> Unit
@@ -339,7 +350,7 @@ private fun EditRateDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.accounts_action_cancel))
+                Text(cancelLabel)
             }
         }
     )

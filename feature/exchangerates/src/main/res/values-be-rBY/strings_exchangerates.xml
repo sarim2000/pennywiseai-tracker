@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="exchange_rates_title">Курсы валют</string>
+    <string name="exchange_rates_refresh">Абнавіць курсы</string>
+    <string name="exchange_rates_empty_title">Курсаў валют няма</string>
+    <string name="exchange_rates_empty_description">Курсы з\'явяцца, калі ў вас будуць транзакцыі ў некалькіх валютах</string>
+    <!-- %1$s = date and time -->
+    <string name="exchange_rates_last_updated">Апошняе абнаўленне: %1$s</string>
+    <string name="exchange_rates_hint">Націсніце на курс, каб задаць сваё значэнне. Свае курсы захоўваюцца пры абнаўленнях праз API.</string>
+    <string name="exchange_rates_reset_all">Скінуць усе на аўта</string>
+    <string name="exchange_rates_badge_custom">Свой</string>
+    <string name="exchange_rates_rate_label">Курс</string>
+    <string name="exchange_rates_invalid_rate">Увядзіце правільны дадатны лік</string>
+    <string name="exchange_rates_reset">Скінуць на аўта</string>
+    <string name="exchange_rates_set_custom">Задаць свой курс</string>
+    <string name="exchange_rates_error_load">Не ўдалося загрузіць курсы</string>
+    <string name="exchange_rates_error_refresh">Не ўдалося абнавіць курсы</string>
+    <string name="exchange_rates_error_set_custom">Не ўдалося задаць свой курс</string>
+    <string name="exchange_rates_error_clear_custom">Не ўдалося прыбраць свой курс</string>
+    <string name="exchange_rates_error_clear_all_custom">Не ўдалося прыбраць свае курсы</string>
+</resources>

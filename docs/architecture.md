@@ -140,7 +140,8 @@ app/
 │   ├── backup/ core/ initializer/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
-│                                #   appearance enums (same packages as before the move)
+│                                #   overscroll effect, appearance enums (same packages as before the move)
+feature/exchangerates/           # Exchange-rates screen + ViewModel (package presentation.exchangerates)
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
 shared/                          # KMP code shared with iOS
 iosApp/                          # Swift iOS app
@@ -193,8 +194,8 @@ reprints them. A PR may remove a violation but must not add one.
 
 ### `:core:designsystem`
 
-Holds `PennyWiseTheme`, the `ui.theme` tokens, the 17 fonts, `LocalBlurEffects` and
-the appearance enums (`AccentColor`, `AppFont`, `ThemeStyle`). `:app` depends on it,
+Holds `PennyWiseTheme`, the `ui.theme` tokens, the 17 fonts, `LocalBlurEffects`, the
+overscroll effect (`ui.effects.overScrollVertical` and friends) and the appearance enums (`AccentColor`, `AppFont`, `ThemeStyle`). `:app` depends on it,
 and it depends on no project module, so the compiler keeps the theme free of
 `data`, `domain` and feature code.
 
@@ -203,8 +204,8 @@ and it depends on no project module, so the compiler keeps the theme free of
   `UserPreferencesRepository` import a `ui` package. They are stored by name, so
   entries can't be renamed. If a `:core:datastore` is ever extracted, move them
   down rather than making it depend on this module.
-- **No string resources here.** Crowdin and `StringPlaceholderParityTest` cover only
-  `app/src/main/res`.
+- **No string resources here.** Crowdin and `StringPlaceholderParityTest` cover
+  `app/src/main/res` and the feature modules' `res`, not this module's.
 - **`ui/components` stays in `:app`.** About 14 of its files are generic, but `:app`
   is the only module that renders Compose. The rest of the package needs
   `R.string`, money formatting, Haze, Coil or feature types, so moving the generic
@@ -213,10 +214,28 @@ and it depends on no project module, so the compiler keeps the theme free of
 - **No convention plugin yet.** One library module doesn't justify `build-logic`, so
   its build file repeats `:app`'s SDK and JVM settings. Revisit when a second one lands.
 
+### `:feature:exchangerates`
+
+The first feature module: `ExchangeRatesScreen`, its ViewModel and the
+`ExchangeRatesData` port. It depends on `:core:designsystem` only. `:app` binds the
+port (`di/ExchangeRatesModule.kt`) and calls the screen through
+`navigation/ExchangeRatesEntry.kt`, which passes in what stays in `:app`: the
+`CustomTitleTopAppBar` (as a `topBar` slot, with the back button), `AppDates` and
+`CurrencyFormatter`, and the shared `accounts_*` strings, resolved.
+
+- **The package stays `com.pennywiseai.tracker.presentation.exchangerates`**, so the
+  Hilt ViewModel key and every rule below apply as before. Its `R` is
+  `com.pennywiseai.feature.exchangerates.R`.
+- **Strings live in the module** (`res/values*/strings_exchangerates.xml`). Crowdin
+  needs one `files` entry per feature module in `crowdin.yml`.
+- Hilt and KSP run here for the ViewModel. Room, KSP schemas and the baseline
+  profile stay in `:app`.
+
 ### Enforced by `ArchitectureTest`
 
 `app/src/test/.../architecture/ArchitectureTest.kt` (Konsist) checks the
-`import` lines of the production sources in every flavor. It runs with the unit
+`import` lines of the production sources in every flavor, in `:app` and every
+`feature/*` module. It runs with the unit
 tests, so `./init.sh app` and CI fail on a new violation:
 
 | Files | Must not import |

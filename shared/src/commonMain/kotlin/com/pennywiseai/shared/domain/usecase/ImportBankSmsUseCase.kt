@@ -101,7 +101,10 @@ class ImportBankSmsUseCase(
             reference = parsed.reference,
             bankName = parsed.bankName,
             accountLast4 = parsed.accountLast4,
-            balanceAfterMinor = parsed.balance?.let { toMinor(it, parsed.currency) },
+            // Only a balance in the row's own currency: a USD spend's JOD balance stays on the account.
+            balanceAfterMinor = parsed.balance
+                ?.takeIf { (parsed.accountCurrency ?: parsed.currency).equals(parsed.currency, ignoreCase = true) }
+                ?.let { toMinor(it, parsed.currency) },
             createdAtEpochMillis = now,
             updatedAtEpochMillis = now
         )

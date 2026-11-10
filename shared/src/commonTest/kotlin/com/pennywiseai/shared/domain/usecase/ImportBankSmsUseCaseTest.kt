@@ -242,6 +242,21 @@ class ImportBankSmsUseCaseTest {
     }
 
     @Test
+    fun aBalanceInAnotherCurrencyStaysOnTheAccountOnly() = runTest {
+        val usdSpend = "12.00 USD at TEST STORE.\nCard 123.\nAvailable balance: 30.125 JOD."
+
+        val saved = assertIs<BankSmsImportResult.Saved>(useCase.execute("BankEtihad", usdSpend, RECEIVED_AT)).transaction
+
+        assertEquals("USD", saved.currency)
+        assertEquals(1_200L, saved.amountMinor)
+        // A USD row can't carry a JOD figure: the balance lives on the JOD-tagged account.
+        assertEquals(null, saved.balanceAfterMinor)
+        val balance = accounts.balances.single()
+        assertEquals(30_125L, balance.balanceMinor)
+        assertEquals("JOD", balance.currency)
+    }
+
+    @Test
     fun theReportedBalanceUpdatesTheAccount() = runTest {
         val saved = assertIs<BankSmsImportResult.Saved>(
             useCase.execute("CP-HDFCBK-S", HDFC_NEFT_WITH_BALANCE, RECEIVED_AT)

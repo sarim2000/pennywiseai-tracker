@@ -10,6 +10,13 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 
+/**
+ * The typed amount, or null when it isn't a number or has more decimals than [currency] allows
+ * ("1.235" typed as JOD, then the currency switched to USD: the text survives the switch).
+ */
+fun String.toAmountIn(currency: String): BigDecimal? =
+    toBigDecimalOrNull()?.takeIf { it.stripTrailingZeros().scale() <= MinorUnits.digits(currency) }
+
 /** Inline validation problems; the screen maps each to a string. */
 enum class GoalFieldError { NAME_BLANK, TARGET_INVALID, DUE_NOT_AFTER_TODAY, ALREADY_SAVED_INVALID }
 
@@ -25,9 +32,9 @@ data class GoalForm(
     val color: String = "#1565C0",
     val alreadySaved: String = "",
 ) {
-    val targetAmount: BigDecimal? get() = target.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    val targetAmount: BigDecimal? get() = target.toAmountIn(currency)?.takeIf { it.signum() > 0 }
     val alreadySavedAmount: BigDecimal? get() =
-        if (alreadySaved.isBlank()) BigDecimal.ZERO else alreadySaved.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 }
+        if (alreadySaved.isBlank()) BigDecimal.ZERO else alreadySaved.toAmountIn(currency)?.takeIf { it.signum() >= 0 }
 
     /**
      * Field errors. [original] is the stored goal when editing: its due date may

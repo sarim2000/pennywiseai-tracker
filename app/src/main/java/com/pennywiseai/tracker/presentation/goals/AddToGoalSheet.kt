@@ -184,7 +184,7 @@ fun AddToGoalSheet(
                 Button(
                     onClick = {
                         selected?.let {
-                            onSave(it.goal, amount.toBigDecimalOrNull(), note, manual.toBigDecimalOrNull()?.takeIf { m -> m.signum() > 0 })
+                            onSave(it.goal, amount.toAmountIn(currency), note, manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
                         }
                     },
                     enabled = !state.saving && left != null && left.signum() > 0 && selected != null,

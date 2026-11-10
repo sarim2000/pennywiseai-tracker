@@ -104,6 +104,18 @@ class GoalFormsTest {
     }
 
     @Test
+    fun `an amount with more decimals than its currency is invalid`() {
+        // Typed as JOD 1.235, then the currency switched to USD: the text survives the switch.
+        val form = GoalForm(name = "Trip", target = "1.235", currency = "USD", dueDate = today.plusMonths(6), alreadySaved = "0.125")
+        val errors = form.errors(today, null)
+        assertTrue(GoalFieldError.TARGET_INVALID in errors)
+        assertTrue(GoalFieldError.ALREADY_SAVED_INVALID in errors)
+        assertTrue(form.copy(currency = "JOD").errors(today, null).isEmpty())
+        assertEquals(bd("1.230"), "1.230".toAmountIn("USD"))
+        assertNull("1.235".toAmountIn("USD"))
+    }
+
+    @Test
     fun `pill shows Behind only once a month or more behind the even pace`() {
         val created = today.minusMonths(6)
         val goal = GoalEntity(id = 1, targetAmount = bd("1200"), dueDate = created.plusMonths(12), createdAt = created.atStartOfDay())

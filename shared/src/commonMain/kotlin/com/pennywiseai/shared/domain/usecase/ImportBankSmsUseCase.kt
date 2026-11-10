@@ -88,9 +88,12 @@ class ImportBankSmsUseCase(
         val rule = SharedRuleEvaluator.firstMatch(ruleRepository.observeRules().first(), merchant)
         val finalType = rule?.transactionType?.let { raw -> SharedTransactionType.entries.firstOrNull { it.name == raw } } ?: type
 
+        // The bridge and the AI validator already cap the digits; a figure that still can't be
+        // stored is no transaction rather than a wrapped one.
+        val amountMinor = toMinor(parsed.amount, parsed.currency) ?: return BankSmsImportResult.Unparsed(parsed.bankName)
         val now = currentTimeMillis()
         val transaction = SharedTransaction(
-            amountMinor = toMinor(parsed.amount, parsed.currency),
+            amountMinor = amountMinor,
             merchantName = merchant,
             category = rule?.category ?: mappedCategory ?: defaultCategory,
             transactionType = finalType,
@@ -126,7 +129,7 @@ class ImportBankSmsUseCase(
                 bankName = parsed.bankName,
                 accountLast4 = last4,
                 timestampEpochMillis = receivedAt,
-                balanceMinor = toMinor(balance, currency),
+                balanceMinor = toMinor(balance, currency) ?: return,
                 transactionId = transactionId,
                 isCreditCard = existing?.isCreditCard ?: (parsed.type == "CREDIT"),
                 accountType = existing?.accountType,
@@ -157,7 +160,7 @@ class ImportBankSmsUseCase(
         private val saveLock = Mutex()
 
         /** "450.00" INR → 45000, "1.235" JOD → 1235: value × 10^digits of [currency] (MinorUnits). */
-        internal fun toMinor(plainAmount: String, currency: String): Long = MinorUnits.fromPlain(plainAmount, currency)
+        internal fun toMinor(plainAmount: String, currency: String): Long? = MinorUnits.fromPlain(plainAmount, currency)
 
         /** Android's ParsedTransactionMapper rule: ALL-CAPS becomes Title Case, mixed case stays. */
         internal fun normalizeMerchantName(name: String): String {

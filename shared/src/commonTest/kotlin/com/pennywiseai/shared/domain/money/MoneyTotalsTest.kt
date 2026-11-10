@@ -180,4 +180,15 @@ class MoneyTotalsTest {
         // Same exponent, large: USD 50,000,000,000 at 83.50 INR/USD.
         assertEquals(417_500_000_000_000L, usdToInr.convert(5_000_000_000_000L, "USD"))
     }
+
+    @Test
+    fun minorUnits_fromPlainRefusesWhatWouldWrapALong() {
+        // 16 integer digits x 100 fits; the same x 1000 would not, so a 3-decimal currency stops at 15.
+        assertEquals(999_999_999_999_999_999L, MinorUnits.fromPlain("9999999999999999.99", "INR"))
+        assertEquals(null, MinorUnits.fromPlain("1234567890123456", "JOD"))
+        assertEquals(123_456_789_012_345_000L, MinorUnits.fromPlain("123456789012345", "JOD"))
+        assertEquals(-999_999_999_999_999_999L, MinorUnits.fromPlain("-999999999999999.999", "KWD"))
+        assertEquals(null, MinorUnits.fromPlain("99999999999999999999", "USD"))
+        assertEquals(null, MinorUnits.fromPlain("12.3x", "USD"))
+    }
 }

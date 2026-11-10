@@ -23,12 +23,20 @@ object MinorUnits {
     /** 10^[digits]: what one unit of [currency] is in amountMinor. */
     fun factor(currency: String): Long = if (digits(currency) == 3) 1000L else 100L
 
-    /** "450.00" INR → 45000, "1.235" JOD → 1235. Digits past the currency's precision are cut, never rounded up. */
-    fun fromPlain(plainAmount: String, currency: String): Long {
+    /**
+     * "450.00" INR → 45000, "1.235" JOD → 1235. Digits past the currency's precision are cut,
+     * never rounded up. Null for anything but plain digits, or more than 18 - digits integer
+     * digits (16 for INR, 15 for JOD), so value × 10^digits stays under 10^18 and never wraps.
+     */
+    fun fromPlain(plainAmount: String, currency: String): Long? {
         val digits = digits(currency)
         val negative = plainAmount.startsWith("-")
-        val (whole, fraction) = plainAmount.removePrefix("-").split('.').let { it[0] to it.getOrElse(1) { "" } }
-        val minor = whole.ifEmpty { "0" }.toLong() * factor(currency) + fraction.padEnd(digits, '0').take(digits).toLong()
+        val parts = plainAmount.removePrefix("-").split('.')
+        if (parts.size > 2) return null
+        val whole = parts[0].ifEmpty { "0" }
+        val fraction = parts.getOrElse(1) { "" }.padEnd(digits, '0').take(digits)
+        if (whole.length > 18 - digits || !whole.all(Char::isDigit) || !fraction.all(Char::isDigit)) return null
+        val minor = whole.toLong() * factor(currency) + fraction.toLong()
         return if (negative) -minor else minor
     }
 

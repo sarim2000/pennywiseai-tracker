@@ -1,0 +1,92 @@
+name: Bank Support Request
+description: Request support for a new bank or report issues with existing bank parsing
+title: '[BANK] '
+labels: [bank-support]
+assignees: [sarim2000]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!WARNING]
+        > **Remove your personal data before pasting any SMS.** Issues are public.
+        >
+        > Replace the digits with `X` in:
+        > - account and card numbers
+        > - balances
+        > - UPI IDs, reference / transaction numbers
+        >
+        > Replace your name and any other person's name too. You can change amounts.
+        > Keep everything else as it is (wording, spacing, punctuation, length) so the parser pattern still matches.
+
+  - type: input
+    id: bank-name
+    attributes:
+      label: Bank name
+      placeholder: e.g. ICICI Bank, Axis Bank
+    validations:
+      required: true
+
+  - type: input
+    id: country
+    attributes:
+      label: Country
+      placeholder: e.g. India
+    validations:
+      required: true
+
+  - type: input
+    id: sender-id
+    attributes:
+      label: Sender ID(s)
+      description: Who the SMS comes from. List every sender you've seen for this bank.
+      placeholder: e.g. AD-ICICIB, JM-ICICIB, BW-ICICIB
+    validations:
+      required: true
+
+  - type: textarea
+    id: sms-examples
+    attributes:
+      label: SMS examples (masked)
+      description: |
+        Paste at least 2 SMS, ideally different transaction types. Put the sender above each one.
+        **Mask personal data first** (see the warning above).
+      placeholder: |
+        Sender: AD-XXXXXX
+        Rs.250.00 debited from A/c XXXXXX on 01-01-25 to VPA xxxxxxx@xxx. UPI Ref XXXXXXXXXXXX. Avl Bal Rs.X,XXX.XX
+
+        Sender: JM-XXXXXX
+        Paste another SMS example here
+
+        Sender: BW-XXXXXX (optional)
+        Different type of transaction if available
+      render: text
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: transaction-types
+    attributes:
+      label: Transaction types needed
+      description: Check all that apply.
+      options:
+        - label: Debit/Credit transactions
+        - label: UPI transactions
+        - label: ATM withdrawals
+        - label: Card transactions
+        - label: NEFT/IMPS transfers
+        - label: Subscription/Mandate notifications
+        - label: International transactions
+
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      description: Any specific parsing issues or requirements.
+
+  - type: checkboxes
+    id: privacy-confirmation
+    attributes:
+      label: Personal data
+      options:
+        - label: I replaced account/card numbers, names, balances, UPI IDs and reference numbers in the SMS above (digits → X).
+          required: true

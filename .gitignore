@@ -44,7 +44,8 @@ keys/
 scripts/.env
 
 reddit.md
-.claude
+.claude/*
+!.claude/skills/
 
 # Release artifacts
 *.apk
@@ -86,7 +87,8 @@ secrets/
 
 # Local tooling (screenshot editor, agent skills) — not part of the app
 aso-screenshots/
-.agents/
+.agents/*
+!.agents/skills/
 skills-lock.json
 
 # Release-notes generator (Claude Agent SDK) deps — package-lock.json is

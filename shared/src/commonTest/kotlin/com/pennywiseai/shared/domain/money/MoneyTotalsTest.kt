@@ -191,4 +191,23 @@ class MoneyTotalsTest {
         assertEquals(null, MinorUnits.fromPlain("99999999999999999999", "USD"))
         assertEquals(null, MinorUnits.fromPlain("12.3x", "USD"))
     }
+
+    @Test
+    fun converter_outOfRangeIsUnconvertedNeverWrong() {
+        // 1,000,000 USD per JOD is past the rate bound (900,000 units per unit): JOD 9,999.999
+        // would be USD 9,999,999,000.00 (999_999_900_000) or nothing, never a wrapped figure.
+        val hugeRate = CurrencyConverter.fromRates("USD", listOf(Triple("JOD", "USD", 1_000_000_000_000L)))
+        val converted = hugeRate.convert(9_999_999L, "JOD")
+        assertTrue(converted == null || converted == 999_999_900_000L, "got $converted")
+
+        // JOD 999,999,999,999,999.999 at 117.50 is past Long.MAX_VALUE in INR minor units.
+        val toInr = CurrencyConverter.fromRates("INR", listOf(Triple("JOD", "INR", 117_500_000L)))
+        assertEquals(null, toInr.convert(999_999_999_999_999_999L, "JOD"))
+        assertEquals(null, toInr.convert(-999_999_999_999_999_999L, "JOD"))
+
+        // A row that can't be converted stays on its own line, not in the total.
+        val total = toInr.totalOf(listOf(txn(999_999_999_999_999_999L, "JOD"), txn(1_000L, "JOD")))
+        assertEquals(11_750L, total.amountMinor)
+        assertEquals(listOf(CurrencyTotal("JOD", 999_999_999_999_999_999L)), total.unconverted)
+    }
 }

@@ -3,6 +3,7 @@ package com.pennywiseai.shared.domain.money
 import com.pennywiseai.shared.SharedAccountItem
 import com.pennywiseai.shared.SharedRecentTransactionItem
 import com.pennywiseai.shared.SharedSubscriptionItem
+import kotlin.math.abs
 
 /** One currency's total. A list of these is never collapsed into one figure. */
 data class CurrencyTotal(val currency: String, val amountMinor: Long)
@@ -25,7 +26,10 @@ data class ConvertedTotal(
  */
 class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<String, Long>) {
 
-    /** [amountMinor] in [baseCurrency], or null when there's no rate for [currency]. */
+    /**
+     * [amountMinor] in [baseCurrency], or null when there's no rate for [currency] or the
+     * figure is out of range (see applyRate): such an amount stays unconverted.
+     */
     fun convert(amountMinor: Long, currency: String): Long? {
         if (currency.equals(baseCurrency, ignoreCase = true)) return amountMinor
         val rate = ratesToBase[currency.uppercase()] ?: return null
@@ -76,18 +80,27 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
             return CurrencyConverter(base, map)
         }
 
+        /** 900,000 units per unit: |r| < 1e7 times this stays under Long.MAX_VALUE. */
+        private const val MAX_RATE_MICROS = 900_000L * MICROS
+
         /**
-         * amountMinor x rateMicros / [divisor], rounded once, half away from zero. Splitting the
-         * amount (q x divisor + r) keeps every product in range: q x rate is exact whenever the
-         * result fits a Long, and |r| < divisor (at most 1e7) times a rate under 9e11 micros
-         * (900,000 units per unit) stays under Long.MAX_VALUE.
+         * amountMinor x rateMicros / [divisor], rounded once, half away from zero, or null when
+         * the rate is past [MAX_RATE_MICROS] or the result doesn't fit a Long (commonMain has
+         * no multiplyExact, so both are checked by hand). Splitting the amount
+         * (q x divisor + r) keeps r x rate in range.
          */
-        private fun applyRate(amountMinor: Long, rateMicros: Long, divisor: Long): Long {
+        private fun applyRate(amountMinor: Long, rateMicros: Long, divisor: Long): Long? {
+            if (rateMicros <= 0 || rateMicros > MAX_RATE_MICROS) return null
             val q = amountMinor / divisor
             val r = amountMinor % divisor
+            if (abs(q) > Long.MAX_VALUE / rateMicros) return null
+            val whole = q * rateMicros
             val part = r * rateMicros
             val half = if (part < 0) -divisor / 2 else divisor / 2
-            return q * rateMicros + (part + half) / divisor
+            val rounded = (part + half) / divisor
+            // whole and rounded share the amount's sign, so only that direction can overflow.
+            if (if (whole > 0) rounded > Long.MAX_VALUE - whole else rounded < Long.MIN_VALUE - whole) return null
+            return whole + rounded
         }
     }
 }

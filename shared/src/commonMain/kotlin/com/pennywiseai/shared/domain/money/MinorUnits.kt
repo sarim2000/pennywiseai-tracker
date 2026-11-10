@@ -1,7 +1,9 @@
 package com.pennywiseai.shared.domain.money
 
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.roundToLong
+import kotlin.math.sign
 
 /**
  * How the shared layer (and so iOS) stores money: amountMinor = value × 10^[digits].
@@ -45,13 +47,16 @@ object MinorUnits {
 
     /**
      * [amount] in [currency]'s minor units only when it fits that precision exactly:
-     * 1.235 is 1235 in JOD but null in USD (123.5 cents), so a match never rounds.
+     * 1.235 is 1235 in JOD but null in USD (it isn't whole cents), so a match never rounds.
+     * Rounded (half away from zero) and then round-tripped: the minor units read back as the
+     * same Double, at any size a Double holds exactly.
      */
     fun exactMinor(amount: Double, currency: String): Long? {
-        val scaled = amount * factor(currency)
-        if (!scaled.isFinite() || abs(scaled) >= 9.0e15) return null // past 2^53 a Double has no exact cents
-        val minor = scaled.roundToLong()
-        return minor.takeIf { abs(scaled - minor) < 1e-6 }
+        val factor = factor(currency)
+        val scaled = amount * factor
+        if (!scaled.isFinite() || abs(scaled) >= 9.0e15) return null // past 2^53 a Double has no exact minor units
+        val minor = (sign(scaled) * floor(abs(scaled) + 0.5)).toLong()
+        return minor.takeIf { it.toDouble() / factor == amount }
     }
 
     /** 1235 JOD → "1.235", 45000 INR → "450.00". */

@@ -17,6 +17,13 @@ import java.time.LocalDate
 fun String.toAmountIn(currency: String): BigDecimal? =
     toBigDecimalOrNull()?.takeIf { it.stripTrailingZeros().scale() <= MinorUnits.digits(currency) }
 
+/**
+ * A manual converted amount may be left empty (convert automatically), but text that isn't a
+ * positive amount in [currency] must block Save: read as null it would mean "convert for me".
+ */
+fun isManualAmountOk(text: String, currency: String): Boolean =
+    text.isEmpty() || text.toAmountIn(currency)?.let { it.signum() > 0 } == true
+
 /** Inline validation problems; the screen maps each to a string. */
 enum class GoalFieldError { NAME_BLANK, TARGET_INVALID, DUE_NOT_AFTER_TODAY, ALREADY_SAVED_INVALID }
 

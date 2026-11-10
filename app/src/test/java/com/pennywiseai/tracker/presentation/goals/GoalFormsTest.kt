@@ -116,6 +116,16 @@ class GoalFormsTest {
     }
 
     @Test
+    fun `a manual amount that isn't a positive amount blocks save`() {
+        assertTrue(isManualAmountOk("", "USD"))
+        assertTrue(isManualAmountOk("1.23", "USD"))
+        assertTrue(isManualAmountOk("1.235", "JOD"))
+        assertFalse(isManualAmountOk(".", "USD"))
+        assertFalse(isManualAmountOk("0", "USD"))
+        assertFalse(isManualAmountOk("1.235", "USD"))
+    }
+
+    @Test
     fun `pill shows Behind only once a month or more behind the even pace`() {
         val created = today.minusMonths(6)
         val goal = GoalEntity(id = 1, targetAmount = bd("1200"), dueDate = created.plusMonths(12), createdAt = created.atStartOfDay())

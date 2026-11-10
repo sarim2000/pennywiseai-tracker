@@ -566,7 +566,7 @@ private fun MoneySheet(
                 Box(Modifier.weight(1f))
                 Button(
                     onClick = { onSave(amount.toAmountIn(currency), currency, date, note, manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
-                    enabled = !state.saving,
+                    enabled = !state.saving && isManualAmountOk(manual, goalCurrency),
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_money_save)) }
             }

@@ -187,7 +187,8 @@ fun AddToGoalSheet(
                             onSave(it.goal, amount.toAmountIn(currency), note, manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
                         }
                     },
-                    enabled = !state.saving && left != null && left.signum() > 0 && selected != null,
+                    enabled = !state.saving && left != null && left.signum() > 0 && selected != null &&
+                        isManualAmountOk(manual, selected.goal.currency),
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_add_to_goal)) }
             }

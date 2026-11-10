@@ -1078,7 +1078,8 @@ private fun OnBoardingBottomBar(
             currentStep = uiState.currentStep,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = Spacing.sm)
+                // Top gap so content scrolled behind the bar (keyboard open) doesn't touch the dots.
+                .padding(top = Spacing.sm, bottom = Spacing.sm)
         )
 
     Row(

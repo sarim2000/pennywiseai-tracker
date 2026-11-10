@@ -194,6 +194,7 @@
         <item quantity="other">%1$d jours restants</item>
     </plurals>
     <string name="budget_card_spent_of">Dépenser %1$s de %2$s</string>
+    <!-- Budget pace: spending compared with an even spend across the period -->
     <string name="budget_cadence_weekly">Hebdomadaire</string>
     <string name="budget_cadence_monthly">Mensuel</string>
     <string name="budget_cadence_one_time">Une fois</string>

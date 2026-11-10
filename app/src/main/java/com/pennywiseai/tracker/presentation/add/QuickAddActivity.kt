@@ -70,7 +70,7 @@ import com.pennywiseai.tracker.domain.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -86,6 +86,7 @@ import java.time.LocalDateTime
 import javax.inject.Inject
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.theme.money
 
 /**
  * The quick add for what no SMS reports — cash: type the amount, tap a
@@ -122,7 +123,7 @@ class QuickAddActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) unlocked.value = true else checkLock()
         setContent {
-            PennyWiseTheme {
+            PennyWiseUserTheme {
                 if (unlocked.value) Host()
             }
         }
@@ -238,7 +239,7 @@ class QuickAddActivity : FragmentActivity() {
                 value = amountText,
                 onValueChange = { typed -> normalizeAmount(typed, decimalComma)?.let { amountText = it } },
                 prefix = { Text(CurrencyFormatter.getCurrencySymbol(setup.currency) + " ") },
-                textStyle = MaterialTheme.typography.headlineSmall,
+                textStyle = MaterialTheme.typography.headlineSmall.money(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth().focusRequester(focus)

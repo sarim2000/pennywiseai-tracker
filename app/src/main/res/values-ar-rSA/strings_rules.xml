@@ -302,13 +302,7 @@
     <string name="chat_thinking_checking">التحقق من المعاملات الخاصة بك…</string>
     <string name="chat_thinking_crunching">كسر الأرقام…</string>
     <string name="chat_thinking_one_moment">لحظة واحدة…</string>
-    <string name="chat_empty_title">إضافة إنفاق أو اسأل عنه</string>
-    <string name="chat_empty_body">جرب واحدة من هذه الدفعات</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">القهوة 120 في ستاربكس</string>
-    <string name="chat_example_prompt_salary">حصلت على 50000 راتب اليوم</string>
-    <string name="chat_example_prompt_groceries">كم في البقالة هذا الشهر؟</string>
-    <string name="chat_example_prompt_spent">كم قضيت هذا الشهر؟</string>
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">إضافة دخل؟</string>
     <string name="chat_action_add_expense">إضافة نفقات؟</string>

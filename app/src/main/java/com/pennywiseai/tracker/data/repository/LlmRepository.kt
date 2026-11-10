@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.model.TransactionFinder
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReviewRow
+import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import com.pennywiseai.tracker.domain.service.isContextFull
@@ -211,6 +212,12 @@ class LlmRepository @Inject constructor(
         }
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
+        // A comparison is the code's figures alone: prose beside it could carry the model's own arithmetic.
+        if (toolCalls.any { it.isComparison(userMessage) }) {
+            responseBuilder.clear()
+            // Off the screen too, before the figures land beside it.
+            if (shownUpTo > 0) emit(RESET_REPLY)
+        }
         val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
         var addsProposed = false
         var skippedCards = 0
@@ -298,7 +305,7 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and figures.
         val systemPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
-        val saved = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }
+        val saved = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt && !it.id.startsWith(QUICK_ID) }
         // A trailing message that got no reply isn't replayed: it's usually the one being sent,
         // saved while the warm-up loaded the model, and replaying it would mean building twice.
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
@@ -405,7 +412,31 @@ class LlmRepository @Inject constructor(
         }.joinToString("\n")
     }
 
-    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = when (call.name) {
+    /**
+     * A compareSpending call, or a this-month lookup for a message that names last month or week:
+     * those lookups can't answer it, and the small model reaches for them in Hinglish.
+     */
+    private fun LlmEvent.ToolCall.isComparison(userMessage: String) = name == PennyWiseTools.COMPARE_SPENDING ||
+        (name in MONTH_LOOKUPS && SpendingComparison.namesThePreviousPeriod(userMessage) &&
+            !(name == PennyWiseTools.MONTH_SUMMARY && SpendingComparison.asksAboutIncome(userMessage)))
+
+    private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = if (call.isComparison(userMessage)) {
+        val period = SpendingComparison.period(userMessage, call.arguments["period"])
+        val asked = (call.arguments["category"] as? String)?.trim().orEmpty()
+        val known = if (asked.isEmpty()) null else matchCategory(asked, categoryRepository.getAllCategories().first())
+        val category = known ?: asked.ifEmpty { null }
+        if (period == null) context.getString(R.string.chat_reply_compare_unsupported)
+        else aiContextRepository.compareSpending(period, category).let { result ->
+            // A name neither the list nor any transaction carries: "all" from the model means all
+            // spending; anything else is unknown, not a category with nothing spent.
+            val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
+            when {
+                unknown && SpendingComparison.meansAllSpending(asked) -> comparisonText(aiContextRepository.compareSpending(period, null), null)
+                unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
+                else -> comparisonText(result, category)
+            }
+        }
+    } else when (call.name) {
         PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> {
             val match = findTransaction(call.arguments, userMessage)
             val target = match?.transaction
@@ -481,6 +512,75 @@ class LlmRepository @Inject constructor(
         return TransactionFinder.findWithFallback(recent, words, amount, daysAgo, dayStated = dayStated)
     }
 
+    /**
+     * M8: a one-tap question answered by code alone, before the model has loaded or without it.
+     * Saved for the screen but never shown to the model (see [QUICK_ID]). Per currency, never
+     * converted, like the comparison.
+     */
+    suspend fun answerQuickAction(action: QuickAction) {
+        val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
+        // The user's own currency on top, the rest by code: the same order in every answer.
+        val base = userPreferencesRepository.baseCurrency.first()
+        fun <V> Map<String, V>.ordered() = entries.sortedWith(compareBy({ it.key != base }, { it.key })).map { it.key to it.value }
+        val answer = when (action) {
+            QuickAction.COMPARE_MONTH -> comparisonText(aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null), null)
+            QuickAction.MONTH_SPEND -> {
+                val (window, rows) = aiContextRepository.monthSoFar()
+                // Forgiven loan balances count as spent, as on Home (#938).
+                val spent = with(SpendingComparison) { spend(rows).plusAmounts(aiContextRepository.settlementLoss(window)) }
+                if (spent.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
+                else (listOf(context.getString(R.string.chat_reply_month_spend, range(window))) + spent.ordered().map { (c, a) -> money(a, c) }).joinToString("\n")
+            }
+            QuickAction.TOP_CATEGORIES -> {
+                val (window, rows) = aiContextRepository.monthSoFar()
+                val top = SpendingComparison.topCategories(rows)
+                if (top.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
+                // A blank line between currencies: each is its own ranking.
+                else context.getString(R.string.chat_reply_top_categories, range(window)) + "\n" +
+                    top.ordered().joinToString("\n\n") { (c, cats) -> cats.joinToString("\n") { (name, a) -> "$name: ${money(a, c)}" } }
+            }
+        }
+        val at = System.currentTimeMillis()
+        // The DAO orders by timestamp alone: the reply must sort after its question.
+        chatDao.insertMessages(listOf(
+            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = context.getString(action.label), isUser = true, timestamp = at),
+            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
+        ))
+    }
+
+    private fun range(w: SpendingComparison.Window): String {
+        val (a, b) = w.start.format(DAY_MONTH) to w.end.format(DAY_MONTH)
+        return if (a == b) a else "$a–$b"
+    }
+
+    /** A comparison as chat lines: a dated header, then one line per currency. Also for M8's one-tap question. */
+    fun comparisonText(result: SpendingComparison.Result, category: String?): String {
+        if (result is SpendingComparison.Result.NoData) return context.getString(R.string.chat_reply_compare_no_data, range(result.missing))
+        val rows = (result as SpendingComparison.Result.Rows).rows
+        val now = range(result.current)
+        val before = range(result.previous)
+        if (rows.isEmpty()) return if (category == null) context.getString(R.string.chat_reply_compare_nothing, now, before)
+            else context.getString(R.string.chat_reply_compare_nothing_category, category, now, before)
+        val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
+        return buildList {
+            add(
+                if (category == null) context.getString(R.string.chat_reply_compare_title, now, before)
+                else context.getString(R.string.chat_reply_compare_title_category, category, now, before)
+            )
+            rows.forEach { row ->
+                val pair = context.getString(R.string.chat_reply_compare_row, money(row.current, row.currency), money(row.previous, row.currency))
+                val change = row.changePercent?.let {
+                    when (it.signum()) {
+                        1 -> context.getString(R.string.chat_reply_compare_more, it.toPlainString())
+                        -1 -> context.getString(R.string.chat_reply_compare_less, it.negate().toPlainString())
+                        else -> context.getString(R.string.chat_reply_compare_same)
+                    }
+                }
+                add(if (change == null) pair else "$pair ($change)")
+            }
+        }.joinToString("\n")
+    }
+
     /** An existing row is shown in ITS currency, never relabelled with the base one. */
     private fun describe(tx: TransactionEntity): String =
         "${amountLine(tx.amount, tx.currency, tx.transactionType, tx.merchantName)} · ${tx.category} · ${tx.dateTime.format(DAY_MONTH)}"
@@ -552,6 +652,7 @@ class LlmRepository @Inject constructor(
             This month so far: $monthLine.
 
             When the user tells you about money they spent, paid, bought or received, call addTransactions. Use EXPENSE unless they clearly received money.
+            When the user asks to compare spending with last month or last week, call compareSpending.
             When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
             If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransactions for those.
             Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
@@ -568,6 +669,14 @@ class LlmRepository @Inject constructor(
             """.trimIndent()
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */
+        /**
+         * Marks a quick-action question and reply. They stay out of the model's window: replayed,
+         * they made Qwen2.5 copy their figures as the answer to the next question ("what about last
+         * week?" got this month's) on S23. A follow-up is answered from its own words instead:
+         * "last month" already routes to the comparison.
+         */
+        internal const val QUICK_ID = "quick-"
+
         internal fun dropOlderHalf(history: List<ChatMessage>): List<ChatMessage> =
             history.drop((history.size + 1) / 2).dropWhile { !it.isUser }
 
@@ -596,8 +705,11 @@ class LlmRepository @Inject constructor(
             RegexOption.IGNORE_CASE
         )
         private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+        private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
+        /** Emitted in place of text: drop what was streamed so far. */
+        internal const val RESET_REPLY = "\u0000reset"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.
         internal const val MESSAGE_TOO_LONG = "Message too long for the model"
         internal const val INTEGRITY_FAILED = "AI model failed its integrity check and was removed"
@@ -605,4 +717,11 @@ class LlmRepository @Inject constructor(
         // Timings only, for measuring the first reply: adb logcat -s ChatTiming
         internal const val TIMING = "ChatTiming"
     }
+}
+
+/** M8's one-tap questions: an action the code answers, never text for the model. */
+enum class QuickAction(@androidx.annotation.StringRes val label: Int) {
+    MONTH_SPEND(R.string.chat_quick_month_spend),
+    TOP_CATEGORIES(R.string.chat_quick_top_categories),
+    COMPARE_MONTH(R.string.chat_quick_compare_month)
 }

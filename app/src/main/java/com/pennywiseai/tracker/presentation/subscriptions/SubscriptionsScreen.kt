@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
+import android.animation.ValueAnimator
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
@@ -33,7 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -97,17 +99,8 @@ fun SubscriptionsScreen(
     val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
 
-    // Staggered entrance animation state — only animates on first composition
-    var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val animationsEnabled = rememberAnimationsEnabled()
-
-    // Mark entrance animation as complete after all stagger delays have fired
-    LaunchedEffect(Unit) {
-        if (!hasAnimated) {
-            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
-            hasAnimated = true
-        }
-    }
+    // Staggered entrance — only animates on first composition
+    val hasAnimated = rememberEntranceDone()
 
     val context = LocalContext.current
     val undoLabel = stringResource(R.string.subscriptions_undo)
@@ -141,7 +134,7 @@ fun SubscriptionsScreen(
     LaunchedEffect(uiState.settledSubscriptionId) {
         val id = uiState.settledSubscriptionId ?: return@LaunchedEffect
         haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-        try { delay(SETTLED_HOLD_MILLIS) } finally { viewModel.clearSettled(id) }
+        try { if (ValueAnimator.areAnimatorsEnabled()) delay(SETTLED_HOLD_MILLIS) } finally { viewModel.clearSettled(id) }
     }
 
     // "Not recurring" on a suggestion, undoable.
@@ -279,7 +272,7 @@ fun SubscriptionsScreen(
                     items = uiState.activeSubscriptions,
                     key = { _, item -> item.id }
                 ) { index, subscription ->
-                    StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
+                    StaggeredEntrance(delayMs = staggerDelayMs(index), skip = hasAnimated, modifier = Modifier.animateItem()) {
                         SwipeableSubscriptionItem(
                             subscription = subscription,
                             accounts = accounts,

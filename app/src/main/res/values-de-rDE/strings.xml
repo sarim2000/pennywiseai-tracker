@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">Unterschiedliche SMS-Formate der Bank oder eine frühere Auswertung haben möglicherweise doppelte Konten mit drei und vier Ziffern angelegt. Wenn %1$s und %2$s dasselbe Konto sind, sollen sie zusammengeführt werden? Die Transaktionen werden auf das vierstellige Konto verschoben, dessen Saldoverlauf bleibt erhalten und künftige SMS werden automatisch diesem Konto zugeordnet.</string>
     <string name="duplicate_accounts_merge">Zusammenführen und merken</string>
     <string name="duplicate_accounts_keep">Getrennt lassen</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

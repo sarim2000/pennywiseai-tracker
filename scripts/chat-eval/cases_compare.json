@@ -1,0 +1,13 @@
+{"cases": [
+{"id": "c_en_01", "group": "compare", "lang": "en", "text": "how does my spending this month compare to last month?", "expect": "compare", "args": {"period": ["month"]}},
+{"id": "c_en_02", "group": "compare", "lang": "en", "text": "am I spending more than last month?", "expect": "compare", "args": {"period": ["month"]}},
+{"id": "c_en_03", "group": "compare", "lang": "en", "text": "this week vs last week", "expect": "compare", "args": {"period": ["week"]}},
+{"id": "c_en_04", "group": "compare", "lang": "en", "text": "did I spend more on food this month than last month?", "expect": "compare", "args": {"period": ["month"], "category": ["food"]}},
+{"id": "c_en_05", "group": "compare", "lang": "en", "text": "compare my groceries spending with last month", "expect": "compare", "args": {"period": ["month"], "category": ["groc"]}},
+{"id": "c_ar_01", "group": "compare", "lang": "ar", "base": "SAR", "text": "قارن مصاريفي هذا الشهر بالشهر الماضي", "expect": "compare", "args": {"period": ["month"]}},
+{"id": "c_ar_02", "group": "compare", "lang": "ar", "base": "SAR", "text": "صرفت أكثر هالأسبوع ولا الأسبوع اللي فات؟", "expect": "compare", "args": {"period": ["week"]}},
+{"id": "c_ar_03", "group": "compare", "lang": "ar", "base": "SAR", "text": "هل صرفي على المطاعم زاد عن الشهر الماضي؟", "expect": "compare", "args": {"period": ["month"], "category": ["food"]}},
+{"id": "c_hi_01", "group": "compare", "lang": "hi", "text": "is mahine ka kharcha pichle mahine se zyada hai kya?", "expect": "compare", "args": {"period": ["month"]}},
+{"id": "c_hi_02", "group": "compare", "lang": "hi", "text": "इस हफ्ते बनाम पिछले हफ्ते खर्च", "expect": "compare", "args": {"period": ["week"]}},
+{"id": "c_hi_03", "group": "compare", "lang": "hi", "text": "pichle mahine ke mukable shopping pe kitna kharch hua?", "expect": "compare", "args": {"period": ["month"], "category": ["shop"]}}
+]}

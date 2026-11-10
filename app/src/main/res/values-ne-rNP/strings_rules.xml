@@ -266,13 +266,7 @@
     <string name="chat_thinking_checking">तपाईंका लेनदेन हेर्दै छु…</string>
     <string name="chat_thinking_crunching">अङ्क जोड्दै छु…</string>
     <string name="chat_thinking_one_moment">एकछिन…</string>
-    <string name="chat_empty_title">खर्च थप्नुहोस् वा त्यसबारे सोध्नुहोस्</string>
-    <string name="chat_empty_body">यीमध्ये एउटा प्रयास गर्नुहोस्</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">Starbucks मा कफी 120</string>
-    <string name="chat_example_prompt_salary">आज 50000 तलब आयो</string>
-    <string name="chat_example_prompt_groceries">यो महिना किराना सामानमा कति खर्च भयो?</string>
-    <string name="chat_example_prompt_spent">यो महिना मैले कति खर्च गरें?</string>
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">आम्दानी थप्ने?</string>
     <string name="chat_action_add_expense">खर्च थप्ने?</string>

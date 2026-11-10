@@ -685,7 +685,7 @@ private fun BudgetHeaderCard(
                             onAmountChange(value)
                         }
                     },
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    textStyle = MaterialTheme.typography.headlineSmall.money().copy(
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.End
                     ),
@@ -706,14 +706,14 @@ private fun BudgetHeaderCard(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = currencySymbol,
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.headlineSmall.money(),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Box {
                                 if (amount.isEmpty()) {
                                     Text(
                                         text = "0",
-                                        style = MaterialTheme.typography.headlineSmall,
+                                        style = MaterialTheme.typography.headlineSmall.money(),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -729,7 +729,7 @@ private fun BudgetHeaderCard(
 
                 Text(
                     text = displayAmount,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.headlineSmall.money(),
                     color = if (amount.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
                     else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,

@@ -258,13 +258,7 @@
     <string name="chat_thinking_checking">กำลังดูธุรกรรมของคุณ…</string>
     <string name="chat_thinking_crunching">กำลังคำนวณตัวเลข…</string>
     <string name="chat_thinking_one_moment">รอสักครู่…</string>
-    <string name="chat_empty_title">เพิ่มรายจ่ายหรือถามเรื่องการใช้จ่าย</string>
-    <string name="chat_empty_body">ลองใช้คำถามเหล่านี้</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">กาแฟ 120 ที่ Starbucks</string>
-    <string name="chat_example_prompt_salary">วันนี้ได้เงินเดือน 50000</string>
-    <string name="chat_example_prompt_groceries">เดือนนี้ซื้อของเข้าบ้านไปเท่าไหร่?</string>
-    <string name="chat_example_prompt_spent">เดือนนี้ฉันใช้เงินไปเท่าไหร่แล้ว?</string>
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">เพิ่มรายได้ไหม?</string>
     <string name="chat_action_add_expense">เพิ่มค่าใช้จ่ายไหม?</string>

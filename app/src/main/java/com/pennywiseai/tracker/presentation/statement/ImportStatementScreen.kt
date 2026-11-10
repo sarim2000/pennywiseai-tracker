@@ -943,7 +943,7 @@ private fun ResultRow(
         )
         Text(
             text = value,
-            style = if (isHighlighted) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            style = if (isHighlighted) PennyWiseText.amountMedium else MaterialTheme.typography.bodyMedium,
             color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Medium
         )

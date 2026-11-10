@@ -31,7 +31,7 @@ import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.widget.WidgetRefresher
-import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
+import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import dagger.hilt.android.AndroidEntryPoint
@@ -128,7 +128,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         }
 
         setContent {
-            PennyWiseTheme {
+            PennyWiseUserTheme {
                 val args by currentArgs
                 if (unlocked.value) args?.let { PickerHost(it) }
             }

@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -137,7 +138,7 @@ fun PennyWiseTheme(
     themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
     accentColor: AccentColor = AccentColor.SURFACE,
     isAmoledMode: Boolean = false,
-    appFont: AppFont = AppFont.SYSTEM,
+    appFont: AppFont = AppFont.DEFAULT,
     blurEffects: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -178,9 +179,12 @@ fun PennyWiseTheme(
         }
     }
 
-    val fontFamily = when (appFont) {
-        AppFont.SYSTEM -> FontFamily.Default
-        AppFont.SN_PRO -> SNProFontFamily
+    val typography = remember(appFont) {
+        when (appFont) {
+            AppFont.SYSTEM -> getTypography(FontFamily.Default)
+            AppFont.SN_PRO -> getTypography(SNProFontFamily)
+            AppFont.GOOGLE_SANS_FLEX -> getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
+        }
     }
 
     CompositionLocalProvider(LocalBlurEffects provides blurEffects) {
@@ -188,7 +192,7 @@ fun PennyWiseTheme(
             colorScheme = colorScheme,
             // Springy, overshooting spatial motion for every M3 component.
             motionScheme = MotionScheme.expressive(),
-            typography = getTypography(fontFamily = fontFamily),
+            typography = typography,
             shapes = Shapes,
             content = content
         )

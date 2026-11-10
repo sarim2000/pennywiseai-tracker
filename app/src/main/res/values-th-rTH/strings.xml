@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">รูปแบบ SMS ของธนาคารที่ต่างกันหรือการอ่านข้อความแบบเก่า อาจทำให้เกิดบัญชีซ้ำที่ลงท้ายด้วยเลข 3 หลักและ 4 หลัก ถ้า %1$s กับ %2$s เป็นบัญชีเดียวกัน จะรวมเข้าด้วยกันไหม? ธุรกรรมจะย้ายไปที่บัญชีเลข 4 หลัก ประวัติยอดคงเหลือจะยังอยู่ และ SMS ต่อจากนี้จะใช้บัญชีนั้นโดยอัตโนมัติ</string>
     <string name="duplicate_accounts_merge">รวมและจำไว้</string>
     <string name="duplicate_accounts_keep">แยกไว้เหมือนเดิม</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

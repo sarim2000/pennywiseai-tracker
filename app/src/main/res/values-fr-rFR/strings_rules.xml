@@ -269,13 +269,7 @@
     <string name="chat_thinking_checking">Vérification de vos transactions…</string>
     <string name="chat_thinking_crunching">Craquage des nombres…</string>
     <string name="chat_thinking_one_moment">Un instant…</string>
-    <string name="chat_empty_title">Ajouter une dépense ou poser une question à ce sujet</string>
-    <string name="chat_empty_body">Essayez l\'une de ces instructions</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-    <string name="chat_example_prompt_coffee">café 120 chez Starbucks</string>
-    <string name="chat_example_prompt_salary">a reçu 50000 salaires aujourd\'hui</string>
-    <string name="chat_example_prompt_groceries">Combien d\'épiceries ce mois-ci?</string>
-    <string name="chat_example_prompt_spent">Combien ai-je dépensé ce mois-ci?</string>
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">Ajouter un revenu?</string>
     <string name="chat_action_add_expense">Ajouter une dépense?</string>

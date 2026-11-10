@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.animation.ValueAnimator
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
@@ -34,6 +35,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.layout.ContentScale
@@ -116,6 +118,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.theme.money
 
 // Reusable filled field colors for edit mode
 @Composable
@@ -230,6 +233,8 @@ fun TransactionDetailScreen(
     LaunchedEffect(settleRequests) {
         if (settleRequests > 0) {
             haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            // With "Remove animations" the check is choreography too: haptic only.
+            if (!ValueAnimator.areAnimatorsEnabled()) return@LaunchedEffect
             settled = true
             try { delay(SETTLED_HOLD_MILLIS) } finally { settled = false }
         }
@@ -867,10 +872,14 @@ private fun TransactionReceipt(
 
                 Text(
                     text = CurrencyFormatter.signed(sign, transaction.formatAmount()),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
+                    style = PennyWiseText.heroAmount,
                     color = typeColor,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = PennyWiseText.autoSizeFloor,
+                        maxFontSize = PennyWiseText.heroAmount.fontSize
+                    )
                 )
 
                 if (transaction.currency.isNotEmpty() &&
@@ -1384,7 +1393,7 @@ private fun EditableTransactionHeader(
                 value = transaction.amount.stripTrailingZeros().toPlainString(),
                 onValueChange = { viewModel.updateAmount(it) },
                 label = { Text(stringResource(R.string.txn_detail_field_amount), fontWeight = FontWeight.SemiBold) },
-                textStyle = MaterialTheme.typography.headlineSmall,
+                textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 modifier = Modifier.weight(1f),
@@ -2543,7 +2552,7 @@ private fun BalanceAdjustmentSheet(
                 Text(
                     text = (if (isIncome) "+" else "-") +
                         CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency),
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.money(),
                     fontWeight = FontWeight.SemiBold,
                     color = amountColor
                 )

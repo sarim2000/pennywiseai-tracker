@@ -40,6 +40,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import androidx.compose.ui.platform.LocalDensity
+import com.pennywiseai.tracker.ui.theme.money
 
 private val subTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
 private val subBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
@@ -202,7 +203,7 @@ fun SubscriptionTabContent(
                     value = uiState.amount,
                     onValueChange = viewModel::updateSubscriptionAmount,
                     label = { Text(stringResource(R.string.add_field_amount), fontWeight = FontWeight.SemiBold) },
-                    textStyle = MaterialTheme.typography.headlineSmall,
+                    textStyle = MaterialTheme.typography.headlineSmall.money(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = uiState.amountError != null,
                     supportingText = uiState.amountError?.let { { Text(it.asString()) } },

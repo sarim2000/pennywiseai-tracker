@@ -37,7 +37,14 @@ class PennyWiseTools : ToolSet {
         @ToolParam(description = "One of the known category names") category: String
     ): String = ""
 
+    @Tool(description = "Compare the user's spending so far this month with last month, or this week with last week. The app works out the figures.")
+    fun compareSpending(
+        @ToolParam(description = "month or week") period: String,
+        @ToolParam(description = "One of the known category names, or empty for all spending") category: String
+    ): String = ""
+
     companion object {
+        const val COMPARE_SPENDING = "compare_spending"
         const val ADD_TRANSACTIONS = "add_transactions"
         const val SPENDING_BY_CATEGORY = "spending_by_category"
         const val DELETE_TRANSACTION = "delete_transaction"

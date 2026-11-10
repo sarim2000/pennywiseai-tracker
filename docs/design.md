@@ -150,11 +150,49 @@ at making hierarchy readable in a dense, number-heavy UI:
    figures get negative tracking so digits group into one number; 11–12sp labels
    keep Material's generous tracking, which is what makes small text legible.
 
+### Typeface — three choices, Google Sans Flex by default
+
+Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it to
+`getTypography(bodyFamily, headingFamily)`.
+
+| `AppFont` | Families | Script coverage |
+|---|---|---|
+| `GOOGLE_SANS_FLEX` (**default**) | `GoogleSansFlexFamily` for body, label and money; `GoogleSansFlexHeadingFamily` for display, headline and title | **Latin only.** Arabic, Cyrillic, Devanagari, … fall back per glyph to the system font |
+| `SYSTEM` | `FontFamily.Default` for both | Every script |
+| `SN_PRO` | `SNProFontFamily` (static files) for both | Latin and Cyrillic |
+
+- **Default and back-compat.** The `app_font` DataStore key is written only when
+  the user taps a font, so an absent key means "never chose" and follows
+  `AppFont.DEFAULT` (Google Sans Flex); a stored `SYSTEM` or `SN_PRO` is an
+  explicit choice and is kept. The font is not part of backups.
+- **One variable file.** `res/font/google_sans_flex.ttf` is the upstream v5.000
+  variable font instanced with fontTools to the `wght` (100–900) and `ROND`
+  (0–100) axes, with `slnt` 0, `opsz` 18 and `wdth` 100 pinned: about 300 KB
+  instead of 3.9 MB. Its OFL notice ships in `assets/licenses/fonts-OFL.txt`
+  (SN Pro's too). A new axis costs size: add it only with a role that uses it.
+- **Static instances, one per weight.** Each family declares a `Font` for every
+  weight 100–900, each pinning `wght` (and `ROND`). Compose picks the closest
+  *declared* weight, so without a 700 entry every `*Emphasized` style would
+  render at 600, identical to its base. `GoogleSansFlexTypographyTest` guards it.
+- **Roundness.** Headings use `ROND` 100: fully rounded terminals, the
+  Expressive voice. Body, labels and money use `ROND` 0, which reads crisper at
+  small sizes and in figures. `PennyWiseText` money styles take the body family
+  even when they are sized from a heading role (`heroAmount` is
+  `displaySmallEmphasized`), so amounts stay `ROND` 0 with `tnum`.
+- **Never animate a font axis.** Every axis value is a separate typeface;
+  animating `wght` or `ROND` re-lays out the text every frame. Animate size,
+  colour or alpha instead.
+- No wider (`wdth`) cut for the expanded app-bar title: long translated titles
+  already wrap, and the axis would add ~120 KB.
+- The picker draws each option in its own family, and its tiles grow with their
+  text (no fixed height), so the names still fit at a 200% font scale.
+
 ### Roles — pick the same style for the same job
 
 | Role | Use |
 |---|---|
-| `displaySmall`+ | Hero balance on the Home balance card |
+| `displaySmall`+ | The one hero figure on a screen (`PennyWiseText.heroAmount`) |
+| `headlineLarge` | The Analytics period total (`PennyWiseText.amountHeadline`) |
 | `headlineMedium` / `Small` | Screen-level totals, dialog titles |
 | `titleLarge` | Screen title in a top app bar |
 | `titleMedium` | Card heading |
@@ -170,9 +208,20 @@ at making hierarchy readable in a dense, number-heavy UI:
 Derived from the theme typography (so they follow the user's font choice), for
 the jobs the plain roles don't cover:
 
-- **Money:** `heroAmount`, `amountLarge`, `amountMedium`, `amountRow`,
-  `amountSmall`. All carry `tnum` (**tabular figures**) so a column of amounts
-  lines up instead of shimmering as digits change width.
+- **Money:** `heroAmount`, `amountHeadline`, `amountLarge`, `amountMedium`,
+  `amountRow`, `amountSmall`. All carry `tnum` (**tabular figures**) so a
+  column of amounts lines up instead of shimmering as digits change width.
+  An amount never takes a bare `display*`/`headline*`/`title*` role (rounded,
+  proportional digits); when no money style matches the size, use
+  `role.money()` (body family + `tnum` at that role's size).
+- **Counting figures are tabular.** Any amount or percent that changes in place
+  (a settling total, a goal ring counting up) uses a money style or, on a plain
+  role, `style.tabular()` — proportional digits jitter sideways every frame.
+- **Shrink a long figure; don't size it by string length.** The Analytics
+  total, the transaction-detail amount and the Period Review headline pass
+  `maxLines = 1` and `TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, style.fontSize)`,
+  so a long amount shrinks to fit instead of wrapping mid-number or clipping
+  into a smaller, wrong-looking figure.
 - **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
 - **Structure:** `sectionHeader`, `fieldLabel`.
 - **Charts:** `chartLabel` — one style for every axis tick, value label and
@@ -307,7 +356,8 @@ it by `Dimensions.Component.bottomBarHeight`.
   `infiniteRepeatable` loops or where a duration is load-bearing.
 - **Motion language.** Generic transitions live in
   `ui/animations/PennyWiseMotion.kt` (`pwEnter`/`pwExit`, `pwFadeIn`/`pwFadeOut`,
-  `pwExpand`/`pwCollapse`, `StaggeredEntrance`, `rememberAnimationsEnabled`);
+  `pwExpand`/`pwCollapse`, `pwPush`/`pwPop`, `StaggeredEntrance`,
+  `rememberEntranceDone`, `staggerDelayMs`, `rememberAnimationsEnabled`);
   use them before hand-building a fade/slide/expand. No default-spec
   `fadeIn()`, `expandVertically()`, `animate*AsState` etc. — always pass a
   `motionScheme` spec.
@@ -317,24 +367,74 @@ it by `Dimensions.Component.bottomBarHeight`.
      never passes through a value it doesn't have. An amount's own drift and
      size settle, and a programmatic scroll to a scroll boundary, are effects
      too: an overshooting spring would jiggle the figure or hit the clamp.
+     Status colour that follows a counting value (the budget pill and bar
+     turning tertiary at 70%, error at 90%) reads the value on screen, not the
+     target, and crossfades on `fastEffectsSpec`; text on it uses the matching
+     `on*` role.
   2. **One beat per change** — no staggering digits or sibling figures.
   3. **Short travel.** Slides are a fraction of the screen (a few dp for
-     content, a quarter of the bar for chrome), never full-width by default.
+     content, a quarter of the bar for chrome, a quarter of the screen for a
+     screen push), never full-width by default.
   4. **No bounce on data; no scale-in on icons or content** (Material reads
      scale as elevation) — fade them. The one exception is the one-shot Pro
      purchase celebration in `UpgradeSheet`, which springs its icon in on
      `fastSpatialSpec()`. Empty states and success checks don't scale.
-  5. **Stagger once**, on a screen's first entrance (`StaggeredEntrance` with a
-     saveable `hasAnimated`); scrolling lists and returning to a tab don't.
+  5. **Stagger once**, on a screen's first entrance: `StaggeredEntrance` with
+     `delayMs = staggerDelayMs(index)` and `skip = rememberEntranceDone()`
+     (saveable). One step and cap for every screen — don't re-type `50L * …`.
+     Scrolling lists and returning to a tab don't stagger. A screen that
+     arrives on a nav transition doesn't stagger either: the push is its
+     entrance (`StaggeredEntrance` reads `LocalNavEntrance`).
   6. **"Remove animations" means content is just there.** Compose zeroes
      durations itself; skip `delay`-based choreography too
-     (`rememberAnimationsEnabled()`).
+     (`rememberAnimationsEnabled()`, re-read on every resume — key `delay`
+     effects on it so a pending delay drops when it turns off), and draw
+     infinite loops (typing dots) as their static frame.
+  7. **Shared elements** (the transaction icon from list to detail) move their
+     bounds on `defaultSpatialSpec()` via `sharedElementIcon`, not Compose's
+     default bounds spring.
+- **Navigation motion.** Both nav hosts (`PennyWiseNavHost` and each tab's
+  stack in `MainScreen`) speak one language from `PennyWiseMotion.kt`. A push is
+  `pwPush`: the new screen rises a quarter of the screen on the default spatial
+  spring as it fades in, and the screen under it fades out. A pop is `pwPop`:
+  the top screen sinks a quarter and fades. A back swipe previews with
+  `pwPredictivePop`: the top screen stays opaque and shrinks toward 90% under
+  the finger (the platform's predictive-back look, the one sanctioned scale on
+  content), so the screen it returns to shows around it with no double
+  exposure; it fades only once the swipe commits, and cancelling scrubs it
+  back. Its linear `tween`s are load-bearing — the finger is the clock. The
+  travel is vertical, so it reads the same in RTL. A tab switch is a fast
+  effects fade-through, never a slide; Home and Transaction detail cross-fade
+  so the brand icon can fly between them. The bottom bar and its docked action
+  are chrome above the stacks: they show and hide with their own motion and
+  never slide with a screen. A screen's own `BackHandler` (bulk selection,
+  App Lock, an editor sub-page) registers after the hosts, so it gets the
+  gesture first; a plain `BackHandler` shows no preview, which is right for
+  "undo a mode" backs.
 - **Lazy list rows animate.** Keyed `items(…, key = …)` rows pass
   `Modifier.animateItem()` on the item's root composable, so rows slide on
   insert, remove and filter instead of jumping. It needs a stable, unique
   key, and must sit on the item root (e.g. the `AnimatedVisibility`, not the
   card inside it). `AnimatedCurrencyText` swaps instantly when either side is
-  the privacy mask — hiding amounts isn't a value change.
+  the privacy mask — hiding amounts isn't a value change. Chat rows pass
+  `animateItem(fadeInSpec = null, fadeOutSpec = null)`: every chat row swaps
+  in place (the streamed reply for its saved message, the Add card for its
+  "Added …" line), so a fade would draw one over or under the other; they
+  only slide. The typing/streaming reply shares one keyed slot.
+- **"Receipt settled"** (`SettledCheck`): only after the user's own save is
+  written — never on load, import or a failed save — the item's avatar gives
+  way to a check (fade + cookie→circle morph, no scale), with
+  `HapticFeedbackType.Confirm`, held `SETTLED_HOLD_MILLIS`. Transaction detail
+  Save and Subscriptions mark-paid swap the avatar; the chat's Add card swaps
+  its Cancel/Add buttons for the check. Its "Added …" line is written first
+  (a process death in the beat must not lose the acknowledgement); the card
+  stays drawn, settled, under it for the beat, then goes. With "Remove
+  animations" every settle skips the beat and the check (the chat's would
+  hold Send), but the haptic still lands.
+- **A screen of sibling money figures enters as one group.** Period Review
+  fades its loaded content in once on first visit — fade only, no travel,
+  saveable flag — instead of staggering its cards (rules 1, 2 and 5); later
+  periods, and coming back, just appear.
 - **Buttons morph on press.** Every Material button passes
   `shapes = ButtonDefaults.shapes()` (icon buttons:
   `IconButtonDefaults.shapes()`) unless it sets a deliberate custom `shape`.
@@ -354,8 +454,10 @@ it by `Dimensions.Component.bottomBarHeight`.
   all ticked by default keep checkbox rows (their icons identify them).
 - **Emphasized type** (`*Emphasized`, one weight step heavier, same font) is
   for hero moments only: the Home hero amount — this month's spending in the
-  expanded `BalanceCard` (`PennyWiseText.heroAmount`) — and the expanded
-  app-bar title.
+  expanded `BalanceCard` — the transaction-detail amount, the Period Review
+  headline (each currency card's spend; all three are
+  `PennyWiseText.heroAmount`), and the expanded app-bar title. Counting
+  figures — amounts and percents — are tabular (see Typography).
 - The app module opts into `ExperimentalMaterial3ExpressiveApi` globally
   (`app/build.gradle.kts`), so no per-file `@OptIn` is needed.
 

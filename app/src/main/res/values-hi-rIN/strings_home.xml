@@ -191,6 +191,7 @@
         <item quantity="other">%1$d दिन बाकी</item>
     </plurals>
     <string name="budget_card_spent_of">%2$s में से %1$s खर्च</string>
+    <!-- Budget pace: spending compared with an even spend across the period -->
     <string name="budget_cadence_weekly">साप्ताहिक</string>
     <string name="budget_cadence_monthly">मासिक</string>
     <string name="budget_cadence_one_time">एक बार</string>

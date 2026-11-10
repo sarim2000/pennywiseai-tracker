@@ -63,6 +63,7 @@ import dev.chrisbanes.haze.HazeState
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -398,7 +399,7 @@ fun BalanceCard(
                                         // "$400" rather than a raw amount mislabelled with
                                         // the display currency ("MZN400").
                                         text = if (isBalanceHidden) "••••••" else account.formatBalance(),
-                                        style = MaterialTheme.typography.titleSmall,
+                                        style = MaterialTheme.typography.titleSmall.money(),
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -436,7 +437,7 @@ fun BalanceCard(
                                             // `balance` is the outstanding debt. Format in the
                                             // card's own currency (it may be unconverted). (#684)
                                             text = if (isBalanceHidden) "••••••" else CurrencyFormatter.formatCurrency(card.balance, card.currency),
-                                            style = MaterialTheme.typography.titleSmall,
+                                            style = MaterialTheme.typography.titleSmall.money(),
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
@@ -467,7 +468,7 @@ fun BalanceCard(
                                     } else {
                                         "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
                                     },
-                                    style = MaterialTheme.typography.titleSmall,
+                                    style = MaterialTheme.typography.titleSmall.money(),
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -707,7 +708,7 @@ private fun SummaryItem(
         Column {
             Text(
                 text = value,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleSmall.money(),
                 color = valueColor,
                 fontWeight = FontWeight.Bold,
                 // Keep the amount on one line — never break a "MZN52,245.26" into

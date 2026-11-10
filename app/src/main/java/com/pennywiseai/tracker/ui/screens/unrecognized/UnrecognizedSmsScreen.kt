@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -29,7 +28,8 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -47,7 +47,6 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import kotlinx.coroutines.delay
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,16 +79,8 @@ fun UnrecognizedSmsScreen(
     val hazeState = remember { HazeState() }
     val lazyListState = rememberLazyListState()
 
-    // Staggered entrance animation state — only animates on first composition
-    var hasAnimated by rememberSaveable { mutableStateOf(false) }
-    val animationsEnabled = rememberAnimationsEnabled()
-
-    LaunchedEffect(Unit) {
-        if (!hasAnimated) {
-            if (animationsEnabled) delay(350) // slightly after the last stagger (300ms)
-            hasAnimated = true
-        }
-    }
+    // Staggered entrance — only animates on first composition
+    val hasAnimated = rememberEntranceDone()
 
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -237,12 +228,12 @@ fun UnrecognizedSmsScreen(
                     )
                 }
             } else {
-                // Message items with staggered animation (50ms per item, starting at 50ms)
+                // Message items with the first-entrance stagger
                 itemsIndexed(
                     items = unrecognizedMessages,
                     key = { _, message -> message.id }
                 ) { index, message ->
-                    StaggeredEntrance(delayMs = 50L * (index + 1).coerceAtMost(6), skip = hasAnimated, modifier = Modifier.animateItem()) {
+                    StaggeredEntrance(delayMs = staggerDelayMs(index), skip = hasAnimated, modifier = Modifier.animateItem()) {
                         UnrecognizedSmsItem(
                             message = message,
                             suggestion = suggestions[message.id]?.transaction,

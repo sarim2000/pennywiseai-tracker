@@ -28,4 +28,5 @@
     <string name="duplicate_accounts_message">Kvůli rozdílným formátům bankovních SMS nebo dřívějšímu zpracování mohly vzniknout duplicitní účty s třemi a čtyřmi číslicemi. Pokud jsou %1$s a %2$s stejný účet, chcete je sloučit? Transakce se přesunou na čtyřmístný účet, jeho historie zůstatku zůstane zachována a budoucí SMS ho budou používat automaticky.</string>
     <string name="duplicate_accounts_merge">Sloučit a zapamatovat</string>
     <string name="duplicate_accounts_keep">Ponechat zvlášť</string>
+    <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
 </resources>

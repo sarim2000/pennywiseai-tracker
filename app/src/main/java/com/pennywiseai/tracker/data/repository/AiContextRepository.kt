@@ -18,8 +18,10 @@ import javax.inject.Singleton
 @Singleton
 class AiContextRepository @Inject constructor(
     private val transactionDao: TransactionDao,
+    private val transactionSplitDao: com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val currencyConversionService: CurrencyConversionService,
+    private val loanRepository: LoanRepository
 ) {
     
     /** This month so far, in the base currency: all the chat's prompt and summary tool need. */
@@ -72,6 +74,27 @@ class AiContextRepository @Inject constructor(
         val baseCurrency = userPreferencesRepository.baseCurrency.first()
         return getTopCategories(LocalDate.now(), baseCurrency, limit = Int.MAX_VALUE)
             .firstOrNull { it.category.equals(category, ignoreCase = true) }
+    }
+
+    /** [SpendingComparison] on the saved transactions, as of now. Also for one-tap questions that skip the model (M8). */
+    suspend fun compareSpending(period: SpendingComparison.Period, category: String?): SpendingComparison.Result {
+        val windows = SpendingComparison.windows(
+            period, java.time.LocalDateTime.now(), java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).firstDayOfWeek
+        )
+        val (current, previous) = windows.toList().map { transactionSplitDao.getTransactionsWithSplitsAllCurrencies(it.start, it.end).first() }
+        // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
+        val (currentLoss, previousLoss) = if (category == null) settlementLoss(windows.first) to settlementLoss(windows.second) else emptyMap<String, BigDecimal>() to emptyMap()
+        return SpendingComparison.compare(windows, current, previous, category, currentLoss, previousLoss)
+    }
+
+    /** Lent balances forgiven in [window], per currency: Home adds these to "Spent" (#938). */
+    suspend fun settlementLoss(window: SpendingComparison.Window): Map<String, BigDecimal> =
+        loanRepository.settlementLossByCurrency(loanRepository.getLentLoansSettledInPeriod(window.start, window.end).first()) { true }
+
+    /** This month so far, every non-deleted transaction with its splits: for M8's one-tap questions. */
+    suspend fun monthSoFar(): Pair<SpendingComparison.Window, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>> {
+        val window = SpendingComparison.windows(SpendingComparison.Period.MONTH, java.time.LocalDateTime.now(), java.time.DayOfWeek.MONDAY).first
+        return window to transactionSplitDao.getTransactionsWithSplitsAllCurrencies(window.start, window.end).first()
     }
 
     private suspend fun getTopCategories(currentDate: LocalDate, baseCurrency: String, limit: Int = 5): List<CategorySpending> {

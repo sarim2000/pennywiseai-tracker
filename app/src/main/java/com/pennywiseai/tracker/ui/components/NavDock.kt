@@ -135,6 +135,8 @@ internal fun DockedActionButton(
     action: NavDockAction,
     modifier: Modifier = Modifier,
     elevated: Boolean = true,
+    /** False while the bar is leaving, so a tap on the fading button does nothing. */
+    enabled: Boolean = true,
 ) {
     // M3 Expressive press morph: the squircle squares off while held.
     val interactionSource = remember { MutableInteractionSource() }
@@ -158,6 +160,7 @@ internal fun DockedActionButton(
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
+                enabled = enabled,
                 role = Role.Button,
                 onLongClickLabel = action.onLongClickLabel,
                 onLongClick = action.onLongClick,

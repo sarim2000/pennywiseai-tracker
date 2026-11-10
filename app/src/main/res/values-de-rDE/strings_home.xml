@@ -194,6 +194,7 @@
         <item quantity="other">%1$d tage verbleibend</item>
     </plurals>
     <string name="budget_card_spent_of">Ausgegeben %1$s von %2$s</string>
+    <!-- Budget pace: spending compared with an even spend across the period -->
     <string name="budget_cadence_weekly">Wöchentlich</string>
     <string name="budget_cadence_monthly">Monatlich</string>
     <string name="budget_cadence_one_time">Einmal</string>

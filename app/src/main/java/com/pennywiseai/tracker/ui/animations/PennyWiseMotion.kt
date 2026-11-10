@@ -3,24 +3,35 @@ package com.pennywiseai.tracker.ui.animations
 import android.animation.ValueAnimator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
 
@@ -68,17 +79,87 @@ fun pwCollapse(): ExitTransition {
 }
 
 /**
+ * A screen opening over another (both nav hosts, every push): it rises a quarter of the
+ * screen on the default spatial spring while fading in; the screen under it just fades.
+ * Vertical, so it reads the same in RTL. Takes the scheme because nav specs aren't composable.
+ */
+fun pwPush(motion: MotionScheme): ContentTransform =
+    fadeIn(motion.defaultEffectsSpec()) + slideInVertically(motion.defaultSpatialSpec()) { it / 4 } togetherWith
+        fadeOut(motion.fastEffectsSpec())
+
+/** The reverse of [pwPush]: the top screen sinks a quarter and fades off the one under it. */
+fun pwPop(motion: MotionScheme): ContentTransform =
+    fadeIn(motion.defaultEffectsSpec()) togetherWith
+        fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
+
+/** Length of the back-swipe scrub; the top screen fades only in its last [PREDICTIVE_FADE_MS]. */
+private const val PREDICTIVE_MS = 400
+private const val PREDICTIVE_FADE_MS = 120
+
+/**
+ * The back-swipe preview (both nav hosts): the top screen stays opaque and shrinks toward
+ * 90% under the finger — the platform's predictive-back look — so the screen it returns to
+ * shows around it with no double exposure; it fades only once the swipe commits.
+ * Cancelling scrubs it back. Linear `tween`s because the finger drives the clock: the
+ * duration is load-bearing (scale here is a back preview, not an entrance — rule 4).
+ */
+fun pwPredictivePop(): ContentTransform =
+    EnterTransition.None togetherWith
+        scaleOut(tween(PREDICTIVE_MS, easing = LinearEasing), targetScale = 0.9f) +
+        fadeOut(tween(PREDICTIVE_FADE_MS, delayMillis = PREDICTIVE_MS - PREDICTIVE_FADE_MS, easing = LinearEasing))
+
+/**
+ * True inside a screen that arrived on a nav transition (pushed, or uncovered by a pop or a
+ * tab switch): that transition is its entrance, so [StaggeredEntrance] doesn't add a second.
+ * Provided per entry by [com.pennywiseai.tracker.navigation.rememberEntryDecorators].
+ */
+val LocalNavEntrance = staticCompositionLocalOf { false }
+
+/**
  * False when the user set "Remove animations" (animator duration scale 0). Compose already
  * zeroes animation durations then; this is for skipping `delay`-based choreography too.
+ * Re-read on every resume, so toggling it in Settings applies on return. Key `delay`
+ * effects on this value, so a pending delay is dropped when it turns off.
  */
 @Composable
-fun rememberAnimationsEnabled(): Boolean =
-    // ponytail: read once per composition entry; a toggle mid-screen applies on next visit.
-    remember { ValueAnimator.areAnimatorsEnabled() }
+fun rememberAnimationsEnabled(): Boolean {
+    var enabled by remember { mutableStateOf(ValueAnimator.areAnimatorsEnabled()) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { enabled = ValueAnimator.areAnimatorsEnabled() }
+    return enabled
+}
+
+/** First-entrance stagger: the step between items, and the most steps it takes. */
+private const val STAGGER_STEP_MS = 50L
+private const val STAGGER_MAX_STEPS = 6
+
+/**
+ * Delay for the [index]th staggered item (0-based; a header at delay 0 comes before it).
+ * Items past [STAGGER_MAX_STEPS] share the last beat, so a long list doesn't trickle in.
+ */
+fun staggerDelayMs(index: Int): Long = STAGGER_STEP_MS * (index + 1).coerceAtMost(STAGGER_MAX_STEPS)
+
+/**
+ * A screen's saveable "entrance already ran" flag, for [StaggeredEntrance]'s `skip`. Flips
+ * just after the last [staggerDelayMs] beat — at once with animations off — and stays
+ * flipped across recomposition, scrolling and returning to the screen.
+ */
+@Composable
+fun rememberEntranceDone(): Boolean {
+    var done by rememberSaveable { mutableStateOf(false) }
+    val animationsEnabled = rememberAnimationsEnabled()
+    LaunchedEffect(animationsEnabled) {
+        if (!done) {
+            if (animationsEnabled) delay(STAGGER_STEP_MS * (STAGGER_MAX_STEPS + 1))
+            done = true
+        }
+    }
+    return done
+}
 
 /**
  * One item of a first-entrance stagger. Shows immediately when [skip] (the screen already
- * ran its entrance) or animations are off; otherwise reveals with [pwEnter] after [delayMs].
+ * ran its entrance), when the screen came in on a nav transition ([LocalNavEntrance]) or
+ * animations are off; otherwise reveals with [pwEnter] after [delayMs] (use [staggerDelayMs]).
  * Each item tracks its own `visible` so one composed just before [skip] flips still reveals.
  */
 @Composable
@@ -89,10 +170,11 @@ fun StaggeredEntrance(
     content: @Composable AnimatedVisibilityScope.() -> Unit,
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
-    var visible by remember { mutableStateOf(skip || !animationsEnabled) }
-    LaunchedEffect(Unit) {
+    val navEntrance = LocalNavEntrance.current
+    var visible by remember { mutableStateOf(skip || navEntrance || !animationsEnabled) }
+    LaunchedEffect(animationsEnabled) {
         if (!visible) {
-            delay(delayMs)
+            if (animationsEnabled) delay(delayMs)
             visible = true
         }
     }

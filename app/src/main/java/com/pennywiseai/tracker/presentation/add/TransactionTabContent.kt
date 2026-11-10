@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.R
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -171,6 +172,8 @@ fun TransactionTabContent(
     val accounts by viewModel.accounts.collectAsState()
 
     var showDatePicker by remember { mutableStateOf(false) }
+    // Closing the picker would hand focus back to a text field and pop its keyboard up again.
+    val focusManager = LocalFocusManager.current
     var showTimePicker by remember { mutableStateOf(false) }
     var showCategoryMenu by remember { mutableStateOf(false) }
     // Which account picker is open (null = closed). For a TRANSFER this routes the
@@ -347,7 +350,7 @@ fun TransactionTabContent(
                         )
                         .padding(Spacing.sm)
                         .clickable(
-                            onClick = { showDatePicker = true },
+                            onClick = { focusManager.clearFocus(); showDatePicker = true },
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ),

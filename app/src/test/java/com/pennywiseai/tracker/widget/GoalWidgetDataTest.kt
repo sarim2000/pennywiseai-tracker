@@ -34,16 +34,23 @@ class GoalWidgetDataTest {
         R.plurals.goals_months_left to "%d months left",
         R.plurals.goals_months_short to "%d mo",
     )
-    private val context: Context = mockk {
+    private val context: Context = contextWith()
+
+    /**
+     * [localDigits] stands in for a locale whose resources write counts in its
+     * own digits (Arabic "١٢"); only the formatted plural goes through it.
+     */
+    private fun contextWith(localDigits: (String) -> String = { it }): Context = mockk {
         val res = mockk<Resources> {
             every { getString(any()) } answers { templates.getValue(firstArg()) }
             every { getString(any(), *anyVararg()) } answers {
                 @Suppress("UNCHECKED_CAST")
                 templates.getValue(firstArg()).format(*(args[1] as Array<Any?>))
             }
+            every { getQuantityString(any(), any()) } answers { templates.getValue(firstArg()) }
             every { getQuantityString(any(), any(), *anyVararg()) } answers {
                 @Suppress("UNCHECKED_CAST")
-                templates.getValue(firstArg()).format(*(args[2] as Array<Any?>))
+                localDigits(templates.getValue(firstArg()).format(*(args[2] as Array<Any?>)))
             }
         }
         every { resources } returns res
@@ -85,6 +92,33 @@ class GoalWidgetDataTest {
         assertEquals("Missed by ${inr(BigDecimal("600"))}", missed.statusLine(context))
         assertEquals(missed.statusLine(context), missed.shortLine(context))
         assertEquals(GoalTone.ERROR, missed.tone())
+    }
+
+    @Test
+    fun `a custom money formatter writes every amount in the line`() {
+        val money = { amount: BigDecimal, currency: String -> "$currency ${amount.toPlainString()}" }
+        val onPace = progress("24000", "0", today.plusMonths(12))
+        assertEquals("INR 2000/mo · 12 months left", onPace.statusLine(context, money))
+        assertEquals("INR 24000 left · 12 mo", onPace.shortLine(context, money))
+
+        val behind = progress("12000", "0", today.plusMonths(6), created = today.minusMonths(6))
+        assertEquals("Behind INR ${behind.behind.toPlainString()}", behind.statusLine(context, money))
+
+        val missed = progress("1000", "400", today.minusDays(1), created = today.minusMonths(2))
+        assertEquals("Missed by INR 600", missed.statusLine(context, money))
+        assertEquals("Missed by INR 600", missed.shortLine(context, money))
+    }
+
+    @Test
+    fun `latinDigits keeps month counts Latin where resources would localise them`() {
+        val arabicDigits = contextWith { text -> text.map { if (it in '0'..'9') '\u0660' + (it - '0') else it }.joinToString("") }
+        val money = { amount: BigDecimal, currency: String -> "$currency ${amount.toPlainString()}" }
+        val p = progress("24000", "0", today.plusMonths(12))
+
+        assertEquals("INR 2000/mo · \u0661\u0662 months left", p.statusLine(arabicDigits, money))
+        assertEquals("INR 24000 left · \u0661\u0662 mo", p.shortLine(arabicDigits, money))
+        assertEquals("INR 2000/mo · 12 months left", p.statusLine(arabicDigits, money, latinDigits = true))
+        assertEquals("INR 24000 left · 12 mo", p.shortLine(arabicDigits, money, latinDigits = true))
     }
 
     private fun item(id: Long) = GoalWidgetItem(id, "Goal $id", "#1565C0", 10, 0.1f, "line", "short")

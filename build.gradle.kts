@@ -73,6 +73,11 @@ detekt {
     parallel = true
 }
 
+// The plugin hooks detekt into root `check`; unhook it so check/build stay non-blocking.
+tasks.named("check") {
+    setDependsOn(dependsOn.filterNot { it is TaskProvider<*> && it.name == "detekt" })
+}
+
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
     exclude("**/build/**", "**/generated/**")
 }

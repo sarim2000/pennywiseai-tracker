@@ -197,6 +197,14 @@ fun PennyWiseNavHost(
             )
         }
 
+        // Settings opens it inside its tab; a taught message's notification opens it here.
+        entry<UnrecognizedSms> { key ->
+            com.pennywiseai.tracker.presentation.unrecognized.UnrecognizedSmsScreen(
+                onNavigateBack = { backStack.pop(key) },
+                onAddSuggestion = { draft -> backStack.navigate(draft) }
+            )
+        }
+
         entry<TransactionDetail>(metadata = fadeOnly) { key ->
             CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
                 com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(

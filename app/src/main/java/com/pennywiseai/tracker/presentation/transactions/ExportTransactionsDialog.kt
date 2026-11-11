@@ -59,7 +59,7 @@ fun ExportTransactionsDialog(
             showSupportNudge = true
         }
     }
-    val csvLimit = com.pennywiseai.tracker.billing.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH
+    val csvLimit = com.pennywiseai.tracker.core.entitlement.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH
     // Free users get the FIRST `csvLimit` rows on every export — never a
     // hard block. The advertised free tier is "first 100 rows," so we
     // actually deliver them when the selection exceeds the limit. Pro is

@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.billing.FreeTierLimits
+import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule

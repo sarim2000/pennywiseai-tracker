@@ -208,7 +208,7 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
 
 /**
  * The Goals section at the top of the Budgets screen. Owns the Pro gate for
- * "New goal" (#914): free users get [com.pennywiseai.tracker.billing.FreeTierLimits.MAX_ACTIVE_GOALS].
+ * "New goal" (#914): free users get [com.pennywiseai.tracker.core.entitlement.FreeTierLimits.MAX_ACTIVE_GOALS].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

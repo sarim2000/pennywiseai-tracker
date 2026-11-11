@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.billing.FreeTierLimits
+import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import java.math.BigDecimal

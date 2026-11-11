@@ -11,7 +11,7 @@ import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
-import com.pennywiseai.tracker.navigation.AddTransaction
+import com.pennywiseai.tracker.domain.model.Suggestion
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,7 +20,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.parser.core.GenericTransactionExtractor
-import com.pennywiseai.parser.core.ParsedTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import com.pennywiseai.parser.core.AmountFormat
@@ -265,29 +264,5 @@ class UnrecognizedSmsViewModel @Inject constructor(
                 Log.e("UnrecognizedSmsViewModel", "Error deleting all messages", e)
             }
         }
-    }
-}
-
-/** A suggested transaction (#994), with the account last booked from its sender, if any. */
-data class Suggestion(
-    val sms: UnrecognizedSmsEntity,
-    val transaction: ParsedTransaction,
-    val learnedAccount: LearnedSendersStore.Account?,
-    /** Read by a template the user taught: Add books it directly instead of opening the form (#279). */
-    val taught: Boolean = false
-) {
-    /** The Add form, pre-filled; saving it hides [sms] and teaches its sender. */
-    fun draft(): AddTransaction {
-        val account = LearnedSendersStore.accountToUse(learnedAccount, transaction.accountLast4, transaction.currency)
-        return AddTransaction(
-            amount = transaction.amount.toPlainString(),
-            merchant = transaction.merchant,
-            bankName = account?.bankName,
-            accountLast4 = account?.accountLast4 ?: transaction.accountLast4,
-            currency = transaction.currency,
-            type = transaction.type.name,
-            dateTime = sms.receivedAt.toString(),
-            unrecognizedSmsId = sms.id
-        )
     }
 }

@@ -1,0 +1,49 @@
+# Resolves the Gradle dependency graph and saves it as an artifact.
+# GitHub's own graph doesn't read libs.versions.toml, so without this the
+# Dependency Review below sees no Gradle dependencies at all.
+#
+# Fork PRs get a read-only token and can't submit a snapshot, so this workflow
+# only uploads it; dependency-graph-submit.yml (workflow_run) submits it. Main
+# goes the same way so the base snapshot that PRs are compared against exists.
+# https://github.com/gradle/actions/blob/main/docs/dependency-submission.md#usage-with-pull-requests-from-public-forked-repositories
+name: Dependency Graph
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    name: Generate dependency graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      with:
+        packages: platform-tools
+
+    - name: Generate and save dependency graph
+      uses: gradle/actions/dependency-submission@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+      with:
+        dependency-graph: generate-and-upload
+        # Consumed minutes later by dependency-graph-submit.yml.
+        artifact-retention-days: 1

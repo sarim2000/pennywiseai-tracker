@@ -15,7 +15,9 @@ class QuickAddIntentTest {
 
     @Test
     fun `manifest declares the Quick Add activity`() {
-        val manifest = File("src/main/AndroidManifest.xml").readText()
+        // Gradle runs from the module directory, an IDE may run from the repo root.
+        val root = if (File("settings.gradle.kts").isFile) File(".") else File("..")
+        val manifest = File(root, "app/src/main/AndroidManifest.xml").readText()
         val declared = Regex("""<activity\s[^>]*android:name="([^"]+)"""")
             .findAll(manifest)
             .map { it.groupValues[1] }

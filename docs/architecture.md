@@ -136,7 +136,7 @@ app/
 │   ├── worker/                  # WorkManager jobs and the schedulers that enqueue them (SMS scan, webhook sync, scheduled backups)
 │   │   └── smsscan/             # The SMS scan's stages: source, classifier, pipeline, writer, cleanup
 │   ├── widget/                  # Home-screen widgets
-│   ├── billing/                 # Play Billing + FreeTierLimits
+│   ├── billing/                 # Play Billing, license keys, EntitlementGate
 │   ├── backup/ core/ initializer/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
@@ -286,6 +286,10 @@ notification contracts `data` declares (`ConscienceNotificationActions`,
 `UnrecognizedSmsAlerts`, bound in `di/NotificationContractsModule.kt`), the
 bank-notification allowlist is `data/notification/BankNotificationConfig`, and
 the foreground check goes through `core/AppForegroundState`.
+`BillingBoundaryTest` keeps `data` and `core` from importing `billing`. Data
+code gates on Pro through `core.entitlement` (`ProEntitlement`,
+`LicenseRestorer`, `FreeTierLimits`), which `di/EntitlementContractsModule`
+binds to `EntitlementGate` and `LicenseManager`.
 
 Two more rules check where files live rather than what they import: no file in
 any source set may be in the retired `ui.screens` package (by path or by

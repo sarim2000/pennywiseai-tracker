@@ -180,7 +180,7 @@ fun PennyWiseNavHost(
                     }
 
                     entry<LearnedCategories> { key ->
-                        com.pennywiseai.tracker.presentation.settings.LearnedCategoriesScreen(
+                        LearnedCategoriesEntry(
                             onNavigateBack = { backStack.pop(key) }
                         )
                     }

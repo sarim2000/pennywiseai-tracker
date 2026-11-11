@@ -1,27 +1,26 @@
 package com.pennywiseai.tracker.data.backup
 
-import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-import com.pennywiseai.tracker.data.database.entity.builtinKey
-
 import android.content.Context
 import android.net.Uri
 import android.util.Log
-import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.core.entitlement.LicenseRestorer
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
-import com.pennywiseai.tracker.core.entitlement.LicenseRestorer
+import com.pennywiseai.tracker.data.database.entity.builtinKey
+import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.UUID
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.decodeFromStream
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,7 +32,7 @@ class BackupImporter @Inject constructor(
     private val licenseRestorer: LicenseRestorer,
     private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
-    
+
     /**
      * Import backup from a file URI
      */
@@ -44,12 +43,12 @@ class BackupImporter @Inject constructor(
         try {
             // Read and parse the backup file
             val backup = readBackupFile(uri)
-            
+
             // Validate backup version
             if (!isCompatibleVersion(backup)) {
                 return@withContext ImportResult.Error("Incompatible backup version")
             }
-            
+
             // Import based on strategy
             val result = when (strategy) {
                 ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
@@ -78,7 +77,7 @@ class BackupImporter @Inject constructor(
             ImportResult.Error("Import failed: ${e.message}")
         }
     }
-    
+
     /**
      * Read and parse backup file
      */
@@ -124,7 +123,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Replace all existing data with backup data
      */
@@ -239,7 +238,7 @@ class BackupImporter @Inject constructor(
                         balance.copy(profileId = mappedProfileId)
                     )
                 }
-                
+
                 backup.database.subscriptions.insertEachCounting({ skippedRows++ }) { subscription ->
                     database.subscriptionDao().insertSubscription(subscription)
                 }
@@ -360,7 +359,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Merge backup data with existing data
      */
@@ -495,7 +494,7 @@ class BackupImporter @Inject constructor(
                         skippedDuplicates++
                     }
                 }
-                
+
                 // Import other entities with duplicate checking
                 importCardsWithMerge(backup.database.cards) { skippedRows++ }
                 importAccountBalancesWithMerge(backup.database.accountBalances, { resolveProfileId(it) }) { skippedRows++ }
@@ -519,7 +518,7 @@ class BackupImporter @Inject constructor(
                 // Import new entities with correct ID mapping for splits and applications
                 // Rules and budgets: skip if exists locally (merge semantics - don't overwrite local changes)
                 importRulesWithMerge(backup.database.rules) { skippedRows++ }
-                
+
                 // Get existing rule application IDs to avoid duplicates on repeat MERGE
                 val existingRuleAppIds = database.ruleApplicationDao().getAllApplications().first()
                     .map { it.id }.toSet()
@@ -537,15 +536,15 @@ class BackupImporter @Inject constructor(
                 val existingRates = database.exchangeRateDao().getAllRatesFlow().first()
                 backup.database.exchangeRates.insertEachCounting({ skippedRows++ }) { rate ->
                     // Skip if currency pair already exists locally to preserve custom rates
-                    val existingPair = existingRates.find { 
-                        it.fromCurrency == rate.fromCurrency && it.toCurrency == rate.toCurrency 
+                    val existingPair = existingRates.find {
+                        it.fromCurrency == rate.fromCurrency && it.toCurrency == rate.toCurrency
                     }
                     if (existingPair == null) {
                         database.exchangeRateDao().insertExchangeRate(rate)
                     }
                 }
                 importBudgetsWithMerge(backup.database.budgets, backup.database.budgetCategories) { skippedRows++ }
-                
+
                 // Get existing split keys to avoid duplicates on repeat MERGE
                 // A split is unique by (transaction_id, category, amount)
                 val existingSplits = database.transactionSplitDao().getAllSplits().first()
@@ -554,7 +553,7 @@ class BackupImporter @Inject constructor(
                     // Map transaction ID to new ID if available
                     val mappedTransactionId = oldToNewTransactionIdMap[split.transactionId] ?: split.transactionId
                     // Skip if split already exists locally (preserves local splits)
-                    val splitKey = "${mappedTransactionId}|${split.category}|${split.amount}"
+                    val splitKey = "$mappedTransactionId|${split.category}|${split.amount}"
                     if (!existingSplitKeys.contains(splitKey)) {
                         val updatedSplit = split.copy(id = 0, transactionId = mappedTransactionId)
                         database.transactionSplitDao().insertSplit(updatedSplit)
@@ -627,7 +626,7 @@ class BackupImporter @Inject constructor(
 
                 // Import preferences (merge with existing)
                 importPreferences(backup.preferences)
-                
+
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
                     importedCategories = importedCategories,
@@ -639,7 +638,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Import cards with duplicate checking
      */
@@ -655,7 +654,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Import account balances with duplicate checking.
      * @param resolveProfileId remaps the source profile_id to its final local
@@ -675,7 +674,7 @@ class BackupImporter @Inject constructor(
             database.accountBalanceDao().insertBalance(newBalance)
         }
     }
-    
+
     /**
      * Import subscriptions with duplicate checking
      */
@@ -691,16 +690,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
-    /**
-     * Import recurring / scheduled manual transaction templates with duplicate
-     * checking (#706). The dedup key covers every schedule-distinguishing field
-     * (merchant, amount, currency, category, type, frequency, day-of-month/week,
-     * profile), so a repeat MERGE of the same backup doesn't stack duplicates
-     * while genuinely distinct templates are never collapsed (Greptile). The
-     * source profile_id is remapped so materialized transactions land under the
-     * right local profile, and a fresh id avoids colliding with local rows.
-     */
+
     /**
      * A stable uid for a template: the real one, or — for a blank/legacy uid —
      * a deterministic content-derived id so re-importing the same legacy row is
@@ -724,6 +714,15 @@ class BackupImporter @Inject constructor(
         ).joinToString("|")
     }
 
+    /**
+     * Import recurring / scheduled manual transaction templates with duplicate
+     * checking (#706). The dedup key covers every schedule-distinguishing field
+     * (merchant, amount, currency, category, type, frequency, day-of-month/week,
+     * profile), so a repeat MERGE of the same backup doesn't stack duplicates
+     * while genuinely distinct templates are never collapsed (Greptile). The
+     * source profile_id is remapped so materialized transactions land under the
+     * right local profile, and a fresh id avoids colliding with local rows.
+     */
     private suspend fun importRecurringTransactionsWithMerge(
         recurring: List<RecurringTransactionEntity>,
         resolveProfileId: (Long?) -> Long?,
@@ -822,7 +821,7 @@ class BackupImporter @Inject constructor(
             database.merchantMappingDao().insertMapping(mapping)
         }
     }
-    
+
     /**
      * Import merchant aliases with merge. Aliases are keyed by merchant_name
      * (the PK), so a REPLACE insert lets a backup's alias overwrite any local
@@ -846,7 +845,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Import budgets and budget categories with merge semantics - skip if exists locally
      */
@@ -869,7 +868,7 @@ class BackupImporter @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Insert backup profiles and return a `backup-id → local-id` map so other
      * tables (transactions, account balances) can rewrite their profile_id
@@ -978,7 +977,7 @@ class BackupImporter @Inject constructor(
         preferences.theme.hiddenNavTabs?.let {
             userPreferencesRepository.updateHiddenNavTabs(it.toSet())
         }
-        
+
         // SMS preferences
         userPreferencesRepository.updateHasSkippedSmsPermission(preferences.sms.hasSkippedSmsPermission)
         userPreferencesRepository.updateSmsScanMonths(preferences.sms.smsScanMonths)
@@ -998,13 +997,13 @@ class BackupImporter @Inject constructor(
         preferences.sms.lastScanPeriod?.let {
             userPreferencesRepository.updateLastScanPeriod(it)
         }
-        
+
         // Developer preferences
         userPreferencesRepository.updateDeveloperMode(preferences.developer.isDeveloperModeEnabled)
         preferences.developer.systemPrompt?.let {
             userPreferencesRepository.updateSystemPrompt(it)
         }
-        
+
         // App preferences
         BankAccountMergeStore(context)
             .restore(preferences.app.bankAccountMerges)

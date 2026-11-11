@@ -43,10 +43,10 @@ class AiRelayClient @Inject constructor(@ApplicationContext context: Context) {
     private val prefs = context.getSharedPreferences("ai_access", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
     private val registerLock = Mutex()
-    private val http = HttpClient(OkHttp) {
+    private val http by lazy { HttpClient(OkHttp) {
         install(WebSockets) // no protocol pings: the relay answers our text "ping" without waking up
         install(HttpTimeout) { connectTimeoutMillis = 15_000; requestTimeoutMillis = 20_000 }
-    }
+    } }
 
     private val _relayUrl = MutableStateFlow(prefs.getString(KEY_RELAY, null) ?: DEFAULT_RELAY_URL)
     /** The relay this phone uses: PennyWise's by default, or one the user hosts themselves. */

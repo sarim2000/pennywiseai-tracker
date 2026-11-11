@@ -9,7 +9,6 @@
     <string name="exchange_rates_hint">Tippen Sie auf eine Rate um einen benutzerdefinierten Wert festzulegen. Benutzerdefinierte Raten werden über alle API-Aktualisierungen beibehalten.</string>
     <string name="exchange_rates_reset_all">Alles auf Automatisch zurücksetzen</string>
     <string name="exchange_rates_badge_custom">Eigene</string>
-    <string name="exchange_rates_badge_api">API</string>
     <string name="exchange_rates_rate_label">Wechselkurs</string>
     <string name="exchange_rates_invalid_rate">Geben Sie eine gültige positive Zahl ein</string>
     <string name="exchange_rates_reset">Auf Auto zurücksetzen</string>

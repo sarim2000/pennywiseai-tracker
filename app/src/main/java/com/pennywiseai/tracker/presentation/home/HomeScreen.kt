@@ -83,15 +83,15 @@ fun HomeScreen(
     onTransactionTypeClick: (String?) -> Unit = {},
     onFabPositioned: (Rect) -> Unit = {}
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Time to full display: the balance and recent list show data, not skeletons.
     ReportDrawnWhen { !uiState.isLoading && uiState.isBalanceReady }
-    val isProEntitled by viewModel.isProEntitled.collectAsState()
-    val currentCycleWindow by viewModel.currentCycleWindow.collectAsState()
+    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    val currentCycleWindow by viewModel.currentCycleWindow.collectAsStateWithLifecycle()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
-    val deletedTransaction by viewModel.deletedTransaction.collectAsState()
-    val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsState()
-    val groupSummaries by viewModel.groupSummaries.collectAsState()
+    val deletedTransaction by viewModel.deletedTransaction.collectAsStateWithLifecycle()
+    val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsStateWithLifecycle()
+    val groupSummaries by viewModel.groupSummaries.collectAsStateWithLifecycle()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
     val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()

@@ -112,10 +112,14 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // Materialise recurring / scheduled manual (cash) transactions (#706):
         // a daily periodic run plus a one-shot catch-up now, so a device that was
         // off still creates anything that came due while it was down.
-        com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this)
-        com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this)
-        // "Bill due tomorrow" reminders, each morning at 9.
-        com.pennywiseai.tracker.worker.BillReminderWorker.enqueuePeriodic(this)
+        // Off the main thread: the first WorkManager call initializes it, which a cold
+        // start doesn't need to wait for.
+        applicationScope.launch(Dispatchers.Default) {
+            com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueuePeriodic(this@PennyWiseApplication)
+            com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this@PennyWiseApplication)
+            // "Bill due tomorrow" reminders, each morning at 9.
+            com.pennywiseai.tracker.worker.BillReminderWorker.enqueuePeriodic(this@PennyWiseApplication)
+        }
         // The evening recap is opt-in: scheduled only while its switch is on.
         applicationScope.launch {
             com.pennywiseai.tracker.worker.DailySummaryWorker.sync(

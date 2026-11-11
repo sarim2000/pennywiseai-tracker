@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -59,8 +60,8 @@ fun AccountDetailScreen(
     onTransactionClick: (Long) -> Unit,
     viewModel: AccountDetailViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val selectedDateRange by viewModel.selectedDateRange.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val selectedDateRange by viewModel.selectedDateRange.collectAsStateWithLifecycle()
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

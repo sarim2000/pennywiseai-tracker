@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Local release script that replicates .github/workflows/release.yml
+# Cuts a release: version bump, changelogs, APKs, tag, push, GitHub release.
 # Usage: ./scripts/release.sh [patch|minor|major] [--yes] [--play] [--no-claude] [--web] [--no-relay] [--dry-run]
 #
 # One-shot headless release (build + Claude notes + tag + push + GitHub release
@@ -68,6 +68,32 @@ for arg in "$@"; do
            exit 1 ;;
     esac
 done
+
+# 0. Refuse the wrong tree: the script commits to the current branch, tags it
+# and pushes main, so it must run on a clean main that matches origin/main.
+# Untracked files don't count — the release commit only adds files it writes.
+# A dry run reports the same problems as warnings and carries on.
+# Tested by scripts/test-release-guard.sh (CI: Tests / Release Guard Test).
+GUARD_PROBLEMS=()
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+[ "$CURRENT_BRANCH" = "main" ] || GUARD_PROBLEMS+=("On branch '$CURRENT_BRANCH', not main")
+[ -z "$(git status --porcelain --untracked-files=no)" ] || GUARD_PROBLEMS+=("Uncommitted changes to tracked files (see git status)")
+# Fetch only when the local checks pass (or on a dry run), and compare against
+# FETCH_HEAD: a custom fetch refspec may not update origin/main.
+if [ ${#GUARD_PROBLEMS[@]} -gt 0 ] && [ "$DRY_RUN" != "true" ]; then
+    :
+elif ! git fetch --quiet origin main; then
+    GUARD_PROBLEMS+=("Could not fetch origin/main to check that HEAD is current")
+elif [ "$(git rev-parse HEAD)" != "$(git rev-parse --verify FETCH_HEAD)" ]; then
+    GUARD_PROBLEMS+=("HEAD is not origin/main (pull, or push your commits through a PR first)")
+fi
+for problem in "${GUARD_PROBLEMS[@]}"; do
+    if [ "$DRY_RUN" = "true" ]; then echo -e "${YELLOW}⚠️  $problem${NC}"; else echo -e "${RED}❌ $problem${NC}"; fi
+done
+if [ ${#GUARD_PROBLEMS[@]} -gt 0 ] && [ "$DRY_RUN" != "true" ]; then
+    echo "Release from an up-to-date, clean main: git checkout main && git pull --ff-only"
+    exit 1
+fi
 
 echo -e "${GREEN}🚀 Starting release (${VERSION_BUMP} bump)${NC}"
 
@@ -359,7 +385,7 @@ fi
 
 echo -e "${GREEN}✅ APKs built${NC}"
 
-# 7. Rename APKs (matching GitHub Actions)
+# 7. Rename APKs to their published names
 STANDARD_PATH="app/build/outputs/apk/standard/release"
 FDROID_PATH="app/build/outputs/apk/fdroid/release"
 

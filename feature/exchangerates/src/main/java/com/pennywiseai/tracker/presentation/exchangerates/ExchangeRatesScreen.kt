@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.feature.exchangerates.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
@@ -54,7 +55,7 @@ fun ExchangeRatesScreen(
     cancelLabel: String,
     viewModel: ExchangeRatesViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var editingRate by remember { mutableStateOf<ExchangeRateSnapshot?>(null) }
 

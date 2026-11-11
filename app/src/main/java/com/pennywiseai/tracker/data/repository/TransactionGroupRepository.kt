@@ -85,6 +85,17 @@ class TransactionGroupRepository @Inject constructor(
     fun getTransactionsForGroup(groupId: Long): Flow<List<TransactionEntity>> =
         groupDao.getTransactionsForGroup(groupId)
 
+    /**
+     * Every group with its live transactions (newest first), from one query for all
+     * groups, like [observeGroupSummaries]: a flow per group re-ran a query per group
+     * on every transactions write.
+     */
+    fun observeGroupsWithTransactions(): Flow<List<Pair<TransactionGroupEntity, List<TransactionEntity>>>> =
+        combine(getAllGroups(), groupDao.getAllGroupedTransactions()) { groups, transactions ->
+            val byGroup = transactions.groupBy { it.groupId }
+            groups.map { group -> group to byGroup[group.id].orEmpty().sortedByDescending { it.dateTime } }
+        }
+
     fun getTransactionCount(groupId: Long): Flow<Int> = groupDao.getTransactionCount(groupId)
 
     fun getRecentUngroupedTransactions(): Flow<List<TransactionEntity>> =

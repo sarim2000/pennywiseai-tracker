@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.add
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.utils.AppDates
 
 import com.pennywiseai.tracker.R
@@ -70,9 +71,9 @@ fun SubscriptionTabContent(
     viewModel: AddViewModel,
     onSave: () -> Unit
 ) {
-    val uiState by viewModel.subscriptionUiState.collectAsState()
-    val categories by viewModel.categories.collectAsState()
-    val accounts by viewModel.accounts.collectAsState()
+    val uiState by viewModel.subscriptionUiState.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
     // Closing the picker would hand focus back to a text field and pop its keyboard up again.

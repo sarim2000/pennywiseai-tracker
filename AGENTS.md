@@ -54,12 +54,13 @@ complaint.
 
 ## Verification — Definition of Done
 Run **`./init.sh`** before claiming a change is done — it runs the same
-compile/test gate CI applies (CI's App Compile job additionally assembles a
+format/compile/test gate CI applies (CI's App Compile job additionally assembles a
 debug APK, so a change that compiles but breaks assembly will still surface
 there). Scope it to what you touched:
 
 | Change | Command |
 |---|---|
+| Formatting only | `./init.sh format` (every target runs it first) |
 | Parser (`parser-core`) | `./init.sh parser` |
 | App (Kotlin) | `./init.sh app` |
 | Everything | `./init.sh` (default) |
@@ -67,9 +68,16 @@ there). Scope it to what you touched:
 | DB migration | plus the old-Android update check in `docs/database-migrations.md` |
 
 `init.sh` sets `JAVA_HOME` to a JDK 21 (it tries `JAVA_HOME`, macOS `java_home`,
-Android Studio's JBR, then SDKMAN). Run the raw `./gradlew` tasks it wraps only
-if you need finer control. `./gradlew build` and `lint` are heavier and **not**
-part of the gate — don't use them to verify.
+Android Studio's JBR, SDKMAN, then a Gradle-downloaded JDK). Run the raw
+`./gradlew` tasks it wraps only if you need finer control. `./gradlew build` and
+`lint` are heavier and **not** part of the gate — don't use them to verify.
+
+A format failure means `./gradlew spotlessApply`, then review and commit the
+diff. It checks whole files changed since `origin/main`, so touching a legacy
+file means formatting all of it. A lint error marked "no autocorrection" (e.g. a
+comment inside the import list) needs a manual edit first. Opt-in pre-push hook
+with the same check: `git config --local core.hooksPath .githooks` (this
+replaces `.git/hooks`, so move any existing hooks there first).
 
 ## Architecture at a glance
 - **Stack:** Kotlin · Jetpack Compose + Material 3 · MVVM + Clean Architecture ·
@@ -94,7 +102,7 @@ part of the gate — don't use them to verify.
 | Adding a bank parser | `docs/adding-bank-parsers.md` | New/changed parser in `parser-core` |
 | Parser tests | `docs/parser-test-standards.md` | Writing parser tests |
 | DB migrations | `docs/database-migrations.md` | Room schema changes |
-| Performance | `docs/performance.md` | Baseline Profiles, Macrobenchmark, startup or scroll timing |
+| Performance | `docs/performance.md` | Baseline Profiles, Macrobenchmark, startup/scroll/memory/APK-size report (`scripts/perf-report.sh`), leak checks |
 | Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (170 banks, 26 countries) |
 | AI access (MCP relay, dashboard) | `docs/ai-access.md`, `relay/README.md`, `docs/adr/0002-*` | Touching `aiaccess/`, the relay or the dashboard |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |
@@ -113,8 +121,8 @@ fresh `[BANK]` issue) · `emulator-verify` (on-device check).
 ## Releasing
 For a routine release: merge the PRs, then — from an up-to-date `main` with a
 clean tree — run `./scripts/release.sh patch|minor|major --yes` (preview first
-with `--dry-run`). It commits/tags the current branch and pushes `main`, so the
-branch state matters.
+with `--dry-run`). It commits/tags the current branch and pushes `main`, so it
+refuses to run off `main` or from a dirty or stale tree.
 `scripts/release.sh` is the single source of truth — it bumps the version,
 generates changelogs + release notes, builds the APKs (standard flavor signed;
 the F-Droid APK stays unsigned for IzzyOnDroid), tags, pushes, and cuts the

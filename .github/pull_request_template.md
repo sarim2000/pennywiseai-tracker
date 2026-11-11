@@ -38,8 +38,7 @@
 - [ ] Focused PR (single purpose)
 - [ ] Tests added/updated (if applicable)
 - [ ] Docs updated (if applicable)
-- [ ] `./gradlew test` passes locally
-- [ ] `./gradlew lint` passes locally
+- [ ] `./init.sh` passes locally (scoped: `./init.sh parser` / `./init.sh app`)
 - [ ] Follows existing code style and patterns
 
 ## Refactor PRs
@@ -53,5 +52,11 @@
 - [ ] No new package cycle or back-edge (`scripts/arch/package-deps.sh`)
 - [ ] `./init.sh` passes and both flavors build (`:app:assembleStandardDebug`, `:app:compileFdroidDebugKotlin`)
 - [ ] Runtime/UI changes checked on a device or emulator
+
+<details>
+<summary>Prompt summary (AI-assisted PRs)</summary>
+
+<!-- What you asked the agent for and the decisions you made along the way. Delete if not applicable. -->
+</details>
 
 

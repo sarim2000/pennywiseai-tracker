@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.utils.AppDates
@@ -89,7 +90,7 @@ fun BudgetGroupsScreen(
             createOnOpen = createGoalOnOpen
         )
     }
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()

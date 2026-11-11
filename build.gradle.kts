@@ -26,9 +26,10 @@ dependencyAnalysis {
 }
 
 // Formatting: ktlint via Spotless, rules in .editorconfig. Rolled out without a mass
-// reformat: only files changed since the ratchet ref are checked, and `check`/`build`
-// never run it. -PspotlessRatchetFrom=<ref> compares against another ref; an empty
-// value checks every file.
+// reformat: only files changed since the ratchet ref are checked. `./init.sh` and the
+// opt-in .githooks/pre-push hook run spotlessCheck; `check`/`build` never do.
+// -PspotlessRatchetFrom=<ref> compares against another ref; an empty value checks
+// every file.
 spotless {
     providers.gradleProperty("spotlessRatchetFrom").getOrElse("origin/main")
         .takeIf { it.isNotBlank() }

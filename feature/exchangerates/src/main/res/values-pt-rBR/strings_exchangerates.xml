@@ -9,7 +9,6 @@
     <string name="exchange_rates_hint">Toque em uma taxa para definir um valor personalizado. As taxas personalizadas são preservadas durante as atualizações da API.</string>
     <string name="exchange_rates_reset_all">Redefinir Tudo para Auto</string>
     <string name="exchange_rates_badge_custom">Personalizado</string>
-    <string name="exchange_rates_badge_api">API</string>
     <string name="exchange_rates_rate_label">Taxa de Câmbio</string>
     <string name="exchange_rates_invalid_rate">Insira um número positivo válido</string>
     <string name="exchange_rates_reset">Redefinir para Automático</string>

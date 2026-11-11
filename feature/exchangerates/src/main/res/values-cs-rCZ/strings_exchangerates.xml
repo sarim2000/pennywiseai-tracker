@@ -9,7 +9,6 @@
     <string name="exchange_rates_hint">Pro nastavení vlastní hodnoty klepněte na sazbu. Vlastní sazby jsou zachovány napříč obnovením API.</string>
     <string name="exchange_rates_reset_all">Obnovit vše na Auto</string>
     <string name="exchange_rates_badge_custom">Vlastní</string>
-    <string name="exchange_rates_badge_api">API</string>
     <string name="exchange_rates_rate_label">Směnný kurz</string>
     <string name="exchange_rates_invalid_rate">Zadejte platné kladné číslo</string>
     <string name="exchange_rates_reset">Obnovit na automatické</string>

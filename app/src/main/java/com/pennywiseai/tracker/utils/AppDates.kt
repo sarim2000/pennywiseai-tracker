@@ -27,9 +27,19 @@ object AppDates {
         if (base.language == "ar" && base.country.isNotEmpty()) Locale.Builder().setLocale(base).setRegion("").build()
         else base
 
-    /** [DateTimeFormatter.ofPattern] in [locale]. Built per call so it follows app-language changes. */
-    fun pattern(pattern: String, base: Locale = Locale.getDefault()): DateTimeFormatter =
-        DateTimeFormatter.ofPattern(pattern, locale(base))
+    /**
+     * [DateTimeFormatter.ofPattern] in [locale]. Cached per pattern and locale, so it still
+     * follows app-language changes; rows call this on every composition, and a fresh formatter
+     * each time also missed every `remember` keyed on it (formatters compare by identity).
+     */
+    fun pattern(pattern: String, base: Locale = Locale.getDefault()): DateTimeFormatter {
+        val locale = locale(base)
+        // ponytail: unbounded, but keyed by patterns in code times app languages: a few dozen.
+        return formatters.getOrPut(pattern to locale) { DateTimeFormatter.ofPattern(pattern, locale) }
+    }
+
+    private val formatters = java.util.concurrent.ConcurrentHashMap<Pair<String, Locale>, DateTimeFormatter>()
+    private val bestPatterns = java.util.concurrent.ConcurrentHashMap<Pair<Locale, String>, String>()
 
     /** A date with its year ("31 Oct 2026") in the user's [DateFormatStyle]. */
     fun dateFormatter(base: Locale = Locale.getDefault(), style: DateFormatStyle = dateFormatStyle): DateTimeFormatter =
@@ -54,5 +64,5 @@ object AppDates {
 
     // Android picks the language's own day/month order; null off-device (unit tests).
     private fun bestPattern(base: Locale, skeleton: String, fallback: String): String =
-        DateFormat.getBestDateTimePattern(locale(base), skeleton) ?: fallback
+        bestPatterns.getOrPut(locale(base) to skeleton) { DateFormat.getBestDateTimePattern(locale(base), skeleton) ?: fallback }
 }

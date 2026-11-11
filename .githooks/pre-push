@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Opt-in: git config --local core.hooksPath .githooks
+# Runs the same format check as ./init.sh and CI, so a formatting failure shows
+# up before the push instead of on the PR. It checks the working tree, not the
+# commits being pushed, so CI stays the authority. Skip once: git push --no-verify
+if ! ./init.sh format </dev/null; then
+  echo "pre-push: push blocked by the format check (skip with git push --no-verify)." >&2
+  exit 1
+fi

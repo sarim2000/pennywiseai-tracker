@@ -285,7 +285,9 @@ class LlmServiceImpl @Inject constructor(
         withContext(Dispatchers.IO) {
             lifecycle.withLock {
                 takeConversation()?.closeSafely()
-                closeEngine()
+                // A prefill that never drained may still run on the engine: keep it (see
+                // closeSafely). closeEngine() would throw, and reset() runs on screen exit.
+                if (undrained) Log.w(TAG, "Engine kept: a prefill never finished") else closeEngine()
             }
             Log.d(TAG, "Engine and conversation reset")
         }

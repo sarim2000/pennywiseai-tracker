@@ -2,6 +2,8 @@ package com.pennywiseai.baselineprofile
 
 import androidx.benchmark.macro.BaselineProfileMode
 import androidx.benchmark.macro.CompilationMode
+import androidx.benchmark.macro.ExperimentalMetricApi
+import androidx.benchmark.macro.MemoryUsageMetric
 import androidx.benchmark.macro.FrameTimingMetric
 import androidx.benchmark.macro.StartupMode
 import androidx.benchmark.macro.StartupTimingMetric
@@ -18,6 +20,7 @@ import org.junit.runner.RunWith
  * the libraries', and needs warmup iterations (its constructor throws without them), so it
  * shows what a JIT-only install reaches after use.
  */
+@OptIn(ExperimentalMetricApi::class)
 @RunWith(AndroidJUnit4::class)
 class PerformanceBenchmarks {
     @get:Rule val rule = MacrobenchmarkRule()
@@ -34,7 +37,8 @@ class PerformanceBenchmarks {
 
     private fun startup(mode: CompilationMode) = rule.measureRepeated(
         packageName = PACKAGE,
-        metrics = listOf(StartupTimingMetric()),
+        // Memory as Home settles: what the app costs just for being open.
+        metrics = listOf(StartupTimingMetric(), MemoryUsageMetric(MemoryUsageMetric.Mode.Last)),
         compilationMode = mode,
         startupMode = StartupMode.COLD,
         iterations = ITERATIONS,
@@ -46,7 +50,8 @@ class PerformanceBenchmarks {
 
     private fun scroll(mode: CompilationMode) = rule.measureRepeated(
         packageName = PACKAGE,
-        metrics = listOf(FrameTimingMetric()),
+        // Peak memory while every seeded row passes through the list.
+        metrics = listOf(FrameTimingMetric(), MemoryUsageMetric(MemoryUsageMetric.Mode.Max)),
         compilationMode = mode,
         iterations = ITERATIONS,
         // No startupMode: COLD would kill the app after this block, undoing the navigation.

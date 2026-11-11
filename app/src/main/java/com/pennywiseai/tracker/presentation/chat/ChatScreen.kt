@@ -73,6 +73,12 @@ fun ChatScreen(
     val downloadProgress by viewModel.downloadProgress.collectAsStateWithLifecycle()
     val downloadedMB by viewModel.downloadedMB.collectAsStateWithLifecycle()
     val totalMB by viewModel.totalMB.collectAsStateWithLifecycle()
+
+    // Stops when another tab replaces Chat or the app goes to the background.
+    androidx.lifecycle.compose.LifecycleStartEffect(viewModel) {
+        viewModel.onScreenShown()
+        onStopOrDispose { viewModel.onScreenHidden() }
+    }
     
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()

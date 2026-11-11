@@ -157,6 +157,9 @@ android {
                 "META-INF/LICENSE.md",
                 "META-INF/LICENSE-notice.md",
                 "META-INF/NOTICE.md",
+                // BouncyCastle (via PDFBox) data files for post-quantum ciphers and X.509 path
+                // review. R8 strips every class that reads them, so they were 4 MB of dead APK.
+                "org/bouncycastle/**",
             )
         }
     }
@@ -183,6 +186,16 @@ kotlin {
         // M3 Expressive (motionScheme, button shapes, LoadingIndicator, emphasized
         // type) is still @Experimental; the whole app is built on it.
         optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
+    }
+}
+
+composeCompiler {
+    stabilityConfigurationFiles.add(rootProject.layout.projectDirectory.file("compose_compiler_config.conf"))
+    // Opt-in stability/skippability reports (docs/performance.md):
+    // ./gradlew :app:compileStandardReleaseKotlin -PcomposeReports=true
+    if (providers.gradleProperty("composeReports").isPresent) {
+        reportsDestination = layout.buildDirectory.dir("compose-reports")
+        metricsDestination = layout.buildDirectory.dir("compose-metrics")
     }
 }
 

@@ -39,7 +39,7 @@ class LicenseClient @Inject constructor() {
         data class Error(val message: String) : ValidateResult()
     }
 
-    private val client = HttpClient(OkHttp) {
+    private val client by lazy { HttpClient(OkHttp) {
         install(HttpTimeout) {
             requestTimeoutMillis = 20_000
             connectTimeoutMillis = 10_000
@@ -48,7 +48,7 @@ class LicenseClient @Inject constructor() {
         install(ContentNegotiation) {
             json(Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true })
         }
-    }
+    } }
 
     suspend fun activate(key: String, deviceName: String): ActivateResult = try {
         val response = client.post("$BASE_URL/licenses/activate") {

@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.domain.service.LlmService
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.coVerify
 import io.mockk.slot
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
@@ -55,5 +56,32 @@ class ChatHistoryReplayTest {
         repository.sendMessageStream("how much on food?").collect()
 
         assertEquals(listOf("coffee 120" to true, "Here's what I'll add" to false), history.captured)
+    }
+
+    @Test
+    fun `warm-up leaves a live conversation alone, even a long one`() = runTest {
+        // 3,500 tokens: a send would still fit, but not with a full reply reserved for nothing.
+        val llmService = mockk<LlmService>(relaxed = true) {
+            every { isInitialized() } returns true
+            every { hasActiveConversation() } returns true
+            coEvery { tokenCount() } returns 3_500
+        }
+        val repository = LlmRepository(
+            context = mockk(relaxed = true),
+            llmService = llmService,
+            chatDao = mockk(relaxed = true),
+            modelRepository = mockk { every { modelState } returns flowOf(ModelState.READY) },
+            aiContextRepository = mockk(relaxed = true),
+            userPreferencesRepository = mockk(relaxed = true),
+            categoryRepository = mockk(relaxed = true),
+            accountBalanceRepository = mockk(relaxed = true),
+            transactionRepository = mockk(relaxed = true),
+            ignoredAccountsStore = mockk(relaxed = true)
+        )
+
+        repository.warmUp()
+
+        coVerify(exactly = 0) { llmService.closeConversation() }
+        coVerify(exactly = 0) { llmService.createConversation(any(), any(), any()) }
     }
 }

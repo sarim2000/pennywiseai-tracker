@@ -1,0 +1,124 @@
+name: Performance Report
+
+# Report-only: nothing here blocks a merge. Emulator timings are too noisy to gate on;
+# the gate (scripts/perf-report.sh --gate) runs on a calibrated physical device instead.
+# See docs/performance.md.
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+    - 'app/**'
+    - 'core/**'
+    - 'feature/**'
+    - 'shared/**'
+    - 'parser-core/**'
+    - 'baselineprofile/**'
+    - 'gradle/libs.versions.toml'
+    - '*.gradle.kts'
+    - 'compose_compiler_config.conf'
+    - 'scripts/perf_report.py'
+    - '.github/workflows/perf-report.yml'
+  workflow_dispatch:
+  schedule:
+  - cron: '0 3 * * 1' # Mondays: emulator benchmarks
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  apk-size:
+    name: APK Size
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: actions/setup-java@v6
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - uses: android-actions/setup-android@v4
+      with:
+        packages: platform-tools
+
+    - uses: gradle/actions/setup-gradle@v5
+
+    - name: Build standard release (unsigned)
+      run: ./gradlew :app:assembleStandardRelease --build-cache
+
+    - name: Report
+      run: |
+        apks=()
+        for apk in app/build/outputs/apk/standard/release/*{arm64-v8a,universal}*.apk; do apks+=(--apk "$apk"); done
+        python3 scripts/perf_report.py "${apks[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  emulator-benchmarks:
+    name: Emulator Benchmarks
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - uses: actions/setup-java@v6
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - uses: android-actions/setup-android@v4
+      with:
+        packages: platform-tools
+
+    - uses: gradle/actions/setup-gradle@v5
+
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    # API 34+: below it, resetting compilation reinstalls the app and wipes the seed.
+    - name: Run startup and scroll benchmarks
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 34
+        target: google_apis
+        arch: x86_64
+        profile: pixel_6
+        ram-size: 4096M
+        disk-size: 6000M
+        emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: >-
+          ./gradlew :baselineprofile:connectedStandardBenchmarkReleaseAndroidTest --build-cache
+          -Pandroid.testInstrumentationRunnerArguments.class=com.pennywiseai.baselineprofile.PerformanceBenchmarks#startupProfile,com.pennywiseai.baselineprofile.PerformanceBenchmarks#scrollProfile
+          -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR
+          -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.skipBenchmarksOnEmulator=false
+
+    - name: Report
+      if: always()
+      run: |
+        { echo "_Emulator numbers: compare runs of this job only, never a phone._"; echo
+          python3 scripts/perf_report.py --results baselineprofile/build/outputs/connected_android_test_additional_output
+        } | tee -a "$GITHUB_STEP_SUMMARY"
+
+    - uses: actions/upload-artifact@v7
+      if: always()
+      with:
+        name: benchmark-results
+        path: baselineprofile/build/outputs/connected_android_test_additional_output/
+        retention-days: 30

@@ -13,7 +13,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestions
-import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.core.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted

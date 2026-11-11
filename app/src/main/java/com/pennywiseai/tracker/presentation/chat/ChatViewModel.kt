@@ -43,7 +43,7 @@ class ChatViewModel @Inject constructor(
     categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val modelDownloader: ModelDownloader,
-    @com.pennywiseai.tracker.di.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
+    @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
 ) : ViewModel() {
 
 

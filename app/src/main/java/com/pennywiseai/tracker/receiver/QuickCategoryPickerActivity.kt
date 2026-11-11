@@ -25,7 +25,7 @@ import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet

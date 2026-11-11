@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.di
 
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.ExchangeRateProvider
 import com.pennywiseai.tracker.data.currency.ExchangeRateProviderFactory
@@ -9,21 +10,10 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-
-/**
- * Qualifier for an application-lifetime [CoroutineScope] — use this for
- * fire-and-forget work that must outlive the calling Activity/ViewModel
- * (e.g. a DB write started from a transient activity that finishes
- * immediately after).
- */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ApplicationScope
 
 /**
  * Hilt module that provides application-level dependencies.

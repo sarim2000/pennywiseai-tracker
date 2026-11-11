@@ -18,7 +18,7 @@ import com.android.billingclient.api.acknowledgePurchase
 import com.android.billingclient.api.queryProductDetails
 import com.android.billingclient.api.queryPurchasesAsync
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
-import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.core.ApplicationScope
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

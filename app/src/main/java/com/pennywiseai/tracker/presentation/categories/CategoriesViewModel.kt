@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
-import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.core.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 
 @HiltViewModel

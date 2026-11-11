@@ -27,14 +27,14 @@ class WebhookDeliveryService internal constructor(
         retryDelay = { attempt -> delay(1_000L shl attempt) }
     )
 
-    private val client = HttpClient(engine) {
+    private val client by lazy { HttpClient(engine) {
         followRedirects = false
         install(HttpTimeout) {
             requestTimeoutMillis = 30_000
             connectTimeoutMillis = 15_000
             socketTimeoutMillis = 30_000
         }
-    }
+    } }
 
     suspend fun deliver(
         url: String,

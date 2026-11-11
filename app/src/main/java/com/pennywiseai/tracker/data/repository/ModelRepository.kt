@@ -19,7 +19,9 @@ import javax.inject.Singleton
 class ModelRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val _modelState = MutableStateFlow(ModelState.NOT_DOWNLOADED)
+    // LOADING until refreshModelState() has looked at the disk (off the main thread):
+    // starting at NOT_DOWNLOADED flashed the download prompt at someone who has the model.
+    private val _modelState = MutableStateFlow(ModelState.LOADING)
     val modelState: Flow<ModelState> = _modelState.asStateFlow()
 
     fun getModelFile(): File {
@@ -148,7 +150,7 @@ class ModelRepository @Inject constructor(
      * was interrupted, or a model carried over from an older build) is re-hashed before
      * it is trusted, and deleted if it fails. Never reports READY for an unverified file.
      */
-    suspend fun refreshModelState() {
+    suspend fun refreshModelState(): Unit = withContext(Dispatchers.IO) {
         when {
             isModelVerified() -> updateModelState(ModelState.READY)
             isModelDownloaded() -> {

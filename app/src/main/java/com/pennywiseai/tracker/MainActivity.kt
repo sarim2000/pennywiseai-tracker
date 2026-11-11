@@ -119,7 +119,8 @@ class MainActivity : FragmentActivity() {
         val addShortcutCallback = { openAddTransaction = null }
         val sharedTextCallback = { sharedText = null }
 
-        registerQuickAddShortcut()
+        // A binder call to the system on every launch; nothing on screen waits for it.
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { registerQuickAddShortcut() }
 
         setContent {
             PennyWiseApp(

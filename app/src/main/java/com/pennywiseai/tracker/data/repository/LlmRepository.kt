@@ -258,9 +258,25 @@ class LlmRepository @Inject constructor(
         Log.d(TAG, "AI response saved")
     }
 
+    // The chat screen the model is loaded for. A closed screen's late release must not
+    // unload the model under the screen that replaced it.
+    @Volatile private var modelOwner: Any? = null
+
+    /** [owner] is the chat on screen now; only its [releaseModel] counts. */
+    fun claimModel(owner: Any) { modelOwner = owner }
+
+    /** Frees the model's engine if [owner] still holds it; [ensureConversation] rebuilds it on next use. */
+    suspend fun releaseModel(owner: Any) = conversationLock.withLock {
+        if (modelOwner === owner) llmService.reset()
+    }
+
     /** Loads the model and prefills the chat when the screen opens, while the user is still typing. */
     suspend fun warmUp() {
         if (modelRepository.modelState.first() != ModelState.READY) return
+        // Already warm. The screen warms up on every return, maybe while a reply still streams,
+        // and re-checking a long chat's window here (with a reply's worth reserved) closed the
+        // conversation under that reply. A send checks its own room.
+        conversationLock.withLock { if (llmService.isInitialized() && llmService.hasActiveConversation()) return }
         ensureConversation(pending = null, incoming = "")
     }
 

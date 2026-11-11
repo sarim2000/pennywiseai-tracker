@@ -159,6 +159,17 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun `formatCurrency keeps the third decimal of every three-decimal currency`() {
+        // The list is shared with iOS (MinorUnits), so both apps show the same digits.
+        for (code in listOf("JOD", "KWD", "BHD", "OMR", "TND", "LYD")) {
+            val text = CurrencyFormatter.formatCurrency(BigDecimal("1.235"), code)
+            assertTrue("$code should keep 1.235, got: $text", text.contains("1.235"))
+        }
+        val usd = CurrencyFormatter.formatCurrency(BigDecimal("1.235"), "USD")
+        assertFalse("USD stays at two decimals, got: $usd", usd.contains("1.235"))
+    }
+
+    @Test
     fun `formatByCurrency keeps PKR and LKR distinguishable in a mixed total`() {
         val out = CurrencyFormatter.formatByCurrency(
             mapOf("PKR" to Money(BigDecimal(500), "PKR"), "LKR" to Money(BigDecimal(500), "LKR"))

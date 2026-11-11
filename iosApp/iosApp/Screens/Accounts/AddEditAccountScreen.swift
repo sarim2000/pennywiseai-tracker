@@ -45,6 +45,11 @@ struct AddEditAccountScreen: View {
             Section("Balance") {
                 TextField("Initial Balance", text: $balanceText)
                     .keyboardType(.decimalPad)
+                if balanceMinor == nil {
+                    Text(AmountFormatter.invalidAmountMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
 
                 Picker("Currency", selection: $currency) {
                     ForEach(currencies, id: \.self) { curr in
@@ -73,21 +78,25 @@ struct AddEditAccountScreen: View {
                 accountLast4 = account.accountLast4
                 accountType = account.accountType ?? "SAVINGS"
                 currency = account.currency
-                let whole = account.balanceMinor / 100
-                let fraction = abs(account.balanceMinor) % 100
-                balanceText = "\(whole).\(String(format: "%02d", Int(fraction)))"
+                balanceText = AmountFormatter.plain(minorUnits: account.balanceMinor, currency: account.currency)
             }
         }
     }
 
     private var isFormValid: Bool {
         !bankName.trimmingCharacters(in: .whitespaces).isEmpty &&
-        accountLast4.count == 4
+        accountLast4.count == 4 &&
+        balanceMinor != nil
+    }
+
+    /// Nil when the balance can't be stored: Save stays off, nothing is renamed or written.
+    private var balanceMinor: Int64? {
+        AmountFormatter.minorUnits(field: balanceText, currency: currency)
     }
 
     private func saveAccount() {
         let trimmedName = bankName.trimmingCharacters(in: .whitespaces)
-        let balanceMinor = parseBalanceMinor(balanceText)
+        guard let balanceMinor else { return }
         if isEditing && trimmedName != originalBankName {
             _ = viewModel.renameAccount(
                 oldBankName: originalBankName,
@@ -104,10 +113,5 @@ struct AddEditAccountScreen: View {
         )
         onSave()
         dismiss()
-    }
-
-    private func parseBalanceMinor(_ text: String) -> Int64 {
-        guard let value = Double(text) else { return 0 }
-        return Int64(value * 100)
     }
 }

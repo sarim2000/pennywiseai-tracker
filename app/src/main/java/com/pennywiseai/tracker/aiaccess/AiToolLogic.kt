@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.aiaccess
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -213,7 +214,7 @@ object AiToolLogic {
     private fun money(m: Money) = money(m.amount, m.currency)
 
     private fun money(amount: BigDecimal, currency: String) = buildJsonObject {
-        put("amount", amount.setScale(2, RoundingMode.HALF_UP).toPlainString())
+        put("amount", amount.setScale(MinorUnits.digits(currency), RoundingMode.HALF_UP).toPlainString())
         put("currency", currency)
     }
 

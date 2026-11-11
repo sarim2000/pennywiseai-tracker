@@ -41,6 +41,7 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        # zizmor: ignore[artipacked] crowdin/github-action runs `git fetch origin` on this checkout before pushing l10n/crowdin; no artifacts are uploaded
 
       - name: Crowdin push sources & download translations
         uses: crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a # v3.6.0

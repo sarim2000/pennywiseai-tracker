@@ -134,7 +134,7 @@ fun AddToGoalSheet(
             }
             OutlinedTextField(
                 value = amount,
-                onValueChange = { if (it.matches(amountInput)) { amount = it; onEdited() } },
+                onValueChange = { if (it.matches(amountInput(currency))) { amount = it; onEdited() } },
                 label = { Text(stringResource(R.string.goal_money_amount)) },
                 prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                 singleLine = true,
@@ -151,7 +151,7 @@ fun AddToGoalSheet(
                 )
                 OutlinedTextField(
                     value = manual,
-                    onValueChange = { if (it.matches(amountInput)) manual = it },
+                    onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
                     singleLine = true,
@@ -184,10 +184,11 @@ fun AddToGoalSheet(
                 Button(
                     onClick = {
                         selected?.let {
-                            onSave(it.goal, amount.toBigDecimalOrNull(), note, manual.toBigDecimalOrNull()?.takeIf { m -> m.signum() > 0 })
+                            onSave(it.goal, amount.toAmountIn(currency), note, manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
                         }
                     },
-                    enabled = !state.saving && left != null && left.signum() > 0 && selected != null,
+                    enabled = !state.saving && left != null && left.signum() > 0 && selected != null &&
+                        isManualAmountOk(manual, selected.goal.currency),
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_add_to_goal)) }
             }

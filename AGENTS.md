@@ -71,6 +71,9 @@ there). Scope it to what you touched:
 Android Studio's JBR, SDKMAN, then a Gradle-downloaded JDK). Run the raw
 `./gradlew` tasks it wraps only if you need finer control. `./gradlew build` and
 `lint` are heavier and **not** part of the gate — don't use them to verify.
+Android Lint runs in CI (`./gradlew :app:lintStandardDebug`, ~2–4 min) and fails
+only on errors missing from `app/lint-baseline.xml`. Fix new errors; refresh the
+baseline only after fixing old ones: `./gradlew :app:updateLintBaselineStandardDebug`.
 
 A format failure means `./gradlew spotlessApply`, then review and commit the
 diff. It checks whole files changed since `origin/main`, so touching a legacy

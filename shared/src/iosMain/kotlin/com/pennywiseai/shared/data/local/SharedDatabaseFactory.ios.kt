@@ -11,10 +11,10 @@ actual class SharedDatabaseFactory actual constructor() {
 
         // No destructive fallback: this is a finance database — a schema bump
         // must ship a Migration or fail loudly in development, never silently
-        // wipe the user's data. The schema was born at version 2, so there is
-        // no legacy version to migrate from yet; add migrations here as the
-        // version grows.
+        // wipe the user's data. The schema was born at version 2; add each
+        // migration here as the version grows.
         return Room.databaseBuilder<SharedDatabase>(name = dbPath)
+            .addMigrations(SharedDatabase.MIGRATION_2_3)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.Default)
             .build()

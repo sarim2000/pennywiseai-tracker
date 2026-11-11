@@ -11,6 +11,7 @@ import com.pennywiseai.shared.data.repository.SharedCategoryRepository
 import com.pennywiseai.shared.data.repository.SharedTransactionRepository
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.shared.domain.usecase.CreateManualTransactionUseCase
 import com.pennywiseai.shared.domain.usecase.ManualTransactionInput
 import com.pennywiseai.shared.domain.usecase.TransactionMutationResult
@@ -21,7 +22,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.roundToInt
-import kotlin.math.roundToLong
 import kotlin.time.Instant
 
 // The iOS chat's side of Android's LlmRepository / PennyWiseTools / PendingChatAction
@@ -132,8 +132,8 @@ class ChatAssistant(
     ): ChatToolResult {
         val since = now() - 30L * 24 * 60 * 60 * 1000
         val recent = transactionRepository.observeTransactions().first().filter { it.occurredAtEpochMillis >= since }
-        val amountMinor = (amount * 100).roundToLong().takeIf { amount > 0 && amount < 1e13 }
-        val match = ChatTransactionFinder.findWithFallback(recent, words, amountMinor, daysAgo.takeIf { it >= 0 }, today(), timeZone)
+        val wanted = amount.takeIf { it > 0 && it < 1e13 }
+        val match = ChatTransactionFinder.findWithFallback(recent, words, wanted, daysAgo.takeIf { it >= 0 }, today(), timeZone)
             ?: return ChatToolResult("I couldn't find a matching transaction in the last 30 days. Try the merchant name and amount.")
         val target = match.transaction
         // Say so when the amount had to be dropped to find it.
@@ -219,9 +219,7 @@ class ChatAssistant(
     companion object {
         /** Currency-tagged plain text for the model ("INR 120.50"); the UI formats its own. */
         fun money(minor: Long, currency: String): String {
-            val sign = if (minor < 0) "-" else ""
-            val abs = kotlin.math.abs(minor)
-            return "$currency $sign${abs / 100}.${(abs % 100).toString().padStart(2, '0')}"
+            return "$currency ${MinorUnits.toPlain(minor, currency)}"
         }
 
         /** Category the user named, tolerant of "Food", "food and dining", "FOOD & DINING". */
@@ -276,7 +274,7 @@ internal object ChatDrafts {
         accounts: List<SharedAccountBalanceEntity>
     ): ChatDraft? {
         if (!amount.isFinite() || amount <= 0 || amount >= 1e13) return null
-        val amountMinor = (amount * 100).roundToLong().takeIf { it > 0 } ?: return null
+        val amountMinor = MinorUnits.fromDouble(amount, currency).takeIf { it > 0 } ?: return null
         val merchant = merchantArg.trim().ifEmpty { "Unknown" }
         val wanted = categoryArg.trim()
         // With no verb either way, trust the model's INCOME only with an income-only category.
@@ -328,11 +326,11 @@ internal object ChatDrafts {
 object ChatTransactionFinder {
     data class Match(val transaction: SharedTransaction, val loosened: Boolean)
 
-    /** Picks the row the user most likely means from words, an optional amount (minor units) and "days ago". */
+    /** Picks the row the user most likely means from words, an optional amount (12.5, not minor units) and "days ago". */
     fun findBest(
         candidates: List<SharedTransaction>,
         words: String,
-        amountMinor: Long?,
+        amount: Double?,
         daysAgo: Int?,
         today: LocalDate,
         timeZone: TimeZone
@@ -341,11 +339,12 @@ object ChatTransactionFinder {
         // A stated amount or day is a hard filter, never a tie-breaker: a wrong row on a
         // delete/update card is worse than "not found".
         val wantedDay = daysAgo?.takeIf { it >= 0 }?.let { today.minus(it, DateTimeUnit.DAY) }
-        val wantedAmount = amountMinor?.takeIf { it > 0 }
+        val wantedAmount = amount?.takeIf { it > 0 }
         if (tokens.isEmpty() && wantedAmount == null && wantedDay == null) return null
         return candidates.asSequence()
             .filter { !it.isDeleted }
-            .filter { wantedAmount == null || it.amountMinor == wantedAmount }
+            // In each row's own precision: 1.235 is JOD 1235, and no USD row (it isn't whole cents).
+            .filter { wantedAmount == null || it.amountMinor == MinorUnits.exactMinor(wantedAmount, it.currency) }
             .filter { wantedDay == null || Instant.fromEpochMilliseconds(it.occurredAtEpochMillis).toLocalDateTime(timeZone).date == wantedDay }
             .map { tx -> tx to score(tx, tokens) }
             .filter { (_, s) -> s > 0 || tokens.isEmpty() }
@@ -362,14 +361,14 @@ object ChatTransactionFinder {
     fun findWithFallback(
         candidates: List<SharedTransaction>,
         words: String,
-        amountMinor: Long?,
+        amount: Double?,
         daysAgo: Int?,
         today: LocalDate,
         timeZone: TimeZone
     ): Match? {
-        findBest(candidates, words, amountMinor, daysAgo, today, timeZone)?.let { return Match(it, false) }
-        if (daysAgo != null) findBest(candidates, words, amountMinor, null, today, timeZone)?.let { return Match(it, false) }
-        if (amountMinor == null) return null
+        findBest(candidates, words, amount, daysAgo, today, timeZone)?.let { return Match(it, false) }
+        if (daysAgo != null) findBest(candidates, words, amount, null, today, timeZone)?.let { return Match(it, false) }
+        if (amount == null) return null
         return (findBest(candidates, words, null, daysAgo, today, timeZone) ?: findBest(candidates, words, null, null, today, timeZone))
             ?.let { Match(it, true) }
     }

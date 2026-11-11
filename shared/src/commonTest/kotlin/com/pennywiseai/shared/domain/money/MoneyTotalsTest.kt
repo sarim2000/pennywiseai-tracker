@@ -132,4 +132,93 @@ class MoneyTotalsTest {
             usdToInr.net(income, expense)
         )
     }
+
+    @Test
+    fun minorUnits_threeDecimalCurrenciesKeepTheirFils_othersStayAtHundredths() {
+        assertEquals(1_235L, MinorUnits.fromPlain("1.235", "JOD"))
+        assertEquals("1.235", MinorUnits.toPlain(1_235L, "JOD"))
+        assertEquals("-0.005", MinorUnits.toPlain(-5L, "kwd"))
+        assertEquals("450.00", MinorUnits.toPlain(45_000L, "INR"))
+        assertEquals(1_250L, MinorUnits.fromDouble(12.5, "USD"))
+        assertEquals(12_500L, MinorUnits.fromDouble(12.5, "BHD"))
+        // Zero-decimal currencies are still stored as value x 100.
+        assertEquals(100L, MinorUnits.factor("JPY"))
+        listOf("JOD", "KWD", "BHD", "OMR", "TND", "LYD").forEach { assertEquals(3, MinorUnits.digits(it), it) }
+        assertEquals(2, MinorUnits.digits("IQD"))
+    }
+
+    @Test
+    fun converter_movesBetweenTwoAndThreeDecimalCurrencies() {
+        // 1 JOD = 117.50 INR.
+        val toInr = CurrencyConverter.fromRates("INR", listOf(Triple("JOD", "INR", 117_500_000L)))
+        assertEquals(14_511L, toInr.convert(1_235L, "JOD")) // JOD 1.235 -> INR 145.11 (145.1125)
+        assertEquals(11_750L, toInr.convert(1_000L, "JOD"))
+
+        // The same rate stored the other way, with JOD as the base.
+        val toJod = CurrencyConverter.fromRates("JOD", listOf(Triple("JOD", "INR", 117_500_000L)))
+        assertEquals(1_000L, toJod.convert(11_750L, "INR")) // INR 117.50 -> JOD 1.000
+        assertEquals(-1_000L, toJod.convert(-11_750L, "INR"))
+        assertEquals(1_235L, toJod.convert(1_235L, "JOD")) // same currency is untouched
+
+        // 3 -> 3 decimals: the scales cancel.
+        val toBhd = CurrencyConverter.fromRates("BHD", listOf(Triple("KWD", "BHD", 1_225_000L)))
+        assertEquals(1_513L, toBhd.convert(1_235L, "KWD")) // 1.235 x 1.225 = 1.512875
+    }
+
+    @Test
+    fun converter_largeAmountsDontOverflowInEitherDirection() {
+        // JOD 2,000,000,000 at 117.50 INR/JOD = INR 235,000,000,000.00.
+        val toInr = CurrencyConverter.fromRates("INR", listOf(Triple("JOD", "INR", 117_500_000L)))
+        assertEquals(23_500_000_000_000L, toInr.convert(2_000_000_000_000L, "JOD"))
+        assertEquals(-23_500_000_000_000L, toInr.convert(-2_000_000_000_000L, "JOD"))
+
+        // INR 5,000,000,000,000 at 0.008511 JOD/INR = JOD 42,555,000,000.000.
+        val toJod = CurrencyConverter.fromRates("JOD", listOf(Triple("INR", "JOD", 8_511L)))
+        assertEquals(42_555_000_000_000L, toJod.convert(500_000_000_000_000L, "INR"))
+        assertEquals(-42_555_000_000_000L, toJod.convert(-500_000_000_000_000L, "INR"))
+
+        // Same exponent, large: USD 50,000,000,000 at 83.50 INR/USD.
+        assertEquals(417_500_000_000_000L, usdToInr.convert(5_000_000_000_000L, "USD"))
+    }
+
+    @Test
+    fun minorUnits_fromPlainRefusesWhatWouldWrapALong() {
+        // 16 integer digits x 100 fits; the same x 1000 would not, so a 3-decimal currency stops at 15.
+        assertEquals(999_999_999_999_999_999L, MinorUnits.fromPlain("9999999999999999.99", "INR"))
+        assertEquals(null, MinorUnits.fromPlain("1234567890123456", "JOD"))
+        assertEquals(123_456_789_012_345_000L, MinorUnits.fromPlain("123456789012345", "JOD"))
+        assertEquals(-999_999_999_999_999_999L, MinorUnits.fromPlain("-999999999999999.999", "KWD"))
+        assertEquals(null, MinorUnits.fromPlain("99999999999999999999", "USD"))
+        assertEquals(null, MinorUnits.fromPlain("12.3x", "USD"))
+    }
+
+    @Test
+    fun minorUnits_exactMinorKeepsLargeWholeAmounts() {
+        // Past 2^52, x + 0.5 lands on the next integer, so "round half up" by adding 0.5 moved an
+        // already-whole 4503599627370497 to ...498 and the round-trip then rejected it.
+        assertEquals(4_503_599_627_370_497L, MinorUnits.exactMinor(4503599627370.497, "JOD"))
+        assertEquals(-4_503_599_627_370_497L, MinorUnits.exactMinor(-4503599627370.497, "JOD"))
+        assertEquals(1235L, MinorUnits.exactMinor(1.235, "JOD"))
+        assertEquals(1235L, MinorUnits.exactMinor(12.35, "INR"))
+        assertEquals(null, MinorUnits.exactMinor(1.235, "USD"))
+    }
+
+    @Test
+    fun converter_outOfRangeIsUnconvertedNeverWrong() {
+        // 1,000,000 USD per JOD is past the rate bound (900,000 units per unit): JOD 9,999.999
+        // would be USD 9,999,999,000.00 (999_999_900_000) or nothing, never a wrapped figure.
+        val hugeRate = CurrencyConverter.fromRates("USD", listOf(Triple("JOD", "USD", 1_000_000_000_000L)))
+        val converted = hugeRate.convert(9_999_999L, "JOD")
+        assertTrue(converted == null || converted == 999_999_900_000L, "got $converted")
+
+        // JOD 999,999,999,999,999.999 at 117.50 is past Long.MAX_VALUE in INR minor units.
+        val toInr = CurrencyConverter.fromRates("INR", listOf(Triple("JOD", "INR", 117_500_000L)))
+        assertEquals(null, toInr.convert(999_999_999_999_999_999L, "JOD"))
+        assertEquals(null, toInr.convert(-999_999_999_999_999_999L, "JOD"))
+
+        // A row that can't be converted stays on its own line, not in the total.
+        val total = toInr.totalOf(listOf(txn(999_999_999_999_999_999L, "JOD"), txn(1_000L, "JOD")))
+        assertEquals(11_750L, total.amountMinor)
+        assertEquals(listOf(CurrencyTotal("JOD", 999_999_999_999_999_999L)), total.unconverted)
+    }
 }

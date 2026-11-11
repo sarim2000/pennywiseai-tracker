@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.compose.ui.graphics.toArgb
@@ -149,7 +150,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                             ?: return@forEach
                     }
                     tw.getAmountByCategory().forEach { (cat, amount) ->
-                        val converted = amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
+                        val converted = amount.multiply(rate).setScale(MinorUnits.digits(currency), RoundingMode.HALF_UP)
                         byCategory.merge(cat.ifBlank { "Others" }, converted, BigDecimal::add)
                     }
                 }

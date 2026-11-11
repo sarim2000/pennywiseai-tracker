@@ -1,5 +1,7 @@
 package com.pennywiseai.shared.domain.usecase
 
+import com.pennywiseai.shared.domain.money.MinorUnits
+
 /**
  * What the on-device model (iOS Foundation Models) read from a bank SMS that no
  * parser knows. Untrusted: [AiSmsValidator] decides whether it's saved.
@@ -35,8 +37,12 @@ object AiSmsValidator {
             ?: return null
         val type = TYPES[reading.type.trim().lowercase()] ?: return null
         val (whole, fraction) = amount.split('.').let { it[0] to it.getOrElse(1) { "" } }
+        // In the currency's own precision (USD has no third decimal, JOD does), and small enough
+        // that value x 10^digits fits a Long (BankParserBridge's cap).
+        val digits = MinorUnits.digits(currency)
+        if (fraction.length > digits || whole.length > 18 - digits) return null
         return ParsedBankSms(
-            amount = "$whole.${fraction.padEnd(2, '0')}",
+            amount = "$whole.${fraction.padEnd(digits, '0')}",
             type = type,
             merchant = reading.merchant?.trim()?.takeIf { it.isNotEmpty() && it.length <= 60 },
             reference = null,
@@ -62,7 +68,8 @@ object AiSmsValidator {
     /**
      * "Rs. 1,500.00" → "1500", "318.50" → "318.5": digits only, no grouping, no
      * trailing fraction zeros, so the model's amount and the SMS's compare equal.
-     * Null for anything that isn't one plain amount (more than 2 decimals, too big).
+     * Null for anything that isn't one plain amount (more than 3 decimals, too big);
+     * [validate] then holds it to its currency's decimals.
      */
     internal fun canonicalAmount(raw: String): String? {
         val digits = raw.filter { it.isDigit() || it == '.' }.trim('.')
@@ -102,7 +109,7 @@ object AiSmsValidator {
         return "ai_" + hash.toString(16)
     }
 
-    private val AMOUNT = Regex("""(\d+)(?:\.(\d{1,2}))?""")
+    private val AMOUNT = Regex("""(\d+)(?:\.(\d{1,3}))?""")
     // An OTP or a payment request quotes an amount that hasn't moved; the debit SMS follows.
     private val NOT_A_SPEND = Regex("""\b(OTP|one[- ]time password|verification code)\b""", RegexOption.IGNORE_CASE)
     private val TYPES = mapOf("expense" to "EXPENSE", "income" to "INCOME", "credit" to "CREDIT", "transfer" to "TRANSFER")

@@ -1,4 +1,5 @@
 import Foundation
+import Shared
 
 enum CurrencyFormatter {
     // Currencies that use Indian grouping (lakhs/crores): X,XX,XXX.XX
@@ -73,13 +74,14 @@ enum CurrencyFormatter {
 
     static func format(amountMinor: Int64, currencyCode: String) -> String {
         let isZeroDecimal = zeroDecimalCurrencies.contains(currencyCode)
-        // amountMinor is uniformly value × 100: every write path multiplies by
-        // 100 regardless of currency (AddEditTransactionView, AddEditSubscription),
-        // and every other read divides (CSV export, edit prefill). Zero-decimal
-        // currencies differ only in DISPLAY (no fraction digits), not in storage
-        // scale — treating their minor amounts as unscaled rendered JPY/KRW/VND
-        // (and CLP) a hundred times too large.
-        let amount = Double(amountMinor) / 100.0
+        // amountMinor is value × 10^digits (shared MinorUnits): × 1000 for the
+        // 3-decimal dinars/rials (JOD 1.235 = 1235), × 100 for everything else.
+        // Zero-decimal currencies are still × 100 and differ only in DISPLAY (no
+        // fraction digits) — treating their minor amounts as unscaled rendered
+        // JPY/KRW/VND (and CLP) a hundred times too large.
+        let digits = Int(MinorUnits.shared.digits(currency: currencyCode))
+        let factor = MinorUnits.shared.factor(currency: currencyCode)
+        let amount = Double(amountMinor) / Double(factor)
 
         if indianGroupingCurrencies.contains(currencyCode) {
             return formatIndian(amount: amount, currencyCode: currencyCode, isZeroDecimal: isZeroDecimal)
@@ -90,10 +92,10 @@ enum CurrencyFormatter {
         formatter.currencyCode = currencyCode
         formatter.locale = localeForCurrency(currencyCode)
         formatter.currencySymbol = symbol(for: currencyCode)
-        // Drop a trailing .00, but keep two digits otherwise ("$12.50", not "$12.5").
-        let hasFraction = !isZeroDecimal && abs(amountMinor) % 100 != 0
-        formatter.minimumFractionDigits = hasFraction ? 2 : 0
-        formatter.maximumFractionDigits = hasFraction ? 2 : 0
+        // Drop a trailing .00, but keep every digit otherwise ("$12.50", not "$12.5"; "JD 1.235").
+        let hasFraction = !isZeroDecimal && abs(amountMinor) % factor != 0
+        formatter.minimumFractionDigits = hasFraction ? digits : 0
+        formatter.maximumFractionDigits = hasFraction ? digits : 0
 
         return formatter.string(from: NSNumber(value: amount)) ?? "\(currencyCode) \(amount)"
     }

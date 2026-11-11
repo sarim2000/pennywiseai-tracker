@@ -2,6 +2,7 @@ package com.pennywiseai.shared.domain.usecase
 
 import com.pennywiseai.parser.core.bank.BankParser
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.shared.domain.money.MinorUnits
 import java.math.RoundingMode
 
 // Compiled into both androidMain and iosMain (see shared/build.gradle.kts):
@@ -75,8 +76,10 @@ private fun toParsedBankSms(
     receivedAt: Long
 ): ParsedBankSms {
     // iOS's BigDecimal stops at 16 integer digits; hold the JVM to the same line so both
-    // platforms treat such a number as "no amount" (and toMinor can't overflow).
-    require(parsed.amount.toPlainString().substringBefore('.').trimStart('-').length <= 16) { "Amount too large" }
+    // platforms treat such a number as "no amount" (and toMinor can't overflow: one digit
+    // fewer for a 3-decimal currency, stored as value × 1000).
+    val digits = MinorUnits.digits(parsed.currency)
+    require(parsed.amount.toPlainString().substringBefore('.').trimStart('-').length <= 18 - digits) { "Amount too large" }
     // A Shortcut may pass "AX-HDFCBK-S", or nothing (the sender is then guessed from the body);
     // both must dedupe as one SMS, and so must two banks' automations that both match it, so
     // the hash leaves the sender out (Android's formula with an empty sender).
@@ -88,12 +91,15 @@ private fun toParsedBankSms(
         ?.takeIf { it == ownHash(receivedAt + 1) }
         ?: parsed.copy(sender = "").generateTransactionId()
     return ParsedBankSms(
-        amount = parsed.amount.setScale(2, RoundingMode.HALF_UP).toPlainString(),
+        amount = parsed.amount.setScale(digits, RoundingMode.HALF_UP).toPlainString(),
         type = parsed.type.name,
         merchant = parsed.merchant,
         reference = parsed.reference,
         accountLast4 = parsed.accountLast4,
-        balance = parsed.balance?.setScale(2, RoundingMode.HALF_UP)?.toPlainString(),
+        // A balance is in the account's currency, which can differ from the spend's.
+        balance = parsed.balance
+            ?.setScale(MinorUnits.digits(parsed.accountCurrency ?: parsed.currency), RoundingMode.HALF_UP)
+            ?.toPlainString(),
         bankName = parsed.bankName,
         transactionHash = stableHash,
         isFromCard = parsed.isFromCard,

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
@@ -52,9 +53,9 @@ class BudgetGroupRepository @Inject constructor(
     suspend fun moveBudgetsToCurrency(currency: String, rate: BigDecimal?) {
         fun converted(amount: BigDecimal) = when {
             rate == null -> amount
-            // Two decimals would zero a small limit moving to a far stronger currency.
+            // The currency's own decimals would zero a small limit moving to a far stronger currency.
             (amount * rate).abs() < BigDecimal.ONE -> (amount * rate).round(java.math.MathContext(2))
-            else -> (amount * rate).setScale(2, RoundingMode.HALF_UP)
+            else -> (amount * rate).setScale(MinorUnits.digits(currency), RoundingMode.HALF_UP)
         }
         val now = LocalDateTime.now()
         budgetDao.updateBudgetsAndCategories(

@@ -11,6 +11,7 @@ import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
 import com.pennywiseai.shared.domain.money.CurrencyConverter
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.chat.ChatAssistant
 import com.pennywiseai.shared.domain.chat.ChatToolResult
@@ -1079,15 +1080,8 @@ class PennyWiseSharedFacade {
             note = note,
             bankName = bankName,
             accountLast4 = accountLast4,
-            summary = "$merchantName - $category - $currency ${formatAmountMinor(amountMinor)}"
+            summary = "$merchantName - $category - $currency ${MinorUnits.toPlain(amountMinor, currency)}"
         )
-
-    private fun formatAmountMinor(amountMinor: Long): String {
-        val whole = amountMinor / 100
-        val fraction = amountMinor % 100
-        val fractionText = fraction.toString().padStart(2, '0')
-        return "$whole.$fractionText"
-    }
 
     private fun com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity.toAccountItem() =
         SharedAccountItem(

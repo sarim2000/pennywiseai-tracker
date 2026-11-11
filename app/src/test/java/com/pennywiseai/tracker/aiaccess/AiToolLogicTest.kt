@@ -63,6 +63,13 @@ class AiToolLogicTest {
     }
 
     @Test
+    fun `amounts keep their currency's decimals`() {
+        val out = AiToolLogic.searchTransactions(listOf(txn("Grocer", "1.235", currency = "JOD")), query = "groc", category = null, type = null, limit = 10)
+        val row = out["transactions"]!!.jsonArray.single().jsonObject
+        assertEquals("1.235", row["amount"]!!.jsonObject["amount"]!!.jsonPrimitive.content)
+    }
+
+    @Test
     fun `search masks the account and never sends SMS text`() {
         val out = AiToolLogic.searchTransactions(listOf(txn("Swiggy", "412")), query = "swig", category = null, type = null, limit = 10)
         val row = out["transactions"]!!.jsonArray.single().jsonObject

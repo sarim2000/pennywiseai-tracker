@@ -3,6 +3,7 @@ package com.pennywiseai.shared.domain.money
 import com.pennywiseai.shared.SharedAccountItem
 import com.pennywiseai.shared.SharedRecentTransactionItem
 import com.pennywiseai.shared.SharedSubscriptionItem
+import kotlin.math.abs
 
 /** One currency's total. A list of these is never collapsed into one figure. */
 data class CurrencyTotal(val currency: String, val amountMinor: Long)
@@ -19,16 +20,22 @@ data class ConvertedTotal(
 
 /**
  * Converts into [baseCurrency] with the stored rates. [ratesToBase] maps a currency
- * code to how many [baseCurrency] units one unit of it buys, in micros. Every
- * amountMinor in the app is value x 100, so the rate applies to it directly.
+ * code to how many [baseCurrency] units one unit of it buys, in micros. Amounts are
+ * in each currency's own minor units ([MinorUnits]: JOD x 1000, INR x 100), so a
+ * conversion also moves between the two scales.
  */
 class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<String, Long>) {
 
-    /** [amountMinor] in [baseCurrency], or null when there's no rate for [currency]. */
+    /**
+     * [amountMinor] in [baseCurrency], or null when there's no rate for [currency] or the
+     * figure is out of range (see applyRate): such an amount stays unconverted.
+     */
     fun convert(amountMinor: Long, currency: String): Long? {
         if (currency.equals(baseCurrency, ignoreCase = true)) return amountMinor
         val rate = ratesToBase[currency.uppercase()] ?: return null
-        return applyRate(amountMinor, rate)
+        // amountMinor / from x rate / 1e6 x to: the scale change folds into the divisor
+        // (1e5, 1e6 or 1e7; factors are 100 or 1000), so there is one rounding.
+        return applyRate(amountMinor, rate, MICROS * MinorUnits.factor(currency) / MinorUnits.factor(baseCurrency))
     }
 
     /**
@@ -73,12 +80,27 @@ class CurrencyConverter(val baseCurrency: String, private val ratesToBase: Map<S
             return CurrencyConverter(base, map)
         }
 
-        /** amountMinor x rateMicros / 1e6, rounded half away from zero, without overflowing on the product. */
-        private fun applyRate(amountMinor: Long, rateMicros: Long): Long {
-            val whole = amountMinor * (rateMicros / MICROS)
-            val part = amountMinor * (rateMicros % MICROS)
-            val half = if (part < 0) -MICROS / 2 else MICROS / 2
-            return whole + (part + half) / MICROS
+        /** 900,000 units per unit: |r| < 1e7 times this stays under Long.MAX_VALUE. */
+        private const val MAX_RATE_MICROS = 900_000L * MICROS
+
+        /**
+         * amountMinor x rateMicros / [divisor], rounded once, half away from zero, or null when
+         * the rate is past [MAX_RATE_MICROS] or the result doesn't fit a Long (commonMain has
+         * no multiplyExact, so both are checked by hand). Splitting the amount
+         * (q x divisor + r) keeps r x rate in range.
+         */
+        private fun applyRate(amountMinor: Long, rateMicros: Long, divisor: Long): Long? {
+            if (rateMicros <= 0 || rateMicros > MAX_RATE_MICROS) return null
+            val q = amountMinor / divisor
+            val r = amountMinor % divisor
+            if (abs(q) > Long.MAX_VALUE / rateMicros) return null
+            val whole = q * rateMicros
+            val part = r * rateMicros
+            val half = if (part < 0) -divisor / 2 else divisor / 2
+            val rounded = (part + half) / divisor
+            // whole and rounded share the amount's sign, so only that direction can overflow.
+            if (if (whole > 0) rounded > Long.MAX_VALUE - whole else rounded < Long.MIN_VALUE - whole) return null
+            return whole + rounded
         }
     }
 }

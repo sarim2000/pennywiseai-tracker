@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.utils
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import java.math.BigDecimal
@@ -66,7 +67,7 @@ fun TransactionWithSplits.forTotals(): TransactionWithSplits? {
         val upTo = if (i == splits.lastIndex) {
             counted.amount
         } else {
-            running.multiply(counted.amount).divide(transaction.amount, 2, RoundingMode.HALF_EVEN)
+            running.multiply(counted.amount).divide(transaction.amount, MinorUnits.digits(transaction.currency), RoundingMode.HALF_EVEN)
         }
         val share = upTo - assigned
         assigned = upTo

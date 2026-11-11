@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalRules
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,6 +19,14 @@ class GoalFormsTest {
 
     private val today = LocalDate.of(2026, 10, 16)
     private fun bd(v: String) = BigDecimal(v)
+
+    @Test
+    fun `amount input allows the goal currency's own decimals`() {
+        assertTrue("1.235".matches(amountInput("JOD")))
+        assertTrue("1.23".matches(amountInput("USD")))
+        assertFalse("1.235".matches(amountInput("USD")))
+        assertFalse("1.2355".matches(amountInput("JOD")))
+    }
 
     @Test
     fun `per month helper uses target minus already saved over months left`() {
@@ -84,6 +93,36 @@ class GoalFormsTest {
         val edited = editContribution(linked, bd("100"), today, "", bd("200")).getOrThrow()
         assertEquals(0, bd("1.20").compareTo(edited.originalAmount))
         assertEquals("USD", edited.originalCurrency)
+    }
+
+    @Test
+    fun `editing a three-decimal linked share keeps its fils`() {
+        // 0.014 JOD went to a USD goal as $0.02; halving it must leave 0.007 JOD, not 0.01.
+        val linked = GoalContributionEntity(id = 5, goalId = 1, amount = bd("0.02"), originalAmount = bd("0.014"), originalCurrency = "JOD", transactionId = 9)
+        val edited = editContribution(linked, bd("0.01"), today, "", bd("1")).getOrThrow()
+        assertEquals(0, bd("0.007").compareTo(edited.originalAmount))
+    }
+
+    @Test
+    fun `an amount with more decimals than its currency is invalid`() {
+        // Typed as JOD 1.235, then the currency switched to USD: the text survives the switch.
+        val form = GoalForm(name = "Trip", target = "1.235", currency = "USD", dueDate = today.plusMonths(6), alreadySaved = "0.125")
+        val errors = form.errors(today, null)
+        assertTrue(GoalFieldError.TARGET_INVALID in errors)
+        assertTrue(GoalFieldError.ALREADY_SAVED_INVALID in errors)
+        assertTrue(form.copy(currency = "JOD").errors(today, null).isEmpty())
+        assertEquals(bd("1.230"), "1.230".toAmountIn("USD"))
+        assertNull("1.235".toAmountIn("USD"))
+    }
+
+    @Test
+    fun `a manual amount that isn't a positive amount blocks save`() {
+        assertTrue(isManualAmountOk("", "USD"))
+        assertTrue(isManualAmountOk("1.23", "USD"))
+        assertTrue(isManualAmountOk("1.235", "JOD"))
+        assertFalse(isManualAmountOk(".", "USD"))
+        assertFalse(isManualAmountOk("0", "USD"))
+        assertFalse(isManualAmountOk("1.235", "USD"))
     }
 
     @Test

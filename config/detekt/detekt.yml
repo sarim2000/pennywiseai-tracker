@@ -1,6 +1,7 @@
 # Detekt, advisory only: ./gradlew detekt (see docs/architecture.md#static-analysis-and-coverage).
 # Builds on Detekt's default rule set (buildUponDefaultConfig in the root build.gradle.kts);
 # list only the overrides here. Findings in code that predates Detekt are in baseline.xml.
+# Rules that .editorconfig deliberately turns off for ktlint are off here too.
 config:
   validation: true
 
@@ -8,3 +9,17 @@ naming:
   FunctionNaming:
     # @Composable functions are PascalCase by convention.
     ignoreAnnotated: ['Composable']
+  # ktlint property-naming is off: camelCase constants next to Compose values,
+  # SCREAMING_CASE private vals.
+  TopLevelPropertyNaming:
+    active: false
+  VariableNaming:
+    active: false
+
+style:
+  # ktlint_code_style = intellij_idea sets no maximum line length.
+  MaxLineLength:
+    active: false
+  # ktlint no-wildcard-imports is off: the IDE writes star imports at 5+ names.
+  WildcardImport:
+    active: false

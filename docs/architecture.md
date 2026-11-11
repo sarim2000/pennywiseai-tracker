@@ -366,7 +366,8 @@ reports as artifacts.
   `config/detekt/baseline.xml`, so only new ones show. Report:
   `build/reports/detekt/`. Regenerate the baseline with `./gradlew detektBaseline`
   only to drop fixed findings, not to accept new ones.
-- **Kover**: only with `-Pcoverage`, so normal builds stay uninstrumented. It
+- **Kover**: only with `-Pcoverage` (or `-Pcoverage=true`; `=false` leaves it
+  off), so normal builds stay uninstrumented. It
   writes per-module reports from the debug unit tests, with no aggregation or
   thresholds: `./gradlew -Pcoverage :app:koverHtmlReportStandardDebug` (or
   `koverXmlReportStandardDebug`) for `:app`, and `koverHtmlReportDebug` /

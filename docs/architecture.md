@@ -142,6 +142,7 @@ app/
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
 │                                #   overscroll effect, appearance enums (same packages as before the move)
 feature/exchangerates/           # Exchange-rates screen + ViewModel (package presentation.exchangerates)
+feature/learnedcategories/       # Learned-categories screen + ViewModel (package presentation.settings)
 build-logic/                     # Convention plugins: pennywise.android.compose-library / .feature
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
 shared/                          # KMP code shared with iOS
@@ -230,6 +231,17 @@ port (`di/ExchangeRatesModule.kt`) and calls the screen through
 - Hilt and KSP run here for the ViewModel, applied by `pennywise.android.feature`
   ([`build-logic`](#build-logic)). Room, KSP schemas and the baseline profile
   stay in `:app`.
+
+### `:feature:learnedcategories`
+
+The second feature module, built the same way: `LearnedCategoriesScreen`, its
+ViewModel and the `LearnedCategoriesData` port (backed by
+`MerchantMappingRepository` in `di/LearnedCategoriesModule.kt`).
+`navigation/LearnedCategoriesEntry.kt` passes in `PennyWiseScaffold` with the back
+button, `GroupedRow` and `categoryLabel`. The package stays
+`com.pennywiseai.tracker.presentation.settings`; its `R` is
+`com.pennywiseai.feature.learnedcategories.R`, which the Settings row in `:app`
+also reads for the screen's title and subtitle.
 
 ### `build-logic`
 

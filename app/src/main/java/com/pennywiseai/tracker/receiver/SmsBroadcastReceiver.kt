@@ -10,27 +10,29 @@ import android.provider.Telephony
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.os.BundleCompat
+import com.pennywiseai.parser.core.GenericTransactionExtractor
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.PennyWiseApplication
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.manager.ConscienceManager
-import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.manager.ConscienceManager
+import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.repository.CategoryRepository
-import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
-import com.pennywiseai.tracker.presentation.unrecognized.Suggestion
-import com.pennywiseai.parser.core.GenericTransactionExtractor
-import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.domain.model.Suggestion
+import com.pennywiseai.tracker.domain.model.draft
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.bidiIsolate
@@ -45,7 +47,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
-import com.pennywiseai.tracker.ui.icons.CategoryMapping
 
 /**
  * BroadcastReceiver that intercepts incoming SMS messages in real-time

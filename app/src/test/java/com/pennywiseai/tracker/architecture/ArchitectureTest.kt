@@ -221,8 +221,6 @@ class ArchitectureTest {
                 "$APP.presentation.goals.GoalRing",
                 "$APP.presentation.goals.statusLine",
             ),
-            // The unrecognized-SMS suggestion model, which also builds an Add draft
-            "$MAIN/receiver/SmsBroadcastReceiver.kt" to setOf("$APP.presentation.unrecognized.Suggestion"),
         )
 
         /** Feature-agnostic UI shared by every screen (docs/architecture.md rule 3). */

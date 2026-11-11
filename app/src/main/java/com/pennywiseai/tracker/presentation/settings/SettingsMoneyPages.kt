@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
-import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.loan.UpiRequest
@@ -53,6 +52,7 @@ import com.pennywiseai.tracker.ui.theme.teal_light
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDate
+import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 
 // ── Accounts & categories ──
 

@@ -113,8 +113,8 @@ fresh `[BANK]` issue) · `emulator-verify` (on-device check).
 ## Releasing
 For a routine release: merge the PRs, then — from an up-to-date `main` with a
 clean tree — run `./scripts/release.sh patch|minor|major --yes` (preview first
-with `--dry-run`). It commits/tags the current branch and pushes `main`, so the
-branch state matters.
+with `--dry-run`). It commits/tags the current branch and pushes `main`, so it
+refuses to run off `main` or from a dirty or stale tree.
 `scripts/release.sh` is the single source of truth — it bumps the version,
 generates changelogs + release notes, builds the APKs (standard flavor signed;
 the F-Droid APK stays unsigned for IzzyOnDroid), tags, pushes, and cuts the

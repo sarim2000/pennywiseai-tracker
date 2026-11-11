@@ -41,7 +41,7 @@ spotless {
         ktlint(libs.versions.ktlint.get())
     }
     kotlinGradle {
-        target("*.gradle.kts", "*/*.gradle.kts", "core/*/*.gradle.kts", "feature/*/*.gradle.kts")
+        target("*.gradle.kts", "*/*.gradle.kts", "core/*/*.gradle.kts", "feature/*/*.gradle.kts", "build-logic/src/**/*.gradle.kts")
         // A separate Gradle build with its own conventions.
         targetExclude("pennywise-web/**")
         ktlint(libs.versions.ktlint.get())

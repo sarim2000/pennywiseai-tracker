@@ -1,6 +1,8 @@
-# Fails a PR that adds an npm package or GitHub Action with a known
-# high/critical vulnerability. GitHub reads these manifests itself, so the
-# review needs no snapshot and runs in seconds, only on PRs that touch them.
+# Fails a PR that adds a dependency GitHub finds in its own manifests (npm
+# package.json/package-lock.json, GitHub Actions workflows, and any other
+# ecosystem GitHub parses) with a known high/critical vulnerability. It needs
+# no snapshot, so it runs on every PR and takes seconds. It isn't
+# path-filtered: a list of manifests would drift from what GitHub supports.
 #
 # Gradle dependencies are reviewed separately, once GitHub shows the PR's
 # snapshot (13 to 35+ minutes after it's submitted), by the `review` job in
@@ -14,15 +16,6 @@ name: Dependency Review
 on:
   pull_request:
     branches: [ main ]
-    paths:
-    - '**/package.json'
-    - '**/package-lock.json'
-    - '**/npm-shrinkwrap.json'
-    - '**/yarn.lock'
-    - '**/pnpm-lock.yaml'
-    - '**/bun.lock'
-    - '.github/workflows/**'
-    - '.github/actions/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,7 +26,7 @@ permissions:
 
 jobs:
   dependency-review:
-    name: Dependency Review (npm, Actions)
+    name: Dependency Review (non-Gradle)
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

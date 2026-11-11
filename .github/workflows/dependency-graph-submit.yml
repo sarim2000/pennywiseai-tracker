@@ -98,8 +98,8 @@ jobs:
   # accepted to show it to the compare API; a pull_request job would hold a
   # runner (out of the 20 shared by every workflow) for that long on every PR.
   # Only PRs that change a Gradle dependency input wait. Others get a success
-  # status straight away. npm and GitHub Actions dependencies, which GitHub
-  # reads itself, are reviewed without waiting by dependency-review.yml.
+  # status straight away. Dependencies that GitHub reads itself (npm, GitHub
+  # Actions, ...) are reviewed without waiting by dependency-review.yml.
   #
   # No checkout and nothing from the PR is run: it only calls GitHub's API and
   # the review action with the PR number the submit job validated, the PR's
@@ -115,11 +115,10 @@ jobs:
     if: needs.submit.outputs.pr != ''
     runs-on: ubuntu-latest
     # The snapshot deadline (DEADLINE_SECONDS) plus the review itself.
+    # No concurrency group: it orders runs by arrival, so re-running an older
+    # commit's job would cancel the current one. A newer push or a closed PR
+    # ends the wait instead (checked on every poll).
     timeout-minutes: 60
-    # A newer push to the PR supersedes this commit's review.
-    concurrency:
-      group: dependency-review-gradle-${{ needs.submit.outputs.pr }}
-      cancel-in-progress: true
     permissions:
       contents: read        # dependency graph compare API
       pull-requests: read   # the PR's base and changed files
@@ -133,21 +132,24 @@ jobs:
       RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
     steps:
-    # Files whose change can change the resolved Gradle graph. pulls/N/files
-    # lists at most 3000 files; a bigger PR is treated as changing them.
+    # Files whose change can change the resolved Gradle graph (gradle.properties
+    # too: e.g. `coverage` applies Kover). pulls/N/files lists at most 3000
+    # files; a bigger PR is treated as changing them. That list follows the PR,
+    # not a commit, so the head is checked again after reading it.
     - name: Check whether the PR changes Gradle dependency inputs
       id: files
       env:
-        GRADLE_INPUTS: '(^|/)[^/]+\.gradle(\.kts)?$|(^|/)gradle/[^/]+\.versions\.toml$|^build-logic/|(^|/)gradle/wrapper/gradle-wrapper\.properties$|(^|/)gradle\.lockfile$'
+        GRADLE_INPUTS: '(^|/)[^/]+\.gradle(\.kts)?$|(^|/)gradle/[^/]+\.versions\.toml$|^build-logic/|(^|/)gradle/wrapper/gradle-wrapper\.properties$|(^|/)gradle\.lockfile$|(^|/)gradle\.properties$'
       run: |
         set -euo pipefail
-        pr_json=$(gh api "repos/$REPO/pulls/$PR")
-        head=$(jq -r '.head.sha' <<<"$pr_json")
-        if [[ "$head" != "$HEAD_SHA" ]]; then
-          echo "PR #$PR is now at $head; the run for that commit reviews it."
+        superseded() {
+          echo "PR #$PR is now at $1; the run for that commit reviews it."
           echo "gradle=superseded" >>"$GITHUB_OUTPUT"
           exit 0
-        fi
+        }
+        pr_json=$(gh api "repos/$REPO/pulls/$PR")
+        head=$(jq -r '.head.sha' <<<"$pr_json")
+        [[ "$head" == "$HEAD_SHA" ]] || superseded "$head"
         base=$(jq -r '.base.sha' <<<"$pr_json")
         if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]]; then
           echo "::error::Unexpected base SHA for PR #$PR: $base"; exit 1
@@ -157,6 +159,8 @@ jobs:
         # A rename's old path counts too: moving a build file away changes the graph.
         files=$(gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" \
                   --jq '.[] | .filename, (.previous_filename // empty)')
+        head=$(gh api "repos/$REPO/pulls/$PR" --jq '.head.sha')
+        [[ "$head" == "$HEAD_SHA" ]] || superseded "$head"
         if (( changed > 3000 )); then
           echo "PR #$PR changes $changed files, more than the API lists; reviewing."
           echo "gradle=true" >>"$GITHUB_OUTPUT"
@@ -189,6 +193,15 @@ jobs:
           -f description="Waiting for GitHub to show this commit's Gradle snapshot" >/dev/null
         deadline=$((SECONDS + DEADLINE_SECONDS))
         while :; do
+          # Stop holding the runner once nobody needs this commit's result.
+          # A failed lookup just means another poll.
+          if now=$(gh api "repos/$REPO/pulls/$PR" --jq '.state + " " + .head.sha'); then
+            if [[ "$now" != "open $HEAD_SHA" ]]; then
+              echo "PR #$PR is now: $now; stopping."
+              echo "result=superseded" >>"$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
           # Only header lines (before the first blank line), so a body line
           # can't pose as the header.
           if raw=$(gh api -i "repos/$REPO/dependency-graph/compare/$BASE_SHA...$HEAD_SHA" \
@@ -261,6 +274,8 @@ jobs:
           state=error description="Couldn't list the PR's files. $rerun"
         elif [[ "$WAIT" == timeout ]]; then
           state=error description="GitHub doesn't show the Gradle snapshot yet. $rerun"
+        elif [[ "$WAIT" == superseded ]]; then
+          state=error description="PR closed or updated during the wait; this commit wasn't reviewed"
         elif [[ "$WAIT" == undecodable ]]; then
           state=error description="Couldn't read GitHub's snapshot warnings. $rerun"
         elif [[ "$REVIEW" == success ]]; then
@@ -275,4 +290,4 @@ jobs:
           -f state="$state" -f context="$STATUS_CONTEXT" -f target_url="$RUN_URL" \
           -f description="$description" >/dev/null
         # Red in the Actions tab too, so "Re-run failed jobs" picks it up.
-        [[ "$state" == success ]]
+        [[ "$state" == success || "$WAIT" == superseded ]]

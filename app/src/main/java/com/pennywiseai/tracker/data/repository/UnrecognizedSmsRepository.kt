@@ -16,27 +16,27 @@ class UnrecognizedSmsRepository @Inject constructor(
     private val dao: UnrecognizedSmsDao,
     private val alerts: UnrecognizedSmsAlerts
 ) {
-    
+
     /**
      * Get count of unreported messages
      */
     fun getUnreportedCount(): Flow<Int> = dao.getUnreportedCount()
-    
+
     /**
      * Get all unreported messages
      */
     fun getAllUnreported(): Flow<List<UnrecognizedSmsEntity>> = dao.getAllUnreported()
-    
+
     /**
      * Get all visible messages (including reported, excluding deleted)
      */
     fun getAllVisible(): Flow<List<UnrecognizedSmsEntity>> = dao.getAllVisible()
-    
+
     /**
      * Get first unreported message
      */
     suspend fun getFirstUnreported(): UnrecognizedSmsEntity? = dao.getFirstUnreported()
-    
+
     /**
      * Insert a new unrecognized SMS
      */
@@ -77,7 +77,7 @@ class UnrecognizedSmsRepository @Inject constructor(
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
         dao.insertAll(smsList)
     }
-    
+
     /**
      * Mark messages as reported
      */
@@ -86,7 +86,7 @@ class UnrecognizedSmsRepository @Inject constructor(
             dao.markAsReported(ids)
         }
     }
-    
+
     /**
      * Clean up old entries (older than 30 days)
      */
@@ -94,7 +94,7 @@ class UnrecognizedSmsRepository @Inject constructor(
         val cutoffDate = LocalDateTime.now().minusDays(30)
         dao.deleteOldEntries(cutoffDate)
     }
-    
+
     /**
      * Delete all entries
      */
@@ -103,7 +103,7 @@ class UnrecognizedSmsRepository @Inject constructor(
         // A discarded message's suggestion alert must not reopen it (#994).
         alerts.cancelAll()
     }
-    
+
     /**
      * Soft delete a specific message by ID
      */
@@ -111,7 +111,7 @@ class UnrecognizedSmsRepository @Inject constructor(
         dao.softDeleteById(id)
         alerts.cancel(id)
     }
-    
+
     companion object {
         /** Identical text this close together is one SMS delivered or stamped twice, not a second payment. */
         val REDELIVERY_WINDOW: Duration = Duration.ofMinutes(2)

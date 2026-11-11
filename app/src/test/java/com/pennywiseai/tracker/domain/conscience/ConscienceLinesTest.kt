@@ -74,7 +74,8 @@ class ConscienceLinesTest {
 
     // --- The resources themselves, every language ---
 
-    private val res = File("src/main/res")
+    // Gradle runs from the module directory, an IDE may run from the repo root.
+    private val res = File(if (File("settings.gradle.kts").isFile) File(".") else File(".."), "app/src/main/res")
 
     private fun plurals(file: File): Set<String> {
         val nodes = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file).getElementsByTagName("plurals")
@@ -94,6 +95,7 @@ class ConscienceLinesTest {
     private val localeDirs: List<File> by lazy {
         // Keyed on the lines, not the UI strings: Crowdin can add strings_conscience.xml to any language.
         res.listFiles().orEmpty().filter { File(it, "conscience_lines.xml").exists() }.sortedBy { it.name }
+            .also { assertTrue("no conscience_lines.xml found under ${res.absolutePath}", it.isNotEmpty()) }
     }
 
     /** Every fact a line's pool can be asked to render, so each line is tried in each of its contexts. */

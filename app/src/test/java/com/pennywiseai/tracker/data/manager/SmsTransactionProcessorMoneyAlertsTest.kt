@@ -137,11 +137,14 @@ class SmsTransactionProcessorMoneyAlertsTest {
     }
 
     @Test
-    fun `a derived balance never alerts`() = runBlocking {
-        stubBalanceWrite(before = BigDecimal("900"))
+    fun `a derived balance never alerts, even across the threshold`() = runBlocking {
+        val saved = stubBalanceWrite(before = BigDecimal("525"))
 
-        processor.saveParsedTransaction(parsed(balance = null), BODY)
+        val result = processor.saveParsedTransaction(parsed(balance = null), BODY)
 
+        assertTrue(result.reason, result.success)
+        // 525 - 50 crosses 500, but no SMS reported that figure.
+        assertEquals(BigDecimal("475"), saved.captured.balance)
         verify(exactly = 0) { alerts.showLowBalance(any()) }
     }
 

@@ -21,7 +21,12 @@ enum AmountFormatter {
     static func minorUnits(field text: String, currency: String) -> Int64? {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         if trimmed.isEmpty { return 0 }
-        return Double(trimmed).flatMap { minorUnits($0, currency: currency) }
+        // More decimals than the currency keeps (1.235 typed as JOD, then switched to USD) is
+        // rejected like Android's goal form, never rounded away without a word.
+        guard let value = Double(trimmed), MinorUnits.shared.exactMinor(amount: value, currency: currency) != nil else {
+            return nil
+        }
+        return minorUnits(value, currency: currency)
     }
 
     /// Whole units typed in a budget field ("250") in `currency`'s minor units: 0 when left empty,

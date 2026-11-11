@@ -16,6 +16,10 @@ struct AddEditBudgetScreen: View {
     @State private var categoryAmounts: [String: String] = [:]
 
     private var isEditing: Bool { editingBudget != nil }
+    /// An edited budget keeps its own currency: re-reading its limit in the display
+    /// currency would rescale it (USD 100.00 saved as KWD 100.000) and move its
+    /// spending to other transactions.
+    private var budgetCurrency: String { editingBudget?.currency ?? currencyManager.displayCurrency }
 
     var body: some View {
         Form {
@@ -41,12 +45,12 @@ struct AddEditBudgetScreen: View {
             viewModel.loadCategories()
             if let budget = editingBudget {
                 name = budget.name
-                totalLimitText = String(budget.limitMinor / MinorUnits.shared.factor(currency: budget.currency))
+                totalLimitText = String(budget.limitMinor / MinorUnits.shared.factor(currency: budgetCurrency))
                 periodType = budget.periodType
                 groupType = budget.groupType
                 for cat in budget.categoryBreakdowns {
                     selectedCategories.insert(cat.categoryName)
-                    categoryAmounts[cat.categoryName] = String(cat.limitMinor / MinorUnits.shared.factor(currency: budget.currency))
+                    categoryAmounts[cat.categoryName] = String(cat.limitMinor / MinorUnits.shared.factor(currency: budgetCurrency))
                 }
             }
         }
@@ -58,7 +62,7 @@ struct AddEditBudgetScreen: View {
         Section("Budget Info") {
             TextField("Budget Name", text: $name)
             HStack {
-                Text(CurrencyManager.shared.displayCurrency)
+                Text(budgetCurrency)
                     .foregroundStyle(.secondary)
                 TextField("Total Limit", text: $totalLimitText)
                     .keyboardType(.numberPad)
@@ -127,7 +131,7 @@ struct AddEditBudgetScreen: View {
                         .font(AppTypography.body)
                     Spacer()
                     HStack {
-                        Text(CurrencyManager.shared.displayCurrency)
+                        Text(budgetCurrency)
                             .font(AppTypography.caption)
                             .foregroundStyle(.secondary)
                         TextField("Amount", text: binding(for: category))
@@ -156,7 +160,7 @@ struct AddEditBudgetScreen: View {
     /// Nil when the text can't be stored as a limit: Save stays off, never a substitute 0
     /// (an empty category field is 0, which shares the total out evenly).
     private func limitMinor(_ text: String) -> Int64? {
-        AmountFormatter.minorUnits(wholeUnits: text, currency: CurrencyManager.shared.displayCurrency)
+        AmountFormatter.minorUnits(wholeUnits: text, currency: budgetCurrency)
     }
 
     private var categoryLimitsInvalid: Bool {
@@ -205,7 +209,7 @@ struct AddEditBudgetScreen: View {
                 startEpochMillis: startMillis,
                 endEpochMillis: endMillis,
                 groupType: groupType,
-                currency: CurrencyManager.shared.displayCurrency,
+                currency: budgetCurrency,
                 categoryLimits: catLimits
             )
         } else {
@@ -216,7 +220,7 @@ struct AddEditBudgetScreen: View {
                 startEpochMillis: startMillis,
                 endEpochMillis: endMillis,
                 groupType: groupType,
-                currency: CurrencyManager.shared.displayCurrency,
+                currency: budgetCurrency,
                 categoryLimits: catLimits
             )
         }

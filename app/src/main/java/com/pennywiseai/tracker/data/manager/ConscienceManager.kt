@@ -39,7 +39,8 @@ class ConscienceManager @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val cardRepository: CardRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val notificationActions: ConscienceNotificationActions
 ) {
     /** Never throws (bar cancellation): a joke must not cost a saved transaction its alert. */
     suspend fun onLiveTransaction(transactionId: Long, eventTimeMillis: Long) {
@@ -110,7 +111,13 @@ class ConscienceManager @Inject constructor(
         ) ?: return
         // The candidates only hold lines that rendered, so this can't come back null here.
         val line = text.render(choice.fact, choice.line) ?: return
-        ConscienceNotifier.post(context, text, line, choice.lineKey, transactionId)
+        ConscienceNotifier.post(
+            context,
+            text,
+            line,
+            openTransaction = notificationActions.openTransaction(transactionId),
+            retireLine = notificationActions.retireLine(choice.lineKey)
+        )
     }
 
     private fun isScreenOn(): Boolean =

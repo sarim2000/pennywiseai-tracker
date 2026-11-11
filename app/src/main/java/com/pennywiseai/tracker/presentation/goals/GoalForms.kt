@@ -84,15 +84,6 @@ data class GoalForm(
     }
 }
 
-/**
- * The ring's centre label while its sweep animates toward [target] (a [ratioOf]):
- * read off the same [animated] ratio, and exactly [percent] once it lands (or, heading
- * past 100%, once the ring is full, so it doesn't tick on), so the float never shows 28%
- * for 29%.
- */
-fun ringPercent(animated: Float, target: Float, percent: Int): Int =
-    if (animated == target || (animated >= 1f && target >= 1f)) percent else kotlin.math.floor(animated * 100f + 0.001f).toInt()
-
 /** Why an Add money / Take out / contribution edit didn't save. */
 enum class MoneyError { AMOUNT_INVALID, MORE_THAN_SAVED, MORE_THAN_LEFT, NO_RATE, FAILED }
 

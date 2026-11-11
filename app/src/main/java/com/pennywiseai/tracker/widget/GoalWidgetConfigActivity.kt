@@ -39,9 +39,9 @@ import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalRepository
-import com.pennywiseai.tracker.presentation.goals.GoalRing
-import com.pennywiseai.tracker.presentation.goals.statusLine
+import com.pennywiseai.tracker.ui.components.GoalRing
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.statusLine
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition

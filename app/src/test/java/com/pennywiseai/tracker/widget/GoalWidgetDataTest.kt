@@ -7,9 +7,9 @@ import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalRules
 import com.pennywiseai.tracker.domain.goals.GoalTone
-import com.pennywiseai.tracker.presentation.goals.shortLine
-import com.pennywiseai.tracker.presentation.goals.statusLine
 import com.pennywiseai.tracker.domain.goals.tone
+import com.pennywiseai.tracker.ui.components.shortLine
+import com.pennywiseai.tracker.ui.components.statusLine
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import io.mockk.every
 import io.mockk.mockk

@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.domain.goals.ratioOf
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalRules
+import com.pennywiseai.tracker.ui.components.ringPercent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

@@ -71,6 +71,7 @@ import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
+import com.pennywiseai.tracker.ui.components.GoalRing
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow

@@ -25,11 +25,13 @@ interface SharedTransactionDao {
     @Query("""
         SELECT * FROM shared_transactions
         WHERE amount_minor = :amountMinor
+          AND UPPER(currency) = UPPER(:currency)
           AND occurred_at_epoch_millis BETWEEN :startEpochMillis AND :endEpochMillis
           AND is_deleted = 0
     """)
     suspend fun getByAmountAndDate(
         amountMinor: Long,
+        currency: String,
         startEpochMillis: Long,
         endEpochMillis: Long
     ): List<SharedTransactionEntity>

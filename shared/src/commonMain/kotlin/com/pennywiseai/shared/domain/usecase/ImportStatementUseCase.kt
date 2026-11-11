@@ -57,7 +57,7 @@ class ImportStatementUseCase(
 
             val startOfDay = parsed.timestampEpochMillis - (parsed.timestampEpochMillis % DAY_MILLIS)
             val endOfDay = startOfDay + DAY_MILLIS - 1
-            if (transactionRepository.getByAmountAndDate(parsed.amountMinor, startOfDay, endOfDay).isNotEmpty()) {
+            if (transactionRepository.getByAmountAndDate(parsed.amountMinor, STATEMENT_CURRENCY, startOfDay, endOfDay).isNotEmpty()) {
                 skippedByAmountDate++
                 return@mapNotNull null
             }
@@ -80,7 +80,7 @@ class ImportStatementUseCase(
                 transactionType = ruleType ?: parsed.transactionType,
                 occurredAtEpochMillis = parsed.timestampEpochMillis,
                 note = null,
-                currency = "INR",
+                currency = STATEMENT_CURRENCY,
                 transactionHash = hash,
                 reference = parsed.reference,
                 bankName = parsed.bankName,
@@ -136,5 +136,8 @@ class ImportStatementUseCase(
 
     companion object {
         private const val DAY_MILLIS: Long = 24L * 60L * 60L * 1000L
+
+        /** GPay, PhonePe and slice statements are all in rupees. */
+        private const val STATEMENT_CURRENCY = "INR"
     }
 }

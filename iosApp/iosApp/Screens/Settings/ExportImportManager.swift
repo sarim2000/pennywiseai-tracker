@@ -21,7 +21,7 @@ final class ExportImportManager: ObservableObject {
         let accounts = facade.getAllAccounts()
 
         let backup = BackupPayload(
-            version: 1,
+            version: 2,
             exportDate: ISO8601DateFormatter().string(from: Date()),
             transactions: transactions.map { TransactionBackup(from: $0) },
             categories: categories.map { CategoryBackup(from: $0) },
@@ -62,12 +62,16 @@ final class ExportImportManager: ObservableObject {
             let decoder = JSONDecoder()
             let backup = try decoder.decode(BackupPayload.self, from: data)
 
-            guard backup.version == 1 else {
+            guard backup.version == 1 || backup.version == 2 else {
                 isImporting = false
                 statusMessage = "Unsupported backup version \(backup.version)"
                 return
             }
+            let minor = { (amount: Int64, currency: String) in
+                BackupPayload.minorUnits(amount, currency: currency, version: backup.version)
+            }
 
+            var skipped = 0
             var txImported = 0
             var catImported = 0
             var budImported = 0
@@ -83,27 +87,29 @@ final class ExportImportManager: ObservableObject {
             }
 
             for acc in backup.accounts {
+                guard let balanceMinor = minor(acc.balanceMinor, acc.currency) else { skipped += 1; continue }
                 let ok = facade.createAccount(
                     bankName: acc.bankName,
                     accountLast4: acc.accountLast4,
                     accountType: acc.accountType ?? "SAVINGS",
-                    balanceMinor: acc.balanceMinor,
+                    balanceMinor: balanceMinor,
                     currency: acc.currency
                 )
                 if ok { accImported += 1 }
             }
 
             for bud in backup.budgets {
-                let catLimits = bud.categoryBreakdowns.map { cb in
-                    SharedBudgetCategoryBreakdown(
-                        categoryName: cb.categoryName,
-                        limitMinor: cb.limitMinor,
-                        spentMinor: 0
-                    )
+                let catMinors = bud.categoryBreakdowns.map { minor($0.limitMinor, bud.currency) }
+                guard let limitMinor = minor(bud.limitMinor, bud.currency), !catMinors.contains(nil) else {
+                    skipped += 1
+                    continue
+                }
+                let catLimits = zip(bud.categoryBreakdowns, catMinors).map { cb, limit in
+                    SharedBudgetCategoryBreakdown(categoryName: cb.categoryName, limitMinor: limit!, spentMinor: 0)
                 }
                 let id = facade.createBudget(
                     name: bud.name,
-                    limitMinor: bud.limitMinor,
+                    limitMinor: limitMinor,
                     periodType: bud.periodType,
                     startEpochMillis: 0,
                     endEpochMillis: Int64.max,
@@ -115,10 +121,11 @@ final class ExportImportManager: ObservableObject {
             }
 
             for tx in backup.transactions {
+                guard let amountMinor = minor(tx.amountMinor, tx.currency) else { skipped += 1; continue }
                 let snapshot = facade.addTransactionAndLoadHome(
                     merchantName: tx.merchantName,
                     category: tx.category,
-                    amountMinor: tx.amountMinor,
+                    amountMinor: amountMinor,
                     note: tx.note,
                     currency: tx.currency,
                     transactionType: tx.transactionType,
@@ -132,6 +139,7 @@ final class ExportImportManager: ObservableObject {
             isImporting = false
             AppColors.reloadCategoryColors()
             statusMessage = "Imported \(txImported) transactions, \(catImported) categories, \(budImported) budgets, \(accImported) accounts"
+                + (skipped > 0 ? "; skipped \(skipped) with an amount too large to convert" : "")
         } catch {
             isImporting = false
             statusMessage = "Import failed: \(error.localizedDescription)"
@@ -186,6 +194,15 @@ struct BackupPayload: Codable {
     let categories: [CategoryBackup]
     let budgets: [BudgetBackup]
     let accounts: [AccountBackup]
+
+    /// A backed-up amount in today's minor units. v1 held every amount as value × 100; v2 holds
+    /// 3-decimal currencies (JOD, KWD…) as value × 1000 (shared MinorUnits), so a v1 amount in
+    /// one is × 10. Nil when that would overflow: the row is skipped, never trapped on.
+    static func minorUnits(_ amount: Int64, currency: String, version: Int) -> Int64? {
+        guard version == 1 else { return amount }
+        let (scaled, overflow) = amount.multipliedReportingOverflow(by: MinorUnits.shared.factor(currency: currency) / 100)
+        return overflow ? nil : scaled
+    }
 }
 
 struct TransactionBackup: Codable {

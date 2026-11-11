@@ -83,6 +83,7 @@
 		5E5B00032E9A0001007A8A11 /* ChatScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00042E9A0001007A8A11 /* ChatScreen.swift */; };
 		5E5B00052E9A0001007A8A11 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00062E9A0001007A8A11 /* ChatViewModel.swift */; };
 		5E5B00072E9A0001007A8A11 /* AiSmsReaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00082E9A0001007A8A11 /* AiSmsReaderTests.swift */; };
+		5E5B00702E9A0001007A8A11 /* MoneyEntryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E5B00712E9A0001007A8A11 /* MoneyEntryTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -164,6 +165,7 @@
 		5E5B00042E9A0001007A8A11 /* ChatScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatScreen.swift; sourceTree = "<group>"; };
 		5E5B00062E9A0001007A8A11 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		5E5B00082E9A0001007A8A11 /* AiSmsReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiSmsReaderTests.swift; sourceTree = "<group>"; };
+		5E5B00712E9A0001007A8A11 /* MoneyEntryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyEntryTests.swift; sourceTree = "<group>"; };
 		5E5B00102E9A0001007A8A11 /* iosAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = iosAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -412,6 +414,7 @@
 			isa = PBXGroup;
 			children = (
 				5E5B00082E9A0001007A8A11 /* AiSmsReaderTests.swift */,
+				5E5B00712E9A0001007A8A11 /* MoneyEntryTests.swift */,
 			);
 			path = iosAppTests;
 			sourceTree = "<group>";
@@ -623,6 +626,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5E5B00072E9A0001007A8A11 /* AiSmsReaderTests.swift in Sources */,
+				5E5B00702E9A0001007A8A11 /* MoneyEntryTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

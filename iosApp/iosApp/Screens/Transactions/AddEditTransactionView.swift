@@ -29,7 +29,12 @@ struct AddEditTransactionView: View {
 
     private var isValid: Bool {
         !merchantName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            Double(amountText).map { $0 > 0 } ?? false
+            (amountMinor ?? 0) > 0
+    }
+
+    /// Nil when the typed amount can't be stored (Save stays off and says so).
+    private var amountMinor: Int64? {
+        AmountFormatter.minorUnits(field: amountText, currency: selectedCurrency)
     }
 
     var body: some View {
@@ -85,7 +90,7 @@ struct AddEditTransactionView: View {
                 }
             }
 
-            if let error = errorMessage {
+            if let error = errorMessage ?? (amountMinor == nil ? AmountFormatter.invalidAmountMessage : nil) {
                 Section {
                     Text(error)
                         .foregroundStyle(.red)
@@ -127,7 +132,7 @@ struct AddEditTransactionView: View {
     private func loadExistingTransaction(_ id: Int64) {
         guard let txn = facade.getTransactionById(transactionId: id) else { return }
         merchantName = txn.merchantName
-        amountText = AmountFormatter.format(minorUnits: txn.amountMinor)
+        amountText = AmountFormatter.plain(minorUnits: txn.amountMinor, currency: txn.currency)
         selectedType = txn.transactionType
         selectedCategory = txn.category
         selectedCurrency = txn.currency
@@ -138,10 +143,7 @@ struct AddEditTransactionView: View {
     }
 
     private func saveTransaction() {
-        guard isValid else { return }
-        guard let amountValue = Double(amountText) else { return }
-
-        let amountMinor = Int64((amountValue * 100.0).rounded())
+        guard isValid, let amountMinor else { return }
         let epochMillis = Int64((selectedDate.timeIntervalSince1970 * 1000.0).rounded())
 
         if let editId = editingTransactionId {

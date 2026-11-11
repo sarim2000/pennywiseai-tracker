@@ -111,11 +111,34 @@ class ChatAssistantTest {
     }
 
     @Test
+    fun aThreeDecimalAmountPicksTheExactRow() = runTest {
+        seed("Test Cafe", 1_235, daysAgo = 0, currency = "JOD") // JOD 1.235
+        seed("Test Cafe", 1_240, daysAgo = 0, currency = "JOD") // JOD 1.240
+
+        val delete = assertIs<PendingChatAction.Delete>(assistant.proposeChange(true, "test cafe", 1.235, -1, "", "").action)
+        assertEquals(1_235L, delete.transaction.amountMinor)
+        val other = assertIs<PendingChatAction.Delete>(assistant.proposeChange(true, "test cafe", 1.24, -1, "", "").action)
+        assertEquals(1_240L, other.transaction.amountMinor)
+    }
+
+    @Test
+    fun aLargeExactAmountStillMatchesExactly() = runTest {
+        // 16,777,216.001 x 1000 is 16777216000.999998 in a Double: no fixed tolerance fits every size.
+        seed("Test Dealer", 16_777_216_001L, daysAgo = 0, currency = "JOD")
+        seed("Test Dealer", 16_777_216_002L, daysAgo = 0, currency = "JOD")
+
+        val result = assistant.proposeChange(true, "test dealer", 16_777_216.001, -1, "", "")
+
+        assertEquals(16_777_216_001L, assertIs<PendingChatAction.Delete>(result.action).transaction.amountMinor)
+        assertFalse(result.reply.startsWith("Not an exact match"))
+    }
+
+    @Test
     fun finderTreatsAStatedAmountAsAHardFilterButLoosensIt() {
         val today = LocalDate(2026, 10, 15)
         val tea = SharedTransaction(id = 1, amountMinor = 2_000, merchantName = "Tea", category = "Food", transactionType = SharedTransactionType.EXPENSE, occurredAtEpochMillis = NOW)
-        assertNull(ChatTransactionFinder.findBest(listOf(tea), "tea", 9_900, null, today, TimeZone.UTC))
-        val match = assertNotNull(ChatTransactionFinder.findWithFallback(listOf(tea), "tea", 9_900, null, today, TimeZone.UTC))
+        assertNull(ChatTransactionFinder.findBest(listOf(tea), "tea", 99.0, null, today, TimeZone.UTC))
+        val match = assertNotNull(ChatTransactionFinder.findWithFallback(listOf(tea), "tea", 99.0, null, today, TimeZone.UTC))
         assertTrue(match.loosened)
     }
 

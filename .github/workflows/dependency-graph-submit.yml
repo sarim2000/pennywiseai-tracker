@@ -115,10 +115,14 @@ jobs:
     if: needs.submit.outputs.pr != ''
     runs-on: ubuntu-latest
     # The snapshot deadline (DEADLINE_SECONDS) plus the review itself.
-    # No concurrency group: it orders runs by arrival, so re-running an older
+    timeout-minutes: 60
+    # One wait per commit: a re-run for the same commit replaces the waiting
+    # job. Not per PR: concurrency goes by arrival, so re-running an older
     # commit's job would cancel the current one. A newer push or a closed PR
     # ends the wait instead (checked on every poll).
-    timeout-minutes: 60
+    concurrency:
+      group: dependency-review-gradle-${{ needs.submit.outputs.pr }}-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: true
     permissions:
       contents: read        # dependency graph compare API
       pull-requests: read   # the PR's base and changed files
@@ -133,13 +137,14 @@ jobs:
 
     steps:
     # Files whose change can change the resolved Gradle graph (gradle.properties
-    # too: e.g. `coverage` applies Kover). pulls/N/files lists at most 3000
+    # too: e.g. `coverage` applies Kover; and dependency-graph.yml, which runs
+    # the resolution). pulls/N/files lists at most 3000
     # files; a bigger PR is treated as changing them. That list follows the PR,
     # not a commit, so the head is checked again after reading it.
     - name: Check whether the PR changes Gradle dependency inputs
       id: files
       env:
-        GRADLE_INPUTS: '(^|/)[^/]+\.gradle(\.kts)?$|(^|/)gradle/[^/]+\.versions\.toml$|^build-logic/|(^|/)gradle/wrapper/gradle-wrapper\.properties$|(^|/)gradle\.lockfile$|(^|/)gradle\.properties$'
+        GRADLE_INPUTS: '(^|/)[^/]+\.gradle(\.kts)?$|(^|/)gradle/[^/]+\.versions\.toml$|^build-logic/|(^|/)gradle/wrapper/gradle-wrapper\.properties$|(^|/)gradle\.lockfile$|(^|/)gradle\.properties$|^\.github/workflows/dependency-graph\.yml$'
       run: |
         set -euo pipefail
         superseded() {
@@ -256,7 +261,7 @@ jobs:
         comment-summary-in-pr: never
 
     # Also runs when the job fails or is cancelled (superseded or timed out),
-    # so the PR never keeps a stale "pending". Re-running this job (e.g. after
+    # so the PR doesn't keep a stale "pending" (unless the runner itself is lost). Re-running this job (e.g. after
     # "not reviewed") is enough: the submit job's output is kept.
     - name: Report the result on the PR's head commit
       if: always() && steps.files.outputs.gradle != 'superseded'

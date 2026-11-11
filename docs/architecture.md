@@ -353,6 +353,27 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 - SMS parsing accuracy
 - AI categorization
 
+## Static analysis and coverage
+
+Both are advisory: neither is in `./init.sh` nor in the required **Check** job.
+`quality-advisory.yml` runs them in CI with `continue-on-error` and uploads the
+reports as artifacts.
+
+- **Detekt**: `./gradlew detekt` checks the production sources of `:app` (main,
+  standard, fdroid), `core/*`, `feature/*` and `parser-core`. It parses syntax
+  only (no type resolution, no formatting rules), on top of the default rule
+  set; overrides go in `config/detekt/detekt.yml`. Findings that predate it are in
+  `config/detekt/baseline.xml`, so only new ones show. Report:
+  `build/reports/detekt/`. Regenerate the baseline with `./gradlew detektBaseline`
+  only to drop fixed findings, not to accept new ones.
+- **Kover**: only with `-Pcoverage`, so normal builds stay uninstrumented. It
+  writes per-module reports from the debug unit tests, with no aggregation or
+  thresholds: `./gradlew -Pcoverage :app:koverHtmlReportStandardDebug` (or
+  `koverXmlReportStandardDebug`) for `:app`, and `koverHtmlReportDebug` /
+  `koverXmlReportDebug` for modules using the `build-logic` convention plugins.
+  Reports go to `<module>/build/reports/kover/`. Generated Hilt and Compose
+  classes are included in the totals.
+
 ## Performance Considerations
 
 ### Memory Management

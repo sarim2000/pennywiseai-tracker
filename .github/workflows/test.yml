@@ -170,9 +170,7 @@ jobs:
       if: failure()
       with:
         name: lint-report
-        path: |
-          app/build/reports/lint-results-standardDebug.html
-          app/build/reports/lint-results-standardDebug.sarif
+        path: app/build/reports/lint-results-standardDebug.html
         retention-days: 7
 
   format-check:

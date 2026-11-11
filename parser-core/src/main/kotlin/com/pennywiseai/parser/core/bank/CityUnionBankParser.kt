@@ -12,6 +12,7 @@ import java.math.BigDecimal
  * - Your a/c no. XXXXXXXXXXXXXXX is debited for Rs.111.00 on 01-09-2025 and credited to a/c no. YYYYYYYYYYYYYYY (UPI Ref no 123456789012)
  * - Your a/c no. XXXXXXXXXXXXXXX is credited for Rs.111.00 on 01-09-2025 and debited from a/c no. YYYYYYYYYYYYYYY (UPI Ref no 123456789012)
  * - Savings No XXXXXXXXXXXXXXX credited with INR 111.00 towards BY NEFT TRF:AMBANI YYYYYYYYYYYYYYY: on 01-SEP-2025. Avl Bal 120.00
+ * - Your account has been successfully debited with 50.00 on 2026-11-06 towards MERCHANT NAME UPI Autopay,<mandate>@ybl -CUB
  */
 class CityUnionBankParser : BaseIndianBankParser() {
 
@@ -32,7 +33,9 @@ class CityUnionBankParser : BaseIndianBankParser() {
             // "credited for Rs.111.00"
             Regex("""credited\s+for\s+Rs\.?\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
             // "credited with INR 111.00"
-            Regex("""credited\s+with\s+INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE)
+            Regex("""credited\s+with\s+INR\s*([0-9,]+(?:\.\d{2})?)""", RegexOption.IGNORE_CASE),
+            // UPI Autopay: "debited with 50.00" (no currency word)
+            Regex("""debited\s+with\s+(?:Rs\.?|INR)?\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
         )
 
         for (pattern in amountPatterns) {
@@ -64,6 +67,7 @@ class CityUnionBankParser : BaseIndianBankParser() {
             lowerMessage.contains("is debited") -> TransactionType.EXPENSE
             lowerMessage.contains("debited for") -> TransactionType.EXPENSE
             lowerMessage.contains("debited from") -> TransactionType.EXPENSE
+            lowerMessage.contains("debited with") -> TransactionType.EXPENSE
 
             // Check for credit patterns
             lowerMessage.contains("is credited") -> TransactionType.INCOME
@@ -126,6 +130,12 @@ class CityUnionBankParser : BaseIndianBankParser() {
             }
 
             return "UPI Transfer"
+        }
+
+        // UPI Autopay: "towards MERCHANT NAME UPI Autopay,<mandate>@ybl"
+        Regex("""towards\s+(.+?)\s+UPI\s+Autopay""", RegexOption.IGNORE_CASE).find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) return merchant
         }
 
         // Generic transfer
@@ -204,8 +214,14 @@ class CityUnionBankParser : BaseIndianBankParser() {
             return false
         }
 
+        // Advance notices ("will be debited with ... UPI Autopay") are not money moved yet.
+        if (lowerMessage.contains("will be debited") || lowerMessage.contains("will be credited")) {
+            return false
+        }
+
         // Check for City Union Bank specific transaction patterns
         if (lowerMessage.contains("is debited for") ||
+            lowerMessage.contains("debited with") ||
             lowerMessage.contains("is credited for") ||
             lowerMessage.contains("credited with") ||
             lowerMessage.contains("neft trf")

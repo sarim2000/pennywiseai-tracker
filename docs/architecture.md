@@ -286,6 +286,7 @@ notification contracts `data` declares (`ConscienceNotificationActions`,
 `UnrecognizedSmsAlerts`, bound in `di/NotificationContractsModule.kt`), the
 bank-notification allowlist is `data/notification/BankNotificationConfig`, and
 the foreground check goes through `core/AppForegroundState`.
+
 `BillingBoundaryTest` keeps `data` and `core` from importing `billing`. Data
 code gates on Pro through `core.entitlement` (`ProEntitlement`,
 `LicenseRestorer`, `FreeTierLimits`), which `di/EntitlementContractsModule`

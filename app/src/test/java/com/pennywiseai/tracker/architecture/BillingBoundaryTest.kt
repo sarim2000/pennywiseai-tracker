@@ -69,13 +69,10 @@ class BillingBoundaryTest {
         const val APP = "com.pennywiseai.tracker"
 
         /**
-         * File path to an import it may keep. Only shrinks: the scheduler is moving
-         * to `worker`, where importing `billing` is fine, and this entry goes with it.
+         * File path to an import it may keep. Only shrinks, and it is empty: the
+         * webhook scheduler moved to `worker`, where importing `billing` is fine.
          */
-        val ALLOWLIST = listOf(
-            "app/src/main/java/com/pennywiseai/tracker/data/webhook/WebhookSyncScheduler.kt" to
-                "$APP.billing.EntitlementGate",
-        )
+        val ALLOWLIST = emptyList<Pair<String, String>>()
 
         val productionFiles: List<KoFileDeclaration> by lazy {
             Konsist.scopeFromProduction(moduleName = "app").files

@@ -157,6 +157,8 @@ These rules set the direction for new code and for moves under
 follow all of them yet. [architecture-baseline.md](architecture-baseline.md)
 lists the existing cycles and back-edges, and `scripts/arch/package-deps.sh`
 reprints them. A PR may remove a violation but must not add one.
+[`PackageEdgeRatchetTest`](#package-edge-ratchet) enforces that for the package
+graph as a whole.
 
 | Package (`com.pennywiseai.tracker.…`) | Owns | Must not import |
 |---|---|---|
@@ -284,6 +286,28 @@ allowlist only shrinks. Don't add to it: move the code to the right layer. When
 you fix an import, delete its entry. The test also fails on an entry that no
 longer matches an import, so a fixed import can't come back. A fully qualified name in code isn't checked,
 so don't use one to get around a rule.
+
+### Package-edge ratchet
+
+`app/src/test/.../architecture/PackageEdgeRatchetTest.kt` lists every directed
+edge between top-level `com.pennywiseai.tracker` packages (`data -> worker`,
+`navigation -> ui`, …) in the sources `scripts/arch/package-deps.sh` reads:
+`:app`'s main and flavor sources and the `feature/*` and `core/*` modules. It
+counts `import` lines and fully qualified names in code, but not comments,
+strings, `R` or `BuildConfig`. It fails when an edge is missing from
+`config/architecture/package-edges.txt`, and runs with the unit tests, so
+`./init.sh app` catches it.
+
+- **A new edge fails the test.** Move the code to the layer the rules above
+  allow. Add an edge to the file only when the dependency points the right way
+  (for example a wiring package such as `di` or `navigation` reaching a new
+  package), and say why in the PR.
+- **A removed edge is printed, not failed on**, as "no longer exist" in the test
+  output (`app/build/test-results/`). Delete those lines in the same PR or a
+  later one.
+- The file was seeded with the union of `main` and the merged round-5 PRs, so it
+  lists a few edges `main` doesn't have yet; they show as stale until those PRs
+  land.
 
 ## Data Flow Example
 ```

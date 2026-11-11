@@ -28,6 +28,13 @@ android {
     }
 }
 
+// Coverage, advisory: only with -Pcoverage, so the normal build stays uninstrumented.
+// ./gradlew -Pcoverage :<module>:koverXmlReportDebug. See docs/architecture.md.
+// A bare -Pcoverage or -Pcoverage=true turns it on; -Pcoverage=false leaves it off.
+if (providers.gradleProperty("coverage").map { it.isEmpty() || it.toBoolean() }.getOrElse(false)) {
+    apply(plugin = "org.jetbrains.kotlinx.kover")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)

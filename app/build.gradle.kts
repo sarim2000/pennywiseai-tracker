@@ -207,6 +207,13 @@ composeCompiler {
     }
 }
 
+// Coverage, advisory: only with -Pcoverage, so the normal build stays uninstrumented.
+// ./gradlew -Pcoverage :app:koverXmlReportStandardDebug. See docs/architecture.md.
+// A bare -Pcoverage or -Pcoverage=true turns it on; -Pcoverage=false leaves it off.
+if (providers.gradleProperty("coverage").map { it.isEmpty() || it.toBoolean() }.getOrElse(false)) {
+    apply(plugin = "org.jetbrains.kotlinx.kover")
+}
+
 // A single profile for both flavors. Generation runs only when asked for
 // (docs/performance.md), never as part of assemble.
 baselineProfile {

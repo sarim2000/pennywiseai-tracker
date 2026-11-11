@@ -53,6 +53,10 @@ billingKtx = "9.1.0"
 leakcanary = "3.0-alpha-9"
 spotless = "8.11.0"
 dependencyAnalysis = "3.20.2"
+# Advisory only (docs/architecture.md#static-analysis-and-coverage). 1.23.x parses with
+# its own embedded Kotlin compiler (2.0.21), not the project's.
+detekt = "1.23.8"
+kover = "0.9.11"
 
 [libraries]
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
@@ -136,3 +140,5 @@ hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndro
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

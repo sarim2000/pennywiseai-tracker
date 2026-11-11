@@ -5,8 +5,8 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.utils.countingTransferPairsOnce
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
+import com.pennywiseai.tracker.data.ledger.forTotals
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit

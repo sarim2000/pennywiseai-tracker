@@ -11,10 +11,10 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.domain.model.toDatabaseString
 import com.pennywiseai.tracker.domain.model.AccountType
-import com.pennywiseai.tracker.utils.BalanceCalculator
+import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.isPairedTransferLeg
-import com.pennywiseai.tracker.utils.ledgerType
+import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
+import com.pennywiseai.tracker.data.ledger.ledgerType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal

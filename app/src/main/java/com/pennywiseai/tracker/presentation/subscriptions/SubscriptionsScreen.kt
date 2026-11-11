@@ -63,7 +63,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.formatAmount
+import com.pennywiseai.tracker.data.database.entity.formatAmount
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

@@ -47,7 +47,7 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.canReadSms
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel

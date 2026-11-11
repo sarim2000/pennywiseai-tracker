@@ -6,8 +6,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
 import com.pennywiseai.tracker.presentation.common.CurrencyTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.countingTransferPairsOnce
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
+import com.pennywiseai.tracker.data.ledger.forTotals
 import java.math.BigDecimal
 
 internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {

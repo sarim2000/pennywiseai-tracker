@@ -67,7 +67,7 @@ import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.formatBalance
+import com.pennywiseai.tracker.data.database.entity.formatBalance
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter

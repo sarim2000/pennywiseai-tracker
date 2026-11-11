@@ -29,7 +29,7 @@ import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.ui.components.pickerDefault
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
@@ -266,8 +266,8 @@ class TransactionDetailViewModel @Inject constructor(
     val showSplitEditor: StateFlow<Boolean> = _showSplitEditor.asStateFlow()
 
     // Bank-reported balance vs. what the ledger predicts (#734/#135); null = consistent.
-    private val _balanceDiscrepancy = MutableStateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?>(null)
-    val balanceDiscrepancy: StateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?> = _balanceDiscrepancy.asStateFlow()
+    private val _balanceDiscrepancy = MutableStateFlow<com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy?>(null)
+    val balanceDiscrepancy: StateFlow<com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy?> = _balanceDiscrepancy.asStateFlow()
     private val _isAddingAdjustment = MutableStateFlow(false)
     val isAddingAdjustment: StateFlow<Boolean> = _isAddingAdjustment.asStateFlow()
 

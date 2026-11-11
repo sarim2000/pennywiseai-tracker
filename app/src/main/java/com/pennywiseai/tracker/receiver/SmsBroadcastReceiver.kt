@@ -34,7 +34,7 @@ import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.bidiIsolate
 import dagger.hilt.EntryPoint

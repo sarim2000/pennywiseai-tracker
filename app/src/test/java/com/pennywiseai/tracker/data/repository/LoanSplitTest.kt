@@ -11,7 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.loan.SplitShare
-import com.pennywiseai.tracker.utils.countedAmount
+import com.pennywiseai.tracker.data.ledger.countedAmount
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic

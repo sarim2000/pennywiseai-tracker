@@ -598,7 +598,7 @@
     <ID>LongMethod:TransactionDetailEditSections.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun BudgetImpactSection(viewModel: TransactionDetailViewModel)</ID>
     <ID>LongMethod:TransactionDetailReceipt.kt$@Composable internal fun TransactionReceipt( transaction: TransactionEntity, settled: Boolean, primaryCurrency: String, convertedAmount: BigDecimal?, viewModel: TransactionDetailViewModel, splits: List&lt;SplitItem&gt;, hasSplits: Boolean, loan: LoanEntity?, onNavigateToLoanDetail: (Long) -&gt; Unit, onUnmarkLoanClick: () -&gt; Unit, accountProfileId: Long? = null, towardGoals: @Composable () -&gt; Unit = {}, splitWith: @Composable () -&gt; Unit = {} )</ID>
     <ID>LongMethod:TransactionDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun TransactionDetailScreen( transactionId: Long, onNavigateBack: () -&gt; Unit, onNavigateToLoanDetail: (Long) -&gt; Unit = {}, onDuplicateTransaction: (Long) -&gt; Unit = {}, onNavigateToGoal: (Long) -&gt; Unit = {}, onCreateGoal: () -&gt; Unit = {}, viewModel: TransactionDetailViewModel = hiltViewModel(), goalsViewModel: TransactionGoalsViewModel = hiltViewModel(), splitViewModel: SplitBillViewModel = hiltViewModel() )</ID>
-    <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun BalanceAdjustmentSheet( discrepancy: com.pennywiseai.tracker.utils.BalanceDiscrepancy, viewModel: TransactionDetailViewModel, onDismiss: () -&gt; Unit )</ID>
+    <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun BalanceAdjustmentSheet( discrepancy: com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy, viewModel: TransactionDetailViewModel, onDismiss: () -&gt; Unit )</ID>
     <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun GroupBottomSheet( currentGroup: TransactionGroupEntity?, availableGroups: List&lt;TransactionGroupEntity&gt;, onDismiss: () -&gt; Unit, onAddToGroup: (Long) -&gt; Unit, onRemoveFromGroup: () -&gt; Unit, onCreateGroup: (String, String?) -&gt; Unit )</ID>
     <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun MarkAsLoanBottomSheet( transactionAmount: BigDecimal, transactionCurrency: String, direction: LoanDirection, recentPersonNames: List&lt;String&gt;, onDismiss: () -&gt; Unit, onConfirm: (personName: String, note: String?, loanAmount: BigDecimal?) -&gt; Unit )</ID>
     <ID>LongMethod:TransactionDetailViewModel.kt$TransactionDetailViewModel$fun saveChanges()</ID>
@@ -1804,7 +1804,7 @@
     <ID>NewLineAtEndOfFile:DBSBankParser.kt$com.pennywiseai.parser.core.bank.DBSBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:DeviceEncryption.kt$com.pennywiseai.tracker.utils.DeviceEncryption.kt</ID>
     <ID>NewLineAtEndOfFile:DiscoverCardParser.kt$com.pennywiseai.parser.core.bank.DiscoverCardParser.kt</ID>
-    <ID>NewLineAtEndOfFile:EntityExtensions.kt$com.pennywiseai.tracker.utils.EntityExtensions.kt</ID>
+    <ID>NewLineAtEndOfFile:EntityExtensions.kt$com.pennywiseai.tracker.data.database.entity.EntityExtensions.kt</ID>
     <ID>NewLineAtEndOfFile:EverestBankParser.kt$com.pennywiseai.parser.core.bank.EverestBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateDao.kt$com.pennywiseai.tracker.data.database.dao.ExchangeRateDao.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateEntity.kt$com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity.kt</ID>

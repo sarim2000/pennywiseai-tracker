@@ -10,7 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 
 object ConscienceEligibility {
     /**

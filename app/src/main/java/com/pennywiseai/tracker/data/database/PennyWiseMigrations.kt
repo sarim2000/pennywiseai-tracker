@@ -12,7 +12,7 @@ import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
+import com.pennywiseai.tracker.data.ledger.findUnlinkedTransferPairs
 import java.math.BigDecimal
 import java.util.UUID
 

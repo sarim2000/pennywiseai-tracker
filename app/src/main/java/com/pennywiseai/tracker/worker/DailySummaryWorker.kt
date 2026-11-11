@@ -29,7 +29,7 @@ import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.assisted.Assisted

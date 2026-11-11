@@ -15,7 +15,7 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.utils.countingTransferPairsOnce
+import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
@@ -33,7 +33,7 @@ import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*

@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.BalanceRowAfter
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.BalanceCalculator
+import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic

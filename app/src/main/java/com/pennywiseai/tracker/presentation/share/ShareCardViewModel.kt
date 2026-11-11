@@ -23,7 +23,7 @@ import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.utils.dateQueryWindow
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

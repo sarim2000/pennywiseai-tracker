@@ -7,7 +7,7 @@ import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
 import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.domain.spending.netOf
 import com.pennywiseai.tracker.domain.spending.refundNetting
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DayOfWeek

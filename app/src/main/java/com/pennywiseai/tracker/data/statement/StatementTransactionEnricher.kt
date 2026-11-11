@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.ledgerType
+import com.pennywiseai.tracker.data.ledger.ledgerType
 import java.time.Duration
 import java.time.LocalDateTime
 

@@ -46,7 +46,7 @@ import com.pennywiseai.tracker.ui.components.cards.SHORT_DATE
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.formatBalance
+import com.pennywiseai.tracker.data.database.entity.formatBalance
 
 private const val MASK = "••••••"
 

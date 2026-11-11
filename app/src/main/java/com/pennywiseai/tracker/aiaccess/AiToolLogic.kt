@@ -11,7 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject

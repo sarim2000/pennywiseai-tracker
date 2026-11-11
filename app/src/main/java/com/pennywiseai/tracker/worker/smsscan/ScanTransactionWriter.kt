@@ -29,7 +29,7 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
-import com.pennywiseai.tracker.utils.BalanceCalculator
+import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async

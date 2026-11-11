@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.utils
+package com.pennywiseai.tracker.data.ledger
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType

@@ -1,9 +1,6 @@
-package com.pennywiseai.tracker.utils
+package com.pennywiseai.tracker.data.database.entity
 
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.database.entity.CardEntity
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 /**
  * Extension functions for entity currency formatting

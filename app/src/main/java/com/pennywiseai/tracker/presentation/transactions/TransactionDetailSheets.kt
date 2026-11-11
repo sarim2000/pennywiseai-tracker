@@ -250,7 +250,7 @@ internal fun MarkAsLoanBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BalanceAdjustmentSheet(
-    discrepancy: com.pennywiseai.tracker.utils.BalanceDiscrepancy,
+    discrepancy: com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy,
     viewModel: TransactionDetailViewModel,
     onDismiss: () -> Unit
 ) {

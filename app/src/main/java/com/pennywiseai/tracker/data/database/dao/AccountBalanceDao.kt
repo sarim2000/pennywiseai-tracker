@@ -374,7 +374,7 @@ interface AccountBalanceDao {
 
     /**
      * One row per distinct (account, source_type, did-the-linked-SMS-state-a-balance)
-     * — the input to [com.pennywiseai.tracker.utils.BalanceCalculator.unanchoredAccounts].
+     * — the input to [com.pennywiseai.tracker.data.ledger.BalanceCalculator.unanchoredAccounts].
      * `statedBalance` is the linked transaction's `balance_after IS NOT NULL`, or
      * null when the row has no (surviving) transaction. (#982)
      */

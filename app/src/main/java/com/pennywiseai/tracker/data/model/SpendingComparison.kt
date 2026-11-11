@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.data.model
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
 import java.math.RoundingMode

@@ -4,8 +4,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
-import com.pennywiseai.tracker.utils.isPairedTransferLeg
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
+import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 

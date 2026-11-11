@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.data.manager
 import android.content.Context
 import android.os.PowerManager
 import android.util.Log
-import com.pennywiseai.tracker.PennyWiseApplication
+import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
@@ -40,6 +40,7 @@ class ConscienceManager @Inject constructor(
     private val accountBalanceRepository: AccountBalanceRepository,
     private val cardRepository: CardRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val appForeground: AppForegroundState,
     private val notificationActions: ConscienceNotificationActions
 ) {
     /** Never throws (bar cancellation): a joke must not cost a saved transaction its alert. */
@@ -60,7 +61,7 @@ class ConscienceManager @Inject constructor(
         if (!text.speaksAppLanguage) return
         // Late at night with the screen off the user is likely asleep: no remark, and no slot spent.
         if (isQuietHour(LocalTime.now()) && !isScreenOn()) return
-        if ((context.applicationContext as? PennyWiseApplication)?.isAppInForeground == true) return
+        if (appForeground.isInForeground()) return
         // Checked before a slot is claimed, so none is spent on something invisible.
         if (!ConscienceNotifier.canPost(context)) return
 

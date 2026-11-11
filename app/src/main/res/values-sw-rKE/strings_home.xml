@@ -283,6 +283,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Imehifadhiwa kama %1$s</string>
     <string name="notif_txn_learned_text">Malipo ya hapa yatapangwa yenyewe kuanzia sasa.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Huu tu</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Muamala %d wa awali pia umehamishwa.</item>
         <item quantity="other">Miamala %d ya awali pia imehamishwa.</item>

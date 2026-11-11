@@ -55,6 +55,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         const val EXTRA_NEW_CATEGORY = "new_category"
         const val ACTION_UNDO_LEARN = "com.pennywiseai.tracker.ACTION_UNDO_LEARN"
+        const val ACTION_ONLY_THIS_ONE = "com.pennywiseai.tracker.ACTION_ONLY_THIS_ONE"
         const val ACTION_EXCLUDE = "com.pennywiseai.tracker.ACTION_EXCLUDE"
         const val ACTION_UNDO_EXCLUDE = "com.pennywiseai.tracker.ACTION_UNDO_EXCLUDE"
         const val ACTION_TRACK_RECURRING = "com.pennywiseai.tracker.ACTION_TRACK_RECURRING"
@@ -72,11 +73,24 @@ class NotificationActionReceiver : BroadcastReceiver() {
 
         /** The learned note's Undo: carries everything [LearnCategoryUseCase.undo] needs. */
         fun undoIntent(context: Context, requestCode: Int, notificationId: Int, learned: LearnCategoryUseCase.Learned): PendingIntent =
+            learnedIntent(context, requestCode, notificationId, learned, ACTION_UNDO_LEARN)
+
+        /** The learned note's "Only this one": keeps the pick, forgets the lesson ([LearnCategoryUseCase.forget]). */
+        fun onlyThisOneIntent(context: Context, requestCode: Int, notificationId: Int, learned: LearnCategoryUseCase.Learned): PendingIntent =
+            learnedIntent(context, requestCode, notificationId, learned, ACTION_ONLY_THIS_ONE)
+
+        private fun learnedIntent(
+            context: Context,
+            requestCode: Int,
+            notificationId: Int,
+            learned: LearnCategoryUseCase.Learned,
+            intentAction: String
+        ): PendingIntent =
             PendingIntent.getBroadcast(
                 context,
                 requestCode,
                 Intent(context, NotificationActionReceiver::class.java).apply {
-                    action = ACTION_UNDO_LEARN
+                    action = intentAction
                     putExtra(EXTRA_TRANSACTION_ID, learned.transactionId)
                     putExtra(EXTRA_NOTIFICATION_ID, notificationId)
                     putExtra(EXTRA_NEW_CATEGORY, learned.category)
@@ -213,6 +227,24 @@ class NotificationActionReceiver : BroadcastReceiver() {
                             refreshWidgets(context)
                         }.onFailure { Log.e(TAG, "Error undoing a learned category", it) }
                         SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
+                    }
+                    ACTION_ONLY_THIS_ONE -> {
+                        val learned = intent.toLearned(transactionId)
+                        val forgot = runCatching {
+                            (learned?.let { entryPoint.learnCategoryUseCase().forget(it) } == true)
+                                .also { WidgetRefresher.refreshTransactionWidgets(context) }
+                        }.onFailure { Log.e(TAG, "Error forgetting a learned category", it) }.getOrDefault(false)
+                        if (forgot && learned != null) {
+                            // The pick stands as a one-off: the note stays, minus the lesson. Its Undo
+                            // now reverts just this row, and a pending bill action carries over.
+                            SmsBroadcastReceiver.showLearnedNotification(
+                                context,
+                                notificationId,
+                                learned.copy(merchant = null, previousMapping = null, mappedAt = null, movedIds = emptyList())
+                            )
+                        } else {
+                            SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
+                        }
                     }
                     ACTION_TRACK_RECURRING -> {
                         val cycle = intent.getStringExtra(EXTRA_BILLING_CYCLE)

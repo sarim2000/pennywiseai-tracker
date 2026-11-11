@@ -287,6 +287,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Als %1$s gespeichert</string>
     <string name="notif_txn_learned_text">Zahlungen hier werden ab jetzt automatisch zugeordnet.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Nur diese</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">%d frühere Zahlung wurde ebenfalls verschoben.</item>
         <item quantity="other">%d frühere Zahlungen wurden ebenfalls verschoben.</item>

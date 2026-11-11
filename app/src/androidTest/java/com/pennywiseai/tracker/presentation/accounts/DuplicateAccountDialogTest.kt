@@ -2,36 +2,36 @@ package com.pennywiseai.tracker.presentation.accounts
 
 import android.content.Context
 import android.content.ContextWrapper
-import com.pennywiseai.tracker.data.mapper.withTransferAccount
-import androidx.room3.Room
-import androidx.sqlite.execSQL
-import com.pennywiseai.tracker.data.database.longs
-import com.pennywiseai.tracker.data.database.pennyWiseMigrationHelper
-import com.pennywiseai.tracker.data.database.rows
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
-import com.pennywiseai.tracker.data.database.PennyWiseDatabase
-import com.pennywiseai.tracker.data.database.PennyWiseMigrations
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
-import kotlinx.coroutines.runBlocking
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.test.assertIsDisplayed
-import com.pennywiseai.tracker.debug.UiVerificationActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.room3.Room
+import androidx.sqlite.execSQL
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.PennyWiseMigrations
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.longs
+import com.pennywiseai.tracker.data.database.pennyWiseMigrationHelper
+import com.pennywiseai.tracker.data.database.rows
+import com.pennywiseai.tracker.data.mapper.withTransferAccount
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-import java.math.BigDecimal
-import java.time.LocalDateTime
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.debug.UiVerificationActivity
+import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
-import org.junit.After
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 class DuplicateAccountDialogTest {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()

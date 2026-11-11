@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.widget
 
 import android.app.LocaleManager
 import android.content.Context
-import android.text.TextUtils
 import android.os.Build
+import android.text.TextUtils
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -56,7 +57,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
 import java.math.RoundingMode
-import com.pennywiseai.tracker.utils.inAppLanguage
 import java.util.Locale
 
 /*

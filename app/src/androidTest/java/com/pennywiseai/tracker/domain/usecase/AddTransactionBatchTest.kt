@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.usecase
 
 import androidx.room3.Room
+import androidx.room3.useWriterConnection
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
@@ -16,7 +17,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import androidx.room3.useWriterConnection
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal

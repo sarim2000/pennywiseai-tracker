@@ -67,7 +67,7 @@ class IgnoredAccountsStore @Inject constructor(
         private const val PREFS_NAME = "account_prefs"
         private const val KEY = "hidden_accounts"
 
-        fun keyFor(bankName: String, accountLast4: String) = "${bankName}_${accountLast4}"
+        fun keyFor(bankName: String, accountLast4: String) = "${bankName}_$accountLast4"
 
         /**
          * [ignored] plus the key of each card linked to an ignored account. An

@@ -13,7 +13,6 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import kotlin.test.assertNotNull
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -21,6 +20,7 @@ import java.lang.reflect.Proxy
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.test.assertNotNull
 
 class AiContextRepositoryTest {
 

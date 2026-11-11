@@ -1,0 +1,10 @@
+# Detekt, advisory only: ./gradlew detekt (see docs/architecture.md#static-analysis-and-coverage).
+# Builds on Detekt's default rule set (buildUponDefaultConfig in the root build.gradle.kts);
+# list only the overrides here. Findings in code that predates Detekt are in baseline.xml.
+config:
+  validation: true
+
+naming:
+  FunctionNaming:
+    # @Composable functions are PascalCase by convention.
+    ignoreAnnotated: ['Composable']

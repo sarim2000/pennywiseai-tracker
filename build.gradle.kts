@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.ksp) apply false
     alias(libs.plugins.spotless)
     alias(libs.plugins.dependency.analysis)
+    alias(libs.plugins.detekt)
 }
 
 // Dependency analysis, reporting only: `./gradlew buildHealth --max-workers=2` writes
@@ -46,4 +47,34 @@ spotless {
         targetExclude("pennywise-web/**")
         ktlint(libs.versions.ktlint.get())
     }
+}
+
+// Static analysis, advisory: `./gradlew detekt` runs Detekt over the production sources
+// below, syntax only (no type resolution, no formatting rules). Findings that predate it
+// live in config/detekt/baseline.xml; `./gradlew detektBaseline` regenerates it. Not part
+// of ./init.sh or the required CI checks, see docs/architecture.md#static-analysis-and-coverage.
+detekt {
+    source.setFrom(
+        "app/src/main/java",
+        "app/src/standard/java",
+        "app/src/fdroid/java",
+        listOf("core", "feature").flatMap { group ->
+            file(group).listFiles { module -> module.isDirectory }.orEmpty()
+                .flatMap { module -> listOf("src/main/java", "src/main/kotlin").map(module::resolve) }
+        },
+        "parser-core/src/main/kotlin",
+        "parser-core/src/commonMain/kotlin",
+        "parser-core/src/iosMain/kotlin",
+    )
+    config.setFrom("config/detekt/detekt.yml")
+    baseline = file("config/detekt/baseline.xml")
+    buildUponDefaultConfig = true
+    parallel = true
+}
+
+tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
+    exclude("**/build/**", "**/generated/**")
+}
+tasks.withType<io.gitlab.arturbosch.detekt.DetektCreateBaselineTask>().configureEach {
+    exclude("**/build/**", "**/generated/**")
 }

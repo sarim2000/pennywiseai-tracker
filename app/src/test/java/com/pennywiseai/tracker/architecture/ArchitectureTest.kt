@@ -212,9 +212,6 @@ class ArchitectureTest {
         val ENTRY_POINTS = listOf("worker", "widget", "receiver", "tile", "aiaccess")
 
         val ENTRY_POINT_ALLOWLIST = mapOf(
-            // Launch targets for PendingIntents: an Activity is a component, not screen code.
-            "$MAIN/worker/DailySummaryWorker.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
-            "$MAIN/widget/RecentTransactionsWidget.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
             // Goal status text, built from string resources
             "$MAIN/widget/GoalWidgetData.kt" to setOf(
                 "$APP.presentation.goals.shortLine",

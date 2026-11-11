@@ -54,12 +54,13 @@ complaint.
 
 ## Verification — Definition of Done
 Run **`./init.sh`** before claiming a change is done — it runs the same
-compile/test gate CI applies (CI's App Compile job additionally assembles a
+format/compile/test gate CI applies (CI's App Compile job additionally assembles a
 debug APK, so a change that compiles but breaks assembly will still surface
 there). Scope it to what you touched:
 
 | Change | Command |
 |---|---|
+| Formatting only | `./init.sh format` (every target runs it first) |
 | Parser (`parser-core`) | `./init.sh parser` |
 | App (Kotlin) | `./init.sh app` |
 | Everything | `./init.sh` (default) |
@@ -67,9 +68,16 @@ there). Scope it to what you touched:
 | DB migration | plus the old-Android update check in `docs/database-migrations.md` |
 
 `init.sh` sets `JAVA_HOME` to a JDK 21 (it tries `JAVA_HOME`, macOS `java_home`,
-Android Studio's JBR, then SDKMAN). Run the raw `./gradlew` tasks it wraps only
-if you need finer control. `./gradlew build` and `lint` are heavier and **not**
-part of the gate — don't use them to verify.
+Android Studio's JBR, SDKMAN, then a Gradle-downloaded JDK). Run the raw
+`./gradlew` tasks it wraps only if you need finer control. `./gradlew build` and
+`lint` are heavier and **not** part of the gate — don't use them to verify.
+
+A format failure means `./gradlew spotlessApply`, then review and commit the
+diff. It checks whole files changed since `origin/main`, so touching a legacy
+file means formatting all of it. A lint error marked "no autocorrection" (e.g. a
+comment inside the import list) needs a manual edit first. Opt-in pre-push hook
+with the same check: `git config --local core.hooksPath .githooks` (this
+replaces `.git/hooks`, so move any existing hooks there first).
 
 ## Architecture at a glance
 - **Stack:** Kotlin · Jetpack Compose + Material 3 · MVVM + Clean Architecture ·

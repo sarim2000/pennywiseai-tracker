@@ -281,6 +281,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">%1$s में सहेजा गया</string>
     <string name="notif_txn_learned_text">अब से यहाँ के भुगतान अपने-आप इसी श्रेणी में जाएँगे।</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">सिर्फ़ यह वाला</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">पहले का %d लेन-देन भी बदला गया।</item>
         <item quantity="other">पहले के %d लेन-देन भी बदले गए।</item>

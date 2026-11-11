@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import io.mockk.coEvery
@@ -173,5 +173,34 @@ class LearnCategoryUseCaseTest {
         // Undoing B returns to the state before B, which had A.
         coVerify(exactly = 2) { mappings.setMapping("Shein", "Food & Dining", any()) } // lesson A, then B's undo
         coVerify(exactly = 0) { mappings.removeMapping(any()) }
+    }
+
+    @Test
+    fun `only this one keeps the pick but forgets the lesson and its moved rows`() = runBlocking {
+        given("Shein")
+        coEvery { mappings.getCategoryForMerchant("Shein") } returns "Entertainment"
+        coEvery { transactions.getMovableMerchantRowIds(any(), any(), any()) } returns listOf(7L)
+        val learned = learn(1, "Shopping")!!
+        stored(learned)
+
+        assertTrue(learn.forget(learned))
+
+        coVerify { mappings.setMapping("Shein", "Entertainment", any()) }
+        coVerify { transactions.moveCategory(listOf(7L), from = "Shopping", to = "Others") }
+        coVerify(exactly = 0) { transactions.moveCategory(listOf(1L), any(), any()) }
+    }
+
+    @Test
+    fun `only this one cannot forget a lesson a newer pick replaced`() = runBlocking {
+        given("Shein")
+        coEvery { mappings.getCategoryForMerchant("Shein") } returns null
+        val learned = learn(1, "Shopping")!!
+        coEvery { mappings.getMapping("Shein") } returns
+            MerchantMappingEntity("Shein", "Food & Dining", updatedAt = learned.mappedAt!!.plusSeconds(30))
+
+        assertFalse(learn.forget(learned))
+
+        coVerify(exactly = 0) { mappings.removeMapping(any()) }
+        coVerify(exactly = 0) { transactions.moveCategory(any(), from = "Shopping", to = any()) }
     }
 }

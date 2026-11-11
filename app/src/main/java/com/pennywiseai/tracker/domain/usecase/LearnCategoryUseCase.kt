@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -18,7 +18,8 @@ import javax.inject.Singleton
  * merchant is remembered so its next SMS is filed on arrival, and its earlier
  * transactions of the same kind still sitting in "Others" move along.
  * Transactions the user already filed elsewhere are left alone, and so are
- * loan-linked and split rows. [undo] reverses the latest lesson.
+ * loan-linked and split rows. [undo] reverses the latest lesson; [forget]
+ * reverses it but keeps the pick ("Only this one", #1029).
  *
  * A parser placeholder ("UPI Payment", "ATM Withdrawal") names a channel, not
  * a place: picking for one files only that row.
@@ -91,7 +92,16 @@ class LearnCategoryUseCase @Inject constructor(
      * back. Rows go back only while they are still in its category, so a later
      * edit stands. Returns whether anything was undone.
      */
-    suspend fun undo(learned: Learned): Boolean = lock.withLock {
+    suspend fun undo(learned: Learned): Boolean = reverse(learned, keepPick = false)
+
+    /**
+     * "Only this one": like [undo], but the picked row keeps [Learned.category];
+     * only the merchant's mapping and the moved rows go back. Same latest-lesson
+     * guard. Returns whether anything was reversed.
+     */
+    suspend fun forget(learned: Learned): Boolean = reverse(learned, keepPick = true)
+
+    private suspend fun reverse(learned: Learned, keepPick: Boolean): Boolean = lock.withLock {
         database.withTransaction {
             val merchant = learned.merchant
             if (merchant != null) {
@@ -105,8 +115,12 @@ class LearnCategoryUseCase @Inject constructor(
                     merchantMappingRepository.setMapping(merchant, learned.previousMapping)
                 }
                 transactionRepository.moveCategory(learned.movedIds, from = learned.category, to = BuiltinCategoryNames.current("Others"))
+            } else if (keepPick) {
+                return@withTransaction false
             }
-            transactionRepository.moveCategory(listOf(learned.transactionId), from = learned.category, to = learned.previousCategory)
+            if (!keepPick) {
+                transactionRepository.moveCategory(listOf(learned.transactionId), from = learned.category, to = learned.previousCategory)
+            }
             true
         }
     }

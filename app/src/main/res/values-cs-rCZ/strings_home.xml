@@ -311,6 +311,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Uloženo jako %1$s</string>
     <string name="notif_txn_learned_text">Platby tady se od teď budou třídit automaticky.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Jen tuto</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Přesunuta byla i %d dřívější.</item>
         <item quantity="few">Přesunuty byly i %d dřívější.</item>

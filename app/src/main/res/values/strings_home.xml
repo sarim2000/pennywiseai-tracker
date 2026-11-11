@@ -328,6 +328,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Saved as %1$s</string>
     <string name="notif_txn_learned_text">Payments here will be sorted automatically from now on.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Only this one</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">%d earlier one moved too.</item>
         <item quantity="other">%d earlier ones moved too.</item>

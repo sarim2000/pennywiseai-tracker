@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.content.Intent
 import com.pennywiseai.tracker.MainActivity
 import io.mockk.EqMatcher
+import io.mockk.MockKMatcherScope
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
@@ -54,17 +55,18 @@ class ReceiverConscienceNotificationActionsTest {
         assertEquals(TRANSACTION_ID.toInt(), requestCode.captured)
         assertEquals(PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE, flags.captured)
         verify {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(MainActivity::class.java))
+            intentTo(MainActivity::class.java)
                 .setAction("com.pennywiseai.tracker.ACTION_EDIT_TRANSACTION")
         }
         verify {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(MainActivity::class.java))
+            intentTo(MainActivity::class.java)
                 .putExtra("transaction_id", TRANSACTION_ID)
         }
         verify {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(MainActivity::class.java))
+            intentTo(MainActivity::class.java)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
+        assertNothingOverwritten(MainActivity::class.java, flags = 1, longExtras = 1, stringExtras = 0)
     }
 
     @Test
@@ -77,13 +79,14 @@ class ReceiverConscienceNotificationActionsTest {
         assertEquals(0, requestCode.captured)
         assertEquals(PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE, flags.captured)
         verify {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(NotificationActionReceiver::class.java))
+            intentTo(NotificationActionReceiver::class.java)
                 .setAction("com.pennywiseai.tracker.ACTION_CONSCIENCE_RETIRE")
         }
         verify {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(NotificationActionReceiver::class.java))
+            intentTo(NotificationActionReceiver::class.java)
                 .putExtra("conscience_line_key", LINE_KEY)
         }
+        assertNothingOverwritten(NotificationActionReceiver::class.java, flags = 0, longExtras = 0, stringExtras = 1)
     }
 
     @Test
@@ -93,15 +96,37 @@ class ReceiverConscienceNotificationActionsTest {
         assertEquals("transaction_id", SmsBroadcastReceiver.EXTRA_TRANSACTION_ID)
     }
 
+    /**
+     * The stub Intent keeps no state, so the setters are checked by call: each one
+     * as often as the builder calls it (a second call would overwrite the first),
+     * and nothing that would retarget the intent or drop an extra.
+     */
+    private fun assertNothingOverwritten(component: Class<*>, flags: Int, longExtras: Int, stringExtras: Int) {
+        verify(exactly = 1) { intentTo(component).setAction(any()) }
+        verify(exactly = flags) { intentTo(component).setFlags(any()) }
+        verify(exactly = longExtras) { intentTo(component).putExtra(any<String>(), any<Long>()) }
+        verify(exactly = stringExtras) { intentTo(component).putExtra(any<String>(), any<String>()) }
+        verify(exactly = 0) { intentTo(component).addFlags(any()) }
+        verify(exactly = 0) { intentTo(component).removeExtra(any()) }
+        verify(exactly = 0) { intentTo(component).setComponent(any()) }
+        verify(exactly = 0) { intentTo(component).setClassName(any<Context>(), any<String>()) }
+        verify(exactly = 0) { intentTo(component).setClass(any(), any()) }
+        verify(exactly = 0) { intentTo(component).setPackage(any()) }
+    }
+
+    /** The Intent built as `Intent(context, component)`. */
+    private fun MockKMatcherScope.intentTo(component: Class<*>): Intent =
+        constructedWith(EqMatcher(context), EqMatcher(component))
+
     /** mockk matches constructor arguments only for an Intent registered before it is built. */
     private fun recordIntentsFor(component: Class<*>) {
-        every { constructedWith<Intent>(EqMatcher(context), EqMatcher(component)).setAction(any()) } answers { callOriginal() }
-        every { constructedWith<Intent>(EqMatcher(context), EqMatcher(component)).setFlags(any()) } answers { callOriginal() }
+        every { intentTo(component).setAction(any()) } answers { callOriginal() }
+        every { intentTo(component).setFlags(any()) } answers { callOriginal() }
         every {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(component)).putExtra(any<String>(), any<Long>())
+            intentTo(component).putExtra(any<String>(), any<Long>())
         } answers { callOriginal() }
         every {
-            constructedWith<Intent>(EqMatcher(context), EqMatcher(component)).putExtra(any<String>(), any<String>())
+            intentTo(component).putExtra(any<String>(), any<String>())
         } answers { callOriginal() }
     }
 

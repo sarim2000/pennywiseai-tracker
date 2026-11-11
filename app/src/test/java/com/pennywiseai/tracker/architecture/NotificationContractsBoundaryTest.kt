@@ -73,6 +73,7 @@ class NotificationContractsBoundaryTest {
     fun `the root-class check catches the application and allows R and BuildConfig`() {
         assertTrue(isForbiddenRootClass("$APP.PennyWiseApplication"))
         assertTrue(isForbiddenRootClass("$APP.MainActivity"))
+        assertTrue(isForbiddenRootClass("$APP.*"))
         assertTrue(!isForbiddenRootClass("$APP.R"))
         assertTrue(!isForbiddenRootClass("$APP.BuildConfig"))
         assertTrue(!isForbiddenRootClass("$APP.data.manager.ConscienceManager"))
@@ -91,10 +92,14 @@ class NotificationContractsBoundaryTest {
         /** `com.pennywiseai.tracker.` followed by a path, as an import or a qualified reference spells it. */
         val FQN_REFERENCE = Regex("""\bcom\.pennywiseai\.tracker(\.\w+)+""")
 
-        /** A class declared directly in the root package: its first segment after the package is capitalized. */
+        /**
+         * A class declared directly in the root package (its first segment after the
+         * package is capitalized), or a wildcard import of the root package.
+         */
         fun isForbiddenRootClass(name: String): Boolean {
             if (!name.startsWith("$APP.")) return false
             val first = name.removePrefix("$APP.").substringBefore('.')
+            if (first == "*") return true
             return first.firstOrNull()?.isUpperCase() == true && first !in ALLOWED_ROOT_CLASSES
         }
 

@@ -1,4 +1,6 @@
 pluginManagement {
+    // Convention plugins (pennywise.android.*), see docs/architecture.md.
+    includeBuild("build-logic")
     repositories {
         google {
             content {

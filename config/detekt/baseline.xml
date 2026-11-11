@@ -1804,7 +1804,6 @@
     <ID>NewLineAtEndOfFile:DBSBankParser.kt$com.pennywiseai.parser.core.bank.DBSBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:DeviceEncryption.kt$com.pennywiseai.tracker.utils.DeviceEncryption.kt</ID>
     <ID>NewLineAtEndOfFile:DiscoverCardParser.kt$com.pennywiseai.parser.core.bank.DiscoverCardParser.kt</ID>
-    <ID>NewLineAtEndOfFile:EntityExtensions.kt$com.pennywiseai.tracker.data.database.entity.EntityExtensions.kt</ID>
     <ID>NewLineAtEndOfFile:EverestBankParser.kt$com.pennywiseai.parser.core.bank.EverestBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateDao.kt$com.pennywiseai.tracker.data.database.dao.ExchangeRateDao.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateEntity.kt$com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity.kt</ID>

@@ -6,8 +6,13 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -15,11 +20,6 @@ import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 
 /**
  * A month's budgets exactly as the Budgets screen shows them, in the currency it
@@ -163,7 +163,7 @@ class BudgetSummaryProvider @Inject constructor(
         )
     }
 
-    /**
+    /*
      * Build one [BudgetGroupSpending] in the unified-currency path. We
      * don't have raw transactions for each window — the repo returned
      * the per-window totals — so we synthesise a "single-currency-equivalent"
@@ -274,9 +274,9 @@ class BudgetSummaryProvider @Inject constructor(
         val previous = if (budget.periodType == BudgetPeriodType.WEEKLY) {
             windowedSpend
                 .filter { !it.window.overlaps(currentWindow) }
-                .map { 
+                .map {
                     PastWindowSpending(
-                        window = it.window, 
+                        window = it.window,
                         spent = getBudgetWindowFilteredSpend(group, it.transactions, displayCurrency, baseCurrency),
                         capDate = it.window.end,
                         isLive = false
@@ -314,7 +314,7 @@ class BudgetSummaryProvider @Inject constructor(
                     categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                 }
                 val boost = if (cat.matchType != null) BigDecimal.ZERO
-                    else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
                 val convertedBudget = currencyConversionService.convertAmountOrNull(
                     cat.budgetAmount, baseCurrency, displayCurrency
                 ) ?: BigDecimal.ZERO
@@ -360,7 +360,7 @@ class BudgetSummaryProvider @Inject constructor(
             if (daysElapsed < 1) return emptyList<Double>() to emptyList()
             val effectiveDays = daysElapsed
             val dailyAmounts = DoubleArray(displayedWindow.days)
-            
+
             for (rawWithSplits in txsInDisplay) {
                 val txWithSplits = rawWithSplits.forTotals() ?: continue
                 val tx = txWithSplits.transaction
@@ -369,7 +369,7 @@ class BudgetSummaryProvider @Inject constructor(
                 ) continue
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)
-                
+
                 // Skip the whole txn if its currency has no rate — face value would
                 // corrupt the pace chart (#670). Splits share the currency, so if the
                 // total is unconvertible the per-category amounts are too.
@@ -391,16 +391,16 @@ class BudgetSummaryProvider @Inject constructor(
                     }
                 }
             }
-            
+
             // Subtract Refund (DEDUCT_SPENT) income on the day it occurred.
             for (txWithSplits in txsInDisplay) {
                 val tx = txWithSplits.transaction
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INCOME) continue
                 if (tx.budgetImpactType != com.pennywiseai.tracker.data.database.entity.BudgetImpactType.DEDUCT_SPENT) continue
-                
+
                 val dayIndex = (java.time.temporal.ChronoUnit.DAYS.between(displayedWindow.start, tx.dateTime.toLocalDate()).toInt())
                     .coerceIn(0, displayedWindow.days - 1)
-                    
+
                 val convertedAmount = currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)?.toDouble() ?: continue
 
                 if (categoryNames == null) {
@@ -415,7 +415,7 @@ class BudgetSummaryProvider @Inject constructor(
                     }
                 }
             }
-            
+
             val cumulative = mutableListOf<Double>()
             var runningTotal = 0.0
             for (i in 0 until effectiveDays) {

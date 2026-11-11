@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -8,13 +7,14 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.preferences.NotificationPreferences
-import com.pennywiseai.tracker.domain.model.toDatabaseString
-import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.BalanceCalculator
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.ledger.isPairedTransferLeg
 import com.pennywiseai.tracker.data.ledger.ledgerType
+import com.pennywiseai.tracker.data.preferences.NotificationPreferences
+import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.domain.model.toDatabaseString
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
@@ -33,11 +33,11 @@ open class AccountBalanceRepository @Inject constructor(
         const val SOURCE_OPENING = "OPENING"
         const val SOURCE_MANUAL = "MANUAL"
     }
-    
+
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
         return accountBalanceDao.insertBalance(balance)
     }
-    
+
     suspend fun getLatestBalance(bankName: String, accountLast4: String): AccountBalanceEntity? {
         return accountBalanceDao.getLatestBalance(bankName, accountLast4)
     }
@@ -112,15 +112,15 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity? {
         return accountBalanceDao.getLatestBalanceByLast4(accountLast4)
     }
-    
+
     fun getLatestBalanceFlow(bankName: String, accountLast4: String): Flow<AccountBalanceEntity?> {
         return accountBalanceDao.getLatestBalanceFlow(bankName, accountLast4)
     }
-    
+
     fun getAllLatestBalances(): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getAllLatestBalances()
     }
-    
+
     /** (bankName, last4) of accounts with no real balance yet; see [BalanceCalculator.unanchoredAccounts]. */
     fun getUnanchoredAccounts(): Flow<Set<Pair<String, String>>> =
         accountBalanceDao.getBalanceSourceRows().map(BalanceCalculator::unanchoredAccounts)
@@ -128,7 +128,7 @@ open class AccountBalanceRepository @Inject constructor(
     fun getTotalBalance(): Flow<BigDecimal?> {
         return accountBalanceDao.getTotalBalance()
     }
-    
+
     fun getBalanceHistory(
         bankName: String,
         accountLast4: String,
@@ -137,23 +137,23 @@ open class AccountBalanceRepository @Inject constructor(
     ): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getBalanceHistory(bankName, accountLast4, startDate, endDate)
     }
-    
+
     fun getAccountCount(): Flow<Int> {
         return accountBalanceDao.getAccountCount()
     }
-    
+
     suspend fun deleteOldBalances(beforeDate: LocalDateTime): Int {
         return accountBalanceDao.deleteOldBalances(beforeDate)
     }
-    
+
     suspend fun updateBalance(balance: AccountBalanceEntity) {
         accountBalanceDao.updateBalance(balance)
     }
-    
+
     suspend fun deleteBalance(balance: AccountBalanceEntity) {
         accountBalanceDao.deleteBalance(balance)
     }
-    
+
     /**
      * Inserts a balance record from a transaction if it has balance information.
      * Preserves the existing account's profileId if one exists.
@@ -221,11 +221,11 @@ open class AccountBalanceRepository @Inject constructor(
         )
         return insertBalance(balanceEntity)
     }
-    
+
     suspend fun getBalanceHistoryForAccount(bankName: String, accountLast4: String): List<AccountBalanceEntity> {
         return accountBalanceDao.getBalanceHistoryForAccount(bankName, accountLast4)
     }
-    
+
     suspend fun deleteBalanceById(id: Long) {
         accountBalanceDao.deleteBalanceById(id)
     }
@@ -233,11 +233,11 @@ open class AccountBalanceRepository @Inject constructor(
     suspend fun deleteBalancesForTransaction(transactionId: Long): Int {
         return accountBalanceDao.deleteBalancesForTransaction(transactionId)
     }
-    
+
     suspend fun updateBalanceById(id: Long, newBalance: BigDecimal) {
         accountBalanceDao.updateBalanceById(id, newBalance)
     }
-    
+
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int {
         return accountBalanceDao.getBalanceCountForAccount(bankName, accountLast4)
     }
@@ -669,7 +669,7 @@ open class AccountBalanceRepository @Inject constructor(
     ) {
         if (accountLast4 == null) return
         val latest = (if (bankName != null) accountBalanceDao.getLatestBalance(bankName, accountLast4)
-            else accountBalanceDao.getLatestBalanceByLast4(accountLast4)) ?: return
+        else accountBalanceDao.getLatestBalanceByLast4(accountLast4)) ?: return
         if (isManualAccount(latest.bankName, latest.accountLast4)) {
             ensureManualOpening(latest.bankName, latest.accountLast4)
             recomputeManualBalance(latest.bankName, latest.accountLast4)

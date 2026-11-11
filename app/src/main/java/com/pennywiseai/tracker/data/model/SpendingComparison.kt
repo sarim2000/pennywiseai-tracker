@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.data.model
 
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
-import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
@@ -108,8 +108,8 @@ object SpendingComparison {
         spending(rows, creditAsExpense)
             .mapNotNull { row ->
                 val amount = if (categories == null) row.transaction.amount
-                    else row.getAmountByCategory().entries.filter { categories.includes(it.key) }
-                        .takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO) { acc, e -> acc + e.value } ?: return@mapNotNull null
+                else row.getAmountByCategory().entries.filter { categories.includes(it.key) }
+                    .takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO) { acc, e -> acc + e.value } ?: return@mapNotNull null
                 row.transaction.currency to amount
             }
             .sumByCurrency({ it.first }, { it.second })

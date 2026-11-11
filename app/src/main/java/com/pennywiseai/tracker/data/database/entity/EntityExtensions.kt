@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.database.entity
 
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
-/**
+/*
  * Extension functions for entity currency formatting
  * These functions automatically use the entity's currency for formatting
  */

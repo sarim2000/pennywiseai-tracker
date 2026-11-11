@@ -1,13 +1,13 @@
 package com.pennywiseai.tracker.domain.review
 
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
 import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.domain.spending.netOf
 import com.pennywiseai.tracker.domain.spending.refundNetting
-import com.pennywiseai.tracker.data.ledger.forTotals
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DayOfWeek
@@ -18,7 +18,9 @@ import java.time.temporal.TemporalAdjusters
 
 /** The three reviews are one calculation over a different range. */
 enum class ReviewKind {
-    WEEK, MONTH, YEAR;
+    WEEK,
+    MONTH,
+    YEAR;
 
     companion object {
         fun fromName(value: String?): ReviewKind = entries.firstOrNull { it.name == value } ?: MONTH

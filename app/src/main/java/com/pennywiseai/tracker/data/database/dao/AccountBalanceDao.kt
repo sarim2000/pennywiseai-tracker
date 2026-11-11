@@ -8,10 +8,10 @@ import java.time.LocalDateTime
 
 @Dao
 interface AccountBalanceDao {
-    
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBalance(balance: AccountBalanceEntity): Long
-    
+
     @Query("""
         SELECT * FROM account_balances 
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
@@ -19,7 +19,7 @@ interface AccountBalanceDao {
         LIMIT 1
     """)
     suspend fun getLatestBalance(bankName: String, accountLast4: String): AccountBalanceEntity?
-    
+
     /**
      * The account's newest row at or before [at]: the balance an SMS stamped
      * [at] moves from. Not [getLatestBalance], which may postdate it (#982).
@@ -81,7 +81,7 @@ interface AccountBalanceDao {
         LIMIT 1
     """)
     suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity?
-    
+
     @Query("""
         SELECT DISTINCT ab1.*
         FROM account_balances ab1
@@ -129,10 +129,10 @@ interface AccountBalanceDao {
      */
     @Query("DELETE FROM account_balances WHERE transaction_id IS NOT NULL AND sms_source IS NULL")
     suspend fun deleteTransactionDerivedBalances(): Int
-    
+
     @Query("SELECT * FROM account_balances ORDER BY timestamp DESC")
     fun getAllBalances(): Flow<List<AccountBalanceEntity>>
-    
+
     @Query("DELETE FROM account_balances")
     suspend fun deleteAllBalances()
 
@@ -167,7 +167,7 @@ interface AccountBalanceDao {
             (transaction_id IS NULL AND source_type IS NULL)
     """)
     suspend fun deleteRebuildableBalances()
-    
+
     @Query("""
         SELECT DISTINCT ab1.*
         FROM account_balances ab1
@@ -183,7 +183,7 @@ interface AccountBalanceDao {
         ORDER BY ab1.balance DESC
     """)
     fun getCurrentMonthLatestBalances(): Flow<List<AccountBalanceEntity>>
-    
+
     @Query("""
         SELECT SUM(balance) as total FROM (
             SELECT DISTINCT 
@@ -200,7 +200,7 @@ interface AccountBalanceDao {
         )
     """)
     fun getTotalBalance(): Flow<BigDecimal?>
-    
+
     @Query("""
         SELECT * FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
@@ -213,29 +213,29 @@ interface AccountBalanceDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Flow<List<AccountBalanceEntity>>
-    
+
     @Query("""
         SELECT COUNT(DISTINCT bank_name || account_last4) FROM account_balances
     """)
     fun getAccountCount(): Flow<Int>
-    
+
     // Never prune OPENING anchors — they carry an intentionally early timestamp (so
     // they never win "latest"), which would otherwise make them the prime target of a
     // timestamp-cutoff delete and silently break the derived manual-balance model.
     @Query("DELETE FROM account_balances WHERE timestamp < :beforeDate AND (source_type IS NULL OR source_type != 'OPENING')")
     suspend fun deleteOldBalances(beforeDate: LocalDateTime): Int
-    
+
     @Update
     suspend fun updateBalance(balance: AccountBalanceEntity)
-    
+
     @Delete
     suspend fun deleteBalance(balance: AccountBalanceEntity)
-    
+
     @Query("""SELECT * FROM account_balances 
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
         ORDER BY timestamp DESC""")
     suspend fun getBalanceHistoryForAccount(bankName: String, accountLast4: String): List<AccountBalanceEntity>
-    
+
     @Query("DELETE FROM account_balances WHERE id = :id")
     suspend fun deleteBalanceById(id: Long)
 
@@ -244,10 +244,10 @@ interface AccountBalanceDao {
 
     @Query("DELETE FROM account_balances WHERE transaction_id = :transactionId")
     suspend fun deleteBalancesForTransaction(transactionId: Long): Int
-    
+
     @Query("UPDATE account_balances SET balance = :newBalance WHERE id = :id")
     suspend fun updateBalanceById(id: Long, newBalance: BigDecimal)
-    
+
     @Query("""SELECT COUNT(*) FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4""")
     suspend fun getBalanceCountForAccount(bankName: String, accountLast4: String): Int

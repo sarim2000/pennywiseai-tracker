@@ -91,9 +91,9 @@ object StatementTransactionEnricher {
         statement: TransactionEntity
     ): Boolean {
         return canUseStatementValue(existing.merchantName, statement.merchantName) ||
-                canUseStatementValue(existing.description, statement.description) ||
-                existing.fromAccount.isNullOrBlank() && !statement.fromAccount.isNullOrBlank() ||
-                existing.toAccount.isNullOrBlank() && !statement.toAccount.isNullOrBlank()
+            canUseStatementValue(existing.description, statement.description) ||
+            (existing.fromAccount.isNullOrBlank() && !statement.fromAccount.isNullOrBlank()) ||
+            (existing.toAccount.isNullOrBlank() && !statement.toAccount.isNullOrBlank())
     }
 
     fun enrich(existing: TransactionEntity, statement: TransactionEntity): TransactionEntity {
@@ -142,9 +142,9 @@ object StatementTransactionEnricher {
 
     fun hasEnrichment(existing: TransactionEntity, enriched: TransactionEntity): Boolean =
         existing.merchantName != enriched.merchantName ||
-                existing.description != enriched.description ||
-                existing.fromAccount != enriched.fromAccount ||
-                existing.toAccount != enriched.toAccount
+            existing.description != enriched.description ||
+            existing.fromAccount != enriched.fromAccount ||
+            existing.toAccount != enriched.toAccount
 
     private fun canUseStatementValue(existing: String?, statement: String?): Boolean {
         val incoming = statement?.trim().orEmpty()

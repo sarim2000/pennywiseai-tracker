@@ -1,26 +1,42 @@
 package com.pennywiseai.tracker.presentation.home
 
-import com.pennywiseai.tracker.data.preferences.HomeSection
-import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.manager.InAppUpdateManager
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
-import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.manager.InAppUpdateManager
+import com.pennywiseai.tracker.data.preferences.HomeSection
+import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.LlmRepository
+import com.pennywiseai.tracker.data.repository.LoanRepository
+import com.pennywiseai.tracker.data.repository.ProfileRepository
+import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
@@ -29,55 +45,39 @@ import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
-import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
+import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
-import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
-import com.pennywiseai.tracker.data.repository.ProfileRepository
-import com.pennywiseai.tracker.data.repository.LlmRepository
-import com.pennywiseai.tracker.data.database.entity.LoanEntity
-import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
-import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
-import com.pennywiseai.tracker.data.repository.LoanRepository
-import com.pennywiseai.tracker.data.repository.SubscriptionRepository
-import com.pennywiseai.tracker.data.repository.CategoryRepository
-import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
-import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.canReadSms
-import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.mapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
-import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
-import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import javax.inject.Inject
 
 /**
@@ -126,11 +126,11 @@ class HomeViewModel @Inject constructor(
      * user is already entitled so we never push to existing buyers.
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-    
+
     private val sharedPrefs = context.getSharedPreferences("account_prefs", Context.MODE_PRIVATE)
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-    
+
     private val _deletedTransaction = MutableStateFlow<TransactionEntity?>(null)
     val deletedTransaction: StateFlow<TransactionEntity?> = _deletedTransaction.asStateFlow()
 
@@ -551,7 +551,7 @@ class HomeViewModel @Inject constructor(
                     updateBreakdownForSelectedCurrency(breakdownByCurrency, isCurrentMonth = true)
                 }
         }
-        
+
         viewModelScope.launch {
             // Load account balances — combined with unified mode preferences so that
             // individual account entities are pre-converted when unified mode is on.
@@ -969,7 +969,7 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(recentItems = items, isLoading = false)
             }
         }
-        
+
         viewModelScope.launch {
             // Load all active subscriptions with conversion for unified mode
             combine(
@@ -1051,7 +1051,7 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun calculateMonthlyChange() {
         // Compare like with like: spend so far vs the same number of days into the
         // previous cycle, not the whole previous cycle — that made every early-cycle
@@ -1066,7 +1066,7 @@ class HomeViewModel @Inject constructor(
             monthlyChangePercent = monthlyChangePercent(current, lastAtSamePoint)
         )
     }
-    
+
     fun refreshHiddenAccounts() {
         viewModelScope.launch {
             // Use cached balances instead of re-fetching from the repository
@@ -1294,15 +1294,15 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun showBreakdownDialog() {
         _uiState.value = _uiState.value.copy(showBreakdownDialog = true)
     }
-    
+
     fun hideBreakdownDialog() {
         _uiState.value = _uiState.value.copy(showBreakdownDialog = false)
     }
-    
+
     /**
      * Checks for app updates using Google Play In-App Updates.
      * Should be called with the current activity context.
@@ -1317,7 +1317,7 @@ class HomeViewModel @Inject constructor(
     ) {
         inAppUpdateManager.checkForUpdate(activity, snackbarHostState, scope)
     }
-    
+
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             _deletedTransaction.value = transaction
@@ -1342,12 +1342,12 @@ class HomeViewModel @Inject constructor(
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
     }
-    
+
     fun clearDeletedTransaction() {
         _deletedTransaction.value = null
     }
-    
-    /**
+
+    /*
      * Checks if eligible for in-app review and shows if appropriate.
      * Should be called with the current activity context.
      */
@@ -1420,7 +1420,7 @@ class HomeViewModel @Inject constructor(
             inAppReviewManager.checkAndShowReviewIfEligible(activity, transactionCount)
         }
     }
-    
+
     fun selectCurrency(currency: String) {
         hasUserSelectedCurrency = true
         _uiState.value = _uiState.value.copy(isBalanceReady = false)
@@ -1621,7 +1621,6 @@ class HomeViewModel @Inject constructor(
         /** How long a finished scan's "+N" holds on the Sync button; load-bearing, so not a motion spec. */
         const val SCAN_RESULT_HOLD_MILLIS = 1_600L
     }
-
 }
 
 internal const val PRO_CARD_MIN_INSTALL_DAYS = 14L

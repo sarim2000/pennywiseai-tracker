@@ -388,7 +388,8 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 - Immutable data structures
 - Formatting is ktlint via Spotless (rules in `.editorconfig`), checked only on files changed since `origin/main`: run `./gradlew spotlessCheck`, fix with `./gradlew spotlessApply`.
 - `-PspotlessRatchetFrom=<ref>` compares against another ref (a stacked PR's base); an empty value checks every file.
-- It is advisory: `check`/`build` and `init.sh` don't run it, and its CI job can't fail the workflow. Don't reformat files you aren't changing.
+- `./init.sh` (every target) and the opt-in `.githooks/pre-push` hook run it; `check`/`build` don't. Don't reformat files you aren't changing.
+- Its CI job is advisory: it can't fail the workflow.
 - Dependency updates: Renovate (`renovate.json`) opens grouped PRs weekly; the coupled Kotlin/AGP/Hilt/LiteRT-LM/coroutines toolchain and all majors wait for approval on its Dependency Dashboard issue.
 - Unused or mis-scoped dependencies: `./gradlew buildHealth --max-workers=2` (Dependency Analysis plugin, report only). Its known false positives are listed in [architecture-baseline.md](architecture-baseline.md#dependencies).
 

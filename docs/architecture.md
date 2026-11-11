@@ -113,12 +113,12 @@ app/
 │   │   │                        #   loans, groups, rules, settings (+ aiaccess/,
 │   │   │                        #   webhooks/), onboarding, unrecognized, applock,
 │   │   │                        #   permission, paywall, share, statement,
-│   │   │                        #   exchangerates, common; also a navigation/
-│   │   │                        #   subpackage for feature routes)
-│   ├── ui/                      # App shell (MainScreen) + shared components
+│   │   │                        #   exchangerates, common)
+│   ├── ui/                      # Shared UI, imported by features and the shell
 │   │   ├── components/          # Reusable Compose components
 │   │   └── viewmodel/           # App-wide ViewModels (main, theme, spotlight)
-│   ├── navigation/              # Navigation graph
+│   ├── navigation/              # Routes, nav graph and the app shell (MainScreen,
+│   │                            #   bottom bar, BottomNavItem tabs)
 │   ├── domain/                  # Business logic
 │   │   ├── model/
 │   │   ├── usecase/
@@ -164,12 +164,12 @@ graph as a whole.
 |---|---|---|
 | `presentation/<feature>` | A feature's screens, ViewModel and UI state, kept together | Another feature's screens or internal components |
 | `ui/components`, `ui/theme`, `ui/icons`, `ui/animations`, `ui/effects` | Components and design tokens used by more than one feature | `presentation`, `worker` |
-| `ui/viewmodel`, `ui` root (`MainScreen`) | App-wide ViewModels (main, theme, spotlight) and the app shell | (a feature's ViewModel goes in its `presentation/<feature>`) |
+| `ui/viewmodel`, `ui` root | App-wide ViewModels (main, theme, spotlight) and small app-wide UI helpers (`UiText`, the shared-transition locals) | `presentation`, `navigation` (a feature's ViewModel goes in its `presentation/<feature>`) |
 | `domain` | Use cases, business rules, models, service interfaces | `presentation`, `ui`, Compose, Activities or other Android UI |
 | `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui` |
 | `utils`, `core` | Small helpers used across layers: money, currency, dates | `presentation`, `ui`, Android entry points |
 | `worker`, `receiver`, `widget`, `tile`, `aiaccess` | Android entry points | Feature screen internals. Use `domain`/`data` instead |
-| `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root | (may import anything) |
+| `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root. `navigation` also holds the app shell: `MainScreen`, `PennyWiseBottomNavigation` and `BottomNavItem` | (may import anything) |
 
 1. **No new cycles.** If two packages import each other, cut the edge that points
    from the lower layer to the higher one.

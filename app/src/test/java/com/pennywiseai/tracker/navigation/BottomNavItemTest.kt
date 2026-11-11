@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.navigation
+package com.pennywiseai.tracker.navigation
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -19,7 +19,10 @@ the import-statement and webhook-validation errors are a plain `core.ResText` th
 the ViewModels turn into `UiText`. `ArchitectureTest` now forbids `data` → `ui`.
 The `ApplicationScope` qualifier moved from `di` to `core` (refactor PR C1), which
 removes the `domain` → `di` back-edge and the `billing`, `data`, `domain` and
-`presentation` ↔ `di` cycles.
+`presentation` ↔ `di` cycles. The app shell (`ui/MainScreen.kt`,
+`ui/PennyWiseBottomNavigation.kt` and `presentation/navigation/BottomNavItem.kt`)
+moved into `navigation/` (refactor PR R1), which removes the `presentation` ↔ `ui`
+and `navigation` ↔ `ui` cycles.
 
 Re-check the package graph with:
 

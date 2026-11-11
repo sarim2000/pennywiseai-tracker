@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.navigation
+package com.pennywiseai.tracker.navigation
 
 import com.pennywiseai.tracker.R
 import androidx.annotation.StringRes

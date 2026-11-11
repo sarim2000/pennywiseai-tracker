@@ -243,7 +243,7 @@ tests, so `./init.sh app` and CI fail on a new violation:
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
 | `data` | `presentation`, `ui` |
 | `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
-| `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (an Activity used as a launch target is allowlisted by name) |
+| `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (launch an Activity by class name through a `core` intent contract such as `core/QuickAddIntent`; don't import it) |
 | `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
 

@@ -112,8 +112,8 @@ verify_parser() {
 }
 
 verify_app() {
-  run ./gradlew :app:compileStandardDebugKotlin
-  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest :shared:testAndroidHostTest
+  run ./gradlew :app:compileStandardDebugKotlin --configuration-cache
+  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest :feature:learnedcategories:testDebugUnitTest :shared:testAndroidHostTest
 }
 
 case "$TARGET" in

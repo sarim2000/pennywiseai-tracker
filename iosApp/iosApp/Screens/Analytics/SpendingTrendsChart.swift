@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 import Charts
 
 struct SpendingTrendsChart: View {
@@ -6,6 +7,11 @@ struct SpendingTrendsChart: View {
     /// .day, .weekOfYear or .month: one bar per bucket.
     var bucket: Calendar.Component = .day
     @Environment(\.isAmoledActive) private var isAmoled
+
+    /// The bars are in the display currency's minor units (× 1000 for JOD, × 100 for most).
+    private var unitFactor: Double {
+        Double(MinorUnits.shared.factor(currency: CurrencyManager.shared.displayCurrency))
+    }
 
     private var maxAmount: Int64 {
         data.map(\.totalMinor).max() ?? 0
@@ -31,7 +37,7 @@ struct SpendingTrendsChart: View {
         Chart(data) { item in
             BarMark(
                 x: .value("Date", item.date, unit: bucket),
-                y: .value("Amount", Double(item.totalMinor) / 100.0)
+                y: .value("Amount", Double(item.totalMinor) / unitFactor)
             )
             .foregroundStyle(Color.accentColor.gradient)
             .cornerRadius(2)
@@ -81,7 +87,7 @@ struct SpendingTrendsChart: View {
     /// decimal: the 1.5L gridline reads "1.5L" (not a rounded "2L") and the
     /// 0.5L one reads "0.5L" (not "50K") next to it.
     private func formatCompact(_ value: Double) -> String {
-        let top = Double(maxAmount) / 100.0
+        let top = Double(maxAmount) / unitFactor
         let units: [(size: Double, suffix: String)] = CurrencyManager.shared.displayCurrency == "INR"
             ? [(1e7, "Cr"), (1e5, "L"), (1e3, "K")]
             : [(1e9, "B"), (1e6, "M"), (1e3, "K")]

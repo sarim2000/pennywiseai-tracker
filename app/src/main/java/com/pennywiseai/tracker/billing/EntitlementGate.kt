@@ -1,7 +1,7 @@
 package com.pennywiseai.tracker.billing
 
 import com.pennywiseai.tracker.billing.license.LicenseManager
-import com.pennywiseai.tracker.di.ApplicationScope
+import com.pennywiseai.tracker.core.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

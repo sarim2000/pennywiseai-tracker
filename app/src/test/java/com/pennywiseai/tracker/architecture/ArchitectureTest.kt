@@ -206,35 +206,16 @@ class ArchitectureTest {
 
     private companion object {
         const val APP = "com.pennywiseai.tracker"
-        const val MAIN = "app/src/main/java/com/pennywiseai/tracker"
 
         /** Android entry points. They may start a screen's Activity but not use its code. */
         val ENTRY_POINTS = listOf("worker", "widget", "receiver", "tile", "aiaccess")
 
-        val ENTRY_POINT_ALLOWLIST = mapOf(
-            // Launch targets for PendingIntents: an Activity is a component, not screen code.
-            "$MAIN/worker/DailySummaryWorker.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
-            "$MAIN/widget/RecentTransactionsWidget.kt" to setOf("$APP.presentation.add.QuickAddActivity"),
-            // Goal status text, built from string resources
-            "$MAIN/widget/GoalWidgetData.kt" to setOf(
-                "$APP.presentation.goals.shortLine",
-                "$APP.presentation.goals.statusLine",
-            ),
-            "$MAIN/widget/GoalWidgetConfigActivity.kt" to setOf(
-                "$APP.presentation.goals.GoalRing",
-                "$APP.presentation.goals.statusLine",
-            ),
-            // The unrecognized-SMS suggestion model, which also builds an Add draft
-            "$MAIN/receiver/SmsBroadcastReceiver.kt" to setOf("$APP.presentation.unrecognized.Suggestion"),
-        )
+        val ENTRY_POINT_ALLOWLIST = emptyMap<String, Set<String>>()
 
         /** Feature-agnostic UI shared by every screen (docs/architecture.md rule 3). */
         val SHARED_UI = listOf("ui.components", "ui.icons", "ui.animations", "ui.effects")
 
-        val SHARED_UI_ALLOWLIST = mapOf(
-            "$MAIN/ui/components/ShareCard.kt" to setOf("$APP.presentation.share.ShareCardData"),
-            "$MAIN/ui/components/SmsParsingProgressDialog.kt" to setOf("$APP.worker.OptimizedSmsReaderWorker"),
-        )
+        val SHARED_UI_ALLOWLIST = emptyMap<String, Set<String>>()
 
         fun checkAll(rules: List<Rule>) {
             val report = rules.joinToString("") { it.report() }

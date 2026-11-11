@@ -2,42 +2,12 @@
 // data (ExchangeRatesData, bound in :app's di/) and the shared top bar, date and
 // currency formatting (navigation/ExchangeRatesEntry.kt).
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.hilt.android)
+    id("pennywise.android.feature")
     alias(libs.plugins.dependency.analysis)
 }
 
 android {
     namespace = "com.pennywiseai.feature.exchangerates"
-    compileSdk = 37
-
-    defaultConfig {
-        minSdk = 26
-    }
-
-    buildFeatures {
-        compose = true
-    }
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    testOptions {
-        unitTests {
-            isReturnDefaultValues = true
-        }
-    }
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-        optIn.add("androidx.compose.material3.ExperimentalMaterial3ExpressiveApi")
-    }
 }
 
 dependencies {
@@ -52,8 +22,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.haze)
 
+    // pennywise.android.feature adds the Hilt compiler to ksp.
     implementation(libs.hilt.android)
-    ksp(libs.hilt.android.compiler)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
 
     testImplementation(libs.junit)

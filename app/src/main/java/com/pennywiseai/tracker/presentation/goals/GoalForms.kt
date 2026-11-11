@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.goals
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -8,6 +9,20 @@ import com.pennywiseai.tracker.domain.goals.monthlyDisplay
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
+
+/**
+ * The typed amount, or null when it isn't a number or has more decimals than [currency] allows
+ * ("1.235" typed as JOD, then the currency switched to USD: the text survives the switch).
+ */
+fun String.toAmountIn(currency: String): BigDecimal? =
+    toBigDecimalOrNull()?.takeIf { it.stripTrailingZeros().scale() <= MinorUnits.digits(currency) }
+
+/**
+ * A manual converted amount may be left empty (convert automatically), but text that isn't a
+ * positive amount in [currency] must block Save: read as null it would mean "convert for me".
+ */
+fun isManualAmountOk(text: String, currency: String): Boolean =
+    text.isEmpty() || text.toAmountIn(currency)?.let { it.signum() > 0 } == true
 
 /** Inline validation problems; the screen maps each to a string. */
 enum class GoalFieldError { NAME_BLANK, TARGET_INVALID, DUE_NOT_AFTER_TODAY, ALREADY_SAVED_INVALID }
@@ -24,9 +39,9 @@ data class GoalForm(
     val color: String = "#1565C0",
     val alreadySaved: String = "",
 ) {
-    val targetAmount: BigDecimal? get() = target.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    val targetAmount: BigDecimal? get() = target.toAmountIn(currency)?.takeIf { it.signum() > 0 }
     val alreadySavedAmount: BigDecimal? get() =
-        if (alreadySaved.isBlank()) BigDecimal.ZERO else alreadySaved.toBigDecimalOrNull()?.takeIf { it.signum() >= 0 }
+        if (alreadySaved.isBlank()) BigDecimal.ZERO else alreadySaved.toAmountIn(currency)?.takeIf { it.signum() >= 0 }
 
     /**
      * Field errors. [original] is the stored goal when editing: its due date may
@@ -69,15 +84,6 @@ data class GoalForm(
     }
 }
 
-/**
- * The ring's centre label while its sweep animates toward [target] (a [ratioOf]):
- * read off the same [animated] ratio, and exactly [percent] once it lands (or, heading
- * past 100%, once the ring is full, so it doesn't tick on), so the float never shows 28%
- * for 29%.
- */
-fun ringPercent(animated: Float, target: Float, percent: Int): Int =
-    if (animated == target || (animated >= 1f && target >= 1f)) percent else kotlin.math.floor(animated * 100f + 0.001f).toInt()
-
 /** Why an Add money / Take out / contribution edit didn't save. */
 enum class MoneyError { AMOUNT_INVALID, MORE_THAN_SAVED, MORE_THAN_LEFT, NO_RATE, FAILED }
 
@@ -114,7 +120,8 @@ fun editContribution(
     val (origAmount, origCurrency) = when {
         !changed || existing.originalAmount == null -> existing.originalAmount to existing.originalCurrency
         existing.transactionId == null -> null to null
-        else -> existing.originalAmount.multiply(newAbs).divide(oldAbs, 2, RoundingMode.HALF_UP) to existing.originalCurrency
+        else -> existing.originalAmount.multiply(newAbs)
+            .divide(oldAbs, existing.originalCurrency?.let(MinorUnits::digits) ?: 2, RoundingMode.HALF_UP) to existing.originalCurrency
     }
     return Result.success(
         existing.copy(amount = signed, date = date, note = note, originalAmount = origAmount, originalCurrency = origCurrency)

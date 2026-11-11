@@ -8,9 +8,9 @@ import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.domain.goals.GoalTone
 import com.pennywiseai.tracker.domain.goals.fraction
 import com.pennywiseai.tracker.domain.goals.percent
-import com.pennywiseai.tracker.presentation.goals.shortLine
-import com.pennywiseai.tracker.presentation.goals.statusLine
 import com.pennywiseai.tracker.domain.goals.tone
+import com.pennywiseai.tracker.ui.components.shortLine
+import com.pennywiseai.tracker.ui.components.statusLine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable

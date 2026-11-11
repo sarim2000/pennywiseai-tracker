@@ -38,8 +38,17 @@
 - [ ] Focused PR (single purpose)
 - [ ] Tests added/updated (if applicable)
 - [ ] Docs updated (if applicable)
-- [ ] `./init.sh` passes locally (scoped: `./init.sh parser` / `./init.sh app`)
+- [ ] `./init.sh` passes locally (scoped: `./init.sh parser` / `./init.sh app`; paste the target and result under "How to test")
+- [ ] UI/runtime change: checked on a device or emulator, light and dark (screenshots above)
+- [ ] Fixtures, logs and screenshots contain no real personal or financial data
 - [ ] Follows existing code style and patterns
+
+## AI assistance
+
+<!-- See "AI-Assisted Contributions" in CONTRIBUTING.md. -->
+
+- [ ] No AI tools used
+- [ ] AI-assisted (tool: ___ ); I've reviewed every line and can explain it
 
 ## Refactor PRs
 

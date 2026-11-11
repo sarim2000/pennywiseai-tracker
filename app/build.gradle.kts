@@ -175,8 +175,16 @@ android {
         }
     }
     lint {
-        abortOnError = false
+        // New errors fail the build; existing debt lives in the baseline.
+        // Refresh it with ./gradlew :app:updateLintBaselineStandardDebug.
+        abortOnError = true
+        baseline = file("lint-baseline.xml")
         checkReleaseBuilds = false
+        // Version-bump nags go stale as releases ship, and for the root gradle/
+        // files they record machine-specific paths in the baseline.
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion", "NewerVersionAvailable")
+        // Crowdin fills translations after merge, so new strings ship untranslated.
+        warning += "MissingTranslation"
     }
 }
 
@@ -197,6 +205,13 @@ composeCompiler {
         reportsDestination = layout.buildDirectory.dir("compose-reports")
         metricsDestination = layout.buildDirectory.dir("compose-metrics")
     }
+}
+
+// Coverage, advisory: only with -Pcoverage, so the normal build stays uninstrumented.
+// ./gradlew -Pcoverage :app:koverXmlReportStandardDebug. See docs/architecture.md.
+// A bare -Pcoverage or -Pcoverage=true turns it on; -Pcoverage=false leaves it off.
+if (providers.gradleProperty("coverage").map { it.isEmpty() || it.toBoolean() }.getOrElse(false)) {
+    apply(plugin = "org.jetbrains.kotlinx.kover")
 }
 
 // A single profile for both flavors. Generation runs only when asked for
@@ -260,6 +275,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(project(":core:designsystem"))
     implementation(project(":feature:exchangerates"))
+    implementation(project(":feature:learnedcategories"))
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.profileinstaller)

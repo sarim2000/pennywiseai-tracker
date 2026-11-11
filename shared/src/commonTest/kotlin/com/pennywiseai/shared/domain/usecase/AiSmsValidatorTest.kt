@@ -46,6 +46,27 @@ class AiSmsValidatorTest {
     }
 
     @Test
+    fun keepsEachCurrencysOwnDecimals() {
+        val jod = AiSmsValidator.validate(
+            "JOD 1.235 spent on your Example Bank card XX4321 at TEST STORE", reading(amount = "1.235", currency = "JOD"), null
+        )
+        assertEquals("1.235", assertNotNull(jod).amount)
+        assertEquals("JOD", jod.currency)
+        assertEquals("12.500", AiSmsValidator.validate("KWD 12.500 spent at TEST STORE", reading(amount = "12.5", currency = "KWD"), null)?.amount)
+        // Dollars have cents, not mils: a third decimal isn't a USD amount.
+        assertNull(AiSmsValidator.validate("USD 12.345 spent at TEST STORE", reading(amount = "12.345", currency = "USD"), null))
+    }
+
+    @Test
+    fun capsIntegerDigitsSoTheMinorAmountFitsALong() {
+        // 16 integer digits x 100 fits; x 1000 for a 3-decimal currency would not, so 15 is its cap.
+        val big = "1234567890123456"
+        assertNotNull(AiSmsValidator.validate("INR $big spent at TEST STORE", reading(amount = big), null))
+        assertNull(AiSmsValidator.validate("JOD $big spent at TEST STORE", reading(amount = big, currency = "JOD"), null))
+        assertNotNull(AiSmsValidator.validate("JOD ${big.drop(1)} spent at TEST STORE", reading(amount = big.drop(1), currency = "JOD"), null))
+    }
+
+    @Test
     fun rejectsAnAmountTheSmsDoesNotShow() {
         assertNull(AiSmsValidator.validate(CARD_SPEND, reading(amount = "1300"), null))
         assertNull(AiSmsValidator.validate(CARD_SPEND, reading(amount = "4321"), null)) // the masked card, not an amount

@@ -24,9 +24,10 @@ class RoomSharedTransactionRepository(
 
     override suspend fun getByAmountAndDate(
         amountMinor: Long,
+        currency: String,
         startEpochMillis: Long,
         endEpochMillis: Long
-    ): List<SharedTransaction> = dao.getByAmountAndDate(amountMinor, startEpochMillis, endEpochMillis).map { it.toDomain() }
+    ): List<SharedTransaction> = dao.getByAmountAndDate(amountMinor, currency, startEpochMillis, endEpochMillis).map { it.toDomain() }
 
     override suspend fun insert(transaction: SharedTransaction): Long =
         dao.insert(transaction.toEntity())

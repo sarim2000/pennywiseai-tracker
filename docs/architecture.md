@@ -142,6 +142,8 @@ app/
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
 │                                #   overscroll effect, appearance enums (same packages as before the move)
 feature/exchangerates/           # Exchange-rates screen + ViewModel (package presentation.exchangerates)
+feature/learnedcategories/       # Learned-categories screen + ViewModel (package presentation.settings)
+build-logic/                     # Convention plugins: pennywise.android.compose-library / .feature
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
 shared/                          # KMP code shared with iOS
 iosApp/                          # Swift iOS app
@@ -211,8 +213,6 @@ and it depends on no project module, so the compiler keeps the theme free of
   `R.string`, money formatting, Haze, Coil or feature types, so moving the generic
   ones would split `ui.components` across two modules and serve no caller. Move what
   a second Compose module needs in the PR that adds it.
-- **No convention plugin yet.** One library module doesn't justify `build-logic`, so
-  its build file repeats `:app`'s SDK and JVM settings. Revisit when a second one lands.
 
 ### `:feature:exchangerates`
 
@@ -228,8 +228,32 @@ port (`di/ExchangeRatesModule.kt`) and calls the screen through
   `com.pennywiseai.feature.exchangerates.R`.
 - **Strings live in the module** (`res/values*/strings_exchangerates.xml`). Crowdin
   needs one `files` entry per feature module in `crowdin.yml`.
-- Hilt and KSP run here for the ViewModel. Room, KSP schemas and the baseline
-  profile stay in `:app`.
+- Hilt and KSP run here for the ViewModel, applied by `pennywise.android.feature`
+  ([`build-logic`](#build-logic)). Room, KSP schemas and the baseline profile
+  stay in `:app`.
+
+### `:feature:learnedcategories`
+
+The second feature module, built the same way: `LearnedCategoriesScreen`, its
+ViewModel and the `LearnedCategoriesData` port (backed by
+`MerchantMappingRepository` in `di/LearnedCategoriesModule.kt`).
+`navigation/LearnedCategoriesEntry.kt` passes in `PennyWiseScaffold` with the back
+button, `GroupedRow` and `categoryLabel`. The package stays
+`com.pennywiseai.tracker.presentation.settings`; its `R` is
+`com.pennywiseai.feature.learnedcategories.R`, which the Settings row in `:app`
+also reads for the screen's title and subtitle.
+
+### `build-logic`
+
+The included build `build-logic` (shares `gradle/libs.versions.toml`) holds two
+precompiled script plugins.
+`pennywise.android.compose-library` sets what the Android library modules share
+with `:app`: compileSdk 37, minSdk 26, Compose, Java/Kotlin target 17, the
+Material 3 Expressive opt-in and `isReturnDefaultValues` for unit tests.
+`pennywise.android.feature` adds KSP, the Hilt plugin and the Hilt compiler.
+A module still declares its namespace and every dependency it compiles against.
+`:app`, `:shared`, `:parser-core` and `:baselineprofile` don't use them; change
+`:app`'s copy of these settings together with the plugin.
 
 ### Enforced by `ArchitectureTest`
 
@@ -243,7 +267,7 @@ tests, so `./init.sh app` and CI fail on a new violation:
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
 | `data` | `presentation`, `ui` |
 | `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
-| `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (an Activity used as a launch target is allowlisted by name) |
+| `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (launch an Activity by class name through a `core` intent contract such as `core/QuickAddIntent`; don't import it) |
 | `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
 
@@ -341,6 +365,28 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 - SMS parsing accuracy
 - AI categorization
 
+## Static analysis and coverage
+
+Both are advisory: neither is in `./init.sh` nor in the required **Check** job.
+`quality-advisory.yml` runs them in CI with `continue-on-error` and uploads the
+reports as artifacts.
+
+- **Detekt**: `./gradlew detekt` checks the production sources of `:app` (main,
+  standard, fdroid), `core/*`, `feature/*` and `parser-core`. It parses syntax
+  only (no type resolution, no formatting rules), on top of the default rule
+  set; overrides go in `config/detekt/detekt.yml`. Findings that predate it are in
+  `config/detekt/baseline.xml`, so only new ones show. Report:
+  `build/reports/detekt/`. Regenerate the baseline with `./gradlew detektBaseline`
+  only to drop fixed findings, not to accept new ones.
+- **Kover**: only with `-Pcoverage` (or `-Pcoverage=true`; `=false` leaves it
+  off), so normal builds stay uninstrumented. It
+  writes per-module reports from the debug unit tests, with no aggregation or
+  thresholds: `./gradlew -Pcoverage :app:koverHtmlReportStandardDebug` (or
+  `koverXmlReportStandardDebug`) for `:app`, and `koverHtmlReportDebug` /
+  `koverXmlReportDebug` for modules using the `build-logic` convention plugins.
+  Reports go to `<module>/build/reports/kover/`. Generated Hilt and Compose
+  classes are included in the totals.
+
 ## Performance Considerations
 
 ### Memory Management
@@ -390,7 +436,9 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 - `-PspotlessRatchetFrom=<ref>` compares against another ref (a stacked PR's base); an empty value checks every file.
 - `./init.sh` (every target) and the opt-in `.githooks/pre-push` hook run it; `check`/`build` don't. Don't reformat files you aren't changing.
 - Its CI job (Format Check) fails the workflow on a violation in a changed file.
+- Dependency updates: Renovate (`renovate.json`) opens grouped PRs weekly; the coupled Kotlin/AGP/Hilt/LiteRT-LM/coroutines toolchain and all majors wait for approval on its Dependency Dashboard issue.
 - Unused or mis-scoped dependencies: `./gradlew buildHealth --max-workers=2` (Dependency Analysis plugin, report only). Its known false positives are listed in [architecture-baseline.md](architecture-baseline.md#dependencies).
+- Vulnerable dependencies: the **Dependency Review** PR check fails when a PR adds a dependency with a known high/critical advisory. It's not required for merge yet. `dependency-graph.yml` resolves the Gradle graph and `dependency-graph-submit.yml` submits it after validating it, which lets fork PRs work too.
 
 ## Migration & Evolution
 

@@ -1,0 +1,98 @@
+# Fails a PR that adds a dependency with a known high/critical vulnerability.
+# Waits for dependency-graph.yml + dependency-graph-submit.yml to submit the
+# PR's Gradle snapshot, then diffs it against the base commit's.
+#
+# GitHub can take well over 20 minutes to show an accepted PR snapshot to the
+# compare API (we've seen 13 to 35+). If it hasn't shown up by the deadline,
+# the job passes with a warning and skips the review; re-run it later to get
+# one. Failing instead turned every PR red while it waited.
+#
+# Not required for merging (and not in test.yml's `check` job) while it's new:
+# it depends on two other workflows and on repo settings (Dependency graph), so
+# a hiccup there would block every PR. Promote it once it has proven reliable.
+# On a fork PR it's only a safety net for honest mistakes: the PR controls the
+# build that produces its own graph.
+name: Dependency Review
+
+on:
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+    # Wait here rather than with the action's retry-on-snapshot-warnings: the
+    # action runs on whatever diff it has when it gives up, so a missing head
+    # snapshot would pass as "no Gradle changes". We skip the review instead.
+    # Only a missing head snapshot is worth waiting for. Other warnings stay,
+    # e.g. a PR branched before main had snapshots has none at its merge base,
+    # so the action reports every dependency as added.
+    - name: Wait for the PR's Gradle snapshot
+      id: snapshot
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -euo pipefail
+        # Covers generate + submit and the usual GitHub delay, without holding
+        # a runner (out of the 20 shared by every workflow) for longer.
+        deadline=$((SECONDS + 1200))
+        while :; do
+          raw=$(gh api -i "repos/$REPO/dependency-graph/compare/$BASE_SHA...$HEAD_SHA" \
+            | tr -d '\r' \
+            | awk 'tolower($0) ~ /^x-github-dependency-graph-snapshot-warnings:/ {sub(/^[^:]*:[ ]*/, ""); print}' \
+            | paste -sd, -)
+          # Each value is base64-encoded text; gh joins repeated headers with
+          # commas, which base64 never contains, so decode them one by one.
+          warnings=""
+          IFS=',' read -ra values <<<"$raw"
+          for value in ${values[@]+"${values[@]}"}; do
+            value=${value// /}
+            [[ -z "$value" ]] && continue
+            if ! decoded=$(base64 -d <<<"$value" 2>/dev/null); then
+              msg="Couldn't decode the snapshot warning header ($raw), so dependencies weren't reviewed. Re-run this job later."
+              echo "::warning::$msg"
+              echo "$msg" >>"$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            warnings+="$decoded"$'\n'
+          done
+          if [[ "$warnings" != *"No snapshots were found for the head SHA"* ]]; then
+            echo "ready=true" >>"$GITHUB_OUTPUT"
+            break
+          fi
+          if (( SECONDS >= deadline )); then
+            msg="Gradle snapshot for $HEAD_SHA isn't visible to GitHub yet, so dependencies weren't reviewed. Re-run this job later."
+            echo "::warning::$msg"
+            echo "$msg" >>"$GITHUB_STEP_SUMMARY"
+            break
+          fi
+          echo "Waiting for snapshot: $warnings"
+          sleep 30
+        done
+
+    - if: steps.snapshot.outputs.ready == 'true'
+      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      with:
+        fail-on-severity: high
+        # The Gradle plugin submits no scopes, so GitHub reports them as
+        # `unknown`; with the default (`runtime`) nothing could ever fail.
+        fail-on-scopes: runtime, unknown
+        # License policy is a separate decision; vulnerabilities only for now.
+        license-check: false
+        # Fork PRs can't get `pull-requests: write`, so no PR comment; the
+        # result is in the job summary.
+        comment-summary-in-pr: never

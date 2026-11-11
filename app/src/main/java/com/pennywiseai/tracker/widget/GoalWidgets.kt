@@ -101,7 +101,7 @@ private fun openBudgets(context: Context, createGoal: Boolean = false) =
     }
 
 /**
- * The goal's ring, like the in-app [com.pennywiseai.tracker.presentation.goals.GoalRing].
+ * The goal's ring, like the in-app [com.pennywiseai.tracker.ui.components.GoalRing].
  * Glance can't draw arcs, so both layers are bitmaps; the track is drawn white and
  * tinted by the launcher, so it follows day/night even when this process hasn't.
  */

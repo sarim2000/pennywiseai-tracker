@@ -31,6 +31,7 @@ opencsv = "5.12.0"
 pdfboxAndroid = "2.0.27.0"
 review = "2.0.2"
 roomVersion = "3.0.3"
+sqliteVersion = "2.7.1"
 # litertlm >= 0.14 is built with -Xjvm-default=all and calls
 # SendChannel.close$default as an interface static, which kotlinx-coroutines
 # only ships from 1.11.0 — keep coroutines >= 1.11.0 (#599). 0.17+ needs
@@ -52,6 +53,10 @@ billingKtx = "9.1.0"
 leakcanary = "3.0-alpha-9"
 spotless = "8.11.0"
 dependencyAnalysis = "3.20.2"
+# Advisory only (docs/architecture.md#static-analysis-and-coverage). 1.23.x parses with
+# its own embedded Kotlin compiler (2.0.21), not the project's.
+detekt = "1.23.8"
+kover = "0.9.11"
 
 [libraries]
 leakcanary-android = { module = "com.squareup.leakcanary:leakcanary-android", version.ref = "leakcanary" }
@@ -80,8 +85,9 @@ androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecy
 androidx-room-compiler = { module = "androidx.room3:room3-compiler", version.ref = "roomVersion" }
 androidx-room-runtime = { module = "androidx.room3:room3-runtime", version.ref = "roomVersion" }
 androidx-room-testing = { module = "androidx.room3:room3-testing", version.ref = "roomVersion" }
-androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version = "2.7.1" }
-androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version = "2.7.1" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqliteVersion" }
+androidx-sqlite-bundled-jvm = { module = "androidx.sqlite:sqlite-bundled-jvm", version.ref = "sqliteVersion" }
+androidx-sqlite-framework = { module = "androidx.sqlite:sqlite-framework", version.ref = "sqliteVersion" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workVersion" }
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "workVersion" }
 app-update = { module = "com.google.android.play:app-update", version.ref = "appUpdate" }
@@ -134,3 +140,5 @@ hilt-android = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndro
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

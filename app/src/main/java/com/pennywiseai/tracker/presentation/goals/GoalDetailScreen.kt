@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.goals
 
-import com.pennywiseai.tracker.domain.goals.monthlyDisplay
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,11 +44,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,7 +69,9 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
+import com.pennywiseai.tracker.domain.goals.monthlyDisplay
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
+import com.pennywiseai.tracker.ui.components.GoalRing
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -81,9 +82,9 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.tabular
-import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -510,7 +511,7 @@ private fun MoneySheet(
                 }
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { if (it.matches(amountInput)) amount = it },
+                    onValueChange = { if (it.matches(amountInput(currency))) amount = it },
                     label = { Text(stringResource(R.string.goal_money_amount)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -527,7 +528,7 @@ private fun MoneySheet(
                 )
                 OutlinedTextField(
                     value = manual,
-                    onValueChange = { if (it.matches(amountInput)) manual = it },
+                    onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
                     singleLine = true,
@@ -565,8 +566,8 @@ private fun MoneySheet(
                 }
                 Box(Modifier.weight(1f))
                 Button(
-                    onClick = { onSave(amount.toBigDecimalOrNull(), currency, date, note, manual.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }) },
-                    enabled = !state.saving,
+                    onClick = { onSave(amount.toAmountIn(currency), currency, date, note, manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
+                    enabled = !state.saving && isManualAmountOk(manual, goalCurrency),
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_money_save)) }
             }

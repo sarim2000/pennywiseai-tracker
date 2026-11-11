@@ -41,8 +41,8 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.QuickAddIntent
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.presentation.add.QuickAddActivity
 import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -251,6 +251,6 @@ class OpenAddTransactionAction : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        context.startActivity(Intent(context, QuickAddActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(QuickAddIntent.create(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }

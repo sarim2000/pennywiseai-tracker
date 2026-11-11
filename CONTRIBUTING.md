@@ -33,7 +33,7 @@ To add support for a new bank:
    override fun canHandle(sender: String): Boolean
    ```
 4. Register your parser in `BankParserFactory` — registration order matters, so place it **above** any broader parser whose `canHandle()` could also match your sender IDs
-5. Test with real SMS samples ([parser test conventions](docs/parser-test-standards.md))
+5. Test with representative SMS samples, every personal and financial value replaced with synthetic data ([parser test conventions](docs/parser-test-standards.md))
 6. Run `./scripts/update-supported-banks.sh` so the generated bank list stays in sync (CI fails otherwise)
 
 Full walkthrough: [docs/adding-bank-parsers.md](docs/adding-bank-parsers.md)
@@ -66,6 +66,33 @@ Full walkthrough: [docs/adding-bank-parsers.md](docs/adding-bank-parsers.md)
 - Ensure all tests pass
 - Follow existing code style and patterns
 - Add screenshots for UI changes
+
+### 🤖 AI-Assisted Contributions
+
+AI coding tools are welcome; much of PennyWise is built with them. The rules are
+about accountability, not the tool:
+
+- **You own the PR.** You've read every line, can explain why it's there, and
+  answer review questions yourself. Check AI-drafted replies before posting them.
+- **Say so.** Tick the AI box in the PR template and name the tool.
+- **Show real results.** Paste what `./init.sh` actually printed, not "tests should
+  pass". UI or runtime changes need screenshots or a recording from a device or
+  emulator, in light and dark.
+- **No real data.** SMS fixtures, logs, screenshots, issues and comments use
+  synthetic or anonymized text: never a real message, name, phone, account number
+  or balance. Sanitize before you paste anything into an AI tool, and check its
+  output, since it repeats whatever is in its context.
+- **A human answers for every PR.** A PR opened by an agent or bot names the person
+  who reviewed it and will handle feedback (dependency bots like Renovate excepted).
+- **License.** AI-assisted output must be compatible with the project's license
+  and keep any required third-party notices.
+- **Stay in scope.** One purpose per PR, no unrelated refactors or reformatting
+  the tool decided on, and the hard constraints in [AGENTS.md](AGENTS.md) apply.
+- **Issues too.** Report problems you've observed or verified, with the evidence
+  you have and any limits on reproducing them. Don't file unchecked AI-generated
+  findings.
+
+A PR that skips these may be closed; fix it and reopen.
 
 ## Development Setup
 
@@ -115,7 +142,7 @@ pennywise-web/        # Web deployment (Cloudflare Worker + Ktor server)
 
 ## Testing
 
-- Test with real SMS messages from supported banks
+- Test with SMS formats from supported banks, using synthetic values in place of personal and financial data
 - Test both light and dark themes
 - Test on different screen sizes
 - Verify offline functionality

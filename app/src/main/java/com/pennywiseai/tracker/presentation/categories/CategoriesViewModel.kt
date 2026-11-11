@@ -1,20 +1,20 @@
 package com.pennywiseai.tracker.presentation.categories
 
-import com.pennywiseai.tracker.data.database.entity.builtinKey
-import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
-import com.pennywiseai.tracker.di.ApplicationScope
-import kotlinx.coroutines.CoroutineScope
 
 @HiltViewModel
 class CategoriesViewModel @Inject constructor(
@@ -23,11 +23,11 @@ class CategoriesViewModel @Inject constructor(
     // [toggleCategoryHidden].
     @ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
-    
+
     // UI State
     private val _uiState = MutableStateFlow(CategoriesUiState())
     val uiState: StateFlow<CategoriesUiState> = _uiState.asStateFlow()
-    
+
     // Categories list
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategories()
         .stateIn(
@@ -35,35 +35,35 @@ class CategoriesViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    
+
     // Dialog states
     private val _showAddEditDialog = MutableStateFlow(false)
     val showAddEditDialog: StateFlow<Boolean> = _showAddEditDialog.asStateFlow()
-    
+
     private val _editingCategory = MutableStateFlow<CategoryEntity?>(null)
     val editingCategory: StateFlow<CategoryEntity?> = _editingCategory.asStateFlow()
-    
+
     // Snackbar message
     private val _snackbarMessage = MutableStateFlow<UiText?>(null)
     val snackbarMessage: StateFlow<UiText?> = _snackbarMessage.asStateFlow()
-    
+
     fun showAddDialog() {
         _editingCategory.value = null
         _showAddEditDialog.value = true
     }
-    
+
     fun showEditDialog(category: CategoryEntity) {
         // Built-ins can be renamed and restyled too (#823); the dialog locks their
         // type and parent, and they still can't be deleted.
         _editingCategory.value = category
         _showAddEditDialog.value = true
     }
-    
+
     fun hideDialog() {
         _showAddEditDialog.value = false
         _editingCategory.value = null
     }
-    
+
     fun saveCategory(
         name: String,
         color: String,
@@ -74,7 +74,7 @@ class CategoriesViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val editingCat = _editingCategory.value
-                
+
                 if (editingCat != null) {
                     // Renaming onto another category's name would merge two
                     // categories' transactions silently; refuse it.
@@ -102,7 +102,7 @@ class CategoriesViewModel @Inject constructor(
                         _snackbarMessage.value = UiText.Res(R.string.categories_msg_already_exists, listOf(name))
                         return@launch
                     }
-                    
+
                     // Create new category
                     categoryRepository.createCategory(
                         name = name,
@@ -113,20 +113,20 @@ class CategoriesViewModel @Inject constructor(
                     )
                     _snackbarMessage.value = UiText.Res(R.string.categories_msg_created)
                 }
-                
+
                 hideDialog()
             } catch (e: Exception) {
                 _snackbarMessage.value = UiText.Res(R.string.categories_msg_save_error, listOf("${e.message}"))
             }
         }
     }
-    
+
     fun deleteCategory(category: CategoryEntity) {
         if (category.isSystem) {
             _snackbarMessage.value = UiText.Res(R.string.categories_msg_system_not_deletable)
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 val deleted = categoryRepository.deleteCategory(category.id)
@@ -140,7 +140,7 @@ class CategoriesViewModel @Inject constructor(
             }
         }
     }
-    
+
     // One lock per category, so taps on the same row are applied one after
     // another instead of overlapping. Dropping a tap instead would lose it: two
     // quick taps have to land as two flips, or the row ends up in the opposite

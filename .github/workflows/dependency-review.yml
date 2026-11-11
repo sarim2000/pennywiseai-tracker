@@ -27,6 +27,32 @@ jobs:
     timeout-minutes: 25
 
     steps:
+    # Wait here rather than with the action's retry-on-snapshot-warnings: the
+    # action passes with only a warning if it gives up, and a snapshot landing
+    # after that would never be reviewed. Once this step passes, the action
+    # diffs the real snapshot.
+    - name: Wait for the PR's Gradle snapshot
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      run: |
+        set -euo pipefail
+        # Generate (15 min) + submit (5 min) timeouts, plus queueing slack.
+        deadline=$((SECONDS + 1200))
+        while :; do
+          warnings=$(gh api -i "repos/$REPO/dependency-graph/compare/$BASE_SHA...$HEAD_SHA" \
+            | tr -d '\r' \
+            | awk 'tolower($0) ~ /^x-github-dependency-graph-snapshot-warnings:/ {sub(/^[^:]*:[ ]*/, ""); print}')
+          [[ -z "$warnings" ]] && break
+          if (( SECONDS >= deadline )); then
+            echo "::error::Dependency graph snapshot still missing: $warnings"; exit 1
+          fi
+          echo "Waiting for snapshot: $warnings"
+          sleep 30
+        done
+
     - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
       with:
         fail-on-severity: high
@@ -38,24 +64,3 @@ jobs:
         # Fork PRs can't get `pull-requests: write`, so no PR comment; the
         # result is in the job summary.
         comment-summary-in-pr: never
-        # Poll until the PR's Gradle snapshot lands (generate + submit runs).
-        retry-on-snapshot-warnings: true
-        # Generate (15 min) + submit (5 min) timeouts, plus queueing slack.
-        retry-on-snapshot-warnings-timeout: 1200
-
-    # The action passes even if the snapshot never arrived (it just warns), which
-    # would let a new vulnerable Gradle dependency through on a green check.
-    - name: Fail if the PR's Gradle snapshot is still missing
-      env:
-        GH_TOKEN: ${{ github.token }}
-        REPO: ${{ github.repository }}
-        BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      run: |
-        set -euo pipefail
-        warnings=$(gh api -i "repos/$REPO/dependency-graph/compare/$BASE_SHA...$HEAD_SHA" \
-          | tr -d '\r' \
-          | awk 'tolower($0) ~ /^x-github-dependency-graph-snapshot-warnings:/ {sub(/^[^:]*:[ ]*/, ""); print}')
-        if [[ -n "$warnings" ]]; then
-          echo "::error::Dependency graph snapshot warnings remain: $warnings"; exit 1
-        fi

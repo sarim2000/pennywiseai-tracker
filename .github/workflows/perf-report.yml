@@ -14,6 +14,7 @@ on:
     - 'shared/**'
     - 'parser-core/**'
     - 'baselineprofile/**'
+    - 'build-logic/**'
     - 'gradle/libs.versions.toml'
     - '*.gradle.kts'
     - 'compose_compiler_config.conf'

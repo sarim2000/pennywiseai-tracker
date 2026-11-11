@@ -1,59 +1,59 @@
 package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.billing.EntitlementGate
-import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.Constants.Links
-import com.pennywiseai.tracker.data.repository.ModelRepository
-import com.pennywiseai.tracker.data.repository.ModelState
-import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
-import com.pennywiseai.tracker.data.preferences.DateFormatStyle
-import com.pennywiseai.tracker.utils.AppDates
-import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.backup.BackupExporter
 import com.pennywiseai.tracker.data.backup.BackupImporter
 import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
-import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
-import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
-import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
+import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.ModelRepository
+import com.pennywiseai.tracker.data.repository.ModelState
+import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
-import android.content.Intent
-import androidx.core.content.FileProvider
-import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.first
-import java.net.URLEncoder
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import java.io.File
+import java.net.URLEncoder
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -88,28 +88,27 @@ class SettingsViewModel @Inject constructor(
 
     /** Drives the Settings → Pro row: shows "Active" when true, "Upgrade" when false. */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-    
-    
+
     // Download state
     // Starts from the cheap marker check, so a ready model doesn't flash "Download".
     private val _downloadState = MutableStateFlow(
         if (modelRepository.isModelVerified()) DownloadState.COMPLETED else DownloadState.NOT_DOWNLOADED
     )
     val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
-    
+
     private val _downloadProgress = MutableStateFlow(0)
     val downloadProgress: StateFlow<Int> = _downloadProgress.asStateFlow()
-    
+
     private val _downloadedMB = MutableStateFlow(0L)
     val downloadedMB: StateFlow<Long> = _downloadedMB.asStateFlow()
-    
+
     private val _totalMB = MutableStateFlow(0L)
     val totalMB: StateFlow<Long> = _totalMB.asStateFlow()
-    
+
     // Import/Export state
     private val _importExportMessage = MutableStateFlow<UiText?>(null)
     val importExportMessage: StateFlow<UiText?> = _importExportMessage.asStateFlow()
-    
+
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
 
@@ -156,10 +155,9 @@ class SettingsViewModel @Inject constructor(
 
     private var currentFolderPickerAction: FolderPickerAction = FolderPickerAction.ENABLE
 
-    
     // Developer mode state
     val isDeveloperModeEnabled = userPreferencesRepository.isDeveloperModeEnabled
-    
+
     // SMS scan period state
     val smsScanMonths = userPreferencesRepository.smsScanMonths
     val smsScanAllTime = userPreferencesRepository.smsScanAllTime
@@ -211,7 +209,7 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = CurrencyUtils.getAllSupportedCurrencies()
         )
-    
+
     // Base currency state
     val baseCurrency = userPreferencesRepository.baseCurrency
 
@@ -240,7 +238,7 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
-    
+
     // Unrecognized SMS state
     val unreportedSmsCount = unrecognizedSmsRepository.getUnreportedCount()
         .stateIn(
@@ -248,7 +246,7 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = 0
         )
-    
+
     private var watchingModelStatus = false
 
     /**
@@ -327,7 +325,7 @@ class SettingsViewModel @Inject constructor(
             _downloadProgress.value = 0
         }
     }
-    
+
     fun startModelDownload() = modelDownloader.start()
 
     fun cancelDownload() {
@@ -355,7 +353,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun setUnifiedCurrencyMode(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.setUnifiedCurrencyMode(enabled)
@@ -490,7 +488,7 @@ class SettingsViewModel @Inject constructor(
             contactsResolver.clearCache()
         }
     }
-    
+
     fun updateSmsScanMonths(months: Int) {
         viewModelScope.launch {
             val currentMonths = userPreferencesRepository.getSmsScanMonths()
@@ -535,23 +533,23 @@ class SettingsViewModel @Inject constructor(
             userPreferencesRepository.updateSmsScanCustomDate(normalizedDate)
         }
     }
-    
+
     fun openUnrecognizedSmsReport(context: Context) {
         viewModelScope.launch {
             try {
                 val firstUnreported = unrecognizedSmsRepository.getFirstUnreported()
-                
+
                 if (firstUnreported != null) {
                     val url = SmsReportUrlBuilder.buildUrl(context, firstUnreported.smsBody, firstUnreported.sender)
                     Log.d("SettingsViewModel", "Full URL length: ${url.length}")
-                    
+
                     // Open in browser
                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                     context.startActivity(intent)
-                    
+
                     // Mark as reported
                     unrecognizedSmsRepository.markAsReported(listOf(firstUnreported.id))
-                    
+
                     Log.d("SettingsViewModel", "Opened report for unrecognized SMS from: ${firstUnreported.sender}")
                 } else {
                     Log.d("SettingsViewModel", "No unreported SMS messages found")
@@ -561,7 +559,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun exportBackup() {
         viewModelScope.launch {
             try {
@@ -585,7 +583,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun saveBackupToFile(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
@@ -604,13 +602,13 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun shareBackup() {
         _exportedBackupFile.value?.let { file ->
             shareBackupFile(file)
         }
     }
-    
+
     private fun shareBackupFile(file: File) {
         try {
             val uri = FileProvider.getUriForFile(
@@ -618,7 +616,7 @@ class SettingsViewModel @Inject constructor(
                 "${context.packageName}.fileprovider",
                 file
             )
-            
+
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/octet-stream"
                 putExtra(Intent.EXTRA_STREAM, uri)
@@ -626,7 +624,7 @@ class SettingsViewModel @Inject constructor(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            
+
             context.startActivity(Intent.createChooser(intent, context.getString(R.string.settings_share_backup_chooser)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             })
@@ -634,7 +632,7 @@ class SettingsViewModel @Inject constructor(
             Log.e("SettingsViewModel", "Error sharing backup file", e)
         }
     }
-    
+
     fun importBackup(uri: android.net.Uri) {
         viewModelScope.launch {
             try {
@@ -660,7 +658,7 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Imports historical transactions from a CSV in PennyWise's own export format.
      * Free feature (onboarding/migration) — not gated behind Pro.
@@ -812,7 +810,7 @@ class SettingsViewModel @Inject constructor(
             _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_enabled)
         }
     }
-    
+
     fun updateBaseCurrency(currency: String) {
         changeBaseCurrency { userPreferencesRepository.updateBaseCurrency(currency) }
     }

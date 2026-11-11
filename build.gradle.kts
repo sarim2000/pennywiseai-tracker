@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.spotless)
     alias(libs.plugins.dependency.analysis)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kover) apply false
 }
 
 // Dependency analysis, reporting only: `./gradlew buildHealth --max-workers=2` writes

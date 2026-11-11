@@ -14,4 +14,5 @@ dependencies {
     implementation(plugin(libs.plugins.kotlin.compose))
     implementation(plugin(libs.plugins.ksp))
     implementation(plugin(libs.plugins.hilt.android))
+    implementation(plugin(libs.plugins.kover))
 }

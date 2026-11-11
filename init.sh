@@ -89,21 +89,22 @@ run() {
 verify_format() {
   # Check-only on purpose: a gate that rewrote files could clobber unrelated
   # uncommitted work. Fixing is one explicit command away.
-  # Spotless diffs against the merge base with origin/main (build.gradle.kts), so
-  # a missing ref or a shallow clone fails before any file is checked.
+  if run ./gradlew spotlessCheck --continue -q; then
+    return 0
+  fi
+  echo "" >&2
+  # Spotless ratchets from origin/main unless -PspotlessRatchetFrom says otherwise
+  # (build.gradle.kts). Only diagnose the ref after a failure, so a configured
+  # ref or a full check is never blocked by a missing origin/main.
   if ! git merge-base HEAD origin/main >/dev/null 2>&1; then
-    echo "✗ The format check compares against origin/main, which is missing or has" >&2
-    echo "  no common history with HEAD. Run: git fetch origin main" >&2
-    echo "  (shallow clone: git fetch --unshallow origin)" >&2
-    return 1
+    echo "✗ origin/main is missing or shares no history with HEAD. If Spotless" >&2
+    echo "  reported a missing ref or merge base, fetch first (spotlessApply needs it too):" >&2
+    echo "  git fetch origin main   (shallow clone: git fetch --unshallow origin)" >&2
   fi
-  if ! run ./gradlew spotlessCheck --continue -q; then
-    echo "" >&2
-    echo "✗ Formatting check failed. Fix with: ./gradlew spotlessApply" >&2
-    echo "  then review and commit the diff. Errors marked 'no autocorrection'" >&2
-    echo "  (e.g. a comment inside the import list) need a manual edit first." >&2
-    return 1
-  fi
+  echo "✗ Formatting check failed. Fix with: ./gradlew spotlessApply" >&2
+  echo "  then review and commit the diff. Errors marked 'no autocorrection'" >&2
+  echo "  (e.g. a comment inside the import list) need a manual edit first." >&2
+  return 1
 }
 
 verify_parser() {
@@ -112,7 +113,7 @@ verify_parser() {
 
 verify_app() {
   run ./gradlew :app:compileStandardDebugKotlin
-  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest
+  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest :shared:testAndroidHostTest
 }
 
 case "$TARGET" in

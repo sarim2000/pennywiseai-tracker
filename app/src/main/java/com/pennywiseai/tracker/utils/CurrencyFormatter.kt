@@ -194,39 +194,51 @@ object CurrencyFormatter {
             return "${CURRENCY_SYMBOLS[currencyCode]}${formatAmount(amount, currencyCode)}"
         }
         return try {
-            val locale = groupingLocale(currencyCode)
-            val formatter = NumberFormat.getCurrencyInstance(locale)
-
-            // Set the currency if supported
-            try {
-                formatter.currency = Currency.getInstance(currencyCode)
-            } catch (e: Exception) {
+            val key = groupingLocale(currencyCode) to currencyCode
+            val prototype = currencyFormats[key]
+                ?: buildCurrencyFormat(key.first, currencyCode)?.also { currencyFormats[key] = it }
                 // If currency not supported, use symbol mapping
-                val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
-                return "$symbol${formatAmount(amount, currencyCode)}"
-            }
-
-            // Prefer our own symbol over the platform's so a formatted amount
-            // matches the picker / getCurrencySymbol (e.g. LKR renders as "Rs",
-            // SGD as "S$" instead of a bare "$"), while keeping the platform's
-            // locale-driven grouping and decimals.
-            (formatter as? java.text.DecimalFormat)?.let { df ->
-                CURRENCY_SYMBOLS[currencyCode]?.let { customSymbol ->
-                    val dfs = df.decimalFormatSymbols
-                    dfs.currencySymbol = customSymbol
-                    df.decimalFormatSymbols = dfs
-                }
-            }
-
-            // Show decimals only if they exist
-            formatter.minimumFractionDigits = 0
-            formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
-            formatter.format(amount)
+                ?: return "${CURRENCY_SYMBOLS[currencyCode] ?: currencyCode}${formatAmount(amount, currencyCode)}"
+            // NumberFormat isn't thread-safe: format with a copy, never the cached one.
+            (prototype.clone() as NumberFormat).format(amount)
         } catch (e: Exception) {
             // Fallback to symbol + amount
             val symbol = CURRENCY_SYMBOLS[currencyCode] ?: currencyCode
             "$symbol${formatAmount(amount, currencyCode)}"
         }
+    }
+
+    // Built once per locale and currency: a list formats every row, and building a
+    // NumberFormat reads locale data each time. Copying a built one is far cheaper.
+    // ponytail: unbounded, keyed by grouping locales (a handful) times currencies used.
+    private val currencyFormats = java.util.concurrent.ConcurrentHashMap<Pair<Locale, String>, NumberFormat>()
+    private val numberFormats = java.util.concurrent.ConcurrentHashMap<Pair<Locale, Int>, NumberFormat>()
+
+    /** Null when the platform doesn't know [currencyCode]. */
+    private fun buildCurrencyFormat(locale: Locale, currencyCode: String): NumberFormat? {
+        val formatter = NumberFormat.getCurrencyInstance(locale)
+        formatter.currency = try {
+            Currency.getInstance(currencyCode)
+        } catch (e: Exception) {
+            return null
+        }
+
+        // Prefer our own symbol over the platform's so a formatted amount
+        // matches the picker / getCurrencySymbol (e.g. LKR renders as "Rs",
+        // SGD as "S$" instead of a bare "$"), while keeping the platform's
+        // locale-driven grouping and decimals.
+        (formatter as? java.text.DecimalFormat)?.let { df ->
+            CURRENCY_SYMBOLS[currencyCode]?.let { customSymbol ->
+                val dfs = df.decimalFormatSymbols
+                dfs.currencySymbol = customSymbol
+                df.decimalFormatSymbols = dfs
+            }
+        }
+
+        // Show decimals only if they exist
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        return formatter
     }
 
     /**
@@ -320,10 +332,14 @@ object CurrencyFormatter {
      * Formats just the numeric amount without currency symbol
      */
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
-        val formatter = NumberFormat.getNumberInstance(groupingLocale(currencyCode))
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
-        return formatter.format(amount)
+        val decimals = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        val prototype = numberFormats.getOrPut(groupingLocale(currencyCode) to decimals) {
+            NumberFormat.getNumberInstance(groupingLocale(currencyCode)).apply {
+                minimumFractionDigits = 0
+                maximumFractionDigits = decimals
+            }
+        }
+        return (prototype.clone() as NumberFormat).format(amount)
     }
 
     /**

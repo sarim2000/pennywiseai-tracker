@@ -39,7 +39,7 @@ interface ExchangeRateProvider {
  */
 class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
 
-    private val client = HttpClient(OkHttp) {
+    private val client by lazy { HttpClient(OkHttp) {
         // Bound every request so a hung socket can't stall callers indefinitely —
         // important because rate fetches are serialized on a shared mutex, so one
         // stuck request would otherwise block all currency conversions.
@@ -55,7 +55,7 @@ class FreeExchangeRateProvider @Inject constructor() : ExchangeRateProvider {
                 coerceInputValues = true
             })
         }
-    }
+    } }
 
     override suspend fun fetchExchangeRate(fromCurrency: String, toCurrency: String): BigDecimal? {
         if (fromCurrency.equals(toCurrency, ignoreCase = true)) {

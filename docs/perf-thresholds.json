@@ -1,0 +1,12 @@
+{
+  "_note": "Upper limits for scripts/perf-report.sh --gate, per device model (Build.MODEL). Set from measured medians plus headroom for run-to-run noise; only re-tighten after several runs agree. See docs/performance.md.",
+  "SM-S911U1": {
+    "_measured": "Galaxy S23, Android 17, November 2026: TTID ~421 ms, TTFD ~543 ms, scroll CPU P90 ~16.2 / P99 ~28 ms, heap after start ~38 MB, peak anon RSS while scrolling ~82 MB",
+    "startupProfile.timeToInitialDisplayMs.median": 520,
+    "startupProfile.timeToFullDisplayMs.median": 680,
+    "startupProfile.memoryHeapSizeLastKb.median": 48000,
+    "scrollProfile.frameDurationCpuMs.P90": 20,
+    "scrollProfile.frameDurationCpuMs.P99": 36,
+    "scrollProfile.memoryRssAnonMaxKb.median": 92000
+  }
+}

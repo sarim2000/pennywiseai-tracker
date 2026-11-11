@@ -102,7 +102,7 @@ replaces `.git/hooks`, so move any existing hooks there first).
 | Adding a bank parser | `docs/adding-bank-parsers.md` | New/changed parser in `parser-core` |
 | Parser tests | `docs/parser-test-standards.md` | Writing parser tests |
 | DB migrations | `docs/database-migrations.md` | Room schema changes |
-| Performance | `docs/performance.md` | Baseline Profiles, Macrobenchmark, startup or scroll timing |
+| Performance | `docs/performance.md` | Baseline Profiles, Macrobenchmark, startup/scroll/memory/APK-size report (`scripts/perf-report.sh`), leak checks |
 | Supported banks | `docs/BANK_SUPPORT.md`, `docs/supported-banks.json` | Which banks/patterns are covered (170 banks, 26 countries) |
 | AI access (MCP relay, dashboard) | `docs/ai-access.md`, `relay/README.md`, `docs/adr/0002-*` | Touching `aiaccess/`, the relay or the dashboard |
 | Roadmap / requirements | `docs/planned-features.md`, `docs/prd-unified-currency.md` | Feature scope / intent |
@@ -121,8 +121,8 @@ fresh `[BANK]` issue) · `emulator-verify` (on-device check).
 ## Releasing
 For a routine release: merge the PRs, then — from an up-to-date `main` with a
 clean tree — run `./scripts/release.sh patch|minor|major --yes` (preview first
-with `--dry-run`). It commits/tags the current branch and pushes `main`, so the
-branch state matters.
+with `--dry-run`). It commits/tags the current branch and pushes `main`, so it
+refuses to run off `main` or from a dirty or stale tree.
 `scripts/release.sh` is the single source of truth — it bumps the version,
 generates changelogs + release notes, builds the APKs (standard flavor signed;
 the F-Droid APK stays unsigned for IzzyOnDroid), tags, pushes, and cuts the

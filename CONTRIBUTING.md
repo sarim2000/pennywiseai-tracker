@@ -43,8 +43,10 @@ Full walkthrough: [docs/adding-bank-parsers.md](docs/adding-bank-parsers.md)
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run tests: `./gradlew test`
-5. Check code style: `./gradlew lint`
+4. Verify: `./init.sh` (format check, compile, unit tests: the same gate CI runs).
+   A format failure is fixed with `./gradlew spotlessApply`.
+5. Optional: `git config --local core.hooksPath .githooks` runs the format check
+   before every push (it replaces `.git/hooks`, so move any existing hooks there first)
 6. Commit using conventional commits:
    - `feat:` New feature
    - `fix:` Bug fix
@@ -83,11 +85,11 @@ cd pennywiseai-tracker
 # Build debug APK
 ./gradlew assembleDebug
 
-# Run tests
-./gradlew test
+# Verify (format check, compile, unit tests)
+./init.sh
 
-# Check code style
-./gradlew lint
+# Fix formatting
+./gradlew spotlessApply
 ```
 
 ### Project Structure

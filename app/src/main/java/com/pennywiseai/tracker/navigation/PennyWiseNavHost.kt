@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.navigation
 
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
@@ -134,328 +134,336 @@ fun PennyWiseNavHost(
     val motion = MaterialTheme.motionScheme
     val fadeOnly = remember(motion) { fadeOnly(motion) }
     SharedTransitionLayout {
-    CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
-    NavDisplay(
-        backStack = backStack,
-        modifier = modifier.background(MaterialTheme.colorScheme.background),
-        entryDecorators = rememberEntryDecorators(),
-        transitionSpec = { pwPush(motion) },
-        popTransitionSpec = { pwPop(motion) },
-        predictivePopTransitionSpec = { pwPredictivePop() },
-        entryProvider = withRouteArgs(entryProvider {
-        // At once: a fade-in shows the screen it's locking through it.
-        entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {
-            com.pennywiseai.tracker.presentation.applock.AppLockScreen(
-                onUnlocked = {
-                    // Back to the screen it covered. Pops AppLock itself, so a repeat
-                    // call (a second success mid-transition) doesn't pop that screen too.
-                    val i = backStack.lastIndexOf(AppLock)
-                    if (i > 0) {
-                        backStack.subList(i, backStack.size).clear()
-                    } else if (i == 0) {
-                        backStack.replaceLast(Home) { it == AppLock }
-                    }
-                }
-            )
-        }
-        entry<OnBoarding> {
-            com.pennywiseai.tracker.presentation.onboarding.OnBoardingScreen(
-                onOnboardingComplete = {
-                    backStack.replaceLast(Home) { it == OnBoarding }
-                }
-            )
-        }
-        entry<Home>(metadata = fadeOnly) {
-            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
-                MainScreen(
-                    rootBackStack = backStack
-                )
-            }
-        }
-
-        entry<BackgroundAccess> { key ->
-            com.pennywiseai.tracker.presentation.settings.BackgroundAccessScreen(
-                onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<LearnedCategories> { key ->
-            com.pennywiseai.tracker.presentation.settings.LearnedCategoriesScreen(
-                onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<AiAccess> { key ->
-            com.pennywiseai.tracker.presentation.settings.aiaccess.AiAccessScreen(
-                onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<Webhooks> { key ->
-            com.pennywiseai.tracker.presentation.settings.webhooks.WebhooksScreen(
-                onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<TransactionDetail>(metadata = fadeOnly) { key ->
-            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
-                com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
-                    transactionId = key.transactionId,
-                    onNavigateBack = {
-                        onEditComplete()
-                        backStack.pop(key)
-                    },
-                    onNavigateToLoanDetail = { loanId ->
-                        backStack.navigate(LoanDetail(loanId))
-                    },
-                    onDuplicateTransaction = { sourceId ->
-                        backStack.navigate(AddTransaction(sourceTransactionId = sourceId))
-                    },
-                    onNavigateToGoal = { goalId ->
-                        backStack.navigate(GoalDetail(goalId))
-                    },
-                    onCreateGoal = {
-                        backStack.navigate(GoalEdit())
-                    }
-                )
-            }
-        }
-
-        entry<AddTransaction> { key ->
-            com.pennywiseai.tracker.presentation.add.AddScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
-            )
-        }
-
-        entry<Rules> { key ->
-            com.pennywiseai.tracker.presentation.rules.RulesScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToCreateRule = {
-                    backStack.navigate(CreateRule())
-                },
-                onNavigateToEditRule = { ruleId ->
-                    backStack.navigate(CreateRule(ruleId = ruleId))
-                },
-                onNavigateToDuplicateRule = { ruleId ->
-                    backStack.navigate(CreateRule(duplicateFromId = ruleId))
-                }
-            )
-        }
-
-        entry<CreateRule> { createRule ->
-            val rulesViewModel: com.pennywiseai.tracker.presentation.rules.RulesViewModel = hiltViewModel()
-
-            // Collect rules from the flow to find the rule being edited or duplicated.
-            val rules by rulesViewModel.rules.collectAsStateWithLifecycle()
-            val isEditing = createRule.ruleId != null
-
-            // Stable id for a duplicate, kept across recompositions/config changes.
-            val duplicateId = rememberSaveable { java.util.UUID.randomUUID().toString() }
-
-            // Edit prefills from the saved rule; duplicate prefills from the source but
-            // becomes a fresh rule (new id, "(copy)" name) so saving inserts a new one.
-            val prefillRule = when {
-                createRule.ruleId != null ->
-                    rules.firstOrNull { it.id == createRule.ruleId }
-                createRule.duplicateFromId != null ->
-                    rules.firstOrNull { it.id == createRule.duplicateFromId }?.let { source ->
-                        source.copy(
-                            id = duplicateId,
-                            name = "${source.name} (copy)",
-                            isSystemTemplate = false
+        CompositionLocalProvider(LocalSharedTransitionScope provides this@SharedTransitionLayout) {
+            NavDisplay(
+                backStack = backStack,
+                modifier = modifier.background(MaterialTheme.colorScheme.background),
+                entryDecorators = rememberEntryDecorators(),
+                transitionSpec = { pwPush(motion) },
+                popTransitionSpec = { pwPop(motion) },
+                predictivePopTransitionSpec = { pwPredictivePop() },
+                entryProvider = withRouteArgs(entryProvider {
+                    // At once: a fade-in shows the screen it's locking through it.
+                    entry<AppLock>(metadata = NavDisplay.transitionSpec { EnterTransition.None togetherWith fadeOut(motion.fastEffectsSpec()) }) {
+                        com.pennywiseai.tracker.presentation.applock.AppLockScreen(
+                            onUnlocked = {
+                                // Back to the screen it covered. Pops AppLock itself, so a repeat
+                                // call (a second success mid-transition) doesn't pop that screen too.
+                                val i = backStack.lastIndexOf(AppLock)
+                                if (i > 0) {
+                                    backStack.subList(i, backStack.size).clear()
+                                } else if (i == 0) {
+                                    backStack.replaceLast(Home) { it == AppLock }
+                                }
+                            }
                         )
                     }
-                else -> null
-            }
-            val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
-
-            com.pennywiseai.tracker.presentation.rules.CreateRuleScreen(
-                onNavigateBack = {
-                    backStack.pop(createRule)
-                },
-                onSaveRule = { rule ->
-                    // Edit updates in place; create/duplicate inserts a new rule.
-                    if (isEditing) {
-                        rulesViewModel.updateRule(rule)
-                    } else {
-                        rulesViewModel.createRule(rule)
-                    }
-                    backStack.pop(createRule)
-                },
-                existingRule = prefillRule,
-                isEditing = isEditing,
-                allAccounts = accounts
-            )
-        }
-
-        entry<AccountDetail> { key ->
-            com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
-                onNavigateBack = { backStack.pop(key) },
-                onTransactionClick = { id ->
-                    backStack.navigate(TransactionDetail(id))
-                }
-            )
-        }
-
-        entry<BudgetGroups> { key ->
-            com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
-                createGoalOnOpen = key.createGoal,
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToGroupEdit = { groupId ->
-                    backStack.navigate(BudgetGroupEdit(groupId))
-                },
-                onNavigateToHistory = { groupId, year, month ->
-                    backStack.navigate(BudgetHistory(groupId, year, month))
-                },
-                onNavigateToCategory = { category, yearMonth, currency ->
-                    backStack.navigate(TransactionsWithFilter(category, yearMonth, currency))
-                },
-                onNavigateToGoal = { goalId ->
-                    backStack.navigate(GoalDetail(goalId))
-                },
-                onNavigateToGoalEdit = { goalId ->
-                    backStack.navigate(GoalEdit(goalId))
-                }
-            )
-        }
-
-        entry<GoalDetail> { key ->
-            com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
-                onNavigateBack = { backStack.pop(key) },
-                onEdit = { goalId -> backStack.navigate(GoalEdit(goalId)) },
-                onOpenTransaction = { transactionId ->
-                    backStack.navigate(TransactionDetail(transactionId))
-                },
-                // Repeat for next year opens the new copy in place of this one.
-                onOpenGoal = { goalId ->
-                    backStack.replaceLast(GoalDetail(goalId)) { it is GoalDetail }
-                }
-            )
-        }
-
-        entry<GoalEdit> { key ->
-            com.pennywiseai.tracker.presentation.goals.GoalEditScreen(
-                onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<BudgetGroupEdit> { key ->
-            com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
-            )
-        }
-
-        entry<BudgetHistory> { key ->
-            com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
-                onNavigateBack = { backStack.pop(key) }
-            )
-        }
-
-        entry<Loans> { key ->
-            com.pennywiseai.tracker.presentation.loans.LoansScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToLoanDetail = { loanId ->
-                    backStack.navigate(LoanDetail(loanId))
-                }
-            )
-        }
-
-        entry<RecurringTransactions> { key ->
-            com.pennywiseai.tracker.presentation.recurring.RecurringTransactionsScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
-            )
-        }
-
-        entry<LoanDetail> { key ->
-            com.pennywiseai.tracker.presentation.loans.LoanDetailScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToTransactionDetail = { txId ->
-                    backStack.navigate(TransactionDetail(txId))
-                }
-            )
-        }
-
-        entry<TransactionGroups> { key ->
-            com.pennywiseai.tracker.presentation.groups.TransactionGroupsScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToGroupDetail = { groupId ->
-                    backStack.navigate(TransactionGroupDetail(groupId))
-                }
-            )
-        }
-
-        entry<TransactionGroupDetail> { key ->
-            com.pennywiseai.tracker.presentation.groups.TransactionGroupDetailScreen(
-                onNavigateBack = {
-                    backStack.pop(key)
-                },
-                onNavigateToTransactionDetail = { txId ->
-                    backStack.navigate(TransactionDetail(txId))
-                }
-            )
-        }
-
-        entry<ExchangeRates> { key ->
-            ExchangeRatesEntry(
-                onNavigateBack = {
-                    backStack.pop(key)
-                }
-            )
-        }
-
-        entry<Review> { key ->
-            com.pennywiseai.tracker.presentation.review.PeriodReviewScreen(
-                onNavigateBack = { backStack.pop(key) },
-                onOpenCategory = { category, currency, start, end ->
-                    backStack.navigate(
-                        TransactionsWithFilter(
-                            category = category,
-                            period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
-                            currency = currency,
-                            startDate = start.toEpochDay(),
-                            endDate = end.toEpochDay(),
-                            currencyOnly = true,
+                    entry<OnBoarding> {
+                        com.pennywiseai.tracker.presentation.onboarding.OnBoardingScreen(
+                            onOnboardingComplete = {
+                                backStack.replaceLast(Home) { it == OnBoarding }
+                            }
                         )
-                    )
-                }
-            )
-        }
+                    }
+                    entry<Home>(metadata = fadeOnly) {
+                        CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
+                            MainScreen(
+                                rootBackStack = backStack
+                            )
+                        }
+                    }
 
-        entry<TransactionsWithFilter> { args ->
-            com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
-                initialCategory = args.category,
-                initialPeriod = args.period,
-                initialCurrency = args.currency,
-                initialCustomStartEpochDay = args.startDate,
-                initialCustomEndEpochDay = args.endDate,
-                currencyOnly = args.currencyOnly,
-                onNavigateBack = { backStack.pop(args) },
-                onTransactionClick = { transactionId ->
-                    backStack.navigate(TransactionDetail(transactionId))
-                },
-                onAddTransactionClick = {
-                    backStack.navigate(AddTransaction())
-                }
+                    entry<BackgroundAccess> { key ->
+                        com.pennywiseai.tracker.presentation.settings.BackgroundAccessScreen(
+                            onNavigateBack = { backStack.pop(key) }
+                        )
+                    }
+
+                    entry<LearnedCategories> { key ->
+                        com.pennywiseai.tracker.presentation.settings.LearnedCategoriesScreen(
+                            onNavigateBack = { backStack.pop(key) }
+                        )
+                    }
+
+                    entry<AiAccess> { key ->
+                        com.pennywiseai.tracker.presentation.settings.aiaccess.AiAccessScreen(
+                            onNavigateBack = { backStack.pop(key) }
+                        )
+                    }
+
+                    entry<Webhooks> { key ->
+                        com.pennywiseai.tracker.presentation.settings.webhooks.WebhooksScreen(
+                            onNavigateBack = { backStack.pop(key) }
+                        )
+                    }
+
+                    // Settings opens it inside its tab; a taught message's notification opens it here.
+                    entry<UnrecognizedSms> { key ->
+                        com.pennywiseai.tracker.presentation.unrecognized.UnrecognizedSmsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAddSuggestion = { draft -> backStack.navigate(draft) }
+                        )
+                    }
+
+                    entry<TransactionDetail>(metadata = fadeOnly) { key ->
+                        CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
+                            com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
+                                transactionId = key.transactionId,
+                                onNavigateBack = {
+                                    onEditComplete()
+                                    backStack.pop(key)
+                                },
+                                onNavigateToLoanDetail = { loanId ->
+                                    backStack.navigate(LoanDetail(loanId))
+                                },
+                                onDuplicateTransaction = { sourceId ->
+                                    backStack.navigate(AddTransaction(sourceTransactionId = sourceId))
+                                },
+                                onNavigateToGoal = { goalId ->
+                                    backStack.navigate(GoalDetail(goalId))
+                                },
+                                onCreateGoal = {
+                                    backStack.navigate(GoalEdit())
+                                }
+                            )
+                        }
+                    }
+
+                    entry<AddTransaction> { key ->
+                        com.pennywiseai.tracker.presentation.add.AddScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            }
+                        )
+                    }
+
+                    entry<Rules> { key ->
+                        com.pennywiseai.tracker.presentation.rules.RulesScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            },
+                            onNavigateToCreateRule = {
+                                backStack.navigate(CreateRule())
+                            },
+                            onNavigateToEditRule = { ruleId ->
+                                backStack.navigate(CreateRule(ruleId = ruleId))
+                            },
+                            onNavigateToDuplicateRule = { ruleId ->
+                                backStack.navigate(CreateRule(duplicateFromId = ruleId))
+                            }
+                        )
+                    }
+
+                    entry<CreateRule> { createRule ->
+                        val rulesViewModel: com.pennywiseai.tracker.presentation.rules.RulesViewModel = hiltViewModel()
+
+                        // Collect rules from the flow to find the rule being edited or duplicated.
+                        val rules by rulesViewModel.rules.collectAsStateWithLifecycle()
+                        val isEditing = createRule.ruleId != null
+
+                        // Stable id for a duplicate, kept across recompositions/config changes.
+                        val duplicateId = rememberSaveable { java.util.UUID.randomUUID().toString() }
+
+                        // Edit prefills from the saved rule; duplicate prefills from the source but
+                        // becomes a fresh rule (new id, "(copy)" name) so saving inserts a new one.
+                        val prefillRule = when {
+                            createRule.ruleId != null ->
+                                rules.firstOrNull { it.id == createRule.ruleId }
+                            createRule.duplicateFromId != null ->
+                                rules.firstOrNull { it.id == createRule.duplicateFromId }?.let { source ->
+                                    source.copy(
+                                        id = duplicateId,
+                                        name = "${source.name} (copy)",
+                                        isSystemTemplate = false
+                                    )
+                                }
+                            else -> null
+                        }
+                        val accounts by rulesViewModel.accounts.collectAsStateWithLifecycle()
+
+                        com.pennywiseai.tracker.presentation.rules.CreateRuleScreen(
+                            onNavigateBack = {
+                                backStack.pop(createRule)
+                            },
+                            onSaveRule = { rule ->
+                                // Edit updates in place; create/duplicate inserts a new rule.
+                                if (isEditing) {
+                                    rulesViewModel.updateRule(rule)
+                                } else {
+                                    rulesViewModel.createRule(rule)
+                                }
+                                backStack.pop(createRule)
+                            },
+                            existingRule = prefillRule,
+                            isEditing = isEditing,
+                            allAccounts = accounts
+                        )
+                    }
+
+                    entry<AccountDetail> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.AccountDetailScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onTransactionClick = { id ->
+                                backStack.navigate(TransactionDetail(id))
+                            }
+                        )
+                    }
+
+                    entry<BudgetGroups> { key ->
+                        com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
+                            createGoalOnOpen = key.createGoal,
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            },
+                            onNavigateToGroupEdit = { groupId ->
+                                backStack.navigate(BudgetGroupEdit(groupId))
+                            },
+                            onNavigateToHistory = { groupId, year, month ->
+                                backStack.navigate(BudgetHistory(groupId, year, month))
+                            },
+                            onNavigateToCategory = { category, yearMonth, currency ->
+                                backStack.navigate(TransactionsWithFilter(category, yearMonth, currency))
+                            },
+                            onNavigateToGoal = { goalId ->
+                                backStack.navigate(GoalDetail(goalId))
+                            },
+                            onNavigateToGoalEdit = { goalId ->
+                                backStack.navigate(GoalEdit(goalId))
+                            }
+                        )
+                    }
+
+                    entry<GoalDetail> { key ->
+                        com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onEdit = { goalId -> backStack.navigate(GoalEdit(goalId)) },
+                            onOpenTransaction = { transactionId ->
+                                backStack.navigate(TransactionDetail(transactionId))
+                            },
+                            // Repeat for next year opens the new copy in place of this one.
+                            onOpenGoal = { goalId ->
+                                backStack.replaceLast(GoalDetail(goalId)) { it is GoalDetail }
+                            }
+                        )
+                    }
+
+                    entry<GoalEdit> { key ->
+                        com.pennywiseai.tracker.presentation.goals.GoalEditScreen(
+                            onNavigateBack = { backStack.pop(key) }
+                        )
+                    }
+
+                    entry<BudgetGroupEdit> { key ->
+                        com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupEditScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            }
+                        )
+                    }
+
+                    entry<BudgetHistory> { key ->
+                        com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
+                            onNavigateBack = { backStack.pop(key) }
+                        )
+                    }
+
+                    entry<Loans> { key ->
+                        com.pennywiseai.tracker.presentation.loans.LoansScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            },
+                            onNavigateToLoanDetail = { loanId ->
+                                backStack.navigate(LoanDetail(loanId))
+                            }
+                        )
+                    }
+
+                    entry<RecurringTransactions> { key ->
+                        com.pennywiseai.tracker.presentation.recurring.RecurringTransactionsScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            }
+                        )
+                    }
+
+                    entry<LoanDetail> { key ->
+                        com.pennywiseai.tracker.presentation.loans.LoanDetailScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            },
+                            onNavigateToTransactionDetail = { txId ->
+                                backStack.navigate(TransactionDetail(txId))
+                            }
+                        )
+                    }
+
+                    entry<TransactionGroups> { key ->
+                        com.pennywiseai.tracker.presentation.groups.TransactionGroupsScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            },
+                            onNavigateToGroupDetail = { groupId ->
+                                backStack.navigate(TransactionGroupDetail(groupId))
+                            }
+                        )
+                    }
+
+                    entry<TransactionGroupDetail> { key ->
+                        com.pennywiseai.tracker.presentation.groups.TransactionGroupDetailScreen(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            },
+                            onNavigateToTransactionDetail = { txId ->
+                                backStack.navigate(TransactionDetail(txId))
+                            }
+                        )
+                    }
+
+                    entry<ExchangeRates> { key ->
+                        ExchangeRatesEntry(
+                            onNavigateBack = {
+                                backStack.pop(key)
+                            }
+                        )
+                    }
+
+                    entry<Review> { key ->
+                        com.pennywiseai.tracker.presentation.review.PeriodReviewScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenCategory = { category, currency, start, end ->
+                                backStack.navigate(
+                                    TransactionsWithFilter(
+                                        category = category,
+                                        period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
+                                        currency = currency,
+                                        startDate = start.toEpochDay(),
+                                        endDate = end.toEpochDay(),
+                                        currencyOnly = true,
+                                    )
+                                )
+                            }
+                        )
+                    }
+
+                    entry<TransactionsWithFilter> { args ->
+                        com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
+                            initialCategory = args.category,
+                            initialPeriod = args.period,
+                            initialCurrency = args.currency,
+                            initialCustomStartEpochDay = args.startDate,
+                            initialCustomEndEpochDay = args.endDate,
+                            currencyOnly = args.currencyOnly,
+                            onNavigateBack = { backStack.pop(args) },
+                            onTransactionClick = { transactionId ->
+                                backStack.navigate(TransactionDetail(transactionId))
+                            },
+                            onAddTransactionClick = {
+                                backStack.navigate(AddTransaction())
+                            }
+                        )
+                    }
+                })
             )
         }
-        })
-    )
-    }
     }
 }

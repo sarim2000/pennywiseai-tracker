@@ -33,9 +33,9 @@ class NotificationContractsBoundaryTest {
     @Test
     fun `data imports no root application class but R and BuildConfig`() {
         val violations = dataFiles.flatMap { file ->
-            file.imports.map { it.name }
-                .filter { isForbiddenRootClass(it) }
-                .map { "${file.path}: import $it" }
+            file.imports
+                .filter { isForbiddenRootClass(it.name) || (it.isWildcard && it.name == APP) }
+                .map { "${file.path}: import ${it.name}${if (it.isWildcard) ".*" else ""}" }
         }
         assertTrue(
             "data must not import root classes such as PennyWiseApplication or MainActivity; use a core contract:\n" +
@@ -73,7 +73,6 @@ class NotificationContractsBoundaryTest {
     fun `the root-class check catches the application and allows R and BuildConfig`() {
         assertTrue(isForbiddenRootClass("$APP.PennyWiseApplication"))
         assertTrue(isForbiddenRootClass("$APP.MainActivity"))
-        assertTrue(isForbiddenRootClass("$APP.*"))
         assertTrue(!isForbiddenRootClass("$APP.R"))
         assertTrue(!isForbiddenRootClass("$APP.BuildConfig"))
         assertTrue(!isForbiddenRootClass("$APP.data.manager.ConscienceManager"))
@@ -93,13 +92,13 @@ class NotificationContractsBoundaryTest {
         val FQN_REFERENCE = Regex("""\bcom\.pennywiseai\.tracker(\.\w+)+""")
 
         /**
-         * A class declared directly in the root package (its first segment after the
-         * package is capitalized), or a wildcard import of the root package.
+         * A class declared directly in the root package: its first segment after the
+         * package is capitalized. Konsist reports `import com.pennywiseai.tracker.*` as
+         * the bare package with `isWildcard`, so the import check handles that case.
          */
         fun isForbiddenRootClass(name: String): Boolean {
             if (!name.startsWith("$APP.")) return false
             val first = name.removePrefix("$APP.").substringBefore('.')
-            if (first == "*") return true
             return first.firstOrNull()?.isUpperCase() == true && first !in ALLOWED_ROOT_CLASSES
         }
 

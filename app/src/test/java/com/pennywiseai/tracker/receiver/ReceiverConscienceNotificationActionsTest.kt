@@ -17,6 +17,7 @@ import io.mockk.verify
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -33,13 +34,14 @@ class ReceiverConscienceNotificationActionsTest {
     private val pendingIntent = mockk<PendingIntent>()
     private val requestCode = slot<Int>()
     private val flags = slot<Int>()
+    private val delivered = slot<Intent>()
 
     @Before
     fun setUp() {
         mockkStatic(PendingIntent::class)
         mockkConstructor(Intent::class)
-        every { PendingIntent.getActivity(any(), capture(requestCode), any(), capture(flags)) } returns pendingIntent
-        every { PendingIntent.getBroadcast(any(), capture(requestCode), any(), capture(flags)) } returns pendingIntent
+        every { PendingIntent.getActivity(any(), capture(requestCode), capture(delivered), capture(flags)) } returns pendingIntent
+        every { PendingIntent.getBroadcast(any(), capture(requestCode), capture(delivered), capture(flags)) } returns pendingIntent
     }
 
     @After
@@ -102,6 +104,12 @@ class ReceiverConscienceNotificationActionsTest {
      * and nothing that would retarget the intent or drop an extra.
      */
     private fun assertNothingOverwritten(component: Class<*>, flags: Int, longExtras: Int, stringExtras: Int) {
+        // The checked Intent is the one handed to PendingIntent, not another one built alongside it:
+        // only an Intent built as Intent(context, component) answers the probe.
+        assertTrue(
+            "PendingIntent got an Intent not built as Intent(context, ${component.simpleName})",
+            delivered.captured.hasExtra(PROBE),
+        )
         verify(exactly = 1) { intentTo(component).setAction(any()) }
         verify(exactly = flags) { intentTo(component).setFlags(any()) }
         verify(exactly = longExtras) { intentTo(component).putExtra(any<String>(), any<Long>()) }
@@ -120,6 +128,7 @@ class ReceiverConscienceNotificationActionsTest {
 
     /** mockk matches constructor arguments only for an Intent registered before it is built. */
     private fun recordIntentsFor(component: Class<*>) {
+        every { intentTo(component).hasExtra(PROBE) } returns true
         every { intentTo(component).setAction(any()) } answers { callOriginal() }
         every { intentTo(component).setFlags(any()) } answers { callOriginal() }
         every {
@@ -133,5 +142,6 @@ class ReceiverConscienceNotificationActionsTest {
     private companion object {
         const val TRANSACTION_ID = 4242L
         const val LINE_KEY = "late_night.1"
+        const val PROBE = "test.built_with_expected_component"
     }
 }

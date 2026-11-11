@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.navigation
 
-import com.pennywiseai.tracker.R
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -8,6 +7,7 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.pennywiseai.tracker.R
 
 sealed class BottomNavItem(
     val route: String,
@@ -31,7 +31,7 @@ sealed class BottomNavItem(
         titleRes = R.string.nav_analytics,
         icon = Icons.Default.Analytics
     )
-    
+
     data object Chat : BottomNavItem(
         route = "chat",
         titleRes = R.string.nav_chat,

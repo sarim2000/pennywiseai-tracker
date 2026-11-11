@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.navigation
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.fadeIn
@@ -12,55 +9,58 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
-import androidx.navigation3.scene.Scene
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.scene.Scene
 import androidx.navigation3.ui.NavDisplay
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.contacts.displayMerchantName
-import com.pennywiseai.tracker.ui.animations.pwPop
-import com.pennywiseai.tracker.ui.animations.pwPredictivePop
-import com.pennywiseai.tracker.ui.animations.pwPush
+import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
 import com.pennywiseai.tracker.presentation.home.HomeScreen
+import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
+import com.pennywiseai.tracker.presentation.settings.FAQScreen
+import com.pennywiseai.tracker.presentation.settings.SettingsScreen
+import com.pennywiseai.tracker.presentation.settings.SettingsSectionScreen
 import com.pennywiseai.tracker.presentation.statement.ImportStatementScreen
 import com.pennywiseai.tracker.presentation.statement.ImportStatementViewModel
 import com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen
 import com.pennywiseai.tracker.presentation.transactions.TransactionsScreen
-import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.animations.pwPop
+import com.pennywiseai.tracker.ui.animations.pwPredictivePop
+import com.pennywiseai.tracker.ui.animations.pwPush
 import com.pennywiseai.tracker.ui.components.LocalHideNavBar
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
-import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
-import com.pennywiseai.tracker.presentation.settings.FAQScreen
-import com.pennywiseai.tracker.presentation.settings.SettingsScreen
-import com.pennywiseai.tracker.presentation.settings.SettingsSectionScreen
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -262,245 +262,245 @@ fun MainScreen(
     // an entry's content is built once per back stack change.
     fun tabEntries(tab: BottomNavItem): (NavKey) -> NavEntry<NavKey> = withRouteArgs(entryProvider {
         entry<Home> { key ->
-                val homeViewModel: com.pennywiseai.tracker.presentation.home.HomeViewModel = hiltViewModel()
-                DisposableEffect(homeViewModel) {
-                    scanSms = homeViewModel::scanSmsMessages
-                    onDispose { scanSms = null }
+            val homeViewModel: com.pennywiseai.tracker.presentation.home.HomeViewModel = hiltViewModel()
+            DisposableEffect(homeViewModel) {
+                scanSms = homeViewModel::scanSmsMessages
+                onDispose { scanSms = null }
+            }
+            HomeScreen(
+                viewModel = homeViewModel,
+                onAccountClick = { bankName, accountLast4 ->
+                    openRoot(AccountDetail(bankName = bankName, accountLast4 = accountLast4))
+                },
+                coverStyle = themeState.coverStyle,
+                blurEffects = themeState.blurEffectsEnabled,
+                onNavigateToSettings = {
+                    open(tab, Settings)
+                },
+                onNavigateToTransactions = {
+                    open(tab, Transactions())
+                },
+                onNavigateToTransactionsWithSearch = {
+                    open(tab, Transactions(focusSearch = true))
+                },
+                onNavigateToReview = { kind ->
+                    openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
+                },
+                onNavigateToSubscriptions = {
+                    open(tab, Subscriptions)
+                },
+                onNavigateToBudgets = {
+                    openRoot(BudgetGroups())
+                },
+                onNavigateToLoans = {
+                    openRoot(Loans)
+                },
+                onLoanClick = { loanId ->
+                    openRoot(LoanDetail(loanId))
+                },
+                onNavigateToManageAccounts = {
+                    open(tab, ManageAccounts)
+                },
+                onNavigateToAddScreen = {
+                    openRoot(AddTransaction())
+                },
+                onTransactionClick = { transactionId ->
+                    openRoot(TransactionDetail(transactionId))
+                },
+                onNavigateToTransactionGroups = {
+                    openRoot(TransactionGroups)
+                },
+                onGroupClick = { groupId ->
+                    openRoot(TransactionGroupDetail(groupId))
+                },
+                onGoalClick = { goalId ->
+                    openRoot(GoalDetail(goalId))
+                },
+                onTransactionTypeClick = { type ->
+                    open(tab, Transactions(type = type))
+                },
+                onFabPositioned = { position ->
+                    spotlightViewModel.updateFabPosition(position)
                 }
-                HomeScreen(
-                    viewModel = homeViewModel,
-                    onAccountClick = { bankName, accountLast4 ->
-                        openRoot(AccountDetail(bankName = bankName, accountLast4 = accountLast4))
-                    },
-                    coverStyle = themeState.coverStyle,
-                    blurEffects = themeState.blurEffectsEnabled,
-                    onNavigateToSettings = {
-                        open(tab, Settings)
-                    },
-                    onNavigateToTransactions = {
-                        open(tab, Transactions())
-                    },
-                    onNavigateToTransactionsWithSearch = {
-                        open(tab, Transactions(focusSearch = true))
-                    },
-                    onNavigateToReview = { kind ->
-                        openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
-                    },
-                    onNavigateToSubscriptions = {
-                        open(tab, Subscriptions)
-                    },
-                    onNavigateToBudgets = {
-                        openRoot(BudgetGroups())
-                    },
-                    onNavigateToLoans = {
-                        openRoot(Loans)
-                    },
-                    onLoanClick = { loanId ->
-                        openRoot(LoanDetail(loanId))
-                    },
-                    onNavigateToManageAccounts = {
-                        open(tab, ManageAccounts)
-                    },
-                    onNavigateToAddScreen = {
-                        openRoot(AddTransaction())
-                    },
-                    onTransactionClick = { transactionId ->
-                        openRoot(TransactionDetail(transactionId))
-                    },
-                    onNavigateToTransactionGroups = {
-                        openRoot(TransactionGroups)
-                    },
-                    onGroupClick = { groupId ->
-                        openRoot(TransactionGroupDetail(groupId))
-                    },
-                    onGoalClick = { goalId ->
-                        openRoot(GoalDetail(goalId))
-                    },
-                    onTransactionTypeClick = { type ->
-                        open(tab, Transactions(type = type))
-                    },
-                    onFabPositioned = { position ->
-                        spotlightViewModel.updateFabPosition(position)
-                    }
-                )
+            )
         }
 
         entry<Transactions> { key ->
-                TransactionsScreen(
-                    modifier = Modifier.imePadding(),
-                    initialCategory = key.category,
-                    initialMerchant = key.merchant,
-                    initialPeriod = key.period,
-                    initialCurrency = key.currency,
-                    initialCustomStartEpochDay = key.startDate,
-                    initialCustomEndEpochDay = key.endDate,
-                    initialAccount = key.account,
-                    initialTag = key.tag,
-                    focusSearch = key.focusSearch,
-                    initialTransactionType = key.type,
-                    // No back arrow for a plain tab tap; show it for a filtered
-                    // drill-down (Home category/search) so the user can return. (#635)
-                    showBackButton = key != Transactions(),
-                    // The bottom nav is overlaid on this route — always reserve clearance.
-                    reserveBottomBarSpace = true,
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    },
-                    onTransactionClick = { transactionId ->
-                        openRoot(TransactionDetail(transactionId))
-                    },
-                    onAddTransactionClick = {
-                        openRoot(AddTransaction())
-                    }
-                )
+            TransactionsScreen(
+                modifier = Modifier.imePadding(),
+                initialCategory = key.category,
+                initialMerchant = key.merchant,
+                initialPeriod = key.period,
+                initialCurrency = key.currency,
+                initialCustomStartEpochDay = key.startDate,
+                initialCustomEndEpochDay = key.endDate,
+                initialAccount = key.account,
+                initialTag = key.tag,
+                focusSearch = key.focusSearch,
+                initialTransactionType = key.type,
+                // No back arrow for a plain tab tap; show it for a filtered
+                // drill-down (Home category/search) so the user can return. (#635)
+                showBackButton = key != Transactions(),
+                // The bottom nav is overlaid on this route — always reserve clearance.
+                reserveBottomBarSpace = true,
+                onNavigateBack = {
+                    backFrom(tab, key)
+                },
+                onTransactionClick = { transactionId ->
+                    openRoot(TransactionDetail(transactionId))
+                },
+                onAddTransactionClick = {
+                    openRoot(AddTransaction())
+                }
+            )
         }
 
         entry<Subscriptions> { key ->
-                SubscriptionsScreen(
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    },
-                    onAddSubscriptionClick = {
-                        openRoot(AddTransaction())
-                    }
-                )
+            SubscriptionsScreen(
+                onNavigateBack = {
+                    backFrom(tab, key)
+                },
+                onAddSubscriptionClick = {
+                    openRoot(AddTransaction())
+                }
+            )
         }
 
         entry<Analytics> { key ->
-                com.pennywiseai.tracker.presentation.analytics.AnalyticsScreen(
-                    onNavigateToChat = {
-                        if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
-                            open(tab, Chat)
-                        }
-                    },
-                    onNavigateToTransactions = { drill ->
-                        open(
-                            tab,
-                            Transactions(
-                                category = drill.category,
-                                merchant = drill.merchant,
-                                period = drill.period,
-                                currency = drill.currency,
-                                startDate = drill.startDateEpochDay,
-                                endDate = drill.endDateEpochDay,
-                                account = drill.account,
-                                tag = drill.tag,
-                                type = drill.type
-                            )
-                        )
-                    },
-                    onNavigateToHome = {
-                        selectTab(BottomNavItem.Home)
+            com.pennywiseai.tracker.presentation.analytics.AnalyticsScreen(
+                onNavigateToChat = {
+                    if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
+                        open(tab, Chat)
                     }
-                )
+                },
+                onNavigateToTransactions = { drill ->
+                    open(
+                        tab,
+                        Transactions(
+                            category = drill.category,
+                            merchant = drill.merchant,
+                            period = drill.period,
+                            currency = drill.currency,
+                            startDate = drill.startDateEpochDay,
+                            endDate = drill.endDateEpochDay,
+                            account = drill.account,
+                            tag = drill.tag,
+                            type = drill.type
+                        )
+                    )
+                },
+                onNavigateToHome = {
+                    selectTab(BottomNavItem.Home)
+                }
+            )
         }
 
         entry<Chat> { key ->
-                // Hidden AI tab: don't start the chat (and its model) for
-                // the frame before the fallback to Home lands.
-                if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
-                    com.pennywiseai.tracker.presentation.chat.ChatScreen(
-                        modifier = Modifier.imePadding(),
-                        onNavigateToSettings = {
-                            open(tab, SettingsPage(SettingsSection.AI))
-                        }
-                    )
-                }
+            // Hidden AI tab: don't start the chat (and its model) for
+            // the frame before the fallback to Home lands.
+            if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
+                com.pennywiseai.tracker.presentation.chat.ChatScreen(
+                    modifier = Modifier.imePadding(),
+                    onNavigateToSettings = {
+                        open(tab, SettingsPage(SettingsSection.AI))
+                    }
+                )
+            }
         }
 
         entry<Settings> { key ->
-                SettingsScreen(
-                    onNavigateBack = { backFrom(tab, key) },
-                    onNavigate = { openFromSettings(tab, it) }
-                )
+            SettingsScreen(
+                onNavigateBack = { backFrom(tab, key) },
+                onNavigate = { openFromSettings(tab, it) }
+            )
         }
 
         entry<SettingsPage> { key ->
-                SettingsSectionScreen(
-                    section = key.section,
-                    onNavigateBack = { backFrom(tab, key) },
-                    onNavigate = { openFromSettings(tab, it) }
-                )
+            SettingsSectionScreen(
+                section = key.section,
+                onNavigateBack = { backFrom(tab, key) },
+                onNavigate = { openFromSettings(tab, it) }
+            )
         }
 
         entry<Appearance> { key ->
-                AppearanceScreen(
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    },
-                    themeViewModel = themeViewModel
-                )
+            AppearanceScreen(
+                onNavigateBack = {
+                    backFrom(tab, key)
+                },
+                themeViewModel = themeViewModel
+            )
         }
 
         entry<Categories> { key ->
-                com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    }
-                )
+            com.pennywiseai.tracker.presentation.categories.CategoriesScreen(
+                onNavigateBack = {
+                    backFrom(tab, key)
+                }
+            )
         }
 
         entry<UnrecognizedSms> { key ->
-                com.pennywiseai.tracker.presentation.unrecognized.UnrecognizedSmsScreen(
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    },
-                    onAddSuggestion = { draft ->
-                        openRoot(draft)
-                    }
-                )
+            com.pennywiseai.tracker.presentation.unrecognized.UnrecognizedSmsScreen(
+                onNavigateBack = {
+                    backFrom(tab, key)
+                },
+                onAddSuggestion = { draft ->
+                    openRoot(draft)
+                }
+            )
         }
 
         entry<Faq> { key ->
-                FAQScreen(
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    }
-                )
+            FAQScreen(
+                onNavigateBack = {
+                    backFrom(tab, key)
+                }
+            )
         }
 
         entry<ManageAccounts> { key ->
-                val viewModel: ManageAccountsViewModel = hiltViewModel()
-                ManageAccountsScreen(
-                    viewModel = viewModel,
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    },
-                    onNavigateToAddAccount = {
-                        open(tab, AddAccount)
-                    },
-                    onNavigateToBalanceHistory = { bankName, accountLast4 ->
-                        open(tab, BalanceHistory(bankName, accountLast4))
-                    }
-                )
+            val viewModel: ManageAccountsViewModel = hiltViewModel()
+            ManageAccountsScreen(
+                viewModel = viewModel,
+                onNavigateBack = {
+                    backFrom(tab, key)
+                },
+                onNavigateToAddAccount = {
+                    open(tab, AddAccount)
+                },
+                onNavigateToBalanceHistory = { bankName, accountLast4 ->
+                    open(tab, BalanceHistory(bankName, accountLast4))
+                }
+            )
         }
 
         entry<BalanceHistory> { key ->
-                com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    }
-                )
+            com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
+                onNavigateBack = {
+                    backFrom(tab, key)
+                }
+            )
         }
 
         entry<ImportStatement> { key ->
-                val viewModel: ImportStatementViewModel = hiltViewModel()
-                ImportStatementScreen(
-                    viewModel = viewModel,
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    }
-                )
+            val viewModel: ImportStatementViewModel = hiltViewModel()
+            ImportStatementScreen(
+                viewModel = viewModel,
+                onNavigateBack = {
+                    backFrom(tab, key)
+                }
+            )
         }
 
         entry<AddAccount> { key ->
-                val viewModel: ManageAccountsViewModel = hiltViewModel()
-                AddAccountScreen(
-                    viewModel = viewModel,
-                    onNavigateBack = {
-                        backFrom(tab, key)
-                    }
-                )
+            val viewModel: ManageAccountsViewModel = hiltViewModel()
+            AddAccountScreen(
+                viewModel = viewModel,
+                onNavigateBack = {
+                    backFrom(tab, key)
+                }
+            )
         }
     })
     val decoratedTabs = BottomNavItem.all.associateWith { tab ->

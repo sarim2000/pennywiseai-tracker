@@ -1900,6 +1900,7 @@
     <ID>ReturnCount:AlinmaBankParser.kt$AlinmaBankParser$override fun extractMerchant(message: String, sender: String): String?</ID>
     <ID>ReturnCount:AlinmaBankParser.kt$AlinmaBankParser$override fun extractTransactionType(message: String): TransactionType?</ID>
     <ID>ReturnCount:ApolloParser.kt$ApolloParser$override fun extractAmount(message: String): BigDecimal?</ID>
+    <ID>ReturnCount:AppLanguage.kt$private fun Context.appLanguageContext(): Context</ID>
     <ID>ReturnCount:AppLockRepository.kt$internal fun shouldLock( isEnabled: Boolean, timeoutMinutes: Int, lastAuthTimestamp: Long, session: LockSession, now: Long ): Boolean</ID>
     <ID>ReturnCount:ArabBankParser.kt$ArabBankParser$override fun detectIsCard(message: String): Boolean</ID>
     <ID>ReturnCount:ArabBankParser.kt$ArabBankParser$override fun extractAccountLast4(message: String): String?</ID>
@@ -2429,7 +2430,6 @@
     <ID>ReturnCount:WebhookDeliveryService.kt$WebhookDeliveryService$suspend fun deliver( url: String, headers: List&lt;WebhookHeader&gt;, payload: WebhookEnvelope ): WebhookAttemptResult</ID>
     <ID>ReturnCount:WebhookValidation.kt$WebhookValidation$fun validateDraft(draft: WebhookProfileDraft): ResText?</ID>
     <ID>ReturnCount:WeeklySummaryWorker.kt$WeeklySummaryWorker$override suspend fun doWork(): Result</ID>
-    <ID>ReturnCount:WidgetUi.kt$private fun Context.appLanguageContext(): Context</ID>
     <ID>ReturnCount:WidgetUi.kt$private fun Context.readsAgainstDevice(): Boolean</ID>
     <ID>ReturnCount:XlsxReader.kt$XlsxReader$private fun firstSheetPath(parts: Map&lt;String, ByteArray&gt;): String?</ID>
     <ID>ReturnCount:YesBankParser.kt$YesBankParser$override fun detectIsCard(message: String): Boolean</ID>

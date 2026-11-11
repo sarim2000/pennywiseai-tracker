@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.utils.inAppLanguage
 import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject

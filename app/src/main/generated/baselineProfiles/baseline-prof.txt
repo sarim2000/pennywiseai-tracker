@@ -34876,9 +34876,10 @@ SPLcom/pennywiseai/tracker/widget/WidgetRefresher;-><init>()V
 SPLcom/pennywiseai/tracker/widget/WidgetRefresher;->refreshTransactionWidgets(Landroid/content/Context;)V
 Lcom/pennywiseai/tracker/widget/WidgetUiKt;
 SPLcom/pennywiseai/tracker/widget/WidgetUiKt;-><clinit>()V
-SPLcom/pennywiseai/tracker/widget/WidgetUiKt;->appLanguageContext(Landroid/content/Context;)Landroid/content/Context;
+Lcom/pennywiseai/tracker/utils/AppLanguageKt;
+SPLcom/pennywiseai/tracker/utils/AppLanguageKt;->appLanguageContext(Landroid/content/Context;)Landroid/content/Context;
 PLcom/pennywiseai/tracker/widget/WidgetUiKt;->getAppLocale(Landroid/content/Context;)Ljava/util/Locale;
-SPLcom/pennywiseai/tracker/widget/WidgetUiKt;->inAppLanguage(Landroid/content/Context;)Landroid/content/Context;
+SPLcom/pennywiseai/tracker/utils/AppLanguageKt;->inAppLanguage(Landroid/content/Context;)Landroid/content/Context;
 Lcom/pennywiseai/tracker/widget/WidgetUiKt$$ExternalSyntheticLambda16;
 SPLcom/pennywiseai/tracker/widget/WidgetUiKt$$ExternalSyntheticLambda16;-><init>()V
 Lcom/pennywiseai/tracker/widget/WidgetUiKt$$ExternalSyntheticLambda17;

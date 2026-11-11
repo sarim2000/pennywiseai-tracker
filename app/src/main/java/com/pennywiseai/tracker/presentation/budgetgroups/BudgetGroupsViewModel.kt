@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.budgetgroups
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.widget.inAppLanguage
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -12,6 +11,7 @@ import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.overlaps
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
+import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi

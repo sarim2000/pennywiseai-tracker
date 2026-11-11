@@ -271,6 +271,7 @@ tests, so `./init.sh app` and CI fail on a new violation:
 | `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
 | `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (launch an Activity by class name through a `core` intent contract such as `core/QuickAddIntent`; don't import it) |
 | `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
+| `ui` and every package under it (`UiBoundaryTest`) | `presentation`, `navigation` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
 
 `ui.theme` needs no rule: `:core:designsystem` can't see `:app`'s code.

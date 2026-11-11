@@ -50,7 +50,7 @@ class WebhookSyncSchedulerTest {
         }
         try {
             val original = awaitWork(WorkInfo.State.ENQUEUED)
-            assertTrue(WebhookSyncWorker::class.java.name in original.tags)
+            assertTrue("com.pennywiseai.tracker.worker.WebhookSyncWorker" in original.tags)
             assertEquals(TimeUnit.HOURS.toMillis(6), original.periodicityInfo?.repeatIntervalMillis)
             assertEquals(NetworkType.CONNECTED, original.constraints.requiredNetworkType)
             pro.value = null

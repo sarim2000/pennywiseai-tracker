@@ -1,9 +1,7 @@
 package com.pennywiseai.tracker
 
-import com.pennywiseai.tracker.data.database.entity.builtinKey
 import android.app.Activity
 import android.app.Application
-import android.content.res.Configuration as ResConfiguration
 import android.os.Bundle
 import android.os.StrictMode
 import androidx.compose.material3.ComposeMaterial3Flags
@@ -11,6 +9,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.glance.appwidget.updateAll
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.webhook.WebhookSyncScheduler
@@ -29,6 +28,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.content.res.Configuration as ResConfiguration
 
 @HiltAndroidApp
 class PennyWiseApplication : Application(), Configuration.Provider {
@@ -49,7 +49,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     lateinit var categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository
 
     @Inject
-    lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
+    lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 
     @Inject
     lateinit var webhookSyncScheduler: WebhookSyncScheduler

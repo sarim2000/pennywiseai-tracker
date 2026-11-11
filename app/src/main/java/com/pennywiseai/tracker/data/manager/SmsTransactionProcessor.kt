@@ -5,8 +5,6 @@ import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import android.content.Context
 import android.util.Log
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
-import com.pennywiseai.tracker.worker.MoneyAlertWorker
-import com.pennywiseai.tracker.worker.MoneyAlertNotifications
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
@@ -58,7 +56,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
-    private val database: PennyWiseDatabase
+    private val database: PennyWiseDatabase,
+    private val moneyAlerts: MoneyAlerts
 ) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
@@ -301,7 +300,7 @@ class SmsTransactionProcessor @Inject constructor(
                 // Trigger widget refresh for the transaction-derived widgets
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
                 // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
-                MoneyAlertWorker.enqueue(appContext)
+                moneyAlerts.onTransactionSaved()
 
                 return ProcessingResult(
                     true,
@@ -505,7 +504,7 @@ class SmsTransactionProcessor @Inject constructor(
         if (latest != null && saved.timestamp.isBefore(latest.timestamp)) return
         if (!MoneyAlertRules.crossedLowBalance(before, saved.balance, saved.lowBalanceThreshold)) return
         // Apart from the save: a notification that fails mustn't report the SMS as failed.
-        runCatching { MoneyAlertNotifications.showLowBalance(appContext, saved) }
+        runCatching { moneyAlerts.showLowBalance(saved) }
             .onFailure { Log.e(TAG, "Low-balance alert failed", it) }
     }
 }

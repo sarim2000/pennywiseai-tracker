@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
@@ -15,17 +16,13 @@ import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
-import com.pennywiseai.tracker.widget.WidgetRefresher
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.justRun
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.slot
-import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.runBlocking
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -59,6 +56,7 @@ class SmsTransactionProcessorMoneyAlertsTest {
     private val rules = mockk<RuleRepository>()
     private val ignored = mockk<IgnoredAccountsStore>()
     private val alerts = mockk<MoneyAlerts>()
+    private val widgets = mockk<TransactionWidgets>()
 
     private val processor = SmsTransactionProcessor(
         appContext = context,
@@ -73,12 +71,12 @@ class SmsTransactionProcessorMoneyAlertsTest {
         ignoredAccountsStore = ignored,
         database = mockk<PennyWiseDatabase>(),
         moneyAlerts = alerts,
+        transactionWidgets = widgets,
     )
 
     @Before
     fun setUp() {
-        mockkObject(WidgetRefresher)
-        justRun { WidgetRefresher.refreshTransactionWidgets(any()) }
+        justRun { widgets.refresh() }
         justRun { alerts.onTransactionSaved() }
         justRun { alerts.showLowBalance(any()) }
         every { ignored.isIgnored(any(), *anyVararg()) } returns false
@@ -92,9 +90,6 @@ class SmsTransactionProcessorMoneyAlertsTest {
         coEvery { subscriptions.priceChangedSubscriptionFor(any()) } returns null
     }
 
-    @After
-    fun tearDown() = unmockkObject(WidgetRefresher)
-
     @Test
     fun `a saved transaction queues the money-alert check once`() = runBlocking {
         val result = processor.saveParsedTransaction(parsed(balance = null, accountLast4 = null), BODY)
@@ -102,6 +97,14 @@ class SmsTransactionProcessorMoneyAlertsTest {
         assertTrue(result.reason, result.success)
         verify(exactly = 1) { alerts.onTransactionSaved() }
         verify(exactly = 0) { alerts.showLowBalance(any()) }
+    }
+
+    @Test
+    fun `a saved transaction refreshes the widgets once`() = runBlocking {
+        val result = processor.saveParsedTransaction(parsed(balance = null, accountLast4 = null), BODY)
+
+        assertTrue(result.reason, result.success)
+        verify(exactly = 1) { widgets.refresh() }
     }
 
     @Test
@@ -113,6 +116,7 @@ class SmsTransactionProcessorMoneyAlertsTest {
         assertFalse(result.success)
         verify(exactly = 0) { alerts.onTransactionSaved() }
         verify(exactly = 0) { alerts.showLowBalance(any()) }
+        verify(exactly = 0) { widgets.refresh() }
     }
 
     @Test

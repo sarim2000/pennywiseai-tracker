@@ -33,7 +33,7 @@ class AddTransactionBatchTest {
         SubscriptionRepository(db.subscriptionDao(), db.categoryDao()),
         AccountBalanceRepository(
             db.accountBalanceDao(), db.transactionDao(), db,
-            UserPreferencesRepository(InstrumentationRegistry.getInstrumentation().targetContext)
+            UserPreferencesRepository(InstrumentationRegistry.getInstrumentation().targetContext) {}
         ),
         TagRepository(db, db.tagDao())
     )

@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.data.share.ShareCardConfig
@@ -20,7 +21,6 @@ import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
-import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -69,8 +69,8 @@ const val DAILY_SUMMARY_DEFAULT = false
 
 @Singleton
 open class UserPreferencesRepository internal constructor(
-    private val context: Context,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val transactionWidgets: TransactionWidgets
 ) : CurrencyPreferences,
     BudgetPreferences,
     ScanPreferences,
@@ -82,7 +82,10 @@ open class UserPreferencesRepository internal constructor(
     // Production always takes the delegate: a second DataStore on the same file throws.
     // The internal constructor exists so tests can give each case its own empty file.
     @Inject
-    constructor(@ApplicationContext context: Context) : this(context, context.dataStore)
+    constructor(
+        @ApplicationContext context: Context,
+        transactionWidgets: TransactionWidgets
+    ) : this(context.dataStore, transactionWidgets)
 
     internal object PreferencesKeys {
         val DARK_THEME_ENABLED = booleanPreferencesKey("dark_theme_enabled")
@@ -1136,7 +1139,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
         }
         // Every widget computes "this cycle" from this day.
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
     }
 
     /**
@@ -1194,7 +1197,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
     }
 
     /**
@@ -1209,7 +1212,7 @@ open class UserPreferencesRepository internal constructor(
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
         return hidden
     }
 
@@ -1271,7 +1274,7 @@ open class UserPreferencesRepository internal constructor(
             }
         }
         // The spend widgets are scoped to the selected profile.
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
     }
 
     // Blur Effects

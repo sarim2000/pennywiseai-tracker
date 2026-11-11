@@ -6,9 +6,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
-import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -27,6 +27,7 @@ class BillReminderActionReceiver : BroadcastReceiver() {
     interface BillReminderActionReceiverEntryPoint {
         fun markSubscriptionPaidUseCase(): MarkSubscriptionPaidUseCase
         fun subscriptionRepository(): SubscriptionRepository
+        fun transactionWidgets(): TransactionWidgets
     }
 
     companion object {
@@ -78,7 +79,7 @@ class BillReminderActionReceiver : BroadcastReceiver() {
                         val result = entryPoint.markSubscriptionPaidUseCase()
                             .execute(subscriptionId, reminderDueDate = dueDate)
                         if (result is MarkSubscriptionPaidUseCase.Result.Created) {
-                            WidgetRefresher.refreshTransactionWidgets(context)
+                            entryPoint.transactionWidgets().refresh()
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                         }
                     }

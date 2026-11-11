@@ -93,7 +93,7 @@ class AiContextRepositoryTest {
             arrayOf(ExchangeRateProvider::class.java)
         ) { _, _, _ -> null } as ExchangeRateProvider
 
-        userPreferencesRepository = UserPreferencesRepository(FakeContext())
+        userPreferencesRepository = UserPreferencesRepository(FakeContext()) {}
         userPreferencesRepository.updateBaseCurrency("INR")
 
         currencyConversionService = CurrencyConversionService(

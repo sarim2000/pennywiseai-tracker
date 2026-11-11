@@ -8,6 +8,7 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.manager.ConscienceNotifier
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
@@ -15,7 +16,6 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
-import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -42,6 +42,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         fun trackRepeatChargeUseCase(): TrackRepeatChargeUseCase
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
         fun notificationPreferences(): NotificationPreferences
+        fun transactionWidgets(): TransactionWidgets
     }
 
     companion object {
@@ -209,7 +210,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
                     ACTION_UNDO_LEARN -> {
                         runCatching {
                             intent.toLearned(transactionId)?.let { entryPoint.learnCategoryUseCase().undo(it) }
-                            WidgetRefresher.refreshTransactionWidgets(context)
+                            refreshWidgets(context)
                         }.onFailure { Log.e(TAG, "Error undoing a learned category", it) }
                         SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
                     }
@@ -259,7 +260,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         try {
             val deleted = deleteTransactionUseCase(transactionId)
             if (deleted) {
-                WidgetRefresher.refreshTransactionWidgets(context)
+                refreshWidgets(context)
                 Log.d(TAG, "Deleted transaction and shifted balance: $transactionId")
             } else {
                 Log.w(TAG, "Transaction not found for deletion: $transactionId")
@@ -284,7 +285,7 @@ class NotificationActionReceiver : BroadcastReceiver() {
         excluded: Boolean
     ): TransactionEntity? {
         if (repository.setExcludedFromAnalytics(transactionId, excluded) > 0) {
-            WidgetRefresher.refreshTransactionWidgets(context)
+            refreshWidgets(context)
         }
         return repository.getTransactionById(transactionId)
     }
@@ -306,11 +307,16 @@ class NotificationActionReceiver : BroadcastReceiver() {
             learnCategory(transactionId, newCategory) { learned ->
                 SmsBroadcastReceiver.showLearnedNotification(context, notificationId, learned)
             }
-            WidgetRefresher.refreshTransactionWidgets(context)
+            refreshWidgets(context)
         } catch (e: Exception) {
             Log.e(TAG, "Error changing category", e)
         }
     }
+
+    private fun refreshWidgets(context: Context) = EntryPointAccessors.fromApplication(
+        context.applicationContext,
+        NotificationActionReceiverEntryPoint::class.java
+    ).transactionWidgets().refresh()
 
     private fun addTaught(context: Context, smsId: Long) {
         if (smsId <= 0) return

@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.ui.components
+package com.pennywiseai.tracker.presentation.share
 
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
-import com.pennywiseai.tracker.presentation.share.ShareCardData
 
 /**
  * The image users send to WhatsApp.

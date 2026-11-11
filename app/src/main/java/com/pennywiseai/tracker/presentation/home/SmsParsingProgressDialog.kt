@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.ui.components
+package com.pennywiseai.tracker.presentation.home
 
 import androidx.compose.ui.res.pluralStringResource
 import com.pennywiseai.tracker.R

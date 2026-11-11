@@ -206,7 +206,6 @@ class ArchitectureTest {
 
     private companion object {
         const val APP = "com.pennywiseai.tracker"
-        const val MAIN = "app/src/main/java/com/pennywiseai/tracker"
 
         /** Android entry points. They may start a screen's Activity but not use its code. */
         val ENTRY_POINTS = listOf("worker", "widget", "receiver", "tile", "aiaccess")
@@ -216,10 +215,7 @@ class ArchitectureTest {
         /** Feature-agnostic UI shared by every screen (docs/architecture.md rule 3). */
         val SHARED_UI = listOf("ui.components", "ui.icons", "ui.animations", "ui.effects")
 
-        val SHARED_UI_ALLOWLIST = mapOf(
-            "$MAIN/ui/components/ShareCard.kt" to setOf("$APP.presentation.share.ShareCardData"),
-            "$MAIN/ui/components/SmsParsingProgressDialog.kt" to setOf("$APP.worker.OptimizedSmsReaderWorker"),
-        )
+        val SHARED_UI_ALLOWLIST = emptyMap<String, Set<String>>()
 
         fun checkAll(rules: List<Rule>) {
             val report = rules.joinToString("") { it.report() }

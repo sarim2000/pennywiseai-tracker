@@ -50,7 +50,6 @@ import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.data.share.ShareCardExporter
-import com.pennywiseai.tracker.ui.components.ShareCard
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.launch
 

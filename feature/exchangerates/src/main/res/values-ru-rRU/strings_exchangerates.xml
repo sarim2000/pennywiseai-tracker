@@ -9,7 +9,6 @@
     <string name="exchange_rates_hint">Нажмите на курс для установки пользовательского значения. Пользовательские тарифы сохраняются при обновлении API.</string>
     <string name="exchange_rates_reset_all">Сбросить все в авто</string>
     <string name="exchange_rates_badge_custom">Пользовательский</string>
-    <string name="exchange_rates_badge_api">API</string>
     <string name="exchange_rates_rate_label">Курс обмена</string>
     <string name="exchange_rates_invalid_rate">Введите действительное положительное число</string>
     <string name="exchange_rates_reset">Сброс на авто</string>

@@ -9,7 +9,6 @@
     <string name="exchange_rates_hint">انقر على معدل لتعيين قيمة مخصصة. يتم الحفاظ على المعدلات المخصصة عبر تحديثات API.</string>
     <string name="exchange_rates_reset_all">إعادة تعيين الكل تلقائياً</string>
     <string name="exchange_rates_badge_custom">مخصص</string>
-    <string name="exchange_rates_badge_api">API</string>
     <string name="exchange_rates_rate_label">سعر الصرف</string>
     <string name="exchange_rates_invalid_rate">أدخل رقماً موجباً صحيحاً</string>
     <string name="exchange_rates_reset">إعادة تعيين تلقائي</string>

@@ -1,0 +1,78 @@
+# Submits the graph saved by dependency-graph.yml. Runs in the base repo's
+# context with a write token, so the artifact it reads is UNTRUSTED (a fork PR
+# controls the workflow and build that produced it). It is only ever parsed as
+# JSON and POSTed; nothing from it is executed, and no code is checked out.
+#
+# We validate before submitting instead of using the action's
+# `download-and-submit`: that mode POSTs the file's own `ref`/`sha`, so a fork
+# could overwrite main's snapshot. Here a snapshot must name the exact commit
+# the run built, and only a push run from this repo may claim refs/heads/main.
+name: Dependency Graph Submit
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] artifact is validated JSON, never executed; no checkout
+    workflows: [ Dependency Graph ]
+    types: [ completed ]
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    name: Submit dependency graph
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read     # download the triggering run's artifact
+      contents: write   # POST /dependency-graph/snapshots
+
+    steps:
+    - name: Download dependency graph
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ github.token }}
+        pattern: dependency-graph_*
+        path: ${{ runner.temp }}/dependency-graph
+
+    - name: Validate and submit
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        RUN_EVENT: ${{ github.event.workflow_run.event }}
+        RUN_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+        RUN_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+        DIR: ${{ runner.temp }}/dependency-graph
+      run: |
+        set -euo pipefail
+        # A fork's own branch may also be called "main", hence the repo check.
+        if [[ "$RUN_EVENT" == push && "$RUN_REPO" == "$REPO" && "$RUN_BRANCH" == main ]]; then
+          want_ref=refs/heads/main
+        elif [[ "$RUN_EVENT" == pull_request ]]; then
+          # The snapshot names its own PR ref, so look the PR up instead of
+          # trusting it: exactly one open PR into main whose head is this run's
+          # repo, branch and commit. (workflow_run.pull_requests is empty for forks.)
+          prs=$(gh api --method GET "repos/$REPO/pulls" -f state=open -f base=main \
+                  -f head="${RUN_REPO%%/*}:$RUN_BRANCH" \
+                | jq -c --arg sha "$RUN_SHA" --arg repo "$RUN_REPO" \
+                    '[.[] | select(.head.sha == $sha and .head.repo.full_name == $repo) | .number]')
+          if [[ "$(jq length <<<"$prs")" != 1 ]]; then
+            echo "::error::Expected one open PR for $RUN_REPO:$RUN_BRANCH@$RUN_SHA, found $prs"; exit 1
+          fi
+          want_ref="refs/pull/$(jq '.[0]' <<<"$prs")/merge"
+        else
+          echo "::error::Unexpected run: event=$RUN_EVENT"; exit 1
+        fi
+
+        n=0
+        while IFS= read -r -d '' f; do
+          if ! jq -e --arg sha "$RUN_SHA" --arg ref "$want_ref" \
+               '.sha == $sha and .ref == $ref' "$f" >/dev/null; then
+            echo "::error::Rejected $(basename "$f"): sha/ref don't match the triggering run"; exit 1
+          fi
+          gh api --method POST "repos/$REPO/dependency-graph/snapshots" --input "$f" --jq '.message'
+          n=$((n + 1))
+        done < <(find "$DIR" -type f -name '*.json' -print0)
+        if (( n == 0 )); then echo "::error::No dependency graph found"; exit 1; fi

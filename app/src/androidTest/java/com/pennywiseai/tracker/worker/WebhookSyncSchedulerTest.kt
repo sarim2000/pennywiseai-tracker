@@ -31,8 +31,7 @@ class WebhookSyncSchedulerTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().build())
         val work = WorkManager.getInstance(context)
-        val profiles = MutableStateFlow(listOf(WebhookProfileEntity(
-            id = "schedule-test", name = "Test", url = "https://example.com/hook")))
+        val profiles = MutableStateFlow(listOf(WebhookProfileEntity(id = "schedule-test", name = "Test", url = "https://example.com/hook")))
         val pro = MutableStateFlow<Boolean?>(true)
         val repository = mockk<WebhookRepository> { every { observeProfiles() } returns profiles }
         val preferences = mockk<WebhookPreferences> { every { intervalHours } returns MutableStateFlow(6) }

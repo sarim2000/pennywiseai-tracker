@@ -26332,7 +26332,7 @@ SPLcom/pennywiseai/tracker/data/preferences/HomeSectionLayout;->decode(Ljava/lan
 SPLcom/pennywiseai/tracker/data/preferences/HomeSectionLayout;->getDEFAULT()Ljava/util/List;
 Lcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;
 SPLcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;-><clinit>()V
-SPLcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;-><init>(Landroid/content/Context;)V
+SPLcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;-><init>(Landroid/content/Context;Lcom/pennywiseai/tracker/core/TransactionWidgets;)V
 SPLcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;->access$getPrefs$p(Lcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;)Landroid/content/SharedPreferences;
 SPLcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;->getKeysFlow()Lkotlinx/coroutines/flow/Flow;
 SPLcom/pennywiseai/tracker/data/preferences/IgnoredAccountsStore;->keys()Ljava/util/Set;
@@ -26398,8 +26398,8 @@ SPLcom/pennywiseai/tracker/data/preferences/UserPreferences;->isDarkThemeEnabled
 SPLcom/pennywiseai/tracker/data/preferences/UserPreferences;->isDynamicColorEnabled()Z
 Lcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;
 SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;-><clinit>()V
-SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;-><init>(Landroid/content/Context;)V
-SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;-><init>(Landroid/content/Context;Landroidx/datastore/core/DataStore;)V
+SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;-><init>(Landroid/content/Context;Lcom/pennywiseai/tracker/core/TransactionWidgets;)V
+SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;-><init>(Landroidx/datastore/core/DataStore;Lcom/pennywiseai/tracker/core/TransactionWidgets;)V
 SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;->getAppLockTimeoutMinutes$suspendImpl(Lcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;->getAppLockTimeoutMinutes()Lkotlinx/coroutines/flow/Flow;
 SPLcom/pennywiseai/tracker/data/preferences/UserPreferencesRepository;->getAppLockTimeoutMinutes(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -30857,6 +30857,9 @@ Lcom/pennywiseai/tracker/widget/WidgetRefresher;
 SPLcom/pennywiseai/tracker/widget/WidgetRefresher;-><clinit>()V
 SPLcom/pennywiseai/tracker/widget/WidgetRefresher;-><init>()V
 SPLcom/pennywiseai/tracker/widget/WidgetRefresher;->refreshTransactionWidgets(Landroid/content/Context;)V
+Lcom/pennywiseai/tracker/widget/WorkManagerTransactionWidgets;
+SPLcom/pennywiseai/tracker/widget/WorkManagerTransactionWidgets;-><init>(Landroid/content/Context;)V
+SPLcom/pennywiseai/tracker/widget/WorkManagerTransactionWidgets;->refresh()V
 Lcom/pennywiseai/tracker/widget/WidgetUiKt;
 SPLcom/pennywiseai/tracker/widget/WidgetUiKt;-><clinit>()V
 Lcom/pennywiseai/tracker/utils/AppLanguageKt;

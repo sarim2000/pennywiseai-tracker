@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.utils
 
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import java.math.BigDecimal
 import java.text.NumberFormat
@@ -52,11 +53,10 @@ object CurrencyFormatter {
     }
 
     /**
-     * Currencies whose ISO 4217 minor unit is 3 (three decimal places),
-     * e.g. Jordanian Dinar, Kuwaiti Dinar. Used so amounts aren't truncated
-     * to 2 decimals on the symbol/fallback display paths.
+     * Decimal places shown for [currencyCode]: 3 for the dinars/rials, else 2. The list lives in
+     * shared's [MinorUnits] so Android and iOS always agree on it.
      */
-    private val THREE_DECIMAL_CURRENCIES = setOf("JOD", "KWD", "BHD", "OMR")
+    private fun fractionDigits(currencyCode: String?): Int = currencyCode?.let(MinorUnits::digits) ?: 2
 
     /**
      * Currency symbol mapping for display
@@ -237,7 +237,7 @@ object CurrencyFormatter {
 
         // Show decimals only if they exist
         formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = if (currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        formatter.maximumFractionDigits = fractionDigits(currencyCode)
         return formatter
     }
 
@@ -332,7 +332,7 @@ object CurrencyFormatter {
      * Formats just the numeric amount without currency symbol
      */
     private fun formatAmount(amount: BigDecimal, currencyCode: String? = null): String {
-        val decimals = if (currencyCode != null && currencyCode in THREE_DECIMAL_CURRENCIES) 3 else 2
+        val decimals = fractionDigits(currencyCode)
         val prototype = numberFormats.getOrPut(groupingLocale(currencyCode) to decimals) {
             NumberFormat.getNumberInstance(groupingLocale(currencyCode)).apply {
                 minimumFractionDigits = 0

@@ -6,32 +6,32 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.core.Constants
-import com.pennywiseai.tracker.core.Constants.Links
-import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
-import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
-import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
-import com.pennywiseai.tracker.domain.model.Suggestion
-import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.combine
-import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
-import com.pennywiseai.parser.core.GenericTransactionExtractor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.Channel
 import com.pennywiseai.parser.core.AmountFormat
+import com.pennywiseai.parser.core.GenericTransactionExtractor
 import com.pennywiseai.parser.core.MessageTemplate
 import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.core.Constants.Links
+import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TaughtMessageBooker
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
+import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.repository.SmsInboxReader
+import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
+import com.pennywiseai.tracker.domain.model.Suggestion
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.util.UUID
 import javax.inject.Inject
@@ -46,20 +46,20 @@ class UnrecognizedSmsViewModel @Inject constructor(
     private val taughtMessageBooker: TaughtMessageBooker,
     private val smsInboxReader: SmsInboxReader
 ) : ViewModel() {
-    
+
     private companion object {
         const val TAG = "UnrecognizedSmsViewModel"
     }
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-    
+
     private val _showReported = MutableStateFlow(true)
     val showReported: StateFlow<Boolean> = _showReported.asStateFlow()
-    
+
     private val allMessages = unrecognizedSmsRepository.getAllVisible()
-    
-    val unrecognizedMessages: StateFlow<List<UnrecognizedSmsEntity>> = 
+
+    val unrecognizedMessages: StateFlow<List<UnrecognizedSmsEntity>> =
         combine(allMessages, _showReported) { messages, showReported ->
             if (showReported) {
                 messages
@@ -71,7 +71,7 @@ class UnrecognizedSmsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    
+
     /**
      * What each message looks like it says (#994), by message id; only the ones worth
      * suggesting. A sender the user has added from before, or an app they chose to
@@ -80,26 +80,26 @@ class UnrecognizedSmsViewModel @Inject constructor(
     val suggestions: StateFlow<Map<Long, Suggestion>> = combine(
         allMessages, learnedSendersStore.allFlow, trackedAppsStore.allFlow, taughtTemplatesStore.allFlow
     ) { messages, learned, trackedApps, _ ->
-            messages.mapNotNull { sms ->
-                val key = LearnedSendersStore.normalize(sms.sender)
-                taughtMessageBooker.read(sms.sender, sms.smsBody, sms.timestampMillis())?.let { taught ->
-                    return@mapNotNull sms.id to Suggestion(sms, taught, null, taught = true)
-                }
-                val trusted = key in learned || sms.sender in trackedApps
-                GenericTransactionExtractor.extract(sms.sender, sms.smsBody)
-                    ?.takeIf { trusted || it.confidence >= GenericTransactionExtractor.SUGGEST_AT }
-                    ?.let { sms.id to Suggestion(sms, it.transaction, learned[key]) }
-            }.toMap()
-        }
+        messages.mapNotNull { sms ->
+            val key = LearnedSendersStore.normalize(sms.sender)
+            taughtMessageBooker.read(sms.sender, sms.smsBody, sms.timestampMillis())?.let { taught ->
+                return@mapNotNull sms.id to Suggestion(sms, taught, null, taught = true)
+            }
+            val trusted = key in learned || sms.sender in trackedApps
+            GenericTransactionExtractor.extract(sms.sender, sms.smsBody)
+                ?.takeIf { trusted || it.confidence >= GenericTransactionExtractor.SUGGEST_AT }
+                ?.let { sms.id to Suggestion(sms, it.transaction, learned[key]) }
+        }.toMap()
+    }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     /** Messages from a sender the user taught that no template of theirs fits any more. */
     val formatChanged: StateFlow<Set<Long>> = combine(allMessages, taughtTemplatesStore.allFlow) { messages, _ ->
-            messages.filter { taughtMessageBooker.formatChanged(it.sender, it.smsBody, it.timestampMillis()) }
-                .map { it.id }
-                .toSet()
-        }
+        messages.filter { taughtMessageBooker.formatChanged(it.sender, it.smsBody, it.timestampMillis()) }
+            .map { it.id }
+            .toSet()
+    }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
@@ -222,7 +222,7 @@ class UnrecognizedSmsViewModel @Inject constructor(
     fun toggleShowReported() {
         _showReported.value = !_showReported.value
     }
-    
+
     fun reportMessage(message: UnrecognizedSmsEntity) {
         viewModelScope.launch {
             try {
@@ -232,17 +232,17 @@ class UnrecognizedSmsViewModel @Inject constructor(
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
                 context.startActivity(intent)
-                
+
                 // Mark as reported
                 unrecognizedSmsRepository.markAsReported(listOf(message.id))
-                
+
                 Log.d("UnrecognizedSmsViewModel", "Opened report for message from: ${message.sender}")
             } catch (e: Exception) {
                 Log.e("UnrecognizedSmsViewModel", "Error opening report", e)
             }
         }
     }
-    
+
     fun deleteMessage(message: UnrecognizedSmsEntity) {
         viewModelScope.launch {
             try {
@@ -254,7 +254,7 @@ class UnrecognizedSmsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun deleteAllMessages() {
         viewModelScope.launch {
             try {

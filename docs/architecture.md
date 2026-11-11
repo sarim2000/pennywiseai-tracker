@@ -142,6 +142,7 @@ app/
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
 │                                #   overscroll effect, appearance enums (same packages as before the move)
 feature/exchangerates/           # Exchange-rates screen + ViewModel (package presentation.exchangerates)
+build-logic/                     # Convention plugins: pennywise.android.compose-library / .feature
 parser-core/                     # Bank SMS parsers (Kotlin Multiplatform)
 shared/                          # KMP code shared with iOS
 iosApp/                          # Swift iOS app
@@ -211,15 +212,6 @@ and it depends on no project module, so the compiler keeps the theme free of
   `R.string`, money formatting, Haze, Coil or feature types, so moving the generic
   ones would split `ui.components` across two modules and serve no caller. Move what
   a second Compose module needs in the PR that adds it.
-- **Convention plugins in `build-logic`.** The included build `build-logic` (shares
-  `gradle/libs.versions.toml`) holds two precompiled script plugins.
-  `pennywise.android.compose-library` sets what the Android library modules share
-  with `:app`: compileSdk 37, minSdk 26, Compose, Java/Kotlin target 17, the
-  Material 3 Expressive opt-in and `isReturnDefaultValues` for unit tests.
-  `pennywise.android.feature` adds KSP, the Hilt plugin and the Hilt compiler.
-  A module still declares its namespace and every dependency it compiles against.
-  `:app`, `:shared`, `:parser-core` and `:baselineprofile` don't use them; change
-  `:app`'s copy of these settings together with the plugin.
 
 ### `:feature:exchangerates`
 
@@ -235,8 +227,21 @@ port (`di/ExchangeRatesModule.kt`) and calls the screen through
   `com.pennywiseai.feature.exchangerates.R`.
 - **Strings live in the module** (`res/values*/strings_exchangerates.xml`). Crowdin
   needs one `files` entry per feature module in `crowdin.yml`.
-- Hilt and KSP run here for the ViewModel. Room, KSP schemas and the baseline
-  profile stay in `:app`.
+- Hilt and KSP run here for the ViewModel, applied by `pennywise.android.feature`
+  ([`build-logic`](#build-logic)). Room, KSP schemas and the baseline profile
+  stay in `:app`.
+
+### `build-logic`
+
+The included build `build-logic` (shares `gradle/libs.versions.toml`) holds two
+precompiled script plugins.
+`pennywise.android.compose-library` sets what the Android library modules share
+with `:app`: compileSdk 37, minSdk 26, Compose, Java/Kotlin target 17, the
+Material 3 Expressive opt-in and `isReturnDefaultValues` for unit tests.
+`pennywise.android.feature` adds KSP, the Hilt plugin and the Hilt compiler.
+A module still declares its namespace and every dependency it compiles against.
+`:app`, `:shared`, `:parser-core` and `:baselineprofile` don't use them; change
+`:app`'s copy of these settings together with the plugin.
 
 ### Enforced by `ArchitectureTest`
 

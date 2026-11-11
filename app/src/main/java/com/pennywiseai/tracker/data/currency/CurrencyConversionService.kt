@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.currency
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.core.TimeConstants
@@ -89,7 +90,7 @@ class CurrencyConversionService @Inject constructor(
         }
 
         val rate = getExchangeRate(fromCurrency, toCurrency, forceRefresh) ?: return null
-        return amount.multiply(rate).setScale(2, RoundingMode.HALF_UP)
+        return amount.multiply(rate).setScale(MinorUnits.digits(toCurrency), RoundingMode.HALF_UP)
     }
 
     /**

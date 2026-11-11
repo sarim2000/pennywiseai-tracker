@@ -510,7 +510,7 @@ private fun MoneySheet(
                 }
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { if (it.matches(amountInput)) amount = it },
+                    onValueChange = { if (it.matches(amountInput(currency))) amount = it },
                     label = { Text(stringResource(R.string.goal_money_amount)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -527,7 +527,7 @@ private fun MoneySheet(
                 )
                 OutlinedTextField(
                     value = manual,
-                    onValueChange = { if (it.matches(amountInput)) manual = it },
+                    onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
                     singleLine = true,
@@ -565,8 +565,8 @@ private fun MoneySheet(
                 }
                 Box(Modifier.weight(1f))
                 Button(
-                    onClick = { onSave(amount.toBigDecimalOrNull(), currency, date, note, manual.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }) },
-                    enabled = !state.saving,
+                    onClick = { onSave(amount.toAmountIn(currency), currency, date, note, manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
+                    enabled = !state.saving && isManualAmountOk(manual, goalCurrency),
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_money_save)) }
             }

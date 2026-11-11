@@ -30,7 +30,7 @@ class BudgetCurrencyMoveTest {
         currency = currency
     )
 
-    private fun moved(limit: String, category: String, rate: BigDecimal?): Pair<BudgetEntity, BudgetCategoryEntity> {
+    private fun moved(limit: String, category: String, rate: BigDecimal?, to: String = "INR"): Pair<BudgetEntity, BudgetCategoryEntity> {
         coEvery { dao.getAllBudgets() } returns flowOf(listOf(budget(1, limit, "JOD")))
         coEvery { dao.getAllBudgetCategories() } returns flowOf(
             listOf(BudgetCategoryEntity(id = 9, budgetId = 1, categoryName = "Food", budgetAmount = BigDecimal(category)))
@@ -41,7 +41,7 @@ class BudgetCurrencyMoveTest {
             budgets = firstArg()
             categories = secondArg()
         }
-        runBlocking { repository.moveBudgetsToCurrency("INR", rate) }
+        runBlocking { repository.moveBudgetsToCurrency(to, rate) }
         return budgets.single() to categories.single()
     }
 
@@ -51,6 +51,13 @@ class BudgetCurrencyMoveTest {
         assertEquals(BigDecimal("31896.00"), budget.limitAmount)
         assertEquals("INR", budget.currency)
         assertEquals(BigDecimal("5316.00"), category.budgetAmount)
+    }
+
+    @Test
+    fun `a limit moving into a three-decimal currency keeps its fils`() {
+        // Two decimals used to round 3.075 to 3.08.
+        val (budget, _) = moved("100", "5", BigDecimal("0.03075"), to = "KWD")
+        assertEquals(BigDecimal("3.075"), budget.limitAmount)
     }
 
     @Test

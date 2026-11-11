@@ -18,12 +18,13 @@ class TransactionFiltersTest {
         amount: String = "100",
         loanId: Long? = null,
         loanContribution: String? = null,
-        excludedFromAnalytics: Boolean = false
+        excludedFromAnalytics: Boolean = false,
+        currency: String = "INR"
     ) = TransactionEntity(
         id = 7, amount = BigDecimal(amount), merchantName = "Test", category = "Others",
         transactionType = TransactionType.EXPENSE, dateTime = LocalDateTime.of(2026, 9, 15, 12, 0),
         transactionHash = "h", loanId = loanId, loanContribution = loanContribution?.let(::BigDecimal),
-        excludedFromAnalytics = excludedFromAnalytics
+        excludedFromAnalytics = excludedFromAnalytics, currency = currency
     )
 
     @Test
@@ -86,6 +87,16 @@ class TransactionFiltersTest {
         assertEquals(BigDecimal("60"), counted.transaction.amount)
         assertEquals(listOf("20.00", "20.00", "20.00"), counted.splits.map { it.amount.setScale(2).toPlainString() })
         assertEquals(0, counted.getSplitsTotal().compareTo(BigDecimal("60")))
+    }
+
+    @Test
+    fun `three-decimal splits shrink to fils, not cents`() {
+        val row = TransactionWithSplits(
+            tx(amount = "10", loanId = 1L, loanContribution = "6.001", currency = "JOD"),
+            listOf("3.333", "6.667").map { TransactionSplitEntity(transactionId = 7, category = "C$it", amount = BigDecimal(it)) }
+        )
+        // 3.999 counted: 3.333 x 0.3999 = 1.33287 -> 1.333, not 1.33.
+        assertEquals(listOf("1.333", "2.666"), row.forTotals()!!.splits.map { it.amount.toPlainString() })
     }
 
     @Test

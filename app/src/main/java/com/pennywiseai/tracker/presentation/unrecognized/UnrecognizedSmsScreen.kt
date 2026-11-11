@@ -32,7 +32,7 @@ import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.domain.model.draft
 import com.pennywiseai.tracker.navigation.AddTransaction
 import com.pennywiseai.tracker.navigation.toRoute
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs

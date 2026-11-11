@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.receiver
+package com.pennywiseai.tracker.data.notification
 
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import org.junit.Assert.assertEquals

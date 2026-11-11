@@ -23,7 +23,7 @@ import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.repository.SmsInboxReader
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.model.Suggestion
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

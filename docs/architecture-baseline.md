@@ -23,6 +23,12 @@ removes the `domain` → `di` back-edge and the `billing`, `data`, `domain` and
 `ui/PennyWiseBottomNavigation.kt` and `presentation/navigation/BottomNavItem.kt`)
 moved into `navigation/` (refactor PR R1), which removes the `presentation` ↔ `ui`
 and `navigation` ↔ `ui` cycles.
+`utils` is now a leaf (refactor PR U-utils):
+`BalanceCalculator`, `BalanceDiscrepancy`, `TransactionFilters` and `TransferPairs`
+moved to `data/ledger`, the entity formatting extensions to `data/database/entity`,
+and `DateFormatStyle` and `NumberFormatStyle` to `core`. That removes the `utils` →
+`data` back-edge and the `data` ↔ `utils` cycle; `UtilsLeafBoundaryTest` forbids
+`utils` and `core` from importing `data` or `domain`.
 
 Re-check the package graph with:
 

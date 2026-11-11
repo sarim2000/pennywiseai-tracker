@@ -38,6 +38,14 @@ final class MoneyEntryTests: XCTestCase {
         XCTAssertEqual(AmountFormatter.minorUnits(field: " 1.001 ", currency: "JOD"), 1001)
     }
 
+    func testAFieldWithMoreDecimalsThanItsCurrencyIsRejected() {
+        // 1.235 typed as JOD, then the picker switched to USD: no silent 1.24.
+        XCTAssertNil(AmountFormatter.minorUnits(field: "1.235", currency: "USD"))
+        XCTAssertEqual(AmountFormatter.minorUnits(field: "1.235", currency: "JOD"), 1235)
+        XCTAssertEqual(AmountFormatter.minorUnits(field: "1.2350", currency: "JOD"), 1235)
+        XCTAssertEqual(AmountFormatter.minorUnits(field: "0.1", currency: "USD"), 10)
+    }
+
     func testV1BackupAmountsMoveToTodaysMinorUnits() {
         // v1: JOD 1.24 stored as 124; today JOD is × 1000.
         XCTAssertEqual(BackupPayload.minorUnits(124, currency: "JOD", version: 1), 1240)

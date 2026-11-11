@@ -1847,7 +1847,7 @@
     <ID>NewLineAtEndOfFile:RuleTemplateService.kt$com.pennywiseai.tracker.domain.service.RuleTemplateService.kt</ID>
     <ID>NewLineAtEndOfFile:RulesScreen.kt$com.pennywiseai.tracker.presentation.rules.RulesScreen.kt</ID>
     <ID>NewLineAtEndOfFile:RulesViewModel.kt$com.pennywiseai.tracker.presentation.rules.RulesViewModel.kt</ID>
-    <ID>NewLineAtEndOfFile:SmsScanManager.kt$com.pennywiseai.tracker.data.manager.SmsScanManager.kt</ID>
+    <ID>NewLineAtEndOfFile:SmsScanManager.kt$com.pennywiseai.tracker.worker.SmsScanManager.kt</ID>
     <ID>NewLineAtEndOfFile:SpotlightTutorial.kt$com.pennywiseai.tracker.ui.components.SpotlightTutorial.kt</ID>
     <ID>NewLineAtEndOfFile:SpotlightViewModel.kt$com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel.kt</ID>
     <ID>NewLineAtEndOfFile:SubscriptionDao.kt$com.pennywiseai.tracker.data.database.dao.SubscriptionDao.kt</ID>

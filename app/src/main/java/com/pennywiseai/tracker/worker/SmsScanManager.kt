@@ -1,10 +1,9 @@
-package com.pennywiseai.tracker.data.manager
+package com.pennywiseai.tracker.worker
 
 import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.webhook.*
+import com.pennywiseai.tracker.worker.WebhookSyncScheduler
 import com.pennywiseai.tracker.ui.UiText
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate

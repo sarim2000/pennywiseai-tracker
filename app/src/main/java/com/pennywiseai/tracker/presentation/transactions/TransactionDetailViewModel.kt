@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.mapper.withTransferAccount
 
 import com.pennywiseai.tracker.ui.UiText
@@ -806,7 +807,7 @@ class TransactionDetailViewModel @Inject constructor(
 
         val currentCategory = transaction.category
         val totalAmount = transaction.amount
-        val halfAmount = totalAmount.divide(BigDecimal(2), 2, java.math.RoundingMode.HALF_UP)
+        val halfAmount = totalAmount.divide(BigDecimal(2), MinorUnits.digits(transaction.currency), java.math.RoundingMode.HALF_UP)
         val remainingAmount = totalAmount - halfAmount
 
         val initialSplits = listOf(

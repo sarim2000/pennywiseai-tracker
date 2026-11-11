@@ -211,8 +211,15 @@ and it depends on no project module, so the compiler keeps the theme free of
   `R.string`, money formatting, Haze, Coil or feature types, so moving the generic
   ones would split `ui.components` across two modules and serve no caller. Move what
   a second Compose module needs in the PR that adds it.
-- **No convention plugin yet.** One library module doesn't justify `build-logic`, so
-  its build file repeats `:app`'s SDK and JVM settings. Revisit when a second one lands.
+- **Convention plugins in `build-logic`.** The included build `build-logic` (shares
+  `gradle/libs.versions.toml`) holds two precompiled script plugins.
+  `pennywise.android.compose-library` sets what the Android library modules share
+  with `:app`: compileSdk 37, minSdk 26, Compose, Java/Kotlin target 17, the
+  Material 3 Expressive opt-in and `isReturnDefaultValues` for unit tests.
+  `pennywise.android.feature` adds KSP, the Hilt plugin and the Hilt compiler.
+  A module still declares its namespace and every dependency it compiles against.
+  `:app`, `:shared`, `:parser-core` and `:baselineprofile` don't use them; change
+  `:app`'s copy of these settings together with the plugin.
 
 ### `:feature:exchangerates`
 

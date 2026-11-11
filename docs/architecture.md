@@ -438,7 +438,9 @@ reports as artifacts.
 - Its CI job is advisory: it can't fail the workflow.
 - Dependency updates: Renovate (`renovate.json`) opens grouped PRs weekly; the coupled Kotlin/AGP/Hilt/LiteRT-LM/coroutines toolchain and all majors wait for approval on its Dependency Dashboard issue.
 - Unused or mis-scoped dependencies: `./gradlew buildHealth --max-workers=2` (Dependency Analysis plugin, report only). Its known false positives are listed in [architecture-baseline.md](architecture-baseline.md#dependencies).
-- Vulnerable dependencies: the **Dependency Review** PR check fails when a PR adds a dependency with a known high/critical advisory. It's not required for merge yet. `dependency-graph.yml` resolves the Gradle graph and `dependency-graph-submit.yml` submits it after validating it, which lets fork PRs work too.
+- Vulnerable dependencies: Dependency Review fails a PR that adds a dependency with a known high/critical advisory. Neither check is required for merge yet.
+  - Gradle: `dependency-graph.yml` resolves the graph on every PR and `dependency-graph-submit.yml` submits it after validating it, which lets fork PRs work too. Its `review` job then sets the **Dependency Review (Gradle)** commit status. A PR that changes no Gradle dependency input (`*.gradle(.kts)`, `gradle/*.versions.toml`, `build-logic/`, the wrapper properties) gets a success status as soon as its graph is submitted, with no wait. Otherwise the status stays pending until GitHub shows the PR's snapshot, usually 13 to 35 minutes, then reports the review. After 50 minutes without a snapshot it turns to error ("not reviewed"); re-run that job from the status's Details link.
+  - npm and GitHub Actions: `dependency-review.yml` runs the **Dependency Review (npm, Actions)** job only on PRs that touch those manifests or workflows. GitHub reads them itself, so it finishes in seconds.
 
 ## Migration & Evolution
 

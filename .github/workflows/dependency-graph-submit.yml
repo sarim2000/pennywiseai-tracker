@@ -7,6 +7,11 @@
 # `download-and-submit`: that mode POSTs the file's own `ref`/`sha`, so a fork
 # could overwrite main's snapshot. Here a snapshot must name the exact commit
 # the run built, and only a push run from this repo may claim refs/heads/main.
+#
+# For a PR, the `review` job then runs Dependency Review on the Gradle changes
+# and reports it as the "Dependency Review (Gradle)" commit status on the PR's
+# head commit (see that job). Because workflow_run always runs main's copy of
+# this file, a change to it only takes effect once it is merged.
 name: Dependency Graph Submit
 
 on:
@@ -26,6 +31,9 @@ jobs:
     permissions:
       actions: read     # download the triggering run's artifact
       contents: write   # POST /dependency-graph/snapshots
+    outputs:
+      # The PR whose snapshot was submitted; empty for a push to main.
+      pr: ${{ steps.submit.outputs.pr }}
 
     steps:
     - name: Download dependency graph
@@ -37,6 +45,7 @@ jobs:
         path: ${{ runner.temp }}/dependency-graph
 
     - name: Validate and submit
+      id: submit
       env:
         GH_TOKEN: ${{ github.token }}
         REPO: ${{ github.repository }}
@@ -47,6 +56,7 @@ jobs:
         DIR: ${{ runner.temp }}/dependency-graph
       run: |
         set -euo pipefail
+        pr=""
         # A fork's own branch may also be called "main", hence the repo check.
         if [[ "$RUN_EVENT" == push && "$RUN_REPO" == "$REPO" && "$RUN_BRANCH" == main ]]; then
           want_ref=refs/heads/main
@@ -61,7 +71,11 @@ jobs:
           if [[ "$(jq length <<<"$prs")" != 1 ]]; then
             echo "::error::Expected one open PR for $RUN_REPO:$RUN_BRANCH@$RUN_SHA, found $prs"; exit 1
           fi
-          want_ref="refs/pull/$(jq '.[0]' <<<"$prs")/merge"
+          pr=$(jq '.[0]' <<<"$prs")
+          if [[ ! "$pr" =~ ^[0-9]+$ ]]; then
+            echo "::error::Unexpected PR number: $pr"; exit 1
+          fi
+          want_ref="refs/pull/$pr/merge"
         else
           echo "::error::Unexpected run: event=$RUN_EVENT"; exit 1
         fi
@@ -76,3 +90,189 @@ jobs:
           n=$((n + 1))
         done < <(find "$DIR" -type f -name '*.json' -print0)
         if (( n == 0 )); then echo "::error::No dependency graph found"; exit 1; fi
+        echo "pr=$pr" >>"$GITHUB_OUTPUT"
+
+  # Fails the "Dependency Review (Gradle)" status when a PR adds a Gradle
+  # dependency with a known high/critical advisory. Runs here rather than on
+  # pull_request because GitHub takes 13 to 35+ minutes after a snapshot is
+  # accepted to show it to the compare API; a pull_request job would hold a
+  # runner (out of the 20 shared by every workflow) for that long on every PR.
+  # Only PRs that change a Gradle dependency input wait. Others get a success
+  # status straight away. npm and GitHub Actions dependencies, which GitHub
+  # reads itself, are reviewed without waiting by dependency-review.yml.
+  #
+  # No checkout and nothing from the PR is run: it only calls GitHub's API and
+  # the review action with the PR number the submit job validated, the PR's
+  # base commit and the commit that run built.
+  #
+  # Not required for merging (and not in test.yml's `check` job) while it's new:
+  # it depends on two other workflows and on repo settings (Dependency graph), so
+  # a hiccup there would block every PR. On a fork PR it's only a safety net for
+  # honest mistakes: the PR controls the build that produces its own graph.
+  review:
+    name: Review Gradle dependency changes
+    needs: submit
+    if: needs.submit.outputs.pr != ''
+    runs-on: ubuntu-latest
+    # The snapshot deadline (DEADLINE_SECONDS) plus the review itself.
+    timeout-minutes: 60
+    # A newer push to the PR supersedes this commit's review.
+    concurrency:
+      group: dependency-review-gradle-${{ needs.submit.outputs.pr }}
+      cancel-in-progress: true
+    permissions:
+      contents: read        # dependency graph compare API
+      pull-requests: read   # the PR's base and changed files
+      statuses: write       # the result, as a status on the PR's head commit
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PR: ${{ needs.submit.outputs.pr }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      STATUS_CONTEXT: Dependency Review (Gradle)
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+    # Files whose change can change the resolved Gradle graph. pulls/N/files
+    # lists at most 3000 files; a bigger PR is treated as changing them.
+    - name: Check whether the PR changes Gradle dependency inputs
+      id: files
+      env:
+        GRADLE_INPUTS: '(^|/)[^/]+\.gradle(\.kts)?$|(^|/)gradle/[^/]+\.versions\.toml$|^build-logic/|(^|/)gradle/wrapper/gradle-wrapper\.properties$|(^|/)gradle\.lockfile$'
+      run: |
+        set -euo pipefail
+        pr_json=$(gh api "repos/$REPO/pulls/$PR")
+        head=$(jq -r '.head.sha' <<<"$pr_json")
+        if [[ "$head" != "$HEAD_SHA" ]]; then
+          echo "PR #$PR is now at $head; the run for that commit reviews it."
+          echo "gradle=superseded" >>"$GITHUB_OUTPUT"
+          exit 0
+        fi
+        base=$(jq -r '.base.sha' <<<"$pr_json")
+        if [[ ! "$base" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "::error::Unexpected base SHA for PR #$PR: $base"; exit 1
+        fi
+        echo "base=$base" >>"$GITHUB_OUTPUT"
+        changed=$(jq -r '.changed_files' <<<"$pr_json")
+        # A rename's old path counts too: moving a build file away changes the graph.
+        files=$(gh api --paginate "repos/$REPO/pulls/$PR/files?per_page=100" \
+                  --jq '.[] | .filename, (.previous_filename // empty)')
+        if (( changed > 3000 )); then
+          echo "PR #$PR changes $changed files, more than the API lists; reviewing."
+          echo "gradle=true" >>"$GITHUB_OUTPUT"
+        elif matches=$(grep -E "$GRADLE_INPUTS" <<<"$files"); then
+          echo "Gradle dependency inputs changed:"
+          echo "$matches"
+          echo "gradle=true" >>"$GITHUB_OUTPUT"
+        else
+          echo "No Gradle dependency inputs changed."
+          echo "gradle=false" >>"$GITHUB_OUTPUT"
+        fi
+
+    # Wait here rather than with the action's retry-on-snapshot-warnings: the
+    # action runs on whatever diff it has when it gives up, so a missing head
+    # snapshot would pass as "no Gradle changes". We report "not reviewed"
+    # instead. Only a missing head snapshot is worth waiting for. Other
+    # warnings stay, e.g. a PR branched before main had snapshots has none at
+    # its merge base, so the action reports every dependency as added.
+    - name: Wait for the PR's Gradle snapshot
+      id: snapshot
+      if: steps.files.outputs.gradle == 'true'
+      env:
+        BASE_SHA: ${{ steps.files.outputs.base }}
+        DEADLINE_SECONDS: '3000'
+        POLL_SECONDS: '60'
+      run: |
+        set -euo pipefail
+        gh api --method POST "repos/$REPO/statuses/$HEAD_SHA" \
+          -f state=pending -f context="$STATUS_CONTEXT" -f target_url="$RUN_URL" \
+          -f description="Waiting for GitHub to show this commit's Gradle snapshot" >/dev/null
+        deadline=$((SECONDS + DEADLINE_SECONDS))
+        while :; do
+          # Only header lines (before the first blank line), so a body line
+          # can't pose as the header.
+          if raw=$(gh api -i "repos/$REPO/dependency-graph/compare/$BASE_SHA...$HEAD_SHA" \
+                     | tr -d '\r' \
+                     | awk 'NF == 0 { body = 1 } !body && tolower($0) ~ /^x-github-dependency-graph-snapshot-warnings:/ { sub(/^[^:]*:[ ]*/, ""); print }' \
+                     | paste -sd, -); then
+            # Each value is base64-encoded text; gh joins repeated headers with
+            # commas, which base64 never contains, so decode them one by one.
+            warnings=""
+            IFS=',' read -ra values <<<"$raw"
+            for value in ${values[@]+"${values[@]}"}; do
+              value=${value// /}
+              [[ -z "$value" ]] && continue
+              if ! decoded=$(base64 -d <<<"$value" 2>/dev/null); then
+                echo "::warning::Couldn't decode the snapshot warning header ($raw)"
+                echo "result=undecodable" >>"$GITHUB_OUTPUT"
+                exit 0
+              fi
+              warnings+="$decoded"$'\n'
+            done
+            if [[ "$warnings" != *"No snapshots were found for the head SHA"* ]]; then
+              echo "result=ready" >>"$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "Waiting for snapshot: $warnings"
+          else
+            echo "::warning::The dependency graph compare API call failed; retrying."
+          fi
+          if (( SECONDS >= deadline )); then
+            echo "::warning::Gradle snapshot for $HEAD_SHA still isn't visible to GitHub."
+            echo "result=timeout" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sleep "$POLL_SECONDS"
+        done
+
+    - name: Review the Gradle dependency changes
+      id: review
+      if: steps.snapshot.outputs.result == 'ready'
+      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+      with:
+        # Needed outside pull_request events; they take priority over the event.
+        base-ref: ${{ steps.files.outputs.base }}
+        head-ref: ${{ github.event.workflow_run.head_sha }}
+        fail-on-severity: high
+        # GitHub may report the Gradle plugin's dependencies with scope
+        # `unknown`; with the default (`runtime`) those could never fail.
+        fail-on-scopes: runtime, unknown
+        # License policy is a separate decision; vulnerabilities only for now.
+        license-check: false
+        # The result goes to the commit status below and the job summary.
+        comment-summary-in-pr: never
+
+    # Also runs when the job fails or is cancelled (superseded or timed out),
+    # so the PR never keeps a stale "pending". Re-running this job (e.g. after
+    # "not reviewed") is enough: the submit job's output is kept.
+    - name: Report the result on the PR's head commit
+      if: always() && steps.files.outputs.gradle != 'superseded'
+      env:
+        GRADLE: ${{ steps.files.outputs.gradle }}
+        WAIT: ${{ steps.snapshot.outputs.result }}
+        REVIEW: ${{ steps.review.outcome }}
+        VULNERABLE: ${{ steps.review.outputs.vulnerable-changes }}
+      run: |
+        set -euo pipefail
+        rerun="Not reviewed; re-run this job later."
+        if [[ "$GRADLE" == false ]]; then
+          state=success description="No Gradle dependency inputs changed"
+        elif [[ "$GRADLE" != true ]]; then
+          state=error description="Couldn't list the PR's files. $rerun"
+        elif [[ "$WAIT" == timeout ]]; then
+          state=error description="GitHub doesn't show the Gradle snapshot yet. $rerun"
+        elif [[ "$WAIT" == undecodable ]]; then
+          state=error description="Couldn't read GitHub's snapshot warnings. $rerun"
+        elif [[ "$REVIEW" == success ]]; then
+          state=success description="No high/critical advisories in added Gradle dependencies"
+        elif [[ "$REVIEW" == failure ]] && jq -e 'length > 0' <<<"${VULNERABLE:-[]}" >/dev/null 2>&1; then
+          state=failure description="Adds a Gradle dependency with a high/critical advisory"
+        else
+          state=error description="The review didn't finish. $rerun"
+        fi
+        echo "$STATUS_CONTEXT: $state ($description)"
+        gh api --method POST "repos/$REPO/statuses/$HEAD_SHA" \
+          -f state="$state" -f context="$STATUS_CONTEXT" -f target_url="$RUN_URL" \
+          -f description="$description" >/dev/null
+        # Red in the Actions tab too, so "Re-run failed jobs" picks it up.
+        [[ "$state" == success ]]

@@ -51,8 +51,9 @@ class CurrencyConversionServiceOfflineTest {
         )
         val service = CurrencyConversionService(dao, mockk(relaxed = true), mockk<UserPreferencesRepository>(relaxed = true))
 
-        // 10 USD x 0.709 = 7.090 JOD; rounding to 2 places used to show 7.09.
-        assertEquals(BigDecimal("7.090"), service.convertAmountOrNull(BigDecimal("10"), "USD", "JOD"))
+        // Rounding to 2 places used to turn 0.709 into 0.71 and 1.0635 into 1.06.
+        assertEquals(BigDecimal("0.709"), service.convertAmountOrNull(BigDecimal("1"), "USD", "JOD"))
+        assertEquals(BigDecimal("1.064"), service.convertAmountOrNull(BigDecimal("1.5"), "USD", "JOD"))
     }
 
     /**

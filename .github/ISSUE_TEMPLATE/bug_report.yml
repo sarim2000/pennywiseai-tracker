@@ -1,0 +1,90 @@
+name: Bug report
+description: Report a bug or issue with PennyWise
+title: '[BUG] '
+labels: [bug]
+assignees: [sarim2000]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A bank SMS that wasn't picked up or was parsed wrong? Use the **Bank Support Request** form instead.
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: What happened?
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem. Blur or crop out amounts, account numbers and names first.
+
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: "Android: bottom of the More options menu on the Home screen. iPhone: Settings → About PennyWise."
+      placeholder: e.g. 2.1.2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-source
+    attributes:
+      label: Installed from
+      options:
+        - Google Play
+        - F-Droid
+        - IzzyOnDroid
+        - GitHub release APK
+        - App Store (iPhone)
+        - Built from source
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: android-version
+    attributes:
+      label: Android / iOS version
+      description: "Android: Settings → About phone. iPhone: Settings → General → About."
+      placeholder: e.g. Android 13
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: e.g. Pixel 6, Samsung S23
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here.

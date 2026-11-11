@@ -204,7 +204,7 @@ Supporting **173 banks & services** across **26 countries** with **multi-currenc
 **Enpara**
 <!-- SUPPORTED_BANKS:END -->
 
-More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.md)
+More banks being added regularly! [Request your bank →](https://github.com/sarim2000/pennywiseai-tracker/issues/new?template=bank_support_request.yml)
 
 ## Privacy First
 

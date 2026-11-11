@@ -173,6 +173,22 @@ class CategoriesViewModelTest {
     }
 
     @Test
+    fun `renaming a renamed built-in keeps its original identity`() = runTest(scheduler) {
+        val eatingOut = category(3, "Eating Out", isSystem = true).copy(systemName = "Food & Dining")
+        val saved = slot<CategoryEntity>()
+        coEvery { repository.getCategoryByName("Dining") } returns null
+        coEvery { repository.updateCategory(capture(saved), any()) } returns Unit
+        viewModel.showEditDialog(eatingOut)
+
+        viewModel.saveCategory(name = "Dining", color = "#993366", isIncome = false)
+        advanceUntilIdle()
+
+        coVerify { repository.updateCategory(any(), previousName = "Eating Out") }
+        assertEquals("Dining", saved.captured.name)
+        assertEquals("Food & Dining", saved.captured.systemName)
+    }
+
+    @Test
     fun `editing a user category applies the new type and parent`() = runTest(scheduler) {
         val side = category(4, "Side gigs")
         val saved = slot<CategoryEntity>()

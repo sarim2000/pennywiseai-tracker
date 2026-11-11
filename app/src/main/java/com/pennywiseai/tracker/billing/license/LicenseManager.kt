@@ -2,9 +2,9 @@ package com.pennywiseai.tracker.billing.license
 
 import android.os.Build
 import android.util.Log
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.data.preferences.StoredLicense
-import com.pennywiseai.tracker.core.ApplicationScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted

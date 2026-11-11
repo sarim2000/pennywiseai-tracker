@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.receiver
 
-import com.pennywiseai.tracker.utils.withLatinDigits
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -17,6 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -25,21 +25,21 @@ import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.core.ApplicationScope
-import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.forPicker
-import com.pennywiseai.tracker.widget.WidgetRefresher
+import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.withLatinDigits
+import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Translucent activity launched from the txn-alert notification's
@@ -82,7 +82,6 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     // App-lifetime scope so the DB write survives finish() — the activity
     // closes immediately after the user picks.
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
-
 
     // Holds the args from the latest intent (initial or via onNewIntent), so
     // a second notification tap re-targets the picker at the new transaction.

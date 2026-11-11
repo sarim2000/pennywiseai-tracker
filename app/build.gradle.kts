@@ -268,6 +268,7 @@ dependencies {
     implementation(project(":shared"))
     implementation(project(":core:designsystem"))
     implementation(project(":feature:exchangerates"))
+    implementation(project(":feature:learnedcategories"))
     baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.profileinstaller)

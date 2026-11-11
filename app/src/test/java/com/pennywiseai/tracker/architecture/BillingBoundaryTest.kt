@@ -20,16 +20,18 @@ class BillingBoundaryTest {
 
     @Test
     fun `data does not import billing`() {
-        val violations = forbiddenImports(inPackage = "$APP.data")
-            // Allowed only while this file still lives in `data`: it is moving to
-            // `worker`, where importing `billing` is fine. Never add to this.
-            .filterNot { (path, import) ->
-                path.endsWith(WEBHOOK_SCHEDULER) && import == "$APP.billing.EntitlementGate"
-            }
+        val found = forbiddenImports(inPackage = "$APP.data")
+        val violations = found.filterNot { it in ALLOWLIST }
+        val stale = ALLOWLIST.filterNot { it in found }
         assertTrue(
             "data must not import billing. Depend on a core.entitlement contract instead:\n" +
                 violations.joinToString("\n") { (path, import) -> "  $path: import $import" },
             violations.isEmpty(),
+        )
+        assertTrue(
+            "Allowlist entries that no longer violate (fixed, moved or deleted). Delete them:\n" +
+                stale.joinToString("\n") { (path, import) -> "  $path: import $import" },
+            stale.isEmpty(),
         )
     }
 
@@ -65,7 +67,15 @@ class BillingBoundaryTest {
 
     private companion object {
         const val APP = "com.pennywiseai.tracker"
-        const val WEBHOOK_SCHEDULER = "/com/pennywiseai/tracker/data/webhook/WebhookSyncScheduler.kt"
+
+        /**
+         * File path to an import it may keep. Only shrinks: the scheduler is moving
+         * to `worker`, where importing `billing` is fine, and this entry goes with it.
+         */
+        val ALLOWLIST = listOf(
+            "app/src/main/java/com/pennywiseai/tracker/data/webhook/WebhookSyncScheduler.kt" to
+                "$APP.billing.EntitlementGate",
+        )
 
         val productionFiles: List<KoFileDeclaration> by lazy {
             Konsist.scopeFromProduction(moduleName = "app").files

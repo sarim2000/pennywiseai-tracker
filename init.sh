@@ -86,7 +86,7 @@ verify_parser() {
 
 verify_app() {
   run ./gradlew :app:compileStandardDebugKotlin
-  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest
+  run ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest :shared:testAndroidHostTest
 }
 
 case "$TARGET" in

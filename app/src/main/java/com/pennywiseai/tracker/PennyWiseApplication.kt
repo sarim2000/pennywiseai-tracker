@@ -49,7 +49,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     lateinit var categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository
 
     @Inject
-    lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
+    lateinit var scheduledFolderBackupScheduler: com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 
     @Inject
     lateinit var webhookSyncScheduler: WebhookSyncScheduler

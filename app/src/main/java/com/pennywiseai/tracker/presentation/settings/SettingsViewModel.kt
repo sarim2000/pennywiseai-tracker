@@ -36,7 +36,7 @@ import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
-import com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupScheduler
+import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.DeleteAllTransactionsUseCase

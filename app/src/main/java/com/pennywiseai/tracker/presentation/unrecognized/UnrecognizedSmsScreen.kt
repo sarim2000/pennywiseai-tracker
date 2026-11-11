@@ -29,8 +29,9 @@ import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.domain.model.draft
 import com.pennywiseai.tracker.navigation.AddTransaction
-import com.pennywiseai.tracker.navigation.draft
+import com.pennywiseai.tracker.navigation.toRoute
 import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
@@ -239,7 +240,7 @@ fun UnrecognizedSmsScreen(
                             suggestion = suggestions[message.id]?.transaction,
                             onAddSuggestion = {
                                 suggestions[message.id]?.let {
-                                    if (it.taught) viewModel.addTaught(message) else onAddSuggestion(it.draft())
+                                    if (it.taught) viewModel.addTaught(message) else onAddSuggestion(it.draft().toRoute())
                                 }
                             },
                             formatChanged = message.id in formatChanged,

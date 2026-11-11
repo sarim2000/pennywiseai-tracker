@@ -1,10 +1,9 @@
-package com.pennywiseai.tracker.navigation
+package com.pennywiseai.tracker.domain.model
 
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
-import com.pennywiseai.tracker.domain.model.Suggestion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

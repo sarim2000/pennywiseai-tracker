@@ -28,9 +28,9 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.model.Suggestion
+import com.pennywiseai.tracker.domain.model.draft
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
-import com.pennywiseai.tracker.navigation.draft
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.BalanceDiscrepancy

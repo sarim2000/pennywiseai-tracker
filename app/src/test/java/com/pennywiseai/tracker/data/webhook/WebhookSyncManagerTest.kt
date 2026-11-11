@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.data.webhook
 
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.repository.WebhookRepository
-import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.entitlement.ProEntitlement
 import kotlinx.coroutines.flow.MutableStateFlow
 import io.mockk.*
 import io.ktor.client.engine.mock.respond
@@ -16,7 +16,7 @@ class WebhookSyncManagerTest {
     private val builder = mockk<WebhookPayloadBuilder>()
     private val delivery = mockk<WebhookDeliveryService>()
     private val pro = MutableStateFlow(true)
-    private val gate = mockk<EntitlementGate> { every { isProEntitled } returns pro }
+    private val gate = mockk<ProEntitlement> { every { isProEntitled } returns pro }
     private val manager = WebhookSyncManager(repository, builder, delivery, gate)
     private val profile = WebhookProfileEntity(id = "profile", name = "Test", url = "https://example.com/hook")
     private val end = LocalDateTime.of(2026, 1, 1, 12, 0)

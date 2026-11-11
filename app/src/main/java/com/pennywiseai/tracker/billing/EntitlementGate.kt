@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.billing
 
 import com.pennywiseai.tracker.billing.license.LicenseManager
 import com.pennywiseai.tracker.core.ApplicationScope
+import com.pennywiseai.tracker.core.entitlement.ProEntitlement
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -31,10 +32,10 @@ class EntitlementGate @Inject constructor(
     entitlementSource: EntitlementSource,
     licenseManager: LicenseManager,
     @ApplicationScope scope: CoroutineScope,
-) {
+) : ProEntitlement {
 
     /** Null while caches load, so background schedules do not treat startup as revocation. */
-    val resolvedProEntitlement: StateFlow<Boolean?> =
+    override val resolvedProEntitlement: StateFlow<Boolean?> =
         combine(entitlementSource.isPro, entitlementSource.isInitialized,
             licenseManager.resolvedLicenseEntitlement) { play, initialized, license ->
             when {
@@ -46,7 +47,7 @@ class EntitlementGate @Inject constructor(
             if (entitlementSource.isPro.value || licenseManager.isLicensed.value) true else null)
 
     /** `true` when the user owns an active Pro SKU or a valid license key. */
-    val isProEntitled: StateFlow<Boolean> =
+    override val isProEntitled: StateFlow<Boolean> =
         resolvedProEntitlement.map { it == true }
             .stateIn(
                 scope,

@@ -9,7 +9,7 @@ import android.util.Log
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
-import com.pennywiseai.tracker.billing.license.LicenseManager
+import com.pennywiseai.tracker.core.entitlement.LicenseRestorer
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -30,7 +30,7 @@ class BackupImporter @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: PennyWiseDatabase,
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val licenseManager: LicenseManager,
+    private val licenseRestorer: LicenseRestorer,
     private val ignoredAccountsStore: IgnoredAccountsStore
 ) {
     
@@ -1037,7 +1037,7 @@ class BackupImporter @Inject constructor(
         // never clobber a key the user already activated here.
         preferences.app.licenseKey?.let { key ->
             if (userPreferencesRepository.storedLicense.first() == null) {
-                licenseManager.restore(key, preferences.app.licenseInstanceId)
+                licenseRestorer.restore(key, preferences.app.licenseInstanceId)
             }
         }
     }

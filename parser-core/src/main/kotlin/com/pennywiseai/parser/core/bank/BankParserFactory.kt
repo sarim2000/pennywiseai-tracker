@@ -174,7 +174,8 @@ object BankParserFactory {
         NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
         NDBBankParser(),  // National Development Bank / NDB (Sri Lanka)
         ComBankParser(),  // Commercial Bank of Ceylon / ComBank (Sri Lanka) (#848)
-        CityBankBangladeshParser(), // City Bank PLC (Bangladesh)
+        CityBankBangladeshParser(),
+        IFICBangladeshParser(),  // IFIC Bank (Bangladesh) // City Bank PLC (Bangladesh)
         BRACBankParser(),  // BRAC Bank (Bangladesh) (#943)
         BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)

@@ -52,6 +52,7 @@ import com.pennywiseai.tracker.ui.theme.teal_light
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDate
+import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 
 // ── Accounts & categories ──
 
@@ -106,8 +107,8 @@ internal fun AccountsPage(
             icon = Icons.Default.Lightbulb,
             iconBgColor = orange_light,
             iconTint = orange_dark,
-            title = stringResource(R.string.learned_categories_title),
-            subtitle = stringResource(R.string.learned_categories_subtitle),
+            title = stringResource(LearnedCategoriesR.string.learned_categories_title),
+            subtitle = stringResource(LearnedCategoriesR.string.learned_categories_subtitle),
             onClick = { onNavigate(LearnedCategories) },
             position = ListItemPosition.Middle
         )

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.di
 
+import com.pennywiseai.tracker.core.ApplicationScope
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.ExchangeRateProvider
 import com.pennywiseai.tracker.data.currency.ExchangeRateProviderFactory
@@ -9,21 +10,10 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Qualifier
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-
-/**
- * Qualifier for an application-lifetime [CoroutineScope] — use this for
- * fire-and-forget work that must outlive the calling Activity/ViewModel
- * (e.g. a DB write started from a transient activity that finishes
- * immediately after).
- */
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ApplicationScope
+import javax.inject.Singleton
 
 /**
  * Hilt module that provides application-level dependencies.
@@ -44,14 +34,6 @@ object ApplicationModule {
     }
 
     /**
-     * Provides the CurrencyConversionService.
-     *
-     * @param exchangeRateDao Database access for exchange rates
-     * @param exchangeRateProvider Provider for fetching rates from API
-     * @param userPreferencesRepository User preferences for base currency
-     * @return CurrencyConversionService for currency conversion operations
-     */
-    /**
      * Application-lifetime [CoroutineScope] for fire-and-forget work that
      * must outlive its launching component. SupervisorJob so a single failed
      * child doesn't take the scope down.
@@ -62,6 +44,14 @@ object ApplicationModule {
     fun provideApplicationScope(): CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /**
+     * Provides the CurrencyConversionService.
+     *
+     * @param exchangeRateDao Database access for exchange rates
+     * @param exchangeRateProvider Provider for fetching rates from API
+     * @param userPreferencesRepository User preferences for base currency
+     * @return CurrencyConversionService for currency conversion operations
+     */
     @Provides
     @Singleton
     fun provideCurrencyConversionService(

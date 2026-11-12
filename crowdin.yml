@@ -46,6 +46,10 @@ files:
     translation: /feature/exchangerates/src/main/res/values-%android_code%/%original_file_name%
     skip_untranslated_strings: true
     languages_mapping: *android_langs
+  - source: /feature/learnedcategories/src/main/res/values/strings*.xml
+    translation: /feature/learnedcategories/src/main/res/values-%android_code%/%original_file_name%
+    skip_untranslated_strings: true
+    languages_mapping: *android_langs
 
   # Store listing: only ship fully-translated files, so a non-English listing
   # never shows English copy.

@@ -1129,7 +1129,7 @@
         errorLine1="    modifier: Modifier = Modifier"
         errorLine2="    ~~~~~~~~">
         <location
-            file="src/main/java/com/pennywiseai/tracker/ui/components/SmsParsingProgressDialog.kt"
+            file="src/main/java/com/pennywiseai/tracker/presentation/home/SmsParsingProgressDialog.kt"
             line="39"
             column="5"/>
     </issue>

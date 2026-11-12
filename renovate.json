@@ -1,0 +1,90 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Weekly, grouped dependency updates. Toolchain pieces with documented version couplings (gradle/libs.versions.toml comments) wait for approval on the Dependency Dashboard issue.",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "labels": [
+    "dependencies"
+  ],
+  "packageRules": [
+    {
+      "description": "One PR for all non-major Gradle updates.",
+      "matchManagers": [
+        "gradle"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "Gradle dependencies (non-major)"
+    },
+    {
+      "description": "One PR for all non-major npm updates (relay, dashboard, web, scripts).",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "npm dependencies (non-major)"
+    },
+    {
+      "description": "No lockfile here, so bump the manifest range or in-range releases never show up.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchFileNames": [
+        "pennywise-web/package.json",
+        "scripts/content-mine/package.json"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Keeps the SHA pins and their version comments current.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Coupled toolchain (Kotlin, KSP, Konsist, AGP, Hilt, LiteRT-LM, coroutines): bump together, majors included, by approval only.",
+      "matchPackageNames": [
+        "/^org\\.jetbrains\\.kotlin[.:]/",
+        "/^com\\.google\\.devtools\\.ksp/",
+        "com.lemonappdev:konsist",
+        "/^com\\.android\\.(application|library|test|kotlin\\.multiplatform\\.library)\\b/",
+        "/^com\\.google\\.dagger/",
+        "/^com\\.google\\.ai\\.edge\\.litertlm/",
+        "/^org\\.jetbrains\\.kotlinx:kotlinx-coroutines/"
+      ],
+      "groupName": "Kotlin toolchain",
+      "dependencyDashboardApproval": true,
+      "separateMajorMinor": false
+    },
+    {
+      "description": "Gradle wrapper, CI JDK and the web Dockerfile's Gradle/Temurin images move with the toolchain.",
+      "matchPackageNames": [
+        "gradle",
+        "java-jdk",
+        "eclipse-temurin"
+      ],
+      "groupName": "Kotlin toolchain",
+      "dependencyDashboardApproval": true,
+      "separateMajorMinor": false
+    },
+    {
+      "description": "Major updates wait for approval on the Dependency Dashboard.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ]
+}

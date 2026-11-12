@@ -17,6 +17,9 @@ in `:app`; [architecture.md](architecture.md#coredesignsystem) says why. The fou
 `data/share`, `SubscriptionRepository` calls `SharedCategoryMapping` directly, and
 the import-statement and webhook-validation errors are a plain `core.ResText` that
 the ViewModels turn into `UiText`. `ArchitectureTest` now forbids `data` → `ui`.
+The `ApplicationScope` qualifier moved from `di` to `core` (refactor PR C1), which
+removes the `domain` → `di` back-edge and the `billing`, `data`, `domain` and
+`presentation` ↔ `di` cycles.
 
 Re-check the package graph with:
 

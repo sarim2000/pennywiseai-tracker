@@ -1,4 +1,6 @@
 pluginManagement {
+    // Convention plugins (pennywise.android.*), see docs/architecture.md.
+    includeBuild("build-logic")
     repositories {
         google {
             content {
@@ -28,5 +30,6 @@ include(":parser-core")
 include(":shared")
 include(":core:designsystem")
 include(":feature:exchangerates")
+include(":feature:learnedcategories")
 include(":iosApp")
 include(":baselineprofile")

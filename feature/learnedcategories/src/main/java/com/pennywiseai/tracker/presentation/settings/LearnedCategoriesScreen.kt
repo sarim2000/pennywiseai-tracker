@@ -1,12 +1,13 @@
 package com.pennywiseai.tracker.presentation.settings
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,12 +22,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
-import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
-import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
-import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.feature.learnedcategories.R
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -43,31 +39,41 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class LearnedCategoriesViewModel @Inject constructor(
-    private val repository: MerchantMappingRepository
+    private val data: LearnedCategoriesData
 ) : ViewModel() {
-    val mappings: StateFlow<List<MerchantMappingEntity>?> = repository.getAllMappings()
+    val mappings: StateFlow<List<LearnedCategory>?> = data.observeLearnedCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun remove(merchantName: String) {
-        viewModelScope.launch { repository.removeMapping(merchantName) }
+        viewModelScope.launch { data.removeLearnedCategory(merchantName) }
     }
 }
 
+/**
+ * The app's shared pieces come in as parameters, so this module needs nothing from
+ * :app. `navigation/LearnedCategoriesEntry.kt` in :app supplies them.
+ *
+ * @param scaffold the app's scaffold, given the title and the content. It owns the
+ *   top bar and the back button.
+ * @param groupedRow one row of the app's grouped list, given the row's index, the
+ *   list size, a modifier for the row and its content.
+ * @param categoryLabel a category name as the user should read it.
+ */
 @Composable
 fun LearnedCategoriesScreen(
-    onNavigateBack: () -> Unit,
+    scaffold: @Composable (title: String, content: @Composable (PaddingValues) -> Unit) -> Unit,
+    groupedRow: @Composable (
+        index: Int,
+        size: Int,
+        modifier: Modifier,
+        content: @Composable RowScope.() -> Unit,
+    ) -> Unit,
+    categoryLabel: @Composable (category: String) -> String,
     viewModel: LearnedCategoriesViewModel = hiltViewModel()
 ) {
     val mappings by viewModel.mappings.collectAsStateWithLifecycle()
-    PennyWiseScaffold(
-        title = stringResource(R.string.learned_categories_title),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
-            }
-        }
-    ) { innerPadding ->
-        val list = mappings ?: return@PennyWiseScaffold
+    scaffold(stringResource(R.string.learned_categories_title)) { innerPadding ->
+        val list = mappings ?: return@scaffold
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(innerPadding),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(Spacing.md),
@@ -84,11 +90,11 @@ fun LearnedCategoriesScreen(
                 )
             }
             itemsIndexed(list, key = { _, m -> m.merchantName }) { index, mapping ->
-                GroupedRow(position = ListItemPosition.from(index, list.size), modifier = Modifier.animateItem()) {
+                groupedRow(index, list.size, Modifier.animateItem()) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(mapping.merchantName, style = MaterialTheme.typography.bodyLarge)
                         Text(
-                            com.pennywiseai.tracker.ui.icons.categoryLabel(mapping.category),
+                            categoryLabel(mapping.category),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

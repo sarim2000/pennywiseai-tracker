@@ -5,29 +5,29 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.manager.ModelDownloader
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -43,9 +43,8 @@ class ChatViewModel @Inject constructor(
     categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val modelDownloader: ModelDownloader,
-    @com.pennywiseai.tracker.di.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
+    @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
 ) : ViewModel() {
-
 
     val downloadProgress: StateFlow<Int> = modelDownloader.progress
         .map { (it.downloadedBytes * 100 / it.totalBytes.coerceAtLeast(1)).toInt() }
@@ -59,9 +58,8 @@ class ChatViewModel @Inject constructor(
         .map { it.totalBytes / BYTES_PER_MB }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), Constants.ModelDownload.MODEL_SIZE_MB)
 
-    
     private val _contextMessage = MutableStateFlow<ChatMessage?>(null)
-    
+
     val messages: StateFlow<List<ChatMessage>> = combine(
         llmRepository.getAllMessages(),
         _contextMessage
@@ -78,7 +76,7 @@ class ChatViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-    
+
     val modelState: StateFlow<ModelState> = modelRepository.modelState
         .stateIn(
             scope = viewModelScope,
@@ -87,20 +85,20 @@ class ChatViewModel @Inject constructor(
             // (up to ~300 ms on a phone). refreshModelState() resolves it on IO.
             initialValue = ModelState.LOADING
         )
-    
+
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
-    
+
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()
-    
+
     val isDeveloperModeEnabled = userPreferencesRepository.isDeveloperModeEnabled
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = false
         )
-    
+
     // Developer stats: what the model's window holds, as LiteRT-LM counts it.
     val chatStats = combine(llmRepository.getAllMessages(), llmRepository.contextTokens) { visible, tokens ->
         ChatStats(
@@ -139,7 +137,7 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-    
+
     private suspend fun loadContextMessage() {
         val contextMessage = llmRepository.getFormattedContextForDisplay()
         _contextMessage.value = ChatMessage(
@@ -148,7 +146,7 @@ class ChatViewModel @Inject constructor(
             isSystemPrompt = false
         )
     }
-    
+
     // Transaction the model proposed; shown as a confirm card (#170). Nothing
     // is written until the user taps Add.
     val pendingAction: StateFlow<com.pennywiseai.tracker.data.model.PendingChatAction?> = llmRepository.pendingAction
@@ -304,7 +302,7 @@ class ChatViewModel @Inject constructor(
                 error = null
             )
             _currentResponse.value = ""
-            
+
             val tap = System.nanoTime()
             var firstShown = false
             try {
@@ -325,7 +323,7 @@ class ChatViewModel @Inject constructor(
                         _currentResponse.value = if (partialResponse == LlmRepository.RESET_REPLY) "" else _currentResponse.value + partialResponse
                     }
                 android.util.Log.i(LlmRepository.TIMING, "reply=${(System.nanoTime() - tap) / 1_000_000}ms")
-                
+
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 _currentResponse.value = ""
             } catch (e: Exception) {
@@ -338,7 +336,7 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-    
+
     /** M8: answered by code, so it works before the model loads. Shares the send's job: clearing stops it too. */
     fun runQuickAction(action: com.pennywiseai.tracker.data.repository.QuickAction) {
         if (_uiState.value.isLoading || _isConfirming.value) return
@@ -370,7 +368,7 @@ class ChatViewModel @Inject constructor(
             loadContextMessage()
         }
     }
-    
+
     // The checks match LlmRepository's own (untranslated) exception messages. Anything else
     // is LiteRT-LM's raw text, which can quote the prompt: never shown, class logged only.
     private fun sendErrorText(error: Throwable, @androidx.annotation.StringRes fallback: Int): UiText? {

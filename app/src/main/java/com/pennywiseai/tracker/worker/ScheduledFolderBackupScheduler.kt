@@ -1,11 +1,11 @@
-package com.pennywiseai.tracker.backup.folder
+package com.pennywiseai.tracker.worker
 
 import android.content.Context
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.pennywiseai.tracker.worker.ScheduledFolderBackupWorker
+import com.pennywiseai.tracker.backup.folder.ScheduledFolderBackupConstants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
 import java.time.LocalDateTime

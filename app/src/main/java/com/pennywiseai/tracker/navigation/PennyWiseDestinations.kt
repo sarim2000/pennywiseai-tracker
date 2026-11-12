@@ -180,8 +180,8 @@ data class TransactionsWithFilter(
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
 
-// Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq,
-// UnrecognizedSms and ImportStatement live only there).
+// Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
+// and ImportStatement live only there; UnrecognizedSms also opens on the root stack).
 @Serializable
 data object Subscriptions : NavKey
 

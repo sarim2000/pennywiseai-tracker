@@ -243,9 +243,13 @@ jobs:
           sleep "$POLL_SECONDS"
         done
 
+    # The action can't filter by ecosystem, so it fails on any advisory; the
+    # report step below keeps only Gradle (`maven`) ones. dependency-review.yml
+    # reports the rest.
     - name: Review the Gradle dependency changes
       id: review
       if: steps.snapshot.outputs.result == 'ready'
+      continue-on-error: true
       uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
       with:
         # Needed outside pull_request events; they take priority over the event.
@@ -285,8 +289,13 @@ jobs:
           state=error description="Couldn't read GitHub's snapshot warnings. $rerun"
         elif [[ "$REVIEW" == success ]]; then
           state=success description="No high/critical advisories in added Gradle dependencies"
-        elif [[ "$REVIEW" == failure ]] && jq -e 'length > 0' <<<"${VULNERABLE:-[]}" >/dev/null 2>&1; then
-          state=failure description="Adds a Gradle dependency with a high/critical advisory"
+        elif [[ "$REVIEW" == failure ]] && jq -e 'type == "array" and length > 0' <<<"${VULNERABLE:-null}" >/dev/null 2>&1; then
+          # Advisories in other ecosystems fail the review too; they're not ours to report.
+          if jq -e 'any(.[]; .ecosystem == "maven")' <<<"$VULNERABLE" >/dev/null; then
+            state=failure description="Adds a Gradle dependency with a high/critical advisory"
+          else
+            state=success description="No high/critical advisories in added Gradle dependencies"
+          fi
         else
           state=error description="The review didn't finish. $rerun"
         fi

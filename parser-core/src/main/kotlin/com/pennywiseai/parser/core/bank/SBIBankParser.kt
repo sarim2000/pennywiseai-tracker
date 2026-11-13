@@ -16,30 +16,30 @@ class SBIBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("SBI") ||
-                normalizedSender.contains("SBIINB") ||
-                normalizedSender.contains("SBIUPI") ||
-                normalizedSender.contains("SBICRD") ||
-                normalizedSender.contains("ATMSBI") ||
-                // Direct sender IDs
-                normalizedSender == "SBIBK" ||
-                normalizedSender == "SBIBNK" ||
-                // SBI Card RCS sender
-                normalizedSender.contains("SBI CARDS") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-S$")) ||
-                // Other DLT patterns (OTP, Promotional, Govt)
-                normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-[TPG]$")) ||
-                // Legacy patterns without suffix
-                normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SBI$"))
+            normalizedSender.contains("SBIINB") ||
+            normalizedSender.contains("SBIUPI") ||
+            normalizedSender.contains("SBICRD") ||
+            normalizedSender.contains("ATMSBI") ||
+            // Direct sender IDs
+            normalizedSender == "SBIBK" ||
+            normalizedSender == "SBIBNK" ||
+            // SBI Card RCS sender
+            normalizedSender.contains("SBI CARDS") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-S$")) ||
+            // Other DLT patterns (OTP, Promotional, Govt)
+            normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK-[TPG]$")) ||
+            // Legacy patterns without suffix
+            normalizedSender.matches(Regex("^[A-Z]{2}-SBIBK$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-SBI$"))
     }
 
     // Check if this is a credit card message
     private fun isCreditCardMessage(sender: String, message: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender.contains("SBICRD") ||
-                upperSender.contains("SBI CARDS") ||
-                message.contains("Credit Card", ignoreCase = true)
+            upperSender.contains("SBI CARDS") ||
+            message.contains("Credit Card", ignoreCase = true)
     }
 
     // Extract credit card last 4 digits
@@ -75,12 +75,12 @@ class SBIBankParser : BaseIndianBankParser() {
             val transactionType = when {
                 // Payment TO credit card (reducing debt)
                 normalizedBody.contains("payment of", ignoreCase = true) &&
-                        normalizedBody.contains("credited to your SBI Credit Card", ignoreCase = true) -> {
+                    normalizedBody.contains("credited to your SBI Credit Card", ignoreCase = true) -> {
                     TransactionType.INCOME  // Payment received by credit card
                 }
                 // Credit card spending
                 normalizedBody.contains("spent on", ignoreCase = true) ||
-                        normalizedBody.contains("spent", ignoreCase = true) -> {
+                    normalizedBody.contains("spent", ignoreCase = true) -> {
                     TransactionType.CREDIT  // Credit card expense
                 }
                 // Default for other credit card transactions
@@ -562,6 +562,12 @@ class SBIBankParser : BaseIndianBankParser() {
             return false
         }
 
+        // Skip SBI Card "Bill Pay Alert" / "Fetch and Pay" reminders: a biller's
+        // bill is due, no money has moved yet (#1255).
+        if (lowerMessage.contains("bill pay alert") || lowerMessage.contains("fetch and pay bill")) {
+            return false
+        }
+
         // Skip credit card application status messages
         if (lowerMessage.contains("sbi card application") ||
             lowerMessage.contains("process your app.no") ||
@@ -610,8 +616,8 @@ class SBIBankParser : BaseIndianBankParser() {
     fun isUPIMandateNotification(message: String): Boolean {
         val lowerMessage = message.lowercase()
         return lowerMessage.contains("upi-mandate") ||
-                lowerMessage.contains("upi mandate") ||
-                (lowerMessage.contains("mandate") && lowerMessage.contains("created") && lowerMessage.contains("upi"))
+            lowerMessage.contains("upi mandate") ||
+            (lowerMessage.contains("mandate") && lowerMessage.contains("created") && lowerMessage.contains("upi"))
     }
 
     /**
@@ -702,5 +708,3 @@ class SBIBankParser : BaseIndianBankParser() {
         override val dateFormat = "dd-MMM-yy"
     }
 }
-
-

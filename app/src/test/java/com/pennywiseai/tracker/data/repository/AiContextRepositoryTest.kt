@@ -8,7 +8,9 @@ import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -30,6 +32,7 @@ class AiContextRepositoryTest {
     private lateinit var repository: AiContextRepository
 
     private var transactionsList = mutableListOf<TransactionEntity>()
+    private val splitsById = mutableMapOf<Long, List<TransactionSplitEntity>>()
 
     // Zero-dependency stub context using concrete ContextWrapper to satisfy compiler
     class FakeContext : ContextWrapper(null) {
@@ -44,6 +47,7 @@ class AiContextRepositoryTest {
     @Before
     fun setUp() = runBlocking {
         transactionsList.clear()
+        splitsById.clear()
 
         // Create JDK dynamic proxies for the DAOs to avoid any external mocking dependencies
         transactionDao = Proxy.newProxyInstance(
@@ -104,11 +108,12 @@ class AiContextRepositoryTest {
 
         repository = AiContextRepository(
             transactionDao = transactionDao,
-            // Unused by these tests: only compareSpending reads splits.
-            transactionSplitDao = Proxy.newProxyInstance(
-                com.pennywiseai.tracker.data.database.dao.TransactionSplitDao::class.java.classLoader,
-                arrayOf(com.pennywiseai.tracker.data.database.dao.TransactionSplitDao::class.java)
-            ) { _, _, _ -> error("unused") } as com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
+            // Category spending reads the same rows with their splits.
+            transactionSplitDao = io.mockk.mockk {
+                io.mockk.every { getTransactionsWithSplitsAllCurrencies(any(), any()) } answers {
+                    kotlinx.coroutines.flow.flowOf(transactionsList.map { TransactionWithSplits(it, splitsById[it.id].orEmpty()) })
+                }
+            },
             userPreferencesRepository = userPreferencesRepository,
             currencyConversionService = currencyConversionService,
             loanRepository = io.mockk.mockk(),
@@ -192,6 +197,36 @@ class AiContextRepositoryTest {
         assertNotNull(foodCat)
         assertEquals(BigDecimal("100.00"), foodCat.amount)
         assertEquals(100.0f, foodCat.percentage, 0.01f)
+    }
+
+    @Test
+    fun `getCategorySpending counts each split share under its own category`() = runBlocking {
+        val split = createTransaction(amount = BigDecimal("10000.00"), currency = "INR", category = "Others").copy(id = 1)
+        val plain = createTransaction(amount = BigDecimal("313.62"), currency = "INR", category = "Shopping").copy(id = 2)
+        transactionsList.addAll(listOf(split, plain))
+        splitsById[1] = listOf(
+            TransactionSplitEntity(transactionId = 1, category = "Others", amount = BigDecimal("7000.00")),
+            TransactionSplitEntity(transactionId = 1, category = "Shopping", amount = BigDecimal("3000.00"))
+        )
+
+        val shopping = assertNotNull(repository.getCategorySpending("Shopping"))
+        assertEquals(BigDecimal("3313.62"), shopping.amount)
+        assertEquals(2, shopping.transactionCount)
+        val others = assertNotNull(repository.getCategorySpending("Others"))
+        assertEquals(BigDecimal("7000.00"), others.amount)
+        assertEquals(1, others.transactionCount)
+    }
+
+    @Test
+    fun `getCategorySpending ignores excluded transactions and leaves unsplit rows whole`() = runBlocking {
+        transactionsList.addAll(listOf(
+            createTransaction(amount = BigDecimal("250.00"), currency = "INR", category = "Food"),
+            createTransaction(amount = BigDecimal("900.00"), currency = "INR", category = "Food").copy(excludedFromAnalytics = true)
+        ))
+
+        val food = assertNotNull(repository.getCategorySpending("Food"))
+        assertEquals(BigDecimal("250.00"), food.amount)
+        assertEquals(1, food.transactionCount)
     }
 
     private fun createTransaction(

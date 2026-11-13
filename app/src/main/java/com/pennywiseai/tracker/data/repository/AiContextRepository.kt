@@ -109,10 +109,11 @@ class AiContextRepository @Inject constructor(
         val startOfMonth = yearMonth.atDay(1)
         val endOfMonth = yearMonth.atEndOfMonth()
 
-        val transactions = transactionDao.getTransactionsBetweenDatesList(
+        // With splits, as Analytics reads them: a split row counts each share under its own category.
+        val transactions = transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
             startOfMonth.atStartOfDay(),
             endOfMonth.atTime(23, 59, 59)
-        ).forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
+        ).first().forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
 
         // Group by category and calculate spending
         val categoryMap = mutableMapOf<String, MutableList<BigDecimal>>()
@@ -120,16 +121,17 @@ class AiContextRepository @Inject constructor(
 
         transactions
             // Credit counts as expense, as in getMonthSummary: a category can't total less than its spends.
-            .filter { it.transactionType == TransactionType.EXPENSE || it.transactionType == TransactionType.CREDIT }
-            .forEach { transaction ->
-                val category = transaction.category ?: "Others"
-                val convertedAmount = currencyConversionService.convertAmountOrNull(
-                    amount = transaction.amount,
-                    fromCurrency = transaction.currency,
-                    toCurrency = baseCurrency
-                ) ?: return@forEach // skip unconvertible rather than face-value (#670)
-                categoryMap.getOrPut(category) { mutableListOf() }.add(convertedAmount)
-                totalExpense = totalExpense.add(convertedAmount)
+            .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
+            .forEach { row ->
+                row.getAmountByCategory().forEach { (category, amount) ->
+                    val convertedAmount = currencyConversionService.convertAmountOrNull(
+                        amount = amount,
+                        fromCurrency = row.transaction.currency,
+                        toCurrency = baseCurrency
+                    ) ?: return@forEach // skip unconvertible rather than face-value (#670)
+                    categoryMap.getOrPut(category) { mutableListOf() }.add(convertedAmount)
+                    totalExpense = totalExpense.add(convertedAmount)
+                }
             }
 
         return categoryMap.map { (category, amounts) ->

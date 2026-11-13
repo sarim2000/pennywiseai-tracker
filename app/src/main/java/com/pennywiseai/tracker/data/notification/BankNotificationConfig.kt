@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.receiver
+package com.pennywiseai.tracker.data.notification
 
 import android.app.Notification
 import android.content.Context

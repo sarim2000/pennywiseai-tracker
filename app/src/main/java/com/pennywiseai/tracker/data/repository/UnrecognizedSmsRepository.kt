@@ -1,9 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
-import android.content.Context
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
-import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
-import dagger.hilt.android.qualifiers.ApplicationContext
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import kotlinx.coroutines.flow.Flow
 import java.time.Duration
@@ -16,30 +13,30 @@ import javax.inject.Singleton
  */
 @Singleton
 class UnrecognizedSmsRepository @Inject constructor(
-    @param:ApplicationContext private val context: Context,
-    private val dao: UnrecognizedSmsDao
+    private val dao: UnrecognizedSmsDao,
+    private val alerts: UnrecognizedSmsAlerts
 ) {
-    
+
     /**
      * Get count of unreported messages
      */
     fun getUnreportedCount(): Flow<Int> = dao.getUnreportedCount()
-    
+
     /**
      * Get all unreported messages
      */
     fun getAllUnreported(): Flow<List<UnrecognizedSmsEntity>> = dao.getAllUnreported()
-    
+
     /**
      * Get all visible messages (including reported, excluding deleted)
      */
     fun getAllVisible(): Flow<List<UnrecognizedSmsEntity>> = dao.getAllVisible()
-    
+
     /**
      * Get first unreported message
      */
     suspend fun getFirstUnreported(): UnrecognizedSmsEntity? = dao.getFirstUnreported()
-    
+
     /**
      * Insert a new unrecognized SMS
      */
@@ -74,13 +71,13 @@ class UnrecognizedSmsRepository @Inject constructor(
             ?: dao.insert(UnrecognizedSmsEntity(sender = sender, smsBody = body, receivedAt = receivedAt)).takeIf { it > 0 }
             ?: return
         dao.softDeleteById(id)
-        SmsBroadcastReceiver.cancelSuggestion(context, id)
+        alerts.cancel(id)
     }
 
     suspend fun insertAll(smsList: List<UnrecognizedSmsEntity>) {
         dao.insertAll(smsList)
     }
-    
+
     /**
      * Mark messages as reported
      */
@@ -89,7 +86,7 @@ class UnrecognizedSmsRepository @Inject constructor(
             dao.markAsReported(ids)
         }
     }
-    
+
     /**
      * Clean up old entries (older than 30 days)
      */
@@ -97,24 +94,24 @@ class UnrecognizedSmsRepository @Inject constructor(
         val cutoffDate = LocalDateTime.now().minusDays(30)
         dao.deleteOldEntries(cutoffDate)
     }
-    
+
     /**
      * Delete all entries
      */
     suspend fun deleteAll() {
         dao.deleteAll()
         // A discarded message's suggestion alert must not reopen it (#994).
-        SmsBroadcastReceiver.cancelAllSuggestions(context)
+        alerts.cancelAll()
     }
-    
+
     /**
      * Soft delete a specific message by ID
      */
     suspend fun deleteMessage(id: Long) {
         dao.softDeleteById(id)
-        SmsBroadcastReceiver.cancelSuggestion(context, id)
+        alerts.cancel(id)
     }
-    
+
     companion object {
         /** Identical text this close together is one SMS delivered or stamped twice, not a second payment. */
         val REDELIVERY_WINDOW: Duration = Duration.ofMinutes(2)

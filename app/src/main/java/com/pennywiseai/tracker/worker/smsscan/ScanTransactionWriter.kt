@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.mapper.DeferredBalanceInput
 import com.pennywiseai.tracker.data.mapper.atEnqueuedAccount
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -28,7 +29,6 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.utils.BalanceCalculator
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.CancellationException
@@ -344,7 +344,7 @@ internal class ScanTransactionWriter(
         }
 
         val isCreditCard = card?.cardType == CardType.CREDIT ||
-                parsed.type.toEntityType() == TransactionType.CREDIT
+            parsed.type.toEntityType() == TransactionType.CREDIT
 
         val existing = accountBalanceRepository.getLatestBalance(parsed.bankName, targetAccount)
 
